@@ -1,0 +1,38 @@
+Tcl App directory
+
+This directory is the top-level directory for all Vivaod Tcl Apps.
+
+Apps are organized by providers, where a provider is a company.
+Under the provider directory apps are contained within individual
+directories.
+
+XilinxTclStore/
+  tclapp/
+    xilinx/
+      utils/   # utils app from Xilinx
+        tcl files # all tcl sources for utils
+        test/  # testing directory
+    mycompany/
+      myapp/   # some app from mycompany
+        tcl files # all tcl files for myapp
+        test/  # testing directory
+
+The 'mycompany' provider is included as an example, please see 
+README files in the various directories under this provider for
+instructions on how to add new apps.
+
+================================================================
+ADDING A NEW PROVIDER
+================================================================
+1. Create a directory with provider name immediately under the tclapp
+   directory
+
+% mkdir <provider>
+% cd provider
+
+2. Copy the mycompany/pkgIndex.tcl to this directory, do *not* edit.
+% cp mycompany/pkgIndex.tcl .
+
+3. Follow the instructions in mycompany/README
+
+
