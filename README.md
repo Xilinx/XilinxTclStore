@@ -168,7 +168,7 @@ vivado -mode tcl
 
 There should be a lint_files command available at this point:
 ```tcl
-Vivado% lint_files [glob Xilinx-Tcl-Repositiry/tclapp/mycompany/myapp/*.tcl]
+Vivado% lint_files [glob XilinxTclStore/tclapp/mycompany/myapp/*.tcl]
 ```
 
 Correct anything the linter identifies as a problem.
