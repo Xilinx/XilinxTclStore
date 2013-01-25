@@ -12,10 +12,12 @@ XilinxTclStore/
       utils/   # utils app from Xilinx
         tcl files # all tcl sources for utils
         test/  # testing directory
+				  utils_test.tcl # test script to run under Vivado for utils
     mycompany/
       myapp/   # some app from mycompany
         tcl files # all tcl files for myapp
         test/  # testing directory
+				  myapp_test.tcl # test script to run under Vivado for myapp
 
 The 'mycompany' provider is included as an example, please see 
 README files in the various directories under this provider for
