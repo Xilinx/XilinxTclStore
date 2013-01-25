@@ -4,7 +4,7 @@
 # Tightly integrated with Vivado Tcl.
 
 package require Tcl 8.5
-package require Vivado 2012.2
+package require Vivado 2013.1
 
 namespace eval ::tclapp::support::args {}
 

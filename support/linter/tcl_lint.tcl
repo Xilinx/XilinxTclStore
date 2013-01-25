@@ -2,7 +2,7 @@
 
 package provide lint 1.0
 
-package require Tcl 8.4
+package require Tcl 8.5
 
 ## \mainpage  TCL LINTER
 #
@@ -3401,7 +3401,7 @@ proc ::lint::check_package_documentation { file_name } {
     ## this prints out an example template file so that the user's can
     # easily see the proper syntax for declaring packages, nameespaces, etc.
     proc ::lint::print_template {} {
-        puts "package require Vivado 2012.2"
+        puts "package require Vivado 2013.1"
 	puts ""
         puts "namespace eval ::tclapp::<provider>::<app> \{"
         puts "    namespace export <proc> ..."

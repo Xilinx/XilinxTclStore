@@ -1,4 +1,5 @@
-package require Vivado 2012.2
+package require Vivado 2013.1
+
 package require ::tclapp::xilinx::utils 1.0
 
 namespace eval ::tclapp::xilinx::utils {
