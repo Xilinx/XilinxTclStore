@@ -1,9 +1,7 @@
 # XilinxTclStore
 
 
-## My First Vivado Tcl App
-
-### Work as Contributor
+## As a Contributor
 1. Get git account <user> and donwload git on your machine
 2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
 3. Sign on to github.com
@@ -71,10 +69,13 @@ https://help.gitbuh.com/articles/creating-a-pull-request
 Done!
 
 
-### Work as a Gate Keeper
+## As a Gate Keeper
 config proxy (see Work as a Contributor)
+
 config user (see Work as a Contributor)
+
 config user email (see Work as a Contributor)
+
 config merge option
 ```bash
 git config --global merge.defaultToUpstream true
@@ -98,18 +99,25 @@ git fetch
 
 4. Merge in the changes
 ```bash
-git mrge --ff
+git merge --ff
 ```
 
 5. Run tests and checck content
 
 6. Go to Github.com
 Pull Request from the <user>
+
 If everything is good, merge, add comments and close the pull request.
+
 If something is not good, add comments so the requester can make changes.
+
 If something is bad, add comments, reject it and close the pull request.
 
+7. Delete the local repository
+
 Done
+
+## My First Vivado Tcl App
 
 ### Let Vivado know where your cloned Tcl repository is located
 
