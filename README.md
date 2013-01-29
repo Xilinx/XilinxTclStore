@@ -6,7 +6,7 @@
 2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
 3. Sign on to github.com
 4. Switch to XilinxTclStore at upper left side by your account name <user>
-5. Press "Fork" to fork XilinxTclStore to your account
+5. Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account
 6. Switch to GitShell on your machine
 
 ### Checkout the Repository
@@ -19,15 +19,18 @@ git config --global http.proxy http://proxy:80
 ### Setting up a per repository User Name and Email
 
 ```bash
-cd ~/XilinxTclStore
+#Create and cd to a working <user dir> directory, for instance ~/github/
+mkdir <user dir>
+cd <user dir>
 git config --golbal user.name <user>
 git config user.email <user>@company.com
 ```
 
 7. Clone the repository
 ```bash
-cd ~
+cd <user dir>
 git clone https://github.com/<user>/XilinxTclStore.git
+#This will create the repo directories under <user dir>/XilinxTclStore
 cd ./XilinxTclStore
 git status
 ```
@@ -60,7 +63,11 @@ git commit -m "your description of the commitment"
 git push origin <user>
 ```
 
-14. Now switch back to github.com in browser
+14. Now switch back to github.com in browser and navigate to your report and <user> branch.
+```bash
+1) For instance, https://github.com/<user>/XilinxTclStore
+2) In the branch button pull down (upper left), switch to <user> branch
+...
 
 15. Send Pull Request 
 Make sure to choose <user> branch to send Pull Request
