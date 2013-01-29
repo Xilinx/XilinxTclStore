@@ -3,6 +3,13 @@
 
 ## My First Vivado Tcl App
 
+### Work as Contributor
+1. Get git account <user> and donwload git on your machine
+2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
+3. Sign on to github.com
+4. Switch to XilinxTclStore at upper left side by your account name <user>
+5. Press "Fork" to fork XilinxTclStore to your account
+6. Switch to GitShell on your machine
 
 ### Checkout the Repository
 
@@ -11,13 +18,98 @@ If you have already clone the repository then skip this step. Otherwise to pull 
 git config --global http.proxy http://proxy:80
 ```
 
-After this is set, then the repository must be pulled using the http protocol:
+### Setting up a per repository User Name and Email
+
+```bash
+cd ~/XilinxTclStore
+git config --golbal user.name <user>
+git config user.email <user>@company.com
+```
+
+7. Clone the repository
 ```bash
 cd ~
-git clone https://github.com/XilinxInc/XilinxTclStore.git
+git clone https://github.com/<user>/XilinxTclStore.git
 cd ./XilinxTclStore
 git status
 ```
+
+8. Create a new branch to <user>
+```bash
+git branch <user>
+```
+
+9. Check out the branch <user>
+```bash
+git chechout <user>
+```
+
+10. Add your applications like tclapp/mycompany/myapp, including test
+
+11. Mark files for adding
+```bash
+cd ./XilinxTclStore
+git add tclapp/xilinx/<your_app>
+```
+
+12. Commit to local repository
+```bash
+git commit -m "your description of the commitment"
+```
+
+13. Push to <user>/XilinxTclStore in Github
+```bash
+git push origin <user>
+```
+
+14. Now switch back to github.com in browser
+
+15. Send Pull Request 
+Make sure to choose <user> branch to send Pull Request
+https://help.gitbuh.com/articles/creating-a-pull-request
+
+Done!
+
+
+### Work as a Gate Keeper
+config proxy (see Work as a Contributor)
+config user (see Work as a Contributor)
+config user email (see Work as a Contributor)
+config merge option
+```bash
+git config --global merge.defaultToUpstream true
+```
+
+
+1. After receiving a pull request, clone the user reporsitory into a clean directory
+```bash
+git clone https://github.com/<user>/XilinxTclStore.git
+```
+
+2. Check out the user branch
+```bash
+git checkout <user>
+```
+
+3. Fetch the branch
+```bash
+git fetch
+```
+
+4. Merge in the changes
+```bash
+git mrge --ff
+```
+
+5. Run tests and checck content
+
+6. Go to Github.com
+Pull Request from the <user>
+If everything is good, merge, add comments and close the pull request.
+If something is not good, add comments so the requester can make changes.
+If something is bad, add comments, reject it and close the pull request.
+
+Done
 
 ### Let Vivado know where your cloned Tcl repository is located
 
