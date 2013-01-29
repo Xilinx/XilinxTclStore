@@ -105,10 +105,11 @@ git merge --ff
 5. Run tests and checck content
 
 6. Go to Github.com
-Pull Request from the <user>
+Pull Request from the user. 
 If everything is good, merge, add comments and close the pull request.
 If something is not good, add comments so the requester can make changes.
 If something is bad, add comments, reject it and close the pull request. 
+https://help.gitbuh.com/articles/merging-a-pull-request
 
 7. Delete the local repository
 
