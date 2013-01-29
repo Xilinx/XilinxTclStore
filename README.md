@@ -64,7 +64,7 @@ git push origin <user>
 
 15. Send Pull Request 
 Make sure to choose <user> branch to send Pull Request
-https://help.gitbuh.com/articles/creating-a-pull-request
+https://help.github.com/articles/creating-a-pull-request
 
 Done!
 
@@ -109,7 +109,7 @@ Pull Request from the user.
 If everything is good, merge, add comments and close the pull request.
 If something is not good, add comments so the requester can make changes.
 If something is bad, add comments, reject it and close the pull request. 
-https://help.gitbuh.com/articles/merging-a-pull-request
+https://help.github.com/articles/merging-a-pull-request
 
 7. Delete the local repository
 
