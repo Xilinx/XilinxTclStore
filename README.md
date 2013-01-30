@@ -7,7 +7,7 @@
 3. Sign on to github.com
 4. Switch to XilinxTclStore at upper left side by your account name user
 5. Click XilinxInc/XilinxTclStore under Repositories<p>
-   Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account
+   Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account<p>
    https://help.github.com/articles/fork-a-repo
 6. Switch to GitShell on your machine
 
@@ -49,7 +49,7 @@ git chechout <user>
 
 10. Add your applications like tclapp/mycompany/myapp, including test
     More information on creating application, refer to section<p>
-    ##My First Vivado App.
+    ###My First Vivado Tcl App.
 
 11. Mark files for adding
 ```bash
@@ -67,18 +67,18 @@ git commit -m "your description of the commitment"
 git push origin <user>
 ```
 
-14. Now switch back to github.com in browser and navigate to your report and user branch.
-1) For instance, https://github.com/<user>/XilinxTclStore
-2) In the branch button pull down (upper left), switch to <user> branch
+14. Now switch back to github.com in browser and navigate to your report and user branch.<p>
+1) For instance, https://github.com/<user>/XilinxTclStore<p>
+2) In the branch button pull down (upper left), switch to <user> branch<p>
 
 15. Send Pull Request 
-Make sure to choose <user> branch to send Pull Request
+Make sure to choose <user> branch to send Pull Request<p>
 https://help.github.com/articles/creating-a-pull-request
 
 Done!
 
 ## Sync with master from user branch
-If you need to work on the same user branch next time, you will need to sync to the fork.
+If you need to work on the same user branch next time, you will need to sync to the fork.<p>
 https://help.github.com/articles/sync-a-fork
 
 Create upstream pointing to XilinxInc/XilinxTclStore
@@ -95,7 +95,7 @@ git merge upstream/master
 Switch back to user branch and merge
 ```bash
 git checkout user
-git merge user/master
+git merge master
 ```
 
 
@@ -136,9 +136,9 @@ git merge --ff
 
 6. Go to Github.com
 Pull Request from the user. 
-If everything is good, merge, add comments and close the pull request.
-If something is not good, add comments so the requester can make changes.
-If something is bad, add comments, reject it and close the pull request. 
+If everything is good, merge, add comments and close the pull request.<p>
+If something is not good, add comments so the requester can make changes.<p>
+If something is bad, add comments, reject it and close the pull request.<p> 
 https://help.github.com/articles/merging-a-pull-request
 
 7. Delete the local repository
@@ -158,8 +158,8 @@ env variable is set before you start Vivado.
 
 ### Fetch and merge updates to your cloned repository
 
-If you have already cloned the repository, then you may want to fetch and merge the latest updates into your clone.
-The lastest and greatest official apps are available in the "master" branch so this is where you want to merge into.
+If you have already cloned the repository, then you may want to fetch and merge the latest updates into your clone.<p>
+The lastest and greatest official apps are available in the "master" branch so this is where you want to merge into.<p>
 
 ```bash
 cd XilinxTclStore
@@ -237,7 +237,7 @@ proc ::tclapp::mycompany::myapp::myproc1 {arg1 {optional1 ,}} {
 }
 ```
 
-2. Add the commands that you would like to export to the top of each file.  It's important
+2. Add the commands that you would like to export to the top of each file.  It is important
 that your are explicit about the commands, in other words, do *not* use wildcards.
 ```tcl
 # tclapp/mycompany/myapp/myfile.tcl
