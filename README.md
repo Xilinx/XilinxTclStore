@@ -42,7 +42,7 @@ git status
 git branch <user>
 ```
 
-9. Check out the branch <user>
+9. Check out the branch user
 ```bash
 git chechout <user>
 ```
@@ -62,17 +62,17 @@ git add tclapp/xilinx/<your_app>
 git commit -m "your description of the commitment"
 ```
 
-13. Push to <user>/XilinxTclStore in Github
+13. Push to user/XilinxTclStore in Github
 ```bash
 git push origin <user>
 ```
 
 14. Now switch back to github.com in browser and navigate to your report and user branch.<p>
-1) For instance, https://github.com/<user>/XilinxTclStore<p>
-2) In the branch button pull down (upper left), switch to <user> branch<p>
+1) For instance, https://github.com/user/XilinxTclStore<p>
+2) In the branch button pull down (upper left), switch to user branch<p>
 
 15. Send Pull Request 
-Make sure to choose <user> branch to send Pull Request<p>
+Make sure to choose user branch to send Pull Request<p>
 https://help.github.com/articles/creating-a-pull-request
 
 Done!
@@ -135,7 +135,7 @@ git merge --ff
 5. Run tests and checck content
 
 6. Go to Github.com
-Pull Request from the user. 
+Pull Request from the user.<p> 
 If everything is good, merge, add comments and close the pull request.<p>
 If something is not good, add comments so the requester can make changes.<p>
 If something is bad, add comments, reject it and close the pull request.<p> 
