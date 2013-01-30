@@ -2,11 +2,13 @@
 
 
 ## As a Contributor
-1. Get git account <user> and donwload git on your machine
+1. Get git account user and donwload git on your machine
 2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
 3. Sign on to github.com
-4. Switch to XilinxTclStore at upper left side by your account name <user>
-5. Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account
+4. Switch to XilinxTclStore at upper left side by your account name user
+5. Clink XilinxInc/XilinxTclStore under Repositories
+   Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account
+   https://help.github.com/articles/fork-a-repo
 6. Switch to GitShell on your machine
 
 ### Checkout the Repository
@@ -23,7 +25,7 @@ git config --global http.proxy http://proxy:80
 mkdir <user dir>
 cd <user dir>
 git config --golbal user.name <user>
-git config user.email <user>@company.com
+git config --global user.email <user>@company.com
 ```
 
 7. Clone the repository
@@ -46,6 +48,7 @@ git chechout <user>
 ```
 
 10. Add your applications like tclapp/mycompany/myapp, including test
+    More information on creating application, refer to ##My First Vivado App## Section.
 
 11. Mark files for adding
 ```bash
@@ -63,17 +66,36 @@ git commit -m "your description of the commitment"
 git push origin <user>
 ```
 
-14. Now switch back to github.com in browser and navigate to your report and <user> branch.
-```bash
+14. Now switch back to github.com in browser and navigate to your report and user branch.
 1) For instance, https://github.com/<user>/XilinxTclStore
 2) In the branch button pull down (upper left), switch to <user> branch
-...
 
 15. Send Pull Request 
 Make sure to choose <user> branch to send Pull Request
 https://help.github.com/articles/creating-a-pull-request
 
 Done!
+
+## Sync with master from user branch
+If you need to work on the same user branch next time, you will need to sync to the fork.
+https://help.github.com/articles/sync-a-fork
+
+Create upstream pointing to XilinxInc/XilinxTclStore
+```bash
+git remote add upstream https://github.com/XilinxInc/XilinxTclStore.git
+```
+
+Fetch and merge upstream to local master
+```bash
+git fetch upstream
+git merge upstream/master
+```
+
+Switch back to user branch and merge
+```bash
+git checkout user
+git merge user/master
+```
 
 
 ## As a Gate Keeper
