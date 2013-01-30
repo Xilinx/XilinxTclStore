@@ -6,7 +6,7 @@
 2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
 3. Sign on to github.com
 4. Switch to XilinxTclStore at upper left side by your account name user
-5. Clink XilinxInc/XilinxTclStore under Repositories
+5. Click XilinxInc/XilinxTclStore under Repositories<p>
    Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account
    https://help.github.com/articles/fork-a-repo
 6. Switch to GitShell on your machine
@@ -37,7 +37,7 @@ cd ./XilinxTclStore
 git status
 ```
 
-8. Create a new branch to <user>
+8. Create a new branch to user
 ```bash
 git branch <user>
 ```
@@ -48,7 +48,8 @@ git chechout <user>
 ```
 
 10. Add your applications like tclapp/mycompany/myapp, including test
-    More information on creating application, refer to ##My First Vivado App## Section.
+    More information on creating application, refer to section<p>
+    ##My First Vivado App.
 
 11. Mark files for adding
 ```bash
