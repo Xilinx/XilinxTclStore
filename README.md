@@ -2,10 +2,10 @@
 
 
 ## As a Contributor
-1. Get git account "\<user\>" and download git on your machine
+1. Get git account \<user\> and download git on your machine
 2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
 3. Sign on to github.com
-4. Switch to XilinxInc at upper left side by your account name "user"
+4. Switch to XilinxInc at upper left side by your account name <user>
 5. Click XilinxInc/XilinxTclStore under Repositories<p>
    Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account<p>
    https://help.github.com/articles/fork-a-repo
@@ -37,12 +37,12 @@ cd ./XilinxTclStore
 git status
 ```
 
-8. Create a new branch to "user"
+8. Create a new branch to <user>
 ```bash
 git branch <user>
 ```
 
-9. Check out the branch "user"
+9. Check out the branch <user>
 ```bash
 git checkout <user>
 ```
@@ -62,25 +62,25 @@ git add tclapp/xilinx/<your_app>
 git commit -m "your description of the commitment"
 ```
 
-13. Push to "user"/XilinxTclStore in Github
+13. Push to <user>/XilinxTclStore in Github
 ```bash
 git push origin <user>
 ```
 
-14. Now switch back to github.com in browser and navigate to your repository and "user" branch.<p>
-1) For instance, https://github.com/"user"/XilinxTclStore<p>
-2) In the branch button pull down (upper left), switch to "user" branch<p>
+14. Now switch back to github.com in browser and navigate to your repository and <user> branch.<p>
+1) For instance, https://github.com/<user>/XilinxTclStore<p>
+2) In the branch button pull down (upper left), switch to <user> branch<p>
 
 15. Send Pull Request 
 https://help.github.com/articles/creating-a-pull-request
-Make sure to choose "user" branch from left upper-ish "branch" drop down<p>
+Make sure to choose <user> branch from left upper-ish "branch" drop down<p>
 Press "Pull Request" button right upper-ish <p>
 Add any additiona note if you wish<p>
 
 Done!
 
-## Sync with master from "user" branch
-If you need to work on the same "user" branch next time, you will need to sync to the fork.<p>
+## Sync with master from <user> branch
+If you need to work on the same <user> branch next time, you will need to sync to the fork.<p>
 https://help.github.com/articles/sync-a-fork
 
 Create upstream pointing to XilinxInc/XilinxTclStore
@@ -94,7 +94,7 @@ git fetch upstream
 git merge upstream/master
 ```
 
-Switch back to "user" branch and merge
+Switch back to <user> branch and merge
 ```bash
 git checkout user
 git merge master
@@ -104,9 +104,9 @@ git merge master
 ## As a Gate Keeper
 config proxy (see Work as a Contributor)
 
-config "user" (see Work as a Contributor)
+config <user> (see Work as a Contributor)
 
-config "user" email (see Work as a Contributor)
+config <user> email (see Work as a Contributor)
 
 config merge option
 ```bash
@@ -114,12 +114,12 @@ git config --global merge.defaultToUpstream true
 ```
 
 
-1. After receiving a pull request, clone the "user" repository into a clean directory
+1. After receiving a pull request, clone the <user> repository into a clean directory
 ```bash
 git clone https://github.com/<user>/XilinxTclStore.git
 ```
 
-2. Check out the "user" branch
+2. Check out the <user> branch
 ```bash
 git checkout <user>
 ```
@@ -137,7 +137,7 @@ git merge --ff
 5. Run tests and checck content
 
 6. Go to Github.com
-Pull Request from the "user".<p> 
+Pull Request from the <user>.<p> 
 If everything is good, merge, add comments and close the pull request.<p>
 If something is not good, add comments so the requester can make changes.<p>
 If something is bad, add comments, reject it and close the pull request.<p> 
@@ -334,7 +334,7 @@ git config user.email “johnd@mycompany.com”
 
 ### Commit Changes
 
-Make sure you commit your "user" branch.
+Make sure you commit your <user> branch.
 
 ```bash
 cd ~/XilinxTclStore
