@@ -31,7 +31,7 @@ git config --global user.email <user>@company.com
 7. Clone the repository
 ```bash
 cd <user dir>
-git clone https://github.com/<user>/XilinxTclStore.git
+git clone https://github.com/\<user\>/XilinxTclStore.git
 #This will create the repo directories under <user dir>/XilinxTclStore
 cd ./XilinxTclStore
 git status
