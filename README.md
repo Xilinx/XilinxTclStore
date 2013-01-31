@@ -68,7 +68,7 @@ git push origin <user>
 ```
 
 14. Now switch back to github.com in browser and navigate to your repository and \<user\> branch.<p>
-1) For instance, https://github.com/\<user\>/XilinxTclStore<p>
+1) For instance, https://github.com/user/XilinxTclStore<p>
 2) In the branch button pull down (upper left), switch from "branch:master" to "branch:\<user\>"<p>
 
 15. Send Pull Request 
