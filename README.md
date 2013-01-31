@@ -2,10 +2,10 @@
 
 
 ## As a Contributor
-1. Get git account "user" and donwload git on your machine
+1. Get git account "user" and download git on your machine
 2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
 3. Sign on to github.com
-4. Switch to XilinxTclStore at upper left side by your account name "user"
+4. Switch to XilinxInc at upper left side by your account name "user"
 5. Click XilinxInc/XilinxTclStore under Repositories<p>
    Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account<p>
    https://help.github.com/articles/fork-a-repo
@@ -44,12 +44,12 @@ git branch <user>
 
 9. Check out the branch "user"
 ```bash
-git chechout <user>
+git checkout <user>
 ```
 
-10. Add your applications like tclapp/mycompany/myapp, including test
-    More information on creating application, refer to section<p>
-    ###My First Vivado Tcl App.
+10. Add your applications like tclapp/mycompany/myapp, including test<p>
+    For more information on creating application, refer to the following section<p>
+    ####My First Vivado Tcl App.
 
 11. Mark files for adding
 ```bash
@@ -112,7 +112,7 @@ git config --global merge.defaultToUpstream true
 ```
 
 
-1. After receiving a pull request, clone the "user" reporsitory into a clean directory
+1. After receiving a pull request, clone the "user" repository into a clean directory
 ```bash
 git clone https://github.com/<user>/XilinxTclStore.git
 ```
