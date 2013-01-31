@@ -2,7 +2,7 @@
 
 
 ## As a Contributor
-1. Get git account "user" and download git on your machine
+1. Get git account "\<user\>" and download git on your machine
 2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
 3. Sign on to github.com
 4. Switch to XilinxInc at upper left side by your account name "user"
@@ -67,13 +67,15 @@ git commit -m "your description of the commitment"
 git push origin <user>
 ```
 
-14. Now switch back to github.com in browser and navigate to your report and "user" branch.<p>
+14. Now switch back to github.com in browser and navigate to your repository and "user" branch.<p>
 1) For instance, https://github.com/"user"/XilinxTclStore<p>
 2) In the branch button pull down (upper left), switch to "user" branch<p>
 
 15. Send Pull Request 
-Make sure to choose "user" branch to send Pull Request<p>
 https://help.github.com/articles/creating-a-pull-request
+Make sure to choose "user" branch from left upper-ish "branch" drop down<p>
+Press "Pull Request" button right upper-ish <p>
+Add any additiona note if you wish<p>
 
 Done!
 
