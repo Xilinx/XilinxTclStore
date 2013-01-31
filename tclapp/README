@@ -24,6 +24,15 @@ The 'mycompany' provider is included as an example, please see
 README files in the various directories under this provider for
 instructions on how to add new apps.
 
+
+TESTING
+Each testing directory has test.tcl where other test scripts can be sourced. 
+e.g. If myapp has two tests, one is test1.tcl and the other is test2.tcl, then test.tcl contains:
+>cat test.tcl
+source test1.tcl
+source test2.tcl
+>
+
 ================================================================
 ADDING A NEW PROVIDER
 ================================================================
