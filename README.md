@@ -31,7 +31,7 @@ git config --global user.email <user>@company.com
 7. Clone the repository
 ```bash
 cd <user dir>
-git clone https://github.com/\<user\>/XilinxTclStore.git
+git clone https://github.com/user/XilinxTclStore.git
 #This will create the repo directories under <user dir>/XilinxTclStore
 cd ./XilinxTclStore
 git status
@@ -69,7 +69,7 @@ git push origin <user>
 
 14. Now switch back to github.com in browser and navigate to your repository and \<user\> branch.<p>
 1) For instance, https://github.com/\<user\>/XilinxTclStore<p>
-2) In the branch button pull down (upper left), switch to \<user\> branch<p>
+2) In the branch button pull down (upper left), switch from "branch:master" to "branch:\<user\>"<p>
 
 15. Send Pull Request 
 https://help.github.com/articles/creating-a-pull-request
