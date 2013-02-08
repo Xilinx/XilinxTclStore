@@ -1,0 +1,4 @@
+Xilinx Project recreation script
+
+This script can be used to write a Tcl script for re-building the current project
+from the Vivado Tcl shell 
