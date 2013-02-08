@@ -1,6 +1,7 @@
 ####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Raj Klair
+# COPYRIGHT NOTICE
+# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
 # 
 # Created Date:   25/01/2013
 # Script name:    projutils.tcl
