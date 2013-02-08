@@ -28,7 +28,7 @@ git config --golbal user.name <user>
 git config --global user.email <user>@company.com
 ```
 
-7. Clone the repositoryp>
+7. Clone the repository<p>
 On Windows
 ```bash
 cd <user dir>
