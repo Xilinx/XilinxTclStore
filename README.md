@@ -5,8 +5,8 @@
 1. Get git account \<user\> and download git on your machine
 2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
 3. Sign on to github.com
-4. Switch to XilinxInc at upper left side by your account name \<user\>
-5. Click XilinxInc/XilinxTclStore under Repositories<p>
+4. Switch to Xilinx at upper left side by your account name \<user\>
+5. Click Xilinx/XilinxTclStore under Repositories<p>
    Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account<p>
    https://help.github.com/articles/fork-a-repo
 6. Switch to GitShell on your machine
@@ -83,9 +83,9 @@ Done!
 If you need to work on the same \<user\> branch next time, you will need to sync to the fork.<p>
 https://help.github.com/articles/sync-a-fork
 
-Create upstream pointing to XilinxInc/XilinxTclStore
+Create upstream pointing to Xilinx/XilinxTclStore
 ```bash
-git remote add upstream https://github.com/XilinxInc/XilinxTclStore.git
+git remote add upstream https://github.com/Xilinx/XilinxTclStore.git
 ```
 
 Fetch and merge upstream to local master
