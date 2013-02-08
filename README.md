@@ -21,31 +21,46 @@ git config --global http.proxy http://proxy:80
 ### Setting up a per repository User Name and Email
 
 ```bash
-#Create and cd to a working <user dir> directory, for instance ~/github/
-mkdir <user dir>
-cd <user dir>
-git config --golbal user.name <user>
-git config --global user.email <user>@company.com
+#Create and cd to a working directory, for instance ~/github/
+mkdir working_dir
+cd <working_dir>
+git config --golbal user.name <user> #github user name
+git config --global user.email your_email@your_company.com
 ```
 
-7. Clone the repository<p>
+7. Clone the repository
+
+You have forked a repository from XilinxTclStore, called "user/XilinxTclStore.git". You need to clone it to your local area:
+
 On Windows
+
 ```bash
-cd <user dir>
+cd <working_dir>
 git clone https://github.com/user/XilinxTclStore.git
 ```
+
 On Linux
+
 ```bash
-cd <user dir>
+cd <working_dir>
 git clone https://user@github.com/user/XilinxTclStore.git
 ```
-You will need to enter password to github when a password dialog box is popped up.<p>
-#This will create the repo directories under <user dir>/XilinxTclStore
-cd ./XilinxTclStore
+
+You will need to enter password to github when a password dialog box is popped up.
+
+Now you have cloned the repo directories under "working_dir/XilinxTclStore"
+
+cd working_dir/XilinxTclStore
+
 git status
 ```
 
 8. Create a new branch to \<user\>
+
+The newly cloned repo has a default branch called "master".
+
+We recommend to work on a branch. To create a user branch:
+
 ```bash
 git branch <user>
 ```
@@ -73,6 +88,8 @@ git commit -m "your description of the commitment"
 13. Push to \<user\>/XilinxTclStore in Github
 ```bash
 git push origin <user>
+e.g.
+git push origin abeuser # abeuser is my user branch
 ```
 
 14. Now switch back to github.com in browser and navigate to your repository and \<user\> branch.<p>
