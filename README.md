@@ -52,6 +52,7 @@ Now you have cloned the repo directories under "working_dir/XilinxTclStore"
 
 cd working_dir/XilinxTclStore
 
+```bash
 git status
 ```
 
