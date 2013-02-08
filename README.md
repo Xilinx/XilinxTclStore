@@ -28,10 +28,18 @@ git config --golbal user.name <user>
 git config --global user.email <user>@company.com
 ```
 
-7. Clone the repository
+7. Clone the repositoryp>
+On Windows
 ```bash
 cd <user dir>
 git clone https://github.com/user/XilinxTclStore.git
+```
+On Linux
+```bash
+cd <user dir>
+git clone https://user@github.com/user/XilinxTclStore.git
+```
+You will need to enter password to github when a password dialog box is popped up.<p>
 #This will create the repo directories under <user dir>/XilinxTclStore
 cd ./XilinxTclStore
 git status
@@ -83,9 +91,16 @@ Done!
 If you need to work on the same \<user\> branch next time, you will need to sync to the fork.<p>
 https://help.github.com/articles/sync-a-fork
 
-Create upstream pointing to Xilinx/XilinxTclStore
+Create upstream pointing to Xilinx/XilinxTclStore<p>
+
+On Windows:
 ```bash
 git remote add upstream https://github.com/Xilinx/XilinxTclStore.git
+```
+
+On Linux:
+```bash
+git remote add upstream https://user@github.com/Xilinx/XilinxTclStore.git
 ```
 
 Fetch and merge upstream to local master
@@ -307,7 +322,7 @@ Correct anything the linter identifies as a problem.
 
 ### Check the App before you Deploy
 
-1. From Bash:
+1. From Bash<p>
 ```bash
 setenv XILINX_TCLAPP_REPO <path>/XilinxTclStore
 vivado -mode tcl
@@ -316,7 +331,7 @@ vivado -mode tcl
 When the env variable is set, Vivado automatically adds the location of the repository to the 
 auto_load path in Tcl.
 
-2. Start testing
+2. Start testing<p>
 ```tcl
 namespace import ::tclapp::mycompany::myapp::*
 myproc1
