@@ -340,9 +340,16 @@ Correct anything the linter identifies as a problem.
 
 ### Check the App before you Deploy
 
-1. From Bash<p>
+1. Set XILINX_TCLAPP_REPO to point where the local XilinxTclStore is
 ```bash
 setenv XILINX_TCLAPP_REPO <path>/XilinxTclStore
+```
+or just the path
+```bash
+setenv XILINX_TCLAPP_REPO <path> 
+```
+Run Vivado
+```bash
 vivado -mode tcl
 ```
 
@@ -350,6 +357,15 @@ When the env variable is set, Vivado automatically adds the location of the repo
 auto_load path in Tcl.
 
 2. Start testing<p>
+
+Require the package that was provided by the app
+
+```tcl
+vivado% package require ::tclapp::mycompany::myapp
+```
+
+Optionally import an exported proc
+
 ```tcl
 namespace import ::tclapp::mycompany::myapp::*
 myproc1
