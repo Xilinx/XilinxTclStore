@@ -866,8 +866,6 @@ namespace eval ::tclapp::xilinx::projutils {
             set def_val [list_property_value -default $file_prop [get_files $file -of_objects $fs_name]]
             set cur_val [get_property $file_prop [get_files $file -of_objects $fs_name]]
 
-puts "def=$def_val:cur_=$cur_val"
-
             # filter special properties
             if { [filter $file_prop $cur_val] } { continue }
 
@@ -1017,61 +1015,4 @@ puts "def=$def_val:cur_=$cur_val"
   
         return 0
     }
-
-    proc write_simulation_runs {} {
-
-        # Summary: write simulation run 
-        # This helper command is used to script help.
-    
-        # Argument Usage: 
-        # none
-        
-        # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
-
-        variable a_global_vars
-        variable l_script_data
-
-        set mode "behavioral"
-        set type ""
-        set get_what "get_filesets"
-        foreach tcl_obj [get_filesets] {
-          if { [string equal [get_property fileset_type [$get_what $tcl_obj]] "SimulationSrcs"] } {
-            lappend l_script_data "\n# LAUNCH SIMULATION ($tcl_obj)"
-            write_simulation_run $tcl_obj $mode $type
-          }
-        }
-
-        return 0
-    }
-
-    proc write_simulation_run { tcl_obj mode type } {
-
-        # Summary: write simulation runs 
-        # This helper command is used to script help.
-    
-        # Argument Usage: 
-    
-        # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
-
-        variable a_global_vars
-        variable l_script_data
-
-        set sim_task "launch_xsim"
-        set simulator [get_property target_simulator [current_project]]
-        switch -regexp -- $simulator {
-          "XSim"     { set sim_task "launch_xsim" }
-          "ModelSim" { set sim_task "launch_modelsim" }
-          default  { puts "unknown simulator type" }
-        }
-        set tcl_cmd "$sim_task -simset $tcl_obj -mode $mode"
-        if { $a_global_vars(b_arg_launch_runs) } {
-          lappend ::$tcl_cmd
-        } else {
-          lappend l_script_data "#$tcl_cmd"
-        }
-  
-        return 0
-    }  
 }
