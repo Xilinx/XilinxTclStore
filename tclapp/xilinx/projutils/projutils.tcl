@@ -3,7 +3,7 @@
 # Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
 # http://www.xilinx.com/support
 # 
-# Created Date:   25/01/2013
+# Created Date:   01/25/2013
 # Script name:    projutils.tcl
 # Procedures:     write_project_tcl
 # Tool Versions:  Vivado 2013.1
