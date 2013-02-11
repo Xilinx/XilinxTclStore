@@ -774,7 +774,6 @@ namespace eval ::tclapp::xilinx::projutils {
 
         set import_coln [list]
         set file_coln [list]
-        lappend l_script_data "set files \[list \\"
 
         foreach file [lsort [$get_what -norecurse -of_objects $tcl_obj]] {
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
@@ -791,7 +790,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
             # Add to the import collection
             lappend import_coln "\"$proj_file_path\""
-            lappend file_coln "$file"
+            #lappend file_coln "$file"
 
           } else {
             set file "\"$file\""
@@ -818,13 +817,16 @@ namespace eval ::tclapp::xilinx::projutils {
             }
           }
         }
-      
-        foreach file $file_coln {
-          lappend l_script_data " $file\\"
+         
+        if {[llength $file_coln]>0} { 
+          lappend l_script_data "set files \[list \\"
+          foreach file $file_coln {
+            lappend l_script_data " $file\\"
+          }
+          lappend l_script_data "\]"
+          lappend l_script_data "add_files -norecurse -fileset \$obj \$files"
+          lappend l_script_data ""
         }
-        lappend l_script_data "\]"
-        lappend l_script_data "add_files -norecurse -fileset \$obj \$files"
-        lappend l_script_data ""
 
         # Now import local files if -no_copy_sources is not specified.
         if { ! $a_global_vars(b_arg_no_copy_srcs)} {
@@ -864,6 +866,8 @@ namespace eval ::tclapp::xilinx::projutils {
             set def_val [list_property_value -default $file_prop [get_files $file -of_objects $fs_name]]
             set cur_val [get_property $file_prop [get_files $file -of_objects $fs_name]]
 
+puts "def=$def_val:cur_=$cur_val"
+
             # filter special properties
             if { [filter $file_prop $cur_val] } { continue }
 
@@ -895,9 +899,9 @@ namespace eval ::tclapp::xilinx::projutils {
           if { [string equal $get_what "get_files"] && ($prop_count>0)} {
             lappend l_script_data "set file \"$file\""
             lappend l_script_data "set file_obj \[$get_what \"*\$file\" -of_objects $tcl_obj\]"
+            write_properties $prop_info_list $get_what $tcl_obj
           }
 
-          write_properties $prop_info_list $get_what $tcl_obj
         }
 
         # set local file properties
@@ -959,9 +963,8 @@ namespace eval ::tclapp::xilinx::projutils {
           if { [string equal $get_what "get_files"] && ($prop_count>0)} {
             lappend l_script_data "set file \"$file\""
             lappend l_script_data "set file_obj \[$get_what \"*\$file\" -of_objects $tcl_obj\]"
+            write_properties $prop_info_list $get_what $tcl_obj
           }
-
-          write_properties $prop_info_list $get_what $tcl_obj
         }
 
         return 0
