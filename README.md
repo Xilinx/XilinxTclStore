@@ -43,7 +43,7 @@ On Linux
 
 ```bash
 cd <working_dir>
-git clone https://user@github.com/user/XilinxTclStore.git
+git clone http://user@github.com/user/XilinxTclStore.git
 ```
 
 You will need to enter password to github when a password dialog box is popped up.
