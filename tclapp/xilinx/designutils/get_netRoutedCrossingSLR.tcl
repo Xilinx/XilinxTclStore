@@ -7,11 +7,11 @@
 ####################################################################################################
 package require Vivado 2013.1
 
-namespace eval ::tclapp::xilinx::utils {
+namespace eval ::tclapp::xilinx::designutils {
     namespace export get_netRoutedCrossingSLR
 }
 
-proc ::tclapp::xilinx::utils::get_netRoutedCrossingSLR { } {
+proc ::tclapp::xilinx::designutils::get_netRoutedCrossingSLR { } {
     # Summary : get routed nets crossing SLR
 
     # Argument Usage:

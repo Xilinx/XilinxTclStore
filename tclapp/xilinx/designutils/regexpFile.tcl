@@ -5,11 +5,11 @@
 # http://www.xilinx.com/support
 # HEADER_END
 ####################################################################################################
-namespace eval ::tclapp::xilinx::utils {
+namespace eval ::tclapp::xilinx::designutils {
     namespace export regexpFile
 }
 
-proc ::tclapp::xilinx::utils::regexpFile {expression fileIn} {
+proc ::tclapp::xilinx::designutils::regexpFile {expression fileIn} {
     # Summary : returns all lines that match occurrence of regular expression matched in the file
 
     # Argument Usage:
