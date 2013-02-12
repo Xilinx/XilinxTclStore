@@ -1,3 +1,10 @@
+####################################################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+####################################################################################################
 namespace eval ::tclapp::xilinx::utils {
     namespace export regexpFile
 }
@@ -26,3 +33,10 @@ proc ::tclapp::xilinx::utils::regexpFile {expression fileIn} {
     close $FILEIN
     return $lineMatches
 }
+####################################################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+####################################################################################################

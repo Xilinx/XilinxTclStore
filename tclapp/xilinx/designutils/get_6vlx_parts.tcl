@@ -1,3 +1,10 @@
+####################################################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+####################################################################################################
 package require Vivado 2013.1
 
 namespace eval ::tclapp::xilinx::designutils {
@@ -19,3 +26,10 @@ proc ::tclapp::xilinx::designutils::get_7vlx_parts {} {
     
     return $parts
 }
+####################################################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+####################################################################################################

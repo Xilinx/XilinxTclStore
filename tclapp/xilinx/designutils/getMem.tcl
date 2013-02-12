@@ -1,3 +1,10 @@
+####################################################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+####################################################################################################
 package require Vivado 2013.1
 
 package require ::tclapp::xilinx::designutils 1.0
@@ -31,3 +38,10 @@ proc ::tclapp::xilinx::designutils::getMem {pid} {
     }
     return $mem
 }
+####################################################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+####################################################################################################

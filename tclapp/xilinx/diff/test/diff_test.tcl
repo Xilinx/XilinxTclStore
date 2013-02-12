@@ -1,3 +1,10 @@
+####################################################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+####################################################################################################
 set file_dir [file dirname [info script]]
 puts "== Unit Test directory: $file_dir"
 set ::env(XILINX_TCLAPP_REPO) [file normalize [file join $file_dir .. .. ..]]
