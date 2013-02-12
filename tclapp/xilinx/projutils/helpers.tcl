@@ -58,8 +58,13 @@ namespace eval ::tclapp::xilinx::projutils {
 
  	    # Return Value:
         # true
+
+        # Description:
+        # Exports a Tcl script file containing Vivado Tcl commands for recreating the current project. The script
+        # contains the commands for creating the project, setting project properties, adding/importing source files,
+        # setting fileset and file properties, creating new runs and setting run properties.
  	
- 	    # Examples:
+ 	    # Examples
         #
  	    # 1. The following command will create a Tcl script named 'test.tcl' which can be sourced in the
         #    Vivado shell for re-creating a project.
@@ -78,17 +83,17 @@ namespace eval ::tclapp::xilinx::projutils {
         #    add them in the new project.
         #
         #    write_project_tcl -no_copy_sources test_proj.tcl
+
+        # Categories: project
+
+        # See_Also:
+ 
  
  	    # reset global variables
         variable a_global_vars
  
  	    reset_global_vars
  
- 	    # if help
- 	    if { "?" in $args || "-help" in $args || "-h" in $args } {
- 	      usage;
- 	      return 1
- 	    }
  	    # process options
  	    for {set i 0} {$i < [llength $args]} {incr i} {
  	      set option [string trim [lindex $args $i]]
@@ -184,48 +189,6 @@ namespace eval ::tclapp::xilinx::projutils {
         return 0
     }
 
-    proc usage {} {
-
-        # Summary: print script usage and description 
-    
-        # Argument Usage: 
-        # none
-    
-        # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
-        
-        set msg " Description:\n\
-                Write tcl script for re-creating the current project\n\n\
-                Syntax:\n\
-                write_project_tcl \[-force\] \[-all_properties\] \[-no_copy_sources\] <file>\n\
-                \n\n\
-                Returns:\n\
-                Boolean 'true' if success, else 'false'\n\n\
-                Usage:\n\
-                Name                  Description\n\
-                ----------------------------------------\n\
-                \[-force\]                Overwrite existing tcl script file\n\
-                \[-all_properties\]       Write all properties for the project object(s)\n\
-                \[-no_copy_sources\]      Donot import sources even if they were local in the original project\n\
-                <file>                  Name of the tcl script file to generate\n\
-                \n\
-                Description:\n\
-                  Writes a Tcl file for re-creating the current project with all the sources\n\
-                  and project settings that were set when this script was generated.\n\n\
-                Examples:\n\
-                  The following command creates the Tcl file for the current project in the\n\
-                  current directory.\n\n\
-                  write_project_tcl\n\n\
-                  The following command creates the \"my_script.tcl\" Tcl file for the current\n\
-                  project in the /tmp/test directory.\n\n\
-                  write_project_tcl /tmp/test/my_script.tcl\n\
-                \n"
-
-        send_msg_id Vivado-projutils-005 STATUS "$msg\n"
-    
-        return 1
-    }
-
     proc write_project_tcl_script {} {
 
         # Summary: write project script 
@@ -275,7 +238,6 @@ namespace eval ::tclapp::xilinx::projutils {
         write_project_prop_helper $proj_name
         write_fileset_prop_sources_helper $proj_name
         write_runs_prop_helper $proj_name
-        write_close_project_helper
         write_generated_project_info $proj_name
 
         # write header
@@ -367,7 +329,6 @@ namespace eval ::tclapp::xilinx::projutils {
         set tcl_obj [current_project]
         set get_what "get_projects"
     
-        lappend l_script_data ""
         write_hash_comment ""
 
         lappend l_script_data "# Set project properties"
@@ -480,29 +441,6 @@ namespace eval ::tclapp::xilinx::projutils {
         return 0
     }
 
-    proc write_close_project_helper {} {
-
-        # Summary: write close project 
-        # This helper command is used to script help.
-    
-        # Argument Usage: 
-        # none
-    
-        # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
-
-        variable l_script_data
-
-        # close project
-        write_hash_comment ""
-        lappend l_script_data "# Close project"
-
-        write_hash_comment ""
-        lappend l_script_data "close_project"
-
-        return 0
-    }
-
     proc write_generated_project_info { proj_name } {
 
         # Summary: write generated project status message 
@@ -546,10 +484,7 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $a_global_vars(fh) "# Copyright 1986-1999, 2001-2012 Xilinx, Inc. All Rights Reserved."
         puts $a_global_vars(fh) "#\n# This file contains the $product Tcl commands for re-creating the project to the state*"
         puts $a_global_vars(fh) "# when this script was generated. In order to re-create the project, please source this"
-        puts $a_global_vars(fh) "# file in the $product Tcl Shell:-\n#"
-        puts $a_global_vars(fh) "# vivado -mode batch -source ${tcl_file}"
-        puts $a_global_vars(fh) "#\n# You can also re-create this project in the $product GUI by sourcing this script in"
-        puts $a_global_vars(fh) "# the Tcl console."
+        puts $a_global_vars(fh) "# file in the $product Tcl Shell."
         puts $a_global_vars(fh) "#\n"
         puts $a_global_vars(fh) "# *Please note that the run results will not be generated when this script is sourced\n#"
         puts $a_global_vars(fh) "#*****************************************************************************************"
@@ -578,7 +513,7 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
         puts $a_global_vars(fh) "#"
-        puts $a_global_vars(fh) "#*****************************************************************************************\n\n"
+        puts $a_global_vars(fh) "#*****************************************************************************************\n"
       
         return 0
     }
@@ -597,7 +532,7 @@ namespace eval ::tclapp::xilinx::projutils {
         variable l_script_data
 
         #lappend ::tclapp::xilinx::projutils::l_script_data "$leading_spaces##########################################################################################"
-        lappend ::tclapp::xilinx::projutils::l_script_data "$leading_spaces#"
+        #lappend ::tclapp::xilinx::projutils::l_script_data "$leading_spaces#"
 
         return 0
     }
@@ -643,6 +578,14 @@ namespace eval ::tclapp::xilinx::projutils {
           return true
         }
 
+        #
+        if { [string equal type "project"] } {
+          if { [expr { $prop == "DIRECTORY" }] } {
+            return true
+          }
+        }
+      
+
         # error reported if file_type is set
         # ERROR: [Vivado 12-563] The file type 'IP' is not user settable.
         set val  [string tolower $val]
@@ -679,7 +622,7 @@ namespace eval ::tclapp::xilinx::projutils {
         return $is_local
     }
 
-    proc write_properties { prop_info_list get_what tcl_obj file } {
+    proc write_properties { prop_info_list get_what tcl_obj } {
 
         # Summary: write object properties
         # This helper command is used to script help.
@@ -692,12 +635,6 @@ namespace eval ::tclapp::xilinx::projutils {
         variable a_global_vars
         variable l_script_data
 
-        if { [string equal $get_what "get_files"] } {
-          lappend l_script_data "set file_obj \[$get_what \"*\$file\" -of_objects $tcl_obj\]"
-        } else {
-          lappend l_script_data "set obj \[$get_what $tcl_obj\]"
-        }
-  
         if {[llength $prop_info_list] > 0} {
           foreach x $prop_info_list {
             set elem [split $x "#"]
@@ -727,6 +664,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # TCL_OK is returned if the procedure completed successfully.
 
         variable a_global_vars
+        variable l_script_data
 
         set obj_name [get_property name [$get_what $tcl_obj]]
         set read_only_props [rdi::get_attr_specs -class [get_property class $tcl_obj] -filter {is_readonly}]
@@ -801,7 +739,9 @@ namespace eval ::tclapp::xilinx::projutils {
         }
       
         # write properties now
-        write_properties $prop_info_list $get_what $tcl_obj ""
+        lappend l_script_data "set obj \[$get_what $tcl_obj\]"
+
+        write_properties $prop_info_list $get_what $tcl_obj
     
         return 0
     }
@@ -834,7 +774,6 @@ namespace eval ::tclapp::xilinx::projutils {
 
         set import_coln [list]
         set file_coln [list]
-        lappend l_script_data "set files \[list \\"
 
         foreach file [lsort [$get_what -norecurse -of_objects $tcl_obj]] {
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
@@ -851,7 +790,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
             # Add to the import collection
             lappend import_coln "\"$proj_file_path\""
-            lappend file_coln "$file"
+            #lappend file_coln "$file"
 
           } else {
             set file "\"$file\""
@@ -878,13 +817,16 @@ namespace eval ::tclapp::xilinx::projutils {
             }
           }
         }
-      
-        foreach file $file_coln {
-          lappend l_script_data " $file\\"
+         
+        if {[llength $file_coln]>0} { 
+          lappend l_script_data "set files \[list \\"
+          foreach file $file_coln {
+            lappend l_script_data " $file\\"
+          }
+          lappend l_script_data "\]"
+          lappend l_script_data "add_files -norecurse -fileset \$obj \$files"
+          lappend l_script_data ""
         }
-        lappend l_script_data "\]"
-        lappend l_script_data "add_files -norecurse -fileset \$obj \$files"
-        lappend l_script_data ""
 
         # Now import local files if -no_copy_sources is not specified.
         if { ! $a_global_vars(b_arg_no_copy_srcs)} {
@@ -909,10 +851,10 @@ namespace eval ::tclapp::xilinx::projutils {
         # set remote file properties
         foreach file $l_remote_files {
           set file [string trim $file "\""]
-          lappend l_script_data "set file \"$file\""
 
           set file_props [list_property [$get_what $file -of_objects $fs_name]]
           set prop_info_list [list]
+          set prop_count 0
 
           foreach file_prop $file_props {
             set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object [$get_what $file -of_objects $fs_name]]]
@@ -938,9 +880,11 @@ namespace eval ::tclapp::xilinx::projutils {
             set prop_entry "[string tolower $file_prop]#[get_property $file_prop [$get_what $file -of_objects $fs_name]]"
             if { $a_global_vars(b_arg_all_props) } {
               lappend prop_info_list $prop_entry
+              incr prop_count
             } else {
               if { $def_val != $cur_val } {
                 lappend prop_info_list $prop_entry
+                incr prop_count
               }
             }
 
@@ -950,7 +894,12 @@ namespace eval ::tclapp::xilinx::projutils {
             }
           }
           # write properties now
-          write_properties $prop_info_list $get_what $tcl_obj $file
+          if { [string equal $get_what "get_files"] && ($prop_count>0)} {
+            lappend l_script_data "set file \"$file\""
+            lappend l_script_data "set file_obj \[$get_what \"*\$file\" -of_objects $tcl_obj\]"
+            write_properties $prop_info_list $get_what $tcl_obj
+          }
+
         }
 
         # set local file properties
@@ -967,10 +916,9 @@ namespace eval ::tclapp::xilinx::projutils {
 
           set file $src_file
 
-          lappend l_script_data "set file \"$file\""
           set file_props [list_property [$get_what "*$file" -of_objects $fs_name]]
           set prop_info_list [list]
-
+          set prop_count 0
           foreach file_prop $file_props {
             set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object [$get_what "*$file" -of_objects $fs_name]]]
             if { [string equal $is_readonly "1"] } {
@@ -996,9 +944,11 @@ namespace eval ::tclapp::xilinx::projutils {
             set prop_entry "[string tolower $file_prop]#$prop_value_entry"
             if { $a_global_vars(b_arg_all_props) } {
               lappend prop_info_list $prop_entry
+              incr prop_count
             } else {
               if { $def_val != $cur_val } {
                 lappend prop_info_list $prop_entry
+                incr prop_count
               }
             }
 
@@ -1008,9 +958,13 @@ namespace eval ::tclapp::xilinx::projutils {
             }
           }
           # write properties now
-          write_properties $prop_info_list $get_what $tcl_obj $file
+          if { [string equal $get_what "get_files"] && ($prop_count>0)} {
+            lappend l_script_data "set file \"$file\""
+            lappend l_script_data "set file_obj \[$get_what \"*\$file\" -of_objects $tcl_obj\]"
+            write_properties $prop_info_list $get_what $tcl_obj
+          }
         }
-      
+
         return 0
     }
 
@@ -1061,61 +1015,4 @@ namespace eval ::tclapp::xilinx::projutils {
   
         return 0
     }
-
-    proc write_simulation_runs {} {
-
-        # Summary: write simulation run 
-        # This helper command is used to script help.
-    
-        # Argument Usage: 
-        # none
-        
-        # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
-
-        variable a_global_vars
-        variable l_script_data
-
-        set mode "behavioral"
-        set type ""
-        set get_what "get_filesets"
-        foreach tcl_obj [get_filesets] {
-          if { [string equal [get_property fileset_type [$get_what $tcl_obj]] "SimulationSrcs"] } {
-            lappend l_script_data "\n# LAUNCH SIMULATION ($tcl_obj)"
-            write_simulation_run $tcl_obj $mode $type
-          }
-        }
-
-        return 0
-    }
-
-    proc write_simulation_run { tcl_obj mode type } {
-
-        # Summary: write simulation runs 
-        # This helper command is used to script help.
-    
-        # Argument Usage: 
-    
-        # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
-
-        variable a_global_vars
-        variable l_script_data
-
-        set sim_task "launch_xsim"
-        set simulator [get_property target_simulator [current_project]]
-        switch -regexp -- $simulator {
-          "XSim"     { set sim_task "launch_xsim" }
-          "ModelSim" { set sim_task "launch_modelsim" }
-          default  { puts "unknown simulator type" }
-        }
-        set tcl_cmd "$sim_task -simset $tcl_obj -mode $mode"
-        if { $a_global_vars(b_arg_launch_runs) } {
-          lappend ::$tcl_cmd
-        } else {
-          lappend l_script_data "#$tcl_cmd"
-        }
-  
-        return 0
-    }  
 }
