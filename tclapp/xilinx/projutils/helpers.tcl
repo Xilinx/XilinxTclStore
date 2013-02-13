@@ -695,6 +695,18 @@ namespace eval ::tclapp::xilinx::projutils {
             }
             set prop_entry "[string tolower $prop]#$proj_file_path"
           }
+ 
+          # Re-align compiled_library_dir
+          if {[string equal -nocase $prop "compxlib.compiled_library_dir"]} {
+            set compile_lib_dir_path $cur_val
+            set cache_dir "${proj_name}.cache"
+            set path_dirs [split [string trim [file normalize [string map {\\ /} $cur_val]]] "/"]
+            if {[lsearch -exact $path_dirs "$cache_dir"] > 0} {
+              set dir_path [join [lrange $path_dirs [lsearch -exact $path_dirs "$cache_dir"] end] "/"]
+              set compile_lib_dir_path "\$proj_dir/$dir_path"
+            }
+            set prop_entry "[string tolower $prop]#$compile_lib_dir_path"
+          }
      
           if { $a_global_vars(b_arg_all_props) } {
             lappend prop_info_list $prop_entry
