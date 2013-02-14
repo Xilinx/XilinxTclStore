@@ -7,4 +7,4 @@
 ####################################################################################################
 set path [file dirname [info script]]
 #puts "script is invoked from $path"
-source [glob join $path diff_test.tcl]
+source [file join $path diff_test.tcl]
