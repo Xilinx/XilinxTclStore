@@ -111,13 +111,13 @@ https://help.github.com/articles/sync-a-fork
 
 Create upstream pointing to Xilinx/XilinxTclStore<p>
 
-On Windows:
 ```bash
+On Windows:
 git remote add upstream https://github.com/Xilinx/XilinxTclStore.git
 ```
 
-On Linux:
 ```bash
+On Linux:
 git remote add upstream https://user@github.com/Xilinx/XilinxTclStore.git
 ```
 
@@ -148,13 +148,13 @@ git config --global merge.defaultToUpstream true
 
 1. Create a reposiroty by clone out XilinxTclStore, skip to next step if repository already exists locally
 
-On Windows
 ```bash
+On Windows
 git clone https://github.com/XilinxInc/XilinxTclStore.git
 ```
 
-On Linux
 ```bash
+On Linux
 git clone http://user@github.com/XilinxInc/XilinxTclStore.git
 ```
 
