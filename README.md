@@ -201,7 +201,7 @@ git commit -m "update notes"
 ```bash
 git push origin master
 ```
-Done
+geto Step 12
 
 11. Go to Github.com
 Pull Request from the \<user\>.<p> 
@@ -211,6 +211,12 @@ If something is bad, add comments, reject it and close the pull request.<p>
 https://help.github.com/articles/merging-a-pull-request
 
 12. Delete the local repository
+```bash
+git branch -r -d remote_name/remote_branch
+e.g.
+git branch -r -d raj/rajklair
+```
+ Or in browser, delete this branch after merging when prompted.
 
 Done
 
