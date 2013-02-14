@@ -147,13 +147,9 @@ git config --global merge.defaultToUpstream true
 ```
 
 1. Create a reposiroty by clone out XilinxTclStore, skip to next step if repository already exists locally
-
 ```bash
 On Windows
 git clone https://github.com/XilinxInc/XilinxTclStore.git
-```
-
-```bash
 On Linux
 git clone http://user@github.com/XilinxInc/XilinxTclStore.git
 ```
