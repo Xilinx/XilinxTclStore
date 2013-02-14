@@ -201,6 +201,7 @@ git commit -m "update notes"
 ```bash
 git push origin master
 ```
+Done
 
 11. Go to Github.com
 Pull Request from the \<user\>.<p> 
@@ -208,8 +209,6 @@ If everything is good, merge, add comments and close the pull request.<p>
 If something is not good, add comments so the requester can make changes.<p>
 If something is bad, add comments, reject it and close the pull request.<p> 
 https://help.github.com/articles/merging-a-pull-request
-
-If merged in Gitshell, close puul request with notes.
 
 12. Delete the local repository
 
