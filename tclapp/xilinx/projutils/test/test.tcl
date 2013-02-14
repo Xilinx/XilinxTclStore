@@ -7,5 +7,4 @@
 ####################################################################################################
 set path [file dirname [info script]]
 puts "script is invoked from $path"
-#add your script here
 source [file join $path test_0001.tcl]

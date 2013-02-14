@@ -5,6 +5,6 @@
 # http://www.xilinx.com/support
 # HEADER_END
 ####################################################################################################
-set path [file dirname [info script]]
+set path [file normalize [file dirname [info script]]]
 #puts "script is invoked from $path"
 source [file join $path diff_test.tcl]

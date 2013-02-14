@@ -135,48 +135,83 @@ git merge master
 
 
 ## As a Gate Keeper
-config proxy (see Work as a Contributor)
+config proxy (refer to As a Contributor)
 
-config \<user\> (see Work as a Contributor)
+config \<user\> (refer to As a Contributor)
 
-config \<user\> email (see Work as a Contributor)
+config \<user\> email (refer to As a Contributor)
 
 config merge option
 ```bash
 git config --global merge.defaultToUpstream true
 ```
 
+1. Create a reposiroty by clone out XilinxTclStore, skip to next step if repository already exists locally
 
-1. After receiving a pull request, clone the \<user\> repository into a clean directory
+On Windows
 ```bash
-git clone https://github.com/<user>/XilinxTclStore.git
+git clone https://github.com/XilinxInc/XilinxTclStore.git
 ```
 
-2. Check out the \<user\> branch
+On Linux
 ```bash
-git checkout <user>
+git clone http://user@github.com/XilinxInc/XilinxTclStore.git
 ```
 
-3. Fetch the branch
+2. Update local repo with github master
 ```bash
 git fetch
 ```
 
-4. Merge in the changes
+3. Merge any changes
 ```bash
 git merge --ff
 ```
 
-5. Run tests and checck content
+4. Set up remote to point where the pull request is sent usually user/user if this has not been done yet
+```bash
+git remote add remote_name https://github.com/<user>/XilinxTclStore.git
+e.g.
+git remote add raj https://github.com/rajklair/XilinxTclStore.git
+```
 
-6. Go to Github.com
+5. Update local repo with \<user\> branch
+```bash
+git fetch remote_name
+```
+
+6. Merge changes from \<user\> branch
+```bash
+git merge remote_name/remote_branch
+e.g.
+git merge raj/rajklair
+```
+
+7. Fix any merge conlicts
+
+8. Add the changes and commit
+```bash
+git add .
+git commit -m "update notes"
+```
+
+9. Run tests and checck content
+
+10. Push to github or go to step 11
+```bash
+git push origin master
+```
+
+11. Go to Github.com
 Pull Request from the \<user\>.<p> 
 If everything is good, merge, add comments and close the pull request.<p>
 If something is not good, add comments so the requester can make changes.<p>
 If something is bad, add comments, reject it and close the pull request.<p> 
 https://help.github.com/articles/merging-a-pull-request
 
-7. Delete the local repository
+If merged in Gitshell, close puul request with notes.
+
+12. Delete the local repository
 
 Done
 

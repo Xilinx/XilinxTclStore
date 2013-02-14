@@ -5,3 +5,5 @@
 # http://www.xilinx.com/support
 # HEADER_END
 ####################################################################################################
+set path [file normalize [file dirname [info script]]]
+
