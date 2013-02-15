@@ -30,10 +30,3 @@ proc ::tclapp::xilinx::designutils::sort_pins_by_direction { { site RAMB36_X0Y0 
         if {[string equal "1" [get_property IS_BIDIR $ram_pin]]} {lappend ram_bidirs $ram_pin}
     }
 }
-####################################################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-####################################################################################################

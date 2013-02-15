@@ -16,10 +16,3 @@
 # full path name of this file's directory.
 
 package ifneeded ::tclapp::xilinx::designutils 1.0 [list source [file join $dir utils.tcl]]
-####################################################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-####################################################################################################
