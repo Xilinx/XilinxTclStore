@@ -201,7 +201,12 @@ namespace eval ::tclapp::xilinx::projutils {
 
         variable a_global_vars
         variable l_script_data
+        variable l_remote_files
+        variable l_local_files
+
         set l_script_data [list]
+        set l_local_files [list]
+        set l_remote_files [list]
 
         # get the project name
         set tcl_obj [current_project]
@@ -758,8 +763,8 @@ namespace eval ::tclapp::xilinx::projutils {
         variable l_remote_files
         variable l_script_data
 
-        set l_local_files [list]
-        set l_remote_files [list]
+        set l_local_file_list [list]
+        set l_remote_file_list [list]
 
         # return if empty fileset
         if {[llength [$get_what -of_objects $tcl_obj]] == 0 } {
@@ -783,7 +788,7 @@ namespace eval ::tclapp::xilinx::projutils {
             set imported_path [get_property "imported_from" $file]
             set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
             set file "\"$proj_file_path\""
-            lappend l_local_files $file
+            lappend l_local_file_list $file
 
             # Add to the import collection
             lappend import_coln "\"$proj_file_path\""
@@ -800,9 +805,9 @@ namespace eval ::tclapp::xilinx::projutils {
 
               # Add to the import collection
               lappend import_coln $file
-              lappend l_local_files $file
+              lappend l_local_file_list $file
             } else {
-              lappend l_remote_files $file
+              lappend l_remote_file_list $file
             }
       
             # Add files
@@ -843,7 +848,10 @@ namespace eval ::tclapp::xilinx::projutils {
         set file_prop_count 0
 
         # set remote file properties
-        foreach file $l_remote_files {
+        foreach file $l_remote_file_list {
+          lappend l_remote_files $file
+        }
+        foreach file $l_remote_file_list {
           set file [string trim $file "\""]
 
           set file_props [list_property [$get_what $file -of_objects $fs_name]]
@@ -906,7 +914,11 @@ namespace eval ::tclapp::xilinx::projutils {
         set file_prop_count 0
 
         # set local file properties
-        foreach file $l_local_files {
+        foreach file $l_local_file_list {
+          lappend l_local_files $file
+        }
+         
+        foreach file $l_local_file_list {
           set file [string trim $file "\""]
 
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
