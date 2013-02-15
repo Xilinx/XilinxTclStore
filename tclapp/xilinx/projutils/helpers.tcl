@@ -59,36 +59,6 @@ namespace eval ::tclapp::xilinx::projutils {
  	    # Return Value:
         # true
 
-        # Description:
-        # Exports a Tcl script file containing Vivado Tcl commands for recreating the current project. The script
-        # contains the commands for creating the project, setting project properties, adding/importing source files,
-        # setting fileset and file properties, creating new runs and setting run properties.
- 	
- 	    # Examples
-        #
- 	    # 1. The following command will create a Tcl script named 'test.tcl' which can be sourced in the
-        #    Vivado shell for re-creating a project.
-        #
-        #    write_project_tcl test_proj.tcl
-        #
- 	    # 2. The following command will overwrite existing 'test.tcl' 
-        #
-        #    write_project_tcl -force test_proj.tcl
-        #
- 	    # 3. The following command will create script containing all the properties
-        #
-        #    write_project_tcl -all_properties test_proj.tcl
-        #
- 	    # 4. The following command will NOT copy sources that were local in the original project, but will 
-        #    add them in the new project.
-        #
-        #    write_project_tcl -no_copy_sources test_proj.tcl
-
-        # Categories: project
-
-        # See_Also:
- 
- 
  	    # reset global variables
         variable a_global_vars
  
