@@ -4,6 +4,247 @@ namespace eval ::tclapp::xilinx::utils {
     namespace export prettyTable
 }
 
+########################################################################################
+##
+## Company:        Xilinx, Inc.
+## Created by:     David Pefourque
+## 
+## Version:        02/13/2013
+## Tool Version:   Vivado 2013.1
+## Description:    This package provides a simple way to handle formatted tables
+##
+##
+## BASIC USAGE:
+## ============
+## 
+## 1- Create new table object with optional title
+## 
+##   Vivado% set tbl [::tclapp::xilinx::utils::prettyTable {Pin Slack}]
+## 
+## 2- Define header
+## 
+##   Vivado% $tbl header [list NAME IS_LEAF IS_CLOCK SETUP_SLACK HOLD_SLACK]
+## 
+## 3- Add row(s)
+##   
+##   Vivado% $tbl addrow [list {or1200_wbmux/muxreg_reg[4]_i_45/I5} 1 0 10.000 3.266 ] 
+##   Vivado% $tbl addrow [list or1200_mult_mac/p_1_out__2_i_9/I2 1 0 9.998 1.024 ] 
+##   Vivado% $tbl addrow [list {or1200_wbmux/muxreg_reg[3]_i_52/I1} 1 0 9.993 2.924 ] 
+##   Vivado% $tbl addrow [list {or1200_wbmux/muxreg_reg[14]_i_41/I2} 1 0 9.990 3.925 ] 
+## 
+## 4- Print table
+## 
+##   Vivado% $tbl print
+##   +-------------------------------------------------------------------------------------+
+##   | Pin slack                                                                           |
+##   +-------------------------------------+---------+----------+-------------+------------+
+##   | NAME                                | IS_LEAF | IS_CLOCK | SETUP_SLACK | HOLD_SLACK |
+##   +-------------------------------------+---------+----------+-------------+------------+
+##   | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+##   | or1200_mult_mac/p_1_out__2_i_9/I2   | 1       | 0        | 9.998       | 1.024      |
+##   | or1200_wbmux/muxreg_reg[3]_i_52/I1  | 1       | 0        | 9.993       | 2.924      |
+##   | or1200_wbmux/muxreg_reg[14]_i_41/I2 | 1       | 0        | 9.990       | 3.925      |
+##   +-------------------------------------+---------+----------+-------------+------------+
+## 
+## 5- Destroy table (optional)
+## 
+##   Vivado% $tbl destroy
+## 
+## 
+## 
+## ADVANCED USAGE:
+## ===============
+## 
+## 1- Interactivity:
+## 
+##   Vivado% ::tclapp::xilinx::utils::prettyTable -help
+##   Vivado% $tbl 
+##   Vivado% $tbl configure -help
+##   Vivado% $tbl export -help
+##   Vivado% $tbl import -help
+##   Vivado% $tbl print -help
+##   Vivado% $tbl sort -help
+## 
+## 2- Adjust table indentation:
+## 
+##   Vivado% $tbl indent 8
+##   OR
+##   Vivado% $tbl configure -indent 8
+##   
+##   Vivado% $tbl print
+##           +-------------------------------------------------------------------------------------+
+##           | Pin Slack                                                                           |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | NAME                                | IS_LEAF | IS_CLOCK | SETUP_SLACK | HOLD_SLACK |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+##           | or1200_mult_mac/p_1_out__2_i_9/I2   | 1       | 0        | 9.998       | 1.024      |
+##           | or1200_wbmux/muxreg_reg[3]_i_52/I1  | 1       | 0        | 9.993       | 2.924      |
+##           | or1200_wbmux/muxreg_reg[14]_i_41/I2 | 1       | 0        | 9.990       | 3.925      |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##   
+## 3- Sort the table by columns. Multi-columns sorting is supporting:
+## 
+##   Vivado% $tbl sort +setup_slack
+## 
+##   Vivado% $tbl print
+##           +-------------------------------------------------------------------------------------+
+##           | Pin Slack                                                                           |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | NAME                                | IS_LEAF | IS_CLOCK | SETUP_SLACK | HOLD_SLACK |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | or1200_wbmux/muxreg_reg[14]_i_41/I2 | 1       | 0        | 9.990       | 3.925      |
+##           | or1200_wbmux/muxreg_reg[3]_i_52/I1  | 1       | 0        | 9.993       | 2.924      |
+##           | or1200_mult_mac/p_1_out__2_i_9/I2   | 1       | 0        | 9.998       | 1.024      |
+##           | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+##           +-------------------------------------+---------+----------+-------------+------------+
+## 
+## 4- Export table to multiple formats:
+## 
+##   4.1- Regular table:
+## 
+##     Vivado% $tbl export -format table
+##           +-------------------------------------------------------------------------------------+
+##           | Pin Slack                                                                           |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | NAME                                | IS_LEAF | IS_CLOCK | SETUP_SLACK | HOLD_SLACK |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | or1200_wbmux/muxreg_reg[14]_i_41/I2 | 1       | 0        | 9.990       | 3.925      |
+##           | or1200_wbmux/muxreg_reg[3]_i_52/I1  | 1       | 0        | 9.993       | 2.924      |
+##           | or1200_mult_mac/p_1_out__2_i_9/I2   | 1       | 0        | 9.998       | 1.024      |
+##           | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##     
+##     is equivalent to
+##   
+##     Vivado% $tbl print
+##   
+##   4.2- CSV format:
+## 
+##     Vivado% $tbl export -format csv -delimiter {;}
+##     # title;"Pin Slack"
+##     # header;"NAME";"IS_LEAF";"IS_CLOCK";"SETUP_SLACK";"HOLD_SLACK"
+##     # indent;"8"
+##     # limit;"-1"
+##     # display_limit;"50"
+##     "NAME";"IS_LEAF";"IS_CLOCK";"SETUP_SLACK";"HOLD_SLACK"
+##     "or1200_wbmux/muxreg_reg[14]_i_41/I2";"1";"0";"9.990";"3.925"
+##     "or1200_wbmux/muxreg_reg[4]_i_45/I5";"1";"0";"10.000";"3.266"
+##     "or1200_wbmux/muxreg_reg[3]_i_52/I1";"1";"0";"9.993";"2.924"
+##     "or1200_mult_mac/p_1_out__2_i_9/I2";"1";"0";"9.998";"1.024"
+## 
+##   4.3- Tcl script:
+## 
+##     Vivado% $tbl export -format tcl
+##     set tbl [::tclapp::xilinx::utils::prettyTable]
+##     $tbl configure -title {Pin Slack} -indent 8 -limit -1 -display_limit 50
+##     $tbl header [list NAME IS_LEAF IS_CLOCK SETUP_SLACK HOLD_SLACK]
+##     $tbl addrow [list {or1200_wbmux/muxreg_reg[14]_i_41/I2} 1 0 9.990 3.925 ] 
+##     $tbl addrow [list {or1200_wbmux/muxreg_reg[4]_i_45/I5} 1 0 10.000 3.266 ] 
+##     $tbl addrow [list {or1200_wbmux/muxreg_reg[3]_i_52/I1} 1 0 9.993 2.924 ] 
+##     $tbl addrow [list or1200_mult_mac/p_1_out__2_i_9/I2 1 0 9.998 1.024 ] 
+## 
+##   4.4- List format:
+## 
+##     Vivado% $tbl export -format list -delimiter { }
+##           NAME:or1200_wbmux/muxreg_reg[14]_i_41/I2 IS_LEAF:1 IS_CLOCK:0 SETUP_SLACK:9.990 HOLD_SLACK:3.925
+##           NAME:or1200_wbmux/muxreg_reg[4]_i_45/I5 IS_LEAF:1 IS_CLOCK:0 SETUP_SLACK:10.000 HOLD_SLACK:3.266
+##           NAME:or1200_wbmux/muxreg_reg[3]_i_52/I1 IS_LEAF:1 IS_CLOCK:0 SETUP_SLACK:9.993 HOLD_SLACK:2.924
+##           NAME:or1200_mult_mac/p_1_out__2_i_9/I2 IS_LEAF:1 IS_CLOCK:0 SETUP_SLACK:9.998 HOLD_SLACK:1.024
+## 
+## 
+## 5- Save results to file:
+## 
+##   Vivado% $tbl print -file <filename> [-append]
+##   Vivado% $tbl export -file <filename> [-append]
+## 
+## 6- Return results by reference for large tables:
+## 
+##   Vivado% $tbl print -return_var foo
+##   Vivado% $tbl export -return_var foo
+##   
+##   Vivado% puts $foo
+##           +-------------------------------------------------------------------------------------+
+##           | Pin Slack                                                                           |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | NAME                                | IS_LEAF | IS_CLOCK | SETUP_SLACK | HOLD_SLACK |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | or1200_wbmux/muxreg_reg[14]_i_41/I2 | 1       | 0        | 9.990       | 3.925      |
+##           | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+##           | or1200_wbmux/muxreg_reg[3]_i_52/I1  | 1       | 0        | 9.993       | 2.924      |
+##           | or1200_mult_mac/p_1_out__2_i_9/I2   | 1       | 0        | 9.998       | 1.024      |
+##           +-------------------------------------+---------+----------+-------------+------------+
+## 
+## 
+## 
+## 7- Import table from CSV file
+## 
+##   Vivado% $tbl import -file table.csv -delimiter {,}
+## 
+## 8- Query/interact with the content of the table
+## 
+##   Vivado% upvar 0 ${tbl}::table table
+##   Vivado% set header [$tbl header]
+##   Vivado% foreach row $table { <do something with the row...> }
+## 
+## 9- Other commands:
+## 
+##   9.1- Clone the table:
+## 
+##     Vivado% set clone [$tbl clone]
+## 
+##   9.2- Reset/clear the content of the table:
+## 
+##     Vivado% $tbl reset
+## 
+##   9.3- Add separator between rows:
+## 
+##   Vivado% set tbl [::tclapp::xilinx::utils::prettyTable {Pin Slack}]
+##   Vivado% $tbl header [list NAME IS_LEAF IS_CLOCK SETUP_SLACK HOLD_SLACK]
+##   Vivado% $tbl addrow [list {or1200_wbmux/muxreg_reg[4]_i_45/I5} 1 0 10.000 3.266 ] 
+##   Vivado% $tbl addrow [list or1200_mult_mac/p_1_out__2_i_9/I2 1 0 9.998 1.024 ] 
+##   Vivado% $tbl separator
+##   Vivado% $tbl addrow [list {or1200_wbmux/muxreg_reg[3]_i_52/I1} 1 0 9.993 2.924 ] 
+##   Vivado% $tbl separator
+##   Vivado% $tbl addrow [list {or1200_wbmux/muxreg_reg[14]_i_41/I2} 1 0 9.990 3.925 ] 
+##   Vivado% $tbl print
+##           +-------------------------------------------------------------------------------------+
+##           | Pin Slack                                                                           |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | NAME                                | IS_LEAF | IS_CLOCK | SETUP_SLACK | HOLD_SLACK |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+##           | or1200_mult_mac/p_1_out__2_i_9/I2   | 1       | 0        | 9.998       | 1.024      |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | or1200_wbmux/muxreg_reg[3]_i_52/I1  | 1       | 0        | 9.993       | 2.924      |
+##           +-------------------------------------+---------+----------+-------------+------------+
+##           | or1200_wbmux/muxreg_reg[14]_i_41/I2 | 1       | 0        | 9.990       | 3.925      |
+##           +-------------------------------------+---------+----------+-------------+------------+
+## 
+##   9.4- Destroy the table and release memory:
+## 
+##     Vivado% $tbl destroy
+## 
+##   9.5- Get information on the table:
+## 
+##     Vivado% $tbl info
+##     Header: NAME IS_LEAF IS_CLOCK SETUP_SLACK HOLD_SLACK
+##     # Cols: 5
+##     # Rows: 4
+##     Param[indent]: 8
+##     Param[maxNumRows]: -1
+##     Param[maxNumRowsToDisplay]: -1
+##     Param[title]: Pin Slack
+##     Memory footprint: 330 bytes
+## 
+##   9.6- Get the memory size taken by the table:
+## 
+##     Vivado% $tbl sizeof
+##     330
+##
+########################################################################################
+
+
 proc ::tclapp::xilinx::utils::prettyTable { args } {
     # Summary : utility to easily create and print tables
     
@@ -33,7 +274,7 @@ eval [list namespace eval ::tclapp::xilinx::utils::prettyTable {
   set n 0 
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
   set params [list indent 0 maxNumRows -1 maxNumRowsToDisplay -1 title {} ]
-  set version {02-01-2013}
+  set version {02-13-2013}
 } ]
 
 #------------------------------------------------------------------------
@@ -309,19 +550,33 @@ proc ::tclapp::xilinx::utils::prettyTable::csv2list { str {sepChar ,} } {
 # **INTERNAL**
 #------------------------------------------------------------------------
 # Dump the content of the prettyTable object as Tcl code
-# The result is returned as a single string
+# The result is returned as a single string or through upvar
 #------------------------------------------------------------------------
 proc ::tclapp::xilinx::utils::prettyTable::exportToTCL {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
 
+  array set defaults [list \
+      -return_var {} \
+    ]
+  array set options [array get defaults]
+  array set options $args
+
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::params params
   upvar #0 ${self}::separators separators
   upvar #0 ${self}::numRows numRows
+
+  # 'options(-return_var)' holds the variable name from the caller's environment
+  # that should receive the content of the report
+  if {$options(-return_var) != {}} {
+    # The caller's environment is 1 levels up
+    upvar 1 $options(-return_var) res
+  }
   set res {}
+
   append res [format {set tbl [::tclapp::xilinx::utils::prettyTable]
 $tbl configure -title {%s} -indent %s -limit %s -display_limit %s
 $tbl header [list %s]} $params(title) $params(indent) $params(maxNumRows) $params(maxNumRowsToDisplay) $header]
@@ -336,7 +591,12 @@ $tbl header [list %s]} $params(title) $params(indent) $params(maxNumRows) $param
       append res "[format {$tbl separator}]\n"
     }
   }
-  return $res
+  if {$options(-return_var) != {}} {
+    # The report is returned through the upvar
+    return {}
+  } else {
+    return $res
+  }
 }
 
 #------------------------------------------------------------------------
@@ -345,19 +605,35 @@ $tbl header [list %s]} $params(title) $params(indent) $params(maxNumRows) $param
 # **INTERNAL**
 #------------------------------------------------------------------------
 # Dump the content of the prettyTable object as CSV format
-# The result is returned as a single string
+# The result is returned as a single string or through upvar
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::exportToCSV {self {sepChar ,}} {
+proc ::tclapp::xilinx::utils::prettyTable::exportToCSV {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+
+  array set defaults [list \
+      -delimiter {,} \
+      -return_var {} \
+    ]
+  array set options [array get defaults]
+  array set options $args
+  set sepChar $options(-delimiter)
 
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::params params
   upvar #0 ${self}::separators separators
   upvar #0 ${self}::numRows numRows
+
+  # 'options(-return_var)' holds the variable name from the caller's environment
+  # that should receive the content of the report
+  if {$options(-return_var) != {}} {
+    # The caller's environment is 1 levels up
+    upvar 1 $options(-return_var) res
+  }
   set res {}
+
   append res "# title${sepChar}[::tclapp::xilinx::utils::prettyTable::list2csv [list $params(title)] $sepChar]\n"
   append res "# header${sepChar}[::tclapp::xilinx::utils::prettyTable::list2csv $header $sepChar]\n"
   append res "# indent${sepChar}[::tclapp::xilinx::utils::prettyTable::list2csv $params(indent) $sepChar]\n"
@@ -374,7 +650,73 @@ proc ::tclapp::xilinx::utils::prettyTable::exportToCSV {self {sepChar ,}} {
       append res "# ++++++++++++++++++++++++++++++++++++++++++++++++++\n"
     }
   }
-  return $res
+  if {$options(-return_var) != {}} {
+    # The report is returned through the upvar
+    return {}
+  } else {
+    return $res
+  }
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::utils::prettyTable::exportToLIST
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Dump the content of the prettyTable object as "list" with one
+# line per row
+# The result is returned as a single string or throug upvar
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::utils::prettyTable::exportToLIST {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+
+  array set defaults [list \
+      -delimiter { } \
+      -return_var {} \
+    ]
+  array set options [array get defaults]
+  array set options $args
+  set sepChar $options(-delimiter)
+
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::params params
+  upvar #0 ${self}::separators separators
+  upvar #0 ${self}::numRows numRows
+
+  # 'options(-return_var)' holds the variable name from the caller's environment
+  # that should receive the content of the report
+  if {$options(-return_var) != {}} {
+    # The caller's environment is 1 levels up
+    upvar 1 $options(-return_var) res
+  }
+  set res {}
+
+  set count 0
+  set indentString [string repeat " " $params(indent)]
+  foreach row $table {
+    incr count
+    append res $indentString
+    foreach h $header r $row {
+      append res "${h}:${r}${sepChar}"
+    }
+    # Remove extra separator at the end of the line due to 'foreach' loop
+    regsub "${sepChar}$" $res {} res
+    append res "\n"
+    # Check if a separator has been assigned to this row number and add a separator
+    # if so.
+    if {[lsearch $separators $count] != -1} {
+      append res "${indentString}# ++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+    }
+  }
+  if {$options(-return_var) != {}} {
+    # The report is returned through the upvar
+    return {}
+  } else {
+    return $res
+  }
 }
 
 #------------------------------------------------------------------------
@@ -868,7 +1210,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:info {self args} {
 #------------------------------------------------------------------------
 # ::tclapp::xilinx::utils::prettyTable::method:sort
 #------------------------------------------------------------------------
-# Usage: <prettyTableObject> [<COLUMN_HEADER>] [+<COLUMN_HEADER>] [-<COLUMN_HEADER>] 
+# Usage: <prettyTableObject> [-real|-integer|-dictionary] [<COLUMN_HEADER>] [+<COLUMN_HEADER>] [-<COLUMN_HEADER>] 
 #------------------------------------------------------------------------
 # Sort the table based on the specified column header. The table can
 # be sorted ascending or descending
@@ -882,30 +1224,78 @@ proc ::tclapp::xilinx::utils::prettyTable::method:sort {self args} {
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::params params
+  set direction {-increasing}
+  set sortType {-dictionary}
+  set column {}
+  set command {}
+  set indexes [list]
+  set help 0
+  if {[llength $args] == 0} { set help 1 }
   foreach elm $args {
-    set direction {increasing}
-    set column {}
-    if {[regexp {^(\+)(.+)$} $elm -- - column]} {
-      set direction {increasing}
+    if {[regexp {^(\-h(elp)?)$} $elm]} {
+      set help 1
+      break
+    } elseif {[regexp {^(\-real)$} $elm]} {
+      set sortType {-real}
+    } elseif {[regexp {^(\-integer)$} $elm]} {
+      set sortType {-integer}
+    } elseif {[regexp {^(\-dictionary)$} $elm]} {
+      set sortType {-dictionary}
+    } elseif {[regexp {^(\+)(.+)$} $elm -- - column]} {
+      set direction {-increasing}
     } elseif {[regexp {^(\-)(.+)$} $elm -- - column]} {
-      set direction {decreasing}
+      set direction {-decreasing}
     } elseif {[regexp {^(.+)$} $elm -- column]} {
-      set direction {increasing}
+      set direction {-increasing}
     } else {
       continue
     }
-    set index [lsearch $header $column]
+    if {$column == {}} { continue }
+    # Save the column and direction for each column
+    lappend indexes [list $column $direction]
+    # Reset default direction and column
+    set direction {-increasing}
+    set column {}
+  }
+
+  if {$help} {
+    puts [format {
+  Usage: <prettyTableObject> sort 
+              [-real|-integer|-dictionary]
+              [-<COLUMN_HEADER>]
+              [+<COLUMN_HEADER>|<COLUMN_HEADER>]
+              [-help|-h]
+              
+  Description: Sort the table based on one or multiple column headers.
+  
+  Example:
+     <prettyTableObject> sort +SLACK
+     <prettyTableObject> sort -integer -FANOUT
+     <prettyTableObject> sort +SETUP_SLACK -HOLD_SLACK
+} ]
+    # HELP -->
+    return {}
+  }
+
+  foreach item [lreverse $indexes] {
+    foreach {column direction} $item { break }
+    set index [lsearch -nocase $header $column]
     if {$index == -1} {
       puts " -E- unknown column header '$column'"
       continue
     }
-    if {[catch { set table [lsort -$direction -dictionary -index $index $table] } errorstring]} {
-      puts " -E- Sorting by column '$column': $errorstring"
+    if {$command == {}} {
+      set command "lsort $direction $sortType -index $index \$table"
     } else {
-      # Since the rows are sorted, the separators don't mean anything anymore, so remove them
-      set ${self}::separators [list]
-      puts " -I- Sorting ($direction) by column '$column' completed"
+      set command "lsort $direction $sortType -index $index \[$command\]"
     }
+  }
+  if {[catch { set table [eval $command] } errorstring]} {
+    puts " -E- Sorting indexes '$indexes': $errorstring"
+  } else {
+    # Since the rows are sorted, the separators don't mean anything anymore, so remove them
+    set ${self}::separators [list]
+    puts " -I- Sorting indexes '$indexes' completed"
   }
 }
 
@@ -1043,7 +1433,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:import {self args} {
       -delimiter {
            set csvDelimiter [lshift args]
       }
-      -file -
+      -f -
       -file {
            set filename [lshift args]
       }
@@ -1129,7 +1519,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:export {self args} {
   # Argument Usage:
   # Return Value:
 
-  # Export table (stdout / CSV format / tcl script)
+  # Export table (table / list / CSV format / tcl script)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::separators separators
@@ -1185,7 +1575,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:export {self args} {
   if {$help} {
     puts [format {
   Usage: <prettyTableObject> export
-              -format table|csv|tcl
+              -format table|csv|tcl|list
               [-delimiter <csv_delimiter>] 
               [-file <filename>]
               [-append]
@@ -1208,8 +1598,8 @@ proc ::tclapp::xilinx::utils::prettyTable::method:export {self args} {
   }
   
   # No header has been defined
-  if {[lsearch [list table tcl csv] $format] == -1} {
-    error " -E- invalid format '$format'. The valid format are: table | csv | tcl"
+  if {[lsearch [list {table} {tcl} {csv} {list}] $format] == -1} {
+    error " -E- invalid format '$format'. The valid format are: table | csv | tcl | list"
   }
 
   # The -return_var option provides the variable name from the caller's environment
@@ -1222,8 +1612,6 @@ proc ::tclapp::xilinx::utils::prettyTable::method:export {self args} {
 
   switch $format {
     table {
-#       set res [::tclapp::xilinx::utils::prettyTable::method::print $self]
-#       set res [$self print]
       if {$returnVar != {}} {
         $self print -return_var res
       } else {
@@ -1231,10 +1619,25 @@ proc ::tclapp::xilinx::utils::prettyTable::method:export {self args} {
       }
     }
     csv {
-      set res [::tclapp::xilinx::utils::prettyTable::exportToCSV $self $csvDelimiter]
+      if {$returnVar != {}} {
+        ::tclapp::xilinx::utils::prettyTable::exportToCSV $self -delimiter $csvDelimiter -return_var res
+      } else {
+        set res [::tclapp::xilinx::utils::prettyTable::exportToCSV $self -delimiter $csvDelimiter]
+      }
     }
     tcl {
-      set res [::tclapp::xilinx::utils::prettyTable::exportToTCL $self]
+      if {$returnVar != {}} {
+        ::tclapp::xilinx::utils::prettyTable::exportToTCL $self -return_var res
+      } else {
+        set res [::tclapp::xilinx::utils::prettyTable::exportToTCL $self]
+      }
+    }
+    list {
+      if {$returnVar != {}} {
+        ::tclapp::xilinx::utils::prettyTable::exportToLIST $self -delimiter $csvDelimiter -return_var res
+      } else {
+        set res [::tclapp::xilinx::utils::prettyTable::exportToLIST $self -delimiter $csvDelimiter]
+      }
     }
     default {
     }
