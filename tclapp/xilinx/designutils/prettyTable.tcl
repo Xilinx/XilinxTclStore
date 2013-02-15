@@ -8,7 +8,7 @@
 
 package require Vivado 2013.1
 
-namespace eval ::tclapp::xilinx::utils {
+namespace eval ::tclapp::xilinx::designutils {
     namespace export prettyTable
 }
 
@@ -17,7 +17,7 @@ namespace eval ::tclapp::xilinx::utils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ## 
-## Version:        02/13/2013
+## Version:        02/15/2013
 ## Tool Version:   Vivado 2013.1
 ## Description:    This package provides a simple way to handle formatted tables
 ##
@@ -27,7 +27,7 @@ namespace eval ::tclapp::xilinx::utils {
 ## 
 ## 1- Create new table object with optional title
 ## 
-##   Vivado% set tbl [::tclapp::xilinx::utils::prettyTable {Pin Slack}]
+##   Vivado% set tbl [::tclapp::xilinx::designutils::prettyTable {Pin Slack}]
 ## 
 ## 2- Define header
 ## 
@@ -65,7 +65,7 @@ namespace eval ::tclapp::xilinx::utils {
 ## 
 ## 1- Interactivity:
 ## 
-##   Vivado% ::tclapp::xilinx::utils::prettyTable -help
+##   Vivado% ::tclapp::xilinx::designutils::prettyTable -help
 ##   Vivado% $tbl 
 ##   Vivado% $tbl configure -help
 ##   Vivado% $tbl export -help
@@ -144,7 +144,7 @@ namespace eval ::tclapp::xilinx::utils {
 ##   4.3- Tcl script:
 ## 
 ##     Vivado% $tbl export -format tcl
-##     set tbl [::tclapp::xilinx::utils::prettyTable]
+##     set tbl [::tclapp::xilinx::designutils::prettyTable]
 ##     $tbl configure -title {Pin Slack} -indent 8 -limit -1 -display_limit 50
 ##     $tbl header [list NAME IS_LEAF IS_CLOCK SETUP_SLACK HOLD_SLACK]
 ##     $tbl addrow [list {or1200_wbmux/muxreg_reg[14]_i_41/I2} 1 0 9.990 3.925 ] 
@@ -207,7 +207,7 @@ namespace eval ::tclapp::xilinx::utils {
 ## 
 ##   9.3- Add separator between rows:
 ## 
-##   Vivado% set tbl [::tclapp::xilinx::utils::prettyTable {Pin Slack}]
+##   Vivado% set tbl [::tclapp::xilinx::designutils::prettyTable {Pin Slack}]
 ##   Vivado% $tbl header [list NAME IS_LEAF IS_CLOCK SETUP_SLACK HOLD_SLACK]
 ##   Vivado% $tbl addrow [list {or1200_wbmux/muxreg_reg[4]_i_45/I5} 1 0 10.000 3.266 ] 
 ##   Vivado% $tbl addrow [list or1200_mult_mac/p_1_out__2_i_9/I2 1 0 9.998 1.024 ] 
@@ -253,7 +253,7 @@ namespace eval ::tclapp::xilinx::utils {
 ########################################################################################
 
 
-proc ::tclapp::xilinx::utils::prettyTable { args } {
+proc ::tclapp::xilinx::designutils::prettyTable { args } {
     # Summary : utility to easily create and print tables
     
     # Argument Usage:
@@ -262,8 +262,8 @@ proc ::tclapp::xilinx::utils::prettyTable { args } {
     # Return Value:
     # returns a new prettyTable object
 
-  uplevel [concat ::tclapp::xilinx::utils::prettyTable::prettyTable $args]
-#   eval [concat ::tclapp::xilinx::utils::prettyTable::prettyTable $args]
+  uplevel [concat ::tclapp::xilinx::designutils::prettyTable::prettyTable $args]
+#   eval [concat ::tclapp::xilinx::designutils::prettyTable::prettyTable $args]
 }
 
 
@@ -278,19 +278,19 @@ proc ::tclapp::xilinx::utils::prettyTable { args } {
 #------------------------------------------------------------------------
 
 # Trick to silence the linter
-eval [list namespace eval ::tclapp::xilinx::utils::prettyTable { 
+eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable { 
   set n 0 
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
   set params [list indent 0 maxNumRows -1 maxNumRowsToDisplay -1 title {} ]
-  set version {02-13-2013}
+  set version {02-15-2013}
 } ]
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::prettyTable
+# ::tclapp::xilinx::designutils::prettyTable::prettyTable
 #------------------------------------------------------------------------
 # Main function
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::prettyTable { args } {
+proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -303,25 +303,25 @@ proc ::tclapp::xilinx::utils::prettyTable::prettyTable { args } {
   set method [lshift args]
   switch -exact -- $method {
     sizeof {
-      return [eval [concat ::tclapp::xilinx::utils::prettyTable::Sizeof] ]
+      return [eval [concat ::tclapp::xilinx::designutils::prettyTable::Sizeof] ]
     }
     info {
-      return [eval [concat ::tclapp::xilinx::utils::prettyTable::Info] ]
+      return [eval [concat ::tclapp::xilinx::designutils::prettyTable::Info] ]
     }
     destroyall {
-      return [eval [concat ::tclapp::xilinx::utils::prettyTable::DestroyAll] ]
+      return [eval [concat ::tclapp::xilinx::designutils::prettyTable::DestroyAll] ]
     }
     -h -
     -help {
       incr show_help
     }
     create {
-      return [eval [concat ::tclapp::xilinx::utils::prettyTable::Create $args] ]
+      return [eval [concat ::tclapp::xilinx::designutils::prettyTable::Create $args] ]
     }
     default {
       # The 'method' variable has the table's title. Since it can have multiple words
       # it is cast as a List to work well with 'eval'
-      return [eval [concat ::tclapp::xilinx::utils::prettyTable::Create [list $method]] ]
+      return [eval [concat ::tclapp::xilinx::designutils::prettyTable::Create [list $method]] ]
     }
   }
   
@@ -367,11 +367,11 @@ proc ::tclapp::xilinx::utils::prettyTable::prettyTable { args } {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::Create
+# ::tclapp::xilinx::designutils::prettyTable::Create
 #------------------------------------------------------------------------
 # Constructor for a new prettyTable object
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::Create { {title {}} } {
+proc ::tclapp::xilinx::designutils::prettyTable::Create { {title {}} } {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -388,32 +388,32 @@ proc ::tclapp::xilinx::utils::prettyTable::Create { {title {}} } {
     variable numRows 0
   }
   catch {unset ${instance}::params}
-  array set ${instance}::params $::tclapp::xilinx::utils::prettyTable::params
+  array set ${instance}::params $::tclapp::xilinx::designutils::prettyTable::params
   # Save the table's title
   set ${instance}::params(title) $title
-  interp alias {} $instance {} ::tclapp::xilinx::utils::prettyTable::do $instance
+  interp alias {} $instance {} ::tclapp::xilinx::designutils::prettyTable::do $instance
   set instance
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::Sizeof
+# ::tclapp::xilinx::designutils::prettyTable::Sizeof
 #------------------------------------------------------------------------
 # Memory footprint of all the existing prettyTable objects
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::Sizeof {} {
+proc ::tclapp::xilinx::designutils::prettyTable::Sizeof {} {
   # Summary :
   # Argument Usage:
   # Return Value:
 
-  return [::tclapp::xilinx::utils::prettyTable::method:sizeof ::tclapp::xilinx::utils::prettyTable]
+  return [::tclapp::xilinx::designutils::prettyTable::method:sizeof ::tclapp::xilinx::designutils::prettyTable]
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::Info
+# ::tclapp::xilinx::designutils::prettyTable::Info
 #------------------------------------------------------------------------
 # Provide information about all the existing prettyTable objects
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::Info {} {
+proc ::tclapp::xilinx::designutils::prettyTable::Info {} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -427,11 +427,11 @@ proc ::tclapp::xilinx::utils::prettyTable::Info {} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::DestroyAll
+# ::tclapp::xilinx::designutils::prettyTable::DestroyAll
 #------------------------------------------------------------------------
 # Detroy all the existing prettyTable objects and release the memory
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::DestroyAll {} {
+proc ::tclapp::xilinx::designutils::prettyTable::DestroyAll {} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -446,13 +446,13 @@ proc ::tclapp::xilinx::utils::prettyTable::DestroyAll {} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::docstring
+# ::tclapp::xilinx::designutils::prettyTable::docstring
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
 # Return the embedded help of a proc
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::docstring procname {
+proc ::tclapp::xilinx::designutils::prettyTable::docstring procname {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -473,13 +473,13 @@ proc ::tclapp::xilinx::utils::prettyTable::docstring procname {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::lshift
+# ::tclapp::xilinx::designutils::prettyTable::lshift
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
 # Stack function
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::lshift {inputlist} {
+proc ::tclapp::xilinx::designutils::prettyTable::lshift {inputlist} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -491,13 +491,13 @@ proc ::tclapp::xilinx::utils::prettyTable::lshift {inputlist} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::list2csv
+# ::tclapp::xilinx::designutils::prettyTable::list2csv
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
 # Convert a Tcl list to a CSV-friedly string
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::list2csv { list {sepChar ,} } {
+proc ::tclapp::xilinx::designutils::prettyTable::list2csv { list {sepChar ,} } {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -516,13 +516,13 @@ proc ::tclapp::xilinx::utils::prettyTable::list2csv { list {sepChar ,} } {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::csv2list
+# ::tclapp::xilinx::designutils::prettyTable::csv2list
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
 # Convert a CSV string to a Tcl list based on a field separator
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::csv2list { str {sepChar ,} } {
+proc ::tclapp::xilinx::designutils::prettyTable::csv2list { str {sepChar ,} } {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -553,14 +553,14 @@ proc ::tclapp::xilinx::utils::prettyTable::csv2list { str {sepChar ,} } {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::exportToTCL
+# ::tclapp::xilinx::designutils::prettyTable::exportToTCL
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
 # Dump the content of the prettyTable object as Tcl code
 # The result is returned as a single string or through upvar
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::exportToTCL {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::exportToTCL {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -585,7 +585,7 @@ proc ::tclapp::xilinx::utils::prettyTable::exportToTCL {self args} {
   }
   set res {}
 
-  append res [format {set tbl [::tclapp::xilinx::utils::prettyTable]
+  append res [format {set tbl [::tclapp::xilinx::designutils::prettyTable]
 $tbl configure -title {%s} -indent %s -limit %s -display_limit %s
 $tbl header [list %s]} $params(title) $params(indent) $params(maxNumRows) $params(maxNumRowsToDisplay) $header]
   append res "\n"
@@ -608,14 +608,14 @@ $tbl header [list %s]} $params(title) $params(indent) $params(maxNumRows) $param
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::exportToCSV
+# ::tclapp::xilinx::designutils::prettyTable::exportToCSV
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
 # Dump the content of the prettyTable object as CSV format
 # The result is returned as a single string or through upvar
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::exportToCSV {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::exportToCSV {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -642,16 +642,16 @@ proc ::tclapp::xilinx::utils::prettyTable::exportToCSV {self args} {
   }
   set res {}
 
-  append res "# title${sepChar}[::tclapp::xilinx::utils::prettyTable::list2csv [list $params(title)] $sepChar]\n"
-  append res "# header${sepChar}[::tclapp::xilinx::utils::prettyTable::list2csv $header $sepChar]\n"
-  append res "# indent${sepChar}[::tclapp::xilinx::utils::prettyTable::list2csv $params(indent) $sepChar]\n"
-  append res "# limit${sepChar}[::tclapp::xilinx::utils::prettyTable::list2csv $params(maxNumRows) $sepChar]\n"
-  append res "# display_limit${sepChar}[::tclapp::xilinx::utils::prettyTable::list2csv $params(maxNumRowsToDisplay) $sepChar]\n"
-  append res "[::tclapp::xilinx::utils::prettyTable::list2csv $header $sepChar]\n"
+  append res "# title${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv [list $params(title)] $sepChar]\n"
+  append res "# header${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $header $sepChar]\n"
+  append res "# indent${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(indent) $sepChar]\n"
+  append res "# limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRows) $sepChar]\n"
+  append res "# display_limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRowsToDisplay) $sepChar]\n"
+  append res "[::tclapp::xilinx::designutils::prettyTable::list2csv $header $sepChar]\n"
   set count 0
   foreach row $table {
     incr count
-    append res "[::tclapp::xilinx::utils::prettyTable::list2csv $row $sepChar]\n"
+    append res "[::tclapp::xilinx::designutils::prettyTable::list2csv $row $sepChar]\n"
     # Check if a separator has been assigned to this row number and add a separator
     # if so.
     if {[lsearch $separators $count] != -1} {
@@ -667,7 +667,7 @@ proc ::tclapp::xilinx::utils::prettyTable::exportToCSV {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::exportToLIST
+# ::tclapp::xilinx::designutils::prettyTable::exportToLIST
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
@@ -675,7 +675,7 @@ proc ::tclapp::xilinx::utils::prettyTable::exportToCSV {self args} {
 # line per row
 # The result is returned as a single string or throug upvar
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::exportToLIST {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::exportToLIST {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -728,13 +728,13 @@ proc ::tclapp::xilinx::utils::prettyTable::exportToLIST {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::do
+# ::tclapp::xilinx::designutils::prettyTable::do
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
 # Dispatcher with methods
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::do {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::do {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -748,14 +748,14 @@ proc ::tclapp::xilinx::utils::prettyTable::do {self args} {
     # The first argument is the method
     set method [lshift args]
   }
-  if {[info proc ::tclapp::xilinx::utils::prettyTable::method:${method}] == "::tclapp::xilinx::utils::prettyTable::method:${method}"} {
-    eval ::tclapp::xilinx::utils::prettyTable::method:${method} $self $args
+  if {[info proc ::tclapp::xilinx::designutils::prettyTable::method:${method}] == "::tclapp::xilinx::designutils::prettyTable::method:${method}"} {
+    eval ::tclapp::xilinx::designutils::prettyTable::method:${method} $self $args
   } else {
     # Search for a unique matching method among all the available methods
     set match [list]
-    foreach procname [info proc ::tclapp::xilinx::utils::prettyTable::method:*] {
-      if {[string first $method [regsub {::tclapp::xilinx::utils::prettyTable::method:} $procname {}]] == 0} {
-        lappend match [regsub {::tclapp::xilinx::utils::prettyTable::method:} $procname {}]
+    foreach procname [info proc ::tclapp::xilinx::designutils::prettyTable::method:*] {
+      if {[string first $method [regsub {::tclapp::xilinx::designutils::prettyTable::method:} $procname {}]] == 0} {
+        lappend match [regsub {::tclapp::xilinx::designutils::prettyTable::method:} $procname {}]
       }
     }
     switch [llength $match] {
@@ -764,7 +764,7 @@ proc ::tclapp::xilinx::utils::prettyTable::do {self args} {
       }
       1 {
         set method $match
-        eval ::tclapp::xilinx::utils::prettyTable::method:${method} $self $args
+        eval ::tclapp::xilinx::designutils::prettyTable::method:${method} $self $args
       }
       default {
         error " -E- multiple methods match '$method': $match"
@@ -774,14 +774,14 @@ proc ::tclapp::xilinx::utils::prettyTable::do {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:?
+# ::tclapp::xilinx::designutils::prettyTable::method:?
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> ?
 #------------------------------------------------------------------------
 # Return all the available methods. The methods with no embedded help
 # are not displayed (i.e hidden)
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:? {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:? {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -789,9 +789,9 @@ proc ::tclapp::xilinx::utils::prettyTable::method:? {self args} {
   # This help message
   puts "   Usage: <prettyTableObject> <method> \[<arguments>\]"
   puts "   Where <method> is:"
-  foreach procname [lsort [info proc ::tclapp::xilinx::utils::prettyTable::method:*]] {
-    regsub {::tclapp::xilinx::utils::prettyTable::method:} $procname {} method
-    set help [::tclapp::xilinx::utils::prettyTable::docstring $procname]
+  foreach procname [lsort [info proc ::tclapp::xilinx::designutils::prettyTable::method:*]] {
+    regsub {::tclapp::xilinx::designutils::prettyTable::method:} $procname {} method
+    set help [::tclapp::xilinx::designutils::prettyTable::docstring $procname]
     if {$help ne ""} {
       puts "         [format {%-12s%s- %s} $method \t $help]"
     }
@@ -800,13 +800,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:? {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:header
+# ::tclapp::xilinx::designutils::prettyTable::method:header
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> header <list>
 #------------------------------------------------------------------------
 # Set the table header
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:header {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:header {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -829,13 +829,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:header {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:addrow
+# ::tclapp::xilinx::designutils::prettyTable::method:addrow
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> addrow <list>
 #------------------------------------------------------------------------
 # Add a row to the table
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:addrow {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:addrow {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -851,13 +851,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:addrow {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:indent
+# ::tclapp::xilinx::designutils::prettyTable::method:indent
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> indent [<value>]
 #------------------------------------------------------------------------
 # Set/get the indent level for the table
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:indent {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:indent {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -872,7 +872,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:indent {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:get_param
+# ::tclapp::xilinx::designutils::prettyTable::method:get_param
 #------------------------------------------------------------------------
 # **HIDDEN**
 #------------------------------------------------------------------------
@@ -880,7 +880,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:indent {self args} {
 #------------------------------------------------------------------------
 # Get a parameter from the 'params' associative array
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:get_param {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:get_param {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -895,7 +895,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:get_param {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:set_param
+# ::tclapp::xilinx::designutils::prettyTable::method:set_param
 #------------------------------------------------------------------------
 # **HIDDEN**
 #------------------------------------------------------------------------
@@ -903,7 +903,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:get_param {self args} {
 #------------------------------------------------------------------------
 # Set a parameter inside the 'params' associative array
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:set_param {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:set_param {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -916,13 +916,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:set_param {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:separator 
+# ::tclapp::xilinx::designutils::prettyTable::method:separator 
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> separator
 #------------------------------------------------------------------------
 # Add a separator after the last inserted row
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:separator {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:separator {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -936,13 +936,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:separator {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:reset
+# ::tclapp::xilinx::designutils::prettyTable::method:reset
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> reset
 #------------------------------------------------------------------------
 # Reset the object to an empty one. All the data of that object are lost
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:reset {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:reset {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -953,20 +953,20 @@ proc ::tclapp::xilinx::utils::prettyTable::method:reset {self args} {
   set ${self}::separators [list]
   set ${self}::numRows 0
   catch {unset ${self}::params}
-  array set ${self}::params $::tclapp::xilinx::utils::prettyTable::params
+  array set ${self}::params $::tclapp::xilinx::designutils::prettyTable::params
 #   set ${self}::params(indent) 0
   return 0
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:destroy
+# ::tclapp::xilinx::designutils::prettyTable::method:destroy
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> destroy
 #------------------------------------------------------------------------
 # Destroy an object and release its memory footprint. The object is not
 # accessible anymore after that command
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:destroy {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:destroy {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -982,13 +982,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:destroy {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:sizeof
+# ::tclapp::xilinx::designutils::prettyTable::method:sizeof
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> sizeof
 #------------------------------------------------------------------------
 # Return the memory footprint of the object
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:sizeof {ns args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:sizeof {ns args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1006,19 +1006,19 @@ proc ::tclapp::xilinx::utils::prettyTable::method:sizeof {ns args} {
       }
   }
   foreach child [namespace children $ns] {
-      incr sum [::tclapp::xilinx::utils::prettyTable::method:sizeof $child]
+      incr sum [::tclapp::xilinx::designutils::prettyTable::method:sizeof $child]
   }
   set sum
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:print
+# ::tclapp::xilinx::designutils::prettyTable::method:print
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> print [<options>]
 #------------------------------------------------------------------------
 # Return the printed table
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:print {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1191,13 +1191,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:print {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:info
+# ::tclapp::xilinx::designutils::prettyTable::method:info
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> info
 #------------------------------------------------------------------------
 # List various information about the object
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:info {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:info {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1212,18 +1212,18 @@ proc ::tclapp::xilinx::utils::prettyTable::method:info {self args} {
   foreach param [lsort [array names params]] {
     puts [format {    Param[%s]: %s} $param $params($param)]
   }
-  puts [format {    Memory footprint: %d bytes} [::tclapp::xilinx::utils::prettyTable::method:sizeof $self]]
+  puts [format {    Memory footprint: %d bytes} [::tclapp::xilinx::designutils::prettyTable::method:sizeof $self]]
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:sort
+# ::tclapp::xilinx::designutils::prettyTable::method:sort
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> [-real|-integer|-dictionary] [<COLUMN_HEADER>] [+<COLUMN_HEADER>] [-<COLUMN_HEADER>] 
 #------------------------------------------------------------------------
 # Sort the table based on the specified column header. The table can
 # be sorted ascending or descending
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:sort {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1308,13 +1308,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:sort {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:configure
+# ::tclapp::xilinx::designutils::prettyTable::method:configure
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> configure [<options>]
 #------------------------------------------------------------------------
 # Configure some of the object parameters
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:configure {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:configure {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1383,14 +1383,14 @@ proc ::tclapp::xilinx::utils::prettyTable::method:configure {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:clone
+# ::tclapp::xilinx::designutils::prettyTable::method:clone
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> clone
 #------------------------------------------------------------------------
 # Clone the object and return the cloned object. The original object
 # is not modified
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:clone {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:clone {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1401,7 +1401,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:clone {self args} {
   upvar #0 ${self}::params params
   upvar #0 ${self}::separators separators
   upvar #0 ${self}::numRows numRows
-  set tbl [::tclapp::xilinx::utils::prettyTable::Create]
+  set tbl [::tclapp::xilinx::designutils::prettyTable::Create]
   set ${tbl}::header $header
   set ${tbl}::table $table
   set ${tbl}::separators $separators
@@ -1411,13 +1411,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:clone {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:import
+# ::tclapp::xilinx::designutils::prettyTable::method:import
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> import [<options>]
 #------------------------------------------------------------------------
 # Create the table from a CSV file
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:import {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1502,10 +1502,10 @@ proc ::tclapp::xilinx::utils::prettyTable::method:import {self args} {
     if {[regexp {^\s*#} $line]} { continue }
     if {[regexp {^\s*$} $line]} { continue }
     if {$first} {
-      set header [::tclapp::xilinx::utils::prettyTable::csv2list $line $csvDelimiter]
+      set header [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
       set first 0
     } else {
-      $self addrow [::tclapp::xilinx::utils::prettyTable::csv2list $line $csvDelimiter]
+      $self addrow [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
       incr count
     }
   }
@@ -1516,13 +1516,13 @@ proc ::tclapp::xilinx::utils::prettyTable::method:import {self args} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::utils::prettyTable::method:export
+# ::tclapp::xilinx::designutils::prettyTable::method:export
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> export [<options>]
 #------------------------------------------------------------------------
 # Export the table to various format
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::utils::prettyTable::method:export {self args} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1628,23 +1628,23 @@ proc ::tclapp::xilinx::utils::prettyTable::method:export {self args} {
     }
     csv {
       if {$returnVar != {}} {
-        ::tclapp::xilinx::utils::prettyTable::exportToCSV $self -delimiter $csvDelimiter -return_var res
+        ::tclapp::xilinx::designutils::prettyTable::exportToCSV $self -delimiter $csvDelimiter -return_var res
       } else {
-        set res [::tclapp::xilinx::utils::prettyTable::exportToCSV $self -delimiter $csvDelimiter]
+        set res [::tclapp::xilinx::designutils::prettyTable::exportToCSV $self -delimiter $csvDelimiter]
       }
     }
     tcl {
       if {$returnVar != {}} {
-        ::tclapp::xilinx::utils::prettyTable::exportToTCL $self -return_var res
+        ::tclapp::xilinx::designutils::prettyTable::exportToTCL $self -return_var res
       } else {
-        set res [::tclapp::xilinx::utils::prettyTable::exportToTCL $self]
+        set res [::tclapp::xilinx::designutils::prettyTable::exportToTCL $self]
       }
     }
     list {
       if {$returnVar != {}} {
-        ::tclapp::xilinx::utils::prettyTable::exportToLIST $self -delimiter $csvDelimiter -return_var res
+        ::tclapp::xilinx::designutils::prettyTable::exportToLIST $self -delimiter $csvDelimiter -return_var res
       } else {
-        set res [::tclapp::xilinx::utils::prettyTable::exportToLIST $self -delimiter $csvDelimiter]
+        set res [::tclapp::xilinx::designutils::prettyTable::exportToLIST $self -delimiter $csvDelimiter]
       }
     }
     default {
@@ -1677,7 +1677,7 @@ proc ::tclapp::xilinx::utils::prettyTable::method:export {self args} {
 ###########################################################################
 
 if 0 {
-  set tbl [::tclapp::xilinx::utils::prettyTable {This is the title of the table}]
+  set tbl [::tclapp::xilinx::designutils::prettyTable {This is the title of the table}]
   $tbl header [list "name" "#Pins" "case_value" "user_case_value"]
   $tbl addrow [list A/B/C/D/E/F 12 - -]
   $tbl addrow [list A/B/C/D/E/G 24 1 -]
@@ -1706,14 +1706,14 @@ if 0 {
   $new print
   $new sort -#Pins
   $new print
-  ::tclapp::xilinx::utils::prettyTable sizeof
-  ::tclapp::xilinx::utils::prettyTable info
-  # ::tclapp::xilinx::utils::prettyTable destroyall
+  ::tclapp::xilinx::designutils::prettyTable sizeof
+  ::tclapp::xilinx::designutils::prettyTable info
+  # ::tclapp::xilinx::designutils::prettyTable destroyall
   # $tbl destroy
 }
 
 if 0 {
-  set tbl [::tclapp::xilinx::utils::prettyTable]
+  set tbl [::tclapp::xilinx::designutils::prettyTable]
   $tbl configure -limit -1
   $tbl configure -display_limit -1
   set Header [list NAME CLASS DIRECTION IS_LEAF IS_CLOCK LOGIC_VALUE SETUP_SLACK HOLD_SLACK]
