@@ -537,7 +537,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # ERROR: [Vivado 12-563] The file type 'IP' is not user settable.
         set val  [string tolower $val]
         if { [string equal $prop "FILE_TYPE"] } {
-          set file_types [list "ip" "embedded design sources" "elf" "coefficient files" "block diagrams" "dsp design sources" "design checkpoint"]
+          set file_types [list "ip" "embedded design sources" "elf" "coefficient files" "block diagrams" "block designs" "dsp design sources" "design checkpoint"]
           if { [lsearch $file_types $val] != -1 } {
             return true
           }
