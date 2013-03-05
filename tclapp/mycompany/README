@@ -8,7 +8,7 @@ pkgIndex.tcl file.  The file pkgIndex.tcl is the same in all
 provider directories.
 
 ================================================================
-CREATEING A NEW TCL APP
+CREATING A NEW TCL APP
 ================================================================
 To create a new Tcl App simply make a new directory with the 
 name of the App, e.g.
@@ -16,7 +16,7 @@ name of the App, e.g.
 % mkdir myapp
 
 In the app directory you can add any number of Tcl files that 
-together make up the app, the only requirement is that the app
+together make up the app. The only requirement is that the app
 directory contains one Tcl file with the same name as the app, 
 e.g. myapp.tcl with at least this content
 
