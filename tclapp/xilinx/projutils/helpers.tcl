@@ -52,7 +52,7 @@ namespace eval ::tclapp::xilinx::projutils {
  	    # Argument Usage: 
         # [-force]: Overwrite existing tcl script file
         # [-all_properties]: write all properties (default & non-default) for the project object(s)
-        # [-no_copy_sources]: Donot import sources even if they were local in the original project
+        # [-no_copy_sources]: Do not import sources even if they were local in the original project
         # [-dump_project_info]: Write object values
  	    # file: Name of the tcl script file to generate
 
@@ -652,11 +652,7 @@ namespace eval ::tclapp::xilinx::projutils {
           set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
       
           # Fix paths wrt org proj dir
-          if {([string equal -nocase $prop "top_file"] ||
-               [string equal -nocase $prop "target_constrs_file"] ||
-               [string equal -nocase $prop "target_ucf"]) &&
-               ($cur_val != "") } {
-       
+          if {([string equal -nocase $prop "top_file"]) && ($cur_val != "") } {
             set file $cur_val
 
             set srcs_dir "${proj_name}.srcs"
@@ -668,6 +664,30 @@ namespace eval ::tclapp::xilinx::projutils {
             } else {
               set proj_file_path "\$orig_proj_dir/$src_file"
             }
+            set prop_entry "[string tolower $prop]#$proj_file_path"
+
+          } elseif {([string equal -nocase $prop "target_constrs_file"] ||
+                     [string equal -nocase $prop "target_ucf"]) &&
+                     ($cur_val != "") } {
+       
+            set file $cur_val
+            set fs_name $tcl_obj
+
+            set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
+            set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
+
+            set file_props [list_property [get_files $file -of_objects $fs_name]]
+            if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
+              set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
+            } else {
+              # is file new inside project?
+              if { [is_local_to_project $file] } {
+                set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
+              } else {
+                set proj_file_path "$file"
+              }
+            }
+
             set prop_entry "[string tolower $prop]#$proj_file_path"
           }
  
