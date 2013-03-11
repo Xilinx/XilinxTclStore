@@ -127,6 +127,7 @@ namespace eval ::tclapp::xilinx::projutils {
     variable l_script_data [list]
     variable l_local_files [list]
     variable l_remote_files [list]
+    variable b_project_board_set 0
 
     proc reset_global_vars {} {
 
@@ -290,6 +291,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # TCL_OK is returned if the procedure completed successfully.
     
         variable l_script_data
+        variable b_project_board_set
 
         # write project properties
         set tcl_obj [current_project]
@@ -298,6 +300,12 @@ namespace eval ::tclapp::xilinx::projutils {
 
         lappend l_script_data "# Set project properties"
         lappend l_script_data "set obj \[$get_what $tcl_obj\]"
+
+        # is project "board" set already?
+        if { [string length [get_property "board" $tcl_obj]] > 0 } {
+          set b_project_board_set 1
+        }
+
         write_props $proj_name $get_what $tcl_obj "project"
 
         return 0
@@ -612,6 +620,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
         variable a_global_vars
         variable l_script_data
+        variable b_project_board_set
 
         set obj_name [get_property name [$get_what $tcl_obj]]
         set read_only_props [rdi::get_attr_specs -class [get_property class $tcl_obj] -filter {is_readonly}]
@@ -639,6 +648,20 @@ namespace eval ::tclapp::xilinx::projutils {
 
           # filter special properties
           if { [filter $prop $cur_val] } { continue }
+
+          # do not set "runs" or "project" part, if "board" is set
+          if { ([string equal $type "project"] || [string equal $type "run"]) && 
+               [string equal -nocase $prop "part"] &&
+               $b_project_board_set } {
+            continue
+          }
+
+          # do not set "fileset" target_part, if "board" is set
+          if { [string equal $type "fileset"] &&
+               [string equal -nocase $prop "target_part"] &&
+               $b_project_board_set } {
+            continue
+          }
       
           # re-align values
           if { [string equal $def_val "false"] && [string equal $cur_val "0"] } { set cur_val "false" }
