@@ -13,15 +13,15 @@ XilinxTclStore/
         tcl files # all tcl sources for utils
         test/  # testing directory
           test.tcl # test script to run under Vivado for utils
-				doc/ # long help files, the name of the files have to be exactly same as the proc name
+            doc/ # long help files, the name of the files have to be exactly same as the proc name
     mycompany/
       myapp/   # some app from mycompany
         tcl files # all tcl files for myapp
         test/  # testing directory
           test.tcl # test script to run under Vivado for myapp
           test.info
-				doc/ # long help files, the name of the files have to be exactly same as the proc name
-				  
+            doc/ # long help files, the name of the files have to be exactly same as the proc name
+
 
 The 'mycompany' provider is included as an example, please see 
 README files in the various directories under this provider for
