@@ -53,6 +53,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # [-force]: Overwrite existing tcl script file
         # [-all_properties]: write all properties (default & non-default) for the project object(s)
         # [-no_copy_sources]: Do not import sources even if they were local in the original project
+        # [-dump_project_info]: Write object values
  	    # file: Name of the tcl script file to generate
 
  	    # Return Value:
