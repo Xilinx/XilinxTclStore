@@ -542,7 +542,7 @@ namespace eval ::tclapp::xilinx::projutils {
       
 
         # error reported if file_type is set
-        # ERROR: [Vivado 12-563] The file type 'IP' is not user settable.
+        # e.g ERROR: [Vivado 12-563] The file type 'IP' is not user settable.
         set val  [string tolower $val]
         if { [string equal $prop "FILE_TYPE"] } {
           set file_types [list "ip" "embedded design sources" "elf" "coefficient files" "block diagrams" "block designs" "dsp design sources" "design checkpoint"]
@@ -698,10 +698,11 @@ namespace eval ::tclapp::xilinx::projutils {
 
             set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
             set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
+            set file_object [lindex [get_files -of_objects $fs_name $file] 0]
+            set file_props [list_property $file_object]
 
-            set file_props [list_property [get_files $file -of_objects $fs_name]]
             if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
-              set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
+              set proj_file_path "\$proj_dir/${proj_name}.srcs/$src_file"
             } else {
               # is file new inside project?
               if { [is_local_to_project $file] } {
@@ -737,9 +738,9 @@ namespace eval ::tclapp::xilinx::projutils {
           }
 
           if { $a_global_vars(b_arg_dump_proj_info) } {
-            if { ([string equal $prop "TOP_FILE"] ||
-                  [string equal $prop "TARGET_CONSTRS_FILE"] ||
-                  [string equal $prop "TARGET_UCF"] ) && [string equal $type "fileset"] } {
+            if { ([string equal -nocase $prop "top_file"] ||
+                  [string equal -nocase $prop "target_constrs_file"] ||
+                  [string equal -nocase $prop "target_ucf"] ) && [string equal $type "fileset"] } {
 
               # fix path
               set file $cur_val
@@ -793,7 +794,10 @@ namespace eval ::tclapp::xilinx::projutils {
         foreach file [lsort [$get_what -norecurse -of_objects $tcl_obj]] {
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
           set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
-          set file_props [list_property [$get_what $file -of_objects $fs_name]]
+
+          # fetch first object
+          set file_object [lindex [$get_what -of_objects $fs_name $file] 0]
+          set file_props [list_property $file_object]
       
           if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
 
@@ -867,19 +871,20 @@ namespace eval ::tclapp::xilinx::projutils {
         foreach file $l_remote_file_list {
           set file [string trim $file "\""]
 
-          set file_props [list_property [$get_what $file -of_objects $fs_name]]
+          set file_object [lindex [$get_what -of_objects $fs_name $file] 0]
+          set file_props [list_property $file_object]
           set prop_info_list [list]
           set prop_count 0
 
           foreach file_prop $file_props {
-            set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object [$get_what $file -of_objects $fs_name]]]
+            set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
             if { [string equal $is_readonly "1"] } {
               continue
             }
 
-            set prop_type [get_property type [rdi::get_attr_specs $file_prop -object [$get_what $file -of_objects $fs_name]]]
-            set def_val [list_property_value -default $file_prop [get_files $file -of_objects $fs_name]]
-            set cur_val [get_property $file_prop [get_files $file -of_objects $fs_name]]
+            set prop_type [get_property type [rdi::get_attr_specs $file_prop -object $file_object]]
+            set def_val [list_property_value -default $file_prop $file_object]
+            set cur_val [get_property $file_prop $file_object]
 
             # filter special properties
             if { [filter $file_prop $cur_val] } { continue }
@@ -892,7 +897,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set cur_val "{}" }
 
             set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
-            set prop_entry "[string tolower $file_prop]#[get_property $file_prop [$get_what $file -of_objects $fs_name]]"
+            set prop_entry "[string tolower $file_prop]#[get_property $file_prop $file_object]"
             if { $a_global_vars(b_arg_all_props) } {
               lappend prop_info_list $prop_entry
               incr prop_count
@@ -943,19 +948,19 @@ namespace eval ::tclapp::xilinx::projutils {
           set src_file [string trimleft $src_file "\\"]
 
           set file $src_file
-
-          set file_props [list_property [$get_what "*$file" -of_objects $fs_name]]
+          set file_object [lindex [$get_what -of_objects $fs_name "*$file"] 0]
+          set file_props [list_property $file_object]
           set prop_info_list [list]
           set prop_count 0
           foreach file_prop $file_props {
-            set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object [$get_what "*$file" -of_objects $fs_name]]]
+            set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
             if { [string equal $is_readonly "1"] } {
               continue
             }
 
-            set prop_type [get_property type [rdi::get_attr_specs $file_prop -object [$get_what "*$file" -of_objects $fs_name]]]
-            set def_val [list_property_value -default $file_prop [get_files "*$file" -of_objects $fs_name]]
-            set cur_val [get_property $file_prop [get_files "*$file" -of_objects $fs_name]]
+            set prop_type [get_property type [rdi::get_attr_specs $file_prop -object $file_object]]
+            set def_val [list_property_value -default $file_prop $file_object]
+            set cur_val [get_property $file_prop $file_object]
 
             # filter special properties
             if { [filter $file_prop $cur_val] } { continue }
@@ -968,7 +973,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set cur_val "{}" }
 
             set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
-            set prop_value_entry [get_property $file_prop [$get_what "*$file" -of_objects $fs_name]]
+            set prop_value_entry [get_property $file_prop $file_object]
             set prop_entry "[string tolower $file_prop]#$prop_value_entry"
             if { $a_global_vars(b_arg_all_props) } {
               lappend prop_info_list $prop_entry
