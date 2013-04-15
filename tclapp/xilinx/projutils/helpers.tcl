@@ -599,6 +599,11 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [string equal $get_what "get_files"] } {
               lappend l_script_data "$cmd_str \$file_obj"
             } else {
+              # Comment "is_readonly" project property
+              if { [string equal $get_what "get_projects"] && [string equal "$name" "is_readonly"] } {
+                send_msg_id Vivado-projutils-012 INFO "The current project is in 'read_only' state. The generated script will create a writable project."
+                continue
+              }
               lappend l_script_data "$cmd_str \$obj"
             }
           }
