@@ -325,6 +325,9 @@ namespace eval ::tclapp::xilinx::projutils {
         # Write fileset (sources, constrs, simulation)
         set filesets [get_filesets -filter {FILESET_TYPE == "DesignSrcs"}]
         write_specified_fileset $proj_name $filesets
+
+        set filesets [get_filesets -filter {FILESET_TYPE == "BlockSrcs"}]
+        write_specified_fileset $proj_name $filesets
     
         set filesets [get_filesets -filter {FILESET_TYPE == "Constrs"}]
         write_specified_fileset $proj_name $filesets
@@ -358,6 +361,7 @@ namespace eval ::tclapp::xilinx::projutils {
           set fs_sw_type ""
           switch -regexp -- $fs_type {
             "DesignSrcs"     { set fs_sw_type "-srcset"      }
+            "BlockSrcs"      { set fs_sw_type "-blockset"    }
             "Constrs"        { set fs_sw_type "-constrset"   }
             "SimulationSrcs" { set fs_sw_type "-simset"      }
           }
