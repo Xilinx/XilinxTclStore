@@ -361,7 +361,7 @@ namespace eval ::tclapp::xilinx::projutils {
           set fs_sw_type ""
           switch -regexp -- $fs_type {
             "DesignSrcs"     { set fs_sw_type "-srcset"      }
-            "BlockSrcs"      { set fs_sw_type "-srcset"      }
+            "BlockSrcs"      { set fs_sw_type "-blockset"    }
             "Constrs"        { set fs_sw_type "-constrset"   }
             "SimulationSrcs" { set fs_sw_type "-simset"      }
           }
