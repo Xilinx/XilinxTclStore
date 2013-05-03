@@ -129,6 +129,15 @@ namespace eval ::tclapp::xilinx::projutils {
     variable l_remote_files [list]
     variable b_project_board_set 0
 
+    # Set fileset types
+    variable a_fileset_types
+    set a_fileset_types {
+      {{DesignSrcs}     {srcset}}
+      {{BlockSrcs}      {blockset}}
+      {{Constrs}        {constrset}}
+      {{SimulationSrcs} {simset}}
+    }
+
     proc reset_global_vars {} {
 
         # Summary: initializes global namespace vars 
@@ -322,18 +331,13 @@ namespace eval ::tclapp::xilinx::projutils {
         # Return Value:
         # TCL_OK is returned if the procedure completed successfully.
 
-        # Write fileset (sources, constrs, simulation)
-        set filesets [get_filesets -filter {FILESET_TYPE == "DesignSrcs"}]
-        write_specified_fileset $proj_name $filesets
+        variable a_fileset_types
 
-        set filesets [get_filesets -filter {FILESET_TYPE == "BlockSrcs"}]
-        write_specified_fileset $proj_name $filesets
-    
-        set filesets [get_filesets -filter {FILESET_TYPE == "Constrs"}]
-        write_specified_fileset $proj_name $filesets
-    
-        set filesets [get_filesets -filter {FILESET_TYPE == "SimulationSrcs"}]
-        write_specified_fileset $proj_name $filesets
+        # Write fileset data
+        foreach {fs_data} $a_fileset_types {
+          set filesets [get_filesets -filter FILESET_TYPE==[lindex $fs_data 0]]
+          write_specified_fileset $proj_name $filesets
+        }
     
         return 0
     }
@@ -352,22 +356,18 @@ namespace eval ::tclapp::xilinx::projutils {
 
         variable a_global_vars
         variable l_script_data
+        variable a_fileset_types
 
         # write filesets
         set type "file"
         foreach tcl_obj $filesets {
 
           set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
-          set fs_sw_type ""
-          switch -regexp -- $fs_type {
-            "DesignSrcs"     { set fs_sw_type "-srcset"      }
-            "BlockSrcs"      { set fs_sw_type "-blockset"    }
-            "Constrs"        { set fs_sw_type "-constrset"   }
-            "SimulationSrcs" { set fs_sw_type "-simset"      }
-          }
   
           lappend l_script_data "# Create '$tcl_obj' fileset (if not found)"
           lappend l_script_data "if \{\[string equal \[get_filesets $tcl_obj\] \"\"\]\} \{"
+
+          set fs_sw_type [get_fileset_type_switch $fs_type]
           lappend l_script_data "  create_fileset $fs_sw_type $tcl_obj"
           lappend l_script_data "\}\n"
 
@@ -1066,4 +1066,28 @@ namespace eval ::tclapp::xilinx::projutils {
   
         return 0
     }
+
+    proc get_fileset_type_switch { fileset_type } {
+
+       # Summary: Return the fileset type switch for a given fileset
+        
+       # Argument Usage: 
+        
+       # Return Value:
+       # Fileset type switch name
+
+       variable a_fileset_types
+       
+       set fs_switch ""
+       foreach {fs_data} $a_fileset_types {
+         set fs_type [lindex $fs_data 0]
+         if { [string equal -nocase $fileset_type $fs_type] } {
+           set fs_switch [lindex $fs_data 1]
+           set fs_switch "-$fs_switch"
+           break
+         }
+       }
+       return $fs_switch
+     }
+   }
 }
