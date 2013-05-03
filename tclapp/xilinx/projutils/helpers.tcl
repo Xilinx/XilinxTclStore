@@ -376,7 +376,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
           lappend l_script_data "# Add files to '$tcl_obj' fileset"
           lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
-          lappend l_script_data ""
+          #lappend l_script_data ""
           write_files $proj_name $get_what_src $tcl_obj $type
 
           lappend l_script_data "# Set '$tcl_obj' fileset properties"
@@ -792,7 +792,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set l_remote_file_list [list]
 
         # return if empty fileset
-        if {[llength [$get_what -of_objects $tcl_obj]] == 0 } {
+        if {[llength [$get_what -quiet -of_objects $tcl_obj]] == 0 } {
           lappend l_script_data "# Empty (no sources present)\n"
           return
         }
