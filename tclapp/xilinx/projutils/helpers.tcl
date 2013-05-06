@@ -675,12 +675,8 @@ namespace eval ::tclapp::xilinx::projutils {
           }
       
           # re-align values
-          if { [string equal $def_val "false"] && [string equal $cur_val "0"] } { set cur_val "false" }
-          if { [string equal $def_val "true"]  && [string equal $cur_val "1"] } { set cur_val "true"  }
-          if { [string equal $def_val "false"] && [string equal $cur_val "1"] } { set cur_val "true"  }
-          if { [string equal $def_val "true"]  && [string equal $cur_val "0"] } { set cur_val "false" }
-          if { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set cur_val "{}" }
-      
+          set cur_val [get_target_bool_val $def_val $cur_val]
+
           #puts "DEFAULT_VAL=$def_val;CURRENT_VAL=$cur_val ($prop Type:$prop_type)"
           #set cmd_str "set_property \"[string tolower $prop]\" \"[get_property $prop [$get_what $tcl_obj]]\" \[$get_what $tcl_obj\]"
           set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
@@ -901,11 +897,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [filter $file_prop $cur_val] } { continue }
 
             # re-align values
-            if { [string equal $def_val "false"] && [string equal $cur_val "0"] } { set cur_val "false" }
-            if { [string equal $def_val "true"]  && [string equal $cur_val "1"] } { set cur_val "true"  }
-            if { [string equal $def_val "false"] && [string equal $cur_val "1"] } { set cur_val "true"  }
-            if { [string equal $def_val "true"]  && [string equal $cur_val "0"] } { set cur_val "false" }
-            if { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set cur_val "{}" }
+            set cur_val [get_target_bool_val $def_val $cur_val]
 
             set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
             set prop_entry "[string tolower $file_prop]#[get_property $file_prop $file_object]"
@@ -977,11 +969,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [filter $file_prop $cur_val] } { continue }
 
             # re-align values
-            if { [string equal $def_val "false"] && [string equal $cur_val "0"] } { set cur_val "false" }
-            if { [string equal $def_val "true"]  && [string equal $cur_val "1"] } { set cur_val "true"  }
-            if { [string equal $def_val "false"] && [string equal $cur_val "1"] } { set cur_val "true"  }
-            if { [string equal $def_val "true"]  && [string equal $cur_val "0"] } { set cur_val "false" }
-            if { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set cur_val "{}" }
+            set cur_val [get_target_bool_val $def_val $cur_val]
 
             set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
             set prop_value_entry [get_property $file_prop $file_object]
@@ -1088,6 +1076,25 @@ namespace eval ::tclapp::xilinx::projutils {
          }
        }
        return $fs_switch
-     }
+    }
+
+    proc get_target_bool_val { def_val cur_val } {
+
+       # Summary: Resolve bool value
+        
+       # Argument Usage: 
+        
+       # Return Value:
+       # Resolved boolean value
+  
+       set target_val $cur_val 
+
+       if { [string equal $def_val "false"] && [string equal $cur_val "0"] } { set target_val "false" } \
+       elseif { [string equal $def_val "true"]  && [string equal $cur_val "1"] } { set target_val "true"  } \
+       elseif { [string equal $def_val "false"] && [string equal $cur_val "1"] } { set target_val "true"  } \
+       elseif { [string equal $def_val "true"]  && [string equal $cur_val "0"] } { set target_val "false" } \
+       elseif { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set target_val "{}" }
+
+       return $target_val
    }
 }
