@@ -371,12 +371,11 @@ namespace eval ::tclapp::xilinx::projutils {
           lappend l_script_data "  create_fileset $fs_sw_type $tcl_obj"
           lappend l_script_data "\}\n"
 
-          set get_what_src "get_files"
           set get_what_fs "get_filesets"
 
           lappend l_script_data "# Add files to '$tcl_obj' fileset"
           lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
-          write_files $proj_name $get_what_src $tcl_obj $type
+          write_files $proj_name $tcl_obj $type
 
           lappend l_script_data "# Set '$tcl_obj' fileset properties"
           lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
@@ -626,7 +625,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # Argument Usage: 
     
         # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
+        # none
 
         variable a_global_vars
         variable l_script_data
@@ -678,7 +677,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
           set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
       
-          # Fix paths wrt org proj dir
+          # fix paths wrt the original project dir
           if {([string equal -nocase $prop "top_file"]) && ($cur_val != "") } {
             set file $cur_val
 
@@ -760,10 +759,9 @@ namespace eval ::tclapp::xilinx::projutils {
         # write properties now
         write_properties $prop_info_list $get_what $tcl_obj
     
-        return 0
     }
 
-    proc write_files { proj_name get_what tcl_obj type } {
+    proc write_files { proj_name tcl_obj type } {
 
         # Summary: write file and file properties 
         # This helper command is used to script help.
@@ -771,18 +769,16 @@ namespace eval ::tclapp::xilinx::projutils {
         # Argument Usage: 
     
         # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
+        # none
 
         variable a_global_vars
-        variable l_local_files
-        variable l_remote_files
         variable l_script_data
 
         set l_local_file_list [list]
         set l_remote_file_list [list]
 
         # return if empty fileset
-        if {[llength [$get_what -quiet -of_objects $tcl_obj]] == 0 } {
+        if {[llength [get_files -quiet -of_objects $tcl_obj]] == 0 } {
           lappend l_script_data "# Empty (no sources present)\n"
           return
         }
@@ -792,12 +788,12 @@ namespace eval ::tclapp::xilinx::projutils {
         set import_coln [list]
         set file_coln [list]
 
-        foreach file [lsort [$get_what -norecurse -of_objects $tcl_obj]] {
+        foreach file [lsort [get_files -norecurse -of_objects $tcl_obj]] {
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
           set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
 
           # fetch first object
-          set file_object [lindex [$get_what -of_objects $fs_name $file] 0]
+          set file_object [lindex [get_files -of_objects $fs_name $file] 0]
           set file_props [list_property $file_object]
       
           if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -861,143 +857,12 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
 
-        lappend l_script_data "# Set '$tcl_obj' fileset file properties for remote files"
-        set file_prop_count 0
+        # write fileset file properties for remote files (added sources)
+        write_fileset_file_properties $tcl_obj $fs_name $l_remote_file_list "remote"
 
-        # set remote file properties
-        foreach file $l_remote_file_list {
-          lappend l_remote_files $file
-        }
+        # write fileset file properties for local files (imported sources)
+        write_fileset_file_properties $tcl_obj $fs_name $l_local_file_list "local"
 
-        foreach file $l_remote_file_list {
-          set file [string trim $file "\""]
-
-          set file_object [lindex [$get_what -of_objects $fs_name $file] 0]
-          set file_props [list_property $file_object]
-          set prop_info_list [list]
-          set prop_count 0
-
-          foreach file_prop $file_props {
-            set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
-            if { [string equal $is_readonly "1"] } {
-              continue
-            }
-
-            set prop_type [get_property type [rdi::get_attr_specs $file_prop -object $file_object]]
-            set def_val [list_property_value -default $file_prop $file_object]
-            set cur_val [get_property $file_prop $file_object]
-
-            # filter special properties
-            if { [filter $file_prop $cur_val] } { continue }
-
-            # re-align values
-            set cur_val [get_target_bool_val $def_val $cur_val]
-
-            set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
-            set prop_entry "[string tolower $file_prop]#[get_property $file_prop $file_object]"
-            if { $a_global_vars(b_arg_all_props) } {
-              lappend prop_info_list $prop_entry
-              incr prop_count
-            } else {
-              if { $def_val != $cur_val } {
-                lappend prop_info_list $prop_entry
-                incr prop_count
-              }
-            }
-
-            if { $a_global_vars(b_arg_dump_proj_info) } {
-              puts $a_global_vars(def_val_fh) "[file tail $file]=$file_prop ($prop_type) :DEFAULT_VALUE ($def_val)==CURRENT_VALUE ($cur_val)"
-              puts $a_global_vars(dp_fh) "$dump_prop_name=$cur_val"
-            }
-          }
-
-          # write properties now
-          if { [string equal $get_what "get_files"] && ($prop_count>0)} {
-            lappend l_script_data "set file \"$file\""
-            lappend l_script_data "set file_obj \[$get_what \"*\$file\" -of_objects $tcl_obj\]"
-            write_properties $prop_info_list $get_what $tcl_obj
-            incr file_prop_count
-          }
-        }
-
-        if { $file_prop_count == 0 } {
-          lappend l_script_data "# None"
-        }
-
-        lappend l_script_data ""
-
-        lappend l_script_data "# Set '$tcl_obj' fileset file properties for local files"
-        set file_prop_count 0
-
-        # set local file properties
-        foreach file $l_local_file_list {
-          lappend l_local_files $file
-        }
-         
-        foreach file $l_local_file_list {
-          set file [string trim $file "\""]
-
-          set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-          set src_file [join [lrange $path_dirs end-1 end] "/"]
-          set src_file [string trimleft $src_file "/"]
-          set src_file [string trimleft $src_file "\\"]
-
-          set file $src_file
-          set file_object [lindex [$get_what -of_objects $fs_name "*$file"] 0]
-          set file_props [list_property $file_object]
-          set prop_info_list [list]
-          set prop_count 0
-          foreach file_prop $file_props {
-            set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
-            if { [string equal $is_readonly "1"] } {
-              continue
-            }
-
-            set prop_type [get_property type [rdi::get_attr_specs $file_prop -object $file_object]]
-            set def_val [list_property_value -default $file_prop $file_object]
-            set cur_val [get_property $file_prop $file_object]
-
-            # filter special properties
-            if { [filter $file_prop $cur_val] } { continue }
-
-            # re-align values
-            set cur_val [get_target_bool_val $def_val $cur_val]
-
-            set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
-            set prop_value_entry [get_property $file_prop $file_object]
-            set prop_entry "[string tolower $file_prop]#$prop_value_entry"
-            if { $a_global_vars(b_arg_all_props) } {
-              lappend prop_info_list $prop_entry
-              incr prop_count
-            } else {
-              if { $def_val != $cur_val } {
-                lappend prop_info_list $prop_entry
-                incr prop_count
-              }
-            }
-
-            if { $a_global_vars(b_arg_dump_proj_info) } {
-              puts $a_global_vars(def_val_fh) "[file tail $file]=$file_prop ($prop_type) :DEFAULT_VALUE ($def_val)==CURRENT_VALUE ($cur_val)"
-              puts $a_global_vars(dp_fh) "$dump_prop_name=$cur_val"
-            }
-          }
-
-          # write properties now
-          if { [string equal $get_what "get_files"] && ($prop_count>0)} {
-            lappend l_script_data "set file \"$file\""
-            lappend l_script_data "set file_obj \[$get_what \"*\$file\" -of_objects $tcl_obj\]"
-            write_properties $prop_info_list $get_what $tcl_obj
-            incr file_prop_count
-          }
-        }
-
-        if { $file_prop_count == 0 } {
-          lappend l_script_data "# None"
-        }
-
-        lappend l_script_data ""
-
-        return 0
     }
 
     proc write_specified_run { proj_name runs } {
@@ -1008,7 +873,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # Argument Usage: 
         
         # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
+        # none 
 
         variable a_global_vars
         variable l_script_data
@@ -1040,8 +905,6 @@ namespace eval ::tclapp::xilinx::projutils {
           lappend l_script_data "set obj \[$get_what $tcl_obj\]"
           write_props $proj_name $get_what $tcl_obj "run"
         }
-  
-        return 0
     }
 
     proc get_fileset_type_switch { fileset_type } {
@@ -1085,5 +948,116 @@ namespace eval ::tclapp::xilinx::projutils {
        elseif { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set target_val "{}" }
 
        return $target_val
+   }
+
+   proc write_fileset_file_properties { tcl_obj fs_name l_file_list file_category } {
+
+       # Summary: 
+       # Write fileset file properties for local and remote files
+        
+       # Argument Usage: 
+       # tcl_obj: object to inspect
+       # fs_name: fileset name
+       # l_file_list: list of files (local or remote)
+       # file_category: file catwgory (local or remote)
+        
+       # Return Value:
+       # none
+
+       variable a_global_vars
+       variable l_script_data
+       variable l_local_files
+       variable l_remote_files
+
+       lappend l_script_data "# Set '$tcl_obj' fileset file properties for $file_category files"
+       set file_prop_count 0
+
+       # collect local/remote files
+       foreach file $l_file_list {
+         if { [string equal $file_category "local"] } {
+           lappend l_local_files $file
+         } elseif { [string equal $file_category "remote"] } {
+           lappend l_remote_files $file
+         } else {}
+       }
+        
+       foreach file $l_file_list {
+         set file [string trim $file "\""]
+       
+         # fix file path for local files
+         if { [string equal $file_category "local"] } {
+           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
+           set src_file [join [lrange $path_dirs end-1 end] "/"]
+           set src_file [string trimleft $src_file "/"]
+           set src_file [string trimleft $src_file "\\"]
+           set file $src_file
+         }
+
+         set file_object ""
+         if { [string equal $file_category "local"] } {
+           set file_object [lindex [get_files -of_objects $fs_name "*$file"] 0]
+         } elseif { [string equal $file_category "remote"] } {
+           set file_object [lindex [get_files -of_objects $fs_name $file] 0]
+         }
+
+         set file_props [list_property $file_object]
+         set prop_info_list [list]
+         set prop_count 0
+
+         foreach file_prop $file_props {
+           set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
+           if { [string equal $is_readonly "1"] } {
+             continue
+           }
+
+           set prop_type [get_property type [rdi::get_attr_specs $file_prop -object $file_object]]
+           set def_val [list_property_value -default $file_prop $file_object]
+           set cur_val [get_property $file_prop $file_object]
+
+           # filter special properties
+           if { [filter $file_prop $cur_val] } { continue }
+
+           # re-align values
+           set cur_val [get_target_bool_val $def_val $cur_val]
+
+           set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
+           set prop_entry ""
+           if { [string equal $file_category "local"] } {
+             set prop_entry "[string tolower $file_prop]#[get_property $file_prop $file_object]"
+           } elseif { [string equal $file_category "remote"] } {
+             set prop_value_entry [get_property $file_prop $file_object]
+             set prop_entry "[string tolower $file_prop]#$prop_value_entry"
+           } else {}
+
+           if { $a_global_vars(b_arg_all_props) } {
+             lappend prop_info_list $prop_entry
+             incr prop_count
+           } else {
+             if { $def_val != $cur_val } {
+               lappend prop_info_list $prop_entry
+               incr prop_count
+             }
+           }
+
+           if { $a_global_vars(b_arg_dump_proj_info) } {
+             puts $a_global_vars(def_val_fh) "[file tail $file]=$file_prop ($prop_type) :DEFAULT_VALUE ($def_val)==CURRENT_VALUE ($cur_val)"
+             puts $a_global_vars(dp_fh) "$dump_prop_name=$cur_val"
+           }
+         }
+
+         # write properties now
+         if { $prop_count>0 } {
+           lappend l_script_data "set file \"$file\""
+           lappend l_script_data "set file_obj \[get_files \"*\$file\" -of_objects $tcl_obj\]"
+           set get_what "get_files"
+           write_properties $prop_info_list $get_what $tcl_obj
+           incr file_prop_count
+         }
+       }
+
+       if { $file_prop_count == 0 } {
+         lappend l_script_data "# None"
+       }
+       lappend l_script_data ""
    }
 }
