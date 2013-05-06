@@ -217,7 +217,7 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
 
-        # Writer helpers
+        # writer helpers
         wr_create_project $proj_dir $proj_name
         wr_project_properties $proj_name
         wr_filesets $proj_name
@@ -333,7 +333,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
         variable a_fileset_types
 
-        # Write fileset data
+        # write fileset data
         foreach {fs_data} $a_fileset_types {
           set filesets [get_filesets -filter FILESET_TYPE==[lindex $fs_data 0]]
           write_specified_fileset $proj_name $filesets
@@ -376,7 +376,6 @@ namespace eval ::tclapp::xilinx::projutils {
 
           lappend l_script_data "# Add files to '$tcl_obj' fileset"
           lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
-          #lappend l_script_data ""
           write_files $proj_name $get_what_src $tcl_obj $type
 
           lappend l_script_data "# Set '$tcl_obj' fileset properties"
@@ -384,8 +383,6 @@ namespace eval ::tclapp::xilinx::projutils {
           write_props $proj_name $get_what_fs $tcl_obj "fileset"
     
           if { [string equal [get_property fileset_type [$get_what_fs $tcl_obj]] "Constrs"] } { continue }
-    
-          #puts $a_global_vars(fh) "update_compile_order -fileset $tcl_obj"
         }
 
         return 0
@@ -403,7 +400,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # true - success.
         # TCL_OK is returned if the procedure completed successfully.
 
-        # Write runs (synthesis, Implementation)
+        # write runs (synthesis, Implementation)
         set runs [get_runs -filter {IS_SYNTHESIS == 1}]
         write_specified_run $proj_name $runs
       
@@ -566,7 +563,8 @@ namespace eval ::tclapp::xilinx::projutils {
         # Argument Usage: 
     
         # Return Value:
-        # TCL_OK is returned if the procedure completed successfully.
+        # true, if file is local to the project (inside project directory structure)
+        # false, if file is outside the project directory structure
 
         set dir [get_property directory [current_project]]
         set proj_comps [split [string trim [file normalize [string map {\\ /} $dir]]] "/"]
@@ -600,10 +598,11 @@ namespace eval ::tclapp::xilinx::projutils {
             set name [lindex $elem 0]
             set value [lindex $elem 1]
             set cmd_str "set_property \"$name\" \"$value\""
+
             if { [string equal $get_what "get_files"] } {
               lappend l_script_data "$cmd_str \$file_obj"
             } else {
-              # Comment "is_readonly" project property
+              # comment "is_readonly" project property
               if { [string equal $get_what "get_projects"] && [string equal "$name" "is_readonly"] } {
                 if { ! $a_global_vars(b_arg_all_props) } {
                   send_msg_id Vivado-projutils-012 INFO "The current project is in 'read_only' state. The generated script will create a writable project."
@@ -675,14 +674,8 @@ namespace eval ::tclapp::xilinx::projutils {
           }
       
           # re-align values
-          if { [string equal $def_val "false"] && [string equal $cur_val "0"] } { set cur_val "false" }
-          if { [string equal $def_val "true"]  && [string equal $cur_val "1"] } { set cur_val "true"  }
-          if { [string equal $def_val "false"] && [string equal $cur_val "1"] } { set cur_val "true"  }
-          if { [string equal $def_val "true"]  && [string equal $cur_val "0"] } { set cur_val "false" }
-          if { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set cur_val "{}" }
-      
-          #puts "DEFAULT_VAL=$def_val;CURRENT_VAL=$cur_val ($prop Type:$prop_type)"
-          #set cmd_str "set_property \"[string tolower $prop]\" \"[get_property $prop [$get_what $tcl_obj]]\" \[$get_what $tcl_obj\]"
+          set cur_val [get_target_bool_val $def_val $cur_val]
+
           set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
       
           # Fix paths wrt org proj dir
@@ -726,7 +719,7 @@ namespace eval ::tclapp::xilinx::projutils {
             set prop_entry "[string tolower $prop]#$proj_file_path"
           }
  
-          # Re-align compiled_library_dir
+          # re-align compiled_library_dir
           if {[string equal -nocase $prop "compxlib.compiled_library_dir"]} {
             set compile_lib_dir_path $cur_val
             set cache_dir "${proj_name}.cache"
@@ -740,10 +733,8 @@ namespace eval ::tclapp::xilinx::projutils {
      
           if { $a_global_vars(b_arg_all_props) } {
             lappend prop_info_list $prop_entry
-            #puts $a_global_vars(fh) $cmd_str
           } else {
             if { $def_val != $cur_val } {
-              #puts $a_global_vars(fh) $cmd_str
               lappend prop_info_list $prop_entry
             }
           }
@@ -767,7 +758,6 @@ namespace eval ::tclapp::xilinx::projutils {
         }
       
         # write properties now
-        #lappend l_script_data "set obj \[$get_what $tcl_obj\]"
         write_properties $prop_info_list $get_what $tcl_obj
     
         return 0
@@ -812,15 +802,14 @@ namespace eval ::tclapp::xilinx::projutils {
       
           if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
 
-            # Import files
+            # import files
             set imported_path [get_property "imported_from" $file]
             set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
             set file "\"$proj_file_path\""
             lappend l_local_file_list $file
 
-            # Add to the import collection
+            # add to the import collection
             lappend import_coln "\"$proj_file_path\""
-            #lappend file_coln "$file"
 
           } else {
             set file "\"$file\""
@@ -831,14 +820,14 @@ namespace eval ::tclapp::xilinx::projutils {
                 set src_file "\$PSRCDIR/$src_file"
               }
 
-              # Add to the import collection
+              # add to the import collection
               lappend import_coln $file
               lappend l_local_file_list $file
             } else {
               lappend l_remote_file_list $file
             }
       
-            # Add files
+            # add file to collection
             lappend file_coln "$file"
 
             # set flag that local sources were found and print warning at the end
@@ -858,7 +847,7 @@ namespace eval ::tclapp::xilinx::projutils {
           lappend l_script_data ""
         }
 
-        # Now import local files if -no_copy_sources is not specified.
+        # now import local files if -no_copy_sources is not specified
         if { ! $a_global_vars(b_arg_no_copy_srcs)} {
           if { [llength $import_coln] > 0 } {
             lappend l_script_data "# Import local files from the original project"
@@ -879,6 +868,7 @@ namespace eval ::tclapp::xilinx::projutils {
         foreach file $l_remote_file_list {
           lappend l_remote_files $file
         }
+
         foreach file $l_remote_file_list {
           set file [string trim $file "\""]
 
@@ -901,11 +891,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [filter $file_prop $cur_val] } { continue }
 
             # re-align values
-            if { [string equal $def_val "false"] && [string equal $cur_val "0"] } { set cur_val "false" }
-            if { [string equal $def_val "true"]  && [string equal $cur_val "1"] } { set cur_val "true"  }
-            if { [string equal $def_val "false"] && [string equal $cur_val "1"] } { set cur_val "true"  }
-            if { [string equal $def_val "true"]  && [string equal $cur_val "0"] } { set cur_val "false" }
-            if { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set cur_val "{}" }
+            set cur_val [get_target_bool_val $def_val $cur_val]
 
             set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
             set prop_entry "[string tolower $file_prop]#[get_property $file_prop $file_object]"
@@ -924,6 +910,7 @@ namespace eval ::tclapp::xilinx::projutils {
               puts $a_global_vars(dp_fh) "$dump_prop_name=$cur_val"
             }
           }
+
           # write properties now
           if { [string equal $get_what "get_files"] && ($prop_count>0)} {
             lappend l_script_data "set file \"$file\""
@@ -951,10 +938,7 @@ namespace eval ::tclapp::xilinx::projutils {
           set file [string trim $file "\""]
 
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-          #set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
           set src_file [join [lrange $path_dirs end-1 end] "/"]
-
-          #set src_file [string trimleft $src_file "$fs_name"]
           set src_file [string trimleft $src_file "/"]
           set src_file [string trimleft $src_file "\\"]
 
@@ -977,11 +961,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [filter $file_prop $cur_val] } { continue }
 
             # re-align values
-            if { [string equal $def_val "false"] && [string equal $cur_val "0"] } { set cur_val "false" }
-            if { [string equal $def_val "true"]  && [string equal $cur_val "1"] } { set cur_val "true"  }
-            if { [string equal $def_val "false"] && [string equal $cur_val "1"] } { set cur_val "true"  }
-            if { [string equal $def_val "true"]  && [string equal $cur_val "0"] } { set cur_val "false" }
-            if { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set cur_val "{}" }
+            set cur_val [get_target_bool_val $def_val $cur_val]
 
             set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
             set prop_value_entry [get_property $file_prop $file_object]
@@ -1051,9 +1031,6 @@ namespace eval ::tclapp::xilinx::projutils {
           set def_strat_type_val [list_property_value -default strategy [$get_what $tcl_obj]]
           set cur_strat_type_val [get_property strategy [$get_what $tcl_obj]]
 
-          #puts "$def_flow_type_val=$cur_flow_type_val"
-          #puts "$def_strat_type_val=$cur_strat_type_val"
-
           lappend l_script_data "# Create '$tcl_obj' run (if not found)"
           lappend l_script_data "if \{\[string equal \[get_runs $tcl_obj\] \"\"\]\} \{"
           set cmd_str "  create_run -name $tcl_obj -part $part -flow {$cur_flow_type_val} -strategy \"$cur_strat_type_val\""
@@ -1088,6 +1065,25 @@ namespace eval ::tclapp::xilinx::projutils {
          }
        }
        return $fs_switch
-     }
+    }
+
+    proc get_target_bool_val { def_val cur_val } {
+
+       # Summary: Resolve current boolean property value wrt its default value
+        
+       # Argument Usage: 
+        
+       # Return Value:
+       # Resolved boolean value
+  
+       set target_val $cur_val 
+
+       if { [string equal $def_val "false"] && [string equal $cur_val "0"] } { set target_val "false" } \
+       elseif { [string equal $def_val "true"]  && [string equal $cur_val "1"] } { set target_val "true"  } \
+       elseif { [string equal $def_val "false"] && [string equal $cur_val "1"] } { set target_val "true"  } \
+       elseif { [string equal $def_val "true"]  && [string equal $cur_val "0"] } { set target_val "false" } \
+       elseif { [string equal $def_val "{}"]    && [string equal $cur_val ""]  } { set target_val "{}" }
+
+       return $target_val
    }
 }
