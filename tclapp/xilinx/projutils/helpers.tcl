@@ -129,7 +129,13 @@ namespace eval ::tclapp::xilinx::projutils {
     variable l_remote_files [list]
     variable b_project_board_set 0
 
-    # Set fileset types
+    # set file types to filter
+    variable l_filetype_filter [list]
+    set l_filetype_filter [list "ip" "embedded design sources" "elf" "coefficient files" \
+                                "block diagrams" "block designs" "dsp design sources" \
+                                "design checkpoint" "waveform configuration file"]
+
+    # set fileset types
     variable a_fileset_types
     set a_fileset_types {
       {{DesignSrcs}     {srcset}}
@@ -526,6 +532,8 @@ namespace eval ::tclapp::xilinx::projutils {
         # Return Value:
         # TCL_OK is returned if the procedure completed successfully.
 
+        variable l_filetype_filter
+
         set prop [string toupper $prop]
         if { [expr { $prop == "IS_HD" } || \
                    { $prop == "IS_PARTIAL_RECONFIG" } || \
@@ -545,8 +553,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # e.g ERROR: [Vivado 12-563] The file type 'IP' is not user settable.
         set val  [string tolower $val]
         if { [string equal $prop "FILE_TYPE"] } {
-          set file_types [list "ip" "embedded design sources" "elf" "coefficient files" "block diagrams" "block designs" "dsp design sources" "design checkpoint"]
-          if { [lsearch $file_types $val] != -1 } {
+          if { [lsearch $l_filetype_filter $val] != -1 } {
             return true
           }
         }
