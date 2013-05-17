@@ -716,7 +716,12 @@ namespace eval ::tclapp::xilinx::projutils {
             } else {
               # is file new inside project?
               if { [is_local_to_project $file] } {
-                set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
+                # is file inside fileset dir?
+                if { [regexp "^${fs_name}/" $src_file] } {
+                  set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
+                } else {
+                  set proj_file_path "$file"
+                }
               } else {
                 set proj_file_path "$file"
               }
