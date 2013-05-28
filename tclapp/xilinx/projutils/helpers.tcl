@@ -133,7 +133,7 @@ namespace eval ::tclapp::xilinx::projutils {
     variable l_filetype_filter [list]
     set l_filetype_filter [list "ip" "embedded design sources" "elf" "coefficient files" \
                                 "block diagrams" "block designs" "dsp design sources" \
-                                "design checkpoint" "waveform configuration file"]
+                                "design checkpoint" "waveform configuration file" "data files"]
 
     # set fileset types
     variable a_fileset_types
