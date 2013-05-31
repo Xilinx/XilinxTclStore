@@ -1,6 +1,6 @@
 Tcl App directory
 
-This directory is the top-level directory for all Vivaod Tcl Apps.
+This directory is the top-level directory for all Vivado Tcl Apps.
 
 Apps are organized by providers, where a provider is a company.
 Under the provider directory apps are contained within individual
