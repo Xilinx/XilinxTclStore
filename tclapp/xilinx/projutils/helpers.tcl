@@ -708,7 +708,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
             set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
             set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
-            set file_object [lindex [get_files -of_objects $fs_name $file] 0]
+            set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
             set file_props [list_property $file_object]
 
             if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -805,7 +805,7 @@ namespace eval ::tclapp::xilinx::projutils {
           set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
 
           # fetch first object
-          set file_object [lindex [get_files -of_objects $fs_name $file] 0]
+          set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
           set file_props [list_property $file_object]
       
           if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -1007,9 +1007,9 @@ namespace eval ::tclapp::xilinx::projutils {
 
          set file_object ""
          if { [string equal $file_category "local"] } {
-           set file_object [lindex [get_files -of_objects $fs_name "*$file"] 0]
+           set file_object [lindex [get_files -of_objects $fs_name [list "*$file"]] 0]
          } elseif { [string equal $file_category "remote"] } {
-           set file_object [lindex [get_files -of_objects $fs_name $file] 0]
+           set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
          }
 
          set file_props [list_property $file_object]
@@ -1060,7 +1060,7 @@ namespace eval ::tclapp::xilinx::projutils {
          # write properties now
          if { $prop_count>0 } {
            lappend l_script_data "set file \"$file\""
-           lappend l_script_data "set file_obj \[get_files \"*\$file\" -of_objects $tcl_obj\]"
+           lappend l_script_data "set file_obj \[get_files -of_objects $tcl_obj \[list \"*\$file\"\]\]"
            set get_what "get_files"
            write_properties $prop_info_list $get_what $tcl_obj
            incr file_prop_count

@@ -5,13 +5,12 @@
 # 
 # Created Date:   01/25/2013
 # Script name:    projutils.tcl
-# Procedures:     write_project_tcl
-# Tool Versions:  Vivado 2013.1
-# Description:    This script is used to write a Tcl script for re-building the project.
+# Tool Versions:  Vivado 2013.3
+# Description:    This script exports projutils package
 # 
 # Getting Started:
-#     % tclapp::load_app xilinx::projutils -namespace projutils
 #     % write_project_tcl 
+#     % write_ies 
 #
 ####################################################################################################
 
