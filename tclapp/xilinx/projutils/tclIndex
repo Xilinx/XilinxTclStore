@@ -23,3 +23,6 @@ set auto_index(::tclapp::xilinx::projutils::write_properties) [list source [file
 set auto_index(::tclapp::xilinx::projutils::write_props) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::write_files) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::write_specified_run) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::projutils::get_fileset_type_switch) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::projutils::get_target_bool_val) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::projutils::write_fileset_file_properties) [list source [file join $dir helpers.tcl]]
