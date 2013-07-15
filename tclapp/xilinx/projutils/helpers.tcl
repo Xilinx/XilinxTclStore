@@ -131,7 +131,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # [-of_objects <args>]: Export simulation file(s) for the specified object (IP file or fileset) 
         # [-include_compile_commands]: Prefix RTL design files with compiler switches
         # [-force]: Overwrite previous files
-        # -simulator <name>: Simulator for which simulation files will be exported (<name>: ies|vcs_mx)
+        # -simulator <name>: Simulator for which simulation files will be exported (<name>: modelsim|ies|vcs_mx)
         # dir: Directory where the simulation files is saved
 
         # Return Value:
@@ -272,7 +272,7 @@ namespace eval ::tclapp::xilinx::projutils {
     variable a_global_sim_vars
 
     variable l_valid_simulator_types [list]
-    set l_valid_simulator_types [list "ies" "vcs_mx"]
+    set l_valid_simulator_types [list "modelsim" "ies" "vcs_mx"]
 
     proc reset_global_sim_vars {} {
 
@@ -1373,8 +1373,9 @@ namespace eval ::tclapp::xilinx::projutils {
        variable a_global_sim_vars
 
        switch -regexp -- $a_global_sim_vars(s_simulator) {
-         "ies"    { set a_global_sim_vars(s_simulator_name) "Cadence Incisive Enterprise" } 
-         "vcs_mx" { set a_global_sim_vars(s_simulator_name) "Synopsys VCS MX" } 
+         "modelsim" { set a_global_sim_vars(s_simulator_name) "Mentor Graphics ModelSim" }
+         "ies"      { set a_global_sim_vars(s_simulator_name) "Cadence Incisive Enterprise" }
+         "vcs_mx"   { set a_global_sim_vars(s_simulator_name) "Synopsys VCS MX" }
        }
    }
 
@@ -1447,6 +1448,9 @@ namespace eval ::tclapp::xilinx::projutils {
          # include compiler command/options
          foreach file $compile_order_files {
            switch -regexp -- $a_global_sim_vars(s_simulator) {
+             "modelsim" { 
+               write_compile_commands_for_modelsim $file $fh
+             }
              "ies" { 
                write_compile_commands_for_ies $file $fh
              }
@@ -1463,6 +1467,9 @@ namespace eval ::tclapp::xilinx::projutils {
        } else {
          # plain filelist
          switch -regexp -- $a_global_sim_vars(s_simulator) {
+           "modelsim" { 
+             write_filelist_for_modelsim $compile_order_files $fh
+           }
            "ies" { 
              write_filelist_for_ies $compile_order_files $fh
            }
@@ -1478,6 +1485,50 @@ namespace eval ::tclapp::xilinx::projutils {
        }
        close $fh
        return 1
+   }
+
+   proc write_compile_commands_for_modelsim { file fh } {
+
+       # Summary: Add compilation switches for the ModelSim simulator
+
+       # Argument Usage:
+       # file - compile order RTL file
+       # fh   - file handle
+
+       # Return Value:
+       # none
+
+       variable a_global_sim_vars
+
+       set cmd_str [list]
+       set file_type [get_property file_type [get_files -quiet -all $file]]
+       set associated_library [get_property library [get_files -quiet -all $file]]
+
+       switch -regexp -nocase -- $file_type {
+         "vhd" {
+           set tool "vcom"
+           lappend cmd_str $tool
+           append_compiler_options $tool cmd_str
+           lappend cmd_str "-work"
+           lappend cmd_str "$associated_library"
+           lappend cmd_str "\"$file\""
+         }
+         "verilog" {
+           set tool "vlog"
+           lappend cmd_str $tool
+           append_compiler_options $tool cmd_str
+           lappend cmd_str "-work"
+           lappend cmd_str "$associated_library"
+           lappend cmd_str "\"$file\""
+         }
+         default {
+           send_msg_id Vivado-projutils-029 WARNING "Unknown file type '$file_type'\n"
+         }
+       }
+      
+       set cmd [join $cmd_str " "]
+       puts $fh $cmd
+
    }
 
    proc write_compile_commands_for_ies { file fh } {
@@ -1567,6 +1618,38 @@ namespace eval ::tclapp::xilinx::projutils {
 
    }
 
+   proc write_filelist_for_modelsim { compile_order_files fh } {
+
+       # Summary: Write simple compile order filelist for the ModelSim simulator
+
+       # Argument Usage:
+       # compile_order_files - list of design files
+       # fh - file handle
+
+       # Return Value:
+       # none
+
+       variable a_global_sim_vars
+
+       # verilog include dirs?
+       set incl_dirs      [find_verilog_incl_dirs]
+       set incl_file_dirs [find_verilog_incl_file_dirs]
+       if {[llength $incl_file_dirs] > 0} {
+         lappend incl_dirs $incl_file_dirs
+       }
+       if { [llength $incl_dirs] > 0 } {
+         set incl_dirs [lsort -unique $incl_dirs]
+         puts $fh "+incdir+\"[join $incl_dirs \"\n\-incdir\ \"]\""
+       }
+
+       set work_lib "work"
+
+       foreach file $compile_order_files {
+         set curr_lib [get_property library [get_files -quiet -all $file]]
+         puts $fh "\"$file\""
+       }
+   }
+
    proc write_filelist_for_ies { compile_order_files fh } {
 
        # Summary: Write simple compile order filelist for the IES simulator
@@ -1654,6 +1737,11 @@ namespace eval ::tclapp::xilinx::projutils {
   
        set machine $::tcl_platform(machine)
        switch -regexp -- $tool {
+         "vcom" {           
+           lappend opts "-93"
+         }
+         "vlog" {           
+         }
          "ncvhdl" {           
            lappend opts "-V93"
            lappend opts "-RELAX"
