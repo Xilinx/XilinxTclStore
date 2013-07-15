@@ -4,7 +4,7 @@ This directory is a collection of random scripts and utilties
 in no particular organization.
 
 All Tcl procs, variables, etc. must be defined within the
-::tclapp::xilinx::utils namespace.  No globals of any kind are
+::tclapp::xilinx::designutils namespace.  No globals of any kind are
 allowed.
 
 The structure of a .tcl file in this directory is something 
@@ -13,15 +13,15 @@ like this:
 ################################################################
 package require Vivado 2013.1
 
-namespace eval ::tclapp::xilinx::utils {
+namespace eval ::tclapp::xilinx::designutils {
    namespace export <list of procs to export>
 }
 
-proc ::tclapp::xilinx::utils::<proc> { ... } {
+proc ::tclapp::xilinx::designutils::<proc> { ... } {
  ...
 }
 
-proc ::tclapp::xilinx::utils::<proc> { ... } {
+proc ::tclapp::xilinx::designutils::<proc> { ... } {
  ...
 }
 ################################################################
@@ -41,9 +41,9 @@ WHEN MAKING CHANGES TO THE CONTENT OF THIS DIRECTORY
 ================================================================
 USING THIS APP FROM VIVADO
 ================================================================
-Vivado% package require ::tclapp::xilinx::utils
-Vivado% ::tclapp::xilinx::utils::get_cell_count
-Vivado% namespace import ::tclapp::xilinx::utils::get_cell_count
+Vivado% package require ::tclapp::xilinx::designutils
+Vivado% ::tclapp::xilinx::designutils::get_cell_count
+Vivado% namespace import ::tclapp::xilinx::designutils::get_cell_count
 Vivado% get_cell_count
 
 
