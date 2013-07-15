@@ -1703,6 +1703,9 @@ namespace eval ::tclapp::xilinx::projutils {
              lappend opts "+incdir+\"$dir\""
            }
          }
+         default {
+           send_msg_id Vivado-projutils-036 ERROR "Unknown compiler name '$tool'\n"
+         }
        }
    }
 
