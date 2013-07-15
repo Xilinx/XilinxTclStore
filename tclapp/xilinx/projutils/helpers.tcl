@@ -5,23 +5,31 @@
 # 
 # Created Date:   01/25/2013
 # Script name:    helpers.tcl
-# Procedures:     write_project_tcl
-# Tool Version:   Vivado 2013.1
-# Description:    This script is used to write a Tcl script for the current project in order
-#                 to re-build the project, based on the current project settings.
+# Procedures:     write_project_tcl, export_simulation_files
+# Tool Version:   Vivado 2013.3
+# Description:    This helpers.tcl script is used for following purposes:-
+#   1. To write a Tcl script for the current project in order to re-build the project, based on the current project settings.
+#   2. Export simulation design files (compile order, simulator commands) for the specified object in the project in order to
+#      simulate the design for the target simulator.
 #
 # Structure:      The script contains following 3 sections:-
 #
-# SECTION (A): Exported app procedure from ::tclapp::xilinx::projutils namespace (write_project_tcl)
-# SECTION (B): Main app procedure implementation (write_project_tcl)
-# SECTION (C): App helpers for the write_project_tcl main procedure
+# SECTION (A): Exported app procedure from 
+#              ::tclapp::xilinx::projutils namespace (write_project_tcl)
+#              ::tclapp::xilinx::projutils namespace (export_simulation_files)
+# SECTION (B): Main app procedure implementation
+#              write_project_tcl
+#              export_simulation_files
+# SECTION (C): App helpers for the exported procedures
 # 
-# Command:
-#     % ::projutils::write_project_tcl recreate.tcl
+# Command help:
+#     % write_project_tcl -help
+#     % export_simulation_files -help
 #
 # Revision History:
 #
-#   02/08/2013 1.0  - Initial version
+#   02/08/2013 1.0  - Initial version (write_project_tcl)
+#   07/12/2013 2.0  - Initial version (export_simulation_files)
 #
 #
 ####################################################################################################
@@ -37,10 +45,11 @@ namespace eval ::tclapp::xilinx::projutils {
   # Export procs that should be allowed to import into other namespaces
   namespace export write_project_tcl
 
+  namespace export export_simulation_files
 }
 
 #
-# SECTION (B): Main app procedure (write_project_tcl)
+# SECTION (B): Main app procedures
 #
 namespace eval ::tclapp::xilinx::projutils {
 
@@ -112,6 +121,89 @@ namespace eval ::tclapp::xilinx::projutils {
     
  	    return 1
     }
+
+    proc export_simulation_files {args} {
+
+        # Summary:
+        # Write simulation files and scripts for the specified simulator
+
+        # Argument Usage:
+        # [-of_objects <args>]: Export simulation file(s) for the specified object (IP file or fileset) 
+        # [-include_compile_commands]: Prefix RTL design files with compiler switches
+        # [-force]: Overwrite previous files
+        # -simulator <name>: Simulator for which simulation files will be exported (<name>: ies|vcs_mx)
+        # dir: Directory where the simulation files is saved
+
+        # Return Value:
+        # true (1) if success, false (0) otherwise
+
+        variable a_global_sim_vars
+
+        variable l_valid_simulator_types
+
+        reset_global_sim_vars
+
+        set options [split $args " "]
+        # these options are must
+        if {[lsearch $options {-simulator}] == -1} {
+          send_msg_id Vivado-projutils-013 ERROR "Missing option '-simulator', please type 'export_simulation_files -help' for usage info.\n"
+          return 0
+        }
+
+        # process options
+        for {set i 0} {$i < [llength $args]} {incr i} {
+          set option [string trim [lindex $args $i]]
+          switch -regexp -- $option {
+            "-of_objects"               { incr i;set a_global_sim_vars(s_of_objects) [lindex $args $i] }
+            "-include_compile_commands" { set a_global_sim_vars(b_incl_compile_commmands) 1 }
+            "-force"                    { set a_global_sim_vars(b_overwrite_sim_files_dir) 1 }
+            "-simulator"                { incr i;set a_global_sim_vars(s_simulator) [lindex $args $i] }
+            default {
+              # is incorrect switch specified?
+              if { [regexp {^-} $option] } {
+                send_msg_id Vivado-projutils-014 ERROR "Unknown option '$option', please type 'export_simulation_files -help' for usage info.\n"
+                return 0
+              }
+              set a_global_sim_vars(s_sim_files_dir) $option
+            }
+          }
+        }
+
+        # is project open?
+        set a_global_sim_vars(s_project_name) [get_property name [current_project]]
+        set a_global_sim_vars(s_project_dir) [get_property directory [current_project]]
+
+        # is valid simulator specified?
+        if { [lsearch -exact $l_valid_simulator_types $a_global_sim_vars(s_simulator)] == -1 } {
+          send_msg_id Vivado-projutils-015 ERROR \
+            "Invalid simulator type specified. Please type 'export_simulation_files -help' for usage info.\n"
+          return 0
+        }
+ 
+        # set pretty name
+        set_simulator_name
+
+        # is managed project?
+        set a_global_sim_vars(b_is_managed) [get_property managed_ip [current_project]]
+
+        # setup run dir
+        if { ! [create_sim_files_dir] } {
+           return 0
+        }
+  
+        # set default object if not specified, bail out if no object found
+        if { ! [set_default_sim_tcl_obj] } {
+          return 0
+        }
+
+        # write script
+        if { ! [write_sim_script] } {
+          return 0
+        }
+
+        return 1
+    }
+
 }
 
 
@@ -121,7 +213,7 @@ namespace eval ::tclapp::xilinx::projutils {
 namespace eval ::tclapp::xilinx::projutils {
 
     #
-    # tcl script argument & file handle vars
+    # write_project_tcl tcl script argument & file handle vars
     #
     variable a_global_vars
     variable l_script_data [list]
@@ -173,6 +265,41 @@ namespace eval ::tclapp::xilinx::projutils {
     
         return 0
     }
+
+    #
+    # export_simulation_files tcl script argument & file handle vars
+    #
+    variable a_global_sim_vars
+
+    variable l_valid_simulator_types [list]
+    set l_valid_simulator_types [list "ies" "vcs_mx"]
+
+    proc reset_global_sim_vars {} {
+
+        # Summary: initializes global namespace simulation vars
+        # This helper command is used to reset the simulation variables used in the script.
+
+        # Argument Usage:
+        # none
+
+        # Return Value:
+        # TCL_OK is returned if the procedure completed successfully.
+
+        variable a_global_sim_vars
+
+        set a_global_sim_vars(s_simulator)               ""
+        set a_global_sim_vars(s_simulator_name)          ""
+        set a_global_sim_vars(s_sim_files_dir)           ""
+        set a_global_sim_vars(b_overwrite_sim_files_dir) 0
+        set a_global_sim_vars(s_filelist)                ""
+        set a_global_sim_vars(b_incl_compile_commmands)  0
+        set a_global_sim_vars(s_of_objects)              ""
+        set a_global_sim_vars(s_project_name)            ""
+        set a_global_sim_vars(s_project_dir)             ""
+        set a_global_sim_vars(b_is_managed)              0 
+
+    }
+
 
     proc write_project_tcl_script {} {
 
@@ -1071,5 +1198,664 @@ namespace eval ::tclapp::xilinx::projutils {
          lappend l_script_data "# None"
        }
        lappend l_script_data ""
+   }
+
+
+
+   #
+   # Export simulation files helpers
+   #
+   proc set_default_sim_tcl_obj {} {
+
+       # Summary: If -of_objects not specified, then set default IP (first in the list) for managed-ip project
+       #          or active simulation fileset for an RTL/GateLvl project
+
+       # Argument Usage:
+       # none
+
+       # Return Value:
+       # true (1) if success, false (0) otherwise
+
+       variable a_global_sim_vars
+
+       if { [string length $a_global_sim_vars(s_of_objects)] == 0 } {
+         if { $a_global_sim_vars(b_is_managed) } {
+           set ips [get_ips]
+           if {[llength $ips] == 0} {
+             send_msg_id Vivado-projutils-016 INFO "No IP's found in the current project.\n"
+             return 0
+           }
+           set ip_file [get_property ip_file [get_ips [lindex $ips 0]]]
+           set a_global_sim_vars(s_of_objects) $ip_file
+         } else {
+           set curr_simset [current_fileset -simset]
+           set sim_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $curr_simset]]
+           if { [llength $sim_files] == 0 } {
+             send_msg_id Vivado-projutils-017 INFO "No simulation files found in the current current simset.\n"
+             return 0
+           }
+           set a_global_sim_vars(s_of_objects) $curr_simset
+         }
+       }
+     
+       return 1
+   }
+
+   proc write_sim_script {} {
+
+       # Summary: Get the compiled order for the specified source object and export files
+
+       # Argument Usage:
+       # none
+
+       # Return Value:
+       # true (1) if success, false (0) otherwise
+
+       variable a_global_sim_vars
+
+       set tcl_obj $a_global_sim_vars(s_of_objects)
+
+       # is managed ip project?
+       if { $a_global_sim_vars(b_is_managed) } {
+         # is IP?
+         if { [is_ip $tcl_obj] } {
+           set obj_name [file root [file tail $tcl_obj]]
+           set ip_file [get_property ip_file [get_ips ${obj_name}]]
+           set xci_filename [file tail $ip_file]
+
+           set compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$xci_filename]]
+
+           set ip_name [file root $xci_filename]
+           set a_global_sim_vars(s_filelist) "filelist_${ip_name}.f"
+           export_simulation_files_for_object $obj_name $compile_order_files
+
+           # fetch ip data files and export to output dir
+           export_ip_data_files $xci_filename
+
+         } else {
+           set obj_name $tcl_obj
+           set compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $tcl_obj]]
+           if { [llength $compile_order_files] == 0 } {
+             send_msg_id Vivado-projutils-018 INFO "Empty fileset: $obj_name\n"
+             return 0
+           } else {
+             set a_global_sim_vars(s_filelist) "filelist_${obj_name}.f"
+             export_simulation_files_for_object $obj_name $compile_order_files
+
+             # fetch data files for all IP's in simset and export to output dir
+             export_fileset_ip_data_files
+
+           }
+         }
+       } else {
+         # is IP?
+         if { [is_ip $tcl_obj] } {
+           set obj_name [file root [file tail $tcl_obj]]
+
+           set ip_file [get_property ip_file [get_ips ${obj_name}]]
+           set xci_filename [file tail $ip_file]
+
+           set compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$xci_filename]]
+
+           set ip_name [file root $xci_filename]
+           set a_global_sim_vars(s_filelist) "filelist_${obj_name}.f"
+           export_simulation_files_for_object $obj_name $compile_order_files
+
+           # fetch ip data files and export to output dir
+           export_ip_data_files $xci_filename
+
+         } elseif { [is_fileset $tcl_obj] } {
+           set obj_name $tcl_obj
+           set compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $tcl_obj]]
+           if { [llength $compile_order_files] == 0 } {
+             send_msg_id Vivado-projutils-019 INFO "Empty fileset: $obj_name\n"
+           } else {
+             set a_global_sim_vars(s_filelist) "filelist_${obj_name}.f"
+             export_simulation_files_for_object $obj_name $compile_order_files
+
+             # fetch data files for all IP's in simset and export to output dir
+             export_fileset_ip_data_files
+
+           }
+         } else {
+           send_msg_id Vivado-projutils-020 INFO "Unsupported object source: $tcl_obj\n"
+           return 0
+         }
+       }
+       send_msg_id Vivado-projutils-021 INFO "File(s) generated in '$a_global_sim_vars(s_sim_files_dir)'\n"
+       return 1
+   }
+
+   proc is_ip { obj } {
+
+       # Summary: Determine if specified source object is IP
+
+       # Argument Usage:
+       # source object
+
+       # Return Value:
+       # true (1) if success, false (0) otherwise
+       
+       set file_extn [file extension $obj]
+       if { [string equal $file_extn ".xci"] } {
+         return 1
+       }
+       return 0
+   }
+
+   proc is_fileset { obj } {
+
+       # Summary: Determine if specified source object is fileset
+
+       # Argument Usage:
+       # source object
+
+       # Return Value:
+       # true (1) if success, false (0) otherwise
+
+       if {[string equal [rdi::get_attr_specs FILESET_TYPE -object $obj] "FILESET_TYPE"]} {
+         return 1
+       }
+
+       return 0
+   }
+
+   proc set_simulator_name {} {
+
+       # Summary: Set simulator name for the specified simulator type
+
+       # Argument Usage:
+       # none
+
+       # Return Value:
+       # none
+
+       variable a_global_sim_vars
+
+       switch -regexp -- $a_global_sim_vars(s_simulator) {
+         "ies"    { set a_global_sim_vars(s_simulator_name) "Cadence Incisive Enterprise" } 
+         "vcs_mx" { set a_global_sim_vars(s_simulator_name) "Synopsys VCS MX" } 
+       }
+   }
+
+   proc create_sim_files_dir {} {
+
+       # Summary: Create output directory where simulation files will be generated. Delete previous
+       #          files if overwrite requested (-force)
+
+       # Argument Usage:
+       # none
+
+       # Return Value:
+       # true (1) if success, false (0) otherwise
+
+       variable a_global_sim_vars
+
+       if { [string length $a_global_sim_vars(s_sim_files_dir)] == 0 } {
+         set a_global_sim_vars(s_sim_files_dir) "."
+       }
+
+       set dir [file normalize [string map {\\ /} $a_global_sim_vars(s_sim_files_dir)]]
+
+       if { ! [file exists $dir] } {
+         if {[catch {file mkdir $dir} error_msg] } {
+           send_msg_id Vivado-projutils-023 ERROR "failed to create the directory ($dir): $error_msg\n"
+           return 0
+         }
+       }
+       set a_global_sim_vars(s_sim_files_dir) $dir
+       return 1
+   }
+
+   proc export_simulation_files_for_object { obj_name compile_order_files } {
+
+       # Summary: Open files and write compile order for the target simulator
+
+       # Argument Usage:
+       # obj_name - source object
+       # compile_order_files - list of compile order files
+
+       # Return Value:
+       # true (1) if success, false (0) otherwise
+
+       variable a_global_sim_vars
+       
+       set file [file normalize [file join $a_global_sim_vars(s_sim_files_dir) $a_global_sim_vars(s_filelist)]]
+
+ 	   # recommend -force if file exists
+ 	   if { [file exists $file] && (!$a_global_sim_vars(b_overwrite_sim_files_dir)) } {
+         send_msg_id Vivado-projutils-034 ERROR "Simulation file '$file' already exist. Use -force option to overwrite."
+ 	     return 0
+ 	   }
+         
+       if { [file exists $file] } {
+         if {[catch {file delete -force $file} error_msg] } {
+           send_msg_id Vivado-projutils-035 ERROR "failed to delete file ($file): $error_msg\n"
+           return 0
+         }
+       }
+
+       set fh 0
+       if {[catch {open $file w} fh]} {
+         send_msg_id Vivado-projutils-025 ERROR "failed to open file to write ($file)\n"
+         return 0
+       }
+
+       send_msg_id Vivado-projutils-024 INFO "Generating simulation files for '$a_global_sim_vars(s_simulator_name)' simulator (target=$obj_name)...\n"
+
+       if { $a_global_sim_vars(b_incl_compile_commmands) } {
+         # include compiler command/options
+         foreach file $compile_order_files {
+           switch -regexp -- $a_global_sim_vars(s_simulator) {
+             "ies" { 
+               write_compile_commands_for_ies $file $fh
+             }
+             "vcs_mx" {
+               write_compile_commands_for_vcs_mx $file $fh
+             }
+             default {
+               send_msg_id Vivado-projutils-026 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
+               close $fh
+               return 0
+             }
+           }
+         }
+       } else {
+         # plain filelist
+         switch -regexp -- $a_global_sim_vars(s_simulator) {
+           "ies" { 
+             write_filelist_for_ies $compile_order_files $fh
+           }
+           "vcs_mx" {
+             write_filelist_for_vcs_mx $compile_order_files $fh
+           }
+           default {
+             send_msg_id Vivado-projutils-027 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
+             close $fh
+             return 0
+           }
+         }
+       }
+       close $fh
+       return 1
+   }
+
+   proc write_compile_commands_for_ies { file fh } {
+
+       # Summary: Add compilation switches for the IES simulator
+
+       # Argument Usage:
+       # file - compile order RTL file
+       # fh   - file handle
+
+       # Return Value:
+       # none
+
+       variable a_global_sim_vars
+
+       set cmd_str [list]
+       set file_type [get_property file_type [get_files -quiet -all $file]]
+       set associated_library [get_property library [get_files -quiet -all $file]]
+       switch -regexp -nocase -- $file_type {
+         "vhd" {
+           set tool "ncvhdl"
+           lappend cmd_str $tool
+           append_compiler_options $tool cmd_str
+           lappend cmd_str "-work"
+           lappend cmd_str "$associated_library"
+           lappend cmd_str "\"$file\""
+         }
+         "verilog" {
+           set tool "ncvlog"
+           lappend cmd_str $tool
+           append_compiler_options $tool cmd_str
+           lappend cmd_str "-work"
+           lappend cmd_str "$associated_library"
+           lappend cmd_str "\"$file\""
+         }
+         default {
+           send_msg_id Vivado-projutils-028 WARNING "Unknown file type '$file_type'\n"
+         }
+       }
+      
+       set cmd [join $cmd_str " "]
+       puts $fh $cmd
+
+   }
+
+   proc write_compile_commands_for_vcs_mx { file fh } {
+
+       # Summary: Add compilation switches for the VCS simulator
+
+       # Argument Usage:
+       # file - compile order RTL file
+       # fh   - file handle
+
+       # Return Value:
+       # none
+
+       variable a_global_sim_vars
+
+       set cmd_str [list]
+       set file_type [get_property file_type [get_files -quiet -all $file]]
+       set associated_library [get_property library [get_files -quiet -all $file]]
+
+       switch -regexp -nocase -- $file_type {
+         "vhd" {
+           set tool "vhdlan"
+           lappend cmd_str $tool
+           append_compiler_options $tool cmd_str
+           lappend cmd_str "-work"
+           lappend cmd_str "$associated_library"
+           lappend cmd_str "\"$file\""
+         }
+         "verilog" {
+           set tool "vlogan"
+           lappend cmd_str $tool
+           append_compiler_options $tool cmd_str
+           lappend cmd_str "-work"
+           lappend cmd_str "$associated_library"
+           lappend cmd_str "\"$file\""
+         }
+         default {
+           send_msg_id Vivado-projutils-029 WARNING "Unknown file type '$file_type'\n"
+         }
+       }
+      
+       set cmd [join $cmd_str " "]
+       puts $fh $cmd
+
+   }
+
+   proc write_filelist_for_ies { compile_order_files fh } {
+
+       # Summary: Write simple compile order filelist for the IES simulator
+
+       # Argument Usage:
+       # compile_order_files - list of design files
+       # fh - file handle
+
+       # Return Value:
+       # none
+
+       variable a_global_sim_vars
+
+       # verilog include dirs?
+       set incl_dirs      [find_verilog_incl_dirs]
+       set incl_file_dirs [find_verilog_incl_file_dirs]
+       if {[llength $incl_file_dirs] > 0} {
+         lappend incl_dirs $incl_file_dirs
+       }
+       if { [llength $incl_dirs] > 0 } {
+         set incl_dirs [lsort -unique $incl_dirs]
+         puts $fh "-incdir \"[join $incl_dirs \"\n\-incdir\ \"]\""
+       }
+
+       set work_lib "work"
+       set prev_lib $work_lib
+
+       foreach file $compile_order_files {
+         set curr_lib [get_property library [get_files -quiet -all $file]]
+         if { $prev_lib != $curr_lib } {
+           # start of library files set
+           if { $curr_lib != $work_lib } {
+             puts $fh "-V93 -makelib ${curr_lib}"
+           }
+           # end of library files set
+           if { $prev_lib != $work_lib } {
+             puts $fh "-endlib"
+           }
+         }
+         puts $fh "\"$file\""
+         # reset previous library to current
+         set prev_lib $curr_lib
+       }
+   }
+
+   proc write_filelist_for_vcs_mx { compile_order_files fh } {
+
+       # Summary: Write simple compile order filelist for the VCS simulator
+
+       # Argument Usage:
+       # compile_order_files - list of design files
+       # fh - file handle
+
+       # Return Value:
+       # none
+
+       variable a_global_sim_vars
+
+       foreach file $compile_order_files {
+         set lib [get_property library [get_files -quiet -all $file]]
+         puts $fh "\"$file\" // library $lib"
+       }
+   }
+
+   proc append_compiler_options { tool opts_arg } {
+
+       # Summary: Add switches (options) for the target compiler tool
+
+       # Argument Usage:
+       # tool - compiler name
+       # opts_arg - options list to be appended
+
+       # Return Value:
+       # none
+
+       upvar $opts_arg opts
+
+       variable a_global_sim_vars
+
+       # verilog include directories
+       set incl_dirs [find_verilog_incl_dirs]
+
+       # verilog include file directories
+       set incl_file_dirs [find_verilog_incl_file_dirs]
+  
+       set machine $::tcl_platform(machine)
+       switch -regexp -- $tool {
+         "ncvhdl" {           
+           lappend opts "-V93"
+           lappend opts "-RELAX"
+           if { [regexp {_64} $machine] } {
+             lappend opts "-64bit"
+           }
+           lappend opts "-logfile"
+           lappend opts "$tool.log"
+           lappend opts "-append_log"
+         }
+         "ncvlog" {
+           if { [regexp {_64} $machine] } {
+             lappend opts "-64bit"
+           }
+           lappend opts "-messages"
+           lappend opts "+define+SVG"
+           lappend opts "-logfile"
+           lappend opts "$tool.log"
+           lappend opts "-append_log"
+           foreach dir $incl_dirs {
+             lappend opts "+incdir+$dir"
+           }
+           foreach dir $incl_file_dirs {
+             lappend opts "+incdir+$dir"
+           }
+         }
+         "vhdlan" {           
+           lappend opts "-93"
+           if { [regexp {_64} $machine] } {
+             lappend opts "-full64"
+           }
+           lappend opts "-l"
+           lappend opts "$tool.log"
+         }
+         "vlogan" {
+           lappend opts "+v2k"
+           if { [regexp {_64} $machine] } {
+             lappend opts "-full64"
+           }
+           lappend opts "+define+SVG"
+           lappend opts "-l"
+           lappend opts "$tool.log"
+           foreach dir $incl_dirs {
+             lappend opts "+incdir+\"$dir\""
+           }
+           foreach dir $incl_file_dirs {
+             lappend opts "+incdir+\"$dir\""
+           }
+         }
+       }
+   }
+
+   proc find_verilog_incl_dirs { } {
+
+       # Summary: Get the verilog include directory paths
+
+       # Argument Usage:
+       # none
+
+       # Return Value:
+       # Sorted unique list of verilog include directories (if any)
+ 
+       variable a_global_sim_vars
+
+       set dir_names [list]
+ 
+       set tcl_obj $a_global_sim_vars(s_of_objects)
+       if { [is_ip $tcl_obj] } {
+         set incl_dir_str [find_incl_dirs_from_ip $tcl_obj]
+       } else {
+         set incl_dir_str [get_property include_dirs [get_filesets $tcl_obj]]
+       }
+
+       set incl_dirs [split $incl_dir_str " "]
+       foreach vh_dir $incl_dirs {
+         lappend dir_names [file normalize $vh_dir]
+       }
+       return [lsort -unique $dir_names]
+   }
+
+   proc find_verilog_incl_file_dirs {} {
+
+       # Summary: Get the verilog include directory paths for files of type "Verilog Header"
+
+       # Argument Usage:
+       # none
+
+       # Return Value:
+       # Sorted unique list of verilog include directory paths for files of type "Verilog Header"
+
+       variable a_global_sim_vars
+
+       set dir_names [list]
+
+       set tcl_obj $a_global_sim_vars(s_of_objects)
+       if { [is_ip $tcl_obj] } {
+         set vh_files [find_incl_files_from_ip $tcl_obj]
+       } else {
+         set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
+         set vh_files [get_files -quiet -filter $filter]
+       }
+
+       foreach vh_file $vh_files {
+         lappend dir_names [file normalize [file dirname $vh_file]]
+       }
+       if {[llength $dir_names] > 0} {
+         return [lsort -unique $dir_names]
+       }
+
+       return $dir_names
+   }
+
+   proc find_incl_dirs_from_ip { tcl_obj } {
+
+       # Summary: Get the verilog include directory paths for files of type "Verilog Header" for an IP
+
+       # Argument Usage:
+       # tcl_obj - source object type
+
+       # Return Value:
+       # List of verilog include directory paths in an IP for files of type "Verilog Header"
+     
+       set ip_name [file tail $tcl_obj]
+       set incl_dirs [list]
+       set filter "FILE_TYPE == \"Verilog Header\""
+       set compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
+       foreach file $compile_order_files {
+         set incl_dir [file dirname $file]
+         lappend incl_dirs $incl_dir
+       }
+ 
+       return $incl_dirs
+   }
+
+   proc find_incl_files_from_ip { tcl_obj } {
+
+       # Summary: Get the verilog include files of type "Verilog Header" for an IP
+
+       # Argument Usage:
+       # none
+
+       # Return Value:
+       # List of verilog include directory files in an IP for files of type "Verilog Header"
+
+       set ip_name [file tail $tcl_obj]
+       set vh_files [list]
+       set filter "FILE_TYPE == \"Verilog Header\""
+       set compile_order_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
+       foreach file $compile_order_files {
+         lappend vh_files $file
+       }
+ 
+       return $vh_files
+   }
+
+   proc export_ip_data_files { ip_name } {
+
+       # Summary: Copy IP data files to output directory
+
+       # Argument Usage:
+       # ip_name - Name of the IP
+
+       # Return Value:
+       # none
+
+       variable a_global_sim_vars
+ 
+       set filter "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory Initialization Files\""
+       set data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
+       set export_dir $a_global_sim_vars(s_sim_files_dir)
+       
+       if { [llength $data_files] > 0 } {
+         send_msg_id Vivado-projutils-030 INFO "Exporting '[file root $ip_name]' IP data file(s):-\n"
+       }
+
+       # export now
+       foreach file $data_files {
+         if {[catch {file copy -force $file $export_dir} error_msg] } {
+           send_msg_id Vivado-projutils-031 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
+         } else {
+           send_msg_id Vivado-projutils-032 INFO " copied '$file'\n"
+         }
+       }
+   }
+
+   proc export_fileset_ip_data_files {} {
+
+       # Summary: Copy fileset IP data files to output directory
+
+       # Argument Usage:
+       # none
+
+       # Return Value:
+       # none
+
+       variable a_global_sim_vars
+ 
+       set filter "FILE_TYPE == \"IP\""
+       set ips [get_files -all -quiet -filter $filter]
+       foreach ip $ips {
+         set ip_name [file tail $ip]
+         export_ip_data_files $ip_name
+       }
    }
 }
