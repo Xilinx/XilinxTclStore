@@ -425,7 +425,11 @@ namespace eval ::tclapp::xilinx::projutils {
   
         # create project
         lappend l_script_data "# Create project"
-        lappend l_script_data "create_project $name ./$name"
+        set tcl_cmd "create_project $name ./$name"
+        if { [get_property managed_ip [current_project]] } {
+          set tcl_cmd "$tcl_cmd -ip"
+        }
+        lappend l_script_data $tcl_cmd
   
         if { $a_global_vars(b_arg_dump_proj_info) } {
           puts $a_global_vars(dp_fh) "project_name=$name"
