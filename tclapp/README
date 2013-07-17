@@ -38,6 +38,12 @@ set path [file normalize [file dirname [info script]]]
 #source [file join $path {test2.tcl}]
 >
 
+Tests should indicate a failure by executing the tcl error command, e.g.
+
+error "My test detected a failure"
+
+Tests should NOT modify any files in the git repo.
+
 HELP 
 Add the long help files into doc directory under the app
 The name of the file has to be exactly same as the proc.
