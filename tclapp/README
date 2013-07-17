@@ -56,5 +56,3 @@ ADDING A NEW PROVIDER
 % cp mycompany/pkgIndex.tcl .
 
 3. Follow the instructions in mycompany/README
-
-
