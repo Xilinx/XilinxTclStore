@@ -1171,3 +1171,4 @@ stooop::class ::tclapp::xilinx::diff::diff {
 
 # Provide everything in this file as a package for use by helpers.tcl
 package provide ::tclapp::xilinx::diff::classes 1.2
+#######################
