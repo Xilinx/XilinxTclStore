@@ -6,9 +6,9 @@ set ::env(XILINX_TCLAPP_REPO) [file normalize [file join $file_dir .. .. ..]]
 puts "== Application directory: $::env(XILINX_TCLAPP_REPO)"
 lappend auto_path $::env(XILINX_TCLAPP_REPO)
 
-set name "test_0001"
+set name "wpt_test_0002"
 
 create_project $name ./$name
 add_files -fileset sources_1 "$file_dir/src/top.v"
-write_project_tcl $name.tcl
+write_project_tcl -dump_project_info $name.tcl
 close_project
