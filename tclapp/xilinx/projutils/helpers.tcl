@@ -131,7 +131,6 @@ namespace eval ::tclapp::xilinx::projutils {
         # [-of_objects <args>]: Export simulation file(s) for the specified object (IP file or fileset) 
         # [-relative_to <dir>]: Make all file paths relative to the specified directory
         # [-include_compile_commands]: Prefix RTL design files with compiler switches
-        # [-unique_ip_files]: Filter duplicate instances of the same IP file and only send the first one through
         # [-force]: Overwrite previous files
         # -simulator <name>: Simulator for which simulation files will be exported (<name>: modelsim|ies|vcs_mx|xsim)
         # dir: Directory where the simulation files is saved
@@ -159,7 +158,6 @@ namespace eval ::tclapp::xilinx::projutils {
             "-of_objects"               { incr i;set a_global_sim_vars(s_of_objects) [lindex $args $i] }
             "-include_compile_commands" { set a_global_sim_vars(b_incl_compile_commmands) 1 }
             "-relative_to"              { incr i;set a_global_sim_vars(s_relative_to) [lindex $args $i] }
-            "-unique_ip_files"          { set a_global_sim_vars(b_unique_ip_files) 1 }
             "-force"                    { set a_global_sim_vars(b_overwrite_sim_files_dir) 1 }
             "-simulator"                { incr i;set a_global_sim_vars(s_simulator) [lindex $args $i] }
             default {
@@ -308,7 +306,6 @@ namespace eval ::tclapp::xilinx::projutils {
         set a_global_sim_vars(s_sim_files_dir)           ""
         set a_global_sim_vars(b_incl_compile_commmands)  0
         set a_global_sim_vars(s_relative_to)             ""             
-        set a_global_sim_vars(b_unique_ip_files)         0
         set a_global_sim_vars(b_overwrite_sim_files_dir) 0
         set a_global_sim_vars(s_filelist)                ""
         set a_global_sim_vars(s_of_objects)              ""
@@ -1318,9 +1315,6 @@ namespace eval ::tclapp::xilinx::projutils {
 
        set ip_name [file root $ip_filename]
        set a_global_sim_vars(s_filelist) "filelist_${ip_name}.f"
-       if { $a_global_sim_vars(b_unique_ip_files) } {
-         set compile_order_files [process_duplicate_ip_files $compile_order_files]
-       }
        export_simulation_files_for_object $obj_name $compile_order_files
 
        # fetch ip data files and export to output dir
@@ -1354,9 +1348,6 @@ namespace eval ::tclapp::xilinx::projutils {
          return 0
        } else {
          set a_global_sim_vars(s_filelist) "filelist_${obj_name}.f"
-         if { $a_global_sim_vars(b_unique_ip_files) } {
-           set compile_order_files [process_duplicate_ip_files $compile_order_files]
-         }
          export_simulation_files_for_object $obj_name $compile_order_files
 
          # fetch data files for all IP's in simset and export to output dir
@@ -1447,43 +1438,6 @@ namespace eval ::tclapp::xilinx::projutils {
        }
        set a_global_sim_vars(s_sim_files_dir) $dir
        return 1
-   }
-
-   proc process_duplicate_ip_files { compile_order_files } {
-
-       # Summary: For each compile order file, check if it belongs to composite. If yes, then
-       #          add to unique list if it wasn't added earlier. If rtl, just add to unique list. 
-
-       # Argument Usage:
-       # compile_order_files - list of compile order files
-
-       # Return Value:
-       # Unique compile order file list
-
-       variable a_global_sim_vars
-
-       set unique_list [list]
-       set unique_ip_filenames [list]
-       foreach file $compile_order_files {
-         set filename [file tail $file]
-         # does it have parent composite file property?
-         if { [lsearch -nocase [list_property [get_files -all $filename]] "parent_composite_file"] != -1 } {
-           set parent_comp [get_property PARENT_COMPOSITE_FILE [get_files -all $filename]]
-           if { [string length $parent_comp] > 0 } {
-             set ip_file $file
-             if { [lsearch $unique_ip_filenames $filename] == -1 } {
-               # add unique filenames list
-               lappend unique_ip_filenames $filename
-               # add ip file to unique file list
-               lappend unique_list $ip_file
-             }
-           }
-         } else {
-           lappend unique_list $file
-         }
-       }
-
-       return $unique_list
    }
 
    proc export_simulation_files_for_object { obj_name compile_order_files } {
