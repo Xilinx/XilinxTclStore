@@ -193,7 +193,9 @@ namespace eval ::tclapp::xilinx::projutils {
         }
  
         # set pretty name
-        set_simulator_name
+        if { ![set_simulator_name] } {
+          return 0
+        }
 
         # is managed project?
         set a_global_sim_vars(b_is_managed) [get_property managed_ip [current_project]]
@@ -1398,16 +1400,22 @@ namespace eval ::tclapp::xilinx::projutils {
        # none
 
        # Return Value:
-       # none
+       # True (1) if name set, false (0) otherwise
 
        variable a_global_sim_vars
-
-       switch -regexp -- $a_global_sim_vars(s_simulator) {
+       set simulator $a_global_sim_vars(s_simulator)
+       switch -regexp -- $simulator {
          "modelsim" { set a_global_sim_vars(s_simulator_name) "Mentor Graphics ModelSim" }
          "ies"      { set a_global_sim_vars(s_simulator_name) "Cadence Incisive Enterprise" }
          "vcs_mx"   { set a_global_sim_vars(s_simulator_name) "Synopsys VCS MX" }
          "xsim"     { set a_global_sim_vars(s_simulator_name) "Xilinx Vivado Simulator" }
+         default {
+           send_msg_id Vivado-projutils-026 ERROR "Invalid simulator ($simulator)\n"
+           close $fh
+           return 0
+         }
        }
+       return 1
    }
 
    proc create_sim_files_dir {} {
