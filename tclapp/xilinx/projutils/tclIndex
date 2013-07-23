@@ -7,7 +7,7 @@
 # a script that loads the command.
 
 set auto_index(::tclapp::xilinx::projutils::write_project_tcl) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::projutils::export_simulation_files) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::projutils::export_simulation_filelist) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::reset_global_vars) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::reset_global_sim_vars) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::write_project_tcl_script) [list source [file join $dir helpers.tcl]]
@@ -36,7 +36,7 @@ set auto_index(::tclapp::xilinx::projutils::is_ip) [list source [file join $dir 
 set auto_index(::tclapp::xilinx::projutils::is_fileset) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::set_simulator_name) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::create_sim_files_dir) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::projutils::export_simulation_files_for_object) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::projutils::export_simulation_filelist_for_object) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::write_compile_commands) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::write_filelist) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::write_lib_map_commands_for_modelsim) [list source [file join $dir helpers.tcl]]
@@ -58,4 +58,5 @@ set auto_index(::tclapp::xilinx::projutils::export_fileset_ip_data_files) [list 
 set auto_index(::tclapp::xilinx::projutils::export_glbl_file) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::get_compile_order_libs) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::is_verilog) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::projutils::is_vhdl) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::get_relative_file_path) [list source [file join $dir helpers.tcl]]
