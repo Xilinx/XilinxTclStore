@@ -290,7 +290,7 @@ namespace eval ::tclapp::xilinx::projutils {
     variable a_global_sim_vars
 
     variable l_valid_simulator_types [list]
-    set l_valid_simulator_types [list ies vcs_mx modelsim questasim riviera active_hdl xsim]
+    set l_valid_simulator_types [list ies vcs_mx]
 
     variable l_valid_ip_extns [list]
     set l_valid_ip_extns [list ".xci" ".bd" ".slx"]
@@ -1413,13 +1413,8 @@ namespace eval ::tclapp::xilinx::projutils {
        variable a_global_sim_vars
        set simulator $a_global_sim_vars(s_simulator)
        switch -regexp -- $simulator {
-         "modelsim"  { set a_global_sim_vars(s_simulator_name) "Mentor Graphics ModelSim" }
-         "questasim" { set a_global_sim_vars(s_simulator_name) "Mentor Graphics Questa Advanced" }
-         "riviera"   { set a_global_sim_vars(s_simulator_name) "Aldec Riviera-PRO" }
-         "active_hdl" { set a_global_sim_vars(s_simulator_name) "Aldec Active-HDL" }
          "ies"       { set a_global_sim_vars(s_simulator_name) "Cadence Incisive Enterprise" }
          "vcs_mx"    { set a_global_sim_vars(s_simulator_name) "Synopsys VCS MX" }
-         "xsim"      { set a_global_sim_vars(s_simulator_name) "Xilinx Vivado Simulator" }
          default {
            send_msg_id Vivado-projutils-026 ERROR "Invalid simulator ($simulator)\n"
            close $fh
@@ -1502,27 +1497,17 @@ namespace eval ::tclapp::xilinx::projutils {
            return 0
          }
        } else {
-         # error out if VHDL
-         switch -regexp -- $a_global_sim_vars(s_simulator) {
-           "modelsim"   -
-           "questasim"  -
-           "riviera"    -
-           "active_hdl" {
-             # contains vhdl sources? error out
-             if { [is_vhdl $compile_order_files] } {
-               send_msg_id Vivado-projutils-044 ERROR "Found VHDL sources. Filelist generation for this simulator is not supported.\n"
-               close $fh
-               return 0
-             }
-           }
-         }
-
          # plain filelist
          if { ! [write_filelist $compile_order_files $fh] } {
            return 0
          }
        }
        close $fh
+
+       # make filelist executable
+       if {[catch {exec chmod a+x $file} error_msg] } {
+         send_msg_id Vivado-projutils-044 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+       }
 
        # contains verilog sources? copy glbl to output dir
        if { [is_verilog $compile_order_files] } {
@@ -1547,23 +1532,10 @@ namespace eval ::tclapp::xilinx::projutils {
 
        send_msg_id Vivado-projutils-041 INFO "Writing filelist with compilation options...\n"
 
-       # write vlib/vmap commands for ModelSim
-       switch -regexp -- $a_global_sim_vars(s_simulator) {
-         "modelsim"   -
-         "questasim"  -
-         "riviera"    -
-         "active_hdl" { write_lib_map_commands_for_modelsim $compile_order_files $fh }
-       }
-
        foreach file $compile_order_files {
          switch -regexp -- $a_global_sim_vars(s_simulator) {
-           "modelsim" -
-           "questasim" -
-           "riviera" -
-           "active_hdl" { wr_compile_cmds_modelsim $file $fh }
            "ies"      { wr_compile_cmds_ies $file $fh }
            "vcs_mx"   { wr_compile_cmds_vcs_mx $file $fh }
-           "xsim"     { wr_compile_cmds_xsim $file $fh }
            default {
              send_msg_id Vivado-projutils-026 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
              close $fh
@@ -1576,13 +1548,8 @@ namespace eval ::tclapp::xilinx::projutils {
        if { [is_verilog $compile_order_files] } {
          set file_str "-work work ./glbl.v"
          switch -regexp -- $a_global_sim_vars(s_simulator) {
-           "modelsim"   -
-           "questasim"  -
-           "riviera"    -
-           "active_hdl" { puts $fh "vlog $file_str" }
            "ies"      { puts $fh "ncvlog $file_str" }
            "vcs_mx"   { puts $fh "vlogan $file_str" }
-           "xsim"     { puts $fh "verilog $file_str" }
            default {
              send_msg_id Vivado-projutils-026 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
              close $fh
@@ -1616,13 +1583,8 @@ namespace eval ::tclapp::xilinx::projutils {
        }
 
        switch -regexp -- $a_global_sim_vars(s_simulator) {
-         "modelsim"   -
-         "questasim"  -
-         "riviera"    -
-         "active_hdl" { wr_filelist_modelsim $compile_order_files $fh }
          "ies"      { wr_filelist_ies $compile_order_files $fh }
          "vcs_mx"   { wr_filelist_vcs_mx $compile_order_files $fh }
-         "xsim"     { wr_filelist_xsim $compile_order_files $fh }
          default {
            send_msg_id Vivado-projutils-027 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
            close $fh
@@ -1634,13 +1596,8 @@ namespace eval ::tclapp::xilinx::projutils {
        if { [is_verilog $compile_order_files] } {
          set file_str "\"./glbl.v\""
          switch -regexp -- $a_global_sim_vars(s_simulator) {
-           "modelsim"   -
-           "questasim"  -
-           "riviera"    -
-           "active_hdl" { puts $fh "$file_str" }
            "ies"      { puts $fh "$file_str" }
            "vcs_mx"   { puts $fh "./glbl.v" }
-           "xsim"     { puts $fh "$file_str" }
            default {
              send_msg_id Vivado-projutils-026 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
              close $fh
@@ -1649,92 +1606,6 @@ namespace eval ::tclapp::xilinx::projutils {
          }
        }
        return 1
-   }
-
-   proc write_lib_map_commands_for_modelsim { compile_order_files fh } {
-
-       # Summary: Add library mapping commands for the ModelSim simulator
-
-       # Argument Usage:
-       # file - compile order RTL file
-       # fh   - file handle
-
-       # Return Value:
-       # none
-
-       variable a_global_sim_vars
-
-       set compile_order_libs [get_compile_order_libs $compile_order_files]
-
-       set num_libs [llength $compile_order_libs]
-
-       # create/map library's
-       puts $fh "vlib work"
-       foreach library $compile_order_libs {
-         if { [string equal $library "work"] } {continue; }
-         puts $fh "vlib msim/$library"
-       }
-       if {[llength $num_libs] > 1} {
-         puts $fh ""
-       }
-
-       # map libraries
-       foreach library $compile_order_libs {
-         if { [string equal $library "work"] } { continue; }
-         puts $fh "vmap $library msim/$library"
-       }
-
-       if {[llength $num_libs] > 1} {
-         puts $fh ""
-       }
-   }
-
-   proc wr_compile_cmds_modelsim { file fh } {
-
-       # Summary: Add compilation switches for the ModelSim simulator
-
-       # Argument Usage:
-       # file - compile order RTL file
-       # fh   - file handle
-
-       # Return Value:
-       # none
-
-       variable a_global_sim_vars
-
-       set cmd_str [list]
-       set file_type [get_property file_type [get_files -quiet -all $file]]
-       set associated_library [get_property library [get_files -quiet -all $file]]
-       if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-         set file [get_relative_file_path $file $a_global_sim_vars(s_sim_files_dir)]
-       } else {
-         set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
-       }
-       switch -regexp -nocase -- $file_type {
-         "vhd" {
-           set tool "vcom"
-           lappend cmd_str $tool
-           append_compiler_options $tool $file_type cmd_str
-           lappend cmd_str "-work"
-           lappend cmd_str "$associated_library"
-           lappend cmd_str "\"$file\""
-         }
-         "verilog" {
-           set tool "vlog"
-           lappend cmd_str $tool
-           append_compiler_options $tool $file_type cmd_str
-           lappend cmd_str "-work"
-           lappend cmd_str "$associated_library"
-           lappend cmd_str "\"$file\""
-         }
-         default {
-           send_msg_id Vivado-projutils-029 WARNING "Unknown file type '$file_type'\n"
-         }
-       }
-      
-       set cmd [join $cmd_str " "]
-       puts $fh $cmd
-
    }
 
    proc wr_compile_cmds_ies { file fh } {
@@ -1833,91 +1704,6 @@ namespace eval ::tclapp::xilinx::projutils {
 
    }
 
-   proc wr_compile_cmds_xsim { file fh } {
-
-       # Summary: Add compilation switches for the Vivado simulator
-
-       # Argument Usage:
-       # file - compile order RTL file
-       # fh   - file handle
-
-       # Return Value:
-       # none
-
-       variable a_global_sim_vars
-
-       set cmd_str [list]
-       set file_type [get_property file_type [get_files -quiet -all $file]]
-       set associated_library [get_property library [get_files -quiet -all $file]]
-       if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-         set file [get_relative_file_path $file $a_global_sim_vars(s_sim_files_dir)]
-       } else {
-         set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
-       }
-       switch -regexp -nocase -- $file_type {
-         "vhd" {
-           set tool "vhdl"
-           lappend cmd_str $tool
-           append_compiler_options $tool $file_type cmd_str
-           lappend cmd_str "-work"
-           lappend cmd_str "$associated_library"
-           lappend cmd_str "\"$file\""
-         }
-         "verilog" {
-           set tool "verilog"
-           lappend cmd_str $tool
-           append_compiler_options $tool $file_type cmd_str
-           lappend cmd_str "-work"
-           lappend cmd_str "$associated_library"
-           lappend cmd_str "\"$file\""
-         }
-         default {
-           send_msg_id Vivado-projutils-029 WARNING "Unknown file type '$file_type'\n"
-         }
-       }
-      
-       set cmd [join $cmd_str " "]
-       puts $fh $cmd
-
-   }
-
-   proc wr_filelist_modelsim { compile_order_files fh } {
-
-       # Summary: Write simple compile order filelist for the ModelSim simulator
-
-       # Argument Usage:
-       # compile_order_files - list of design files
-       # fh - file handle
-
-       # Return Value:
-       # none
-
-       variable a_global_sim_vars
-
-       # verilog include dirs?
-       set incl_dirs      [find_verilog_incl_dirs]
-       set incl_file_dirs [find_verilog_incl_file_dirs]
-       if {[llength $incl_file_dirs] > 0} {
-         lappend incl_dirs $incl_file_dirs
-       }
-       if { [llength $incl_dirs] > 0 } {
-         set incl_dirs [lsort -unique $incl_dirs]
-         puts $fh "+incdir+\"[join $incl_dirs \"\n\-incdir\ \"]\""
-       }
-
-       set work_lib "work"
-
-       foreach file $compile_order_files {
-         set lib [get_property library [get_files -quiet -all $file]]
-         if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-           set file [get_relative_file_path $file $a_global_sim_vars(s_sim_files_dir)]
-         } else {
-           set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
-         }
-         puts $fh "\"$file\" // library $lib"
-       }
-   }
-
    proc wr_filelist_ies { compile_order_files fh } {
 
        # Summary: Write simple compile order filelist for the IES simulator
@@ -2000,43 +1786,6 @@ namespace eval ::tclapp::xilinx::projutils {
            set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
          }
          puts $fh "$file // library $lib"
-       }
-   }
-
-   proc wr_filelist_xsim { compile_order_files fh } {
-
-       # Summary: Write simple compile order filelist for the Vivado simulator
-
-       # Argument Usage:
-       # compile_order_files - list of design files
-       # fh - file handle
-
-       # Return Value:
-       # none
-
-       variable a_global_sim_vars
-
-       # verilog include dirs?
-       set incl_dirs      [find_verilog_incl_dirs]
-       set incl_file_dirs [find_verilog_incl_file_dirs]
-       if {[llength $incl_file_dirs] > 0} {
-         lappend incl_dirs $incl_file_dirs
-       }
-       if { [llength $incl_dirs] > 0 } {
-         set incl_dirs [lsort -unique $incl_dirs]
-         puts $fh "-i \"[join $incl_dirs \"\n\-i\ \"]\""
-       }
-
-       set work_lib "work"
-
-       foreach file $compile_order_files {
-         set lib [get_property library [get_files -quiet -all $file]]
-         if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-           set file [get_relative_file_path $file $a_global_sim_vars(s_sim_files_dir)]
-         } else {
-           set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
-         }
-         puts $fh "\"$file\" // library $lib"
        }
    }
 
