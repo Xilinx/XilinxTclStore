@@ -295,6 +295,9 @@ namespace eval ::tclapp::xilinx::projutils {
     variable l_valid_ip_extns [list]
     set l_valid_ip_extns [list ".xci" ".bd" ".slx"]
 
+    variable s_data_files_filter
+    set s_data_files_filter "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
+
     proc reset_global_sim_vars {} {
 
         # Summary: initializes global namespace simulation vars
@@ -1292,15 +1295,19 @@ namespace eval ::tclapp::xilinx::projutils {
        set tcl_obj $a_global_sim_vars(s_of_objects)
 
        if { [is_ip $tcl_obj] } {
-         export_sim_files_for_ip $tcl_obj
+         if {![export_sim_files_for_ip $tcl_obj]} {
+           return 0
+         }
        } elseif { [is_fileset $tcl_obj] } {
-         export_sim_files_for_fs $tcl_obj
+         if {![export_sim_files_for_fs $tcl_obj]} {
+           return 0
+         }
        } else {
          send_msg_id Vivado-projutils-020 INFO "Unsupported object source: $tcl_obj\n"
          return 0
        }
 
-       send_msg_id Vivado-projutils-021 INFO "Simulation file generated:$a_global_sim_vars(s_sim_files_dir)/$a_global_sim_vars(s_filelist)\n"
+       send_msg_id Vivado-projutils-021 INFO "Simulation filelist generated:$a_global_sim_vars(s_sim_files_dir)/$a_global_sim_vars(s_filelist)\n"
 
        return 1
    }
@@ -1316,6 +1323,7 @@ namespace eval ::tclapp::xilinx::projutils {
        # true (1) if success, false (0) otherwise
      
        variable a_global_sim_vars
+       variable s_data_files_filter
  
        set obj_name [file root [file tail $tcl_obj]]
        set ip_filename [file tail $tcl_obj]
@@ -1323,10 +1331,15 @@ namespace eval ::tclapp::xilinx::projutils {
        set simulator $a_global_sim_vars(s_simulator)
        set ip_name [file root $ip_filename]
        set a_global_sim_vars(s_filelist) "${ip_name}_sim_filelist_${simulator}.f"
-       export_simulation_filelist_for_object $obj_name $compile_order_files
+       if {![export_simulation_filelist_for_object $obj_name $compile_order_files]} {
+         return 0
+       }
 
        # fetch ip data files and export to output dir
-       export_ip_data_files $ip_filename
+       set data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_filename] -filter $s_data_files_filter]
+       export_data_files $data_files
+
+       return 1
    }
 
    proc export_sim_files_for_fs { tcl_obj } {
@@ -1358,11 +1371,15 @@ namespace eval ::tclapp::xilinx::projutils {
          set top [get_property top [get_filesets $tcl_obj]]
          set simulator $a_global_sim_vars(s_simulator)
          set a_global_sim_vars(s_filelist) "${top}_sim_filelist_${simulator}.f"
-         export_simulation_filelist_for_object $obj_name $compile_order_files
+         if {![export_simulation_filelist_for_object $obj_name $compile_order_files]} {
+           return 0
+         }
 
          # fetch data files for all IP's in simset and export to output dir
          export_fileset_ip_data_files
        }
+ 
+       return 1
    }
 
    proc is_ip { obj } {
@@ -2010,37 +2027,31 @@ namespace eval ::tclapp::xilinx::projutils {
        return $vh_files
    }
 
-   proc export_ip_data_files { ip_name } {
+   proc export_data_files { data_files } {
 
        # Summary: Copy IP data files to output directory
 
        # Argument Usage:
-       # ip_name - Name of the IP
+       # data_files - List of data files
 
        # Return Value:
        # none
 
        variable a_global_sim_vars
  
-       set filter "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory Initialization Files\""
-       set data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
        set export_dir $a_global_sim_vars(s_sim_files_dir)
        
-       if { [llength $data_files] > 0 } {
-         send_msg_id Vivado-projutils-030 INFO "Exporting '[file root $ip_name]' IP data file(s):-\n"
-       }
-
        # export now
        foreach file $data_files {
          if {[catch {file copy -force $file $export_dir} error_msg] } {
            send_msg_id Vivado-projutils-031 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
          } else {
-           send_msg_id Vivado-projutils-032 INFO " copied '$file'\n"
+           send_msg_id Vivado-projutils-032 INFO "copied '$file'\n"
          }
        }
    }
 
-   proc export_fileset_ip_data_files {} {
+   proc export_fileset_ip_data_files { } {
 
        # Summary: Copy fileset IP data files to output directory
 
@@ -2051,13 +2062,19 @@ namespace eval ::tclapp::xilinx::projutils {
        # none
 
        variable a_global_sim_vars
+       variable s_data_files_filter
  
-       set filter "FILE_TYPE == \"IP\""
-       set ips [get_files -all -quiet -filter $filter]
+       set ip_filter "FILE_TYPE == \"IP\""
+       set ips [get_files -all -quiet -filter $ip_filter]
        foreach ip $ips {
          set ip_name [file tail $ip]
-         export_ip_data_files $ip_name
+         set data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]
+         export_data_files $data_files
        }
+
+       # export fileset data files
+       set fs_data_files [get_files -all -quiet -of_objects [get_filesets -quiet [current_fileset]] -filter $s_data_files_filter]
+       export_data_files $fs_data_files
    }
 
    proc export_glbl_file {} {
