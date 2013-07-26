@@ -1641,9 +1641,7 @@ namespace eval ::tclapp::xilinx::projutils {
        set cmd_str [list]
        set file_type [get_property file_type [get_files -quiet -all $file]]
        set associated_library [get_property library [get_files -quiet -all $file]]
-       if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-         set file [get_relative_file_path $file $a_global_sim_vars(s_sim_files_dir)]
-       } else {
+       if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
          set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
        }
        switch -regexp -nocase -- $file_type {
@@ -1689,9 +1687,7 @@ namespace eval ::tclapp::xilinx::projutils {
        set cmd_str [list]
        set file_type [get_property file_type [get_files -quiet -all $file]]
        set associated_library [get_property library [get_files -quiet -all $file]]
-       if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-         set file [get_relative_file_path $file $a_global_sim_vars(s_sim_files_dir)]
-       } else {
+       if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
          set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
        }
        switch -regexp -nocase -- $file_type {
@@ -1760,9 +1756,7 @@ namespace eval ::tclapp::xilinx::projutils {
              puts $fh "-endlib"
            }
          }
-         if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-           set file [get_relative_file_path $file $a_global_sim_vars(s_sim_files_dir)]
-         } else {
+         if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
            set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
          }
          puts $fh "\"$file\""
@@ -1797,9 +1791,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
        foreach file $compile_order_files {
          set lib [get_property library [get_files -quiet -all $file]]
-         if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-           set file [get_relative_file_path $file $a_global_sim_vars(s_sim_files_dir)]
-         } else {
+         if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
            set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
          }
          puts $fh "$file // library $lib"
@@ -1828,17 +1820,6 @@ namespace eval ::tclapp::xilinx::projutils {
        set incl_file_dirs [find_verilog_incl_file_dirs]
   
        switch $tool {
-         "vhdl" {}
-         "verilog" {}
-         "vcom" { lappend opts "-93" }
-         "vlog" {
-           foreach dir $incl_dirs {
-             lappend opts "+incdir+\"$dir\""
-           }
-           foreach dir $incl_file_dirs {
-             lappend opts "+incdir+\"$dir\""
-           }
-         }
          "ncvhdl" {
            lappend opts "-V93"
            lappend opts "-RELAX"
@@ -1922,9 +1903,7 @@ namespace eval ::tclapp::xilinx::projutils {
        set incl_dirs [split $incl_dir_str " "]
        foreach vh_dir $incl_dirs {
          set dir [file normalize $vh_dir]
-         if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-           set dir [get_relative_file_path $dir $a_global_sim_vars(s_sim_files_dir)]
-         } else {
+         if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
            set dir "\$origin_dir/[get_relative_file_path $dir $a_global_sim_vars(s_relative_to)]"
          }
          lappend dir_names $dir
@@ -1956,9 +1935,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
        foreach vh_file $vh_files {
          set dir [file normalize [file dirname $vh_file]]
-         if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-           set dir [get_relative_file_path $dir $a_global_sim_vars(s_sim_files_dir)]
-         } else {
+         if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
            set dir "\$origin_dir/[get_relative_file_path $dir $a_global_sim_vars(s_relative_to)]"
          }
          lappend dir_names $dir
@@ -1988,9 +1965,7 @@ namespace eval ::tclapp::xilinx::projutils {
        set compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
        foreach file $compile_order_files {
          set dir [file dirname $file]
-         if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-           set dir [get_relative_file_path $dir $a_global_sim_vars(s_sim_files_dir)]
-         } else {
+         if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
            set dir "\$origin_dir/[get_relative_file_path $dir $a_global_sim_vars(s_relative_to)]"
          }
          lappend incl_dirs $dir
@@ -2016,9 +1991,7 @@ namespace eval ::tclapp::xilinx::projutils {
        set filter "FILE_TYPE == \"Verilog Header\""
        set compile_order_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
        foreach file $compile_order_files {
-         if {[string length $a_global_sim_vars(s_relative_to)] == 0 } {
-           set file [get_relative_file_path $file $a_global_sim_vars(s_sim_files_dir)]
-         } else {
+         if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
            set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
          }
          lappend vh_files $file
