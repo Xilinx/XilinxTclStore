@@ -288,6 +288,7 @@ namespace eval ::tclapp::xilinx::projutils {
     # export_simulation tcl script argument & file handle vars
     #
     variable a_global_sim_vars
+    variable l_compile_order_files [list]
 
     variable l_valid_simulator_types [list]
     set l_valid_simulator_types [list ies vcs_mx]
@@ -323,6 +324,8 @@ namespace eval ::tclapp::xilinx::projutils {
         set a_global_sim_vars(s_project_name)            ""
         set a_global_sim_vars(s_project_dir)             ""
         set a_global_sim_vars(b_is_managed)              0 
+
+        set l_compile_order_files                        [list]
 
     }
 
@@ -1231,7 +1234,7 @@ namespace eval ::tclapp::xilinx::projutils {
              return 1
            }
            # object not specified, error
-           send_msg_id Vivado-projutils-038 ERROR "Missing source IP object. Please type 'export_simulation -help' for usage info.\n"
+           send_msg_id Vivado-projutils-038 ERROR "No IP source object specified. Please type 'export_simulation -help' for usage info.\n"
            return 1
          } else {
            set curr_simset [current_fileset -simset]
@@ -1303,15 +1306,17 @@ namespace eval ::tclapp::xilinx::projutils {
      
        variable a_global_sim_vars
        variable s_data_files_filter
+       variable l_compile_order_files
  
        set obj_name [file root [file tail $tcl_obj]]
        set ip_filename [file tail $tcl_obj]
-       set compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]]
+       set l_compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]]
+
        set simulator $a_global_sim_vars(s_simulator)
        set ip_name [file root $ip_filename]
        set a_global_sim_vars(s_driver_script) "${ip_name}_sim_${simulator}.txt"
 
-       if {[export_simulation_for_object $obj_name $compile_order_files]} {
+       if {[export_simulation_for_object $obj_name]} {
          return 1
        }
 
@@ -1333,6 +1338,7 @@ namespace eval ::tclapp::xilinx::projutils {
        # true (0) if success, false (1) otherwise
        
        variable a_global_sim_vars
+       variable l_compile_order_files
  
        set obj_name $tcl_obj
        set used_in_val "simulation"
@@ -1342,15 +1348,14 @@ namespace eval ::tclapp::xilinx::projutils {
          "BlockSrcs"      { set used_in_val "synthesis" }
        }
 
-       set compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $tcl_obj]]
-
-       if { [llength $compile_order_files] == 0 } {
+       set l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $tcl_obj]]
+       if { [llength $l_compile_order_files] == 0 } {
          send_msg_id Vivado-projutils-018 INFO "Empty fileset: $obj_name\n"
          return 1
        } else {
          set simulator $a_global_sim_vars(s_simulator)
          set a_global_sim_vars(s_driver_script) "$a_global_sim_vars(s_sim_top)_sim_${simulator}.txt"
-         if {[export_simulation_for_object $obj_name $compile_order_files]} {
+         if {[export_simulation_for_object $obj_name]} {
            return 1
          }
 
@@ -1449,13 +1454,12 @@ namespace eval ::tclapp::xilinx::projutils {
        return 0
    }
 
-   proc export_simulation_for_object { obj_name compile_order_files } {
+   proc export_simulation_for_object { obj_name } {
 
        # Summary: Open files and write compile order for the target simulator
 
        # Argument Usage:
        # obj_name - source object
-       # compile_order_files - list of compile order files
 
        # Return Value:
        # true (0) if success, false (1) otherwise
@@ -1487,7 +1491,7 @@ namespace eval ::tclapp::xilinx::projutils {
          "Generating driver script for '$a_global_sim_vars(s_simulator_name)' simulator (DESIGN OBJECT=$obj_name)...\n"
 
        # write header, compiler command/options
-       if { [write_driver_script $compile_order_files $fh] } {
+       if { [write_driver_script $fh] } {
          return 1
        }
        close $fh
@@ -1498,7 +1502,7 @@ namespace eval ::tclapp::xilinx::projutils {
        }
 
        # contains verilog sources? copy glbl to output dir
-       if { [is_verilog $compile_order_files] } {
+       if { [contains_verilog] } {
          if {[export_glbl_file]} {
            return 1
          }
@@ -1507,12 +1511,11 @@ namespace eval ::tclapp::xilinx::projutils {
        return 0
    }
 
-   proc write_driver_script { compile_order_files fh } {
+   proc write_driver_script { fh } {
 
        # Summary: Write driver script for the target simulator
 
        # Argument Usage:
-       # compile_order_files - compile order 
        # fh   - file handle
 
        # Return Value:
@@ -1537,8 +1540,8 @@ namespace eval ::tclapp::xilinx::projutils {
        puts $fh "#"
 
        switch -regexp -- $a_global_sim_vars(s_simulator) {
-         "ies"      { wr_driver_script_ies $compile_order_files $fh }
-         "vcs_mx"   { wr_driver_script_vcs_mx $compile_order_files $fh }
+         "ies"      { wr_driver_script_ies $fh }
+         "vcs_mx"   { wr_driver_script_vcs_mx $fh }
          default {
            send_msg_id Vivado-projutils-026 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
            close $fh
@@ -1547,7 +1550,7 @@ namespace eval ::tclapp::xilinx::projutils {
        }
 
        # add glbl
-       if { [is_verilog $compile_order_files] } {
+       if { [contains_verilog] } {
          set file_str "-work work ./glbl.v"
          switch -regexp -- $a_global_sim_vars(s_simulator) {
            "ies"      { puts $fh "ncvlog $file_str" }
@@ -1561,15 +1564,15 @@ namespace eval ::tclapp::xilinx::projutils {
        }
 
        puts $fh ""
-       write_elaboration_cmds $compile_order_files $fh
+       write_elaboration_cmds $fh
 
        puts $fh ""
-       write_simulation_cmds $compile_order_files $fh
+       write_simulation_cmds $fh
 
        return 0
    }
 
-   proc wr_driver_script_ies { compile_order_files fh } {
+   proc wr_driver_script_ies { fh } {
 
        # Summary: Write driver script for the IES simulator
 
@@ -1581,8 +1584,9 @@ namespace eval ::tclapp::xilinx::projutils {
        # none
 
        variable a_global_sim_vars
+       variable l_compile_order_files
 
-       foreach file $compile_order_files {
+       foreach file $l_compile_order_files {
          set cmd_str [list]
          set file_type [get_property file_type [get_files -quiet -all $file]]
          set associated_library [get_property library [get_files -quiet -all $file]]
@@ -1606,16 +1610,13 @@ namespace eval ::tclapp::xilinx::projutils {
              lappend cmd_str "$associated_library"
              lappend cmd_str "\"$file\""
            }
-           default {
-             send_msg_id Vivado-projutils-028 WARNING "Unknown file type '$file_type'\n"
-           }
          }
          set cmd [join $cmd_str " "]
          puts $fh $cmd
        }
    }
 
-   proc wr_driver_script_vcs_mx { compile_order_files fh } {
+   proc wr_driver_script_vcs_mx { fh } {
 
        # Summary: Write driver script for the VCS simulator
 
@@ -1627,8 +1628,9 @@ namespace eval ::tclapp::xilinx::projutils {
        # none
 
        variable a_global_sim_vars
+       variable l_compile_order_files
 
-       foreach file $compile_order_files {
+       foreach file $l_compile_order_files {
          set cmd_str [list]
          set file_type [get_property file_type [get_files -quiet -all $file]]
          set associated_library [get_property library [get_files -quiet -all $file]]
@@ -1651,9 +1653,6 @@ namespace eval ::tclapp::xilinx::projutils {
              lappend cmd_str "-work"
              lappend cmd_str "$associated_library"
              lappend cmd_str "$file"
-           }
-           default {
-             send_msg_id Vivado-projutils-029 WARNING "Unknown file type '$file_type'\n"
            }
          }
          set cmd [join $cmd_str " "]
@@ -1682,7 +1681,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
    }
 
-   proc write_elaboration_cmds { files fh } {
+   proc write_elaboration_cmds { fh } {
 
        # Summary: Driver script header info
 
@@ -1695,6 +1694,12 @@ namespace eval ::tclapp::xilinx::projutils {
 
        variable a_global_sim_vars
 
+       set tcl_obj $a_global_sim_vars(s_of_objects)
+       set v_generics [list]
+       if { [is_fileset $tcl_obj] } {
+         set v_generics [get_property vhdl_generic [get_filesets $tcl_obj]]
+       }
+
        puts $fh "#"
        puts $fh "# STEP: elaborate"
        puts $fh "#"
@@ -1705,12 +1710,20 @@ namespace eval ::tclapp::xilinx::projutils {
            lappend cmd_str "ncelab"
            lappend cmd_str "-timescale"
            lappend cmd_str "1ns/1ps"
+           foreach generic $v_generics {
+             set name [lindex [split $generic "="] 0]
+             set val  [lindex [split $generic "="] 1]
+             if { [string length $val] > 0 } {
+               lappend cmd_str "-g"
+               lappend cmd_str "\"$name=>$val\""
+             }
+           }
            lappend cmd_str "-override_precision"
            lappend cmd_str "-lib_binding"
            lappend cmd_str "-messages"
            lappend cmd_str "$a_global_sim_vars(s_sim_top)"
            lappend cmd_str "glbl"
-           foreach library [get_compile_order_libs $files] {
+           foreach library [get_compile_order_libs] {
              lappend cmd_str "-libname"
              lappend cmd_str "[string tolower $library]"
            }
@@ -1747,7 +1760,7 @@ namespace eval ::tclapp::xilinx::projutils {
        }
    }
 
-   proc write_simulation_cmds { files fh } {
+   proc write_simulation_cmds { fh } {
 
        # Summary: Driver script simulation commands info
 
@@ -1816,6 +1829,17 @@ namespace eval ::tclapp::xilinx::projutils {
 
        # verilog include file directories
        set incl_file_dirs [find_verilog_incl_file_dirs]
+
+       # verilog defines
+       set tcl_obj $a_global_sim_vars(s_of_objects)
+       set v_defines [list]
+       if { [is_fileset $tcl_obj] } {
+         set v_defines [get_property verilog_define [get_filesets $tcl_obj]]
+       }
+       set v_generics [list]
+       if { [is_fileset $tcl_obj] } {
+         set v_generics [get_property vhdl_generic [get_filesets $tcl_obj]]
+       }
   
        switch $tool {
          "ncvhdl" {
@@ -1833,7 +1857,14 @@ namespace eval ::tclapp::xilinx::projutils {
              lappend opts "-64bit"
            }
            lappend opts "-messages"
-           #lappend opts "+define+SVG"
+           foreach define $v_defines {
+             set name [lindex [split $define "="] 0]
+             set val  [lindex [split $define "="] 1]
+             if { [string length $val] > 0 } {
+               lappend opts "-define"
+               lappend opts "\"$name=$val\""
+             }
+           }
            lappend opts "-logfile"
            lappend opts "$tool.log"
            lappend opts "-append_log"
@@ -1861,7 +1892,14 @@ namespace eval ::tclapp::xilinx::projutils {
            if { !$a_global_sim_vars(b_32bit) } {
              lappend opts "-full64"
            }
-           #lappend opts "+define+SVG"
+           foreach define $v_defines {
+             set name [lindex [split $define "="] 0]
+             set val  [lindex [split $define "="] 1]
+             if { [string length $val] > 0 } {
+               lappend opts "+define+"
+               lappend opts "$name=$val"
+             }
+           }
            lappend opts "-l"
            lappend opts "$tool.log"
            foreach dir $incl_dirs {
@@ -1957,8 +1995,8 @@ namespace eval ::tclapp::xilinx::projutils {
        set ip_name [file tail $tcl_obj]
        set incl_dirs [list]
        set filter "FILE_TYPE == \"Verilog Header\""
-       set compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
-       foreach file $compile_order_files {
+       set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
+       foreach file $vh_files {
          set dir [file dirname $file]
          if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
            set dir "\$origin_dir/[get_relative_file_path $dir $a_global_sim_vars(s_relative_to)]"
@@ -1982,10 +2020,9 @@ namespace eval ::tclapp::xilinx::projutils {
        variable a_global_sim_vars
 
        set ip_name [file tail $tcl_obj]
-       set vh_files [list]
        set filter "FILE_TYPE == \"Verilog Header\""
-       set compile_order_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
-       foreach file $compile_order_files {
+       set vh_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
+       foreach file $vh_files {
          if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
            set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
          }
@@ -2072,7 +2109,7 @@ namespace eval ::tclapp::xilinx::projutils {
        return 0
    }
 
-   proc get_compile_order_libs { files } {
+   proc get_compile_order_libs { } {
 
        # Summary: Find unique list of design libraries
 
@@ -2081,9 +2118,12 @@ namespace eval ::tclapp::xilinx::projutils {
 
        # Return Value:
        # Unique list of libraries (if any)
+    
+       variable a_global_sim_vars
+       variable l_compile_order_files
 
        set libs [list]
-       foreach file $files {
+       foreach file $l_compile_order_files {
          set library [get_property library [get_files -all $file]]
          if { [lsearch -exact $libs $library] == -1 } {
            lappend libs $library
@@ -2092,7 +2132,7 @@ namespace eval ::tclapp::xilinx::projutils {
        return $libs
    }
 
-   proc is_verilog { files } {
+   proc contains_verilog {} {
 
        # Summary: Check if the input file type is of type verilog or verilog header
 
@@ -2102,31 +2142,9 @@ namespace eval ::tclapp::xilinx::projutils {
        # Return Value:
        # True (1) if of type verilog, False (0) otherwise
 
-       foreach file $files {
-         set file_type [get_property file_type [get_files -all [file tail $file]]]
-         if { [string equal -nocase $file_type "verilog"] ||
-              [string equal -nocase $file_type "verilog header"] } {
-           return 1
-         }
-       }
-       return 0
-   }
-
-   proc is_vhdl { files } {
-
-       # Summary: Check if the input file type is of type vhdl
-
-       # Argument Usage:
-       # files: list of files
-
-       # Return Value:
-       # True (1) if of type verilog, False (0) otherwise
-
-       foreach file $files {
-         set file_type [get_property file_type [get_files -all [file tail $file]]]
-         if { [string equal -nocase $file_type "vhdl"] } {
-           return 1
-         }
+       set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\""
+       if {[llength [get_files -quiet -all -filter $filter]] > 0} {
+         return 1
        }
        return 0
    }

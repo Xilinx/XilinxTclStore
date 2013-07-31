@@ -52,6 +52,5 @@ set auto_index(::tclapp::xilinx::projutils::export_data_files) [list source [fil
 set auto_index(::tclapp::xilinx::projutils::export_fileset_ip_data_files) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::export_glbl_file) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::get_compile_order_libs) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::projutils::is_verilog) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::projutils::is_vhdl) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::projutils::contains_verilog) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::projutils::get_relative_file_path) [list source [file join $dir helpers.tcl]]
