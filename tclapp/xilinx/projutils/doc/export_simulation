@@ -1,0 +1,56 @@
+Description:
+
+  Export a simulation driver script for simulating the design in the current
+  project for a given simulator. The generated script will contain simulator
+  commands for compiling, elaborating and simulating the design. 
+
+  The command will retrieve the simulation compile order for the specified
+  object which can be either a simulation fileset or an IP and export this
+  information in the driver script with the compiler commands and default options.
+
+Arguments:
+
+  -of_objects - (Optional) Specify the target object for which the simulation
+  driver file needs to be generated. The target object can be either a simulation
+  fileset (simset) or an IP. If this option is not specified then this command
+  will generate driver file for the current simulation fileset top.
+  
+  -relative_to - (Optional) Specify the directory path based on which the
+  project sources and include directories will be made relative to in the 
+  generated driver file.
+
+  -32bit - (Optional) Specify this option to perform 32bit simulation
+
+  -force - (Optional) Overwrite an existing driver script file of the same
+  name. If the script file already exists, the tool returns an error unless
+  the -force argument is specified. 
+
+  -dir - (Required) Specify the directory path where the simulation files will
+  be exported.
+
+  -simulator - (Required) Specify the simulator for which the simulation files
+  needs to be generated. The valid simulators are "ies" and "vcs_mx".
+
+  -quiet - (Optional) Execute the command quietly, ignoring any command line
+  errors and returning no messages. The command also returns TCL_OK regardless
+  of any errors encountered during execution.
+
+  -verbose - (Optional) Temporarily override any message limits and return all
+  messages from this command.
+
+  Note: Message limits can be defined with the set_msg_config command.
+
+Examples:
+
+  The following example exports a driver script named "fifo_sim_ies.txt" in the 
+  current directory for the current active simulation fileset with "top" property
+  set to "fifo":-
+
+  % export_simulation -simulator ies -dir "."
+
+See Also:
+
+   *  current_fileset
+   *  get_files
+   *  launch_xsim
+   *  launch_modelsim

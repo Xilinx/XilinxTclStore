@@ -42,8 +42,10 @@ package require Vivado 2013.1
 #
 namespace eval ::tclapp::xilinx::projutils {
 
-  # Export procs that should be allowed to import into other namespaces
+  # Generate project tcl script for re-generating the project
   namespace export write_project_tcl
+
+  # Generate simulation file(s) for the target simulator
   namespace export export_simulation
 }
 
