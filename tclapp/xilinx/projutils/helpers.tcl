@@ -1278,12 +1278,12 @@ namespace eval ::tclapp::xilinx::projutils {
 
        if { [is_ip $tcl_obj] } {
          set a_global_sim_vars(s_sim_top) [file tail [file root $tcl_obj]]
-         if {![export_sim_files_for_ip $tcl_obj]} {
+         if {[export_sim_files_for_ip $tcl_obj]} {
            return 1
          }
        } elseif { [is_fileset $tcl_obj] } {
          set a_global_sim_vars(s_sim_top) [get_property top [get_filesets $tcl_obj]]
-         if {![export_sim_files_for_fs $tcl_obj]} {
+         if {[export_sim_files_for_fs $tcl_obj]} {
            return 1
          }
        } else {

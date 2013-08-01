@@ -1,56 +1,73 @@
 Description:
 
-  Export a simulation driver script for simulating the design in the current
-  project for a given simulator. The generated script will contain simulator
-  commands for compiling, elaborating and simulating the design. 
+  Export a simulation driver script file for the target simulator. The generated
+  script will contain simulator commands for compiling, elaborating and simulating
+  the design.
 
-  The command will retrieve the simulation compile order for the specified
-  object which can be either a simulation fileset or an IP and export this
-  information in the driver script with the compiler commands and default options.
+  This command will retrieve the simulation compile order for the specified object
+  and export this information in a text file with the compiler commands and default
+  options for the target simulator. The specified object can be either a simulation
+  fileset or an IP.
+
+  This command will also copy the data files if any from the fileset or an IP to the
+  output directory. If the design contains "Verilog" sources, then the "glbl.v" file
+  will also be copied from the software installation to the output directory.
 
 Arguments:
 
-  -of_objects - (Optional) Specify the target object for which the simulation
-  driver file needs to be generated. The target object can be either a simulation
-  fileset (simset) or an IP. If this option is not specified then this command
-  will generate driver file for the current simulation fileset top.
+  -of_objects - (Optional) Specify the target object for which the simulation driver
+  script file needs to be generated. The target object can be either a simulation
+  fileset (simset) or an IP. If this option is not specified then this command will
+  generate driver file for the current simulation fileset "top".
   
-  -relative_to - (Optional) Specify the directory path based on which the
-  project sources and include directories will be made relative to in the 
-  generated driver file.
+  -relative_to - (Optional) Specify the directory path wrt which the project sources
+  and include directories will be made "relative to" in the generated driver file.
 
-  -32bit - (Optional) Specify this option to perform 32bit simulation
+  -32bit - (Optional) Specify this option to perform 32bit simulation. If this option
+  is not specified then by default 64bit option will be added to the command line.
 
-  -force - (Optional) Overwrite an existing driver script file of the same
-  name. If the script file already exists, the tool returns an error unless
-  the -force argument is specified. 
+  -force - (Optional) Overwrite an existing driver script file of the same name. If
+  the script file already exists, the tool returns an error unless the -force argument
+  is specified. 
 
-  -dir - (Required) Specify the directory path where the simulation files will
-  be exported.
+  -simulator - (Required) Specify the simulator name for which the simulation script
+   needs to be generated. The valid simulators are "ies" and "vcs_mx".
 
-  -simulator - (Required) Specify the simulator for which the simulation files
-  needs to be generated. The valid simulators are "ies" and "vcs_mx".
+  -dir - (Required) Specify the directory path where the simulation files will be exported.
 
-  -quiet - (Optional) Execute the command quietly, ignoring any command line
-  errors and returning no messages. The command also returns TCL_OK regardless
-  of any errors encountered during execution.
+  -quiet - (Optional) Execute the command quietly, ignoring any command line errors
+  and returning no messages. The command also returns TCL_OK regardless of any errors
+  encountered during execution.
 
-  -verbose - (Optional) Temporarily override any message limits and return all
-  messages from this command.
+  -verbose - (Optional) Temporarily override any message limits and return all messages
+  from this command.
 
   Note: Message limits can be defined with the set_msg_config command.
 
 Examples:
 
-  The following example exports a driver script named "fifo_sim_ies.txt" in the 
-  current directory for the current active simulation fileset with "top" property
-  set to "fifo":-
+  The following command exports a driver script file for "IES" simulator named
+  "bft_tb_sim_ies.txt" in the current directory for the "bft_core" example project:-
 
   % export_simulation -simulator ies -dir "."
+
+  The following command overwrites an existing "bft_tb_sim_ies.txt" file:-
+
+  % export_simulation -force -simulator ies -dir "."
+
+  The following command exports a driver script file named "bft_tb_sim_ies.txt" in the
+  "./test_bft_ies" directory for the "bft_core" example project. The glbl.v file is also
+  copied in the specified directory:-
+
+  % export_simulation -simulator ies -dir "test_bft_ies"
+
+  The following command exports a driver script file "bft_tb_sim_vcs_mx.txt" for the
+  "VCS_MX" simulator in the specified output directory with the design source file
+  paths in the script file set relative to the current directory:-
+
+  % export_simulation -relative_to "." -force -simulator vcs_mx -dir "test_bft_vcs_mx"
 
 See Also:
 
    *  current_fileset
    *  get_files
-   *  launch_xsim
-   *  launch_modelsim
