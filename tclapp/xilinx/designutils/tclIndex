@@ -41,6 +41,7 @@ set auto_index(::tclapp::xilinx::designutils::isLineComment) [list source [file 
 set auto_index(::tclapp::xilinx::designutils::isLineWellFormedCSV) [list source [file join $dir is_line_well_formed_csv.tcl]]
 set auto_index(::tclapp::xilinx::designutils::memStat) [list source [file join $dir memStat.tcl]]
 set auto_index(::tclapp::xilinx::designutils::parseCoreGenBOM) [list source [file join $dir parseCoreGenBOM.tcl]]
+set auto_index(::tclapp::xilinx::designutils::prettyTable) [list source [file join $dir prettyTable.tcl]]
 set auto_index(::tclapp::xilinx::designutils::quoteToCurly) [list source [file join $dir quoteToCurly.tcl]]
 set auto_index(::tclapp::xilinx::designutils::regexpFile) [list source [file join $dir regexpFile.tcl]]
 set auto_index(::tclapp::xilinx::designutils::reportCritHFNS) [list source [file join $dir reportCritHFNS.tcl]]
@@ -55,4 +56,4 @@ set auto_index(::tclapp::xilinx::designutils::sort_pins_by_direction) [list sour
 set auto_index(::tclapp::xilinx::designutils::sourcePath) [list source [file join $dir sourcePath.tcl]]
 set auto_index(::tclapp::xilinx::designutils::topTenHFN) [list source [file join $dir top_ten_HFN.tcl]]
 set auto_index(::tclapp::xilinx::designutils::verilog_to_int) [list source [file join $dir verilog_to_int.tcl]]
-set auto_index(::tclapp::xilinx::designutils::prettyTable) [list source [file join $dir prettyTable.tcl]]
+set auto_index(::tclapp::xilinx::designutils::generate_netlist_ip) [list source [file join $dir generate_netlist_ip.tcl]]
