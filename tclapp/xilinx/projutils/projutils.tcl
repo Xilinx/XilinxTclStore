@@ -10,7 +10,7 @@
 # 
 # Getting Started:
 #     % write_project_tcl 
-#     % export_simulation_filelist
+#     % export_simulation
 #
 ####################################################################################################
 
