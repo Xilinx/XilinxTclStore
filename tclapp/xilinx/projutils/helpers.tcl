@@ -154,7 +154,7 @@ namespace eval ::tclapp::xilinx::projutils {
           return 1
         }
         if {[lsearch $options {-dir}] == -1} {
-          send_msg_id Vivado-projutils-043 ERROR "Missing option '-dir', please type 'export_simulation -help' for usage info.\n"
+          send_msg_id Vivado-projutils-039 ERROR "Missing option '-dir', please type 'export_simulation -help' for usage info.\n"
           return 1
         }
 
@@ -193,10 +193,16 @@ namespace eval ::tclapp::xilinx::projutils {
         if { [lsearch $options {-relative_to}] != -1} {
           set relative_file_path $a_global_sim_vars(s_relative_to)
           if { ![file exists $relative_file_path] } {
-            send_msg_id Vivado-projutils-040 ERROR \
+            send_msg_id Vivado-projutils-037 ERROR \
               "Invalid relative path specified! Path does not exist:$a_global_sim_vars(s_relative_to)\n"
             return 1
           }
+        }
+
+        # is valid tcl obj specified?
+        if { ([lsearch $options {-of_objects}] != -1) && ([llength $a_global_sim_vars(s_of_objects)] == 0) } {
+          send_msg_id Vivado-projutils-038 ERROR "Invalid object specified. The object does not exist.\n"
+          return 1
         }
  
         # set pretty name
@@ -1236,7 +1242,7 @@ namespace eval ::tclapp::xilinx::projutils {
              return 1
            }
            # object not specified, error
-           send_msg_id Vivado-projutils-038 ERROR "No IP source object specified. Please type 'export_simulation -help' for usage info.\n"
+           send_msg_id Vivado-projutils-035 ERROR "No IP source object specified. Please type 'export_simulation -help' for usage info.\n"
            return 1
          } else {
            set curr_simset [current_fileset -simset]
@@ -1253,9 +1259,18 @@ namespace eval ::tclapp::xilinx::projutils {
            if { [is_fileset $tcl_obj] } {
              set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
              if { [string equal -nocase $fs_type "Constrs"] } {
-               send_msg_id Vivado-projutils-037 ERROR "Invalid object type specified\n"
+               send_msg_id Vivado-projutils-034 ERROR "Invalid object type specified\n"
                return 1
              }
+           }
+         } else {
+           set ip_obj_count [llength [get_files -all -quiet $tcl_obj]]
+           if { $ip_obj_count == 0 } {
+             send_msg_id Vivado-projutils-009 ERROR "The specified object could not be found in the project:$tcl_obj\n"
+             return 1
+           } elseif { $ip_obj_count > 1 } {
+             send_msg_id Vivado-projutils-019 ERROR "The script expects exactly one object got $ip_obj_count\n"
+             return 1
            }
          }
        }
@@ -1444,7 +1459,7 @@ namespace eval ::tclapp::xilinx::projutils {
        variable a_global_sim_vars
 
        if { [string length $a_global_sim_vars(s_sim_files_dir)] == 0 } {
-         send_msg_id Vivado-projutils-039 ERROR "Missing directory value. Please specify the output directory path for the exported files.\n"
+         send_msg_id Vivado-projutils-036 ERROR "Missing directory value. Please specify the output directory path for the exported files.\n"
          return 1
        }
 
@@ -1475,13 +1490,13 @@ namespace eval ::tclapp::xilinx::projutils {
 
  	   # recommend -force if file exists
  	   if { [file exists $file] && (!$a_global_sim_vars(b_overwrite_sim_files_dir)) } {
-         send_msg_id Vivado-projutils-034 ERROR "Simulation file '$file' already exist. Use -force option to overwrite."
+         send_msg_id Vivado-projutils-032 ERROR "Simulation file '$file' already exist. Use -force option to overwrite."
  	     return 1
  	   }
          
        if { [file exists $file] } {
          if {[catch {file delete -force $file} error_msg] } {
-           send_msg_id Vivado-projutils-035 ERROR "failed to delete file ($file): $error_msg\n"
+           send_msg_id Vivado-projutils-033 ERROR "failed to delete file ($file): $error_msg\n"
            return 1
          }
        }
@@ -1503,7 +1518,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
        # make filelist executable
        if {[catch {exec chmod a+x $file} error_msg] } {
-         send_msg_id Vivado-projutils-044 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+         send_msg_id Vivado-projutils-040 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
        }
 
        # contains verilog sources? copy glbl to output dir
@@ -1548,7 +1563,7 @@ namespace eval ::tclapp::xilinx::projutils {
          "ies"      { wr_driver_script_ies $fh }
          "vcs_mx"   { wr_driver_script_vcs_mx $fh }
          default {
-           send_msg_id Vivado-projutils-026 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
+           send_msg_id Vivado-projutils-022 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
            close $fh
            return 1
          }
@@ -1561,7 +1576,7 @@ namespace eval ::tclapp::xilinx::projutils {
            "ies"      { puts $fh "ncvlog $file_str" }
            "vcs_mx"   { puts $fh "vlogan $file_str" }
            default {
-             send_msg_id Vivado-projutils-026 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
+             send_msg_id Vivado-projutils-031 ERROR "Invalid simulator ($a_global_sim_vars(s_simulator))\n"
              close $fh
              return 1
            }
@@ -2091,9 +2106,9 @@ namespace eval ::tclapp::xilinx::projutils {
        # export now
        foreach file $data_files {
          if {[catch {file copy -force $file $export_dir} error_msg] } {
-           send_msg_id Vivado-projutils-031 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
+           send_msg_id Vivado-projutils-027 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
          } else {
-           send_msg_id Vivado-projutils-032 INFO "copied '$file'\n"
+           send_msg_id Vivado-projutils-028 INFO "copied '$file'\n"
          }
        }
    }
@@ -2141,12 +2156,12 @@ namespace eval ::tclapp::xilinx::projutils {
        set export_dir $a_global_sim_vars(s_sim_files_dir)
 
        if {[catch {file copy -force $file $export_dir} error_msg] } {
-         send_msg_id Vivado-projutils-031 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
+         send_msg_id Vivado-projutils-029 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
          return 1
        }
 
        set glbl_file [file normalize [file join $export_dir "glbl.v"]]
-       send_msg_id Vivado-projutils-032 INFO "Exported glbl file (glbl.v) to output directory\n"
+       send_msg_id Vivado-projutils-030 INFO "Exported glbl file (glbl.v) to output directory\n"
 
        return 0
    }
