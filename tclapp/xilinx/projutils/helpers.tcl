@@ -2076,6 +2076,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
        variable a_global_sim_vars
 
+       set incl_files [list]
        set ip_name [file tail $tcl_obj]
        set filter "FILE_TYPE == \"Verilog Header\""
        set vh_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
@@ -2083,10 +2084,10 @@ namespace eval ::tclapp::xilinx::projutils {
          if {[string length $a_global_sim_vars(s_relative_to)] > 0 } {
            set file "\$origin_dir/[get_relative_file_path $file $a_global_sim_vars(s_relative_to)]"
          }
-         lappend vh_files $file
+         lappend incl_files $file
        }
  
-       return $vh_files
+       return $incl_files
    }
 
    proc export_data_files { data_files } {
