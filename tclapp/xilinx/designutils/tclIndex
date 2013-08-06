@@ -56,4 +56,3 @@ set auto_index(::tclapp::xilinx::designutils::sort_pins_by_direction) [list sour
 set auto_index(::tclapp::xilinx::designutils::sourcePath) [list source [file join $dir sourcePath.tcl]]
 set auto_index(::tclapp::xilinx::designutils::topTenHFN) [list source [file join $dir top_ten_HFN.tcl]]
 set auto_index(::tclapp::xilinx::designutils::verilog_to_int) [list source [file join $dir verilog_to_int.tcl]]
-set auto_index(::tclapp::xilinx::designutils::generate_netlist_ip) [list source [file join $dir generate_netlist_ip.tcl]]
