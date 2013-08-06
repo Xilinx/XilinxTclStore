@@ -4,14 +4,24 @@ Description:
   script will contain simulator commands for compiling, elaborating and simulating
   the design.
 
-  This command will retrieve the simulation compile order for the specified object
+  The command will retrieve the simulation compile order for the specified object
   and export this information in a text file with the compiler commands and default
   options for the target simulator. The specified object can be either a simulation
-  fileset or an IP.
+  fileset or an IP. If the object is not specified, then this command will generate
+  the script for the simulation top. Any verilog include directories or file paths
+  for the files containing verilog define statements will be added to the compiler
+  command line.
 
-  This command will also copy the data files if any from the fileset or an IP to the
+  The command will also copy data files (if any) from the fileset or an IP to the
   output directory. If the design contains "Verilog" sources, then the "glbl.v" file
-  will also be copied from the software installation to the output directory.
+  will also be copied from the software installation path to the output directory.
+
+  By default, the file paths for the design sources and include directories will be
+  set absolute but these file paths can also made "relative" wrt to a specified location.
+
+  In order to perform simulation with the generated script, the simulation libraries
+  must be compiled first, with the compiled library directory path specified, when
+  generating this script.
 
 Arguments:
 
@@ -22,6 +32,14 @@ Arguments:
   
   -relative_to - (Optional) Specify the directory path wrt which the project sources
   and include directories will be made "relative to" in the generated driver file.
+
+  -compiled_lib_path - (Optional) Specify the pre-compiled simulation library directory
+  path where the Xilinx simulation libraries are compiled. This command will copy the
+  required setup files from this directory to the output directory, create sub-directories
+  for the design libraries and update the library mappings.
+
+  NOTE: If this option is not specified then please follow the instructions in the
+  generated script header for updating the library mappings.
 
   -32bit - (Optional) Specify this option to perform 32bit simulation. If this option
   is not specified then by default 64bit option will be added to the command line.
@@ -46,26 +64,55 @@ Arguments:
 
 Examples:
 
-  The following command exports a driver script file for "IES" simulator named
-  "bft_tb_sim_ies.txt" in the current directory for the "bft_core" example project:-
+  The following command generates a simulation driver script file in the current directory
+  for the "IES" simulator:-
 
   % export_simulation -simulator ies -dir "."
 
-  The following command overwrites an existing "bft_tb_sim_ies.txt" file:-
+  The following command overwrites an existing driver script file in the current directory:-
 
   % export_simulation -force -simulator ies -dir "."
 
-  The following command exports a driver script file named "bft_tb_sim_ies.txt" in the
-  "./test_bft_ies" directory for the "bft_core" example project. The glbl.v file is also
-  copied in the specified directory:-
+  The following command generates a driver script file named "top_tb_sim_ies.txt" in the
+  "./test_sim" directory for a project with simulation top set to "top_tb". The command
+  will also copy any data files (.mif, .coe, .dat, etc) to the ./test_sim directory:-
 
-  % export_simulation -simulator ies -dir "test_bft_ies"
+  % export_simulation -simulator ies -dir "./test_sim"
 
-  The following command exports a driver script file "bft_tb_sim_vcs_mx.txt" for the
-  "VCS_MX" simulator in the specified output directory with the design source file
-  paths in the script file set relative to the current directory:-
+  The following command generates a driver script file "top_tb_sim_vcs_mx.txt" for the
+  "VCS_MX" simulator in the specified output directory with the design source file paths
+  in the script file set relative to the "/tmp/project" directory:-
 
-  % export_simulation -relative_to "." -force -simulator vcs_mx -dir "test_bft_vcs_mx"
+  % export_simulation -relative_to "/tmp/project" -force -simulator vcs_mx -dir "test_sim"
+
+  The following command generates a driver script file "accum_0_sim_ies.txt" for the
+  "accum_0" IP in the specified output directory for the "IES" simulator:-
+
+  % export_simulation -of_objects [get_files accum_0.xci] -simulator ies -dir "test_sim"
+
+  The following command generates a driver script file "accum_0_sim_vcs_mx.txt" for the
+  "accum_0" IP in the specified output directory for the "VCS_MX" simulator:-
+
+  % export_simulation -of_objects [get_ips accum_0] -simulator vcs_mx -dir "test_sim"
+
+  The following command generates a driver script file "fifo_tb_sim_vcs_mx.txt" for the
+  simulation fileset "sim_fifo_test" whose top is set to "fifo_tb" in the specified output
+  directory for the "IES" simulator:-
+
+  % export_simulation -of_objects [get_filesets sim_fifo_test] -simulator ies -dir "test_sim"
+
+  The following command copies the required setup file(s) from the pre-compiled simulation
+  library location "/tmp/sim_libs/ies/lib" to the specified output directory, creates the
+  sub-directories for the design libraries and update the library mappings in the copied
+  setup files:-
+
+  % export_simulation -compiled_lib_path "/tmp/sim_libs/ies/lib" -simulator ies -dir "test_sim"
+
+  The following command exports a driver script file "top_tb_sim_vcs_mx.txt" for the "VCS_MX"
+  simulator in the specified output directory with the design source files compiled for 32 bit
+  version of the simulator compiler (no 64 bit option will be added to the command line):-
+
+  % export_simulation -force -32bit -simulator vcs_mx -dir "test_bft_vcs_mx"
 
 See Also:
 
