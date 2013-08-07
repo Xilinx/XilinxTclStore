@@ -553,9 +553,16 @@ namespace eval ::tclapp::xilinx::projutils {
         # add glbl
         if { [contains_verilog] } {
           set file_str "-work work ./glbl.v"
+          set s64bit ""
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
-            "ies"      { puts $fh "ncvlog $file_str" }
-            "vcs_mx"   { puts $fh "vlogan $file_str" }
+            "ies"      { 
+              if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-64bit" }
+              puts $fh "ncvlog $s64bit $file_str"
+            }
+            "vcs_mx"   {
+              if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-full64" }
+              puts $fh "vlogan $s64bit $file_str"
+            }
             default {
               send_msg_id Vivado-projutils-031 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
               close $fh
@@ -680,7 +687,8 @@ namespace eval ::tclapp::xilinx::projutils {
             }
             foreach lib [get_compile_order_libs] {
               set dir "ies/[string tolower $lib]"
-              if { ![file exists $dir] } { file mkdir $dir }
+              set lib_dir [file join $a_xport_sim_vars(s_out_dir) $dir]
+              if { ![file exists $lib_dir] } { file mkdir $lib_dir }
               puts $fh "DEFINE [string tolower $lib] $dir"
             }
             send_msg_id Vivado-projutils-053 INFO "Updated library mappings in $filename\n"
@@ -700,7 +708,8 @@ namespace eval ::tclapp::xilinx::projutils {
             }
             foreach lib [get_compile_order_libs] {
               set dir "vcs_mx/[string tolower $lib]"
-              if { ![file exists $dir] } { file mkdir $dir }
+              set lib_dir [file join $a_xport_sim_vars(s_out_dir) $dir]
+              if { ![file exists $lib_dir] } { file mkdir $lib_dir }
               puts $fh "$lib : $dir"
             }
             send_msg_id Vivado-projutils-054 INFO "Updated library mappings in $filename\n"
@@ -841,12 +850,12 @@ namespace eval ::tclapp::xilinx::projutils {
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
              puts $fh "# 1. Copy the CDS.lib and HDL.var files from the compiled directory location to the output directory"
-             puts $fh "# 2. Create sub-directory for each design library* in <export_dir>/ies/<library>"
+             puts $fh "# 2. Create sub-directory for each design library* in <output_dir>/ies/<library>"
              puts $fh "# 3. Define library mapping for each library in CDS.lib file\n"
           }
           "vcs_mx" {
              puts $fh "# 1. Copy the synopsys_sim.setup file from the compiled directory location to the output directory"
-             puts $fh "# 2. Create sub-directory for each design library* in <export_dir>/vcs_mx/<library>"
+             puts $fh "# 2. Create sub-directory for each design library* in <output_dir>/vcs_mx/<library>"
              puts $fh "# 3. Map libraries to physical directory location in synopsys_sim.setup file\n#"
           }
         }
@@ -888,8 +897,6 @@ namespace eval ::tclapp::xilinx::projutils {
           "ies" { 
             set cmd_str [list]
             lappend cmd_str "ncelab"
-            lappend cmd_str "-timescale"
-            lappend cmd_str "1ns/1ps"
             foreach generic $v_generics {
               set name [lindex [split $generic "="] 0]
               set val  [lindex [split $generic "="] 1]
@@ -901,8 +908,9 @@ namespace eval ::tclapp::xilinx::projutils {
             lappend cmd_str "-override_precision"
             lappend cmd_str "-lib_binding"
             lappend cmd_str "-messages"
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)"
-            lappend cmd_str "glbl"
+            set top_lib [get_top_library]
+            lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
+            lappend cmd_str "${top_lib}.glbl"
             foreach library [get_compile_order_libs] {
               lappend cmd_str "-libname"
               lappend cmd_str "[string tolower $library]"
@@ -922,18 +930,20 @@ namespace eval ::tclapp::xilinx::projutils {
           "vcs_mx" {
             set cmd_str [list]
             lappend cmd_str "vcs"
+            lappend cmd_str "-debug_pp"
             if { !$a_xport_sim_vars(b_32bit) } {
               lappend cmd_str "-full64"
             }
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)"
-            lappend cmd_str "-l"
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_comp.log"
-            lappend cmd_str "-t"
+            set top_lib [get_top_library]
+            lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
+            lappend cmd_str "${top_lib}.glbl"
             lappend cmd_str "-ps"
             lappend cmd_str "-licwait"
             lappend cmd_str "-60"
             lappend cmd_str "-o"
             lappend cmd_str "$a_xport_sim_vars(s_sim_top)_simv"
+            lappend cmd_str "-l"
+            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_comp.log"
             set cmd [join $cmd_str " "]
             puts $fh $cmd
           }
@@ -975,8 +985,7 @@ namespace eval ::tclapp::xilinx::projutils {
           }
           "vcs_mx" {
             set cmd_str [list]
-            lappend cmd_str "vcs"
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_simv"
+            lappend cmd_str "./$a_xport_sim_vars(s_sim_top)_simv"
             lappend cmd_str "-ucli"
             lappend cmd_str "-do"
             lappend cmd_str "$do_filename"
@@ -1338,6 +1347,38 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
         return $libs
+    }
+
+    proc get_top_library { } {
+ 
+        # Summary: Find the "top" library from the compile order
+ 
+        # Argument Usage:
+        # none
+ 
+        # Return Value:
+        # Top library name
+     
+        variable a_xport_sim_vars
+        variable l_compile_order_files
+
+        set tcl_obj $a_xport_sim_vars(sp_tcl_obj)
+        set top_lib ""
+        if { [is_fileset $tcl_obj] } {
+          set top_lib [get_property top_lib [get_filesets $tcl_obj]]
+        }
+
+        if { [string length $top_lib] == 0 } {
+          if { [llength $l_compile_order_files] > 0 } {
+            set top_lib [get_property library [get_files -all [lindex $l_compile_order_files end]]]
+          }
+        }
+
+        if { [string length $top_lib] == 0 } {
+          set top_lib "work"
+        }
+
+        return $top_lib
     }
  
     proc contains_verilog {} {
