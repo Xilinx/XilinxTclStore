@@ -169,6 +169,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set a_xport_sim_vars(s_simulator)         ""
         set a_xport_sim_vars(s_simulator_name)    ""
         set a_xport_sim_vars(s_compiled_lib_path) ""
+        set a_xport_sim_vars(s_script_extn)       "txt"
         set a_xport_sim_vars(s_out_dir)           ""
         set a_xport_sim_vars(b_32bit)             0
         set a_xport_sim_vars(s_relative_to)       ""             
@@ -309,7 +310,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set l_compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]]
         set simulator $a_xport_sim_vars(s_simulator)
         set ip_name [file root $ip_filename]
-        set a_xport_sim_vars(s_driver_script) "${ip_name}_sim_${simulator}.txt"
+        set a_xport_sim_vars(s_driver_script) "${ip_name}_sim_${simulator}.$a_xport_sim_vars(s_script_extn)"
  
         if {[export_simulation_for_object $obj_name]} {
           return 1
@@ -349,7 +350,7 @@ namespace eval ::tclapp::xilinx::projutils {
           return 1
         } else {
           set simulator $a_xport_sim_vars(s_simulator)
-          set a_xport_sim_vars(s_driver_script) "$a_xport_sim_vars(s_sim_top)_sim_${simulator}.txt"
+          set a_xport_sim_vars(s_driver_script) "$a_xport_sim_vars(s_sim_top)_sim_${simulator}.$a_xport_sim_vars(s_script_extn)"
           if {[export_simulation_for_object $obj_name]} {
             return 1
           }
@@ -523,6 +524,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # true (0) if success, false (1) otherwise
  
         variable a_xport_sim_vars
+        variable l_compile_order_files
  
         write_script_header $fh
  
@@ -532,13 +534,17 @@ namespace eval ::tclapp::xilinx::projutils {
           puts $fh "#"
           puts $fh "# Relative path for design sources and include directories (if any) relative to this path"
           puts $fh "#"
-          puts $fh "set reference_dir \"$relative_to\""
+          puts $fh "set reference_dir=\"$relative_to\""
           puts $fh ""
         }
  
         puts $fh "#"
         puts $fh "# STEP: compile"
         puts $fh "#"
+        if {[llength $l_compile_order_files] == 0} {
+          puts $fh "# None (no sources present)"
+          return 0
+        }
  
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies"      { wr_driver_script_ies $fh }
@@ -882,6 +888,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # none
  
         variable a_xport_sim_vars
+        variable l_compile_order_files
  
         set tcl_obj $a_xport_sim_vars(sp_tcl_obj)
         set v_generics [list]
@@ -892,11 +899,16 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh "#"
         puts $fh "# STEP: elaborate"
         puts $fh "#"
+        if {[llength $l_compile_order_files] == 0} {
+          puts $fh "# None (no sources present)"
+          return
+        }
  
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
             set cmd_str [list]
             lappend cmd_str "ncelab"
+            lappend cmd_str "-timescale 1ns/1ps"
             foreach generic $v_generics {
               set name [lindex [split $generic "="] 0]
               set val  [lindex [split $generic "="] 1]
@@ -910,7 +922,9 @@ namespace eval ::tclapp::xilinx::projutils {
             lappend cmd_str "-messages"
             set top_lib [get_top_library]
             lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
-            lappend cmd_str "${top_lib}.glbl"
+            if { [contains_verilog] } {
+              lappend cmd_str "${top_lib}.glbl"
+            }
             foreach library [get_compile_order_libs] {
               lappend cmd_str "-libname"
               lappend cmd_str "[string tolower $library]"
@@ -936,7 +950,9 @@ namespace eval ::tclapp::xilinx::projutils {
             }
             set top_lib [get_top_library]
             lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
-            lappend cmd_str "${top_lib}.glbl"
+            if { [contains_verilog] } {
+              lappend cmd_str "${top_lib}.glbl"
+            }
             lappend cmd_str "-ps"
             lappend cmd_str "-licwait"
             lappend cmd_str "-60"
@@ -959,13 +975,17 @@ namespace eval ::tclapp::xilinx::projutils {
         # fh - file descriptor
  
         # Return Value:
-        # none
  
         variable a_xport_sim_vars
+        variable l_compile_order_files
  
         puts $fh "#"
         puts $fh "# STEP: simulate"
         puts $fh "#"
+        if {[llength $l_compile_order_files] == 0} {
+          puts $fh "# None (no sources present)"
+          return
+        }
  
         set do_filename "$a_xport_sim_vars(s_sim_top)_sim.do"
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
@@ -975,6 +995,8 @@ namespace eval ::tclapp::xilinx::projutils {
             if { !$a_xport_sim_vars(b_32bit) } {
               lappend cmd_str "-64bit"
             }
+            set top_lib [get_top_library]
+            lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
             lappend cmd_str "-input"
             lappend cmd_str "$do_filename"
             write_do_file $do_filename
@@ -1391,9 +1413,13 @@ namespace eval ::tclapp::xilinx::projutils {
         # Return Value:
         # True (1) if of type verilog, False (0) otherwise
  
-        set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\""
-        if {[llength [get_files -quiet -all -filter $filter]] > 0} {
-          return 1
+        variable l_compile_order_files
+
+        foreach file $l_compile_order_files {
+          set file_type [get_property file_type [get_files -quiet -all $file]]
+          if {[regexp -nocase {^verilog} $file_type]} {
+            return 1
+          }
         }
         return 0
     }
