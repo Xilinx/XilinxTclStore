@@ -692,6 +692,7 @@ namespace eval ::tclapp::xilinx::projutils {
               return 0
             }
             foreach lib [get_compile_order_libs] {
+              if {[string length $lib] == 0} { continue; }
               set dir "ies/[string tolower $lib]"
               set lib_dir [file join $a_xport_sim_vars(s_out_dir) $dir]
               if { ![file exists $lib_dir] } { file mkdir $lib_dir }
@@ -713,6 +714,7 @@ namespace eval ::tclapp::xilinx::projutils {
               return 0
             }
             foreach lib [get_compile_order_libs] {
+              if {[string length $lib] == 0} { continue; }
               set dir "vcs_mx/[string tolower $lib]"
               set lib_dir [file join $a_xport_sim_vars(s_out_dir) $dir]
               if { ![file exists $lib_dir] } { file mkdir $lib_dir }
@@ -869,6 +871,7 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh "#  Xilinx Vivado Design Suite User Guide:Logic simulation (UG900)\n#"
         puts $fh "# *Design Libraries:-\n#"
         foreach lib [get_compile_order_libs] {
+          if {[string length $lib] == 0} { continue; }
           puts $fh "#  $lib"
         }
         puts $fh "#"
@@ -925,9 +928,10 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [contains_verilog] } {
               lappend cmd_str "${top_lib}.glbl"
             }
-            foreach library [get_compile_order_libs] {
+            foreach lib [get_compile_order_libs] {
+              if {[string length $lib] == 0} { continue; }
               lappend cmd_str "-libname"
-              lappend cmd_str "[string tolower $library]"
+              lappend cmd_str "[string tolower $lib]"
             }
             lappend cmd_str "-libname"
             lappend cmd_str "unisims_ver"
@@ -953,7 +957,8 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [contains_verilog] } {
               lappend cmd_str "${top_lib}.glbl"
             }
-            lappend cmd_str "-ps"
+            lappend cmd_str "-t"
+            lappend cmd_str "ps"
             lappend cmd_str "-licwait"
             lappend cmd_str "-60"
             lappend cmd_str "-o"
@@ -1007,7 +1012,7 @@ namespace eval ::tclapp::xilinx::projutils {
           }
           "vcs_mx" {
             set cmd_str [list]
-            lappend cmd_str "./$a_xport_sim_vars(s_sim_top)_simv"
+            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_simv"
             lappend cmd_str "-ucli"
             lappend cmd_str "-do"
             lappend cmd_str "$do_filename"
@@ -1113,7 +1118,7 @@ namespace eval ::tclapp::xilinx::projutils {
             }
           }
           "vhdlan" {
-            lappend opts "-93"
+            #lappend opts "-93"
             if { !$a_xport_sim_vars(b_32bit) } {
               lappend opts "-full64"
             }
