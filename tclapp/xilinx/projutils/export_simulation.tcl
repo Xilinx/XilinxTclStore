@@ -550,57 +550,34 @@ namespace eval ::tclapp::xilinx::projutils {
  
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
-            # ncvhdl options var
-            set opts [list]
             set tool "ncvhdl"
-            lappend opts "-V93"
-            lappend opts "-RELAX"
+            set arg_list [list "-V93" "-RELAX" "-logfile" "${tool}.log" "-append_log"]
             if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-64bit"
+              set arg_list [linsert $arg_list 0 "-64bit"]
             }
-            lappend opts "-logfile"
-            lappend opts "${tool}.log"
-            lappend opts "-append_log"
-            set cmd_str [join $opts " "]
-            puts $fh "${tool}_opts=\"$cmd_str\""
+            puts $fh "${tool}_opts=\"[join $arg_list " "]\""
 
-            # ncvlog options var
-            set opts [list]
             set tool "ncvlog"
+            set arg_list [list "-messages" "-logfile" "${tool}.log" "-append_log"]
             if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-64bit"
+              set arg_list [linsert $arg_list 0 "-64bit"]
             }
-            lappend opts "-messages"
-            lappend opts "-logfile"
-            lappend opts "${tool}.log"
-            lappend opts "-append_log"
-            set cmd_str [join $opts " "]
-            puts $fh "${tool}_opts=\"$cmd_str\""
-            puts $fh ""
+            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
           }
           "vcs_mx"   {
-            # vhdlan options var
-            set opts [list]
             set tool "vhdlan"
+            set arg_list [list "-l" "$tool.log"]
             if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-full64"
+              set arg_list [linsert $arg_list 0 "-full64"]
             }
-            lappend opts "-l"
-            lappend opts "$tool.log"
-            set cmd_str [join $opts " "]
-            puts $fh "${tool}_opts=\"$cmd_str\""
+            puts $fh "${tool}_opts=\"[join $arg_list " "]\""
 
-            # vlogan options var
-            set opts [list]
             set tool "vlogan"
+            set arg_list [list "-l" "$tool.log"]
             if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-full64"
+              set arg_list [linsert $arg_list 0 "-full64"]
             }
-            lappend opts "-l"
-            lappend opts "$tool.log"
-            set cmd_str [join $opts " "]
-            puts $fh "${tool}_opts=\"$cmd_str\""
-            puts $fh ""
+            puts $fh "${tool}_opts=\"[join $arg_list " "]\""
           }
           default {
             send_msg_id Vivado-projutils-056 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
@@ -869,26 +846,16 @@ namespace eval ::tclapp::xilinx::projutils {
           } else {
             set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
           }
+
           switch -regexp -nocase -- $file_type {
-            "vhd" {
-              set tool "ncvhdl"
-              lappend cmd_str $tool
-              append_compiler_options $tool $file_type cmd_str
-              lappend cmd_str "-work"
-              lappend cmd_str "$associated_library"
-              lappend cmd_str "\"$file\""
-            }
-            "verilog" {
-              set tool "ncvlog"
-              lappend cmd_str $tool
-              append_compiler_options $tool $file_type cmd_str
-              lappend cmd_str "-work"
-              lappend cmd_str "$associated_library"
-              lappend cmd_str "\"$file\""
-            }
+            "vhd"     { set tool "ncvhdl" }
+            "verilog" { set tool "ncvlog" }
           }
-          set cmd [join $cmd_str " "]
-          puts $fh $cmd
+
+          set arg_list [list $tool]
+          append_compiler_options $tool $file_type arg_list
+          set arg_list [linsert $arg_list end "-work" "$associated_library" "\"$file\""]
+          puts $fh [join $arg_list " "]
         }
     }
  
@@ -1014,12 +981,6 @@ namespace eval ::tclapp::xilinx::projutils {
         variable a_xport_sim_vars
         variable l_compile_order_files
  
-        set tcl_obj $a_xport_sim_vars(sp_tcl_obj)
-        set v_generics [list]
-        if { [is_fileset $tcl_obj] } {
-          set v_generics [get_property vhdl_generic [get_filesets $tcl_obj]]
-        }
- 
         puts $fh "#"
         puts $fh "# STEP: elaborate"
         puts $fh "#"
@@ -1062,14 +1023,15 @@ namespace eval ::tclapp::xilinx::projutils {
             set cmd_str [list]
             lappend cmd_str $tool
             lappend cmd_str "\$${tool}_opts"
-            foreach generic $v_generics {
-              set name [lindex [split $generic "="] 0]
-              set val  [lindex [split $generic "="] 1]
-              if { [string length $val] > 0 } {
-                lappend cmd_str "-g"
-                lappend cmd_str "\"$name=>$val\""
+
+            if { [is_fileset $a_xport_sim_vars(sp_tcl_obj)] } {
+              set vhdl_generics [list]
+              set vhdl_generics [get_property vhdl_generic [get_filesets $a_xport_sim_vars(sp_tcl_obj)]]
+              if { [llength $vhdl_generics] > 0 } {
+                append_define_generics $vhdl_generics $tool opts
               }
             }
+
             set top_lib [get_top_library]
             lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
             if { [contains_verilog] } {
@@ -1080,35 +1042,24 @@ namespace eval ::tclapp::xilinx::projutils {
             puts $fh $cmd
           }
           "vcs_mx" {
-            # vcs options var
-            set opts [list]
             set tool "vcs"
-            lappend opts "-debug_pp"
+            set top_lib [get_top_library]
+            set arg_list [list "-debug_pp" "-t" "ps" "-licwait" "-60" "-l" "$a_xport_sim_vars(s_sim_top)_comp.log"]
             if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-full64"
+              set arg_list [linsert $arg_list 0 "-full64"]
             }
-            lappend opts "-t"
-            lappend opts "ps"
-            lappend opts "-licwait"
-            lappend opts "-60"
-            lappend opts "-l"
-            lappend opts "$a_xport_sim_vars(s_sim_top)_comp.log"
-            set cmd_str [join $opts " "]
+            set cmd_str [join $arg_list " "]
             puts $fh "${tool}_opts=\"$cmd_str\""
             puts $fh ""
-
-            set cmd_str [list]
-            lappend cmd_str $tool
-            lappend cmd_str "\$${tool}_opts"
-            set top_lib [get_top_library]
-            lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
+ 
+            set arg_list [list "$tool" "\$${tool}_opts" "${top_lib}.$a_xport_sim_vars(s_sim_top)"]
             if { [contains_verilog] } {
-              lappend cmd_str "${top_lib}.glbl"
+              lappend arg_list "${top_lib}.glbl"
             }
-            lappend cmd_str "-o"
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_simv"
-            set cmd [join $cmd_str " "]
-            puts $fh $cmd
+            lappend arg_list "-o"
+            lappend arg_list "$a_xport_sim_vars(s_sim_top)_simv"
+            set cmd_str [join $arg_list " "]
+            puts $fh $cmd_str
           }
         }
     }
@@ -1138,49 +1089,29 @@ namespace eval ::tclapp::xilinx::projutils {
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
             set tool "ncsim"
-            set opts [list]
-            if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-64bit"
-            }
-            lappend opts "-logfile"
-            lappend opts "$a_xport_sim_vars(s_sim_top)_sim.log"
-            set cmd_str [join $opts " "]
-            puts $fh "${tool}_opts=\"$cmd_str\""
-            puts $fh ""
-
-            set cmd_str [list]
-            lappend cmd_str $tool
-            lappend cmd_str "\$${tool}_opts"
             set top_lib [get_top_library]
-            lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
-            lappend cmd_str "-input"
-            lappend cmd_str "$do_filename"
-            write_do_file $do_filename
-            set cmd [join $cmd_str " "]
-            puts $fh $cmd
+
+            set arg_list [list "-logfile" "$a_xport_sim_vars(s_sim_top)_sim.log"]
+            if { !$a_xport_sim_vars(b_32bit) } {
+              set arg_list [linsert $arg_list 0 "-64bit"]
+            }
+            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
+
+            set arg_list [list "$tool" "\$${tool}_opts" "${top_lib}.$a_xport_sim_vars(s_sim_top)" "-input" "$do_filename"]
+            puts $fh [join $arg_list " "]
           }
           "vcs_mx" {
             set tool "$a_xport_sim_vars(s_sim_top)_simv"
-            set opts [list]
-            lappend opts "-ucli"
-            lappend opts "-licwait"
-            lappend opts "-60"
-            lappend opts "-l"
-            lappend opts "$a_xport_sim_vars(s_sim_top)_sim.log"
-            set cmd_str [join $opts " "]
-            puts $fh "${tool}_opts=\"$cmd_str\""
+            set arg_list [list "-ucli" "-licwait" "-60" "-l" "$a_xport_sim_vars(s_sim_top)_sim.log"]
+            puts $fh "${tool}_opts=\"[join $arg_list " "]\""
             puts $fh ""
 
-            set cmd_str [list]
-            lappend cmd_str "./$a_xport_sim_vars(s_sim_top)_simv"
-            lappend cmd_str "\$${tool}_opts"
-            lappend cmd_str "-do"
-            lappend cmd_str "$do_filename"
-            write_do_file $do_filename
-            set cmd [join $cmd_str " "]
-            puts $fh $cmd
+            set arg_list [list "./$a_xport_sim_vars(s_sim_top)_simv" "\$${tool}_opts" "-do" "$do_filename"]
+            puts $fh [join $arg_list " "]
           }
         }
+
+        write_do_file $do_filename
     }
 
     proc write_do_file { file } {
@@ -1208,6 +1139,32 @@ namespace eval ::tclapp::xilinx::projutils {
         }
         close $fh
     }
+
+    proc append_define_generics { def_gen_list tool opts_arg } {
+
+        # Summary: Append verilog defines/vhdl generics for the specified tool
+ 
+        # Argument Usage:
+        # def_gen_list - list of defines or generics
+        # tool - compiler
+        # opts_arg - options list to be appended
+ 
+        # Return Value:
+        # none
+
+        foreach element $def_gen_list {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          if { [string length $val] > 0 } {
+            switch -regexp -- $tool {
+              "ncvlog" { lappend opts_arg "-define"  ; lappend opts_arg "\"$name=$val\""  }
+              "vlogan" { lappend opts_arg "+define+" ; lappend opts_arg "\"$name=$val\""  }
+              "ies"    { lappend opts_arg "-g"       ; lappend opts_arg "\"$name=>$val\"" }
+            }
+          }
+        }
+    }
  
     proc append_compiler_options { tool file_type opts_arg } {
  
@@ -1220,30 +1177,14 @@ namespace eval ::tclapp::xilinx::projutils {
  
         # Return Value:
         # none
- 
+
         upvar $opts_arg opts
  
         variable a_xport_sim_vars
- 
-        # verilog include directories
-        set incl_dirs [find_verilog_incl_dirs]
- 
-        # verilog include file directories
-        set incl_file_dirs [find_verilog_incl_file_dirs]
- 
-        # verilog defines
-        set tcl_obj $a_xport_sim_vars(sp_tcl_obj)
-        set v_defines [list]
-        if { [is_fileset $tcl_obj] } {
-          set v_defines [get_property verilog_define [get_filesets $tcl_obj]]
-        }
-        set v_generics [list]
-        if { [is_fileset $tcl_obj] } {
-          set v_generics [get_property vhdl_generic [get_filesets $tcl_obj]]
-        }
-   
+
         switch $tool {
-          "ncvhdl" {
+          "ncvhdl" -
+          "vhdlan" {
             lappend opts "\$${tool}_opts"
           }
           "ncvlog" {
@@ -1251,43 +1192,32 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [string equal -nocase $file_type "systemverilog"] } {
               lappend opts "-sv"
             }
-            foreach define $v_defines {
-              set name [lindex [split $define "="] 0]
-              set val  [lindex [split $define "="] 1]
-              if { [string length $val] > 0 } {
-                lappend opts "-define"
-                lappend opts "\"$name=$val\""
-              }
-            }
-            foreach dir $incl_dirs {
-              lappend opts "+incdir+\"$dir\""
-            }
-            foreach dir $incl_file_dirs {
-              lappend opts "+incdir+\"$dir\""
-            }
-          }
-          "vhdlan" {
-            lappend opts "\$${tool}_opts"
           }
           "vlogan" {
             lappend opts "\$${tool}_opts"
-            if { [string equal $file_type "verilog"] } {
+            if { [string equal -nocase $file_type "verilog"] } {
               lappend opts "+v2k"
             } elseif { [string equal -nocase $file_type "systemverilog"] } {
               lappend opts "-sverilog"
             }
-            foreach define $v_defines {
-              set name [lindex [split $define "="] 0]
-              set val  [lindex [split $define "="] 1]
-              if { [string length $val] > 0 } {
-                lappend opts "+define+"
-                lappend opts "$name=$val"
+          }
+        }
+
+        # append verilog defines, include dirs and include file dirs
+        switch $tool {
+          "ncvlog" -
+          "vlogan" {
+            # verilog defines
+            if { [is_fileset $a_xport_sim_vars(sp_tcl_obj)] } {
+              set verilog_defines [list]
+              set verilog_defines [get_property verilog_define [get_filesets $a_xport_sim_vars(sp_tcl_obj)]]
+              if { [llength $verilog_defines] > 0 } {
+                append_define_generics $verilog_defines $tool opts
               }
             }
-            foreach dir $incl_dirs {
-              lappend opts "+incdir+\"$dir\""
-            }
-            foreach dir $incl_file_dirs {
+ 
+            # include dirs
+            foreach dir [concat [find_verilog_incl_dirs] [find_verilog_incl_file_dirs]] {
               lappend opts "+incdir+\"$dir\""
             }
           }
