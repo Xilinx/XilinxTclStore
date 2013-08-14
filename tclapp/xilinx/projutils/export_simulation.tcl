@@ -169,7 +169,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set a_xport_sim_vars(s_simulator)         ""
         set a_xport_sim_vars(s_simulator_name)    ""
         set a_xport_sim_vars(s_compiled_lib_path) ""
-        set a_xport_sim_vars(s_script_extn)       "txt"
+        set a_xport_sim_vars(s_script_extn)       "sh"
         set a_xport_sim_vars(s_out_dir)           ""
         set a_xport_sim_vars(b_32bit)             0
         set a_xport_sim_vars(s_relative_to)       ""             
@@ -529,14 +529,16 @@ namespace eval ::tclapp::xilinx::projutils {
         write_script_header $fh
  
         # setup source dir var
+        puts $fh "#"
+        puts $fh "# Directory path for design sources and include directories (if any) relative to this path"
+        puts $fh "#"
         set relative_to $a_xport_sim_vars(s_relative_to)
         if {[string length $relative_to] > 0 } {
-          puts $fh "#"
-          puts $fh "# Relative path for design sources and include directories (if any) relative to this path"
-          puts $fh "#"
-          puts $fh "set reference_dir=\"$relative_to\""
-          puts $fh ""
+          puts $fh "src_ref_dir=\"$relative_to\""
+        } else {
+          puts $fh "src_ref_dir=\"$a_xport_sim_vars(s_project_dir)\""
         }
+        puts $fh ""
  
         puts $fh "#"
         puts $fh "# STEP: compile"
@@ -547,10 +549,71 @@ namespace eval ::tclapp::xilinx::projutils {
         }
  
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
-          "ies"      { wr_driver_script_ies $fh }
-          "vcs_mx"   { wr_driver_script_vcs_mx $fh }
+          "ies" { 
+            # ncvhdl options var
+            set opts [list]
+            set tool "ncvhdl"
+            lappend opts "-V93"
+            lappend opts "-RELAX"
+            if { !$a_xport_sim_vars(b_32bit) } {
+              lappend opts "-64bit"
+            }
+            lappend opts "-logfile"
+            lappend opts "${tool}.log"
+            lappend opts "-append_log"
+            set cmd_str [join $opts " "]
+            puts $fh "${tool}_opts=\"$cmd_str\""
+
+            # ncvlog options var
+            set opts [list]
+            set tool "ncvlog"
+            if { !$a_xport_sim_vars(b_32bit) } {
+              lappend opts "-64bit"
+            }
+            lappend opts "-messages"
+            lappend opts "-logfile"
+            lappend opts "${tool}.log"
+            lappend opts "-append_log"
+            set cmd_str [join $opts " "]
+            puts $fh "${tool}_opts=\"$cmd_str\""
+            puts $fh ""
+          }
+          "vcs_mx"   {
+            # vhdlan options var
+            set opts [list]
+            set tool "vhdlan"
+            if { !$a_xport_sim_vars(b_32bit) } {
+              lappend opts "-full64"
+            }
+            lappend opts "-l"
+            lappend opts "$tool.log"
+            set cmd_str [join $opts " "]
+            puts $fh "${tool}_opts=\"$cmd_str\""
+
+            # vlogan options var
+            set opts [list]
+            set tool "vlogan"
+            if { !$a_xport_sim_vars(b_32bit) } {
+              lappend opts "-full64"
+            }
+            lappend opts "-l"
+            lappend opts "$tool.log"
+            set cmd_str [join $opts " "]
+            puts $fh "${tool}_opts=\"$cmd_str\""
+            puts $fh ""
+          }
           default {
-            send_msg_id Vivado-projutils-022 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
+            send_msg_id Vivado-projutils-056 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
+            close $fh
+            return 1
+          }
+        }
+
+        switch -regexp -- $a_xport_sim_vars(s_simulator) {
+          "ies"      { wr_shell_script_ies $fh }
+          "vcs_mx"   { wr_shell_script_vcs_mx $fh }
+          default {
+            send_msg_id Vivado-projutils-057 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
             close $fh
             return 1
           }
@@ -558,16 +621,16 @@ namespace eval ::tclapp::xilinx::projutils {
  
         # add glbl
         if { [contains_verilog] } {
-          set file_str "-work work ./glbl.v"
+          set file_str "-work work \"glbl.v\""
           set s64bit ""
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"      { 
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-64bit" }
-              puts $fh "ncvlog $s64bit $file_str"
+              puts $fh "ncvlog \$ncvlog_opts $file_str"
             }
             "vcs_mx"   {
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-full64" }
-              puts $fh "vlogan $s64bit $file_str"
+              puts $fh "vlogan \$vlogan $file_str"
             }
             default {
               send_msg_id Vivado-projutils-031 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
@@ -587,7 +650,7 @@ namespace eval ::tclapp::xilinx::projutils {
         if { [string length $a_xport_sim_vars(s_compiled_lib_path)] > 0 } {
           set a_xport_sim_vars(s_compiled_lib_path) [file normalize $a_xport_sim_vars(s_compiled_lib_path)]
           if { [file exists $a_xport_sim_vars(s_compiled_lib_path)] } {
-            copy_simulator_setup_files
+            generate_setup_files
             update_library_mappings
           } else {
             set compiled_lib_dir $a_xport_sim_vars(s_compiled_lib_path)
@@ -603,9 +666,9 @@ namespace eval ::tclapp::xilinx::projutils {
         return 0
     }
 
-    proc copy_simulator_setup_files { } {
+    proc generate_setup_files { } {
 
-        # Summary: Copy the simulator setup files to exported dir from the compiled directory path
+        # Summary: Generate the simulator setup files in exported dir from the compiled directory path
 
         # Argument Usage:
         # none
@@ -617,16 +680,67 @@ namespace eval ::tclapp::xilinx::projutils {
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" {
             set filename "cds.lib"
-            copy_setup_file $filename
+            create_setup_file $filename
 
             set filename "hdl.var"
-            copy_setup_file $filename
+            create_setup_file $filename
           }
           "vcs_mx"  {
             set filename "synopsys_sim.setup"
-            copy_setup_file $filename
+            create_setup_file $filename
           }
         }
+    }
+
+    proc create_setup_file { filename } {
+ 
+        # Summary: Create setup file to the export dir
+ 
+        # Argument Usage:
+        # filename : setup filename
+ 
+        # Return Value:
+        # true (0) if success, false (1) otherwise
+ 
+        variable a_xport_sim_vars
+
+        set setup_file [file normalize [file join $a_xport_sim_vars(s_compiled_lib_path) $filename]]
+        if { ! [file exists $setup_file] } {
+          send_msg_id Vivado-projutils-010 WARNING "Setup file does not exist, creating default file '$setup_file'\n"
+        }
+
+        # remove existing file if present
+        set target_file [file normalize [file join $a_xport_sim_vars(s_out_dir) $filename]]
+        if { [file exists $target_file] } {
+          if { [catch { file delete -force $target_file } error_msg] } {
+            send_msg_id Vivado-projutils-011 ERROR "Failed to remove existing file '$target_file'\n"
+            retun 1
+          }
+        }
+
+        # create setup file
+        set fh 0
+        if { [catch {open $target_file w} fh] } {
+          send_msg_id Vivado-projutils-012 WARNING "failed to open file to write ($file)\n"
+          return 0
+        }
+
+        switch -regexp -- $a_xport_sim_vars(s_simulator) {
+          "ies" {
+            if { [string equal $filename "hdl.var"] } {
+              # nothing to add
+            } else {
+              puts $fh "INCLUDE $setup_file"
+            }
+          }
+          "vcs_mx" {
+              puts $fh "OTHERS=$setup_file"
+          }
+        }
+
+        close $fh
+
+        return 0
     }
 
     proc copy_setup_file { filename } {
@@ -732,8 +846,7 @@ namespace eval ::tclapp::xilinx::projutils {
         return 0
     }
  
- 
-    proc wr_driver_script_ies { fh } {
+    proc wr_shell_script_ies { fh } {
  
         # Summary: Write driver script for the IES simulator
  
@@ -752,7 +865,9 @@ namespace eval ::tclapp::xilinx::projutils {
           set file_type [get_property file_type [get_files -quiet -all $file]]
           set associated_library [get_property library [get_files -quiet -all $file]]
           if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set file "\$reference_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
+            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
+          } else {
+            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
           }
           switch -regexp -nocase -- $file_type {
             "vhd" {
@@ -777,7 +892,7 @@ namespace eval ::tclapp::xilinx::projutils {
         }
     }
  
-    proc wr_driver_script_vcs_mx { fh } {
+    proc wr_shell_script_vcs_mx { fh } {
  
         # Summary: Write driver script for the VCS simulator
  
@@ -790,13 +905,15 @@ namespace eval ::tclapp::xilinx::projutils {
  
         variable a_xport_sim_vars
         variable l_compile_order_files
- 
+
         foreach file $l_compile_order_files {
           set cmd_str [list]
           set file_type [get_property file_type [get_files -quiet -all $file]]
           set associated_library [get_property library [get_files -quiet -all $file]]
           if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set file "\$reference_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
+            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
+          } else {
+            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
           }
           switch -regexp -nocase -- $file_type {
             "vhd" {
@@ -840,6 +957,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set product     [lindex [split $version " "] 0]
         set version_id  [join [lrange $version 1 end] " "]
  
+        puts $fh "#!/bin/sh -f"
         puts $fh "#\n# $product (TM) $version_id\n#"
         puts $fh "# $a_xport_sim_vars(s_driver_script): Simulation script\n#"
         puts $fh "# Generated by $product on $curr_time"
@@ -857,19 +975,22 @@ namespace eval ::tclapp::xilinx::projutils {
      
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
-             puts $fh "# 1. Copy the CDS.lib and HDL.var files from the compiled directory location to the output directory"
-             puts $fh "# 2. Create sub-directory for each design library* in <output_dir>/ies/<library>"
-             puts $fh "# 3. Define library mapping for each library in CDS.lib file\n"
+             puts $fh "# 1. Create CDS.LIB file and reference the compiled library CDS.LIB from the path specified"
+             puts $fh "#    with the -compiled_lib_path switch"
+             puts $fh "# 2. Create HDL.var file"
+             puts $fh "# 3. Create sub-directory for each design library* in <output_dir>/ies/<library>"
+             puts $fh "# 4. Define library mapping for each library in CDS.lib file\n"
           }
           "vcs_mx" {
-             puts $fh "# 1. Copy the synopsys_sim.setup file from the compiled directory location to the output directory"
+             puts $fh "# 1. Create synopsys_sim.setup file and reference the compiled library synopsys_sim.setup"
+             puts $fh "#    from the path specified with the -compiled_lib_path switch"
              puts $fh "# 2. Create sub-directory for each design library* in <output_dir>/vcs_mx/<library>"
              puts $fh "# 3. Map libraries to physical directory location in synopsys_sim.setup file\n#"
           }
         }
         puts $fh "# For more information please refer to the following guide:-\n#"
         puts $fh "#  Xilinx Vivado Design Suite User Guide:Logic simulation (UG900)\n#"
-        puts $fh "# *Design Libraries:-\n#"
+        puts $fh "# * List of design libraries:-\n#"
         foreach lib [get_compile_order_libs] {
           if {[string length $lib] == 0} { continue; }
           puts $fh "#  $lib"
@@ -878,7 +999,7 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh "#************************************************************************************************\n"
  
     }
- 
+
     proc write_elaboration_cmds { fh } {
  
         # Summary: Driver script header info
@@ -909,9 +1030,38 @@ namespace eval ::tclapp::xilinx::projutils {
  
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
+            # ncelab options var
+            set opts [list]
+            set tool "ncelab"
+            lappend opts "-timescale"
+            lappend opts "1ns/1ps"
+            if { !$a_xport_sim_vars(b_32bit) } {
+              lappend opts "-64bit"
+            }
+            lappend opts "-messages"
+            lappend opts "-logfile"
+            lappend opts "$a_xport_sim_vars(s_sim_top)_elab.log"
+            set cmd_str [join $opts " "]
+            puts $fh "${tool}_opts=\"$cmd_str\""
+            puts $fh ""
+
+            set lib_opts [list]
+            foreach lib [get_compile_order_libs] {
+              if {[string length $lib] == 0} { continue; }
+              lappend lib_opts "-libname"
+              lappend lib_opts "[string tolower $lib]"
+            }
+            lappend lib_opts "-libname"
+            lappend lib_opts "unisims_ver"
+            lappend lib_opts "-libname"
+            lappend lib_opts "secureip"
+            set cmd_str [join $lib_opts " "]
+            puts $fh "design_libs_elab=\"$cmd_str\""
+            puts $fh ""
+
             set cmd_str [list]
-            lappend cmd_str "ncelab"
-            lappend cmd_str "-timescale 1ns/1ps"
+            lappend cmd_str $tool
+            lappend cmd_str "\$${tool}_opts"
             foreach generic $v_generics {
               set name [lindex [split $generic "="] 0]
               set val  [lindex [split $generic "="] 1]
@@ -920,51 +1070,43 @@ namespace eval ::tclapp::xilinx::projutils {
                 lappend cmd_str "\"$name=>$val\""
               }
             }
-            lappend cmd_str "-override_precision"
-            lappend cmd_str "-lib_binding"
-            lappend cmd_str "-messages"
             set top_lib [get_top_library]
             lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
             if { [contains_verilog] } {
               lappend cmd_str "${top_lib}.glbl"
             }
-            foreach lib [get_compile_order_libs] {
-              if {[string length $lib] == 0} { continue; }
-              lappend cmd_str "-libname"
-              lappend cmd_str "[string tolower $lib]"
-            }
-            lappend cmd_str "-libname"
-            lappend cmd_str "unisims_ver"
-            lappend cmd_str "-libname"
-            lappend cmd_str "secureip"
-            if { !$a_xport_sim_vars(b_32bit) } {
-              lappend cmd_str "-64bit"
-            }
-            lappend cmd_str "-logfile"
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_elab.log"
+            lappend cmd_str "\$design_libs_elab"
             set cmd [join $cmd_str " "]
             puts $fh $cmd
           }
           "vcs_mx" {
-            set cmd_str [list]
-            lappend cmd_str "vcs"
-            lappend cmd_str "-debug_pp"
+            # vcs options var
+            set opts [list]
+            set tool "vcs"
+            lappend opts "-debug_pp"
             if { !$a_xport_sim_vars(b_32bit) } {
-              lappend cmd_str "-full64"
+              lappend opts "-full64"
             }
+            lappend opts "-t"
+            lappend opts "ps"
+            lappend opts "-licwait"
+            lappend opts "-60"
+            lappend opts "-l"
+            lappend opts "$a_xport_sim_vars(s_sim_top)_comp.log"
+            set cmd_str [join $opts " "]
+            puts $fh "${tool}_opts=\"$cmd_str\""
+            puts $fh ""
+
+            set cmd_str [list]
+            lappend cmd_str $tool
+            lappend cmd_str "\$${tool}_opts"
             set top_lib [get_top_library]
             lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
             if { [contains_verilog] } {
               lappend cmd_str "${top_lib}.glbl"
             }
-            lappend cmd_str "-t"
-            lappend cmd_str "ps"
-            lappend cmd_str "-licwait"
-            lappend cmd_str "-60"
             lappend cmd_str "-o"
             lappend cmd_str "$a_xport_sim_vars(s_sim_top)_simv"
-            lappend cmd_str "-l"
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_comp.log"
             set cmd [join $cmd_str " "]
             puts $fh $cmd
           }
@@ -995,32 +1137,46 @@ namespace eval ::tclapp::xilinx::projutils {
         set do_filename "$a_xport_sim_vars(s_sim_top)_sim.do"
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
-            set cmd_str [list]
-            lappend cmd_str "ncsim"
+            set tool "ncsim"
+            set opts [list]
             if { !$a_xport_sim_vars(b_32bit) } {
-              lappend cmd_str "-64bit"
+              lappend opts "-64bit"
             }
+            lappend opts "-logfile"
+            lappend opts "$a_xport_sim_vars(s_sim_top)_sim.log"
+            set cmd_str [join $opts " "]
+            puts $fh "${tool}_opts=\"$cmd_str\""
+            puts $fh ""
+
+            set cmd_str [list]
+            lappend cmd_str $tool
+            lappend cmd_str "\$${tool}_opts"
             set top_lib [get_top_library]
             lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
             lappend cmd_str "-input"
             lappend cmd_str "$do_filename"
             write_do_file $do_filename
-            lappend cmd_str "-logfile"
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_sim.log"
             set cmd [join $cmd_str " "]
             puts $fh $cmd
           }
           "vcs_mx" {
+            set tool "$a_xport_sim_vars(s_sim_top)_simv"
+            set opts [list]
+            lappend opts "-ucli"
+            lappend opts "-licwait"
+            lappend opts "-60"
+            lappend opts "-l"
+            lappend opts "$a_xport_sim_vars(s_sim_top)_sim.log"
+            set cmd_str [join $opts " "]
+            puts $fh "${tool}_opts=\"$cmd_str\""
+            puts $fh ""
+
             set cmd_str [list]
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_simv"
-            lappend cmd_str "-ucli"
+            lappend cmd_str "./$a_xport_sim_vars(s_sim_top)_simv"
+            lappend cmd_str "\$${tool}_opts"
             lappend cmd_str "-do"
             lappend cmd_str "$do_filename"
             write_do_file $do_filename
-            lappend cmd_str "-licwait"
-            lappend cmd_str "-60"
-            lappend cmd_str "-l"
-            lappend cmd_str "$a_xport_sim_vars(s_sim_top)_sim.log"
             set cmd [join $cmd_str " "]
             puts $fh $cmd
           }
@@ -1045,7 +1201,10 @@ namespace eval ::tclapp::xilinx::projutils {
           send_msg_id Vivado-projutils-043 ERROR "failed to open file to write ($do_file)\n"
         } else {
           puts $fh "run 1000ns"
-          puts $fh "quit"
+          switch -regexp -- $a_xport_sim_vars(s_simulator) {
+            "ies"    { puts $fh "exit" }
+            "vcs_mx" { puts $fh "quit" }
+          }
         }
         close $fh
     }
@@ -1085,20 +1244,13 @@ namespace eval ::tclapp::xilinx::projutils {
    
         switch $tool {
           "ncvhdl" {
-            lappend opts "-V93"
-            lappend opts "-RELAX"
-            if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-64bit"
-            }
-            lappend opts "-logfile"
-            lappend opts "$tool.log"
-            lappend opts "-append_log"
+            lappend opts "\$${tool}_opts"
           }
           "ncvlog" {
-            if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-64bit"
+            lappend opts "\$${tool}_opts"
+            if { [string equal -nocase $file_type "systemverilog"] } {
+              lappend opts "-sv"
             }
-            lappend opts "-messages"
             foreach define $v_defines {
               set name [lindex [split $define "="] 0]
               set val  [lindex [split $define "="] 1]
@@ -1107,9 +1259,6 @@ namespace eval ::tclapp::xilinx::projutils {
                 lappend opts "\"$name=$val\""
               }
             }
-            lappend opts "-logfile"
-            lappend opts "$tool.log"
-            lappend opts "-append_log"
             foreach dir $incl_dirs {
               lappend opts "+incdir+\"$dir\""
             }
@@ -1118,21 +1267,14 @@ namespace eval ::tclapp::xilinx::projutils {
             }
           }
           "vhdlan" {
-            #lappend opts "-93"
-            if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-full64"
-            }
-            lappend opts "-l"
-            lappend opts "$tool.log"
+            lappend opts "\$${tool}_opts"
           }
           "vlogan" {
+            lappend opts "\$${tool}_opts"
             if { [string equal $file_type "verilog"] } {
               lappend opts "+v2k"
-            } elseif { [string equal $file_type "systemverilog"] } {
+            } elseif { [string equal -nocase $file_type "systemverilog"] } {
               lappend opts "-sverilog"
-            }
-            if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-full64"
             }
             foreach define $v_defines {
               set name [lindex [split $define "="] 0]
@@ -1142,8 +1284,6 @@ namespace eval ::tclapp::xilinx::projutils {
                 lappend opts "$name=$val"
               }
             }
-            lappend opts "-l"
-            lappend opts "$tool.log"
             foreach dir $incl_dirs {
               lappend opts "+incdir+\"$dir\""
             }
@@ -1174,12 +1314,14 @@ namespace eval ::tclapp::xilinx::projutils {
         } else {
           set incl_dir_str [get_property include_dirs [get_filesets $tcl_obj]]
         }
- 
+
         set incl_dirs [split $incl_dir_str " "]
         foreach vh_dir $incl_dirs {
           set dir [file normalize $vh_dir]
           if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set dir "\$reference_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_relative_to)]"
+            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_relative_to)]"
+          } else {
+            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_project_dir)]"
           }
           lappend dir_names $dir
         }
@@ -1207,11 +1349,13 @@ namespace eval ::tclapp::xilinx::projutils {
           set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
           set vh_files [get_files -quiet -filter $filter]
         }
- 
+
         foreach vh_file $vh_files {
           set dir [file normalize [file dirname $vh_file]]
           if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set dir "\$reference_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_relative_to)]"
+            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_relative_to)]"
+          } else {
+            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_project_dir)]"
           }
           lappend dir_names $dir
         }
@@ -1233,7 +1377,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # List of verilog include directory paths in an IP for files of type "Verilog Header"
      
         variable a_xport_sim_vars 
- 
+
         set ip_name [file tail $tcl_obj]
         set incl_dirs [list]
         set filter "FILE_TYPE == \"Verilog Header\""
@@ -1241,7 +1385,9 @@ namespace eval ::tclapp::xilinx::projutils {
         foreach file $vh_files {
           set dir [file dirname $file]
           if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set dir "\$reference_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_relative_to)]"
+            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_relative_to)]"
+          } else {
+            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_project_dir)]"
           }
           lappend incl_dirs $dir
         }
@@ -1260,14 +1406,16 @@ namespace eval ::tclapp::xilinx::projutils {
         # List of verilog include directory files in an IP for files of type "Verilog Header"
  
         variable a_xport_sim_vars
- 
+
         set incl_files [list]
         set ip_name [file tail $tcl_obj]
         set filter "FILE_TYPE == \"Verilog Header\""
         set vh_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
         foreach file $vh_files {
           if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set file "\$reference_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
+            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
+          } else {
+            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
           }
           lappend incl_files $file
         }
