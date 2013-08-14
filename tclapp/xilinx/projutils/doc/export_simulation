@@ -1,8 +1,7 @@
 Description:
 
-  Export a simulation driver script file for the target simulator. The generated
-  script will contain simulator commands for compiling, elaborating and simulating
-  the design.
+  Export a simulation script file for the target simulator. The generated script will
+  contain simulator commands for compiling, elaborating and simulating the design.
 
   The command will retrieve the simulation compile order for the specified object
   and export this information in a text file with the compiler commands and default
@@ -25,13 +24,13 @@ Description:
 
 Arguments:
 
-  -of_objects - (Optional) Specify the target object for which the simulation driver
-  script file needs to be generated. The target object can be either a simulation
-  fileset (simset) or an IP. If this option is not specified then this command will
-  generate driver file for the current simulation fileset "top".
+  -of_objects - (Optional) Specify the target object for which the simulation script
+  file needs to be generated. The target object can be either a simulation fileset
+  (simset) or an IP. If this option is not specified then this command will generate 
+  file for the current simulation fileset "top".
   
   -relative_to - (Optional) Specify the directory path wrt which the project sources
-  and include directories will be made "relative to" in the generated driver file.
+  and include directories will be made "relative to" in the generated script file.
 
   -compiled_lib_path - (Optional) Specify the pre-compiled simulation library directory
   path where the Xilinx simulation libraries are compiled. This command will copy the
@@ -44,7 +43,7 @@ Arguments:
   -32bit - (Optional) Specify this option to perform 32bit simulation. If this option
   is not specified then by default 64bit option will be added to the command line.
 
-  -force - (Optional) Overwrite an existing driver script file of the same name. If
+  -force - (Optional) Overwrite an existing script file of the same name. If
   the script file already exists, the tool returns an error unless the -force argument
   is specified. 
 
@@ -53,9 +52,9 @@ Arguments:
 
   -dir - (Required) Specify the directory path where the simulation files will be exported.
 
-  -quiet - (Optional) Execute the command quietly, ignoring any command line errors
-  and returning no messages. The command also returns TCL_OK regardless of any errors
-  encountered during execution.
+  -quiet - (Optional) Execute the command quietly, ignoring any command line errors and
+  returning no messages. The command also returns TCL_OK regardless of any errors encountered
+  during execution.
 
   -verbose - (Optional) Temporarily override any message limits and return all messages
   from this command.
@@ -64,40 +63,40 @@ Arguments:
 
 Examples:
 
-  The following command generates a simulation driver script file in the current directory
-  for the "IES" simulator:-
+  The following command generates a simulation script file in the current directory for
+  the "IES" simulator:-
 
   % export_simulation -simulator ies -dir "."
 
-  The following command overwrites an existing driver script file in the current directory:-
+  The following command overwrites an existing script file in the current directory:-
 
   % export_simulation -force -simulator ies -dir "."
 
-  The following command generates a driver script file named "top_tb_sim_ies.txt" in the
+  The following command generates a script file named "top_tb_sim_ies.txt" in the
   "./test_sim" directory for a project with simulation top set to "top_tb". The command
   will also copy any data files (.mif, .coe, .dat, etc) to the ./test_sim directory:-
 
   % export_simulation -simulator ies -dir "./test_sim"
 
-  The following command generates a driver script file "top_tb_sim_vcs_mx.txt" for the
+  The following command generates a script file "top_tb_sim_vcs_mx.txt" for the
   "VCS_MX" simulator in the specified output directory with the design source file paths
   in the script file set relative to the "/tmp/project" directory:-
 
   % export_simulation -relative_to "/tmp/project" -force -simulator vcs_mx -dir "test_sim"
 
-  The following command generates a driver script file "accum_0_sim_ies.txt" for the
-  "accum_0" IP in the specified output directory for the "IES" simulator:-
+  The following command generates a script file "accum_0_sim_ies.txt" for the "accum_0" IP
+  in the specified output directory for the "IES" simulator:-
 
   % export_simulation -of_objects [get_files accum_0.xci] -simulator ies -dir "test_sim"
 
-  The following command generates a driver script file "accum_0_sim_vcs_mx.txt" for the
+  The following command generates a script file "accum_0_sim_vcs_mx.txt" for the
   "accum_0" IP in the specified output directory for the "VCS_MX" simulator:-
 
   % export_simulation -of_objects [get_ips accum_0] -simulator vcs_mx -dir "test_sim"
 
-  The following command generates a driver script file "fifo_tb_sim_vcs_mx.txt" for the
-  simulation fileset "sim_fifo_test" whose top is set to "fifo_tb" in the specified output
-  directory for the "IES" simulator:-
+  The following command generates a script file "fifo_tb_sim_vcs_mx.txt" for the simulation
+  fileset "sim_fifo_test" whose top is set to "fifo_tb" in the specified output directory
+  for the "IES" simulator:-
 
   % export_simulation -of_objects [get_filesets sim_fifo_test] -simulator ies -dir "test_sim"
 
@@ -108,9 +107,9 @@ Examples:
 
   % export_simulation -compiled_lib_path "/tmp/sim_libs/ies/lib" -simulator ies -dir "test_sim"
 
-  The following command exports a driver script file "top_tb_sim_vcs_mx.txt" for the "VCS_MX"
-  simulator in the specified output directory with the design source files compiled for 32 bit
-  version of the simulator compiler (no 64 bit option will be added to the command line):-
+  The following command exports a script file "top_tb_sim_vcs_mx.txt" for the "VCS_MX" simulator
+  in the specified output directory with the design source files compiled for 32 bit version of
+  the simulator compiler (no 64 bit option will be added to the command line):-
 
   % export_simulation -force -32bit -simulator vcs_mx -dir "test_bft_vcs_mx"
 
