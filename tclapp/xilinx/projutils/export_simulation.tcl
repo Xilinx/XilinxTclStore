@@ -935,55 +935,37 @@ namespace eval ::tclapp::xilinx::projutils {
  
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
-            # ncelab options var
-            set opts [list]
             set tool "ncelab"
-            lappend opts "-timescale"
-            lappend opts "1ns/1ps"
+            set top_lib [get_top_library]
+            set arg_list [list "-messages" "-logfile" "$a_xport_sim_vars(s_sim_top)_elab.log"]
             if { !$a_xport_sim_vars(b_32bit) } {
-              lappend opts "-64bit"
+              set arg_list [linsert $arg_list 0 "-64bit"]
             }
-            lappend opts "-messages"
-            lappend opts "-logfile"
-            lappend opts "$a_xport_sim_vars(s_sim_top)_elab.log"
-            set cmd_str [join $opts " "]
-            puts $fh "${tool}_opts=\"$cmd_str\""
-            puts $fh ""
+            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
 
-            set lib_opts [list]
+            set arg_list [list]
             foreach lib [get_compile_order_libs] {
               if {[string length $lib] == 0} { continue; }
-              lappend lib_opts "-libname"
-              lappend lib_opts "[string tolower $lib]"
+              lappend arg_list "-libname"
+              lappend arg_list "[string tolower $lib]"
             }
-            lappend lib_opts "-libname"
-            lappend lib_opts "unisims_ver"
-            lappend lib_opts "-libname"
-            lappend lib_opts "secureip"
-            set cmd_str [join $lib_opts " "]
-            puts $fh "design_libs_elab=\"$cmd_str\""
-            puts $fh ""
+            set arg_list [linsert $arg_list end "-libname" "unisims_ver" "-libname" "secureip"]
+            puts $fh "design_libs_elab=\"[join $arg_list " "]\"\n"
 
-            set cmd_str [list]
-            lappend cmd_str $tool
-            lappend cmd_str "\$${tool}_opts"
-
+            set arg_list [list $tool "\$${tool}_opts"]
             if { [is_fileset $a_xport_sim_vars(sp_tcl_obj)] } {
               set vhdl_generics [list]
               set vhdl_generics [get_property vhdl_generic [get_filesets $a_xport_sim_vars(sp_tcl_obj)]]
               if { [llength $vhdl_generics] > 0 } {
-                append_define_generics $vhdl_generics $tool opts
+                append_define_generics $vhdl_generics $tool arg_list
               }
             }
-
-            set top_lib [get_top_library]
-            lappend cmd_str "${top_lib}.$a_xport_sim_vars(s_sim_top)"
+            lappend arg_list "${top_lib}.$a_xport_sim_vars(s_sim_top)"
             if { [contains_verilog] } {
-              lappend cmd_str "${top_lib}.glbl"
+              lappend arg_list "${top_lib}.glbl"
             }
-            lappend cmd_str "\$design_libs_elab"
-            set cmd [join $cmd_str " "]
-            puts $fh $cmd
+            lappend arg_list "\$design_libs_elab"
+            puts $fh [join $arg_list " "]
           }
           "vcs_mx" {
             set tool "vcs"
@@ -992,9 +974,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-full64"]
             }
-            set cmd_str [join $arg_list " "]
-            puts $fh "${tool}_opts=\"$cmd_str\""
-            puts $fh ""
+            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
  
             set arg_list [list "$tool" "\$${tool}_opts" "${top_lib}.$a_xport_sim_vars(s_sim_top)"]
             if { [contains_verilog] } {
@@ -1002,8 +982,7 @@ namespace eval ::tclapp::xilinx::projutils {
             }
             lappend arg_list "-o"
             lappend arg_list "$a_xport_sim_vars(s_sim_top)_simv"
-            set cmd_str [join $arg_list " "]
-            puts $fh $cmd_str
+            puts $fh [join $arg_list " "]
           }
         }
     }
@@ -1444,7 +1423,8 @@ namespace eval ::tclapp::xilinx::projutils {
 
         foreach file $l_compile_order_files {
           set file_type [get_property file_type [get_files -quiet -all $file]]
-          if {[regexp -nocase {^verilog} $file_type]} {
+          if {[regexp -nocase {^verilog} $file_type] ||
+              [regexp -nocase {^systemverilog} $file_type]} {
             return 1
           }
         }

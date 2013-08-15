@@ -505,7 +505,6 @@ proc ::tclapp::support::args::get_args { procName argUsageSpecs procArgs argVals
     # parsing.
     array unset argVals {}
     foreach argUsageSpec $argUsageSpecs {
-puts "foo=$argUsageSpec"
         # parse the arg spec and extract the relevant info
         ::tclapp::support::args::parse_arg_usage_spec $argUsageSpec results
         
