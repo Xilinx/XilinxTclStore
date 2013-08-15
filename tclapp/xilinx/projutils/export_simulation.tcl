@@ -586,15 +586,7 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
 
-        switch -regexp -- $a_xport_sim_vars(s_simulator) {
-          "ies"      { wr_shell_script_ies $fh }
-          "vcs_mx"   { wr_shell_script_vcs_mx $fh }
-          default {
-            send_msg_id Vivado-projutils-057 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
-            close $fh
-            return 1
-          }
-        }
+        wr_compile_order $fh
  
         # add glbl
         if { [contains_verilog] } {
@@ -628,7 +620,9 @@ namespace eval ::tclapp::xilinx::projutils {
           set a_xport_sim_vars(s_compiled_lib_path) [file normalize $a_xport_sim_vars(s_compiled_lib_path)]
           if { [file exists $a_xport_sim_vars(s_compiled_lib_path)] } {
             generate_setup_files
-            update_library_mappings
+            if { [update_library_mappings] } {
+              return 1
+            }
           } else {
             set compiled_lib_dir $a_xport_sim_vars(s_compiled_lib_path)
             send_msg_id Vivado-projutils-052 ERROR "Pre-compiled library directory path does not exist! ($compiled_lib_dir)\n"
@@ -768,68 +762,54 @@ namespace eval ::tclapp::xilinx::projutils {
         # true (0) if success, false (1) otherwise
  
         variable a_xport_sim_vars
- 
+
+        set filename "" 
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
-          "ies" {
-            set filename "cds.lib"
-            set file [file normalize [file join $a_xport_sim_vars(s_out_dir) $filename]]
-            if { ![file exists $file] } {
-              send_msg_id Vivado-projutils-048 WARNING "File does not exist ($file)\n"
-              return 0
-            }
-            set fh 0
-            if {[catch {open $file a} fh]} {
-              send_msg_id Vivado-projutils-049 WARNING "failed to open file for update ($file)\n"
-              return 0
-            }
-            foreach lib [get_compile_order_libs] {
-              if {[string length $lib] == 0} { continue; }
-              set dir "ies/[string tolower $lib]"
-              set lib_dir [file join $a_xport_sim_vars(s_out_dir) $dir]
-              if { ![file exists $lib_dir] } { file mkdir $lib_dir }
-              puts $fh "DEFINE [string tolower $lib] $dir"
-            }
-            send_msg_id Vivado-projutils-053 INFO "Updated library mappings in $filename\n"
-            close $fh
+          "ies"    { set filename "cds.lib" }
+          "vcs_mx" { set filename "synopsys_sim.setup" }
+        }
+         
+        set file [file normalize [file join $a_xport_sim_vars(s_out_dir) $filename]]
+        if { ![file exists $file] } {
+          send_msg_id Vivado-projutils-048 WARNING "File does not exist ($file)\n"
+          return 0
+        }
+
+        set fh 0
+        if {[catch {open $file a} fh]} {
+          send_msg_id Vivado-projutils-049 WARNING "failed to open file for update ($file)\n"
+          return 0
+        }
+
+        foreach lib [get_compile_order_libs] {
+          if {[string length $lib] == 0} { continue; }
+          set dir ""
+          switch -regexp -- $a_xport_sim_vars(s_simulator) {
+            "ies"    { set dir "ies/[string tolower $lib]" }
+            "vcs_mx" { set dir "vcs_mx/[string tolower $lib]" }
           }
-          "vcs_mx"   {
-            set filename "synopsys_sim.setup"
-            set file [file normalize [file join $a_xport_sim_vars(s_out_dir) $filename]]
-            if { ![file exists $file] } {
-              send_msg_id Vivado-projutils-050 WARNING "File does not exist ($file)\n"
-              return 0
-            }
-            set fh 0
-            if {[catch {open $file a} fh]} {
-              send_msg_id Vivado-projutils-051 WARNING "failed to open file for update ($file)\n"
-              return 0
-            }
-            foreach lib [get_compile_order_libs] {
-              if {[string length $lib] == 0} { continue; }
-              set dir "vcs_mx/[string tolower $lib]"
-              set lib_dir [file join $a_xport_sim_vars(s_out_dir) $dir]
-              if { ![file exists $lib_dir] } { file mkdir $lib_dir }
-              puts $fh "$lib : $dir"
-            }
-            send_msg_id Vivado-projutils-054 INFO "Updated library mappings in $filename\n"
-            close $fh
-          }
-          default {
-            send_msg_id Vivado-projutils-022 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
-            close $fh
-            return 1
+
+          set lib_dir [file join $a_xport_sim_vars(s_out_dir) $dir]
+          if { ![file exists $lib_dir] } { file mkdir $lib_dir }
+
+          switch -regexp -- $a_xport_sim_vars(s_simulator) {
+            "ies"    { puts $fh "DEFINE [string tolower $lib] $dir" }
+            "vcs_mx" { puts $fh "$lib : $dir" }
           }
         }
+
+        send_msg_id Vivado-projutils-053 INFO "Updated library mappings in $filename\n"
+        close $fh
+
         return 0
     }
  
-    proc wr_shell_script_ies { fh } {
+    proc wr_compile_order { fh } {
  
-        # Summary: Write driver script for the IES simulator
+        # Summary: Write compile order for the target simulator
  
         # Argument Usage:
-        # file - compile order RTL file
-        # fh   - file handle
+        # fh - file handle
  
         # Return Value:
         # none
@@ -846,10 +826,20 @@ namespace eval ::tclapp::xilinx::projutils {
           } else {
             set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
           }
-
+          set tool "ncvhdl"
           switch -regexp -nocase -- $file_type {
-            "vhd"     { set tool "ncvhdl" }
-            "verilog" { set tool "ncvlog" }
+            "vhd"     {
+              switch -regexp -- $a_xport_sim_vars(s_simulator) {
+                "ies"    { set tool "ncvhdl" }
+                "vcs_mx" { set tool "vhdlan" }
+              }
+            }
+            "verilog" {
+              switch -regexp -- $a_xport_sim_vars(s_simulator) {
+                "ies"    { set tool "ncvlog" }
+                "vcs_mx" { set tool "vlogan" }
+              }
+            }
           }
 
           set arg_list [list $tool]
@@ -858,53 +848,7 @@ namespace eval ::tclapp::xilinx::projutils {
           puts $fh [join $arg_list " "]
         }
     }
- 
-    proc wr_shell_script_vcs_mx { fh } {
- 
-        # Summary: Write driver script for the VCS simulator
- 
-        # Argument Usage:
-        # file - compile order RTL file
-        # fh   - file handle
- 
-        # Return Value:
-        # none
- 
-        variable a_xport_sim_vars
-        variable l_compile_order_files
 
-        foreach file $l_compile_order_files {
-          set cmd_str [list]
-          set file_type [get_property file_type [get_files -quiet -all $file]]
-          set associated_library [get_property library [get_files -quiet -all $file]]
-          if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
-          } else {
-            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
-          }
-          switch -regexp -nocase -- $file_type {
-            "vhd" {
-              set tool "vhdlan"
-              lappend cmd_str $tool
-              append_compiler_options $tool $file_type cmd_str
-              lappend cmd_str "-work"
-              lappend cmd_str "$associated_library"
-              lappend cmd_str "$file"
-            }
-            "verilog" {
-              set tool "vlogan"
-              lappend cmd_str $tool
-              append_compiler_options $tool $file_type cmd_str
-              lappend cmd_str "-work"
-              lappend cmd_str "$associated_library"
-              lappend cmd_str "$file"
-            }
-          }
-          set cmd [join $cmd_str " "]
-          puts $fh $cmd
-        }
-    }
- 
     proc write_script_header { fh } {
  
         # Summary: Driver script header info
