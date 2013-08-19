@@ -826,7 +826,7 @@ namespace eval ::tclapp::xilinx::projutils {
           } else {
             set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
           }
-          set tool "ncvhdl"
+          set tool ""
           switch -regexp -nocase -- $file_type {
             "vhd"     {
               switch -regexp -- $a_xport_sim_vars(s_simulator) {
@@ -842,10 +842,12 @@ namespace eval ::tclapp::xilinx::projutils {
             }
           }
 
-          set arg_list [list $tool]
-          append_compiler_options $tool $file_type arg_list
-          set arg_list [linsert $arg_list end "-work" "$associated_library" "\"$file\""]
-          puts $fh [join $arg_list " "]
+          if { [string length $tool] > 0 } {
+            set arg_list [list $tool]
+            append_compiler_options $tool $file_type arg_list
+            set arg_list [linsert $arg_list end "-work" "$associated_library" "\"$file\""]
+            puts $fh [join $arg_list " "]
+          }
         }
     }
 
