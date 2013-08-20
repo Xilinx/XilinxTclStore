@@ -1325,8 +1325,10 @@ namespace eval ::tclapp::xilinx::projutils {
         }
  
         # export fileset data files
-        set fs_data_files [get_files -all -quiet -of_objects [get_filesets -quiet [current_fileset]] -filter $s_data_files_filter]
-        export_data_files $fs_data_files
+        foreach fs_obj [list [current_fileset] [current_fileset -simset]] {
+          set fs_data_files [get_files -all -quiet -of_objects [get_filesets -quiet $fs_obj] -filter $s_data_files_filter]
+          export_data_files $fs_data_files
+        }
     }
  
     proc export_glbl_file {} {
