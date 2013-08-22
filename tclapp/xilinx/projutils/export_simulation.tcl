@@ -268,15 +268,15 @@ namespace eval ::tclapp::xilinx::projutils {
         variable a_xport_sim_vars
  
         set tcl_obj $a_xport_sim_vars(sp_tcl_obj)
- 
-        send_msg_id Vivado-projutils-042 INFO "Inspecting design source files for object '$tcl_obj'...\n"
         if { [is_ip $tcl_obj] } {
           set a_xport_sim_vars(s_sim_top) [file tail [file root $tcl_obj]]
+          send_msg_id Vivado-projutils-042 INFO "Inspecting IP design source files for '$a_xport_sim_vars(s_sim_top)'...\n"
           if {[export_sim_files_for_ip $tcl_obj]} {
             return 1
           }
         } elseif { [is_fileset $tcl_obj] } {
           set a_xport_sim_vars(s_sim_top) [get_property top [get_filesets $tcl_obj]]
+          send_msg_id Vivado-projutils-008 INFO "Inspecting design source files for '$a_xport_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
           if {[string length $a_xport_sim_vars(s_sim_top)] == 0} {
             set a_xport_sim_vars(s_sim_top) "unknown"
           }
@@ -310,6 +310,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set obj_name [file root [file tail $tcl_obj]]
         set ip_filename [file tail $tcl_obj]
         set l_compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]]
+        print_source_info
 
         if { {} == $a_xport_sim_vars(s_script_filename) } {
           set simulator $a_xport_sim_vars(s_simulator)
@@ -354,6 +355,7 @@ namespace eval ::tclapp::xilinx::projutils {
           send_msg_id Vivado-projutils-018 INFO "Empty fileset: $obj_name\n"
           return 1
         } else {
+          print_source_info
           if { {} == $a_xport_sim_vars(s_script_filename) } {
             set simulator $a_xport_sim_vars(s_simulator)
             set a_xport_sim_vars(s_script_filename) "$a_xport_sim_vars(s_sim_top)_sim_${simulator}.$a_xport_sim_vars(s_script_extn)"
@@ -409,6 +411,36 @@ namespace eval ::tclapp::xilinx::projutils {
         }
  
         return 0
+    }
+
+    proc print_source_info {} {
+
+        # Summary: Print sources information on the console
+ 
+        # Argument Usage:
+        # none
+ 
+        # Return Value:
+        # None
+ 
+        variable l_compile_order_files
+ 
+        set n_total_srcs [llength $l_compile_order_files]
+        set n_vhdl_srcs     0
+        set n_verilog_srcs  0
+        
+        foreach file $l_compile_order_files {
+          set file_type [get_property file_type [get_files -quiet -all $file]]
+          switch -- $file_type {
+            {VHDL}    { incr n_vhdl_srcs    }
+            {Verilog} { incr n_verilog_srcs }
+          }
+        }
+
+        send_msg_id Vivado-projutils-4 INFO "Total number of sources found = $n_total_srcs\n"
+        if { $n_vhdl_srcs > 0 }    { send_msg_id Vivado-projutils-5 INFO " - number of vhdl sources = $n_vhdl_srcs\n" }
+        if { $n_verilog_srcs > 0 } { send_msg_id Vivado-projutils-6 INFO " - number of verilog sources = $n_verilog_srcs\n" }
+
     }
  
     proc set_simulator_name {} {
@@ -585,7 +617,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-full64"]
             }
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\""
+            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
           }
           default {
             send_msg_id Vivado-projutils-056 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
@@ -603,11 +635,11 @@ namespace eval ::tclapp::xilinx::projutils {
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"      { 
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-64bit" }
-              puts $fh "ncvlog \$ncvlog_opts $file_str"
+              puts $fh "\n# Compile glbl module\nncvlog \$ncvlog_opts $file_str"
             }
             "vcs_mx"   {
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-full64" }
-              puts $fh "vlogan \$vlogan $file_str"
+              puts $fh "\n# Compile glbl module\nvlogan \$vlogan_opts +v2k $file_str"
             }
             default {
               send_msg_id Vivado-projutils-031 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
@@ -1007,13 +1039,13 @@ namespace eval ::tclapp::xilinx::projutils {
           return
         }
  
-        set do_filename "$a_xport_sim_vars(s_sim_top)_sim.do"
+        set do_filename "$a_xport_sim_vars(s_sim_top).do"
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
             set tool "ncsim"
             set top_lib [get_top_library]
 
-            set arg_list [list "-logfile" "$a_xport_sim_vars(s_sim_top)_sim.log"]
+            set arg_list [list "-logfile" "$a_xport_sim_vars(s_sim_top).log"]
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-64bit"]
             }
