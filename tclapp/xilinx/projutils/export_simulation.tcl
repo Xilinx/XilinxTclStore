@@ -820,31 +820,20 @@ namespace eval ::tclapp::xilinx::projutils {
         foreach file $l_compile_order_files {
           set cmd_str [list]
           set file_type [get_property file_type [get_files -quiet -all $file]]
+          if { [lsearch -exact [list_property [lindex [get_files -quiet -all $file] 0]] {LIBRARY}] == -1} {
+            continue;
+          }
           set associated_library [get_property library [get_files -quiet -all $file]]
           if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
             set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
           } else {
             set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
           }
-          set tool ""
-          switch -regexp -nocase -- $file_type {
-            "vhd"     {
-              switch -regexp -- $a_xport_sim_vars(s_simulator) {
-                "ies"    { set tool "ncvhdl" }
-                "vcs_mx" { set tool "vhdlan" }
-              }
-            }
-            "verilog" {
-              switch -regexp -- $a_xport_sim_vars(s_simulator) {
-                "ies"    { set tool "ncvlog" }
-                "vcs_mx" { set tool "vlogan" }
-              }
-            }
-          }
 
-          if { [string length $tool] > 0 } {
-            set arg_list [list $tool]
-            append_compiler_options $tool $file_type arg_list
+          set compiler [get_compiler_name $file_type]
+          if { [string length $compiler] > 0 } {
+            set arg_list [list $compiler]
+            append_compiler_options $compiler $file_type arg_list
             set arg_list [linsert $arg_list end "-work" "$associated_library" "\"$file\""]
             puts $fh [join $arg_list " "]
           }
@@ -1089,6 +1078,34 @@ namespace eval ::tclapp::xilinx::projutils {
             }
           }
         }
+    }
+
+    proc get_compiler_name { file_type } {
+
+        # Summary: Return applicable compiler application name based on filetype for the target simulator
+ 
+        # Argument Usage:
+        # file_type - file type
+ 
+        # Return Value:
+        # compiler name if valid filetype, else empty string
+
+        variable a_xport_sim_vars
+
+        set compiler ""
+
+        if { {VHDL} == $file_type } {
+          switch -regexp -- $a_xport_sim_vars(s_simulator) {
+            "ies"    { set compiler "ncvhdl" }
+            "vcs_mx" { set compiler "vhdlan" }
+          }
+        } elseif { {Verilog} == $file_type } {
+          switch -regexp -- $a_xport_sim_vars(s_simulator) {
+            "ies"    { set compiler "ncvlog" }
+            "vcs_mx" { set compiler "vlogan" }
+          }
+        }
+        return $compiler
     }
  
     proc append_compiler_options { tool file_type opts_arg } {
@@ -1373,6 +1390,9 @@ namespace eval ::tclapp::xilinx::projutils {
  
         set libs [list]
         foreach file $l_compile_order_files {
+          if { [lsearch -exact [list_property [lindex [get_files -all $file] 0]] {LIBRARY}] == -1} {
+            continue;
+          }
           set library [get_property library [get_files -all $file]]
           if { [lsearch -exact $libs $library] == -1 } {
             lappend libs $library
