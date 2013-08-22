@@ -36,6 +36,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # [-of_objects <name>]: Export simulation file(s) for the specified object
         # [-relative_to <dir>]: Make all file paths relative to the specified directory
         # [-compiled_lib_path <dir>]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
+        # [-script_name <name>]: Output shell script filename. If not specified, then file with a default name will be created with .sh extension.
         # [-32bit]: Perform 32bit compilation
         # [-force]: Overwrite previous files
         # -dir <name>: Directory where the simulation file(s) are exported
@@ -68,6 +69,7 @@ namespace eval ::tclapp::xilinx::projutils {
             "-32bit"                    { set a_xport_sim_vars(b_32bit) 1 }
             "-relative_to"              { incr i;set a_xport_sim_vars(s_relative_to) [lindex $args $i] }
             "-compiled_lib_path"        { incr i;set a_xport_sim_vars(s_compiled_lib_path) [lindex $args $i] }
+            "-script_name"              { incr i;set a_xport_sim_vars(s_script_filename) [lindex $args $i] }
             "-force"                    { set a_xport_sim_vars(b_overwrite) 1 }
             "-simulator"                { incr i;set a_xport_sim_vars(s_simulator) [lindex $args $i] }
             "-dir"                      { incr i;set a_xport_sim_vars(s_out_dir) [lindex $args $i] }
@@ -169,12 +171,12 @@ namespace eval ::tclapp::xilinx::projutils {
         set a_xport_sim_vars(s_simulator)         ""
         set a_xport_sim_vars(s_simulator_name)    ""
         set a_xport_sim_vars(s_compiled_lib_path) ""
+        set a_xport_sim_vars(s_script_filename)   ""
         set a_xport_sim_vars(s_script_extn)       "sh"
         set a_xport_sim_vars(s_out_dir)           ""
         set a_xport_sim_vars(b_32bit)             0
         set a_xport_sim_vars(s_relative_to)       ""             
         set a_xport_sim_vars(b_overwrite)         0
-        set a_xport_sim_vars(s_driver_script)     ""
         set a_xport_sim_vars(sp_tcl_obj)          ""
         set a_xport_sim_vars(s_sim_top)           ""
         set a_xport_sim_vars(s_project_name)      ""
@@ -286,7 +288,7 @@ namespace eval ::tclapp::xilinx::projutils {
           return 1
         }
         send_msg_id Vivado-projutils-021 INFO \
-          "File '$a_xport_sim_vars(s_driver_script)' exported (file path:$a_xport_sim_vars(s_out_dir)/$a_xport_sim_vars(s_driver_script))\n"
+          "File '$a_xport_sim_vars(s_script_filename)' exported (file path:$a_xport_sim_vars(s_out_dir)/$a_xport_sim_vars(s_script_filename))\n"
  
         return 0
     }
@@ -308,9 +310,12 @@ namespace eval ::tclapp::xilinx::projutils {
         set obj_name [file root [file tail $tcl_obj]]
         set ip_filename [file tail $tcl_obj]
         set l_compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]]
-        set simulator $a_xport_sim_vars(s_simulator)
-        set ip_name [file root $ip_filename]
-        set a_xport_sim_vars(s_driver_script) "${ip_name}_sim_${simulator}.$a_xport_sim_vars(s_script_extn)"
+
+        if { {} == $a_xport_sim_vars(s_script_filename) } {
+          set simulator $a_xport_sim_vars(s_simulator)
+          set ip_name [file root $ip_filename]
+          set a_xport_sim_vars(s_script_filename) "${ip_name}_sim_${simulator}.$a_xport_sim_vars(s_script_extn)"
+        }
  
         if {[export_simulation_for_object $obj_name]} {
           return 1
@@ -349,8 +354,11 @@ namespace eval ::tclapp::xilinx::projutils {
           send_msg_id Vivado-projutils-018 INFO "Empty fileset: $obj_name\n"
           return 1
         } else {
-          set simulator $a_xport_sim_vars(s_simulator)
-          set a_xport_sim_vars(s_driver_script) "$a_xport_sim_vars(s_sim_top)_sim_${simulator}.$a_xport_sim_vars(s_script_extn)"
+          if { {} == $a_xport_sim_vars(s_script_filename) } {
+            set simulator $a_xport_sim_vars(s_simulator)
+            set a_xport_sim_vars(s_script_filename) "$a_xport_sim_vars(s_sim_top)_sim_${simulator}.$a_xport_sim_vars(s_script_extn)"
+          }
+
           if {[export_simulation_for_object $obj_name]} {
             return 1
           }
@@ -468,13 +476,13 @@ namespace eval ::tclapp::xilinx::projutils {
  
         variable a_xport_sim_vars
         
-        set file [file normalize [file join $a_xport_sim_vars(s_out_dir) $a_xport_sim_vars(s_driver_script)]]
+        set file [file normalize [file join $a_xport_sim_vars(s_out_dir) $a_xport_sim_vars(s_script_filename)]]
  
-  	   # recommend -force if file exists
-  	   if { [file exists $file] && (!$a_xport_sim_vars(b_overwrite)) } {
+  	    # recommend -force if file exists
+  	    if { [file exists $file] && (!$a_xport_sim_vars(b_overwrite)) } {
           send_msg_id Vivado-projutils-032 ERROR "Simulation file '$file' already exist. Use -force option to overwrite."
-  	     return 1
-  	   }
+  	      return 1
+  	    }
           
         if { [file exists $file] } {
           if {[catch {file delete -force $file} error_msg] } {
@@ -861,7 +869,7 @@ namespace eval ::tclapp::xilinx::projutils {
  
         puts $fh "#!/bin/sh -f"
         puts $fh "#\n# $product (TM) $version_id\n#"
-        puts $fh "# $a_xport_sim_vars(s_driver_script): Simulation script\n#"
+        puts $fh "# $a_xport_sim_vars(s_script_filename): Simulation script\n#"
         puts $fh "# Generated by $product on $curr_time"
         puts $fh "# $copyright \n#"
         puts $fh "# This file contains commands for compiling the design in '$a_xport_sim_vars(s_simulator_name)' simulator\n#"

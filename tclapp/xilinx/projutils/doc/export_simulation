@@ -40,6 +40,13 @@ Arguments:
   NOTE: If this option is not specified then please follow the instructions in the
   generated script header for updating the library mappings.
 
+  -script_name - (Optional) Specify the name of the shell script. If this option is not
+  specified then the filename with the following syntax will be generated based on the
+  object type selected with -of_objects switch:-
+
+   <simulation_top_name>_sim_<simulator>.sh
+   <ip_name>_sim_<simulator>.sh
+
   -32bit - (Optional) Specify this option to perform 32bit simulation. If this option
   is not specified then by default 64bit option will be added to the command line.
 
@@ -71,6 +78,11 @@ Examples:
   The following command overwrites an existing script file in the current directory:-
 
   % export_simulation -force -simulator ies -dir "."
+
+  The following command generates a simulation script file named "test_ies.sh" in the
+  "./test_sim" directory:-
+
+  % export_simulation -simulator ies -dir "./test_sim" -script_name test_ies.sh
 
   The following command generates a script file named "top_tb_sim_ies.txt" in the
   "./test_sim" directory for a project with simulation top set to "top_tb". The command
