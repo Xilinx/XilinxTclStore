@@ -437,9 +437,9 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
 
-        send_msg_id Vivado-projutils-4 INFO "Total number of sources found = $n_total_srcs\n"
-        if { $n_vhdl_srcs > 0 }    { send_msg_id Vivado-projutils-5 INFO " - number of vhdl sources = $n_vhdl_srcs\n" }
-        if { $n_verilog_srcs > 0 } { send_msg_id Vivado-projutils-6 INFO " - number of verilog sources = $n_verilog_srcs\n" }
+        send_msg_id Vivado-projutils-4 INFO "Total number of design source files found = $n_total_srcs\n"
+        if { $n_vhdl_srcs > 0    } { send_msg_id Vivado-projutils-5 INFO " Number of VHDL files    = $n_vhdl_srcs\n" }
+        if { $n_verilog_srcs > 0 } { send_msg_id Vivado-projutils-6 INFO " Number of Verilog files = $n_verilog_srcs\n" }
 
     }
  
@@ -579,10 +579,25 @@ namespace eval ::tclapp::xilinx::projutils {
           puts $fh "src_ref_dir=\"$a_xport_sim_vars(s_project_dir)\""
         }
         puts $fh ""
+
+        set version_txt [split [version] "\n"]
+        set version     [lindex $version_txt 0]
+        set copyright   [lindex $version_txt 2]
+        set product     [lindex [split $version " "] 0]
+        set version_id  [join [lrange $version 1 end] " "]
  
+        puts $fh "#"
+        puts $fh "# STEP: setup"
+        puts $fh "#"
+        puts $fh "setup()\n\{"
+        puts $fh "echo \"export_simulation: $version-id\""
+        puts $fh "#\n# Add any setup/initialization commands here\n#"
+        puts $fh "\}\n"
+
         puts $fh "#"
         puts $fh "# STEP: compile"
         puts $fh "#"
+        puts $fh "compile()\n\{"
         if {[llength $l_compile_order_files] == 0} {
           puts $fh "# None (no sources present)"
           return 0
@@ -648,12 +663,19 @@ namespace eval ::tclapp::xilinx::projutils {
             }
           }
         }
+
+        puts $fh "\}"
  
         puts $fh ""
         write_elaboration_cmds $fh
  
         puts $fh ""
         write_simulation_cmds $fh
+
+        puts $fh ""
+        puts $fh "#\n# main\n#"
+        puts $fh "run()\n\{\nsetup\ncompile\nelaborate\nsimulate\n\}"
+        puts $fh "\nrun"
 
         # copy simulator setup files from the compiled library directory path to the export dir and update mappings
         if { [string length $a_xport_sim_vars(s_compiled_lib_path)] > 0 } {
@@ -823,6 +845,8 @@ namespace eval ::tclapp::xilinx::projutils {
 
         foreach lib [get_compile_order_libs] {
           if {[string length $lib] == 0} { continue; }
+          #if { ({work} == $lib) && ({vcs_mx} == $a_xport_sim_vars(s_simulator)) } { continue; }
+
           set dir ""
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"    { set dir "ies/[string tolower $lib]" }
@@ -959,6 +983,7 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh "#"
         puts $fh "# STEP: elaborate"
         puts $fh "#"
+        puts $fh "elaborate()\n\{"
         if {[llength $l_compile_order_files] == 0} {
           puts $fh "# None (no sources present)"
           return
@@ -1016,6 +1041,7 @@ namespace eval ::tclapp::xilinx::projutils {
             puts $fh [join $arg_list " "]
           }
         }
+        puts $fh "\}"
     }
  
     proc write_simulation_cmds { fh } {
@@ -1034,6 +1060,7 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh "#"
         puts $fh "# STEP: simulate"
         puts $fh "#"
+        puts $fh "simulate()\n\{"
         if {[llength $l_compile_order_files] == 0} {
           puts $fh "# None (no sources present)"
           return
@@ -1064,7 +1091,7 @@ namespace eval ::tclapp::xilinx::projutils {
             puts $fh [join $arg_list " "]
           }
         }
-
+        puts $fh "\}"
         write_do_file $do_filename
     }
 
@@ -1354,7 +1381,7 @@ namespace eval ::tclapp::xilinx::projutils {
           if {[catch {file copy -force $file $export_dir} error_msg] } {
             send_msg_id Vivado-projutils-027 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
           } else {
-            send_msg_id Vivado-projutils-028 INFO "copied '$file'\n"
+            send_msg_id Vivado-projutils-028 INFO "exported '$file'\n"
           }
         }
     }
