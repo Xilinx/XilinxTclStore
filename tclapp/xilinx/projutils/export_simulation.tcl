@@ -1072,7 +1072,7 @@ namespace eval ::tclapp::xilinx::projutils {
             set tool "ncsim"
             set top_lib [get_top_library]
 
-            set arg_list [list "-logfile" "$a_xport_sim_vars(s_sim_top).log"]
+            set arg_list [list "-logfile" "$a_xport_sim_vars(s_sim_top)_sim.log"]
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-64bit"]
             }
@@ -1460,9 +1460,11 @@ namespace eval ::tclapp::xilinx::projutils {
           if { [lsearch -exact [list_property [lindex [get_files -all $file] 0]] {LIBRARY}] == -1} {
             continue;
           }
-          set library [get_property library [get_files -all $file]]
-          if { [lsearch -exact $libs $library] == -1 } {
-            lappend libs $library
+          foreach f [get_files -all $file] {
+            set library [get_property library $f]
+            if { [lsearch -exact $libs $library] == -1 } {
+              lappend libs $library
+            }
           }
         }
         return $libs
