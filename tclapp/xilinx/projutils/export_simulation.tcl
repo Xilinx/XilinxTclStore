@@ -1112,7 +1112,7 @@ namespace eval ::tclapp::xilinx::projutils {
         if {[catch {open $do_file w} fh]} {
           send_msg_id Vivado-projutils-043 ERROR "failed to open file to write ($do_file)\n"
         } else {
-          puts $fh "run 1000ns"
+          puts $fh "run"
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"    { puts $fh "exit" }
             "vcs_mx" { puts $fh "quit" }
