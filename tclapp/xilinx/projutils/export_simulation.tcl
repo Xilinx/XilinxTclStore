@@ -845,7 +845,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
         foreach lib [get_compile_order_libs] {
           if {[string length $lib] == 0} { continue; }
-          #if { ({work} == $lib) && ({vcs_mx} == $a_xport_sim_vars(s_simulator)) } { continue; }
+          if { ({work} == $lib) && ({vcs_mx} == $a_xport_sim_vars(s_simulator)) } { continue; }
 
           set dir ""
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
