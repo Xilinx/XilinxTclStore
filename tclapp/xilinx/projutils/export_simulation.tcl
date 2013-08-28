@@ -1166,7 +1166,7 @@ namespace eval ::tclapp::xilinx::projutils {
             "ies"    { set compiler "ncvhdl" }
             "vcs_mx" { set compiler "vhdlan" }
           }
-        } elseif { {Verilog} == $file_type } {
+        } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"    { set compiler "ncvlog" }
             "vcs_mx" { set compiler "vlogan" }

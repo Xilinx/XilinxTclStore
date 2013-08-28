@@ -31,74 +31,85 @@ namespace eval ::tclapp::xilinx::projutils {
 
     proc write_project_tcl {args} {
 
- 	    # Summary: 
+        # Summary: 
         # Export Tcl script for re-creating the current project
 
- 	    # Argument Usage: 
+        # Argument Usage: 
+        # [-target_proj_dir <name>]: Directory where the project needs to be restored
         # [-force]: Overwrite existing tcl script file
-        # [-all_properties]: write all properties (default & non-default) for the project object(s)
+        # [-all_properties]: Write all properties (default & non-default) for the project object(s)
         # [-no_copy_sources]: Do not import sources even if they were local in the original project
         # [-dump_project_info]: Write object values
- 	    # file: Name of the tcl script file to generate
+        # file: Name of the tcl script file to generate
 
- 	    # Return Value:
+        # Return Value:
         # true (0) if success, false (1) otherwise
 
- 	    # reset global variables
+        # reset global variables
         variable a_global_vars
  
- 	    reset_global_vars
+        reset_global_vars
  
- 	    # process options
- 	    for {set i 0} {$i < [llength $args]} {incr i} {
- 	      set option [string trim [lindex $args $i]]
- 	      switch -regexp -- $option {
- 		    "-force"                { set a_global_vars(b_arg_force) 1 }
- 		    "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
- 		    "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
- 		    "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
- 		    default {
- 		      # is incorrect switch specified?
- 		      if { [regexp {^-} $option] } {
+        # process options
+        for {set i 0} {$i < [llength $args]} {incr i} {
+          set option [string trim [lindex $args $i]]
+          switch -regexp -- $option {
+            "-target_proj_dir"      { incr i;set a_global_vars(s_target_proj_dir) [lindex $args $i] }
+            "-force"                { set a_global_vars(b_arg_force) 1 }
+            "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
+            "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
+            "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
+            default {
+              # is incorrect switch specified?
+              if { [regexp {^-} $option] } {
                 send_msg_id Vivado-projutils-001 ERROR "Unknown option '$option', please type 'write_project_tcl -help' for usage info.\n"
- 			    return 1
- 		      }
- 		      set a_global_vars(script_file) $option
- 		    }
- 	      }
- 	    }
+                return 1
+              }
+              set a_global_vars(script_file) $option
+            }
+          }
+        }
  
- 	    # script file is a must
- 	    if { [string equal $a_global_vars(script_file) ""] } {
+        # script file is a must
+        if { [string equal $a_global_vars(script_file) ""] } {
           send_msg_id Vivado-projutils-002 ERROR "Missing value for option 'file', please type 'write_project_tcl -help' for usage info.\n"
- 	      return 1
- 	    }
-      
- 	    # should not be a directory
- 	    if { [file isdirectory $a_global_vars(script_file)] } {
-          send_msg_id Vivado-projutils-003 ERROR "The specified filename is a directory ($a_global_vars(script_file)), please type 'write_project_tcl -help' for usage info.\n"
- 	      return 1
- 	    }
- 
- 	    # check extension
- 	    if { [file extension $a_global_vars(script_file)] != ".tcl" } {
- 	      set a_global_vars(script_file) $a_global_vars(script_file).tcl
- 	    }
- 	    set a_global_vars(script_file [file normalize $a_global_vars(script_file)]
-  
- 	    # recommend -force if file exists
- 	    if { [file exists $a_global_vars(script_file)] && !$a_global_vars(b_arg_force) } {
-          send_msg_id Vivado-projutils-004 ERROR "Tcl Script '$a_global_vars(script_file)' already exist. Use -force option to overwrite."
- 	      return 1
- 	    }
-
- 	    # now write
- 	    if {[write_project_tcl_script]} {
           return 1
         }
-   
+              
+        # should not be a directory
+        if { [file isdirectory $a_global_vars(script_file)] } {
+          send_msg_id Vivado-projutils-003 ERROR "The specified filename is a directory ($a_global_vars(script_file)), please type 'write_project_tcl -help' for usage info.\n"
+          return 1
+        }
+         
+        # check extension
+        if { [file extension $a_global_vars(script_file)] != ".tcl" } {
+          set a_global_vars(script_file) $a_global_vars(script_file).tcl
+        }
+        set a_global_vars(script_file) [file normalize $a_global_vars(script_file)]
+        
+        # create script file directories, if does not exist
+        set file_path [file dirname $a_global_vars(script_file)]
+        if { ! [file exists $file_path] } {
+          if {[catch {file mkdir $file_path} error_msg] } {
+            send_msg_id Vivado-projutils-013 ERROR "failed to create the directory ($file_path): $error_msg\n"
+            return 1
+          }
+        }
+          
+        # recommend -force if file exists
+        if { [file exists $a_global_vars(script_file)] && !$a_global_vars(b_arg_force) } {
+          send_msg_id Vivado-projutils-004 ERROR "Tcl Script '$a_global_vars(script_file)' already exist. Use -force option to overwrite."
+          return 1
+        }
+        
+        # now write
+        if {[write_project_tcl_script]} {
+          return 1
+        }
+           
         # TCL_OK 
- 	    return 0
+        return 0
     }
 }
 
@@ -141,6 +152,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
         variable a_global_vars
 
+        set a_global_vars(s_target_proj_dir)    ""
         set a_global_vars(b_arg_force)          0
         set a_global_vars(b_arg_no_copy_srcs)   0
         set a_global_vars(b_arg_all_props)      0
@@ -260,10 +272,26 @@ namespace eval ::tclapp::xilinx::projutils {
         lappend l_script_data "# Set the original project directory path for adding/importing sources in the new project"
         lappend l_script_data "set orig_proj_dir \"$proj_dir\""
         lappend l_script_data ""
-  
+
         # create project
         lappend l_script_data "# Create project"
-        set tcl_cmd "create_project $name ./$name"
+          
+        set tcl_cmd ""
+        # set target project directory path if specified. If not, create project dir in current dir.
+        set target_dir $a_global_vars(s_target_proj_dir)
+        if { {} == $target_dir } {
+          set tcl_cmd "create_project $name ./$name"
+        } else {
+          # is specified target proj dir == current dir? 
+          set cwd [file normalize [string map {\\ /} [pwd]]]
+          set dir [file normalize [string map {\\ /} $target_dir]]
+          if { [string equal $cwd $dir] } {
+            set tcl_cmd "create_project $name"
+          } else {
+            set tcl_cmd "create_project $name \"$target_dir\""
+          }
+        }
+            
         if { [get_property managed_ip [current_project]] } {
           set tcl_cmd "$tcl_cmd -ip"
         }
