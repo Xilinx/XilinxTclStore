@@ -10,6 +10,10 @@ Description:
 
 Arguments:
 
+  -target_proj_dir - (Optional) Specify the directory path where the project
+  will be recreated. The tool will write "create_project" command with the
+  directory path specified with this switch.
+
   -force - (Optional) Overwrite an existing project script file of the same
   name. If the script file already exists, the tool returns an error unless
   the -force argument is specified. 
@@ -44,6 +48,13 @@ Examples:
   project:-
 
   % write_project_tcl recreate.tcl
+
+  The following example exports a Tcl script named "recreate.tcl" for the current
+  project in the "./script" directory and specifies the "/tmp/test" directory path
+  in the "create_project" command. When the "recreate.tcl" script is sourced in the
+  Vivado Tcl shell, the project will be re-created in "/tmp/test" directory:-
+
+  % write_project_tcl -target_proj_dir "/tmp/test" ./script/recreate.tcl
 
   The following Tcl commands exports Tcl script for the current project and writes
   all the properties, both default or non-default values:-
