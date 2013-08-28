@@ -574,7 +574,8 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh "#"
         set relative_to $a_xport_sim_vars(s_relative_to)
         if {[string length $relative_to] > 0 } {
-          puts $fh "src_ref_dir=\"$relative_to\""
+          set relative_to_out_dir [get_relative_file_path $a_xport_sim_vars(s_relative_to) $a_xport_sim_vars(s_out_dir)]
+          puts $fh "src_ref_dir=\"$relative_to_out_dir\""
         } else {
           puts $fh "src_ref_dir=\"$a_xport_sim_vars(s_project_dir)\""
         }
