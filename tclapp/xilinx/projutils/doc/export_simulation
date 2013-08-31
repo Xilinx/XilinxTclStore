@@ -15,9 +15,6 @@ Description:
   output directory. If the design contains "Verilog" sources, then the "glbl.v" file
   will also be copied from the software installation path to the output directory.
 
-  By default, the file paths for the design sources and include directories will be
-  set absolute but these file paths can also made "relative" wrt to a specified location.
-
   In order to perform simulation with the generated script, the simulation libraries
   must be compiled first, with the compiled library directory path specified, when
   generating this script.
@@ -29,10 +26,7 @@ Arguments:
   (simset) or an IP. If this option is not specified then this command will generate 
   file for the current simulation fileset "top".
   
-  -relative_to - (Optional) Specify the directory path wrt which the project sources
-  and include directories will be made "relative to" in the generated script file.
-
-  -compiled_lib_path - (Optional) Specify the pre-compiled simulation library directory
+  -lib_map_path - (Optional) Specify the pre-compiled simulation library directory
   path where the Xilinx simulation libraries are compiled. This command will copy the
   required setup files from this directory to the output directory, create sub-directories
   for the design libraries and update the library mappings.
@@ -47,6 +41,10 @@ Arguments:
    <simulation_top_name>_sim_<simulator>.sh
    <ip_name>_sim_<simulator>.sh
 
+  -absolute_path - (Optional) Specify this option to make source and include directory
+  paths absolute. The "reference_dir" variable will be set to the directory path that is
+  specified with the -directory switch.
+
   -32bit - (Optional) Specify this option to perform 32bit simulation. If this option
   is not specified then by default 64bit option will be added to the command line.
 
@@ -54,10 +52,10 @@ Arguments:
   the script file already exists, the tool returns an error unless the -force argument
   is specified. 
 
+  -directory - (Required) Specify the directory path where the simulation files will be exported.
+
   -simulator - (Required) Specify the simulator name for which the simulation script
    needs to be generated. The valid simulators are "ies" and "vcs_mx".
-
-  -dir - (Required) Specify the directory path where the simulation files will be exported.
 
   -quiet - (Optional) Execute the command quietly, ignoring any command line errors and
   returning no messages. The command also returns TCL_OK regardless of any errors encountered
@@ -73,57 +71,51 @@ Examples:
   The following command generates a simulation script file in the current directory for
   the "IES" simulator:-
 
-  % export_simulation -simulator ies -dir "."
+  % export_simulation -simulator ies -directory "."
 
   The following command overwrites an existing script file in the current directory:-
 
-  % export_simulation -force -simulator ies -dir "."
+  % export_simulation -force -simulator ies -directory "."
 
   The following command generates a simulation script file named "test_ies.sh" in the
   "./test_sim" directory:-
 
-  % export_simulation -simulator ies -dir "./test_sim" -script_name test_ies.sh
+  % export_simulation -simulator ies -directory "./test_sim" -script_name test_ies.sh
 
-  The following command generates a script file named "top_tb_sim_ies.txt" in the
+  The following command generates a script file named "top_tb_sim_ies.sh" in the
   "./test_sim" directory for a project with simulation top set to "top_tb". The command
   will also copy any data files (.mif, .coe, .dat, etc) to the ./test_sim directory:-
 
-  % export_simulation -simulator ies -dir "./test_sim"
+  % export_simulation -simulator ies -directory "./test_sim"
 
-  The following command generates a script file "top_tb_sim_vcs_mx.txt" for the
-  "VCS_MX" simulator in the specified output directory with the design source file paths
-  in the script file set relative to the "/tmp/project" directory:-
-
-  % export_simulation -relative_to "/tmp/project" -force -simulator vcs_mx -dir "test_sim"
-
-  The following command generates a script file "accum_0_sim_ies.txt" for the "accum_0" IP
+  The following command generates a script file "accum_0_sim_ies.sh" for the "accum_0" IP
   in the specified output directory for the "IES" simulator:-
 
-  % export_simulation -of_objects [get_files accum_0.xci] -simulator ies -dir "test_sim"
+  % export_simulation -of_objects [get_files accum_0.xci] -simulator ies -directory "test_sim"
 
-  The following command generates a script file "accum_0_sim_vcs_mx.txt" for the
+  The following command generates a script file "accum_0_sim_vcs_mx.sh" for the
   "accum_0" IP in the specified output directory for the "VCS_MX" simulator:-
 
-  % export_simulation -of_objects [get_ips accum_0] -simulator vcs_mx -dir "test_sim"
+  % export_simulation -of_objects [get_ips accum_0] -simulator vcs_mx -directory "test_sim"
 
-  The following command generates a script file "fifo_tb_sim_vcs_mx.txt" for the simulation
+  The following command generates a script file "fifo_tb_sim_vcs_mx.sh" for the simulation
   fileset "sim_fifo_test" whose top is set to "fifo_tb" in the specified output directory
   for the "IES" simulator:-
 
-  % export_simulation -of_objects [get_filesets sim_fifo_test] -simulator ies -dir "test_sim"
+  % export_simulation -of_objects [get_filesets sim_fifo_test] -simulator ies -directory "test_sim"
 
   The following command copies the required setup file(s) from the pre-compiled simulation
   library location "/tmp/sim_libs/ies/lib" to the specified output directory, creates the
   sub-directories for the design libraries and update the library mappings in the copied
   setup files:-
 
-  % export_simulation -compiled_lib_path "/tmp/sim_libs/ies/lib" -simulator ies -dir "test_sim"
+  % export_simulation -lib_map_path "/tmp/sim_libs/ies/lib" -simulator ies -directory "test_sim"
 
-  The following command exports a script file "top_tb_sim_vcs_mx.txt" for the "VCS_MX" simulator
+  The following command exports a script file "top_tb_sim_vcs_mx.sh" for the "VCS_MX" simulator
   in the specified output directory with the design source files compiled for 32 bit version of
   the simulator compiler (no 64 bit option will be added to the command line):-
 
-  % export_simulation -force -32bit -simulator vcs_mx -dir "test_bft_vcs_mx"
+  % export_simulation -force -32bit -simulator vcs_mx -directory "test_bft_vcs_mx"
 
 See Also:
 

@@ -30,16 +30,18 @@ namespace eval ::tclapp::xilinx::projutils {
     proc export_simulation {args} {
 
         # Summary:
-        # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator 
+        # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator. 
+        #
+        # NOTE: Please ensure that any switches used are specified in the order shown below.
 
         # Argument Usage:
         # [-of_objects <name>]: Export simulation file(s) for the specified object
-        # [-relative_to <dir>]: Make all file paths relative to the specified directory
-        # [-compiled_lib_path <dir>]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
+        # [-lib_map_path <dir>]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
         # [-script_name <name>]: Output shell script filename. If not specified, then file with a default name will be created with .sh extension.
+        # [-absolute_path]: Make all file paths absolute wrt the reference directory
         # [-32bit]: Perform 32bit compilation
         # [-force]: Overwrite previous files
-        # -dir <name>: Directory where the simulation file(s) are exported
+        # -directory <name>: Directory where the simulation file(s) are exported
         # -simulator <name>: Simulator for which simulation files will be exported (<name>: ies|vcs_mx)
 
         # Return Value:
@@ -56,8 +58,8 @@ namespace eval ::tclapp::xilinx::projutils {
           send_msg_id Vivado-projutils-013 ERROR "Missing option '-simulator', please type 'export_simulation -help' for usage info.\n"
           return 1
         }
-        if {[lsearch $options {-dir}] == -1} {
-          send_msg_id Vivado-projutils-039 ERROR "Missing option '-dir', please type 'export_simulation -help' for usage info.\n"
+        if {[lsearch $options {-directory}] == -1} {
+          send_msg_id Vivado-projutils-039 ERROR "Missing option '-directory', please type 'export_simulation -help' for usage info.\n"
           return 1
         }
 
@@ -67,12 +69,12 @@ namespace eval ::tclapp::xilinx::projutils {
           switch -regexp -- $option {
             "-of_objects"               { incr i;set a_xport_sim_vars(sp_tcl_obj) [lindex $args $i] }
             "-32bit"                    { set a_xport_sim_vars(b_32bit) 1 }
-            "-relative_to"              { incr i;set a_xport_sim_vars(s_relative_to) [lindex $args $i] }
-            "-compiled_lib_path"        { incr i;set a_xport_sim_vars(s_compiled_lib_path) [lindex $args $i] }
+            "-absolute_path"            { set a_xport_sim_vars(b_absolute_path) 1 }
+            "-lib_map_path"             { incr i;set a_xport_sim_vars(s_lib_map_path) [lindex $args $i] }
             "-script_name"              { incr i;set a_xport_sim_vars(s_script_filename) [lindex $args $i] }
             "-force"                    { set a_xport_sim_vars(b_overwrite) 1 }
             "-simulator"                { incr i;set a_xport_sim_vars(s_simulator) [lindex $args $i] }
-            "-dir"                      { incr i;set a_xport_sim_vars(s_out_dir) [lindex $args $i] }
+            "-directory"                { incr i;set a_xport_sim_vars(s_out_dir) [lindex $args $i] }
             default {
               # is incorrect switch specified?
               if { [regexp {^-} $option] } {
@@ -92,16 +94,6 @@ namespace eval ::tclapp::xilinx::projutils {
           send_msg_id Vivado-projutils-015 ERROR \
             "Invalid simulator type specified. Please type 'export_simulation -help' for usage info.\n"
           return 1
-        }
-
-        # is valid relative_to set?
-        if { [lsearch $options {-relative_to}] != -1} {
-          set relative_file_path $a_xport_sim_vars(s_relative_to)
-          if { ![file exists $relative_file_path] } {
-            send_msg_id Vivado-projutils-037 ERROR \
-              "Invalid relative path specified! Path does not exist:$a_xport_sim_vars(s_relative_to)\n"
-            return 1
-          }
         }
 
         # is valid tcl obj specified?
@@ -127,6 +119,9 @@ namespace eval ::tclapp::xilinx::projutils {
         if { [set_default_tcl_obj] } {
           return 1
         }
+
+        # do we have upto date ip's (generated and not stale)? if not print critical warning
+        verify_ip_status
 
         # write script
         if { [write_sim_script] } {
@@ -170,12 +165,12 @@ namespace eval ::tclapp::xilinx::projutils {
 
         set a_xport_sim_vars(s_simulator)         ""
         set a_xport_sim_vars(s_simulator_name)    ""
-        set a_xport_sim_vars(s_compiled_lib_path) ""
+        set a_xport_sim_vars(s_lib_map_path)      ""
         set a_xport_sim_vars(s_script_filename)   ""
         set a_xport_sim_vars(s_script_extn)       "sh"
         set a_xport_sim_vars(s_out_dir)           ""
         set a_xport_sim_vars(b_32bit)             0
-        set a_xport_sim_vars(s_relative_to)       ""             
+        set a_xport_sim_vars(b_absolute_path)     0             
         set a_xport_sim_vars(b_overwrite)         0
         set a_xport_sim_vars(sp_tcl_obj)          ""
         set a_xport_sim_vars(s_sim_top)           ""
@@ -437,9 +432,9 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
 
-        send_msg_id Vivado-projutils-4 INFO "Total number of design source files found = $n_total_srcs\n"
-        if { $n_vhdl_srcs > 0    } { send_msg_id Vivado-projutils-5 INFO " Number of VHDL files    = $n_vhdl_srcs\n" }
-        if { $n_verilog_srcs > 0 } { send_msg_id Vivado-projutils-6 INFO " Number of Verilog files = $n_verilog_srcs\n" }
+        #send_msg_id Vivado-projutils-004 INFO "Total number of design source files found = $n_total_srcs\n"
+        #if { $n_vhdl_srcs > 0    } { send_msg_id Vivado-projutils-005 INFO " Number of VHDL files    = $n_vhdl_srcs\n" }
+        #if { $n_verilog_srcs > 0 } { send_msg_id Vivado-projutils-006 INFO " Number of Verilog files = $n_verilog_srcs\n" }
 
     }
  
@@ -570,13 +565,12 @@ namespace eval ::tclapp::xilinx::projutils {
  
         # setup source dir var
         puts $fh "#"
-        puts $fh "# Directory path for design sources and include directories (if any) relative to this path"
+        puts $fh "# Directory path for design sources and include directories (if any) wrt this path"
         puts $fh "#"
-        set relative_to $a_xport_sim_vars(s_relative_to)
-        if {[string length $relative_to] > 0 } {
-          puts $fh "src_ref_dir=\"$relative_to\""
+        if { $a_xport_sim_vars(b_absolute_path) } {
+          puts $fh "reference_dir=\"$a_xport_sim_vars(s_out_dir)\""
         } else {
-          puts $fh "src_ref_dir=\"$a_xport_sim_vars(s_project_dir)\""
+          puts $fh "reference_dir=\".\""
         }
         puts $fh ""
 
@@ -678,22 +672,22 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh "\nrun"
 
         # copy simulator setup files from the compiled library directory path to the export dir and update mappings
-        if { [string length $a_xport_sim_vars(s_compiled_lib_path)] > 0 } {
-          set a_xport_sim_vars(s_compiled_lib_path) [file normalize $a_xport_sim_vars(s_compiled_lib_path)]
-          if { [file exists $a_xport_sim_vars(s_compiled_lib_path)] } {
+        if { [string length $a_xport_sim_vars(s_lib_map_path)] > 0 } {
+          set a_xport_sim_vars(s_lib_map_path) [file normalize $a_xport_sim_vars(s_lib_map_path)]
+          if { [file exists $a_xport_sim_vars(s_lib_map_path)] } {
             generate_setup_files
             if { [update_library_mappings] } {
               return 1
             }
           } else {
-            set compiled_lib_dir $a_xport_sim_vars(s_compiled_lib_path)
+            set compiled_lib_dir $a_xport_sim_vars(s_lib_map_path)
             send_msg_id Vivado-projutils-052 ERROR "Pre-compiled library directory path does not exist! ($compiled_lib_dir)\n"
           }
         } else {
             send_msg_id Vivado-projutils-055 WARNING \
                 "Unable to perform automatic library mapping update because the compiled library directory path was\n\
                  not specified. Please follow the instructions in the generated script header to manually provide the library mapping information.\n\
-                 Alternatively, this command can be executed again with the '-compiled_lib_path' switch."
+                 Alternatively, this command can be executed again with the '-lib_map_path' switch."
         }
 
         return 0
@@ -737,7 +731,7 @@ namespace eval ::tclapp::xilinx::projutils {
  
         variable a_xport_sim_vars
 
-        set setup_file [file normalize [file join $a_xport_sim_vars(s_compiled_lib_path) $filename]]
+        set setup_file [file normalize [file join $a_xport_sim_vars(s_lib_map_path) $filename]]
         if { ! [file exists $setup_file] } {
           send_msg_id Vivado-projutils-010 WARNING "Setup file does not exist, creating default file '$setup_file'\n"
         }
@@ -788,7 +782,7 @@ namespace eval ::tclapp::xilinx::projutils {
  
         variable a_xport_sim_vars
 
-        set file [file normalize [file join $a_xport_sim_vars(s_compiled_lib_path) $filename]]
+        set file [file normalize [file join $a_xport_sim_vars(s_lib_map_path) $filename]]
         if { ! [file exists $file] } {
           send_msg_id Vivado-projutils-044 WARNING "Setup file does not exist! '$file'\n"
           return 1
@@ -888,10 +882,10 @@ namespace eval ::tclapp::xilinx::projutils {
             continue;
           }
           set associated_library [get_property library [get_files -quiet -all $file]]
-          if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
+          if { $a_xport_sim_vars(b_absolute_path) } {
+            set file "[resolve_file_path $file]"
           } else {
-            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
+            set file "\$reference_dir/[get_relative_file_path $file $a_xport_sim_vars(s_out_dir)]"
           }
 
           set compiler [get_compiler_name $file_type]
@@ -936,20 +930,20 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh "#   information about this command, run 'compile_simlib -help' in $product Tcl Shell."
         puts $fh "#"
         puts $fh "#************************************************************************************************\n#"
-        puts $fh "# If '-compiled_lib_path <path>' option is specified then the following steps will be automatically"
+        puts $fh "# If '-lib_map_path <path>' option is specified then the following steps will be automatically"
         puts $fh "# performed by the export_simulation command:-\n#"
      
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
              puts $fh "# 1. Create CDS.LIB file and reference the compiled library CDS.LIB from the path specified"
-             puts $fh "#    with the -compiled_lib_path switch"
+             puts $fh "#    with the -lib_map_path switch"
              puts $fh "# 2. Create HDL.var file"
              puts $fh "# 3. Create sub-directory for each design library* in <output_dir>/ies/<library>"
              puts $fh "# 4. Define library mapping for each library in CDS.lib file\n"
           }
           "vcs_mx" {
              puts $fh "# 1. Create synopsys_sim.setup file and reference the compiled library synopsys_sim.setup"
-             puts $fh "#    from the path specified with the -compiled_lib_path switch"
+             puts $fh "#    from the path specified with the -lib_map_path switch"
              puts $fh "# 2. Create sub-directory for each design library* in <output_dir>/vcs_mx/<library>"
              puts $fh "# 3. Map libraries to physical directory location in synopsys_sim.setup file\n#"
           }
@@ -1257,10 +1251,10 @@ namespace eval ::tclapp::xilinx::projutils {
         set incl_dirs [split $incl_dir_str " "]
         foreach vh_dir $incl_dirs {
           set dir [file normalize $vh_dir]
-          if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_relative_to)]"
+          if { $a_xport_sim_vars(b_absolute_path) } {
+            set dir "[resolve_file_path $dir]"
           } else {
-            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_project_dir)]"
+            set dir "\$reference_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_out_dir)]"
           }
           lappend dir_names $dir
         }
@@ -1291,10 +1285,10 @@ namespace eval ::tclapp::xilinx::projutils {
 
         foreach vh_file $vh_files {
           set dir [file normalize [file dirname $vh_file]]
-          if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_relative_to)]"
+          if { $a_xport_sim_vars(b_absolute_path) } {
+            set dir "[resolve_file_path $dir]"
           } else {
-            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_project_dir)]"
+            set dir "\$reference_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_out_dir)]"
           }
           lappend dir_names $dir
         }
@@ -1323,10 +1317,10 @@ namespace eval ::tclapp::xilinx::projutils {
         set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
         foreach file $vh_files {
           set dir [file dirname $file]
-          if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_relative_to)]"
+          if { $a_xport_sim_vars(b_absolute_path) } {
+            set dir "[resolve_file_path $dir]"
           } else {
-            set dir "\$src_ref_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_project_dir)]"
+            set dir "\$reference_dir/[get_relative_file_path $dir $a_xport_sim_vars(s_out_dir)]"
           }
           lappend incl_dirs $dir
         }
@@ -1351,10 +1345,10 @@ namespace eval ::tclapp::xilinx::projutils {
         set filter "FILE_TYPE == \"Verilog Header\""
         set vh_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
         foreach file $vh_files {
-          if {[string length $a_xport_sim_vars(s_relative_to)] > 0 } {
-            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_relative_to)]"
+          if { $a_xport_sim_vars(b_absolute_path) } {
+            set file "[resolve_file_path $file]"
           } else {
-            set file "\$src_ref_dir/[get_relative_file_path $file $a_xport_sim_vars(s_project_dir)]"
+            set file "\$reference_dir/[get_relative_file_path $file $a_xport_sim_vars(s_out_dir)]"
           }
           lappend incl_files $file
         }
@@ -1523,6 +1517,57 @@ namespace eval ::tclapp::xilinx::projutils {
         }
         return 0
     }
+
+    proc verify_ip_status { } {
+
+        # Summary: Report critical warnings on non generated and stale ip's 
+ 
+        # Argument Usage:
+        # None
+ 
+        # Return Value:
+        # None
+      
+        variable a_xport_sim_vars
+
+        set regen_ip [dict create] 
+        set tcl_obj $a_xport_sim_vars(sp_tcl_obj)
+        if { [is_ip $tcl_obj] } {
+          set ip [file root [file tail $tcl_obj]]
+          dict set regen_ip $ip generated [get_property is_ip_generated [get_ips $ip]]
+          dict set regen_ip $ip stale [get_property stale_targets [get_ips $ip]]
+        } else {
+          foreach ip [get_ips] {
+            dict set regen_ip $ip generated [get_property is_ip_generated $ip]
+            dict set regen_ip $ip stale [get_property stale_targets $ip]
+          }
+        } 
+
+        set not_generated [list]
+        set stale_ips [list]
+        dict for {ip regen} $regen_ip {
+          dic with regen {
+            if { {0} == $generated } {
+              lappend not_generated $ip
+            } else {
+              if { {} != $stale } {
+                lappend stale_ips $ip
+              }
+            }
+          }
+        }
+
+        if { ([llength $not_generated] > 0 ) || ([llength $stale_ips] > 0) } {
+          send_msg_id Vivado-projutils-001 "CRITICAL WARNING" \
+             "The following IPs have not generated output products yet or have subsequently been updated, making the current\n\
+             output products out-of-date. It is strongly recommended that these IPs be re-generated and then this script run again to get a complete output.\n"
+          puts "***"
+          foreach ip $not_generated { puts "Status - (Not Generated) IP NAME = $ip" }
+          foreach ip $stale_ips     { puts "Status - (Out of Date)   IP NAME = $ip" }
+          puts "***"
+        }
+        
+    }
  
     proc get_relative_file_path { file_path_to_convert relative_to } {
  
@@ -1538,7 +1583,7 @@ namespace eval ::tclapp::xilinx::projutils {
  
         # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
         if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
-          set relative_to [file dirname $s_relative_to]
+          set relative_to [file dirname $relative_to]
         }
  
         set cwd [file normalize [pwd]]
@@ -1614,4 +1659,35 @@ namespace eval ::tclapp::xilinx::projutils {
         # no common dirs found, just return the normalized path 
         return $file_path
     }
+
+    proc resolve_file_path { file_dir_path_to_convert } {
+ 
+        # Summary: Make file path relative to reference_dir if relative component found
+ 
+        # Argument Usage:
+        # file_dir_path_to_convert: input file to make relative to specfied path
+ 
+        # Return Value:
+        # Relative path wrt the path specified
+
+        variable a_xport_sim_vars
+
+        set ref_dir [file normalize [string map {\\ /} $a_xport_sim_vars(s_out_dir)]]
+        set ref_comps [lrange [split $ref_dir "/"] 1 end]
+        set file_comps [lrange [split [file normalize [string map {\\ /} $file_dir_path_to_convert]] "/"] 1 end]
+
+        set index 1
+        while { [lindex $ref_comps $index] == [lindex $file_comps $index] } {
+          incr index
+        }
+ 
+        # is file path within reference dir? return relative path
+        if { $index == [llength $ref_comps] } {
+          return [get_relative_file_path $file_dir_path_to_convert $ref_dir]
+        }
+
+        # return absolute 
+        return $file_dir_path_to_convert
+    }
+   
 }
