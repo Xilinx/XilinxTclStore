@@ -120,9 +120,6 @@ namespace eval ::tclapp::xilinx::projutils {
           return 1
         }
 
-        # do we have upto date ip's (generated and not stale)? if not print critical warning
-        verify_ip_status
-
         # write script
         if { [write_sim_script] } {
           return 1
@@ -207,6 +204,8 @@ namespace eval ::tclapp::xilinx::projutils {
             return 1
           } else {
             set curr_simset [current_fileset -simset]
+            # do we have upto date ip's (generated and not stale)? if not print critical warning
+            verify_ip_status $curr_simset
             set sim_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $curr_simset]]
             if { [llength $sim_files] == 0 } {
               send_msg_id Vivado-projutils-017 INFO "No simulation files found in the current simset.\n"
@@ -223,6 +222,8 @@ namespace eval ::tclapp::xilinx::projutils {
                 send_msg_id Vivado-projutils-034 ERROR "Invalid object type specified\n"
                 return 1
               }
+              # do we have upto date ip (generated and not stale)? if not print critical warning
+              verify_ip_status $a_xport_sim_vars(tcl_obj)
             }
           } else {
             set ip_file ""
@@ -245,6 +246,8 @@ namespace eval ::tclapp::xilinx::projutils {
               send_msg_id Vivado-projutils-041 WARNING "The specified object is locked:$tcl_obj\n"
             }
             set a_xport_sim_vars(sp_tcl_obj) $ip_file
+            # do we have upto date ip (generated and not stale)? if not print critical warning
+            verify_ip_status $a_xport_sim_vars(sp_tcl_obj)
           }
         }
         return 0
@@ -432,7 +435,7 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
 
-        #send_msg_id Vivado-projutils-004 INFO "Total number of design source files found = $n_total_srcs\n"
+        send_msg_id Vivado-projutils-004 INFO "Number of design source files found = $n_total_srcs\n"
         #if { $n_vhdl_srcs > 0    } { send_msg_id Vivado-projutils-005 INFO " Number of VHDL files    = $n_vhdl_srcs\n" }
         #if { $n_verilog_srcs > 0 } { send_msg_id Vivado-projutils-006 INFO " Number of Verilog files = $n_verilog_srcs\n" }
 
@@ -594,6 +597,7 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh "compile()\n\{"
         if {[llength $l_compile_order_files] == 0} {
           puts $fh "# None (no sources present)"
+          puts $fh "\}"
           return 0
         }
  
@@ -1518,7 +1522,7 @@ namespace eval ::tclapp::xilinx::projutils {
         return 0
     }
 
-    proc verify_ip_status { } {
+    proc verify_ip_status { tcl_obj } {
 
         # Summary: Report critical warnings on non generated and stale ip's 
  
@@ -1531,7 +1535,6 @@ namespace eval ::tclapp::xilinx::projutils {
         variable a_xport_sim_vars
 
         set regen_ip [dict create] 
-        set tcl_obj $a_xport_sim_vars(sp_tcl_obj)
         if { [is_ip $tcl_obj] } {
           set ip [file root [file tail $tcl_obj]]
           dict set regen_ip $ip generated [get_property is_ip_generated [get_ips $ip]]
@@ -1558,13 +1561,14 @@ namespace eval ::tclapp::xilinx::projutils {
         }
 
         if { ([llength $not_generated] > 0 ) || ([llength $stale_ips] > 0) } {
+          set txt [list]
+          foreach ip $not_generated { lappend txt "Status - (Not Generated) IP NAME = $ip" }
+          foreach ip $stale_ips     { lappend txt "Status - (Out of Date)   IP NAME = $ip" }
+          set msg_txt [join $txt "\n"]
           send_msg_id Vivado-projutils-001 "CRITICAL WARNING" \
              "The following IPs have not generated output products yet or have subsequently been updated, making the current\n\
-             output products out-of-date. It is strongly recommended that these IPs be re-generated and then this script run again to get a complete output.\n"
-          puts "***"
-          foreach ip $not_generated { puts "Status - (Not Generated) IP NAME = $ip" }
-          foreach ip $stale_ips     { puts "Status - (Out of Date)   IP NAME = $ip" }
-          puts "***"
+             output products out-of-date. It is strongly recommended that these IPs be re-generated and then this script run again to get a complete output.\n\
+             $msg_txt"
         }
         
     }
