@@ -1553,7 +1553,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { {0} == $generated } {
               lappend not_generated $ip
             } else {
-              if { {} != $stale } {
+              if { [llength $stale] == 0 } {
                 lappend stale_ips $ip
               }
             }
