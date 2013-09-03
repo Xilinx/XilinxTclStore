@@ -223,7 +223,7 @@ namespace eval ::tclapp::xilinx::projutils {
                 return 1
               }
               # do we have upto date ip (generated and not stale)? if not print critical warning
-              verify_ip_status $a_xport_sim_vars(tcl_obj)
+              verify_ip_status $tcl_obj
             }
           } else {
             set ip_file ""
@@ -1537,10 +1537,12 @@ namespace eval ::tclapp::xilinx::projutils {
         set regen_ip [dict create] 
         if { [is_ip $tcl_obj] } {
           set ip [file root [file tail $tcl_obj]]
+          if { {0} == [get_property is_enabled [get_files -all ${ip}.xci]] } { return }
           dict set regen_ip $ip generated [get_property is_ip_generated [get_ips $ip]]
           dict set regen_ip $ip stale [get_property stale_targets [get_ips $ip]]
         } else {
           foreach ip [get_ips] {
+            if { {0} == [get_property is_enabled [get_files -all ${ip}.xci]] } { continue }
             dict set regen_ip $ip generated [get_property is_ip_generated $ip]
             dict set regen_ip $ip stale [get_property stale_targets $ip]
           }
