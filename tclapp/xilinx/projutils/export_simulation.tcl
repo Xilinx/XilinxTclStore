@@ -307,7 +307,7 @@ namespace eval ::tclapp::xilinx::projutils {
   
         set obj_name [file root [file tail $tcl_obj]]
         set ip_filename [file tail $tcl_obj]
-        set l_compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]]
+        set l_compile_order_files [remove_duplicate_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]]]
         print_source_info
 
         if { {} == $a_xport_sim_vars(s_script_filename) } {
@@ -347,8 +347,8 @@ namespace eval ::tclapp::xilinx::projutils {
           "SimulationSrcs" { set used_in_val "simulation"}
           "BlockSrcs"      { set used_in_val "synthesis" }
         }
- 
-        set l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $tcl_obj]]
+
+        set l_compile_order_files [remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $tcl_obj]]]
         if { [llength $l_compile_order_files] == 0 } {
           send_msg_id Vivado-projutils-018 INFO "Empty fileset: $obj_name\n"
           return 1
@@ -866,6 +866,28 @@ namespace eval ::tclapp::xilinx::projutils {
         return 0
     }
  
+    proc remove_duplicate_files { compile_order_files } {
+ 
+        # Summary: Removes exact duplicate files (same file path)
+ 
+        # Argument Usage:
+        # files - compile order files
+ 
+        # Return Value:
+        # Unique files
+
+        set file_list [list]
+        set compile_order [list]
+        foreach file $compile_order_files {
+          set normalized_file_path [file normalize [string map {\\ /} $file]]
+          if { [lsearch -exact $file_list $normalized_file_path] == -1 } {
+            lappend file_list $normalized_file_path
+            lappend compile_order $file
+          }
+        }
+        return $compile_order
+    }
+ 
     proc wr_compile_order { fh } {
  
         # Summary: Write compile order for the target simulator
@@ -881,7 +903,7 @@ namespace eval ::tclapp::xilinx::projutils {
  
         foreach file $l_compile_order_files {
           set cmd_str [list]
-          set file_type [get_property file_type [get_files -quiet -all $file]]
+          set file_type [get_property file_type [lindex [get_files -quiet -all $file] 0]]
           if { [lsearch -exact [list_property [lindex [get_files -quiet -all $file] 0]] {LIBRARY}] == -1} {
             continue;
           }
