@@ -1537,12 +1537,20 @@ namespace eval ::tclapp::xilinx::projutils {
         set regen_ip [dict create] 
         if { [is_ip $tcl_obj] } {
           set ip [file root [file tail $tcl_obj]]
-          if { {0} == [get_property is_enabled [get_files -all ${ip}.xci]] } { return }
+          # is user-disabled? or auto_disabled? skip
+          if { ({0} == [get_property is_enabled [get_files -all ${ip}.xci]]) ||
+               ({1} == [get_property is_auto_disabled [get_files -all ${ip}.xci]]) } {
+            return
+          }
           dict set regen_ip $ip generated [get_property is_ip_generated [get_ips $ip]]
           dict set regen_ip $ip stale [get_property stale_targets [get_ips $ip]]
         } else {
           foreach ip [get_ips] {
-            if { {0} == [get_property is_enabled [get_files -all ${ip}.xci]] } { continue }
+            # is user-disabled? or auto_disabled? continue
+            if { ({0} == [get_property is_enabled [get_files -all ${ip}.xci]]) ||
+                 ({1} == [get_property is_auto_disabled [get_files -all ${ip}.xci]]) } {
+              continue
+            }
             dict set regen_ip $ip generated [get_property is_ip_generated $ip]
             dict set regen_ip $ip stale [get_property stale_targets $ip]
           }
