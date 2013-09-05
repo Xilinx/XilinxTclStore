@@ -12,8 +12,8 @@ Description:
   command line.
 
   The command will also copy data files (if any) from the fileset or an IP to the
-  output directory. If the design contains "Verilog" sources, then the "glbl.v" file
-  will also be copied from the software installation path to the output directory.
+  output directory. If the design contains "Verilog" sources, then the generated
+  script will copy "glbl.v" from the software installation path to the output directory.
 
   In order to perform simulation with the generated script, the simulation libraries
   must be compiled first, with the compiled library directory path specified, when
@@ -26,13 +26,9 @@ Arguments:
   (simset) or an IP. If this option is not specified then this command will generate 
   file for the current simulation fileset "top".
   
-  -lib_map_path - (Optional) Specify the pre-compiled simulation library directory
-  path where the Xilinx simulation libraries are compiled. This command will copy the
-  required setup files from this directory to the output directory, create sub-directories
-  for the design libraries and update the library mappings.
-
-  NOTE: If this option is not specified then please follow the instructions in the
-  generated script header for updating the library mappings.
+  -lib_map_path - (Optional) Specify the pre-compiled simulation library directory path
+  where the Xilinx simulation libraries are compiled. Please see the header section in
+  the generated script for more information.
 
   -script_name - (Optional) Specify the name of the shell script. If this option is not
   specified then the filename with the following syntax will be generated based on the
@@ -93,8 +89,8 @@ Examples:
 
   % export_simulation -of_objects [get_files accum_0.xci] -simulator ies -directory "test_sim"
 
-  The following command generates a script file "accum_0_sim_vcs_mx.sh" for the
-  "accum_0" IP in the specified output directory for the "VCS_MX" simulator:-
+  The following command generates a script file "accum_0_sim_vcs_mx.sh" for the "accum_0" IP
+  in the specified output directory for the "VCS_MX" simulator:-
 
   % export_simulation -of_objects [get_ips accum_0] -simulator vcs_mx -directory "test_sim"
 
@@ -103,13 +99,6 @@ Examples:
   for the "IES" simulator:-
 
   % export_simulation -of_objects [get_filesets sim_fifo_test] -simulator ies -directory "test_sim"
-
-  The following command copies the required setup file(s) from the pre-compiled simulation
-  library location "/tmp/sim_libs/ies/lib" to the specified output directory, creates the
-  sub-directories for the design libraries and update the library mappings in the copied
-  setup files:-
-
-  % export_simulation -lib_map_path "/tmp/sim_libs/ies/lib" -simulator ies -directory "test_sim"
 
   The following command exports a script file "top_tb_sim_vcs_mx.sh" for the "VCS_MX" simulator
   in the specified output directory with the design source files compiled for 32 bit version of

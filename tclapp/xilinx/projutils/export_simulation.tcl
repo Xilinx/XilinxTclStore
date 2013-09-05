@@ -541,13 +541,6 @@ namespace eval ::tclapp::xilinx::projutils {
           send_msg_id Vivado-projutils-040 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
         }
  
-        # contains verilog sources? copy glbl to output dir
-        if { [contains_verilog] } {
-          if {[export_glbl_file]} {
-            return 1
-          }
-        }
- 
         return 0
     }
  
@@ -567,9 +560,7 @@ namespace eval ::tclapp::xilinx::projutils {
         write_script_header $fh
  
         # setup source dir var
-        puts $fh "#"
         puts $fh "# Directory path for design sources and include directories (if any) wrt this path"
-        puts $fh "#"
         if { $a_xport_sim_vars(b_absolute_path) } {
           puts $fh "reference_dir=\"$a_xport_sim_vars(s_out_dir)\""
         } else {
@@ -577,23 +568,22 @@ namespace eval ::tclapp::xilinx::projutils {
         }
         puts $fh ""
 
-        set version_txt [split [version] "\n"]
-        set version     [lindex $version_txt 0]
-        set copyright   [lindex $version_txt 2]
-        set product     [lindex [split $version " "] 0]
-        set version_id  [join [lrange $version 1 end] " "]
- 
-        puts $fh "#"
+        print_usage $fh
+        print_design_lib_mappings $fh
+        print_do_file $fh
+        print_copy_glbl_file $fh
+        print_reset_run $fh
+
         puts $fh "# STEP: setup"
-        puts $fh "#"
         puts $fh "setup()\n\{"
-        puts $fh "echo \"export_simulation: $version-id\""
-        puts $fh "#\n# Add any setup/initialization commands here\n#"
+
+        print_proc_case_stmt $fh
+
+        puts $fh "  # Add any setup/initialization commands here:-\n"
+        puts $fh "  # <user specific commands>\n"
         puts $fh "\}\n"
 
-        puts $fh "#"
-        puts $fh "# STEP: compile"
-        puts $fh "#"
+        puts $fh "# RUN_STEP: <compile>"
         puts $fh "compile()\n\{"
         if {[llength $l_compile_order_files] == 0} {
           puts $fh "# None (no sources present)"
@@ -608,14 +598,14 @@ namespace eval ::tclapp::xilinx::projutils {
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-64bit"]
             }
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\""
+            puts $fh "  ${tool}_opts=\"[join $arg_list " "]\""
 
             set tool "ncvlog"
             set arg_list [list "-messages" "-logfile" "${tool}.log" "-append_log"]
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-64bit"]
             }
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
+            puts $fh "  ${tool}_opts=\"[join $arg_list " "]\"\n"
           }
           "vcs_mx"   {
             set tool "vhdlan"
@@ -623,14 +613,14 @@ namespace eval ::tclapp::xilinx::projutils {
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-full64"]
             }
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\""
+            puts $fh "  ${tool}_opts=\"[join $arg_list " "]\""
 
             set tool "vlogan"
             set arg_list [list "-l" "$tool.log"]
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-full64"]
             }
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
+            puts $fh "  ${tool}_opts=\"[join $arg_list " "]\"\n"
           }
           default {
             send_msg_id Vivado-projutils-056 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
@@ -648,11 +638,11 @@ namespace eval ::tclapp::xilinx::projutils {
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"      { 
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-64bit" }
-              puts $fh "\n# Compile glbl module\nncvlog \$ncvlog_opts $file_str"
+              puts $fh "\n  # Compile glbl module\n  ncvlog \$ncvlog_opts $file_str"
             }
             "vcs_mx"   {
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-full64" }
-              puts $fh "\n# Compile glbl module\nvlogan \$vlogan_opts +v2k $file_str"
+              puts $fh "\n  # Compile glbl module\n  vlogan \$vlogan_opts +v2k $file_str"
             }
             default {
               send_msg_id Vivado-projutils-031 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
@@ -671,201 +661,14 @@ namespace eval ::tclapp::xilinx::projutils {
         write_simulation_cmds $fh
 
         puts $fh ""
-        puts $fh "#\n# main\n#"
-        puts $fh "run()\n\{\nsetup\ncompile\nelaborate\nsimulate\n\}"
-        puts $fh "\nrun"
+        puts $fh "# Main steps"
+        puts $fh "run()\n\{\n  setup \$1 \$2\n  compile\n  elaborate\n  simulate\n\}\n"
 
-        # copy simulator setup files from the compiled library directory path to the export dir and update mappings
-        if { [string length $a_xport_sim_vars(s_lib_map_path)] > 0 } {
-          set a_xport_sim_vars(s_lib_map_path) [file normalize $a_xport_sim_vars(s_lib_map_path)]
-          if { [file exists $a_xport_sim_vars(s_lib_map_path)] } {
-            generate_setup_files
-            if { [update_library_mappings] } {
-              return 1
-            }
-          } else {
-            set compiled_lib_dir $a_xport_sim_vars(s_lib_map_path)
-            send_msg_id Vivado-projutils-052 ERROR "Pre-compiled library directory path does not exist! ($compiled_lib_dir)\n"
-          }
-        } else {
-            send_msg_id Vivado-projutils-055 WARNING \
-                "Unable to perform automatic library mapping update because the compiled library directory path was\n\
-                 not specified. Please follow the instructions in the generated script header to manually provide the library mapping information.\n\
-                 Alternatively, this command can be executed again with the '-lib_map_path' switch."
-        }
+        print_main_function $fh
 
         return 0
     }
 
-    proc generate_setup_files { } {
-
-        # Summary: Generate the simulator setup files in exported dir from the compiled directory path
-
-        # Argument Usage:
-        # none
-
-        # Return Value:
-
-        variable a_xport_sim_vars
-
-        switch -regexp -- $a_xport_sim_vars(s_simulator) {
-          "ies" {
-            set filename "cds.lib"
-            create_setup_file $filename
-
-            set filename "hdl.var"
-            create_setup_file $filename
-          }
-          "vcs_mx"  {
-            set filename "synopsys_sim.setup"
-            create_setup_file $filename
-          }
-        }
-    }
-
-    proc create_setup_file { filename } {
- 
-        # Summary: Create setup file to the export dir
- 
-        # Argument Usage:
-        # filename : setup filename
- 
-        # Return Value:
-        # true (0) if success, false (1) otherwise
- 
-        variable a_xport_sim_vars
-
-        set setup_file [file normalize [file join $a_xport_sim_vars(s_lib_map_path) $filename]]
-        if { ! [file exists $setup_file] } {
-          send_msg_id Vivado-projutils-010 WARNING "Setup file does not exist, creating default file '$setup_file'\n"
-        }
-
-        # remove existing file if present
-        set target_file [file normalize [file join $a_xport_sim_vars(s_out_dir) $filename]]
-        if { [file exists $target_file] } {
-          if { [catch { file delete -force $target_file } error_msg] } {
-            send_msg_id Vivado-projutils-011 ERROR "Failed to remove existing file '$target_file'\n"
-            retun 1
-          }
-        }
-
-        # create setup file
-        set fh 0
-        if { [catch {open $target_file w} fh] } {
-          send_msg_id Vivado-projutils-012 WARNING "failed to open file to write ($file)\n"
-          return 0
-        }
-
-        switch -regexp -- $a_xport_sim_vars(s_simulator) {
-          "ies" {
-            if { [string equal $filename "hdl.var"] } {
-              # nothing to add
-            } else {
-              puts $fh "INCLUDE $setup_file"
-            }
-          }
-          "vcs_mx" {
-              puts $fh "OTHERS=$setup_file"
-          }
-        }
-
-        close $fh
-
-        return 0
-    }
-
-    proc copy_setup_file { filename } {
- 
-        # Summary: Copy setup file to the export dir
- 
-        # Argument Usage:
-        # filename : setup filename
- 
-        # Return Value:
-        # true (0) if success, false (1) otherwise
- 
-        variable a_xport_sim_vars
-
-        set file [file normalize [file join $a_xport_sim_vars(s_lib_map_path) $filename]]
-        if { ! [file exists $file] } {
-          send_msg_id Vivado-projutils-044 WARNING "Setup file does not exist! '$file'\n"
-          return 1
-        }
-
-        # remove existing file if present
-        set target_file [file normalize [file join $a_xport_sim_vars(s_out_dir) $filename]]
-        if { [file exists $target_file] } {
-          if { [catch { file delete -force $target_file } error_msg] } {
-            send_msg_id Vivado-projutils-045 ERROR "Failed to remove existing file '$target_file'\n"
-            retun 1
-          }
-        }
-
-        # copy file
-        if { [catch {file copy $file $a_xport_sim_vars(s_out_dir)} error_msg] } {
-          send_msg_id Vivado-projutils-046 ERROR "Failed to copy file ($file): $error_msg\n"
-          return 1
-        } else {
-          send_msg_id Vivado-projutils-047 INFO "Copied '$file' to export directory ($a_xport_sim_vars(s_out_dir))\n"
-        }
- 
-        return 0
-    }
-
-    proc update_library_mappings { } {
- 
-        # Summary: Write library mappings the target simulator
- 
-        # Argument Usage:
- 
-        # Return Value:
-        # true (0) if success, false (1) otherwise
- 
-        variable a_xport_sim_vars
-
-        set filename "" 
-        switch -regexp -- $a_xport_sim_vars(s_simulator) {
-          "ies"    { set filename "cds.lib" }
-          "vcs_mx" { set filename "synopsys_sim.setup" }
-        }
-         
-        set file [file normalize [file join $a_xport_sim_vars(s_out_dir) $filename]]
-        if { ![file exists $file] } {
-          send_msg_id Vivado-projutils-048 WARNING "File does not exist ($file)\n"
-          return 0
-        }
-
-        set fh 0
-        if {[catch {open $file a} fh]} {
-          send_msg_id Vivado-projutils-049 WARNING "failed to open file for update ($file)\n"
-          return 0
-        }
-
-        foreach lib [get_compile_order_libs] {
-          if {[string length $lib] == 0} { continue; }
-          if { ({work} == $lib) && ({vcs_mx} == $a_xport_sim_vars(s_simulator)) } { continue; }
-
-          set dir ""
-          switch -regexp -- $a_xport_sim_vars(s_simulator) {
-            "ies"    { set dir "ies/[string tolower $lib]" }
-            "vcs_mx" { set dir "vcs_mx/[string tolower $lib]" }
-          }
-
-          set lib_dir [file join $a_xport_sim_vars(s_out_dir) $dir]
-          if { ![file exists $lib_dir] } { file mkdir $lib_dir }
-
-          switch -regexp -- $a_xport_sim_vars(s_simulator) {
-            "ies"    { puts $fh "DEFINE [string tolower $lib] $dir" }
-            "vcs_mx" { puts $fh "$lib : $dir" }
-          }
-        }
-
-        send_msg_id Vivado-projutils-053 INFO "Updated library mappings in $filename\n"
-        close $fh
-
-        return 0
-    }
- 
     proc remove_duplicate_files { compile_order_files } {
  
         # Summary: Removes exact duplicate files (same file path)
@@ -919,7 +722,8 @@ namespace eval ::tclapp::xilinx::projutils {
             set arg_list [list $compiler]
             append_compiler_options $compiler $file_type arg_list
             set arg_list [linsert $arg_list end "-work" "$associated_library" "\"$file\""]
-            puts $fh [join $arg_list " "]
+            set file_str [join $arg_list " "]
+            puts $fh "  $file_str"
           }
         }
     }
@@ -944,46 +748,31 @@ namespace eval ::tclapp::xilinx::projutils {
         set version_id  [join [lrange $version 1 end] " "]
  
         puts $fh "#!/bin/sh -f"
-        puts $fh "#\n# $product (TM) $version_id\n#"
-        puts $fh "# $a_xport_sim_vars(s_script_filename): Simulation script\n#"
+        puts $fh "# $product (TM) $version_id\n#"
+        puts $fh "# Filename    : $a_xport_sim_vars(s_script_filename)"
+        puts $fh "# Description : Simulation script for compiling, elaborating and verifying the project source files in"
+        puts $fh "#               '$a_xport_sim_vars(s_simulator_name)' simulator. The script will automatically create the design"
+        puts $fh "#               libraries sub-directories in the run directory, add the library logical mappings in the"
+        puts $fh "#               simulator setup file, create default 'do' file, copy glbl.v into the run directory for"
+        puts $fh "#               verilog sources in the design (if any), execute compilation, elaboration and simulation"
+        puts $fh "#               steps.\n#"
+        puts $fh "#               By default, the source file and include directory paths will be set relative to the"
+        puts $fh "#               'reference_dir' variable unless the -absolute_path is specified in which case the paths"
+        puts $fh "#               will be set absolute.\n#"
         puts $fh "# Generated by $product on $curr_time"
         puts $fh "# $copyright \n#"
-        puts $fh "# This file contains commands for compiling the design in '$a_xport_sim_vars(s_simulator_name)' simulator\n#"
-        puts $fh "#************************************************************************************************"
-        puts $fh "# NOTE: To compile and run simulation, you must perform following step:-"
-        puts $fh "#"
-        puts $fh "# - Compile the Xilinx simulation libraries using the 'compile_simlib' TCL command. For more"
-        puts $fh "#   information about this command, run 'compile_simlib -help' in $product Tcl Shell."
-        puts $fh "#"
-        puts $fh "#************************************************************************************************\n#"
-        puts $fh "# If '-lib_map_path <path>' option is specified then the following steps will be automatically"
-        puts $fh "# performed by the export_simulation command:-\n#"
-     
-        switch -regexp -- $a_xport_sim_vars(s_simulator) {
-          "ies" { 
-             puts $fh "# 1. Create CDS.LIB file and reference the compiled library CDS.LIB from the path specified"
-             puts $fh "#    with the -lib_map_path switch"
-             puts $fh "# 2. Create HDL.var file"
-             puts $fh "# 3. Create sub-directory for each design library* in <output_dir>/ies/<library>"
-             puts $fh "# 4. Define library mapping for each library in CDS.lib file\n"
-          }
-          "vcs_mx" {
-             puts $fh "# 1. Create synopsys_sim.setup file and reference the compiled library synopsys_sim.setup"
-             puts $fh "#    from the path specified with the -lib_map_path switch"
-             puts $fh "# 2. Create sub-directory for each design library* in <output_dir>/vcs_mx/<library>"
-             puts $fh "# 3. Map libraries to physical directory location in synopsys_sim.setup file\n#"
-          }
-        }
-        puts $fh "# For more information please refer to the following guide:-\n#"
-        puts $fh "#  Xilinx Vivado Design Suite User Guide:Logic simulation (UG900)\n#"
-        puts $fh "# * List of design libraries:-\n#"
-        foreach lib [get_compile_order_libs] {
-          if {[string length $lib] == 0} { continue; }
-          puts $fh "#  $lib"
-        }
-        puts $fh "#"
-        puts $fh "#************************************************************************************************\n"
- 
+        puts $fh "# usage: $a_xport_sim_vars(s_script_filename) \[-help\]"
+        puts $fh "# usage: $a_xport_sim_vars(s_script_filename) \[-noclean_files\]"
+        puts $fh "# usage: $a_xport_sim_vars(s_script_filename) \[-reset_run\]\n#"
+        puts $fh "# Prerequisite:- To compile and run simulation, you must compile the Xilinx simulation libraries using the"
+        puts $fh "# 'compile_simlib' TCL command. For more information about this command, run 'compile_simlib -help' in the"
+        puts $fh "# $product Tcl Shell. Once the libraries have been compiled successfully, specify the -lib_map_path switch"
+        puts $fh "# that points to these libraries and rerun export_simulation. For more information about this switch please"
+        puts $fh "# type 'export_simulation -help' in the Tcl shell.\n#"
+        puts $fh "# Alternatively, if the libraries are already compiled then replace <SPECIFY_COMPILED_LIB_PATH> in this script"
+        puts $fh "# with the compiled library directory path.\n#"
+        puts $fh "# Additional references - 'Xilinx Vivado Design Suite User Guide:Logic simulation (UG900)'\n#"
+        puts $fh "# ********************************************************************************************************\n"
     }
 
     proc write_elaboration_cmds { fh } {
@@ -1000,9 +789,7 @@ namespace eval ::tclapp::xilinx::projutils {
         variable a_xport_sim_vars
         variable l_compile_order_files
  
-        puts $fh "#"
-        puts $fh "# STEP: elaborate"
-        puts $fh "#"
+        puts $fh "# RUN_STEP: <elaborate>"
         puts $fh "elaborate()\n\{"
         if {[llength $l_compile_order_files] == 0} {
           puts $fh "# None (no sources present)"
@@ -1017,7 +804,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-64bit"]
             }
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
+            puts $fh "  ${tool}_opts=\"[join $arg_list " "]\""
 
             set arg_list [list]
             foreach lib [get_compile_order_libs] {
@@ -1026,7 +813,7 @@ namespace eval ::tclapp::xilinx::projutils {
               lappend arg_list "[string tolower $lib]"
             }
             set arg_list [linsert $arg_list end "-libname" "unisims_ver" "-libname" "secureip"]
-            puts $fh "design_libs_elab=\"[join $arg_list " "]\"\n"
+            puts $fh "  design_libs_elab=\"[join $arg_list " "]\"\n"
 
             set arg_list [list $tool "\$${tool}_opts"]
             if { [is_fileset $a_xport_sim_vars(sp_tcl_obj)] } {
@@ -1041,7 +828,8 @@ namespace eval ::tclapp::xilinx::projutils {
               lappend arg_list "${top_lib}.glbl"
             }
             lappend arg_list "\$design_libs_elab"
-            puts $fh [join $arg_list " "]
+            set cmd_str [join $arg_list " "]
+            puts $fh "  $cmd_str"
           }
           "vcs_mx" {
             set tool "vcs"
@@ -1050,7 +838,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-full64"]
             }
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
+            puts $fh "  ${tool}_opts=\"[join $arg_list " "]\"\n"
  
             set arg_list [list "$tool" "\$${tool}_opts" "${top_lib}.$a_xport_sim_vars(s_sim_top)"]
             if { [contains_verilog] } {
@@ -1058,7 +846,8 @@ namespace eval ::tclapp::xilinx::projutils {
             }
             lappend arg_list "-o"
             lappend arg_list "$a_xport_sim_vars(s_sim_top)_simv"
-            puts $fh [join $arg_list " "]
+            set cmd_str [join $arg_list " "]
+            puts $fh "  $cmd_str"
           }
         }
         puts $fh "\}"
@@ -1077,9 +866,7 @@ namespace eval ::tclapp::xilinx::projutils {
         variable a_xport_sim_vars
         variable l_compile_order_files
  
-        puts $fh "#"
-        puts $fh "# STEP: simulate"
-        puts $fh "#"
+        puts $fh "# RUN_STEP: <simulate>"
         puts $fh "simulate()\n\{"
         if {[llength $l_compile_order_files] == 0} {
           puts $fh "# None (no sources present)"
@@ -1096,10 +883,11 @@ namespace eval ::tclapp::xilinx::projutils {
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-64bit"]
             }
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\"\n"
+            puts $fh "  ${tool}_opts=\"[join $arg_list " "]\"\n"
 
             set arg_list [list "$tool" "\$${tool}_opts" "${top_lib}.$a_xport_sim_vars(s_sim_top)" "-input" "$do_filename"]
-            puts $fh [join $arg_list " "]
+            set cmd_str [join $arg_list " "]
+            puts $fh "  $cmd_str"
           }
           "vcs_mx" {
             set tool "$a_xport_sim_vars(s_sim_top)_simv"
@@ -1108,37 +896,11 @@ namespace eval ::tclapp::xilinx::projutils {
             puts $fh ""
 
             set arg_list [list "./$a_xport_sim_vars(s_sim_top)_simv" "\$${tool}_opts" "-do" "$do_filename"]
-            puts $fh [join $arg_list " "]
+            set cmd_str [join $arg_list " "]
+            puts $fh "  $cmd_str"
           }
         }
         puts $fh "\}"
-        write_do_file $do_filename
-    }
-
-    proc write_do_file { file } {
- 
-        # Summary: Write do file for simulation
- 
-        # Argument Usage:
-        # file - do filename
- 
-        # Return Value:
-        # none
-       
-        variable a_xport_sim_vars
- 
-        set do_file [file join $a_xport_sim_vars(s_out_dir) $file]
-        set fh 0
-        if {[catch {open $do_file w} fh]} {
-          send_msg_id Vivado-projutils-043 ERROR "failed to open file to write ($do_file)\n"
-        } else {
-          puts $fh "run"
-          switch -regexp -- $a_xport_sim_vars(s_simulator) {
-            "ies"    { puts $fh "exit" }
-            "vcs_mx" { puts $fh "quit" }
-          }
-        }
-        close $fh
     }
 
     proc append_define_generics { def_gen_list tool opts_arg } {
@@ -1435,33 +1197,6 @@ namespace eval ::tclapp::xilinx::projutils {
         }
     }
  
-    proc export_glbl_file {} {
- 
-        # Summary: Copies glbl.v file from install data dir to output dir
- 
-        # Argument Usage:
-        # none
- 
-        # Return Value:
-        # True (0) if file copied, false (1) otherwise
- 
-        variable a_xport_sim_vars
- 
-        set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-        set file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
-        set export_dir $a_xport_sim_vars(s_out_dir)
- 
-        if {[catch {file copy -force $file $export_dir} error_msg] } {
-          send_msg_id Vivado-projutils-029 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
-          return 1
-        }
- 
-        set glbl_file [file normalize [file join $export_dir "glbl.v"]]
-        send_msg_id Vivado-projutils-030 INFO "Copied glbl file (glbl.v) to export directory ($export_dir)\n"
- 
-        return 0
-    }
- 
     proc get_compile_order_libs { } {
  
         # Summary: Find unique list of design libraries
@@ -1725,5 +1460,282 @@ namespace eval ::tclapp::xilinx::projutils {
         # return absolute 
         return $file_dir_path_to_convert
     }
-   
+
+    proc print_usage { fh } {
+ 
+        # Summary: Print usage helper in script file
+ 
+        # Argument Usage:
+        # None
+ 
+        # Return Value:
+        # None 
+
+        variable a_xport_sim_vars
+
+        puts $fh "# Script usage"
+        puts $fh "usage()"
+        puts $fh "\{"
+        puts $fh "  msg=\"Usage: $a_xport_sim_vars(s_script_filename) \[-help\]\\n\\"
+        puts $fh "Usage: $a_xport_sim_vars(s_script_filename) \[-noclean_files\]\\n\\"
+        puts $fh "Usage: $a_xport_sim_vars(s_script_filename) \[-reset_run\]\\n\\n\\\n\\"
+        puts $fh "\[-help\] -- Print help\\n\\n\\"
+        puts $fh "\[-noclean_files\] -- Do not remove simulator generated files from the previous run\\n\\n\\"
+        puts $fh "\[-reset_run\] -- Recreate simulator setup files and library mappings for a clean run. The generated files\\n\\"
+        puts $fh "\\t\\tfrom the previous run will be removed automatically.\\n\""
+        puts $fh "  echo -e \$msg"
+        puts $fh "  exit 1"
+        puts $fh "\}"
+        puts $fh ""
+    }
+
+    proc print_design_lib_mappings { fh } {
+ 
+        # Summary: Print design library mappings helper in script file
+ 
+        # Argument Usage:
+        # File handle
+
+        # Return Value:
+        # None 
+
+        variable a_xport_sim_vars
+
+        puts $fh "# Create design library directory paths and define design library mappings in cds.lib"
+        puts $fh "create_lib_mappings()"
+        puts $fh "\{"
+
+        set simulator $a_xport_sim_vars(s_simulator)
+        set libs [list]
+        foreach lib [get_compile_order_libs] {
+          if {[string length $lib] == 0} { continue; }
+          if { ({work} == $lib) && ({vcs_mx} == $simulator) } { continue; }
+          lappend libs [string tolower $lib]
+        }
+        puts $fh "  libs=([join $libs " "])"
+        switch -regexp -- $simulator {
+          "ies"    { puts $fh "  file=\"cds.lib\"" }
+          "vcs_mx" { puts $fh "  file=\"synopsys_sim.setup\"" }
+        }
+        puts $fh "  dir=\"$simulator\"\n"
+        puts $fh "  if \[\[ -e \$file \]\]; then"
+        puts $fh "    rm -f \$file"
+        puts $fh "  fi\n"
+        puts $fh "  if \[\[ -e \$dir \]\]; then"
+        puts $fh "    rm -rf \$dir"
+        puts $fh "  fi"
+        puts $fh ""
+        puts $fh "  touch \$file"
+
+        # is -lib_map_path specified and point to valid location?
+        if { [string length $a_xport_sim_vars(s_lib_map_path)] > 0 } {
+          set a_xport_sim_vars(s_lib_map_path) [file normalize $a_xport_sim_vars(s_lib_map_path)]
+          set compiled_lib_dir $a_xport_sim_vars(s_lib_map_path)
+          if { ![file exists $compiled_lib_dir] } {
+            send_msg_id Vivado-projutils-052 ERROR
+              "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"
+            puts $fh "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
+          } else {
+            puts $fh "  lib_map_path=\"$compiled_lib_dir\""
+          }
+        } else {
+          send_msg_id Vivado-projutils-055 WARNING \
+             "The pre-compiled simulation library directory path was not specified (-lib_map_path), which may\n\
+             cause simulation errors when running this script. Please refer to the generated script header section for more details."
+          puts $fh "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
+        }
+
+        switch -regexp -- $simulator {
+          "ies"    {
+            set file "cds.lib"
+            puts $fh "  incl_ref=\"INCLUDE \$lib_map_path/$file\""
+            puts $fh "  echo \$incl_ref >> \$file"
+          }
+          "vcs_mx" {
+            set file "synopsys_sim.setup"
+            puts $fh "  incl_ref=\"OTHERS=\$lib_map_path/$file\""
+            puts $fh "  echo \$incl_ref >> \$file"
+          }
+        }
+
+        puts $fh ""
+        puts $fh "  for (( i=0; i<\$\{#libs\[*\]\}; i++ )); do"
+        puts $fh "    lib=\"\$\{libs\[i\]\}\""
+        puts $fh "    lib_dir=\"\$dir/\$lib\""
+        puts $fh "    if \[\[ ! -e \$lib_dir \]\]; then"
+        puts $fh "      mkdir -p \$lib_dir"
+
+        switch -regexp -- $simulator {
+          "ies"    { puts $fh "      mapping=\"DEFINE \$lib \$dir/\$lib\"" }
+          "vcs_mx" { puts $fh "      mapping=\"\$lib : \$dir/\$lib\"" }
+        }
+
+        puts $fh "      echo \$mapping >> \$file"
+        puts $fh "    fi"
+        puts $fh "  done"
+        puts $fh "\}"
+        puts $fh ""
+    }
+
+    proc print_do_file { fh } {
+ 
+        # Summary: Print do file helper in script file
+ 
+        # Argument Usage:
+        # File handle
+
+        # Return Value:
+        # None 
+
+        variable a_xport_sim_vars
+
+        puts $fh "# Create do file"
+        puts $fh "create_do_file()"
+        puts $fh "\{"
+        set do_file "$a_xport_sim_vars(s_sim_top).do"
+        puts $fh "  file=\"${do_file}\""
+        puts $fh "  if \[\[ -e \$file \]\]; then"
+        puts $fh "    rm -f \$file"
+        puts $fh "  fi"
+        puts $fh "  touch \$file"
+        puts $fh "  echo \"run\" >> \$file"
+        switch -regexp -- $a_xport_sim_vars(s_simulator) {
+          "ies"    { puts $fh "  echo \"exit\" >> \$file" }
+          "vcs_mx" { puts $fh "  echo \"quit\" >> \$file" }
+        }
+        puts $fh "\}"
+        puts $fh ""
+
+    }
+
+    proc print_copy_glbl_file { fh } {
+ 
+        # Summary: Print copy glbl.v file helper in script file
+ 
+        # Argument Usage:
+        # File handle
+
+        # Return Value:
+        # None 
+
+        puts $fh "# Copy glbl.v file into run directory"
+        puts $fh "copy_glbl_file()"
+        puts $fh "\{"
+        puts $fh "  file=\"glbl.v\""
+        puts $fh "  src_file=\"/wrk/hdstaff/rvklair/rel/HEAD/data/verilog/src/\$file\""
+        puts $fh "  if \[\[ ! -e \$file \]\]; then"
+        puts $fh "    cp \$src_file ."
+        puts $fh "  fi"
+        puts $fh "\}"
+        puts $fh ""
+    }
+
+    proc print_reset_run { fh } {
+ 
+        # Summary: Print reset_run helper in script file
+ 
+        # Argument Usage:
+        # File handle
+
+        # Return Value:
+        # None 
+
+        variable a_xport_sim_vars
+
+        puts $fh "# Remove generated data from the previous run and re-create setup files/library mappings"
+        puts $fh "reset_run()"
+        puts $fh "\{"
+        set top $a_xport_sim_vars(s_sim_top)
+        switch -regexp -- $a_xport_sim_vars(s_simulator) {
+          "ies" { 
+            set file_list [list "ncsim.key" "ncvlog.log" "ncvhdl.log" "${top}_elab.log" "${top}_sim.log"]
+            set files [join $file_list " "]
+            puts $fh "  files_to_remove=($files)"
+          }
+          "vcs_mx" {
+            set file_list [list "ucli.key" "AN.DB" "csrc" "${top}_simv" "${top}_simv.daidir" \
+                                "vlogan.log" "vhdlan.log" "${top}_comp.log" "${top}_elab.log" "${top}_sim.log" \
+                                ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock"]
+            set files [join $file_list " "]
+            puts $fh "  files_to_remove=($files)"
+          }
+        }
+        puts $fh "  for (( i=0; i<\$\{#files_to_remove\[*\]\}; i++ )); do"
+        puts $fh "    file=\"\$\{files_to_remove\[i\]\}\""
+        puts $fh "    if \[\[ -e \$file \]\]; then"
+        puts $fh "      rm -rf \$file"
+        puts $fh "    fi"
+        puts $fh "  done"
+        puts $fh "\}"
+        puts $fh ""
+    }
+
+    proc print_proc_case_stmt { fh } {
+ 
+        # Summary: Print reset_run helper in script file
+ 
+        # Argument Usage:
+        # File handle
+
+        # Return Value:
+        # None 
+ 
+        variable a_xport_sim_vars
+
+        puts $fh "  case \$1 in"
+        puts $fh "    \"-reset_run\" )"
+        puts $fh "      reset_run"
+        puts $fh "      echo -e \"INFO: Simulation run files deleted.\\n\""
+        puts $fh "      exit 0"
+        puts $fh "    ;;"
+        puts $fh "    \"-noclean_files\" )"
+        puts $fh "      # do not remove previous data"
+        puts $fh "    ;;"
+        puts $fh "    * )"
+        puts $fh "     create_lib_mappings"
+        switch -regexp -- $a_xport_sim_vars(s_simulator) {
+          "ies" { puts $fh "     touch hdl.var" }
+        }
+        puts $fh "     create_do_file"
+        if { [contains_verilog] } { puts $fh "     copy_glbl_file" }
+        puts $fh "  esac"
+        puts $fh ""
+    }
+
+    proc print_main_function { fh } {
+ 
+        # Summary: Print main args helper in script file
+ 
+        # Argument Usage:
+        # File handle
+
+        # Return Value:
+        # None 
+
+        variable a_xport_sim_vars
+
+        set version_txt [split [version] "\n"]
+        set version     [lindex $version_txt 0]
+        set copyright   [lindex $version_txt 2]
+        set product     [lindex [split $version " "] 0]
+        set version_id  [join [lrange $version 1 end] " "]
+ 
+        puts $fh "# Script info"
+        puts $fh "echo -e \"$a_xport_sim_vars(s_script_filename) - Script generated by export_simulation ($version-id)\\n\"\n"
+        puts $fh "# Check command line args"
+        puts $fh "if \[\[ \$# > 1 \]\]; then"
+        puts $fh "  echo -e \"ERROR: invalid number of arguments specified\\n\""
+        puts $fh "  usage"
+        puts $fh "fi\n"
+        puts $fh "if \[\[ (\$# == 1 ) && (\$1 != \"-noclean_files\" && \$1 != \"-reset_run\" && \$1 != \"-help\" && \$1 != \"-h\") \]\]; then"
+        puts $fh "  echo -e \"ERROR: unknown option specified '\$1' (type \"$a_xport_sim_vars(s_script_filename) -help\" for for more info)\""
+        puts $fh "  exit 1"
+        puts $fh "fi"
+        puts $fh ""
+        puts $fh "if \[\[ (\$1 == \"-help\" || \$1 == \"-h\") \]\]; then"
+        puts $fh "  usage"
+        puts $fh "fi\n"
+        puts $fh "# Launch script"
+        puts $fh "run \$1"
+    }
 }
