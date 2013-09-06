@@ -710,7 +710,7 @@ namespace eval ::tclapp::xilinx::projutils {
           if { [lsearch -exact [list_property [lindex [get_files -quiet -all $file] 0]] {LIBRARY}] == -1} {
             continue;
           }
-          set associated_library [get_property library [get_files -quiet -all $file]]
+          set associated_library [get_property library [lindex [get_files -quiet -all $file] 0]]
           if { $a_xport_sim_vars(b_absolute_path) } {
             set file "[resolve_file_path $file]"
           } else {
@@ -1618,12 +1618,15 @@ namespace eval ::tclapp::xilinx::projutils {
         # Return Value:
         # None 
 
+        set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
+        set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
+
         puts $fh "# Copy glbl.v file into run directory"
         puts $fh "copy_glbl_file()"
         puts $fh "\{"
-        puts $fh "  file=\"glbl.v\""
-        puts $fh "  src_file=\"/wrk/hdstaff/rvklair/rel/HEAD/data/verilog/src/\$file\""
-        puts $fh "  if \[\[ ! -e \$file \]\]; then"
+        puts $fh "  glbl_file=\"glbl.v\""
+        puts $fh "  src_file=\"$glbl_file\""
+        puts $fh "  if \[\[ ! -e \$glbl_file \]\]; then"
         puts $fh "    cp \$src_file ."
         puts $fh "  fi"
         puts $fh "\}"
