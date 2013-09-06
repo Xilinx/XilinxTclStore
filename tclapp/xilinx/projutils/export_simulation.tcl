@@ -47,6 +47,8 @@ namespace eval ::tclapp::xilinx::projutils {
         # Return Value:
         # true (0) if success, false (1) otherwise
 
+        # Categories: xilinxtclstore, projutils
+
         variable a_xport_sim_vars
         variable l_valid_simulator_types
 
