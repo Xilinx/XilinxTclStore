@@ -45,6 +45,8 @@ namespace eval ::tclapp::xilinx::projutils {
         # Return Value:
         # true (0) if success, false (1) otherwise
 
+        # Categories: xilinxtclstore, projutils
+
         # reset global variables
         variable a_global_vars
  
