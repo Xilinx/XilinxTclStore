@@ -347,7 +347,8 @@ proc ::tclapp::xilinx::test::myproc1 {arg1 {optional1 ,}} {
     ...
 }
 ```
-Each of these meta-comments is interpreted by Vivado at run-time. Following is a description of each.
+Each of these meta-comments is interpreted by Vivado at run-time. It is critical that they be present and correct in your app 
+or it may not function correctly. The following is a description of each meta-comment.
 
 #### Summary
 
@@ -359,8 +360,8 @@ This is the most complex of the meta-comments. As shown in the above example, th
 optional arg supported by your app. Optional args should be enclosed within []. Each arg must accept a value 
 (so-called boolean args, where only the arg is specified and a value such as 1 is implied are not currently supported). 
 You can also specify a default value, which is a value which will be assumed if the user does not specify the given optional
-arg. You can also specify positional args. A positional arg is for which just a value is specified
-and that has no corresponding flag (e.g. -arg1).
+arg. You can also specify positional args. A positional arg is one for which just a value is specified,
+without any proceeding flag.
 
 Here is a more concrete example:
 
@@ -383,7 +384,7 @@ Use this meta-comment to specify the possible return values for your app.
 #### Categories
 
 Use this meta-comment to specify which categories in the Vivado help system your app should be listed. "Categtories:" 
-should be followe by a comma-separated list. By convention, the first category listed should always be "xilinxtclstore".
+should be followed by a comma-separated list. By convention, the first category listed should always be "xilinxtclstore".
 Any additional categories are up to you as the app developer.
 
 
