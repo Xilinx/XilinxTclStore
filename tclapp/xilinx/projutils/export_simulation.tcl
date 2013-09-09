@@ -572,7 +572,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
         print_usage $fh
         print_design_lib_mappings $fh
-        create_do_file $fh
+        create_do_file
         print_copy_glbl_file $fh
         print_reset_run $fh
 
@@ -1579,12 +1579,12 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh ""
     }
 
-    proc create_do_file { fh } {
+    proc create_do_file {} {
  
         # Summary: Create default do file
  
         # Argument Usage:
-        # File handle
+        # none
 
         # Return Value:
         # None 
@@ -1593,17 +1593,17 @@ namespace eval ::tclapp::xilinx::projutils {
 
         set do_filename "$a_xport_sim_vars(s_sim_top).do"
         set do_file [file join $a_xport_sim_vars(s_out_dir) $do_filename]
-        set fh 0
-        if {[catch {open $do_file w} fh]} {
+        set fh_do 0
+        if {[catch {open $do_file w} fh_do]} {
           send_msg_id Vivado-projutils-043 ERROR "failed to open file to write ($do_file)\n"
         } else {
-          puts $fh "run"
+          puts $fh_do "run"
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
-            "ies"    { puts $fh "exit" }
-            "vcs_mx" { puts $fh "quit" }
+            "ies"    { puts $fh_do "exit" }
+            "vcs_mx" { puts $fh_do "quit" }
           }
         }
-        close $fh
+        close $fh_do
     }
 
     proc print_copy_glbl_file { fh } {
