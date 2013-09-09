@@ -572,7 +572,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
         print_usage $fh
         print_design_lib_mappings $fh
-        print_do_file $fh
+        create_do_file $fh
         print_copy_glbl_file $fh
         print_reset_run $fh
 
@@ -1248,7 +1248,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
         if { [string length $top_lib] == 0 } {
           if { [llength $l_compile_order_files] > 0 } {
-            set top_lib [get_property library [get_files -all [lindex $l_compile_order_files end]]]
+            set top_lib [get_property library [lindex [get_files -all [lindex $l_compile_order_files end]] 0]]
           }
         }
 
@@ -1579,9 +1579,9 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $fh ""
     }
 
-    proc print_do_file { fh } {
+    proc create_do_file { fh } {
  
-        # Summary: Print do file helper in script file
+        # Summary: Create default do file
  
         # Argument Usage:
         # File handle
@@ -1591,23 +1591,19 @@ namespace eval ::tclapp::xilinx::projutils {
 
         variable a_xport_sim_vars
 
-        puts $fh "# Create do file"
-        puts $fh "create_do_file()"
-        puts $fh "\{"
-        set do_file "$a_xport_sim_vars(s_sim_top).do"
-        puts $fh "  file=\"${do_file}\""
-        puts $fh "  if \[\[ -e \$file \]\]; then"
-        puts $fh "    rm -f \$file"
-        puts $fh "  fi"
-        puts $fh "  touch \$file"
-        puts $fh "  echo \"run\" >> \$file"
-        switch -regexp -- $a_xport_sim_vars(s_simulator) {
-          "ies"    { puts $fh "  echo \"exit\" >> \$file" }
-          "vcs_mx" { puts $fh "  echo \"quit\" >> \$file" }
+        set do_filename "$a_xport_sim_vars(s_sim_top).do"
+        set do_file [file join $a_xport_sim_vars(s_out_dir) $do_filename]
+        set fh 0
+        if {[catch {open $do_file w} fh]} {
+          send_msg_id Vivado-projutils-043 ERROR "failed to open file to write ($do_file)\n"
+        } else {
+          puts $fh "run"
+          switch -regexp -- $a_xport_sim_vars(s_simulator) {
+            "ies"    { puts $fh "exit" }
+            "vcs_mx" { puts $fh "quit" }
+          }
         }
-        puts $fh "\}"
-        puts $fh ""
-
+        close $fh
     }
 
     proc print_copy_glbl_file { fh } {
@@ -1701,7 +1697,6 @@ namespace eval ::tclapp::xilinx::projutils {
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { puts $fh "     touch hdl.var" }
         }
-        puts $fh "     create_do_file"
         if { [contains_verilog] } { puts $fh "     copy_glbl_file" }
         puts $fh "  esac"
         puts $fh ""
