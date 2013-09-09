@@ -39,6 +39,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # [-force]: Overwrite existing tcl script file
         # [-all_properties]: Write all properties (default & non-default) for the project object(s)
         # [-no_copy_sources]: Do not import sources even if they were local in the original project
+        # [-absolute_path]: Make all file paths absolute wrt the original project directory
         # [-dump_project_info]: Write object values
         # file: Name of the tcl script file to generate
 
@@ -60,6 +61,7 @@ namespace eval ::tclapp::xilinx::projutils {
             "-force"                { set a_global_vars(b_arg_force) 1 }
             "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
             "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
+            "-absolute_path"        { set a_global_vars(b_absolute_path) 1 }
             "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
             default {
               # is incorrect switch specified?
@@ -157,6 +159,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set a_global_vars(s_target_proj_dir)    ""
         set a_global_vars(b_arg_force)          0
         set a_global_vars(b_arg_no_copy_srcs)   0
+        set a_global_vars(b_absolute_path)      0
         set a_global_vars(b_arg_all_props)      0
         set a_global_vars(b_arg_dump_proj_info) 0
         set a_global_vars(b_local_sources)      0
@@ -224,7 +227,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # writer helpers
         wr_create_project $proj_dir $proj_name
         wr_project_properties $proj_name
-        wr_filesets $proj_name
+        wr_filesets $proj_dir $proj_name
         wr_runs $proj_name
         wr_proj_info $proj_name
 
@@ -339,7 +342,7 @@ namespace eval ::tclapp::xilinx::projutils {
         write_props $proj_name $get_what $tcl_obj "project"
     }
 
-    proc wr_filesets { proj_name } {
+    proc wr_filesets { proj_dir proj_name } {
 
         # Summary: write fileset object properties 
         # This helper command is used to script help.
@@ -355,11 +358,11 @@ namespace eval ::tclapp::xilinx::projutils {
         # write fileset data
         foreach {fs_data} $a_fileset_types {
           set filesets [get_filesets -filter FILESET_TYPE==[lindex $fs_data 0]]
-          write_specified_fileset $proj_name $filesets
+          write_specified_fileset $proj_dir $proj_name $filesets
         }
     }
 
-    proc write_specified_fileset { proj_name filesets } {
+    proc write_specified_fileset { proj_dir proj_name filesets } {
 
         # Summary: write fileset properties and sources 
         # This helper command is used to script help.
@@ -392,7 +395,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
           lappend l_script_data "# Add files to '$tcl_obj' fileset"
           lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
-          write_files $proj_name $tcl_obj $type
+          write_files $proj_dir $proj_name $tcl_obj $type
 
           lappend l_script_data "# Set '$tcl_obj' fileset properties"
           lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
@@ -767,7 +770,7 @@ namespace eval ::tclapp::xilinx::projutils {
     
     }
 
-    proc write_files { proj_name tcl_obj type } {
+    proc write_files { proj_dir proj_name tcl_obj type } {
 
         # Summary: write file and file properties 
         # This helper command is used to script help.
@@ -792,7 +795,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set fs_name [get_filesets $tcl_obj]
 
         set import_coln [list]
-        set file_coln [list]
+        set add_file_coln [list]
 
         foreach file [lsort [get_files -norecurse -of_objects $tcl_obj]] {
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
@@ -830,7 +833,7 @@ namespace eval ::tclapp::xilinx::projutils {
             }
       
             # add file to collection
-            lappend file_coln "$file"
+            lappend add_file_coln "$file"
 
             # set flag that local sources were found and print warning at the end
             if { !$a_global_vars(b_local_sources) } {
@@ -839,10 +842,16 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
          
-        if {[llength $file_coln]>0} { 
+        if {[llength $add_file_coln]>0} { 
           lappend l_script_data "set files \[list \\"
-          foreach file $file_coln {
-            lappend l_script_data " $file\\"
+          foreach file $add_file_coln {
+            if { $a_global_vars(b_absolute_path) } {
+              lappend l_script_data " $file\\"
+            } else {
+              set file_no_quotes [string trim $file "\""]
+              set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
+              lappend l_script_data " \"\$orig_proj_dir/$rel_file_path\"\\"
+            }
           }
           lappend l_script_data "\]"
           lappend l_script_data "add_files -norecurse -fileset \$obj \$files"
@@ -864,10 +873,10 @@ namespace eval ::tclapp::xilinx::projutils {
         }
 
         # write fileset file properties for remote files (added sources)
-        write_fileset_file_properties $tcl_obj $fs_name $l_remote_file_list "remote"
+        write_fileset_file_properties $tcl_obj $fs_name $proj_dir $l_remote_file_list "remote"
 
         # write fileset file properties for local files (imported sources)
-        write_fileset_file_properties $tcl_obj $fs_name $l_local_file_list "local"
+        write_fileset_file_properties $tcl_obj $fs_name $proj_dir $l_local_file_list "local"
 
     }
 
@@ -956,7 +965,7 @@ namespace eval ::tclapp::xilinx::projutils {
        return $target_val
    }
 
-   proc write_fileset_file_properties { tcl_obj fs_name l_file_list file_category } {
+   proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_category } {
 
        # Summary: 
        # Write fileset file properties for local and remote files
@@ -1053,7 +1062,16 @@ namespace eval ::tclapp::xilinx::projutils {
 
          # write properties now
          if { $prop_count>0 } {
-           lappend l_script_data "set file \"$file\""
+           if { {remote} == $file_category } {
+             if { $a_global_vars(b_absolute_path) } {
+               lappend l_script_data "set file \"$file\""
+             } else {
+               lappend l_script_data "set file \"\$orig_proj_dir/[get_relative_file_path $file $proj_dir]\""
+               lappend l_script_data "set file \[file normalize \$file\]"
+             }
+           } else {
+             lappend l_script_data "set file \"$file\""
+           }
            lappend l_script_data "set file_obj \[get_files -of_objects $tcl_obj \[list \"*\$file\"\]\]"
            set get_what "get_files"
            write_properties $prop_info_list $get_what $tcl_obj
@@ -1066,4 +1084,95 @@ namespace eval ::tclapp::xilinx::projutils {
        }
        lappend l_script_data ""
    }
+
+    proc get_relative_file_path { file_path_to_convert relative_to } {
+
+        # Summary: Get the relative path wrt to path specified
+
+        # Argument Usage:
+        # file_path_to_convert: input file to make relative to specfied path
+
+        # Return Value:
+        # Relative path wrt the path specified
+
+        variable a_xport_sim_vars
+
+        # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
+        if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
+          set relative_to [file dirname $relative_to]
+        }
+
+        set cwd [file normalize [pwd]]
+
+        if { [file pathtype $file_path_to_convert] eq "relative" } {
+          # is relative_to path same as cwd?, just return this path, no further processing required
+          if { [string equal $relative_to $cwd] } {
+            return $file_path_to_convert
+          }
+          # the specified path is "relative" but something else, so make it absolute wrt current working dir
+          set file_path_to_convert [file join $cwd $file_path_to_convert]
+        }
+
+        # is relative_to "relative"? convert to absolute as well wrt cwd
+        if { [file pathtype $relative_to] eq "relative" } {
+          set relative_to [file join $cwd $relative_to]
+        }
+
+        # normalize
+        set file_path_to_convert [file normalize $file_path_to_convert]
+        set relative_to          [file normalize $relative_to]
+
+        set file_path $file_path_to_convert
+        set file_comps        [file split $file_path]
+        set relative_to_comps [file split $relative_to]
+
+        set found_match false
+        set index 0
+
+        # compare each dir element of file_to_convert and relative_to, set the flag and
+        # get the final index till these sub-dirs matched
+        while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
+          if { !$found_match } { set found_match true }
+          incr index
+        }
+
+        # any common dirs found? convert path to relative
+        if { $found_match } {
+          set parent_dir_path ""
+          set rel_index $index
+          # keep traversing the relative_to dirs and build "../" levels
+          while { [lindex $relative_to_comps $rel_index] != "" } {
+            set parent_dir_path "../$parent_dir_path"
+            incr rel_index
+          }
+
+          #
+          # at this point we have parent_dir_path setup with exact number of sub-dirs to go up
+          #
+
+          # now build up part of path which is relative to matched part
+          set rel_path ""
+          set rel_index $index
+
+          while { [lindex $file_comps $rel_index] != "" } {
+            set comps [lindex $file_comps $rel_index]
+            if { $rel_path == "" } {
+              # first dir
+              set rel_path $comps
+            } else {
+              # append remaining dirs
+              set rel_path "${rel_path}/$comps"
+            }
+            incr rel_index
+          }
+
+          # prepend parent dirs, this is the complete resolved path now
+          set resolved_path "${parent_dir_path}${rel_path}"
+
+          return $resolved_path
+        }
+
+        # no common dirs found, just return the normalized path
+        return $file_path
+    }
 }
