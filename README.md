@@ -322,8 +322,8 @@ proc ::tclapp::mycompany::myapp::myproc1 {arg1 {optional1 ,}} {
 }
 ```
 
-3. You must have 3 comments which describe your procedure interfaces - inside of the procedures, 
-and each section must be seperated by new lines (without comments)
+3. You must have 4 "meta-comments" which describe your procedure interfaces - inside of the procedures, 
+and each meta-comment must be seperated by new lines (without comments)
 ```tcl
 # tclapp/mycompany/myapp/myfile.tcl
 namespace eval ::tclapp::mycompany::myapp {
@@ -332,18 +332,59 @@ namespace eval ::tclapp::mycompany::myapp {
 }
 proc ::tclapp::xilinx::test::myproc1 {arg1 {optional1 ,}} {
     
-    # Summary : A one line summary of what this proc does
+    # Summary: A one line summary of what this proc does
 
     # Argument Usage:
-    # arg1 : A one line summary of this argument
-    # [optional1=,] : A one line summary of this argument
+    # arg1 <arg1_value> : A one line summary of this argument which takes a value arg1_value.
+    # [optional1 <opt1_value> = <opt1_default>] : A one line summary of an optional argument that takes a value and which has a default
 
     # Return Value: 
     # TCL_OK is returned with result set to a string
+
+    # Categories: xilinxtclstore, projutils
+        
     
     ...
 }
 ```
+Each of these meta-comments is interpreted by Vivado at run-time. Following is a description of each.
+
+#### Summary
+
+The text following "Summary:" should be a brief, one-line description of your app.
+
+#### Argument Usage
+
+This is the most complex of the meta-comments. As shown in the above example, there should be one line for each mandatory or
+optional arg supported by your app. Optional args should be enclosed within []. Each arg must accept a value 
+(so-called boolean args, where only the arg is specified and a value such as 1 is implied are not currently supported). 
+You can also specify a default value, which is a value which will be assumed if the user does not specify the given optional
+arg. You can also specify positional args. A positional arg is for which just a value is specified
+and that has no corresponding flag (e.g. -arg1).
+
+Here is a more concrete example:
+
+```tcl
+        # Argument Usage: 
+        # file: Name of  file to generate
+        # -owner <username>: Name of the owner of the file generated.
+        # [-date <mm/dd/yyyy> = <todays_date>]: The date to use, will default to today's date if not specified.
+```
+
+This example app has one mandatory positional arg, which is the name of a file it will generate. It also has a mandatory
+flag -owner, and an optional arg -date, which has a default value. Assuming this app was called "touch", an example usage might be:
+
+touch /home/joe_user/myfile -owner root 
+
+#### Return Value
+
+Use this meta-comment to specify the possible return values for your app.
+
+#### Categories
+
+Use this meta-comment to specify which categories in the Vivado help system your app should be listed. "Categtories:" 
+should be followe by a comma-separated list. By convention, the first category listed should always be "xilinxtclstore".
+Any additional categories are up to you as the app developer.
 
 
 ### Create the Package Index and Tcl Index
