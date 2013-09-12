@@ -1,112 +1,150 @@
+
 Description:
 
-  Export a simulation script file for the target simulator. The generated script will
-  contain simulator commands for compiling, elaborating and simulating the design.
+  Export a simulation script file for the target simulator. Currently the Cadence Incisive 
+  Enterprise Simulator (ies) and the Synopsys VCS MX simulator (vcs_mx) are supported. The
+  generated script will contain simulator commands for compiling, elaborating and simulating
+  the design.
 
-  The command will retrieve the simulation compile order for the specified object
-  and export this information in a text file with the compiler commands and default
-  options for the target simulator. The specified object can be either a simulation
-  fileset or an IP. If the object is not specified, then this command will generate
-  the script for the simulation top. Any verilog include directories or file paths
-  for the files containing verilog define statements will be added to the compiler
-  command line.
+  The command will retrieve the simulation compile order of specified objects, and export
+  this information in a shell script with the compiler commands and default options for the
+  target simulator. The specified object can be either a simulation fileset or an IP.
 
-  The command will also copy data files (if any) from the fileset or an IP to the
-  output directory. If the design contains "Verilog" sources, then the generated
-  script will copy "glbl.v" from the software installation path to the output directory.
+  If the object is not specified, then this command will generate the script for the active
+  simulation "top". Any verilog include directories or file paths for the files containing 
+  verilog define statements will be added to the compiler command line.
 
-  In order to perform simulation with the generated script, the simulation libraries
-  must be compiled first, with the compiled library directory path specified, when
-  generating this script.
+  By default, the design source file and include directory paths in the compiler command line
+  will be set relative to the "reference_dir" variable that is set in the generated script.
+  To make these paths absolute, specify the "-absolute_path" switch.
+
+  The command will also copy data files (if any) from the fileset, or from an IP, to the output
+  directory. If the design contains "Verilog" sources, then the generated script will also copy
+  the "glbl.v" file from the software installation path to the output directory.
+
+  A default ".do" file that is used in the compiler commands in the simulation script for the
+  target simulator, will be written to the output directory.
+
+  NOTE: In order to perform simulation with the generated script, the simulation libraries must
+  be compiled first using the 'compile_simlib' Tcl command with the compiled library directory
+  path specified, when generating this script. The generated script will automatically include
+  the setup files for the target simulator from the compiled library directory.
 
 Arguments:
 
-  -of_objects - (Optional) Specify the target object for which the simulation script
-  file needs to be generated. The target object can be either a simulation fileset
-  (simset) or an IP. If this option is not specified then this command will generate 
-  file for the current simulation fileset "top".
+  -of_objects - (Optional) Specify the target object for which the simulation script file needs
+  to be generated. The target object can be either a simulation fileset (simset) or an IP. If this
+  option is not specified then this command will generate file for the current simulation fileset. 
   
-  -lib_map_path - (Optional) Specify the pre-compiled simulation library directory path
-  where the Xilinx simulation libraries are compiled. Please see the header section in
-  the generated script for more information.
+  -lib_map_path - (Optional) Specify the pre-compiled simulation library directory path where the
+  Xilinx simulation libraries are compiled. Please see the header section in the generated script
+  for more information.
 
-  -script_name - (Optional) Specify the name of the shell script. If this option is not
-  specified then the filename with the following syntax will be generated based on the
-  object type selected with -of_objects switch:-
+  -script_name - (Optional) Specify the name of the shell script. If this option is not specified
+  then the filename with the following syntax will be generated based on the object type selected
+  with -of_objects switch:
 
    <simulation_top_name>_sim_<simulator>.sh
    <ip_name>_sim_<simulator>.sh
 
-  -absolute_path - (Optional) Specify this option to make source and include directory
-  paths absolute. The "reference_dir" variable will be set to the directory path that is
-  specified with the -directory switch.
+  -absolute_path - (Optional) Specify this option to make source and include directory paths used
+  in the script "absolute". By default, all paths are written as "relative" to the directory path
+  that is specified with the -directory switch. A "reference_dir" variable will be set in the 
+  script to the directory path that is specified with the -directory switch.
 
-  -32bit - (Optional) Specify this option to perform 32bit simulation. If this option
-  is not specified then by default 64bit option will be added to the command line.
+  -32bit - (Optional) Specify this option to perform 32bit simulation. If this option is not
+  specified then by default 64bit option will be added to the simulation command line.
 
-  -force - (Optional) Overwrite an existing script file of the same name. If
-  the script file already exists, the tool returns an error unless the -force argument
-  is specified. 
+  -force - (Optional) Overwrite an existing script file of the same name. If the script file already
+  exists, the tool returns an error unless the -force argument is specified. 
 
-  -directory - (Required) Specify the directory path where the simulation files will be exported.
+  -directory - (Required) Specify the directory path where the script file will be exported.
 
-  -simulator - (Required) Specify the simulator name for which the simulation script
-   needs to be generated. The valid simulators are "ies" and "vcs_mx".
+  -simulator - (Required) Specify the target simulator name for the simulation script. The valid
+  simulators names are "ies" and "vcs_mx".
 
-  -quiet - (Optional) Execute the command quietly, ignoring any command line errors and
-  returning no messages. The command also returns TCL_OK regardless of any errors encountered
-  during execution.
+  -quiet - (Optional) Execute the command quietly, ignoring any command line errors and returning no
+  messages. The command also returns TCL_OK regardless of any errors encountered during execution.
 
-  -verbose - (Optional) Temporarily override any message limits and return all messages
-  from this command.
+  -verbose - (Optional) Temporarily override any message limits and return all messages from this command.
 
   Note: Message limits can be defined with the set_msg_config command.
 
 Examples:
 
-  The following command generates a simulation script file in the current directory for
-  the "IES" simulator:-
+  The following command generates a simulation script file in the current directory for the "IES"
+  simulator. The source file paths in the generated script will be set relative to the current directory:
 
   % export_simulation -simulator ies -directory "."
 
-  The following command overwrites an existing script file in the current directory:-
+  The following command generates a simulation script file in the current directory for the "IES"
+  simulator. The source file paths in the generated script will be set absolute:
+
+  % export_simulation -absolute_path -simulator ies -directory "."
+
+  The following command overwrites an existing script file in the current directory:
 
   % export_simulation -force -simulator ies -directory "."
 
-  The following command generates a simulation script file named "test_ies.sh" in the
-  "./test_sim" directory:-
+  The following command generates a simulation script file named "test_ies.sh" in the "./test_sim"
+  directory:
 
   % export_simulation -simulator ies -directory "./test_sim" -script_name test_ies.sh
 
-  The following command generates a script file named "top_tb_sim_ies.sh" in the
-  "./test_sim" directory for a project with simulation top set to "top_tb". The command
-  will also copy any data files (.mif, .coe, .dat, etc) to the ./test_sim directory:-
+  The following command generates a script file named "top_tb_sim_ies.sh" in the "./test_sim" directory
+  for a project with simulation top set to "top_tb". The command will also copy any data files (.mif,
+  .coe, .dat, etc) to the ./test_sim directory:
 
   % export_simulation -simulator ies -directory "./test_sim"
 
-  The following command generates a script file "accum_0_sim_ies.sh" for the "accum_0" IP
-  in the specified output directory for the "IES" simulator:-
+  The following command generates a script file "accum_0_sim_ies.sh" for the "accum_0" IP in the
+  specified output directory for the "IES" simulator:
 
   % export_simulation -of_objects [get_files accum_0.xci] -simulator ies -directory "test_sim"
 
-  The following command generates a script file "accum_0_sim_vcs_mx.sh" for the "accum_0" IP
-  in the specified output directory for the "VCS_MX" simulator:-
+  The following command generates a script file "accum_0_sim_vcs_mx.sh" for the "accum_0" IP in the
+  specified output directory for the "VCS_MX" simulator:
 
   % export_simulation -of_objects [get_ips accum_0] -simulator vcs_mx -directory "test_sim"
 
-  The following command generates a script file "fifo_tb_sim_vcs_mx.sh" for the simulation
-  fileset "sim_fifo_test" whose top is set to "fifo_tb" in the specified output directory
-  for the "IES" simulator:-
+  The following command generates a script file "fifo_tb_sim_vcs_mx.sh" for the simulation fileset
+  "sim_fifo_test" whose top is set to "fifo_tb" in the specified output directory for the "IES" simulator:
 
   % export_simulation -of_objects [get_filesets sim_fifo_test] -simulator ies -directory "test_sim"
 
-  The following command exports a script file "top_tb_sim_vcs_mx.sh" for the "VCS_MX" simulator
-  in the specified output directory with the design source files compiled for 32 bit version of
-  the simulator compiler (no 64 bit option will be added to the command line):-
+  The following command exports a script file "top_tb_sim_vcs_mx.sh" for the "VCS_MX" simulator in the
+  specified output directory with the design source files compiled for 32 bit version of the simulator
+  compiler (no 64 bit option will be added to the command line):
 
   % export_simulation -force -32bit -simulator vcs_mx -directory "test_bft_vcs_mx"
+
+  The following command will include "/sim_libs/ius/lin64/lib/cds.lib" file path in the "./test_sim/cds.lib"
+  file ("INCLUDE /sim_libs/ius/lin64/lib/cds.lib") for refrencing the compiled libraries for "IES" simulator:-
+
+  % export_simulation -lib_map_path "/sim_libs/ius/lin64/lib" -simulator ies -directory "test_sim"
+
+  The following command will include "/sim_libs/vcs/lin64/lib/synopsys_sim.setup" file path in the
+  "./test_sim/synopsys_sim.setup" file ("OTHERS=/sim_libs/vcs/lin64/lib/synopsys_sim.setup") for refrencing
+  the compiled libraries for the "VCS_MX" simulator:-
+
+  % export_simulation -lib_map_path "/sim_libs/vcs/lin64/lib" -simulator vcs_mx -directory "test_sim"
+
+  The following steps generates a script file in "./test_sim/ies" directory and then compile, elaborate
+  and simulate the design in "IES" simulator:-
+
+  % export_simulation -lib_map_path "/sim_libs/ies/lin64/lib" -simulator ies -directory "./test_sim/ies"
+  % cd test_sim/ies
+  % ./top_tb_sim_ies.sh
+
+  The following steps generates a script file in "./test_sim/vcs_mx" directory and then compile, elaborate
+  and simulate the design in "VCS_MX" simulator:-
+
+  % export_simulation -lib_map_path "/sim_libs/vcs/lin64/lib" -simulator vcs_mx -directory "./test_sim/vcs_mx"
+  % cd test_sim/vcs_mx
+  % ./top_tb_sim_vcs_mx.sh
 
 See Also:
 
    *  current_fileset
    *  get_files
+   *  get_ips
