@@ -322,8 +322,8 @@ proc ::tclapp::mycompany::myapp::myproc1 {arg1 {optional1 ,}} {
 }
 ```
 
-3. You must have 4 "meta-comments" which describe your procedure interfaces - inside of the procedures, 
-and each meta-comment must be seperated by new lines (without comments)
+3. You **must** have 4 "meta-comments" which describe your procedure interfaces - inside of the procedures, 
+and each meta-comment **must** be seperated by new lines (without comments)
 ```tcl
 # tclapp/mycompany/myapp/myfile.tcl
 namespace eval ::tclapp::mycompany::myapp {
@@ -335,8 +335,9 @@ proc ::tclapp::xilinx::test::myproc1 {arg1 {optional1 ,}} {
     # Summary: A one line summary of what this proc does
 
     # Argument Usage:
-    # arg1 <arg1_value> : A one line summary of this argument which takes a value arg1_value.
-    # [optional1 <opt1_value> = <opt1_default>] : A one line summary of an optional argument that takes a value and which has a default
+    # -arg1 <arg> : A one line summary of this argument which takes a value indicated by <arg>.
+    # [-optional1 <arg> = <opt1_default>] : A one line summary of an optional argument that takes a value and which has a default
+    # [-optional2] : A one line summary of an optional arg that does not take a value (aka a flag)
 
     # Return Value: 
     # TCL_OK is returned with result set to a string
@@ -356,10 +357,16 @@ The text following "Summary:" should be a brief, one-line description of your ap
 #### Argument Usage
 
 This is the most complex of the meta-comments. As shown in the above example, there should be one line for each mandatory or
-optional arg supported by your app. Optional args should be enclosed within []. Each arg must accept a value 
-(so-called boolean args, where only the arg is specified and a value such as 1 is implied are not currently supported). 
+optional arg supported by your app. Optional args should be enclosed within []. Args which should be accompanied by a 
+value **must** be followed by the literal text "<arg>", indicating to the user where the value should be placed. The
+summary should explain what are the valid values that a user might use.
 You can also specify a default value, which is a value which will be assumed if the user does not specify the given optional
-arg. You can also specify positional args. A positional arg is for which just a value is specified
+arg. You can also have optional args that do not take any value (these are often referred to as "flags"). For a flag,
+it's presence on the command line implies a value of true, indicating that some optional action should be take by
+the app. An exception to this rule is if the name of the flag is prefixed with "no_" (for example, -no_cleanup), in which case
+a value of false is implied, indicating that the app will not take some action which by default it normally performs.
+
+You can also specify positional args. A positional arg is for which just a value is specified
 and that has no corresponding flag (e.g. -arg1).
 
 Here is a more concrete example:
@@ -367,8 +374,8 @@ Here is a more concrete example:
 ```tcl
         # Argument Usage: 
         # file: Name of  file to generate
-        # -owner <username>: Name of the owner of the file generated.
-        # [-date <mm/dd/yyyy> = <todays_date>]: The date to use, will default to today's date if not specified.
+        # -owner <arg>: username of the owner of the file to be generated.
+        # [-date <arg> = <todays_date>]: The date to use in yyyy/mm/dd format, will default to today's date if not specified.
 ```
 
 This example app has one mandatory positional arg, which is the name of a file it will generate. It also has a mandatory
@@ -376,14 +383,18 @@ flag -owner, and an optional arg -date, which has a default value. Assuming this
 
 touch /home/joe_user/myfile -owner root 
 
+Use of this command would result in the creation of a file named /home/joe_user/myfile, owned by root, and with
+a file creation date of today.
+
+
 #### Return Value
 
 Use this meta-comment to specify the possible return values for your app.
 
 #### Categories
 
-Use this meta-comment to specify which categories in the Vivado help system your app should be listed. "Categtories:" 
-should be followe by a comma-separated list. By convention, the first category listed should always be "xilinxtclstore".
+Use this meta-comment to specify which categories in the Vivado help system your app should be listed. "Categories:" 
+should be followed by a comma-separated list. By convention, the first category listed should always be "xilinxtclstore".
 Any additional categories are up to you as the app developer.
 
 
