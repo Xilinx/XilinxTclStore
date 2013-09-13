@@ -17,7 +17,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ## 
-## Version:        02/15/2013
+## Version:        09/11/2013
 ## Tool Version:   Vivado 2013.1
 ## Description:    This package provides a simple way to handle formatted tables
 ##
@@ -54,6 +54,11 @@ namespace eval ::tclapp::xilinx::designutils {
 ##   | or1200_wbmux/muxreg_reg[14]_i_41/I2 | 1       | 0        | 9.990       | 3.925      |
 ##   +-------------------------------------+---------+----------+-------------+------------+
 ## 
+## 5- Get number of rows
+## 
+##   Vivado% $tbl numrows
+##   4
+##
 ## 5- Destroy table (optional)
 ## 
 ##   Vivado% $tbl destroy
@@ -252,6 +257,14 @@ namespace eval ::tclapp::xilinx::designutils {
 ##
 ########################################################################################
 
+########################################################################################
+## 09/11/2013 - Added method 'numrows'
+##            - Improved method 'sort'
+##            - Added support for multi-lines title
+##            - Other minor changes
+## 02/15/2013 - Initial release
+########################################################################################
+
 
 proc ::tclapp::xilinx::designutils::prettyTable { args } {
     # Summary : utility to easily create and print tables
@@ -282,7 +295,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable {
   set n 0 
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
   set params [list indent 0 maxNumRows -1 maxNumRowsToDisplay -1 title {} ]
-  set version {02-15-2013}
+  set version {09-09-2013}
 } ]
 
 #------------------------------------------------------------------------
@@ -418,7 +431,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::Info {} {
   # Argument Usage:
   # Return Value:
 
-  foreach child [lsort [namespace children]] {
+  foreach child [lsort -dictionary [namespace children]] {
     puts "\n  Object $child"
     puts "  ==================="
     $child info
@@ -851,6 +864,22 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:addrow {self args} {
 }
 
 #------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::method:numrows
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> numrows <list>
+#------------------------------------------------------------------------
+# Return the number of rows of the table
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::method:numrows {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+
+  # Add a row to the table
+  return [subst $${self}::numRows]
+}
+
+#------------------------------------------------------------------------
 # ::tclapp::xilinx::designutils::prettyTable::method:indent
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> indent [<value>]
@@ -1137,12 +1166,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   if {$params(title) ne {}} {
     # The upper separator should something like +----...----+
     append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]+\n"
-    append res "${indentString}| "
-    append res [format "%-[expr [string length $separator] - [string length $indentString] -4]s" $params(title)]
-    append res " |"
+    # Support multi-lines title
+    foreach line [split $params(title) \n] {
+      append res "${indentString}| "
+      append res [format "%-[expr [string length $separator] - [string length $indentString] -4]s" $line]
+      append res " |\n"
+    }
   }
   # Generate the table header
-  append res "\n${separator}\n"
+  append res "${separator}\n"
   append res "${indentString}|"
   foreach item $header max $maxs {append res [format " %-${max}s |" $item]}
   append res "\n${separator}\n"
@@ -1259,8 +1291,20 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
       continue
     }
     if {$column == {}} { continue }
+    if {[regexp {^[0-9]+$} $column]} {
+      # A column number is provided, nothing further to do
+      set index $column
+    } else {
+      # A header name has been provided. It needs to be converted
+      # as a column number
+      set index [lsearch -nocase $header $column]
+      if {$index == -1} {
+        puts " -E- unknown column header '$column'"
+        continue
+      }
+    }
     # Save the column and direction for each column
-    lappend indexes [list $column $direction]
+    lappend indexes [list $index $direction]
     # Reset default direction and column
     set direction {-increasing}
     set column {}
@@ -1270,8 +1314,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
     puts [format {
   Usage: <prettyTableObject> sort 
               [-real|-integer|-dictionary]
-              [-<COLUMN_HEADER>]
-              [+<COLUMN_HEADER>|<COLUMN_HEADER>]
+              [-<COLUMN_NUMBER>|+<COLUMN_NUMBER>|<COLUMN_NUMBER>]
+              [-<COLUMN_HEADER>|+<COLUMN_HEADER>|<COLUMN_HEADER>]
               [-help|-h]
               
   Description: Sort the table based on one or multiple column headers.
@@ -1279,6 +1323,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
   Example:
      <prettyTableObject> sort +SLACK
      <prettyTableObject> sort -integer -FANOUT
+     <prettyTableObject> sort -integer -2 +1 -SLACK
      <prettyTableObject> sort +SETUP_SLACK -HOLD_SLACK
 } ]
     # HELP -->
@@ -1286,12 +1331,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
   }
 
   foreach item [lreverse $indexes] {
-    foreach {column direction} $item { break }
-    set index [lsearch -nocase $header $column]
-    if {$index == -1} {
-      puts " -E- unknown column header '$column'"
-      continue
-    }
+    foreach {index direction} $item { break }
     if {$command == {}} {
       set command "lsort $direction $sortType -index $index \$table"
     } else {
