@@ -906,7 +906,7 @@ namespace eval ::tclapp::xilinx::projutils {
           "vcs_mx" {
             set tool "$a_xport_sim_vars(s_sim_top)_simv"
             set arg_list [list "-ucli" "-licwait" "-60" "-l" "$a_xport_sim_vars(s_sim_top)_sim.log"]
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\""
+            puts $fh "  ${tool}_opts=\"[join $arg_list " "]\""
             puts $fh ""
 
             set arg_list [list "./$a_xport_sim_vars(s_sim_top)_simv" "\$${tool}_opts" "-do" "$do_filename"]
@@ -1546,7 +1546,7 @@ namespace eval ::tclapp::xilinx::projutils {
           set a_xport_sim_vars(s_lib_map_path) [file normalize $a_xport_sim_vars(s_lib_map_path)]
           set compiled_lib_dir $a_xport_sim_vars(s_lib_map_path)
           if { ![file exists $compiled_lib_dir] } {
-            send_msg_id Vivado-projutils-052 ERROR
+            send_msg_id Vivado-projutils-052 ERROR \
               "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"
             puts $fh "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
           } else {
