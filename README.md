@@ -359,7 +359,7 @@ The text following "Summary:" should be a brief, one-line description of your ap
 
 This is the most complex of the meta-comments. As shown in the above example, there should be one line for each mandatory or
 optional arg supported by your app. Optional args should be enclosed within []. Args which should be accompanied by a 
-value **must** be followed by the literal text "<arg>", indicating to the user where the value should be placed. The
+value **must** be followed by the literal text <, "arg", and >, indicating to the user where the value should be placed. The
 summary should explain what are the valid values that a user might use.
 You can also specify a default value, which is a value which will be assumed if the user does not specify the given optional
 arg. You can also have optional args that do not take any value (these are often referred to as "flags"). For a flag,
