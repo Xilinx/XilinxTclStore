@@ -62,5 +62,5 @@ diff_props $of {
 }
 
 # clean-up
-diff_close_designs $of
+#diff_close_designs $of
 delete $of
