@@ -814,7 +814,7 @@ namespace eval ::tclapp::xilinx::projutils {
           "ies" { 
             set tool "ncelab"
             set top_lib [get_top_library]
-            set arg_list [list "-relax -lib_binding -access +rwc -messages" "-logfile" "$a_xport_sim_vars(s_sim_top)_elab.log"]
+            set arg_list [list "-relax -access +rwc -messages" "-logfile" "$a_xport_sim_vars(s_sim_top)_elab.log"]
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-64bit"]
             }
