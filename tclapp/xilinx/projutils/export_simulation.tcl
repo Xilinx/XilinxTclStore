@@ -809,6 +809,7 @@ namespace eval ::tclapp::xilinx::projutils {
           puts $fh "# None (no sources present)"
           return
         }
+
  
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
