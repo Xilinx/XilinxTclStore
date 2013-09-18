@@ -16,16 +16,18 @@ namespace eval ::tclapp::xilinx::designutils {
 #------------------------------------------------------------------------
 # Proc to export
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::designutils::get_leaf_cells { args } {
+proc ::tclapp::xilinx::designutils::get_leaf_cells { {hierInst *} } {
   # Summary : get all the leave cells below an instance
   
   # Argument Usage:
-  # [inst=*] : instance
+  # [hierInst=*] : Hierarchical instance name pattern
 
   # Return Value:
-  # list of leaf cells
+  # list of leaf cells objects
   
-  uplevel [concat ::tclapp::xilinx::designutils::get_leaf_cells::get_leaf_cells $args]
+  # Categories: xilinctclstore, designutils
+
+  uplevel [concat ::tclapp::xilinx::designutils::get_leaf_cells::get_leaf_cells $hierInst]
 }
 
 # Trick to silence the linter
@@ -43,11 +45,13 @@ proc ::tclapp::xilinx::designutils::get_leaf_cells::get_leaf_cells { {inst *} } 
   # Summary : get the leave cells of an instance
   
   # Argument Usage:
-  # [inst=*] : instance
+  # [inst=*] : Hierarchical instance name pattern
 
   # Return Value:
-  # list of leaf cells
+  # list of leaf cells objects
   
+  # Categories: xilinctclstore, designutils
+
   variable leafCells
   if {$inst != "*"} {
     set inst $inst/*
@@ -69,6 +73,8 @@ proc ::tclapp::xilinx::designutils::get_leaf_cells::getLeafCells {pattern} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
   
   variable leafCells
   set leafCells [concat $leafCells [get_cells $pattern -filter {IS_PRIMITIVE && (REF_NAME!=VCC) && (REF_NAME!=GND)}] ]

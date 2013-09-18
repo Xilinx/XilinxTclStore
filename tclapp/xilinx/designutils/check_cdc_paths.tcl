@@ -11,16 +11,18 @@ namespace eval ::tclapp::xilinx::designutils {
     namespace export check_cdc_paths
 }
 
-proc ::tclapp::xilinx::designutils::check_cdc_paths { args } {
+proc ::tclapp::xilinx::designutils::check_cdc_paths {} {
   # Summary : checks all the CDC paths for typical issues
   
-  # Argument Usage:
-  # None
+  # Argument Usage: 
 
   # Return Value:
-  # None
+  # 0
   
-  uplevel [concat ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths $args]
+  # Categories: xilinctclstore, designutils
+
+  uplevel ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths
+  return 0
 }
 
 # Trick to silence the linter
@@ -37,6 +39,8 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths {} {
   # Return Value:
   # none
   
+  # Categories: xilinctclstore, designutils
+
   variable messages
   set messages [list]
 
@@ -106,6 +110,8 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::checkPathSynchronizer {timi
   # returns 0 if paths are found between clock domains 
   # and they are not properly synchronized 1 otherwise
   
+  # Categories: xilinctclstore, designutils
+
   variable messages
   if {$timingPath == {}} {
     # nothing to check
@@ -192,6 +198,8 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::lcm {p q} {
 
   # Return Value:   the least common multiple of the input integers
   
+  # Categories: xilinctclstore, designutils
+
   set m [expr {$p * $q}]
   if {!$m} {return 0}
   while 1 {
