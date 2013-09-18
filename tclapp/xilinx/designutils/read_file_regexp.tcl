@@ -21,11 +21,14 @@ proc ::tclapp::xilinx::designutils::read_file_regexp {filename rexp} {
   # Summary : returns all lines that match occurrence of regular expression in the file
 
   # Argument Usage:
-  # rexp : regular expresion
-  # filename : file name to process
+  # filename : File name to process
+  # rexp : Regular expresion
 
   # Return Value:
   # all the lines that match the regular expression
+  # TCL_ERROR if an error happened
+
+  # Categories: xilinctclstore, designutils
 
   set lines [list]
   set FH {}
@@ -55,13 +58,16 @@ proc ::tclapp::xilinx::designutils::gets_regexp {FH rexp var} {
   # Summary : returns the next line that matches occurrence of regular expression in the file
 
   # Argument Usage:
-  # FH : file handler to process
-  # rexp : regular expresion
-  # var : variable name to get the next line matching the regular expression
+  # FH : File handler of the file to process
+  # rexp : Regular expresion
+  # var : Variable name to get the next line matching the regular expression
 
   # Return Value:
   # 0 if succeeded
   # 1 if EOF reached
+  # TCL_ERROR if an error happened
+
+  # Categories: xilinctclstore, designutils
 
   upvar 1 $var _var
   if {$FH == {}} {

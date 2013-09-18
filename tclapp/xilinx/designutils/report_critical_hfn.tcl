@@ -15,13 +15,16 @@ proc ::tclapp::xilinx::designutils::report_critical_hfn {{sortBy slack} {limitFa
   # Summary : report timing critical high fanout nets based on fanout and slack
   
   # Argument Usage:
-  # [sortBy=slack] : sorting critierion (slack | fanout)
-  # [limitFanout=256] : fanout limit
-  # [limitSlack=0] :
+  # [sortBy=slack] : Sorting critierion (slack | fanout)
+  # [limitFanout=256] : Fanout limit. Only report nets with this fanout or more
+  # [limitSlack=0] : Slack limit. Only report nets with this slack or less
 
   # Return Value:
-  # none
+  # 0
+  # TCL_ERROR if an error happened
   
+  # Categories: xilinctclstore, designutils
+
   if {[string tolower $sortBy] != {slack} && [string tolower $sortBy] != {fanout}} {
     error " error - unknown sortBy value"
   }

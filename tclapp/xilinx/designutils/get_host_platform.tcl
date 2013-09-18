@@ -15,11 +15,12 @@ proc ::tclapp::xilinx::designutils::get_host_platform {} {
   # Summary : return the host platform (windows|unix)
   
   # Argument Usage:
-  # none
   
   # Return Value:
-  # either "windows" or "linux" depending on which platform we're on
+  # either "windows" or "linux" depending on which platform Vivado is running on
   
+  # Categories: xilinctclstore, designutils
+
   if {[info exists tcl_platform(platform)]} {
     # this is a general tcl platform variable
     return $tcl_platform(platform)

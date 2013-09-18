@@ -15,10 +15,11 @@ proc ::tclapp::xilinx::designutils::highlight_enable_signal_sites {} {
   # Summary : highlight the destination sites of the enable signals reported by report_control_set command
 
   # Argument Usage:
-  # none
 
   # Return Value:
-  # none
+  # 0
+
+  # Categories: xilinctclstore, designutils
 
   # Generate the report
   set report [report_control_set -verbose -return_string]

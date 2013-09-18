@@ -17,7 +17,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ## 
-## Version:        09/11/2013
+## Version:        09/16/2013
 ## Tool Version:   Vivado 2013.1
 ## Description:    This package provides a simple way to handle formatted tables
 ##
@@ -99,6 +99,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## 3- Sort the table by columns. Multi-columns sorting is supporting:
 ## 
 ##   Vivado% $tbl sort +setup_slack
+##   Vivado% $tbl sort +3
 ## 
 ##   Vivado% $tbl print
 ##           +-------------------------------------------------------------------------------------+
@@ -258,6 +259,10 @@ namespace eval ::tclapp::xilinx::designutils {
 ########################################################################################
 
 ########################################################################################
+## 09/16/2013 - Added meta-comment 'Categories' to all procs
+##            - Updated 'docstring' to support new meta-comment 'Categories'
+##            - Updated various methods to support -columns/-display_columns (select
+##              list of columns to be printed out)
 ## 09/11/2013 - Added method 'numrows'
 ##            - Improved method 'sort'
 ##            - Added support for multi-lines title
@@ -267,13 +272,15 @@ namespace eval ::tclapp::xilinx::designutils {
 
 
 proc ::tclapp::xilinx::designutils::prettyTable { args } {
-    # Summary : utility to easily create and print tables
-    
-    # Argument Usage:
-    # args : sub-command. The supported sub-commands are: create | info | sizeof | destroyall
-    
-    # Return Value:
-    # returns a new prettyTable object
+  # Summary : utility to easily create and print tables
+  
+  # Argument Usage:
+  # args : sub-command. The supported sub-commands are: create | info | sizeof | destroyall
+  
+  # Return Value:
+  # returns a new prettyTable object
+
+  # Categories: xilinctclstore, designutils
 
   uplevel [concat ::tclapp::xilinx::designutils::prettyTable::prettyTable $args]
 #   eval [concat ::tclapp::xilinx::designutils::prettyTable::prettyTable $args]
@@ -294,7 +301,7 @@ proc ::tclapp::xilinx::designutils::prettyTable { args } {
 eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable { 
   set n 0 
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
-  set params [list indent 0 maxNumRows -1 maxNumRowsToDisplay -1 title {} ]
+  set params [list indent 0 maxNumRows -1 maxNumRowsToDisplay -1 title {} columnsToDisplay {} ]
   set version {09-09-2013}
 } ]
 
@@ -307,6 +314,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   #-------------------------------------------------------
   # Process command line arguments
@@ -388,6 +397,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::Create { {title {}} } {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   variable n
   # Search for the next available object number, i.e namespace should not 
@@ -417,6 +428,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::Sizeof {} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   return [::tclapp::xilinx::designutils::prettyTable::method:sizeof ::tclapp::xilinx::designutils::prettyTable]
 }
@@ -430,6 +443,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::Info {} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   foreach child [lsort -dictionary [namespace children]] {
     puts "\n  Object $child"
@@ -448,6 +463,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::DestroyAll {} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   set count 0
   foreach child [namespace children] {
@@ -469,6 +486,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::docstring procname {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   if {[info proc $procname] ne $procname} { return }
   # reports a proc's args and leading comments.
@@ -478,7 +497,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::docstring procname {
   foreach line [split [uplevel 1 [list info body $procname]] \n] {
       if {[string trim $line] eq ""} continue
       # Skip comments that have been added to support rdi::register_proc command
-      if {[regexp -nocase -- {^\s*#\s*(Summary|Argument Usage|Return Value)\s*\:} $line]} continue
+      if {[regexp -nocase -- {^\s*#\s*(Summary|Argument Usage|Return Value|Categories)\s*\:} $line]} continue
       if {![regexp {^\s*#(.+)} $line -> line]} break
       lappend res [string trim $line]
   }
@@ -496,6 +515,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::lshift {inputlist} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   upvar $inputlist argv
   set arg  [lindex $argv 0]
@@ -514,6 +535,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::list2csv { list {sepChar ,} } {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   set out ""
   set sep {}
@@ -539,6 +562,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::csv2list { str {sepChar ,} } {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   regsub -all {(\A\"|\"\Z)} $str \0 str
   set str [string map [list $sepChar\"\"$sepChar $sepChar$sepChar] $str]
@@ -577,6 +602,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToTCL {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   array set defaults [list \
       -return_var {} \
@@ -599,8 +626,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToTCL {self args} {
   set res {}
 
   append res [format {set tbl [::tclapp::xilinx::designutils::prettyTable]
-$tbl configure -title {%s} -indent %s -limit %s -display_limit %s
-$tbl header [list %s]} $params(title) $params(indent) $params(maxNumRows) $params(maxNumRowsToDisplay) $header]
+$tbl configure -title {%s} -indent %s -limit %s -display_limit %s -display_columns {%s}
+$tbl header [list %s]} $params(title) $params(indent) $params(maxNumRows) $params(maxNumRowsToDisplay) $params(columnsToDisplay) $header]
   append res "\n"
   set count 0
   foreach row $table {
@@ -632,6 +659,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToCSV {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   array set defaults [list \
       -delimiter {,} \
@@ -660,6 +689,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToCSV {self args} {
   append res "# indent${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(indent) $sepChar]\n"
   append res "# limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRows) $sepChar]\n"
   append res "# display_limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRowsToDisplay) $sepChar]\n"
+  append res "# display_columns${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv [list $params(columnsToDisplay)] $sepChar]\n"
   append res "[::tclapp::xilinx::designutils::prettyTable::list2csv $header $sepChar]\n"
   set count 0
   foreach row $table {
@@ -692,10 +722,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToLIST {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   array set defaults [list \
       -delimiter { } \
       -return_var {} \
+      -columns [subst $${self}::params(columnsToDisplay)] \
     ]
   array set options [array get defaults]
   array set options $args
@@ -715,13 +748,25 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToLIST {self args} {
   }
   set res {}
 
+  # Build the list of columns to be displayed
+  if {$options(-columns) == {}} {
+    # If empty, then all the columns are displayed. Build the list of all columns
+    for {set index 0} {$index < [llength $header]} {incr index} {
+      lappend options(-columns) $index
+    }
+  }
+
   set count 0
   set indentString [string repeat " " $params(indent)]
   foreach row $table {
     incr count
     append res $indentString
-    foreach h $header r $row {
-      append res "${h}:${r}${sepChar}"
+    # Iterate through all the columns of the row
+    for {set index 0} {$index < [llength $header]} {incr index} {
+      # Should the column be visible?
+      if {[lsearch $options(-columns) $index] == -1} { continue }
+      # Yes
+      append res "[lindex $header $index]:[lindex $row $index]${sepChar}"
     }
     # Remove extra separator at the end of the line due to 'foreach' loop
     regsub "${sepChar}$" $res {} res
@@ -751,6 +796,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::do {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   upvar #0 ${self}::table table
   upvar #0 ${self}::indent indent
@@ -798,6 +845,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:? {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # This help message
   puts "   Usage: <prettyTableObject> <method> \[<arguments>\]"
@@ -823,6 +872,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:header {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Set the header of the table
   switch [llength $args] {
@@ -852,6 +903,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:addrow {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Add a row to the table
   set maxNumRows [subst $${self}::params(maxNumRows)]
@@ -874,6 +927,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:numrows {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Add a row to the table
   return [subst $${self}::numRows]
@@ -890,6 +945,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:indent {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Set the indent level for the table
   if {$args != {}} {
@@ -913,6 +970,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:get_param {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   if {[llength $args] != 1} {
     error " -E- wrong number of parameters: <prettyTableObject> get_param <param>"
@@ -936,6 +995,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:set_param {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   if {[llength $args] < 2} {
     error " -E- wrong number of parameters: <prettyTableObject> set_param <param> <value>"
@@ -955,6 +1016,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:separator {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Add a row separator
   if {[subst $${self}::numRows] > 0} {
@@ -975,11 +1038,14 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:reset {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Reset object and empty all the data
   set ${self}::header [list]
   set ${self}::table [list]
   set ${self}::separators [list]
+  set ${self}::columnsToDisplay [list]
   set ${self}::numRows 0
   catch {unset ${self}::params}
   array set ${self}::params $::tclapp::xilinx::designutils::prettyTable::params
@@ -999,11 +1065,14 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:destroy {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Destroy object
   set ${self}::header [list]
   set ${self}::table [list]
   set ${self}::separators [list]
+  set ${self}::columnsToDisplay [list]
   set ${self}::numRows 0
   catch {unset ${self}::params}
   namespace delete $self
@@ -1021,6 +1090,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sizeof {ns args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Return memory footprint of the object
   set sum [expr wide(0)]
@@ -1051,6 +1122,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Print table. The output can be captured in a variable
   upvar #0 ${self}::header header
@@ -1066,6 +1139,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   set startRow 0
   set append 0
   set returnVar {}
+  set columnsToDisplay $params(columnsToDisplay)
   while {[llength $args]} {
     set name [lshift args]
     switch -exact -- $name {
@@ -1083,11 +1157,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       -return_var {
            set returnVar [lshift args]
       }
+      -column -
+      -columns {
+           set columnsToDisplay [lshift args]
+      }
       -h -
       -help {
            set help 1
       }
-     default {
+      default {
             if {[string match "-*" $name]} {
               puts " -E- option '$name' is not a valid option."
               incr error
@@ -1105,13 +1183,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
               [-file <filename>]
               [-append]
               [-return_var <tcl_var_name>]
+              [-columns <list_of_columns_to_display>]
               [-from <start_row_number>]
               [-help|-h]
               
   Description: Return table content.
   
   Example:
-     <prettyTableObject> print
+     <prettyTableObject> print 
+     <prettyTableObject> print -columns {0 2 5}
      <prettyTableObject> print -return_var report
      <prettyTableObject> print -file output.rpt -append
 } ]
@@ -1131,6 +1211,14 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   }
   set res {}
   
+  # Build the list of columns to be displayed
+  if {$columnsToDisplay == {}} {
+    # If empty, then all the columns are displayed. Build the list of all columns
+    for {set index 0} {$index < [llength $header]} {incr index} {
+      lappend columnsToDisplay $index
+    }
+  }
+
   # No header has been defined
   if {[llength $header] == 0} {
     puts " -E- NO HEADER DEFINED"
@@ -1161,7 +1249,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   # Create the row separator string
   set indentString [string repeat " " $indent]
   set separator "${indentString}+"
-  foreach max $maxs { append separator "-[string repeat - $max]-+" }
+  # Build the separator string based on the list of columns to be displayed
+#   foreach max $maxs { append separator "-[string repeat - $max]-+" }
+  for {set index 0} {$index < $numCols} {incr index} {
+    if {[lsearch $columnsToDisplay $index] == -1} { continue }
+    append separator "-[string repeat - [lindex $maxs $index]]-+"
+  }
   # Generate the title
   if {$params(title) ne {}} {
     # The upper separator should something like +----...----+
@@ -1176,7 +1269,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   # Generate the table header
   append res "${separator}\n"
   append res "${indentString}|"
-  foreach item $header max $maxs {append res [format " %-${max}s |" $item]}
+  # Generate the table header based on the list of columns to be displayed
+#   foreach item $header max $maxs {append res [format " %-${max}s |" $item]}
+  for {set index 0} {$index < $numCols} {incr index} {
+    if {[lsearch $columnsToDisplay $index] == -1} { continue }
+    append res [format " %-[lindex $maxs $index]s |" [lindex $header $index]]
+  }
   append res "\n${separator}\n"
   # Generate the table rows
   set count 0
@@ -1187,7 +1285,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
         break
       }
       append res "${indentString}|"
-      foreach item $row max $maxs {append res [format " %-${max}s |" $item]}
+      # Build the row string based on the list of columns to be displayed
+#       foreach item $row max $maxs {append res [format " %-${max}s |" $item]}
+       for {set index 0} {$index < $numCols} {incr index} {
+         if {[lsearch $columnsToDisplay $index] == -1} { continue }
+         append res [format " %-[lindex $maxs $index]s |" [lindex $row $index]]
+       }
       append res \n
       # Check if a separator has been assigned to this row number and add a separator
       # if so.
@@ -1233,6 +1336,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:info {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Information about the object
   upvar #0 ${self}::header header
@@ -1259,6 +1364,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Sort the table based on one or more column headers
   upvar #0 ${self}::header header
@@ -1358,6 +1465,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:configure {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Configure object
   set error 0
@@ -1385,6 +1494,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:configure {self args} {
       -remove_separators {
            set ${self}::separators [list]
       }
+      -display_column -
+      -display_columns {
+           set ${self}::params(columnsToDisplay) [lshift args]
+      }
       -h -
       -help {
            set help 1
@@ -1407,6 +1520,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:configure {self args} {
               [-title <string>]
               [-indent <indent_level>]
               [-limit <max_number_of_rows>]
+              [-display_columns <list_of_columns_to_display>]
               [-display_limit <max_number_of_rows_to_display>]
               [-remove_separators]
               [-help|-h]
@@ -1415,6 +1529,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:configure {self args} {
   
   Example:
      <prettyTableObject> configure -indent 2
+     <prettyTableObject> configure -display_columns {0 2 3 6}
 } ]
     # HELP -->
     return {}
@@ -1434,6 +1549,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:clone {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Clone object. Return new object
   upvar #0 ${self}::header header
@@ -1461,6 +1578,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Create table from CSV file
   upvar #0 ${self}::header header
@@ -1566,6 +1685,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
+  # Categories: xilinctclstore, designutils
+
 
   # Export table (table / list / CSV format / tcl script)
   upvar #0 ${self}::header header
@@ -1581,6 +1702,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   set returnVar {}
   set format {table}
   set csvDelimiter {,}
+  set columnsToDisplay $params(columnsToDisplay)
   if {[llength $args] == 0} { incr help }
   while {[llength $args]} {
     set name [lshift args]
@@ -1603,6 +1725,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
       }
       -return_var {
            set returnVar [lshift args]
+      }
+      -column -
+      -columns {
+           set columnsToDisplay [lshift args]
       }
       -h -
       -help {
@@ -1628,14 +1754,16 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
               [-file <filename>]
               [-append]
               [-return_var <tcl_var_name>]
+              [-columns <list_of_columns_to_display>]
               [-help|-h]
               
-  Description: Export table content.
+  Description: Export table content. The -columns argument is only available for the
+               'list' and 'table' export formats.
   
   Example:
      <prettyTableObject> export -format csv
      <prettyTableObject> export -format csv -return_var report
-     <prettyTableObject> export -file output.rpt -append
+     <prettyTableObject> export -file output.rpt -append -columns {0 2 3 4}
 } ]
     # HELP -->
     return {}
@@ -1661,9 +1789,9 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   switch $format {
     table {
       if {$returnVar != {}} {
-        $self print -return_var res
+        $self print -return_var res -columns $columnsToDisplay
       } else {
-        set res [$self print]
+        set res [$self print -columns $columnsToDisplay]
       }
     }
     csv {
@@ -1682,9 +1810,9 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
     }
     list {
       if {$returnVar != {}} {
-        ::tclapp::xilinx::designutils::prettyTable::exportToLIST $self -delimiter $csvDelimiter -return_var res
+        ::tclapp::xilinx::designutils::prettyTable::exportToLIST $self -delimiter $csvDelimiter -return_var res -columns $columnsToDisplay
       } else {
-        set res [::tclapp::xilinx::designutils::prettyTable::exportToLIST $self -delimiter $csvDelimiter]
+        set res [::tclapp::xilinx::designutils::prettyTable::exportToLIST $self -delimiter $csvDelimiter -columns $columnsToDisplay]
       }
     }
     default {
