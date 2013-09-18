@@ -539,8 +539,10 @@ namespace eval ::tclapp::xilinx::projutils {
         close $fh
  
         # make filelist executable
-        if {[catch {exec chmod a+x $file} error_msg] } {
-          send_msg_id Vivado-projutils-040 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+        if {$::tcl_platform(platform) == "unix"} {
+          if {[catch {exec chmod a+x $file} error_msg] } {
+            send_msg_id Vivado-projutils-040 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+          }
         }
  
         return 0
