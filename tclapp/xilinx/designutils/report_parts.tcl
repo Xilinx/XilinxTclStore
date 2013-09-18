@@ -12,14 +12,16 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::report_parts { {pattern *} } {
-  # Summary : report all the parts in the current project
+  # Summary : report all the available parts that match a pattern
 
   # Argument Usage:
-  # pattern : pattern for part names
+  # [pattern=*] : Pattern for part names
 
   # Return Value:
   # 0
   
+  # Categories: xilinctclstore, designutils
+
   # Initialize the table object
   set table [::tclapp::xilinx::designutils::prettyTable create {Summary of all parts}]
   $table header { PART LUT  SLICE DSP RAM MMCM PCI GB IO PACK }

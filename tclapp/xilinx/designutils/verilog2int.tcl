@@ -11,14 +11,16 @@ namespace eval ::tclapp::xilinx::designutils {
     namespace export verilog2int
 }
 
-proc ::tclapp::xilinx::designutils::verilog2int { orig } {
-  # Summary :  convert a Verilog format number to an integer
+proc ::tclapp::xilinx::designutils::verilog2int { number } {
+  # Summary :  Convert a Verilog formatted number to an integer
   
   # Argument Usage:
-  # orig : verilog format number to convert
+  # number : Verilog format number to convert
 
   # Return Value:
   # converted integer
+  
+  # Categories: xilinctclstore, designutils
   
   set COMMENT_var_re {
       re matches <sign><num bits><base><number> where:
@@ -30,7 +32,7 @@ proc ::tclapp::xilinx::designutils::verilog2int { orig } {
   }
   set re {^(-?)(\d*)'([[:alpha:]])([[:xdigit:]]+)$}
 
-  if [regex -nocase $re [string trim $orig] - sign numbits base num] {
+  if [regex -nocase $re [string trim $number] - sign numbits base num] {
     set val [switch [string tolower $base] {
         b { expr 0b$num }
         o { expr 0$num }
@@ -42,6 +44,6 @@ proc ::tclapp::xilinx::designutils::verilog2int { orig } {
 
     return $sign$val
   }
-  return $orig
+  return $number
 }
 

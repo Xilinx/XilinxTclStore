@@ -11,21 +11,23 @@ namespace eval ::tclapp::xilinx::designutils {
     namespace export report_cells_fanout
 }
     
-proc ::tclapp::xilinx::designutils::report_cells_fanout { {lib_cell FD*} } {
+proc ::tclapp::xilinx::designutils::report_cells_fanout { {ref_name FD*} } {
   # Summary : report the fanout of cells matching a REF_NAME pattern
   
   # Argument Usage:
-  # lib_cell : REF_NAME pattern
+  # [ref_name=FD*] : REF_NAME pattern
   
   # Return Value:
   # 0
   
+  # Categories: xilinctclstore, designutils
+
   # Initialize the table object
   set table [::tclapp::xilinx::designutils::prettyTable create {Fanout Summary}]
   $table header [list {Lib Cell} {Cell} {Output Pin} {Fanout} {Net}]
 
   set count 0
-  foreach cell [get_cells -hier -filter "REF_NAME =~ $lib_cell"] {
+  foreach cell [get_cells -hier -filter "REF_NAME =~ $ref_name"] {
     set ref_name [get_property -quiet REF_NAME $cell]
     set firstPin 1
     foreach pin [get_pins -quiet -of $cell -filter {DIRECTION == OUT}] {

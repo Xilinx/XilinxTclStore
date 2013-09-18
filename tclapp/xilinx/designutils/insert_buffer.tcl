@@ -11,25 +11,93 @@ namespace eval ::tclapp::xilinx::designutils {
     namespace export insert_buffer insert_buffer_chain
 }
 
-# Trick to silence the linter
-eval [list namespace eval ::tclapp::xilinx::designutils::insert_buffer {
-} ]
+proc ::tclapp::xilinx::designutils::insert_buffer_chain {net args} {
+  # Summary : insert a list of buffers or any 2-pins cells on a net
 
+  # Argument Usage:
+  # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
+  # args : List of 2-pins cell types to insert
+
+  # Return Value:
+  # 0 if succeeded or TCL_ERROR if an error happened
+
+  # Categories: xilinctclstore, designutils
+
+  uplevel ::tclapp::xilinx::designutils::insert_buffer::insert_buffer_chain $net $args
+  return 0
+}
 
 proc ::tclapp::xilinx::designutils::insert_buffer {net {bufferType BUFH}} {
   # Summary : insert a buffer or any 2-pins cell on a net
 
   # Argument Usage:
-  # net : net to insert buffer on
-  # bufferType : type of 2-pins cell to insert
+  # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
+  # [bufferType=BUFH] : Type of 2-pins cell to insert
 
   # Return Value:
-  # none
+  # 0 if succeeded or TCL_ERROR if an error happened
 
+  # Categories: xilinctclstore, designutils
+
+  return [uplevel ::tclapp::xilinx::designutils::insert_buffer::insert_buffer $net $bufferType]
+}
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::xilinx::designutils::insert_buffer { 
+  variable debug 0
+} ]
+
+proc ::tclapp::xilinx::designutils::insert_buffer::insert_buffer_chain {net args} {
+  # Summary : insert a list of buffers or any 2-pins cells on a net
+
+  # Argument Usage:
+  # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
+  # args : List of 2-pins cell types to insert
+
+  # Return Value:
+  # 0 if succeeded or TCL_ERROR if an error happened
+
+  # Categories: xilinctclstore, designutils
+
+  set buffers [list]
+  # Check that all the buffers are correct
+  foreach bufferType $args {
+    set bufferType [string toupper $bufferType]
+    set bufCellRef [get_lib_cells -quiet [get_libs]/$bufferType]
+    if {$bufCellRef == {}} {
+      error " error - cannot find cell type $bufferType"
+    }
+    set numPins [get_property -quiet NUM_PINS $bufCellRef]
+    if {$numPins != 2} {
+      error " error - only 2-pins cells can be inserted. Cell type $bufferType has $numPins pins"
+    }
+    lappend buffers $bufferType
+  }
+  # Insert the chain for buffers
+  foreach buffer $buffers {
+    insert_buffer $net $buffer
+  }
+  return 0
+}
+
+proc ::tclapp::xilinx::designutils::insert_buffer::insert_buffer {net {bufferType BUFH}} {
+  # Summary : insert a buffer or any 2-pins cell on a net
+
+  # Argument Usage:
+  # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
+  # [bufferType=BUFH] : Type of 2-pins cell to insert
+
+  # Return Value:
+  # 0 if succeeded or TCL_ERROR if an error happened
+
+  # Categories: xilinctclstore, designutils
+
+  variable debug
   if {$net == {}} {
     error " error - no net specified"
   }
   
+  set hierSep [get_hierarchy_separator]
   set bufferType [string toupper $bufferType]
   set bufCellRef [get_lib_cells -quiet [get_libs]/$bufferType]
   if {$bufCellRef == {}} {
@@ -77,31 +145,66 @@ proc ::tclapp::xilinx::designutils::insert_buffer {net {bufferType BUFH}} {
     error " error - net ($net) has [llength $bufSrcPin] drivers ($bufSrcPin). Nets with multiple driver pins are not supported"
   }
 
-  # Get all leaf cells connected to this segment of the net
-  set allConnectedLeafCells [get_cells -quiet -of [get_pins -quiet -leaf -of $bufOutNet] -filter {IS_PRIMITIVE && PRIMITIVE_LEVEL!="INTERNAL"}]
-
-  # Force unplacing all the leaf cells
-  unplace_cell [get_cells -quiet $allConnectedLeafCells -filter {((IS_PRIMITIVE==true && PRIMITIVE_LEVEL!="INTERNAL")  && (LOC!=""))}]
-
-  set props [lsort -unique [get_property -quiet LOC $allConnectedLeafCells ]]
-  if { ($props != [list {}]) && ($props != {})} {
-    error " error - some cells connected to net $net are placed. All cells must be unplaced prior inserting a buffer"
+  # We first need to check that all the cells connected to the register are NOT placed. 
+  # Otherwise the connect_net command cannot work
+  if {[checkAllConnectedCellsUnplaced $bufOutNet 1] == 1} {
+    error "  error - net $bufOutNet is connected to some unplaced instances. All cells must be unplaced prior inserting a buffer"
   }
 
-  # Create the buffer
-  set bufCellName [insert_buffer::genUniqueCellName ${bufOutNet}_${bufferType}]
-  create_cell -reference $bufCellRef $bufCellName
+  # Generate the buffer name
+  set bufCellName [genUniqueCellName ${bufOutNet}_${bufferType}]
+  # NOTE: the name passed to create_cell needs to be pre-processed
+  # when the design has been partially flattened.
+  # For example, if original cell is :
+  #   ila_dac_baseband_ADC/U0/ila_core_inst/u_ila_regs/reg_15/I_EN_CTL_EQ1.U_CTL/xsdb_reg_reg[2]
+  # but that the parent of that cell is (partially flattened):
+  #   ila_dac_baseband_ADC/U0
+  # then create_cell cannot be called as below:
+  #   create_cell -libref FDRE ila_dac_baseband_ADC/U0/ila_core_inst/u_ila_regs/reg_15/I_EN_CTL_EQ1.U_CTL/xsdb_reg_reg[2]_clone
+  # otherwise create_cell tries to create cell xsdb_reg_reg[2]_clone under ila_dac_baseband_ADC/U0/ila_core_inst/u_ila_regs/reg_15/I_EN_CTL_EQ1.U_CTL
+  # which does not exist. Instead, create_cell must be called with:
+  #   create_cell -libref FDRE {ila_dac_baseband_ADC/U0/ila_core_inst\/u_ila_regs\/reg_15\/I_EN_CTL_EQ1.U_CTL\/xsdb_reg_reg[2]_clone}
+  # The code below figures out the parent of the original driver cell and build the command
+  # line for create_cell accordingly
+  set parentName [get_property -quiet PARENT_CELL $bufOutNet]
+  # remove parent prefix from the cloned cell name to extract the local name
+  regsub "^${parentName}${hierSep}" $bufCellName {} localName
+  # escape all the hierarchy separator characters in the local name
+  regsub -all $hierSep $localName [format {\%s} $hierSep] localName
+  # create the full cell name by appending the escaped local name to the parent name
+  if {$parentName != {}} {
+    create_cell -reference $bufCellRef ${parentName}${hierSep}${localName}
+    if {$debug} { puts " DEBUG: cell ${parentName}${hierSep}${localName} created" }
+  } else {
+    create_cell -reference $bufCellRef ${localName}
+    if {$debug} { puts " DEBUG: cell ${localName} created" }
+  }
+#   create_cell -reference $bufCellRef $bufCellName
   set bufCell [get_cells -quiet $bufCellName]
   set bufInPin [get_pins -quiet -of $bufCell -filter {DIRECTION == IN}]
   set bufOutPin [get_pins -quiet -of $bufCell -filter {DIRECTION == OUT}]
 
-  # Create the new net
-  set bufInNetName [insert_buffer::genUniqueNetName ${bufCellName}_net]
-  create_net $bufInNetName
+  # Generate the new net name
+  set bufInNetName [genUniqueNetName ${bufCellName}_net]
+  # NOTE: the name passed to create_net needs to be pre-processed for the same reason as for create_cell
+  set parentName [get_property -quiet PARENT_CELL $bufOutNet]
+  # remove parent cell prefix from the cloned cell name to extract the local name
+  regsub "^${parentName}${hierSep}" $bufInNetName {} localName
+  # escape all the hierarchy separator characters in the local name
+  regsub -all $hierSep $localName [format {\%s} $hierSep] localName
+  # create the net by appending the escaped local name to the parent name
+#   create_net $bufInNetName
+  if {$parentName != {}} {
+    create_net ${parentName}${hierSep}${localName}
+    if {$debug} { puts " DEBUG: net ${parentName}${hierSep}${localName} created" }
+  } else {
+    create_net ${localName}
+    if {$debug} { puts " DEBUG: net ${localName} created" }
+  }
   set bufInNet [get_nets -quiet $bufInNetName]
 
   # Disconnect the driver pin
-  disconnect_net -net $bufOutNet -obj $bufSrcPin
+  disconnect_net -prune -net $bufOutNet -obj $bufSrcPin
 
   # Reconnect the driver pin to the new net
   connect_net -hier -net $bufInNet -obj [list $bufSrcPin $bufInPin]
@@ -120,35 +223,61 @@ proc ::tclapp::xilinx::designutils::insert_buffer {net {bufferType BUFH}} {
   return 0
 }
 
-proc ::tclapp::xilinx::designutils::insert_buffer_chain {net args} {
-  # Summary : insert a list of buffers or any 2-pins cells on a net
+proc ::tclapp::xilinx::designutils::insert_buffer::checkAllConnectedCellsUnplaced {name {force 0}} {
+  # Summary : check that all attached cells are unplaced. All the connected cells
+  # can be forced to be unplaced
 
   # Argument Usage:
-  # net : net to insert buffer on
-  # args : list of 2-pins cells to insert
+  # name : cell name or net name
 
   # Return Value:
-  # none
+  # 0 if all the connected cells are unplaced. 1 otherwise
+  # TCL_ERROR if failed
 
-  set buffers [list]
-  # Check that all the buffers are correct
-  foreach bufferType $args {
-    set bufferType [string toupper $bufferType]
-    set bufCellRef [get_lib_cells -quiet [get_libs]/$bufferType]
-    if {$bufCellRef == {}} {
-      error " error - cannot find cell type $bufferType"
-    }
-    set numPins [get_property -quiet NUM_PINS $bufCellRef]
-    if {$numPins != 2} {
-      error " error - only 2-pins cells can be inserted. Cell type $bufferType has $numPins pins"
-    }
-    lappend buffers $bufferType
+  # Categories: xilinctclstore, designutils
+
+  variable debug
+  set cell [get_cells -quiet $name]
+  set net [get_nets -quiet $name]
+  if {($cell == {}) && ($net == {})} {
+    error " error - cannot find a cell or a net matching $name"
   }
-  # Insert the chain for buffers
-  foreach buffer $buffers {
-    insert_buffer $net $buffer
+  if {$cell != {}} {
+    # This is a cell
+#     set allConnectedLeafCells [get_cells -quiet -of \
+#                                  [get_nets -of $cell] -filter {IS_PRIMITIVE && PRIMITIVE_LEVEL!="INTERNAL"} ]
+    set allConnectedLeafCells [get_cells -quiet -of \
+                                 [get_nets -of $cell] -filter {IS_PRIMITIVE} ]
+  } else {
+    # This is a net
+#     set allConnectedLeafCells [get_cells -quiet -of $net \
+#                      -filter {IS_PRIMITIVE && PRIMITIVE_LEVEL!="INTERNAL"} ]
+    set allConnectedLeafCells [get_cells -quiet -of $net \
+                     -filter {IS_PRIMITIVE} ]
   }
-  return 0
+  set props [lsort -unique [get_property -quiet LOC $allConnectedLeafCells ]]
+  if { ($props == [list {}]) || ($props == {})} {
+    # OK, all connected cells unplaced
+    return 0
+  }
+  if {$force} {
+    if {$debug} {
+      puts " WARN - some cells are placed and will be unplaced"
+    }
+    # Force unplacing all the leaf cells
+    unplace_cell [get_cells -quiet $allConnectedLeafCells -filter {((IS_PRIMITIVE==true && PRIMITIVE_LEVEL!="INTERNAL")  && (LOC!=""))}]
+    # Double-check that all the cells have been unplaced
+    set props [lsort -unique [get_property -quiet LOC $allConnectedLeafCells ]]
+    if { ($props != [list {}]) && ($props != {})} {
+      error " error - some cells could not be unplaced"
+    }
+    return 0
+  } else {
+    if {$debug} {
+      puts " WARN - some cells are placed"
+    }
+    return 1
+  }
 }
 
 proc ::tclapp::xilinx::designutils::insert_buffer::genUniqueCellName {name} {
@@ -159,6 +288,8 @@ proc ::tclapp::xilinx::designutils::insert_buffer::genUniqueCellName {name} {
 
   # Return Value:
   # cell name
+
+  # Categories: xilinctclstore, designutils
 
   if {[get_cells -quiet $name] == {}} { return $name }
   set index 0
@@ -174,6 +305,8 @@ proc ::tclapp::xilinx::designutils::insert_buffer::genUniqueNetName {name} {
 
   # Return Value:
   # net name
+
+  # Categories: xilinctclstore, designutils
 
   if {[get_nets -quiet $name] == {}} { return $name }
   set index 0

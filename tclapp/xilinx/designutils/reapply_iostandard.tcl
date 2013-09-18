@@ -12,17 +12,18 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::reapply_iostandard {} {
-  # Summary : this proc will query the tool-chosen defaults from implementation
-  # and "apply" them so it looks like the user did it from the beginning
-  # complies with the bit export restriction that all ios be LOCd and 
+  # Summary : this command queries the tool-chosen defaults from implementation
+  # and "apply" them so it looks like the user did it from the beginning.
+  # This complies with the bit export restriction that all ios be LOCd and 
   # explicitly set to an IO Standard
 
   # Argument Usage:
-  # none
 
   # Return Value:
-  # none
+  # 0
   
+  # Categories: xilinctclstore, designutils
+
   foreach port [get_ports] {
    set_property IOSTANDARD [get_property IOSTANDARD $port] $port
    set_property LOC [get_property LOC $port] $port

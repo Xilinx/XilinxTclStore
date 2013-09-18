@@ -11,20 +11,23 @@ namespace eval ::tclapp::xilinx::designutils {
     namespace export report_hier_util
 }
 
-proc ::tclapp::xilinx::designutils::report_hier_util {{pattern {}}} {
-  # Summary : get all leaf-level placeable instances in the design
+proc ::tclapp::xilinx::designutils::report_hier_util {{pattern {*}}} {
+  # Summary : report the cell utilization below hierarchical instances
 
   # Argument Usage:
-  # [pattern=*] : filter for hierarchical cells
+  # [pattern=*] : Pattern of hierarchical cells
 
   # Return Value:
-  # none
-  
-  if {$pattern == {}} {
+  # 0
+  # TCL_ERROR if an error happened
+
+  # Categories: xilinctclstore, designutils
+
+  if {$pattern == {*}} {
     set listHierCells [get_cells -quiet -filter "!IS_PRIMITIVE" ]
   } else {
+    # Look for cells at the current level and below
     set listHierCells [get_cells -quiet -hier $pattern -filter "!IS_PRIMITIVE" ]
-#   set listHierCells [get_cells -quiet $pattern -filter "!IS_PRIMITIVE" ]
   }
   if {$listHierCells == {}} {
     error " error - no hierarchical cell matches $pattern"
@@ -69,4 +72,3 @@ proc ::tclapp::xilinx::designutils::report_hier_util {{pattern {}}} {
 
   return 0
 }
-

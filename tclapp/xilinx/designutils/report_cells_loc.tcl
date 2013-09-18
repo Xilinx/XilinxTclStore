@@ -15,11 +15,13 @@ proc ::tclapp::xilinx::designutils::report_cells_loc { {comp_type "ALL"} } {
   # Summary : report the location of cells matching a REF_NAME pattern
   
   # Argument Usage:
-  # [comp_type="ALL"] : type of component
+  # [comp_type="ALL"] : REF_NAME pattern. "ALL" matches any cell
   
   # Return Value:
-  # none
+  # 0
   
+  # Categories: xilinctclstore, designutils
+
   # Description:
   # By default this will print all the placed
   # components if the comp is not specified
