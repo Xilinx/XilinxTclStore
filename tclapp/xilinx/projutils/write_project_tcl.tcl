@@ -224,6 +224,24 @@ namespace eval ::tclapp::xilinx::projutils {
           }
         }
 
+        # explicitly update the compile order for current source/simset, if following conditions are met
+        if { {All} == [get_property source_mgmt_mode [current_project]] &&
+             {0}   == [get_property is_readonly [current_project]] &&
+             {RTL} == [get_property design_mode [current_fileset]] } {
+
+          send_msg_id Vivado-projutils-014 INFO "Updating design source hierarchy..."
+
+          # re-parse source fileset compile order for the current top
+          if {[llength [get_files -compile_order sources -used_in synthesis]] > 1} {
+            update_compile_order -fileset [current_fileset]
+          }
+
+          # re-parse simlulation fileset compile order for the current top
+          if {[llength [get_files -compile_order sources -used_in simulation]] > 1} {
+            update_compile_order -fileset [current_fileset -simset]
+          }
+        }
+
         # writer helpers
         wr_create_project $proj_dir $proj_name
         wr_project_properties $proj_name
