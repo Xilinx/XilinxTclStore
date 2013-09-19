@@ -15,9 +15,11 @@ proc ::tclapp::xilinx::designutils::write_template {args} {
   # Summary : generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)
 
   # Argument Usage:
+  # args : command line option (-help option for more details)
 
   # Return Value:
-  # 0
+  # template in the case of -return_string, otherwise 0
+  # TCL_ERROR if error
 
   # Categories: xilinctclstore, designutils
 
@@ -47,9 +49,10 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
   # Summary :
 
   # Argument Usage:
+  # args : command line option (-help option for more details)
 
   # Return Value:
-  # template in case of -return_string, otherwise 0
+  # template in the case of -return_string, otherwise 0
   # TCL_ERROR if error
 
   # Categories: xilinctclstore, designutils
@@ -195,7 +198,7 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
   Example:
      write_template
      write_template -verilog -stub -file top.v
-     write_template -vhdl -template -cell ila_v2_1_0
+     write_template -vhdl -template -cell ila_v2_1_0 -return_string
 } ]
     # HELP -->
     return {}
