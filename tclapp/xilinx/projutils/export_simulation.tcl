@@ -35,14 +35,14 @@ namespace eval ::tclapp::xilinx::projutils {
         # NOTE: Please ensure that any switches used are specified in the order shown below.
 
         # Argument Usage:
-        # [-of_objects <name>]: Export simulation file(s) for the specified object
+        # [-of_objects <name>]: Export simulation script for the specified object
         # [-lib_map_path <dir>]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
-        # [-script_name <name>]: Output shell script filename. If not specified, then file with a default name will be created with .sh extension.
+        # [-script_name <name>]: Output shell script filename. If not specified, then file with a default name will be created with the '.sh' extension.
         # [-absolute_path]: Make all file paths absolute wrt the reference directory
         # [-32bit]: Perform 32bit compilation
         # [-force]: Overwrite previous files
-        # -directory <name>: Directory where the simulation file(s) are exported
-        # -simulator <name>: Simulator for which simulation files will be exported (<name>: ies|vcs_mx)
+        # -directory <name>: Directory where the simulation script will be exported
+        # -simulator <name>: Simulator for which the simulation script will be created (<name>: ies|vcs_mx)
 
         # Return Value:
         # true (0) if success, false (1) otherwise
@@ -539,8 +539,10 @@ namespace eval ::tclapp::xilinx::projutils {
         close $fh
  
         # make filelist executable
-        if {[catch {exec chmod a+x $file} error_msg] } {
-          send_msg_id Vivado-projutils-040 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+        if {$::tcl_platform(platform) == "unix"} {
+          if {[catch {exec chmod a+x $file} error_msg] } {
+            send_msg_id Vivado-projutils-040 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+          }
         }
  
         return 0
@@ -635,15 +637,16 @@ namespace eval ::tclapp::xilinx::projutils {
  
         # add glbl
         if { [contains_verilog] } {
-          set file_str "-work work \"glbl.v\""
           set s64bit ""
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"      { 
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-64bit" }
+              set file_str "-work work \"glbl.v\""
               puts $fh "\n  # Compile glbl module\n  ncvlog \$ncvlog_opts $file_str"
             }
             "vcs_mx"   {
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-full64" }
+              set file_str "\"glbl.v\""
               puts $fh "\n  # Compile glbl module\n  vlogan \$vlogan_opts +v2k $file_str"
             }
             default {
@@ -723,7 +726,18 @@ namespace eval ::tclapp::xilinx::projutils {
           if { [string length $compiler] > 0 } {
             set arg_list [list $compiler]
             append_compiler_options $compiler $file_type arg_list
-            set arg_list [linsert $arg_list end "-work" "$associated_library" "\"$file\""]
+            switch -regexp -- $a_xport_sim_vars(s_simulator) {
+              "ies" { 
+                set arg_list [linsert $arg_list end "-work" "$associated_library" "\"$file\""]
+              }
+              "vcs_mx" {
+                if { [string equal -nocase $associated_library "work"] } {
+                  set arg_list [linsert $arg_list end "\"$file\""]
+                } else {
+                  set arg_list [linsert $arg_list end "-work" "$associated_library" "\"$file\""]
+                }
+              }
+            }
             set file_str [join $arg_list " "]
             puts $fh "  $file_str"
           }
@@ -797,12 +811,13 @@ namespace eval ::tclapp::xilinx::projutils {
           puts $fh "# None (no sources present)"
           return
         }
+
  
         switch -regexp -- $a_xport_sim_vars(s_simulator) {
           "ies" { 
             set tool "ncelab"
             set top_lib [get_top_library]
-            set arg_list [list "-access +rwc -messages" "-logfile" "$a_xport_sim_vars(s_sim_top)_elab.log"]
+            set arg_list [list "-relax -access +rwc -messages" "-logfile" "$a_xport_sim_vars(s_sim_top)_elab.log"]
             if { !$a_xport_sim_vars(b_32bit) } {
               set arg_list [linsert $arg_list 0 "-64bit"]
             }
@@ -894,7 +909,7 @@ namespace eval ::tclapp::xilinx::projutils {
           "vcs_mx" {
             set tool "$a_xport_sim_vars(s_sim_top)_simv"
             set arg_list [list "-ucli" "-licwait" "-60" "-l" "$a_xport_sim_vars(s_sim_top)_sim.log"]
-            puts $fh "${tool}_opts=\"[join $arg_list " "]\""
+            puts $fh "  ${tool}_opts=\"[join $arg_list " "]\""
             puts $fh ""
 
             set arg_list [list "./$a_xport_sim_vars(s_sim_top)_simv" "\$${tool}_opts" "-do" "$do_filename"]
@@ -1534,7 +1549,7 @@ namespace eval ::tclapp::xilinx::projutils {
           set a_xport_sim_vars(s_lib_map_path) [file normalize $a_xport_sim_vars(s_lib_map_path)]
           set compiled_lib_dir $a_xport_sim_vars(s_lib_map_path)
           if { ![file exists $compiled_lib_dir] } {
-            send_msg_id Vivado-projutils-052 ERROR
+            send_msg_id Vivado-projutils-052 ERROR \
               "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"
             puts $fh "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
           } else {
@@ -1654,9 +1669,9 @@ namespace eval ::tclapp::xilinx::projutils {
             puts $fh "  files_to_remove=($files)"
           }
           "vcs_mx" {
-            set file_list [list "ucli.key" "AN.DB" "csrc" "${top}_simv" "${top}_simv.daidir" \
+            set file_list [list "64" "ucli.key" "AN.DB" "csrc" "${top}_simv" "${top}_simv.daidir" \
                                 "vlogan.log" "vhdlan.log" "${top}_comp.log" "${top}_elab.log" "${top}_sim.log" \
-                                ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock"]
+                                ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock" "scirocco_command.log"]
             set files [join $file_list " "]
             puts $fh "  files_to_remove=($files)"
           }
