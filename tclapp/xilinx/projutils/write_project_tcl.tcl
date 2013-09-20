@@ -229,16 +229,15 @@ namespace eval ::tclapp::xilinx::projutils {
              {0}   == [get_property is_readonly [current_project]] &&
              {RTL} == [get_property design_mode [current_fileset]] } {
 
-          send_msg_id Vivado-projutils-014 INFO "Updating design source hierarchy..."
 
           # re-parse source fileset compile order for the current top
           if {[llength [get_files -compile_order sources -used_in synthesis]] > 1} {
-            update_compile_order -fileset [current_fileset]
+            update_compile_order -fileset [current_fileset] -quiet
           }
 
           # re-parse simlulation fileset compile order for the current top
           if {[llength [get_files -compile_order sources -used_in simulation]] > 1} {
-            update_compile_order -fileset [current_fileset -simset]
+            update_compile_order -fileset [current_fileset -simset] -quiet
           }
         }
 
