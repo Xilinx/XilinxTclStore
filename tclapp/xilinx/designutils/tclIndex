@@ -33,3 +33,4 @@ set auto_index(::tclapp::xilinx::designutils::clone_net_driver) [list source [fi
 set auto_index(::tclapp::xilinx::designutils::clone_cell) [list source [file join $dir replicate_high_fanout_registers.tcl]]
 set auto_index(::tclapp::xilinx::designutils::create_diff_ports) [list source [file join $dir create_diff_ports.tcl]]
 set auto_index(::tclapp::xilinx::designutils::bisect_pblock) [list source [file join $dir bisect_pblock.tcl]]
+set auto_index(::tclapp::xilinx::designutils::write_template) [list source [file join $dir write_template.tcl]]
