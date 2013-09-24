@@ -130,9 +130,9 @@ namespace eval ::tclapp::xilinx::projutils {
 
     # set file types to filter
     variable l_filetype_filter [list]
-    set l_filetype_filter [list "ip" "embedded design sources" "elf" "coefficient files" \
+    set l_filetype_filter [list "ip" "embedded design sources" "elf" "coefficient files" "configuration files" \
                                 "block diagrams" "block designs" "dsp design sources" "text" \
-                                "design checkpoint" "waveform configuration file" "data files"]
+                                "design checkpoint" "waveform configuration file"]
 
     # set fileset types
     variable a_fileset_types
@@ -827,11 +827,25 @@ namespace eval ::tclapp::xilinx::projutils {
             # import files
             set imported_path [get_property "imported_from" $file]
             set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
-            set file "\"$proj_file_path\""
-            lappend l_local_file_list $file
+            set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
 
-            # add to the import collection
-            lappend import_coln "\"$proj_file_path\""
+            if { $a_global_vars(b_arg_no_copy_srcs) } {
+              # add to the local collection
+              lappend l_remote_file_list $file
+              if { $a_global_vars(b_absolute_path) } {
+                lappend add_file_coln "$file"
+              } else {
+                lappend add_file_coln "\"\[file normalize \"$proj_file_path\"\]\""
+              }
+            } else {
+              # add to the import collection
+              lappend l_local_file_list $file
+              if { $a_global_vars(b_absolute_path) } {
+                lappend import_coln "$file"
+              } else {
+                lappend import_coln "\"\[file normalize \"$proj_file_path\"\]\""
+              }
+            }
 
           } else {
             set file "\"$file\""
@@ -850,7 +864,14 @@ namespace eval ::tclapp::xilinx::projutils {
             }
       
             # add file to collection
-            lappend add_file_coln "$file"
+            if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
+              set file_no_quotes [string trim $file "\""]
+              set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
+              set file1 "\"\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]\""
+              lappend add_file_coln "$file1"
+            } else {
+              lappend add_file_coln "$file"
+            }
 
             # set flag that local sources were found and print warning at the end
             if { !$a_global_vars(b_local_sources) } {
@@ -865,9 +886,13 @@ namespace eval ::tclapp::xilinx::projutils {
             if { $a_global_vars(b_absolute_path) } {
               lappend l_script_data " $file\\"
             } else {
-              set file_no_quotes [string trim $file "\""]
-              set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
-              lappend l_script_data " \"\$orig_proj_dir/$rel_file_path\"\\"
+              if { $a_global_vars(b_arg_no_copy_srcs) } {
+                lappend l_script_data " $file\\"
+              } else {
+                set file_no_quotes [string trim $file "\""]
+                set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
+                lappend l_script_data " \"\$orig_proj_dir/$rel_file_path\"\\"
+              }
             }
           }
           lappend l_script_data "\]"
