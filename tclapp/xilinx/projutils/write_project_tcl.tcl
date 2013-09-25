@@ -243,9 +243,9 @@ namespace eval ::tclapp::xilinx::projutils {
 
         # writer helpers
         wr_create_project $proj_dir $proj_name
-        wr_project_properties $proj_name
+        wr_project_properties $proj_dir $proj_name
         wr_filesets $proj_dir $proj_name
-        wr_runs $proj_name
+        wr_runs $proj_dir $proj_name
         wr_proj_info $proj_name
 
         # write header
@@ -330,7 +330,7 @@ namespace eval ::tclapp::xilinx::projutils {
         lappend l_script_data ""
     }
 
-    proc wr_project_properties { proj_name } {
+    proc wr_project_properties { proj_dir proj_name } {
 
         # Summary: write project properties
         # This helper command is used to script help.
@@ -356,7 +356,7 @@ namespace eval ::tclapp::xilinx::projutils {
           set b_project_board_set 1
         }
 
-        write_props $proj_name $get_what $tcl_obj "project"
+        write_props $proj_dir $proj_name $get_what $tcl_obj "project"
     }
 
     proc wr_filesets { proj_dir proj_name } {
@@ -416,13 +416,13 @@ namespace eval ::tclapp::xilinx::projutils {
 
           lappend l_script_data "# Set '$tcl_obj' fileset properties"
           lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
-          write_props $proj_name $get_what_fs $tcl_obj "fileset"
+          write_props $proj_dir $proj_name $get_what_fs $tcl_obj "fileset"
     
           if { [string equal [get_property fileset_type [$get_what_fs $tcl_obj]] "Constrs"] } { continue }
         }
     }
 
-    proc wr_runs { proj_name } {
+    proc wr_runs { proj_dir proj_name } {
 
         # Summary: write runs and properties 
         # This helper command is used to script help.
@@ -435,10 +435,10 @@ namespace eval ::tclapp::xilinx::projutils {
 
         # write runs (synthesis, Implementation)
         set runs [get_runs -filter {IS_SYNTHESIS == 1}]
-        write_specified_run $proj_name $runs
+        write_specified_run $proj_dir $proj_name $runs
       
         set runs [get_runs -filter {IS_IMPLEMENTATION == 1}]
-        write_specified_run $proj_name $runs
+        write_specified_run $proj_dir $proj_name $runs
     }
 
     proc wr_proj_info { proj_name } {
@@ -638,7 +638,7 @@ namespace eval ::tclapp::xilinx::projutils {
         lappend l_script_data ""
     }
 
-    proc write_props { proj_name get_what tcl_obj type } {
+    proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
         # Summary: write first class object properties
         # This helper command is used to script help.
@@ -726,7 +726,11 @@ namespace eval ::tclapp::xilinx::projutils {
             set file_props [list_property $file_object]
 
             if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
-              set proj_file_path "\$proj_dir/${proj_name}.srcs/$src_file"
+              if { $a_global_vars(b_arg_no_copy_srcs) } {
+                set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
+              } else {
+                set proj_file_path "\$proj_dir/${proj_name}.srcs/$src_file"
+              }
             } else {
               # is file new inside project?
               if { [is_local_to_project $file] } {
@@ -737,7 +741,13 @@ namespace eval ::tclapp::xilinx::projutils {
                   set proj_file_path "$file"
                 }
               } else {
-                set proj_file_path "$file"
+                if { $a_global_vars(b_absolute_path) } {
+                  set proj_file_path "$file"
+                } else {
+                  set file_no_quotes [string trim $file "\""]
+                  set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
+                  set proj_file_path "\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]"
+                }
               }
             }
 
@@ -891,7 +901,7 @@ namespace eval ::tclapp::xilinx::projutils {
               } else {
                 set file_no_quotes [string trim $file "\""]
                 set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
-                lappend l_script_data " \"\$orig_proj_dir/$rel_file_path\"\\"
+                lappend l_script_data " \"\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]\"\\"
               }
             }
           }
@@ -922,7 +932,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
     }
 
-    proc write_specified_run { proj_name runs } {
+    proc write_specified_run { proj_dir proj_name runs } {
 
         # Summary: write the specified run information 
         # This helper command is used to script help.
@@ -960,7 +970,7 @@ namespace eval ::tclapp::xilinx::projutils {
           lappend l_script_data "\}"
   
           lappend l_script_data "set obj \[$get_what $tcl_obj\]"
-          write_props $proj_name $get_what $tcl_obj "run"
+          write_props $proj_dir $proj_name $get_what $tcl_obj "run"
         }
     }
 
