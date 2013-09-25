@@ -755,6 +755,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
             set prop_entry "[string tolower $prop]#$proj_file_path"
           }
+
  
           # re-align compiled_library_dir
           if {[string equal -nocase $prop "compxlib.compiled_library_dir"]} {
