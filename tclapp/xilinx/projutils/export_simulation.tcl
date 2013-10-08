@@ -35,14 +35,14 @@ namespace eval ::tclapp::xilinx::projutils {
         # NOTE: Please ensure that any switches used are specified in the order shown below.
 
         # Argument Usage:
-        # [-of_objects <name>]: Export simulation script for the specified object
-        # [-lib_map_path <dir>]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
-        # [-script_name <name>]: Output shell script filename. If not specified, then file with a default name will be created with the '.sh' extension.
+        # [-of_objects <arg>]: Export simulation script for the specified object
+        # [-lib_map_path <arg>]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
+        # [-script_name <arg>]: Output shell script filename. If not specified, then file with a default name will be created with the '.sh' extension.
         # [-absolute_path]: Make all file paths absolute wrt the reference directory
         # [-32bit]: Perform 32bit compilation
         # [-force]: Overwrite previous files
-        # -directory <name>: Directory where the simulation script will be exported
-        # -simulator <name>: Simulator for which the simulation script will be created (<name>: ies|vcs_mx)
+        # -directory <arg>: Directory where the simulation script will be exported
+        # -simulator <arg>: Simulator for which the simulation script will be created (<name>: ies|vcs_mx)
 
         # Return Value:
         # true (0) if success, false (1) otherwise
