@@ -35,7 +35,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # Export Tcl script for re-creating the current project
 
         # Argument Usage: 
-        # [-target_proj_dir <name>]: Directory where the project needs to be restored
+        # [-target_proj_dir <arg>]: Directory where the project needs to be restored
         # [-force]: Overwrite existing tcl script file
         # [-all_properties]: Write all properties (default & non-default) for the project object(s)
         # [-no_copy_sources]: Do not import sources even if they were local in the original project
