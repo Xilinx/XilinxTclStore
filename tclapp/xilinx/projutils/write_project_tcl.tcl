@@ -827,7 +827,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set import_coln [list]
         set add_file_coln [list]
 
-        foreach file [lsort [get_files -norecurse -of_objects $tcl_obj]] {
+        foreach file [get_files -norecurse -of_objects $tcl_obj] {
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
           set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
 
