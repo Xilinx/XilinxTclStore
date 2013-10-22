@@ -32,7 +32,6 @@ namespace eval ::tclapp::xilinx::projutils {
         # Summary:
         # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator. 
         #
-        # NOTE: Please ensure that any switches used are specified in the order shown below.
 
         # Argument Usage:
         # [-of_objects <arg>]: Export simulation script for the specified object
