@@ -75,71 +75,71 @@ Examples:
   The following command generates a simulation script file in the current directory for the "IES"
   simulator. The source file paths in the generated script will be set relative to the current directory:
 
-  % export_simulation -simulator ies -directory "."
+  % export_simulation -directory "." -simulator ies
 
   The following command generates a simulation script file in the current directory for the "IES"
   simulator. The source file paths in the generated script will be set absolute:
 
-  % export_simulation -absolute_path -simulator ies -directory "."
+  % export_simulation -absolute_path -directory "." -simulator ies
 
   The following command overwrites an existing script file in the current directory:
 
-  % export_simulation -force -simulator ies -directory "."
+  % export_simulation -force -directory "." -simulator ies
 
   The following command generates a simulation script file named "test_ies.sh" in the "./test_sim"
   directory:
 
-  % export_simulation -simulator ies -directory "./test_sim" -script_name test_ies.sh
+  % export_simulation -directory "./test_sim" -simulator ies -script_name test_ies.sh
 
   The following command generates a script file named "top_tb_sim_ies.sh" in the "./test_sim" directory
   for a project with simulation top set to "top_tb". The command will also copy any data files (.mif,
   .coe, .dat, etc) to the ./test_sim directory:
 
-  % export_simulation -simulator ies -directory "./test_sim"
+  % export_simulation -directory "./test_sim" -simulator ies
 
   The following command generates a script file "accum_0_sim_ies.sh" for the "accum_0" IP in the
   specified output directory for the "IES" simulator:
 
-  % export_simulation -of_objects [get_files accum_0.xci] -simulator ies -directory "test_sim"
+  % export_simulation -of_objects [get_files accum_0.xci] -directory "test_sim" -simulator ies
 
   The following command generates a script file "accum_0_sim_vcs_mx.sh" for the "accum_0" IP in the
   specified output directory for the "VCS_MX" simulator:
 
-  % export_simulation -of_objects [get_ips accum_0] -simulator vcs_mx -directory "test_sim"
+  % export_simulation -of_objects [get_ips accum_0] -directory "test_sim" -simulator vcs_mx
 
   The following command generates a script file "fifo_tb_sim_vcs_mx.sh" for the simulation fileset
   "sim_fifo_test" whose top is set to "fifo_tb" in the specified output directory for the "IES" simulator:
 
-  % export_simulation -of_objects [get_filesets sim_fifo_test] -simulator ies -directory "test_sim"
+  % export_simulation -of_objects [get_filesets sim_fifo_test] -directory "test_sim" -simulator ies
 
   The following command exports a script file "top_tb_sim_vcs_mx.sh" for the "VCS_MX" simulator in the
   specified output directory with the design source files compiled for 32 bit version of the simulator
   compiler (no 64 bit option will be added to the command line):
 
-  % export_simulation -force -32bit -simulator vcs_mx -directory "test_bft_vcs_mx"
+  % export_simulation -force -32bit -directory "test_bft_vcs_mx" -simulator vcs_mx
 
   The following command will include "/sim_libs/ius/lin64/lib/cds.lib" file path in the "./test_sim/cds.lib"
   file ("INCLUDE /sim_libs/ius/lin64/lib/cds.lib") for refrencing the compiled libraries for "IES" simulator:-
 
-  % export_simulation -lib_map_path "/sim_libs/ius/lin64/lib" -simulator ies -directory "test_sim"
+  % export_simulation -lib_map_path "/sim_libs/ius/lin64/lib" -directory "test_sim" -simulator ies
 
   The following command will include "/sim_libs/vcs/lin64/lib/synopsys_sim.setup" file path in the
   "./test_sim/synopsys_sim.setup" file ("OTHERS=/sim_libs/vcs/lin64/lib/synopsys_sim.setup") for refrencing
   the compiled libraries for the "VCS_MX" simulator:-
 
-  % export_simulation -lib_map_path "/sim_libs/vcs/lin64/lib" -simulator vcs_mx -directory "test_sim"
+  % export_simulation -lib_map_path "/sim_libs/vcs/lin64/lib" -directory "test_sim" -simulator vcs_mx
 
   The following steps generates a script file in "./test_sim/ies" directory and then compile, elaborate
   and simulate the design in "IES" simulator:-
 
-  % export_simulation -lib_map_path "/sim_libs/ies/lin64/lib" -simulator ies -directory "./test_sim/ies"
+  % export_simulation -lib_map_path "/sim_libs/ies/lin64/lib" -directory "./test_sim/ies" -simulator ies
   % cd test_sim/ies
   % ./top_tb_sim_ies.sh
 
   The following steps generates a script file in "./test_sim/vcs_mx" directory and then compile, elaborate
   and simulate the design in "VCS_MX" simulator:-
 
-  % export_simulation -lib_map_path "/sim_libs/vcs/lin64/lib" -simulator vcs_mx -directory "./test_sim/vcs_mx"
+  % export_simulation -lib_map_path "/sim_libs/vcs/lin64/lib" -directory "./test_sim/vcs_mx" -simulator vcs_mx
   % cd test_sim/vcs_mx
   % ./top_tb_sim_vcs_mx.sh
 
