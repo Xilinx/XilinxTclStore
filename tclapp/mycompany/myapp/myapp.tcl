@@ -1,3 +1,4 @@
+#this is a comment
 package require Tcl 8.4
 
 namespace eval ::tclapp::mycompany::myapp {
