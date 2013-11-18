@@ -621,8 +621,11 @@ namespace eval ::tclapp::xilinx::projutils {
             set elem [split $x "#"]
             set name [lindex $elem 0]
             set value [lindex $elem 1]
-            set cmd_str "set_property \"$name\" \"$value\""
-
+            if { [regexp "more options" $name] } {
+              set cmd_str "set_property -name {$name} -value {$value} -objects"
+            } else {
+              set cmd_str "set_property \"$name\" \"$value\""
+            }
             if { [string equal $get_what "get_files"] } {
               lappend l_script_data "$cmd_str \$file_obj"
             } else {
@@ -829,7 +832,8 @@ namespace eval ::tclapp::xilinx::projutils {
 
         foreach file [get_files -norecurse -of_objects $tcl_obj] {
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-          set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
+          set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
+          set src_file [join [lrange $path_dirs $begin+1 end] "/"]
 
           # fetch first object
           set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
