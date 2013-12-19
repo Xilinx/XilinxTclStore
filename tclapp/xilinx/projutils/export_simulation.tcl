@@ -640,7 +640,8 @@ namespace eval ::tclapp::xilinx::projutils {
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"      { 
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-64bit" }
-              set file_str "-work work \"glbl.v\""
+              set default_lib [get_property default_lib [current_project]]
+              set file_str "-work $default_lib \"glbl.v\""
               puts $fh "\n  # Compile glbl module\n  ncvlog \$ncvlog_opts $file_str"
             }
             "vcs_mx"   {
@@ -1267,7 +1268,7 @@ namespace eval ::tclapp::xilinx::projutils {
         }
 
         if { [string length $top_lib] == 0 } {
-          set top_lib "work"
+          set top_lib [get_property default_lib [current_project]]
         }
 
         return $top_lib
