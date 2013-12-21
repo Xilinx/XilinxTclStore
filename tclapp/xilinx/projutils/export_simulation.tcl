@@ -637,17 +637,21 @@ namespace eval ::tclapp::xilinx::projutils {
         # add glbl
         if { [contains_verilog] } {
           set s64bit ""
+          set default_lib [get_property default_lib [current_project]]
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"      { 
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-64bit" }
-              set default_lib [get_property default_lib [current_project]]
               set file_str "-work $default_lib \"glbl.v\""
               puts $fh "\n  # Compile glbl module\n  ncvlog \$ncvlog_opts $file_str"
             }
             "vcs_mx"   {
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-full64" }
               set file_str "\"glbl.v\""
-              puts $fh "\n  # Compile glbl module\n  vlogan \$vlogan_opts +v2k $file_str"
+              set work_lib_sw {}
+              if { {work} != $default_lib } {
+                set work_lib_sw "-work $default_lib"
+              }
+              puts $fh "\n  # Compile glbl module\n  vlogan \$vlogan_opts +v2k $work_lib_sw $file_str"
             }
             default {
               send_msg_id Vivado-projutils-031 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
