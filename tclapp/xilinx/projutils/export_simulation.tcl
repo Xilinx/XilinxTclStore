@@ -32,17 +32,16 @@ namespace eval ::tclapp::xilinx::projutils {
         # Summary:
         # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator. 
         #
-        # NOTE: Please ensure that any switches used are specified in the order shown below.
 
         # Argument Usage:
-        # [-of_objects <name>]: Export simulation script for the specified object
-        # [-lib_map_path <dir>]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
-        # [-script_name <name>]: Output shell script filename. If not specified, then file with a default name will be created with the '.sh' extension.
+        # [-of_objects <arg>]: Export simulation script for the specified object
+        # [-lib_map_path <arg>]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
+        # [-script_name <arg>]: Output shell script filename. If not specified, then file with a default name will be created with the '.sh' extension.
         # [-absolute_path]: Make all file paths absolute wrt the reference directory
         # [-32bit]: Perform 32bit compilation
         # [-force]: Overwrite previous files
-        # -directory <name>: Directory where the simulation script will be exported
-        # -simulator <name>: Simulator for which the simulation script will be created (<name>: ies|vcs_mx)
+        # -directory <arg>: Directory where the simulation script will be exported
+        # -simulator <arg>: Simulator for which the simulation script will be created (<name>: ies|vcs_mx)
 
         # Return Value:
         # true (0) if success, false (1) otherwise
@@ -638,16 +637,21 @@ namespace eval ::tclapp::xilinx::projutils {
         # add glbl
         if { [contains_verilog] } {
           set s64bit ""
+          set default_lib [get_property default_lib [current_project]]
           switch -regexp -- $a_xport_sim_vars(s_simulator) {
             "ies"      { 
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-64bit" }
-              set file_str "-work work \"glbl.v\""
+              set file_str "-work $default_lib \"glbl.v\""
               puts $fh "\n  # Compile glbl module\n  ncvlog \$ncvlog_opts $file_str"
             }
             "vcs_mx"   {
               if { !$a_xport_sim_vars(b_32bit) } { set s64bit "-full64" }
               set file_str "\"glbl.v\""
-              puts $fh "\n  # Compile glbl module\n  vlogan \$vlogan_opts +v2k $file_str"
+              set work_lib_sw {}
+              if { {work} != $default_lib } {
+                set work_lib_sw "-work $default_lib"
+              }
+              puts $fh "\n  # Compile glbl module\n  vlogan \$vlogan_opts +v2k $work_lib_sw $file_str"
             }
             default {
               send_msg_id Vivado-projutils-031 ERROR "Invalid simulator ($a_xport_sim_vars(s_simulator))\n"
@@ -1268,7 +1272,7 @@ namespace eval ::tclapp::xilinx::projutils {
         }
 
         if { [string length $top_lib] == 0 } {
-          set top_lib "work"
+          set top_lib [get_property default_lib [current_project]]
         }
 
         return $top_lib
