@@ -15,20 +15,29 @@ proc ::tclapp::xilinx::designutils::write_template {args} {
   # Summary : generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)
 
   # Argument Usage:
-  # args : command line option (-help option for more details)
+  # [-type <arg> = stub]: Type of template to create: stub, template or testbench
+  # [-stub]: Generate a stub (same as -type stub)
+  # [-template]: Generate a template (same as -type template)
+  # [-testbench]: Generate a testbench (same as -type testbench)
+  # [-language <arg> = verilog]: Output language of the template: verilog or vhdl
+  # [-verilog]: Verilog language (same as -language verilog)
+  # [-vhdl]: VHDL language (same as -language vhdl)
+  # [-cell <arg> = current_instance]: Cell to generate template on. If not specified, runs on current_instance
+  # [-file <arg> = <module>.v or <module>.vhd]: Output file name
+  # [-append]: Append to file
+  # [-return_string]: Return template as string
+  # [-usage]: Usage information
 
   # Return Value:
-  # template in the case of -return_string, otherwise 0
-  # TCL_ERROR if error
+  # template in the case of -return_string, otherwise 0 TCL_ERROR if error
 
   # Categories: xilinctclstore, designutils
-
   return [uplevel ::tclapp::xilinx::designutils::write_template::write_template $args]
 }
 
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::write_template {
-   variable version {09-19-2013}
+   variable version {01-14-2014}
    variable tfh {}
    variable module {}
    variable inputBitPorts {}
@@ -142,8 +151,8 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
       {^-r(e(t(u(r(n(_(s(t(r(i(ng?)?)?)?)?)?)?)?)?)?)?)?$} {
            set returnString 1
       }
-      -help -
-      {^-h(e(lp?)?)?$} {
+      -usage -
+      {^-u(s(a(ge?)?)?)?$} {
            set help 1
       }
       default {
@@ -173,20 +182,20 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
   Usage: write_template
               [-type <arg>]        - Type of template to create
                                      Options are: stub,template, or testbench
-              [-stub]              - Generate a stub (e.q. -type stub)
-              [-template]          - Generate a template (e.q. -type template)
-              [-testbench]         - Generate a testbench (e.q. -type testbench)
+              [-stub]              - Generate a stub (same as -type stub)
+              [-template]          - Generate a template (same as -type template)
+              [-testbench]         - Generate a testbench (same as -type testbench)
               [-language <arg>]    - Output language of the template
                                      Options are: verilog or vhdl
-              [-verilog]           - Verilog language (e.q. -language verilog)
-              [-vhdl]              - VHDL language (e.q. -language vhdl)
+              [-verilog]           - Verilog language (same as -language verilog)
+              [-vhdl]              - VHDL language (same as -language vhdl)
               [-cell <arg>]        - Cell to generate template on. If not specified,
                                      runs on current_instance
               [-file <arg>]        - Output file name
                                      Default: <module>.v or <module>.vhd
               [-append]            - Append to file
               [-return_string]     - Return template as string
-              [-help|-h]           - This help message
+              [-usage|-u]          - This help message
 
   Description: Writes out Verilog or VHDL templates
 

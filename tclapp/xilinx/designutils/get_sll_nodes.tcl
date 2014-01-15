@@ -15,10 +15,10 @@ proc ::tclapp::xilinx::designutils::get_sll_nodes { {slr *} } {
   # Summary : returns all the sll node objects in the device for matching SLRs
 
   # Argument Usage:
-  # [slr=*] : Default is across all SLRs - valid values for slr are * or an integer for the specifc SLR ID
+  # [slr = *] : Default is across all SLRs. Valid values for are * or a SLR ID (integer)
   
   # Return Value:
-  # returns all the sll node objects in the device
+  # returns all the SLL node objects in the device
   
   # Categories: xilinctclstore, designutils
 

@@ -16,9 +16,9 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers { {maxFan 10
   # Replicate registers to limit register fanout to maxFan.  Run after synthesis
   
   # Argument Usage:
-  # [maxFan=100] : Max fanout limit
-  # [inst=*] : Hierarchical scope
-  # [reportOnly=0] : If non-zero only report otherwise replicate logic
+  # maxFan : Max fanout limit (default: 100)
+  # inst : Hierarchical scope (default: *)
+  # reportOnly : If non-zero only report otherwise replicate logic (default: 0)
 
   # Return Value:
   # 0
@@ -35,7 +35,7 @@ proc ::tclapp::xilinx::designutils::clone_net_driver {net {suffix {}}} {
   
   # Argument Usage:
   # net: Net
-  # [suffix={}] : Optional suffix to be appended to the name of the cloned driver
+  # [suffix = ] : Optional suffix to be appended to the name of the cloned driver
 
   # Return Value:
   # created net on the cloned driver
@@ -52,7 +52,7 @@ proc ::tclapp::xilinx::designutils::clone_cell {cell {suffix {}}} {
   
   # Argument Usage:
   # cell: Cell
-  # [suffix={}] : Optional suffix to be appended to the name of the cloned cell
+  # [suffix = ] : Optional suffix to be appended to the name of the cloned cell
 
   # Return Value:
   # cloned cell
@@ -73,9 +73,9 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::replicate_h
   # Replicate registers to limit register fanout to maxFan.  Run after synthesis
   
   # Argument Usage:
-  # [maxFan=100] : Max fanout limit
-  # [inst=*] : Hierarchical scope
-  # [reportOnly=0] : If non-zero only report otherwise replicate logic
+  # maxFan : Max fanout limit (default: 100)
+  # inst : Hierarchical scope (default: *)
+  # reportOnly : If non-zero only report otherwise replicate logic (default: 0)
 
   # Return Value:
   # 0
@@ -109,7 +109,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::clone_net_d
   
   # Argument Usage:
   # net: Net
-  # [suffix={}] : Optional suffix to be appended to the name of the cloned driver
+  # [suffix = ] : Optional suffix to be appended to the name of the cloned driver
 
   # Return Value:
   # created net on the cloned driver
@@ -147,7 +147,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::clone_cell 
   
   # Argument Usage:
   # cell: Cell
-  # [suffix={}] : Optional suffix to be appended to the name of the cloned cell
+  # [suffix = ] : Optional suffix to be appended to the name of the cloned cell
 
   # Return Value:
   # cloned cell
@@ -247,7 +247,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::cloneReg {r
   # Argument Usage:
   # regOrig : Register to copy
   # netOrig : Net driven by register
-  # [copyIndex={}] : Optional ID string
+  # [copyIndex = ] : Optional ID string
   
   # Return Value:
   # creates and returns a new net driven by the cloned register output
@@ -429,6 +429,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::checkAllCon
 
   # Argument Usage:
   # name : cell name or net name
+  # [force = 0]: force mode
 
   # Return Value:
   # 0 if all the connected cells are unplaced. 1 otherwise

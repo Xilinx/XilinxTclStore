@@ -16,18 +16,18 @@ namespace eval ::tclapp::xilinx::designutils {
 #------------------------------------------------------------------------
 # Proc to export
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::designutils::get_leaf_cells { {hierInst *} } {
+proc ::tclapp::xilinx::designutils::get_leaf_cells { {pattern *} } {
   # Summary : get all the leave cells below an instance
   
   # Argument Usage:
-  # [hierInst=*] : Hierarchical instance name pattern
+  # [pattern = *] : Hierarchical instance name pattern
 
   # Return Value:
   # list of leaf cells objects
   
   # Categories: xilinctclstore, designutils
 
-  uplevel [concat ::tclapp::xilinx::designutils::get_leaf_cells::get_leaf_cells $hierInst]
+  uplevel [concat ::tclapp::xilinx::designutils::get_leaf_cells::get_leaf_cells $pattern]
 }
 
 # Trick to silence the linter
@@ -45,7 +45,7 @@ proc ::tclapp::xilinx::designutils::get_leaf_cells::get_leaf_cells { {inst *} } 
   # Summary : get the leave cells of an instance
   
   # Argument Usage:
-  # [inst=*] : Hierarchical instance name pattern
+  # [inst = *] : Hierarchical instance name pattern
 
   # Return Value:
   # list of leaf cells objects
@@ -59,7 +59,7 @@ proc ::tclapp::xilinx::designutils::get_leaf_cells::get_leaf_cells { {inst *} } 
   set leafCells [list]
   getLeafCells $inst
   # Convert all cell names to first class Tcl object
-  set leafCells [get_cells $leafCells]
+  set leafCells [get_cells -quiet $leafCells]
   # Return the list of cells
   return $leafCells
 }
@@ -77,8 +77,8 @@ proc ::tclapp::xilinx::designutils::get_leaf_cells::getLeafCells {pattern} {
 
   
   variable leafCells
-  set leafCells [concat $leafCells [get_cells $pattern -filter {IS_PRIMITIVE && (REF_NAME!=VCC) && (REF_NAME!=GND)}] ]
-  set hierCells [get_cells $pattern -filter {!IS_PRIMITIVE && (REF_NAME!=VCC) && (REF_NAME!=GND)}]
+  set leafCells [concat $leafCells [get_cells -quiet $pattern -filter {IS_PRIMITIVE && (REF_NAME!=VCC) && (REF_NAME!=GND)}] ]
+  set hierCells [get_cells -quiet $pattern -filter {!IS_PRIMITIVE && (REF_NAME!=VCC) && (REF_NAME!=GND)}]
   foreach cell $hierCells {
     getLeafCells $cell/*
   }

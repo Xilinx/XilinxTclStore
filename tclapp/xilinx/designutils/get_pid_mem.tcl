@@ -19,7 +19,7 @@ proc ::tclapp::xilinx::designutils::get_mem {} {
   # Argument Usage:
 
   # Return Value:
-  # the amount of heap memory
+  # the amount of heap memory of the Vivado session
   
   # Categories: xilinctclstore, designutils
 
@@ -31,10 +31,10 @@ proc ::tclapp::xilinx::designutils::get_pid_mem { {pid {}} } {
   # Summary : queries the kernel for the heap memory of a specific process
 
   # Argument Usage:
-  # [pid=] : Process id. If no process ID is provided then the ID of the current Vivado session is used
+  # [pid = current Vivado session] : Process ID
 
   # Return Value:
-  # the amount of heap memory
+  # the amount of heap memory of the process
   
   # Categories: xilinctclstore, designutils
 

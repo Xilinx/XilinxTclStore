@@ -113,8 +113,8 @@ proc ::tclapp::xilinx::designutils::create_diff_ports::createDiffPort {port {idx
 
   # Argument Usage:
   # port : assumes the port suffix is _p, _P
-  # [idMax={}] : max
-  # [idMin={}] : min
+  # [idMax = ] : max
+  # [idMin = ] : min
 
   # Return Value:
   # none

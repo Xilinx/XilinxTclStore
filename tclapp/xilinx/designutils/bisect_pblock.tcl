@@ -15,9 +15,9 @@ proc ::tclapp::xilinx::designutils::bisect_pblock {{pb {}} {first {top}} {second
   # Summary : bisect a P block
 
   # Argument Usage:
-  # [pb={}] : PBlock
-  # [first=top] :
-  # [second=left] :
+  # pb : PBlock (default: )
+  # first : default: top
+  # second : default: left
 
   # Return Value:
   # 0
