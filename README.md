@@ -2,51 +2,48 @@
 
 
 ## As a Contributor
-1. Get git account \<user\> and download git on your machine
+1. Get git account \<USER\> and download git on your machine
 2. Ask for permission to XilinxTclStore repository by sending e-mail to tclstore@xilinx.com
 3. Sign on to github.com
-4. Switch to Xilinx at upper left side by your account name \<user\>
-5. Click Xilinx/XilinxTclStore under Repositories<p>
-   Press "Fork"(upper right hand side) and create fork of XilinxTclStore to your account<p>
-   https://help.github.com/articles/fork-a-repo
-6. Switch to GitShell on your machine
+4. Switch to Xilinx at upper left side by your account name \<USER\>
+5. Switch to GitShell on your machine
 
 ### Checkout the Repository
 
-If you have already clone the repository then skip this step. Otherwise to pull this repository from within a firewall you will need to congifure http.proxy:
+If you have already cloned the repository then skip this step. Otherwise to pull this repository from within a firewall you will need to congifure http.proxy.  Note this setting may be different for your system.  If you have questions contact your IT network administrator:
 ```bash
 git config --global http.proxy http://proxy:80
 ```
 
-### Setting up a per repository User Name and Email
+### Setting up a User Name and Email
 
 ```bash
 #Create and cd to a working directory, for instance ~/github/
 mkdir working_dir
 cd <working_dir>
-git config --golbal user.name <user> #github user name
-git config --global user.email your_email@your_company.com
+git config --golbal USER.name <USER>  #github USER name
+git config --global USER.email your_email@your_company.com
 ```
 
-7. Clone the repository
+6. Clone the repository
 
-You have forked a repository from XilinxTclStore, called "user/XilinxTclStore.git". You need to clone it to your local area:
+We recommend working off of only the master branches for simplicity.  We do support forking of repositories, which require syncing and merging.  If you are familiar with this methodology you can use it, otherwise stick with working off the master branches of each repo.  You need to clone the Xilinx master repo to your local area.  Don't foget to substitute \<USER\> for your real github account name.:
 
 On Windows
 
 ```bash
 cd <working_dir>
-git clone https://github.com/user/XilinxTclStore.git
+git clone https://github.com/Xilinx/XilinxTclStore.git
 ```
 
 On Linux
 
 ```bash
 cd <working_dir>
-git clone http://user@github.com/user/XilinxTclStore.git
+git clone http://<USER>@github.com/Xilinx/XilinxTclStore.git
 ```
 
-You will need to enter password to github when a password dialog box is popped up.
+You will need to enter your github password when prompted.
 
 Now you have cloned the repo directories under "working_dir/XilinxTclStore"
 
@@ -56,90 +53,47 @@ cd working_dir/XilinxTclStore
 git status
 ```
 
-8. Create a new branch to \<user\>
-
-The newly cloned repo has a default branch called "master".
-
-We recommend to work on a branch. To create a user branch:
-
+7. Check out the master branch
 ```bash
-git branch <user>
+git checkout master
 ```
 
-9. Check out the branch \<user\>
-```bash
-git checkout <user>
-```
-
-10. Add your applications like tclapp/mycompany/myapp, including test<p>
+8. Add your applications like tclapp/mycompany/myapp, including test<p>
     For more information on creating application, refer to the following section<p>
     ####My First Vivado Tcl App.
 
-11. Mark files for adding
+9. Mark files for adding
 ```bash
 cd ./XilinxTclStore
-git add tclapp/xilinx/<your_app>
+git add tclapp/xilinx/<YOUR_APP>
 ```
 
-12. Commit to local repository
+10. Commit to local repository
 ```bash
-git commit -m "your description of the commitment"
+git commit -m "your description of the changes"
 ```
 
-13. Push to \<user\>/XilinxTclStore in Github
+11. Push to \<USER\>/XilinxTclStore in Github
 ```bash
-git push origin <user>
+git push origin <USER>
 e.g.
-git push origin abeuser # abeuser is my user branch
+git push origin abeuser # abeuser is my USER branch
 ```
 
-14. Now switch back to github.com in browser and navigate to your repository and \<user\> branch.<p>
-1) For instance, https://github.com/user/XilinxTclStore<p>
-2) In the branch button pull down (upper left), switch from "branch:master" to "branch:\<user\>"<p>
-
-15. Send Pull Request 
+12. Send Pull Request.  Switch back to the github.com in a browser, and navigate to your repo
 https://help.github.com/articles/creating-a-pull-request
-Make sure to choose \<user\> branch from left upper-ish "branch" drop down<p>
 Press "Pull Request" button right upper-ish <p>
 Add any additiona note if you wish<p>
 
 Done!
 
-## Sync with master from \<user\> branch
-If you need to work on the same \<user\> branch next time, you will need to sync to the fork.<p>
-https://help.github.com/articles/sync-a-fork
-
-Create upstream pointing to Xilinx/XilinxTclStore<p>
-
-```bash
-On Windows:
-git remote add upstream https://github.com/Xilinx/XilinxTclStore.git
-```
-
-```bash
-On Linux:
-git remote add upstream https://user@github.com/Xilinx/XilinxTclStore.git
-```
-
-Fetch and merge upstream to local master
-```bash
-git fetch upstream
-git merge upstream/master
-```
-
-Switch back to \<user\> branch and merge
-```bash
-git checkout user
-git merge master
-```
-
 
 ## As a Gate Keeper
 config proxy (refer to As a Contributor)
 
-config \<user\> (refer to As a Contributor)
+config \<USER\> (refer to As a Contributor)
 
-config \<user\> email (refer to As a Contributor)
+config \<USER\> email (refer to As a Contributor)
 
 config merge option
 ```bash
@@ -151,7 +105,7 @@ git config --global merge.defaultToUpstream true
 On Windows
 git clone https://github.com/XilinxInc/XilinxTclStore.git
 On Linux
-git clone http://user@github.com/XilinxInc/XilinxTclStore.git
+git clone http://USER@github.com/XilinxInc/XilinxTclStore.git
 ```
 
 2. Update local repo with github master
@@ -164,19 +118,20 @@ git fetch
 git merge --ff
 ```
 
-4. Set up remote to point where the pull request is sent usually user/user if this has not been done yet
+4. Set up remote to point where the pull request is sent usually USER/USER if this has not been done yet
+
 ```bash
-git remote add remote_name https://github.com/<user>/XilinxTclStore.git
+git remote add remote_name https://github.com/<USER>/XilinxTclStore.git
 e.g.
 git remote add raj https://github.com/rajklair/XilinxTclStore.git
 ```
 
-5. Update local repo with \<user\> branch
+5. Update local repo with \<USER\> branch
 ```bash
 git fetch remote_name
 ```
 
-6. Merge changes from \<user\> branch
+6. Merge changes from \<USER\> branch
 ```bash
 git merge remote_name/remote_branch
 e.g.
@@ -200,10 +155,10 @@ git push origin master
 geto Step 12
 
 11. Go to Github.com
-Pull Request from the \<user\>.<p> 
+Pull Request from the \<USER\>.<p>
 If everything is good, merge, add comments and close the pull request.<p>
 If something is not good, add comments so the requester can make changes.<p>
-If something is bad, add comments, reject it and close the pull request.<p> 
+If something is bad, add comments, reject it and close the pull request.<p>
 https://help.github.com/articles/merging-a-pull-request
 
 12. Delete the local repository
@@ -241,11 +196,11 @@ git merge
 
 ### Create your own branch
 
-This is necessary only if you want to add or change existing apps.  All changes you make must be made 
+This is necessary only if you want to add or change existing apps.  All changes you make must be made
 on a separate branch so that the repository owner (gate keeper) can pull your branch and look at your changes
 before deciding if they meet the criteria for accepting into the master branch.
 
-We recommend using a branch name that is your organization-<usernm>.
+We recommend using a branch name that is your organization-<USERnm>.
 ```bash
 git branch myorg-johnd
 git checkout myorg-johnd
@@ -264,7 +219,7 @@ mkdir -p ./tclapp/mycompany/myapp
 cd ./tclapp/mycompany/myapp
 ```
 
-More directory and testing structure can be found in tclapp/README. 
+More directory and testing structure can be found in tclapp/README.
 
 ### Create the Package Provider
 
@@ -322,7 +277,7 @@ proc ::tclapp::mycompany::myapp::myproc1 {arg1 {optional1 ,}} {
 }
 ```
 
-3. You **must** have 4 "meta-comments" which describe your procedure interfaces - inside of the procedures, 
+3. You **must** have 4 "meta-comments" which describe your procedure interfaces - inside of the procedures,
 and each meta-comment **must** be seperated by new lines (without comments)
 ```tcl
 # tclapp/mycompany/myapp/myfile.tcl
@@ -331,7 +286,7 @@ namespace eval ::tclapp::mycompany::myapp {
     namespace export myproc1
 }
 proc ::tclapp::xilinx::test::myproc1 {arg1 {optional1 ,}} {
-    
+
     # Summary: A one line summary of what this proc does
 
     # Argument Usage:
@@ -339,16 +294,16 @@ proc ::tclapp::xilinx::test::myproc1 {arg1 {optional1 ,}} {
     # [-optional1 <arg> = <opt1_default>] : A one line summary of an optional argument that takes a value and which has a default
     # [-optional2] : A one line summary of an optional arg that does not take a value (aka a flag)
 
-    # Return Value: 
+    # Return Value:
     # TCL_OK is returned with result set to a string
 
     # Categories: xilinxtclstore, projutils
-        
-    
+
+
     ...
 }
 ```
-Each of these meta-comments is interpreted by Vivado at run-time. It is critical that they be present and correct in your app 
+Each of these meta-comments is interpreted by Vivado at run-time. It is critical that they be present and correct in your app
 or it may not function correctly. The following is a description of each meta-comment.
 
 #### Summary
@@ -358,10 +313,10 @@ The text following "Summary:" should be a brief, one-line description of your ap
 #### Argument Usage
 
 This is the most complex of the meta-comments. As shown in the above example, there should be one line for each mandatory or
-optional arg supported by your app. Optional args should be enclosed within []. Args which should be accompanied by a 
-value **must** be followed by the literal text <, "arg", and >, indicating to the user where the value should be placed. The
-summary should explain what are the valid values that a user might use.
-You can also specify a default value, which is a value which will be assumed if the user does not specify the given optional
+optional arg supported by your app. Optional args should be enclosed within []. Args which should be accompanied by a
+value **must** be followed by the literal text <, "arg", and >, indicating to the USER where the value should be placed. The
+summary should explain what are the valid values that a USER might use.
+You can also specify a default value, which is a value which will be assumed if the USER does not specify the given optional
 arg. You can also have optional args that do not take any value (these are often referred to as "flags"). For a flag,
 it's presence on the command line implies a value of true, indicating that some optional action should be take by
 the app. An exception to this rule is if the name of the flag is prefixed with "no_" (for example, -no_cleanup), in which case
@@ -373,18 +328,18 @@ and that has no corresponding flag (e.g. -arg1).
 Here is a more concrete example:
 
 ```tcl
-        # Argument Usage: 
+        # Argument Usage:
         # file: Name of  file to generate
-        # -owner <arg>: username of the owner of the file to be generated.
+        # -owner <arg>: USERname of the owner of the file to be generated.
         # [-date <arg> = <todays_date>]: The date to use in yyyy/mm/dd format, will default to today's date if not specified.
 ```
 
 This example app has one mandatory positional arg, which is the name of a file it will generate. It also has a mandatory
 flag -owner, and an optional arg -date, which has a default value. Assuming this app was called "touch", an example usage might be:
 
-touch /home/joe_user/myfile -owner root 
+touch /home/joe_USER/myfile -owner root
 
-Use of this command would result in the creation of a file named /home/joe_user/myfile, owned by root, and with
+Use of this command would result in the creation of a file named /home/joe_USER/myfile, owned by root, and with
 a file creation date of today.
 
 
@@ -394,7 +349,7 @@ Use this meta-comment to specify the possible return values for your app.
 
 #### Categories
 
-Use this meta-comment to specify which categories in the Vivado help system your app should be listed. "Categories:" 
+Use this meta-comment to specify which categories in the Vivado help system your app should be listed. "Categories:"
 should be followed by a comma-separated list. By convention, the first category listed should always be "xilinxtclstore".
 Any additional categories are up to you as the app developer.
 
@@ -435,14 +390,14 @@ setenv XILINX_TCLAPP_REPO <path>/XilinxTclStore
 ```
 or just the path
 ```bash
-setenv XILINX_TCLAPP_REPO <path> 
+setenv XILINX_TCLAPP_REPO <path>
 ```
 Run Vivado
 ```bash
 vivado -mode tcl
 ```
 
-When the env variable is set, Vivado automatically adds the location of the repository to the 
+When the env variable is set, Vivado automatically adds the location of the repository to the
 auto_load path in Tcl.
 
 2. Start testing<p>
@@ -465,14 +420,14 @@ myproc1
 
 ```bash
 cd ~/XilinxTclStore
-git config user.name “johnd”
-git config user.email “johnd@mycompany.com”
+git config USER.name “johnd”
+git config USER.email “johnd@mycompany.com”
 ```
 
 
 ### Commit Changes
 
-Make sure you commit your \<user\> branch.
+Make sure you commit your \<USER\> branch.
 
 ```bash
 cd ~/XilinxTclStore
