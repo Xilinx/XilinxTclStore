@@ -448,7 +448,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::checkAllCon
 #     set allConnectedLeafCells [get_cells -quiet -of \
 #                                  [get_nets -of $cell] -filter {IS_PRIMITIVE && PRIMITIVE_LEVEL!="INTERNAL"} ]
     set allConnectedLeafCells [get_cells -quiet -of \
-                                 [get_nets -of $cell] -filter {IS_PRIMITIVE} ]
+                                 [get_nets -quiet -of $cell] -filter {IS_PRIMITIVE} ]
     # Get all the net segments
     set allConnectedNetSegments [get_nets -segments -of $cell]
   } else {
@@ -458,7 +458,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::checkAllCon
     set allConnectedLeafCells [get_cells -quiet -of $net \
                      -filter {IS_PRIMITIVE} ]
     # Get all the net segments
-    set allConnectedNetSegments [get_nets -segments $net]
+    set allConnectedNetSegments [get_nets -quiet -segments $net]
   }
   set props [lsort -unique [get_property -quiet LOC $allConnectedLeafCells ]]
   if { ($props == [list {}]) || ($props == {})} {

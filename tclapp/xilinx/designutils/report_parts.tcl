@@ -24,9 +24,10 @@ proc ::tclapp::xilinx::designutils::report_parts { {pattern *} } {
 
   # Initialize the table object
   set table [::tclapp::xilinx::designutils::prettyTable create {Summary of all parts}]
-  $table header { PART LUT  SLICE DSP RAM MMCM PCI GB IO PACK }
+  $table header { PART ARCH LUT SLICE DSP RAM MMCM PCI GB IO PACK }
   
   foreach part [lsort -dictionary [get_parts -quiet $pattern]] {
+    set arch [get_property -quiet ARCHITECTURE $part]
     set numRAM [get_property -quiet BLOCK_RAMS $part]
     set numIO [get_property -quiet AVAILABLE_IOBS $part]
     set numDSP [get_property -quiet DSP $part]
@@ -37,7 +38,7 @@ proc ::tclapp::xilinx::designutils::report_parts { {pattern *} } {
     set PACKAGE [get_property -quiet PACKAGE $part]
     set numGB [get_property -quiet GB_TRANSCEIVERS $part]
     set numFF [get_property -quiet FLIPFLOPS $part]
-    $table addrow [list $part $numLUT $numSLICE $numDSP $numRAM $numMMCM $numPCI $numGB $numIO $PACKAGE ]
+    $table addrow [list $part $arch $numLUT $numSLICE $numDSP $numRAM $numMMCM $numPCI $numGB $numIO $PACKAGE ]
   }
   
   puts [$table print]\n
