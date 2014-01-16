@@ -229,7 +229,7 @@ package provide ::tclapp::mycompany::myapp 1.0
 ### Customize the App
 
 Your app scripts will not be able to have this same name, but could be placed inside of this package provider file.
-If you already have the app created, then copy it into <WORKING_DIR>/tclapp/<YOUR_COMPANY>/\<YOUR_APP\>/.
+If you already have the app created, then copy it into \<WORKING_DIR\>/tclapp/\<YOUR_COMPANY\>/\<YOUR_APP\>/.
 If you are creating the app from scratch, then:
 ```bash
 vi ./myfile.tcl
