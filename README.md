@@ -58,7 +58,7 @@ git status
 git checkout 
 ```
 
-8. Add your application code to the respective directory.  For a new app, create the directories following the taxonomy tclapp/\<YOUR_COMPANY\>/\<YOUR_APP\> (for an example see tclapp/mycompany/myapp), including test code<p>
+8. Add your application code to the respective directory.  For a new app, create the directories following the taxonomy tclapp/\<YOUR_COMPANY\>/\<YOUR_APP\> (for an example see tclapp/mycompany/myapp), including test code.  Note you can use your github account name in place of \<YOUR_COMPANY\> if you would like.<p>
     For more information on creating application, refer to the following section<p>
     ####My First Vivado Tcl App.
 
