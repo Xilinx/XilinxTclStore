@@ -15,9 +15,9 @@ proc ::tclapp::xilinx::designutils::report_critical_hfn {{sortBy slack} {limitFa
   # Summary : report timing critical high fanout nets based on fanout and slack
   
   # Argument Usage:
-  # [sortBy=slack] : Sorting critierion (slack | fanout)
-  # [limitFanout=256] : Fanout limit. Only report nets with this fanout or more
-  # [limitSlack=0] : Slack limit. Only report nets with this slack or less
+  # sortBy : Sorting critierion. Valid values: slack (default), fanout
+  # limitFanout : Fanout limit. Only report nets with this fanout or more (default: 256)
+  # limitSlack : Slack limit. Only report nets with this slack or less (default: 0)
 
   # Return Value:
   # 0

@@ -17,7 +17,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ## 
-## Version:        09/16/2013
+## Version:        01/15/2014
 ## Tool Version:   Vivado 2013.1
 ## Description:    This package provides a simple way to handle formatted tables
 ##
@@ -259,6 +259,8 @@ namespace eval ::tclapp::xilinx::designutils {
 ########################################################################################
 
 ########################################################################################
+## 01/15/2014 - Added support for multi-lines titles when exporting to CSV format
+##            - Changed namespace's variables to 'variable'
 ## 09/16/2013 - Added meta-comment 'Categories' to all procs
 ##            - Updated 'docstring' to support new meta-comment 'Categories'
 ##            - Updated various methods to support -columns/-display_columns (select
@@ -275,7 +277,8 @@ proc ::tclapp::xilinx::designutils::prettyTable { args } {
   # Summary : utility to easily create and print tables
   
   # Argument Usage:
-  # args : sub-command. The supported sub-commands are: create | info | sizeof | destroyall
+  # [args]: sub-command. The supported sub-commands are: create | info | sizeof | destroyall
+  # [-usage]: Usage information
   
   # Return Value:
   # returns a new prettyTable object
@@ -299,10 +302,10 @@ proc ::tclapp::xilinx::designutils::prettyTable { args } {
 
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable { 
-  set n 0 
+  variable n 0 
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
-  set params [list indent 0 maxNumRows -1 maxNumRowsToDisplay -1 title {} columnsToDisplay {} ]
-  set version {09-09-2013}
+  variable params [list indent 0 maxNumRows -1 maxNumRowsToDisplay -1 title {} columnsToDisplay {} ]
+  variable version {01/15/2014}
 } ]
 
 #------------------------------------------------------------------------
@@ -333,8 +336,11 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
     destroyall {
       return [eval [concat ::tclapp::xilinx::designutils::prettyTable::DestroyAll] ]
     }
-    -h -
-    -help {
+    -u -
+    -us -
+    -usa -
+    -usag -
+    -usage {
       incr show_help
     }
     create {
@@ -357,7 +363,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
                   [sizeof]                 - Provides the memory consumption of all the prettyTable objects
                   [info]                   - Provides a summary of all the prettyTable objects that have been created
                   [destroyall]             - Destroy all the prettyTable objects and release the memory
-                  [-h|-help]               - This help message
+                  [-u|-usage]              - This help message
                   
       Description: Utility to create and manipulate tables
       
@@ -684,7 +690,17 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToCSV {self args} {
   }
   set res {}
 
-  append res "# title${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv [list $params(title)] $sepChar]\n"
+  # Support for multi-lines title
+  set first 1
+  foreach line [split $params(title) \n] {
+    if {$first} {
+      set first 0
+      append res "# title${sepChar}[::tb::prettyTable::list2csv [list $line] $sepChar]\n"
+    } else {
+      append res "#      ${sepChar}[::tb::prettyTable::list2csv [list $line] $sepChar]\n"
+    }
+  }
+#   append res "# title${sepChar}[::tb::prettyTable::list2csv [list $params(title)] $sepChar]\n"
   append res "# header${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $header $sepChar]\n"
   append res "# indent${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(indent) $sepChar]\n"
   append res "# limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRows) $sepChar]\n"
@@ -1450,7 +1466,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
   } else {
     # Since the rows are sorted, the separators don't mean anything anymore, so remove them
     set ${self}::separators [list]
-    puts " -I- Sorting indexes '$indexes' completed"
+#     puts " -I- Sorting indexes '$indexes' completed"
   }
 }
 

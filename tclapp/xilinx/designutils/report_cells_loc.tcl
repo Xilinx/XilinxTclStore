@@ -11,11 +11,11 @@ namespace eval ::tclapp::xilinx::designutils {
     namespace export report_cells_loc
 }
     
-proc ::tclapp::xilinx::designutils::report_cells_loc { {comp_type "ALL"} } {
-  # Summary : report the location of cells matching a REF_NAME pattern
+proc ::tclapp::xilinx::designutils::report_cells_loc { {pattern "*"} } {
+  # Summary : report the location of cells matching a cell pattern
   
   # Argument Usage:
-  # [comp_type="ALL"] : REF_NAME pattern. "ALL" matches any cell
+  # [pattern = *] : Cell pattern. The pattern * matches any cell
   
   # Return Value:
   # 0
@@ -42,9 +42,9 @@ proc ::tclapp::xilinx::designutils::report_cells_loc { {comp_type "ALL"} } {
     if {($ref_name == {GND}) || ($ref_name == {VCC})} {
       continue
     }
-    if {![string match $comp_type $ref_name] &&
-        ![string match "ALL" $comp_type]} {
-      # Skip cells that are not of interesr
+    if {![string match $pattern $ref_name] &&
+        ($pattern != {*})} {
+      # Skip cells that are not of interest
       continue
     }
     set loc [get_property -quiet LOC $cell]

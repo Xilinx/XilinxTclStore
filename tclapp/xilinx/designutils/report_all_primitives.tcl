@@ -8,14 +8,13 @@
 package require Vivado 2013.1
 
 namespace eval ::tclapp::xilinx::designutils {
-    namespace export insert_buffer report_all_primitives
+    namespace export report_all_primitives
 }
 
 proc ::tclapp::xilinx::designutils::report_all_primitives {} {
   # Summary : reports all primitives (LIB_CELL) in the design
 
   # Argument Usage:
-  # none (current design)
 
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened
