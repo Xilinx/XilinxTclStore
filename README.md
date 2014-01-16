@@ -19,8 +19,8 @@ git config --global http.proxy http://proxy:80
 
 ```bash
 #Create and cd to a working directory, for instance ~/github/
-mkdir working_dir
-cd <working_dir>
+mkdir <WORKING_DIR>
+cd <WORKING_DIR>
 git config --golbal USER.name <USER>  #github USER name
 git config --global USER.email your_email@your_company.com
 ```
@@ -32,33 +32,33 @@ We recommend working off of only the master branches for simplicity.  We do supp
 On Windows
 
 ```bash
-cd <working_dir>
+cd <WORKING_DIR>
 git clone https://github.com/Xilinx/XilinxTclStore.git
 ```
 
 On Linux
 
 ```bash
-cd <working_dir>
+cd <WORKING_DIR>
 git clone http://<USER>@github.com/Xilinx/XilinxTclStore.git
 ```
 
 You will need to enter your github password when prompted.
 
-Now you have cloned the repo directories under "working_dir/XilinxTclStore"
+Now you have cloned the repo directories under "\<WORKING_DIR\>/XilinxTclStore"
 
-cd working_dir/XilinxTclStore
+cd \<WORKING_DIR\>/XilinxTclStore
 
 ```bash
 git status
 ```
 
-7. Check out the master branch
+7. Check out the entire master branch (you can also check out individual files by passing the specific file name).  Below is the command for checking out the entire default branch.
 ```bash
-git checkout master
+git checkout 
 ```
 
-8. Add your applications like tclapp/mycompany/myapp, including test<p>
+8. Add your application code to the respective directory.  For a new app, create the directories following the taxonomy tclapp/<YOUR_COMPANY>/<YOUR_APP> (for an example see tclapp/mycompany/myapp), including test code<p>
     For more information on creating application, refer to the following section<p>
     ####My First Vivado Tcl App.
 
