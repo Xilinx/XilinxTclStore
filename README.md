@@ -15,7 +15,7 @@ If you have already cloned the repository then skip this step. Otherwise to pull
 git config --global http.proxy http://proxy:80
 ```
 
-### Setting up a User Name and Email
+### Setting up User Name and Email
 
 ```bash
 #Create and cd to a working directory, for instance ~/github/
@@ -27,7 +27,7 @@ git config --global USER.email your_email@your_company.com
 
 6. Clone the repository
 
-We recommend working off of only the master branches for simplicity.  We do support forking of repositories, which require syncing and merging.  If you are familiar with this methodology you can use it, otherwise stick with working off the master branches of each repo.  You need to clone the Xilinx master repo to your local area.  Don't foget to substitute \<USER\> for your real github account name.:
+We recommend working off of only the master branches for simplicity.  We do support forking of repositories, which require syncing and merging.  If you are familiar with this methodology you can use it, otherwise stick with working off the master branches of each repo.  You need to clone the Xilinx master repo to your local area.  Don't foget to substitute \<USER\> for your real github account name:
 
 On Windows
 
@@ -58,14 +58,14 @@ git status
 git checkout 
 ```
 
-8. Add your application code to the respective directory.  For a new app, create the directories following the taxonomy tclapp/<YOUR_COMPANY>/<YOUR_APP> (for an example see tclapp/mycompany/myapp), including test code<p>
+8. Add your application code to the respective directory.  For a new app, create the directories following the taxonomy tclapp/\<YOUR_COMPANY\>/\<YOUR_APP\> (for an example see tclapp/mycompany/myapp), including test code<p>
     For more information on creating application, refer to the following section<p>
     ####My First Vivado Tcl App.
 
 9. Mark files for adding
 ```bash
 cd ./XilinxTclStore
-git add tclapp/xilinx/<YOUR_APP>
+git add tclapp/<YOUR_COMPANY>/<YOUR_APP>
 ```
 
 10. Commit to local repository
@@ -73,14 +73,12 @@ git add tclapp/xilinx/<YOUR_APP>
 git commit -m "your description of the changes"
 ```
 
-11. Push to \<USER\>/XilinxTclStore in Github
+11. Push to your cloned master \<USER\>/XilinxTclStore in Github
 ```bash
-git push origin <USER>
-e.g.
-git push origin abeuser # abeuser is my USER branch
+git push origin
 ```
 
-12. Send Pull Request.  Switch back to the github.com in a browser, and navigate to your repo
+12. Send Pull Request.  Switch back to github.com in a web browser, and navigate to your repo
 https://help.github.com/articles/creating-a-pull-request
 Press "Pull Request" button right upper-ish <p>
 Add any additiona note if you wish<p>
@@ -89,18 +87,18 @@ Done!
 
 
 ## As a Gate Keeper
-config proxy (refer to As a Contributor)
+config proxy (see section As a Contributor)
 
-config \<USER\> (refer to As a Contributor)
+config \<USER\> (see section As a Contributor)
 
-config \<USER\> email (refer to As a Contributor)
+config \<USER\> email (see section As a Contributor)
 
 config merge option
 ```bash
 git config --global merge.defaultToUpstream true
 ```
 
-1. Create a reposiroty by clone out XilinxTclStore, skip to next step if repository already exists locally
+1. Create a repository by cloning XilinxTclStore, skip to next step if repository already exists locally
 ```bash
 On Windows
 git clone https://github.com/XilinxInc/XilinxTclStore.git
@@ -146,7 +144,7 @@ git add .
 git commit -m "update notes"
 ```
 
-9. Run tests and checck content
+9. Run tests and check content
 
 10. Push to github or go to step 11
 ```bash
@@ -175,9 +173,9 @@ Done
 
 ### Let Vivado know where your cloned Tcl repository is located
 
-Before you start Vivado set XILINX_TCLAPP_REPO to the location of your cloned repository
+Before you start Vivado, there is an environment variable to change the location of the default repository.  YOu need to change this to your local working directory to test the app and generate some needed files.  Set XILINX_TCLAPP_REPO to the location of your cloned repository
 ```bash
-setenv XILINX_TCLAPP_REPO <path>/XilinxTclStore
+export XILINX_TCLAPP_REPO=<WORKING_DIR>/XilinxTclStore
 ```
 Some of the Tcl app related commmands in Vivado require a Tcl repo to be present so it is important the
 env variable is set before you start Vivado.
@@ -194,26 +192,9 @@ git fetch
 git merge
 ```
 
-### Create your own branch
-
-This is necessary only if you want to add or change existing apps.  All changes you make must be made
-on a separate branch so that the repository owner (gate keeper) can pull your branch and look at your changes
-before deciding if they meet the criteria for accepting into the master branch.
-
-We recommend using a branch name that is your organization-<USERnm>.
-```bash
-git branch myorg-johnd
-git checkout myorg-johnd
-```
-If the branch alraedy exists in your clone, the make sure you merge the lastest "master" changes to your branch
-```bash
-git checkout myorg-johnd
-git merge master
-```
-
 ### Create the Directory Structure
 
-The directory structure should follow _repo_/tclapp/_organization_/_appname_/...
+The directory structure should follow \<WORKING_DIR\>/tclapp/\<YOUR_COMPANY\>/\<YOUR_APP\>/...
 ```bash
 mkdir -p ./tclapp/mycompany/myapp
 cd ./tclapp/mycompany/myapp
@@ -248,7 +229,7 @@ package provide ::tclapp::mycompany::myapp 1.0
 ### Customize the App
 
 Your app scripts will not be able to have this same name, but could be placed inside of this package provider file.
-If you already have the app created, then copy it into _repo_/tclapp/_organization_/_appname_/.
+If you already have the app created, then copy it into <WORKING_DIR>/tclapp/<YOUR_COMPANY>/\<YOUR_APP\>/.
 If you are creating the app from scratch, then:
 ```bash
 vi ./myfile.tcl
@@ -386,11 +367,11 @@ Correct anything the linter identifies as a problem.
 
 1. Set XILINX_TCLAPP_REPO to point where the local XilinxTclStore is
 ```bash
-setenv XILINX_TCLAPP_REPO <path>/XilinxTclStore
+export XILINX_TCLAPP_REPO=<WORKING_DIR>/XilinxTclStore
 ```
 or just the path
 ```bash
-setenv XILINX_TCLAPP_REPO <path>
+export XILINX_TCLAPP_REPO=<WORKING_DIR>
 ```
 Run Vivado
 ```bash
