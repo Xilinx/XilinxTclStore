@@ -15,7 +15,7 @@ proc ::tclapp::xilinx::designutils::report_parts { {pattern *} } {
   # Summary : report all the available parts that match a pattern
 
   # Argument Usage:
-  # [pattern=*] : Pattern for part names
+  # [pattern = *] : Pattern for part names
 
   # Return Value:
   # 0

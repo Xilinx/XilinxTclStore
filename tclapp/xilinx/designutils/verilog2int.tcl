@@ -12,7 +12,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::verilog2int { number } {
-  # Summary :  Convert a Verilog formatted number to an integer
+  # Summary :  Convert a Verilog formatted number into an integer
   
   # Argument Usage:
   # number : Verilog format number to convert

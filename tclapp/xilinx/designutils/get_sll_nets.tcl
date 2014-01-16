@@ -15,10 +15,10 @@ proc ::tclapp::xilinx::designutils::get_sll_nets { {nets {*}} } {
   # Summary : get routed inter-SLR nets that have a VLONG12 cost and over 100 wire shapes on at least one of its nodes
 
   # Argument Usage:
-  # [nets=*] : List of SLR nets to filter. A value of "*" means that all the inter-SLR nets are considered
+  # [nets = *] : List of SLR nets to filter. A value of "*" means that all the inter-SLR nets are considered
 
   # Return Value:
-  # returns all crossing SLL nets
+  # returns all SLL-crossing nets
   
   # Categories: xilinctclstore, designutils
 

@@ -12,7 +12,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::check_cdc_paths {} {
-  # Summary : checks all the CDC paths for typical issues
+  # Summary : checks all the Cross Domain Crossing paths for typical issues
   
   # Argument Usage: 
 
@@ -34,10 +34,9 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths {} {
   # Summary: checks all the CDC paths for typical issues
   
   # Argument Usage:
-  # none
   
   # Return Value:
-  # none
+  # 0
   
   # Categories: xilinctclstore, designutils
 
@@ -196,7 +195,8 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::lcm {p q} {
   # p : first integer
   # q : second integer
 
-  # Return Value:   the least common multiple of the input integers
+  # Return Value:   
+  # the least common multiple of the input integers
   
   # Categories: xilinctclstore, designutils
 

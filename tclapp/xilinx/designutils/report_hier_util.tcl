@@ -15,7 +15,7 @@ proc ::tclapp::xilinx::designutils::report_hier_util {{pattern {*}}} {
   # Summary : report the cell utilization below hierarchical instances
 
   # Argument Usage:
-  # [pattern=*] : Pattern of hierarchical cells
+  # [pattern= * ] : Pattern of hierarchical cells
 
   # Return Value:
   # 0
