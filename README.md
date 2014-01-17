@@ -338,22 +338,29 @@ Any additional categories are up to you as the app developer.
 
 ### Create the Package Index and Tcl Index
 
+To create neccessary tcl index and package files, invoke Vivado (without creating log and journal files).  The instructions below will run commands to create these necessary files in the current directory.
+
 ```bash
 cd ~/XilinxTclStore/tclapp/mycompany/myapp
 vivado -mode tcl -nolog -nojournal
 ```
 
+In Vivado, now issue these Tcl commands:
+
 ```tcl
-pkg_mkIndex .
-auto_mkindex .
+Vivado% pkg_mkIndex .
+Vivado% auto_mkindex .
+Vivado% exit
 ```
 
 
 ### Running the Linter
 
+There is tool in Vivado that checks some basic requirements for the Tcl app store.  This is called a "linting" tool.
+
 If you are not already in Vivado:
 ```bash
-vivado -mode tcl
+vivado -mode tcl -nolog -nojournal
 ```
 
 There should be a lint_files command available at this point:
@@ -361,7 +368,7 @@ There should be a lint_files command available at this point:
 Vivado% lint_files [glob XilinxTclStore/tclapp/mycompany/myapp/*.tcl]
 ```
 
-Correct anything the linter identifies as a problem.
+Correct anything the linter identifies as a problem.  Exit Vivado when you are done.
 
 
 ### Check the App before you Deploy
