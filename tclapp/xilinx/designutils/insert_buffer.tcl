@@ -21,7 +21,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer_chain {net args} {
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   uplevel ::tclapp::xilinx::designutils::insert_buffer::insert_buffer_chain $net $args
   return 0
@@ -32,12 +32,12 @@ proc ::tclapp::xilinx::designutils::insert_buffer {net {bufferType BUFH}} {
 
   # Argument Usage:
   # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
-  # [bufferType=BUFH] : Type of 2-pins cell to insert
+  # [bufferType = BUFH]: Type of 2-pins cell to insert
 
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   return [uplevel ::tclapp::xilinx::designutils::insert_buffer::insert_buffer $net $bufferType]
 }
@@ -52,7 +52,7 @@ proc ::tclapp::xilinx::designutils::remove_buffer {cell} {
   # 0 if succeeded
   # TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   return [uplevel ::tclapp::xilinx::designutils::insert_buffer::remove_buffer $cell]
 }
@@ -68,12 +68,12 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insert_buffer_chain {net args
 
   # Argument Usage:
   # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
-  # args : List of 2-pins cell types to insert
+  # args : Ordered list of 2-pins cell types to be inserted
 
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set buffers [list]
   # Check that all the buffers are correct
@@ -101,12 +101,12 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insert_buffer {name {bufferTy
 
   # Argument Usage:
   # name : Net or pin to insert buffer on
-  # [bufferType=BUFH] : Type of 2-pins cell to insert
+  # [bufferType = BUFH] : Type of 2-pins cell to insert
 
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   if {$name == {}} {
@@ -153,16 +153,15 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insert_buffer {name {bufferTy
 }
 
 proc ::tclapp::xilinx::designutils::insert_buffer::remove_buffer {cell} {
-  # Summary : insert a buffer or any 2-pins cell on a net
+  # Summary : remove a buffer or any 2-pins cell on a net
 
   # Argument Usage:
-  # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
-  # [bufferType=BUFH] : Type of 2-pins cell to insert
+  # cell : Buffer to be removed
 
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   if {$cell == {}} {
@@ -237,7 +236,10 @@ proc ::tclapp::xilinx::designutils::insert_buffer::remove_buffer {cell} {
 
     if {$debug} { puts " DEBUG: remove_cell $buffer" }
     # Remove buffer
-    remove_cell -verbose $buffer
+    # The linter complains on the following line
+#     remove_cell -verbose $buffer
+    # The workaround is to replace previous command with the one below
+    eval [list remove_cell -verbose $buffer]
 #     # Remove net: ** problem with busses, so commenting out **
 #     remove_net -verbose $bufOutNet
   }
@@ -255,12 +257,13 @@ proc ::tclapp::xilinx::designutils::insert_buffer::unplaceConnectedCells {name {
 
   # Argument Usage:
   # name : cell name or net name
+  # save : 
 
   # Return Value:
   # 0 if all the connected cells are unplaced. 1 otherwise
   # TCL_ERROR if failed
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   variable LOC
@@ -322,13 +325,13 @@ proc ::tclapp::xilinx::designutils::insert_buffer::restoreCellLoc {{clear 1}} {
   # can be forced to be unplaced
 
   # Argument Usage:
-  # name : cell name or net name
+  # clear : 
 
   # Return Value:
   # 0 if all the connected cells are unplaced. 1 otherwise
   # TCL_ERROR if failed
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   variable LOC
@@ -368,7 +371,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::genUniqueName {name} {
   # Return Value:
   # unique cell or net name
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   # Names must be unique among the net and cell names
   if {([get_cells -quiet $name] == {}) && ([get_nets -quiet $name] == {})} { return $name }
@@ -388,7 +391,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::createCell {cellName refName 
   # Return Value:
   # cell object
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   if {[get_cells -quiet $cellName] != {}} {
@@ -442,7 +445,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::createNet {netName {parentNam
   # Return Value:
   # net object
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   if {[get_nets -quiet $netName] != {}} {
@@ -474,13 +477,13 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insertBufferOnPin {pin {buffe
 
   # Argument Usage:
   # pin : Pin to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
-  # [bufferType=BUFH] : Type of 2-pins cell to insert
+  # [bufferType = BUFH] : Type of 2-pins cell to insert
 
   # Return Value:
   # the inserted cell object if succeeded
   # TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   if {$pin == {}} {
@@ -583,13 +586,13 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insertBufferOnNet {net {buffe
 
   # Argument Usage:
   # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
-  # [bufferType=BUFH] : Type of 2-pins cell to insert
+  # [bufferType = BUFH] : Type of 2-pins cell to insert
 
   # Return Value:
   # the inserted cell object if succeeded
   # TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   if {$net == {}} {
@@ -722,13 +725,12 @@ proc ::tclapp::xilinx::designutils::insert_buffer::getPinOrPort {name} {
   # Summary : insert a buffer or any 2-pins cell on a net
 
   # Argument Usage:
-  # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
-  # [bufferType=BUFH] : Type of 2-pins cell to insert
+  # name :
 
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set pin [get_pins -quiet $name]
   if {$pin != {}} { return $pin }
@@ -745,7 +747,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::getOrCreateNet {netName {pare
   # Return Value:
   # net object
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   set net [get_nets -quiet $netName]
@@ -772,7 +774,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::getOrCreateCell {cellName ref
   # Return Value:
   # cell object
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   set cell [get_cells -quiet $cellName]
@@ -798,7 +800,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::getNetSegmentDriverPins {netN
   # 0 if succeeded
   # TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   if {$netName == {}} {
@@ -886,7 +888,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::getNetSegmentLoadPins {netNam
   # 0 if succeeded
   # TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   if {$netName == {}} {

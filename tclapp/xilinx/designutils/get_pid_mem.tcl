@@ -21,7 +21,7 @@ proc ::tclapp::xilinx::designutils::get_mem {} {
   # Return Value:
   # the amount of heap memory of the Vivado session
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   return [::tclapp::xilinx::designutils::get_pid_mem [uplevel #0 pid]]
 }
@@ -36,7 +36,7 @@ proc ::tclapp::xilinx::designutils::get_pid_mem { {pid {}} } {
   # Return Value:
   # the amount of heap memory of the process
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set mem {}
   if {$pid == {}} { set pid [uplevel #0 pid] }

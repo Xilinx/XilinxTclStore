@@ -29,7 +29,7 @@ git config --global http.proxy http://proxy:80
 #Create and cd to a working directory, for instance ~/github/
 mkdir <WORKING_DIR>
 cd <WORKING_DIR>
-git config --golbal USER.name <USER>  #github USER name
+git config --global USER.name <USER>  #github USER name
 git config --global USER.email your_email@your_company.com
 ```
 

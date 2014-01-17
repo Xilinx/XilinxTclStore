@@ -283,7 +283,7 @@ proc ::tclapp::xilinx::designutils::prettyTable { args } {
   # Return Value:
   # returns a new prettyTable object
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   uplevel [concat ::tclapp::xilinx::designutils::prettyTable::prettyTable $args]
 #   eval [concat ::tclapp::xilinx::designutils::prettyTable::prettyTable $args]
@@ -317,7 +317,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   #-------------------------------------------------------
@@ -403,7 +403,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::Create { {title {}} } {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   variable n
@@ -434,7 +434,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::Sizeof {} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   return [::tclapp::xilinx::designutils::prettyTable::method:sizeof ::tclapp::xilinx::designutils::prettyTable]
@@ -449,7 +449,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::Info {} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   foreach child [lsort -dictionary [namespace children]] {
@@ -469,7 +469,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::DestroyAll {} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   set count 0
@@ -492,7 +492,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::docstring procname {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   if {[info proc $procname] ne $procname} { return }
@@ -521,7 +521,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::lshift {inputlist} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   upvar $inputlist argv
@@ -541,7 +541,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::list2csv { list {sepChar ,} } {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   set out ""
@@ -568,7 +568,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::csv2list { str {sepChar ,} } {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   regsub -all {(\A\"|\"\Z)} $str \0 str
@@ -608,7 +608,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToTCL {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   array set defaults [list \
@@ -665,7 +665,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToCSV {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   array set defaults [list \
@@ -738,7 +738,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToLIST {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   array set defaults [list \
@@ -812,7 +812,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::do {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   upvar #0 ${self}::table table
@@ -861,7 +861,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:? {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # This help message
@@ -888,7 +888,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:header {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Set the header of the table
@@ -919,7 +919,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:addrow {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Add a row to the table
@@ -943,7 +943,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:numrows {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Add a row to the table
@@ -961,7 +961,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:indent {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Set the indent level for the table
@@ -986,7 +986,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:get_param {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   if {[llength $args] != 1} {
@@ -1011,7 +1011,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:set_param {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   if {[llength $args] < 2} {
@@ -1032,7 +1032,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:separator {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Add a row separator
@@ -1054,7 +1054,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:reset {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Reset object and empty all the data
@@ -1081,7 +1081,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:destroy {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Destroy object
@@ -1106,7 +1106,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sizeof {ns args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Return memory footprint of the object
@@ -1138,7 +1138,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Print table. The output can be captured in a variable
@@ -1352,7 +1352,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:info {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Information about the object
@@ -1380,7 +1380,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Sort the table based on one or more column headers
@@ -1481,7 +1481,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:configure {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Configure object
@@ -1565,7 +1565,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:clone {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Clone object. Return new object
@@ -1594,7 +1594,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Create table from CSV file
@@ -1701,7 +1701,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
 
   # Export table (table / list / CSV format / tcl script)

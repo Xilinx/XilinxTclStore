@@ -22,7 +22,7 @@ proc ::tclapp::xilinx::designutils::bisect_pblock {{pb {}} {first {top}} {second
   # Return Value:
   # 0
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   if {$first != "bottom" && $first != "top"} {
     error " error - unknown option $first - expecting \"bottom\" or \"top\""

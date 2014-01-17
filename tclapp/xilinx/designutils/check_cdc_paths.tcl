@@ -19,7 +19,7 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths {} {
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   uplevel ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths
   return 0
@@ -38,7 +38,7 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths {} {
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable messages
   set messages [list]
@@ -109,7 +109,7 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::checkPathSynchronizer {timi
   # returns 0 if paths are found between clock domains 
   # and they are not properly synchronized 1 otherwise
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable messages
   if {$timingPath == {}} {
@@ -198,7 +198,7 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::lcm {p q} {
   # Return Value:   
   # the least common multiple of the input integers
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set m [expr {$p * $q}]
   if {!$m} {return 0}

@@ -20,7 +20,7 @@ proc ::tclapp::xilinx::designutils::report_cells_loc { {pattern "*"} } {
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   # Description:
   # By default this will print all the placed
