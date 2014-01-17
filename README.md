@@ -1,5 +1,12 @@
 # XilinxTclStore
 
+Welcome to the Xilinx Tcl App Store GitHub Repository!
+
+A Tcl app store is an open source repository of Tcl code designed primarily, but not necessarily for use with the Xilinx Vivado Design Suite.  An app is a grouping or collection of one or more Tcl scripts that is published and maintained by an owner.  Each app is developed and maintained by the owner, and that person acts as a gatekeeper for their app.  In addition, the entire repository is managed by a Xilinx gatekeeper that controls pushes to the public repo.
+
+This project is currently in a "beta" phase, and we are limiting access.  To contribute, either by adding a new app, or by modifying an existing app, please send an email to:
+tclstore@xilinx.com
+
 
 ## As a Contributor
 1. Get git account \<USER\> and download git on your machine
