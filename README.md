@@ -7,7 +7,7 @@ A Tcl app store is an open source repository of Tcl code designed primarily, but
 This project is currently in a "beta" phase, and we are limiting access.  To contribute, either by adding a new app, or by modifying an existing app, please send an email to:
 tclstore@xilinx.com
 
-[Click Here to Go To The Wiki [XilinxTclStore]]
+[Click Here to go to the Wiki](XilinxTclStore)
 
 
 ## To Contribute
