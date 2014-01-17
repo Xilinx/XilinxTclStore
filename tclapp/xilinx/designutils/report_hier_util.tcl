@@ -21,7 +21,7 @@ proc ::tclapp::xilinx::designutils::report_hier_util {{pattern {*}}} {
   # 0
   # TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   if {$pattern == {*}} {
     set listHierCells [get_cells -quiet -filter "!IS_PRIMITIVE" ]

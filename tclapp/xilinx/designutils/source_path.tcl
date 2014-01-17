@@ -22,7 +22,7 @@ proc ::tclapp::xilinx::designutils::source_path {script search_path} {
   # 0 on success
   # TCL_ERROR if script could not be found
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   foreach dir $search_path {
     if {[file exists $dir/$script]} {

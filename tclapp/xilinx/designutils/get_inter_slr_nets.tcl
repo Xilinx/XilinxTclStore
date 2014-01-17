@@ -19,7 +19,7 @@ proc ::tclapp::xilinx::designutils::get_inter_slr_nets {} {
   # Return Value:
   # list of SLR-crossing net objects
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   # returns all 
   set nets [get_nets -hier]

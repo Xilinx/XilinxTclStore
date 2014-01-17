@@ -19,7 +19,7 @@ proc ::tclapp::xilinx::designutils::highlight_enable_signal_sites {} {
   # Return Value:
   # 0
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   # Generate the report
   set report [report_control_set -verbose -return_string]

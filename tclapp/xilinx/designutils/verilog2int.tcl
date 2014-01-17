@@ -20,7 +20,7 @@ proc ::tclapp::xilinx::designutils::verilog2int { number } {
   # Return Value:
   # converted integer
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
   
   set COMMENT_var_re {
       re matches <sign><num bits><base><number> where:

@@ -28,7 +28,7 @@ proc ::tclapp::xilinx::designutils::read_file_regexp {filename rexp} {
   # all the lines that match the regular expression
   # TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set lines [list]
   set FH {}
@@ -67,7 +67,7 @@ proc ::tclapp::xilinx::designutils::gets_regexp {FH rexp var} {
   # 1 if EOF reached
   # TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   upvar 1 $var _var
   if {$FH == {}} {

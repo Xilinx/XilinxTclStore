@@ -23,7 +23,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers { {maxFan 10
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   uplevel ::tclapp::xilinx::designutils::replicate_high_fanout_registers::replicate_high_fanout_registers $maxFan $inst $reportOnly
   return 0
@@ -41,7 +41,7 @@ proc ::tclapp::xilinx::designutils::clone_net_driver {net {suffix {}}} {
   # created net on the cloned driver
   # TCL_ERROR if fails
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   return [uplevel ::tclapp::xilinx::designutils::replicate_high_fanout_registers::clone_net_driver $net $suffix]
 }
@@ -58,7 +58,7 @@ proc ::tclapp::xilinx::designutils::clone_cell {cell {suffix {}}} {
   # cloned cell
   # TCL_ERROR if fails
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   return [uplevel ::tclapp::xilinx::designutils::replicate_high_fanout_registers::clone_cell $cell $suffix]
 }
@@ -80,7 +80,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::replicate_h
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set hiFanRegs {} ; # list of reg insts that have fanout above maxFan
   set hiFanNets [dict create]  ; # nets driven by each high-fanout reg
@@ -115,7 +115,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::clone_net_d
   # created net on the cloned driver
   # TCL_ERROR if fails
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set netObj [get_nets -quiet $net]
   if {$netObj == {}} {
@@ -153,7 +153,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::clone_cell 
   # cloned cell
   # TCL_ERROR if fails
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set cellObj [get_cells -quiet $cell]
   switch [llength $cellObj] {
@@ -190,7 +190,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::getHighFano
   # Return Value:
   # 0, results returned in the input variables
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   upvar $hiFanRegs regs
   upvar $hiFanNets nets
@@ -254,7 +254,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::cloneReg {r
   # if no net is provided, the cloned instance is returned
   # TCL_ERROR if any of the cells connected to the net is placed
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   # change the hierarchy separator here, if not a '/'
@@ -353,7 +353,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::replicateAl
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   dict for {reg net} $hiFanNets {
@@ -435,7 +435,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::checkAllCon
   # 0 if all the connected cells are unplaced. 1 otherwise
   # TCL_ERROR if failed
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable debug
   set error 0
@@ -546,7 +546,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::genUniqueCe
   # Return Value:
   # cell name
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   if {[get_cells -quiet $name] == {}} { return $name }
   set index 0
@@ -563,7 +563,7 @@ proc ::tclapp::xilinx::designutils::replicate_high_fanout_registers::genUniqueNe
   # Return Value:
   # net name
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   if {[get_nets -quiet $name] == {}} { return $name }
   set index 0

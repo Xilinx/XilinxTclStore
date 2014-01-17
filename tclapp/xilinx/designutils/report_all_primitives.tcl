@@ -19,7 +19,7 @@ proc ::tclapp::xilinx::designutils::report_all_primitives {} {
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set prim_list [get_property LIB_CELL [get_cells -hier -filter {IS_PRIMITIVE}]]
   foreach prim $prim_list {incr count($prim)}
