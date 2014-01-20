@@ -46,14 +46,14 @@ On Windows
 
 ```bash
 cd <WORKING_DIR>
-git clone https://github.com/\<USER\>/XilinxTclStore.git
+git clone https://github.com/<USER>/XilinxTclStore.git
 ```
 
 On Linux
 
 ```bash
 cd <WORKING_DIR>
-git clone https://<USER>@github.com/\<USER\>/XilinxTclStore.git
+git clone https://<USER>@github.com/<USER>/XilinxTclStore.git
 ```
 
 You will need to enter your github password when prompted.
@@ -117,9 +117,9 @@ git config --global merge.defaultToUpstream true
 1. Create a repository by cloning XilinxTclStore, skip to next step if repository already exists locally
 ```bash
 On Windows
-git clone https://github.com/\<USER\>/XilinxTclStore.git
+git clone https://github.com/<USER>/XilinxTclStore.git
 On Linux
-git clone https://USER@github.com/\<USER\>/XilinxTclStore.git
+git clone https://<USER>@github.com/<USER>/XilinxTclStore.git
 ```
 
 2. Update local repo with github master
@@ -164,7 +164,7 @@ git commit -m "update notes"
 ```bash
 git push origin master
 ```
-geto Step 12
+go to Step 12
 
 11. Go to Github.com
 Pull Request from the \<USER\>.<p>
