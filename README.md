@@ -183,6 +183,6 @@ git branch -r -d raj/rajklair
 Done
 
 ## How to Contribute a New App to the Repository
-[Adding a new app to the repo (https://github.com/Xilinx/XilinxTclStore/wiki/Adding-a-New-App-to-the-Repository)
+[Adding a new app to the repository](https://github.com/Xilinx/XilinxTclStore/wiki/Adding-a-New-App-to-the-Repository)
 
 
