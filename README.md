@@ -133,7 +133,6 @@ git merge --ff
 ```
 
 4. Set up remote to point to the Xilinx master repo if this has not been done yet.  This is required to be able to sync the local repo with the Xilinx master repo
-
 ```bash
 git remote add upstream https://github.com/Xilinx/XilinxTclStore.git
 ```
