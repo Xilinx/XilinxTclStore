@@ -20,7 +20,7 @@ proc ::tclapp::xilinx::designutils::get_sll_nodes { {slr *} } {
   # Return Value:
   # returns all the SLL node objects in the device
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   set sllList [list]
   if {$slr == "*"} {

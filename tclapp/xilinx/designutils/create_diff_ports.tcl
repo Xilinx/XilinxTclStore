@@ -22,7 +22,7 @@ proc ::tclapp::xilinx::designutils::create_diff_ports {} {
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   uplevel ::tclapp::xilinx::designutils::create_diff_ports::create_diff_ports
   return 0
@@ -40,7 +40,7 @@ proc ::tclapp::xilinx::designutils::create_diff_ports::create_diff_ports {} {
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   # For now, assume either _p or _P suffix designates a differential port
   # In the future, you could check iostandard or some other attribute
@@ -71,7 +71,7 @@ proc ::tclapp::xilinx::designutils::create_diff_ports::createDiffPortScalar {por
 
   # Return Value:
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   # works for scalar ports only
   # not used by the top-level proc
@@ -210,7 +210,7 @@ proc ::tclapp::xilinx::designutils::create_diff_ports::getPortNames {baseNames b
   # Return Value:
   # returns list of port names, maximum and minimum indexes for each bus
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   upvar baseNames ports
   upvar busIndexMax idxMax
@@ -254,7 +254,7 @@ proc ::tclapp::xilinx::designutils::create_diff_ports::getPairPin {portP} {
   # Return Value:
   # corresponding N port
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   upvar pinFuncTable pinFuncs ; # emulate "static" variable
   if {![info exists pinFuncs]} {

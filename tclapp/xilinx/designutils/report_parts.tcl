@@ -20,7 +20,7 @@ proc ::tclapp::xilinx::designutils::report_parts { {pattern *} } {
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   # Initialize the table object
   set table [::tclapp::xilinx::designutils::prettyTable create {Summary of all parts}]

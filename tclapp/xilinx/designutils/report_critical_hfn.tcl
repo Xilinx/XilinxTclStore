@@ -23,7 +23,7 @@ proc ::tclapp::xilinx::designutils::report_critical_hfn {{sortBy slack} {limitFa
   # 0
   # TCL_ERROR if an error happened
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   if {[string tolower $sortBy] != {slack} && [string tolower $sortBy] != {fanout}} {
     error " error - unknown sortBy value"

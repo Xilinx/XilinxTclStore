@@ -31,7 +31,7 @@ proc ::tclapp::xilinx::designutils::write_template {args} {
   # Return Value:
   # template in the case of -return_string, otherwise 0 TCL_ERROR if error
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
   return [uplevel ::tclapp::xilinx::designutils::write_template::write_template $args]
 }
 
@@ -64,7 +64,7 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
   # template in the case of -return_string, otherwise 0
   # TCL_ERROR if error
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable tfh
   variable module
@@ -348,7 +348,7 @@ proc ::tclapp::xilinx::designutils::write_template::vlogTemplate {} {
   # Return Value:
   # Verilog template
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable module
   variable inputBitPorts
@@ -436,7 +436,7 @@ proc ::tclapp::xilinx::designutils::write_template::vhdlTemplate {} {
   # Return Value:
   # VHDL template
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable module
   variable inputBitPorts
@@ -537,7 +537,7 @@ proc ::tclapp::xilinx::designutils::write_template::vlogStub {} {
   # Return Value:
   # Verilog stub
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable module
   variable inputBitPorts
@@ -607,7 +607,7 @@ proc ::tclapp::xilinx::designutils::write_template::vhdlStub {} {
   # Return Value:
   # VHDL stub
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable module
   variable inputBitPorts
@@ -711,7 +711,7 @@ proc ::tclapp::xilinx::designutils::write_template::vlogTestBench {} {
   # Return Value:
   # Verilog testbench
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
    puts "This feature is not yet implemented"
    return {}
@@ -728,7 +728,7 @@ proc ::tclapp::xilinx::designutils::write_template::vhdlTestBench {} {
   # Return Value:
   # VHDL testbench
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
    puts "This feature is not yet implemented"
    return {}
@@ -751,7 +751,7 @@ proc ::tclapp::xilinx::designutils::write_template::sortPins { pins &bus &bit } 
   # Return Value:
   # 0
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
    upvar ${&bus} busPorts
    upvar ${&bit} bitPorts
@@ -788,7 +788,7 @@ proc ::tclapp::xilinx::designutils::write_template::sortPorts { ports &bus &bit 
   # Return Value:
   # 0
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   upvar ${&bus} busPorts
   upvar ${&bit} bitPorts
@@ -818,7 +818,7 @@ proc ::tclapp::xilinx::designutils::write_template::array2sortedList { &ar } {
   # Return Value:
   # sorted list
 
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   upvar ${&ar} ar
   set sortedList [list]

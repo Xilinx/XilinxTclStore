@@ -20,7 +20,7 @@ proc ::tclapp::xilinx::designutils::get_sll_nets { {nets {*}} } {
   # Return Value:
   # returns all SLL-crossing nets
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   # Get all the inter-SLR nets if no list of nets has been provided
   if {$nets == {*}} {

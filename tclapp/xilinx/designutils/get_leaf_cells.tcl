@@ -25,7 +25,7 @@ proc ::tclapp::xilinx::designutils::get_leaf_cells { {pattern *} } {
   # Return Value:
   # list of leaf cells objects
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   uplevel [concat ::tclapp::xilinx::designutils::get_leaf_cells::get_leaf_cells $pattern]
 }
@@ -50,7 +50,7 @@ proc ::tclapp::xilinx::designutils::get_leaf_cells::get_leaf_cells { {inst *} } 
   # Return Value:
   # list of leaf cells objects
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   variable leafCells
   if {$inst != "*"} {
@@ -73,7 +73,7 @@ proc ::tclapp::xilinx::designutils::get_leaf_cells::getLeafCells {pattern} {
   # Summary :
   # Argument Usage:
   # Return Value:
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   
   variable leafCells

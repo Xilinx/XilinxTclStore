@@ -22,7 +22,7 @@ proc ::tclapp::xilinx::designutils::reapply_iostandard {} {
   # Return Value:
   # 0
   
-  # Categories: xilinctclstore, designutils
+  # Categories: xilinxtclstore, designutils
 
   foreach port [get_ports] {
    set_property IOSTANDARD [get_property IOSTANDARD $port] $port
