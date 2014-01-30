@@ -179,6 +179,9 @@
         <proc>
           <name>myproc2</name>
         </proc>
+        <proc>
+          <name>myproc3</name>
+        </proc>
       </procs>
     </app>
     <app>
