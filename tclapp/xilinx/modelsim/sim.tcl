@@ -514,6 +514,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
 
   set top $::tclapp::xilinx::simutils::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::simutils::a_sim_vars(s_launch_dir)
+  set fs_obj [get_filesets $::tclapp::xilinx::simutils::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id Vivado-ModelSim-999 ERROR "failed to open file to write ($do_file)\n"
@@ -529,9 +530,32 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   puts $fh "view wave"
   puts $fh "view structure"
   puts $fh "view signals"
+ 
+  # generate saif file for power estimation
+  set saif [get_property "MODELSIM.SIMULATE.SAIF" $fs_obj] 
+  if { {} != $saif } {
+    set uut [get_property "UNIT_UNDER_TEST" $fs_obj] 
+    if { {} == $uut } {
+      set uut "/$top/uut/*"
+    }
+    if { {timing} == $::tclapp::xilinx::simutils::a_sim_vars(s_type) } {
+      puts $fh "power add -r -in -inout -out -internal [::tclapp::xilinx::simutils::usf_resolve_uut_name uut]"
+    } else {
+      puts $fh "power add -in -inout -out [::tclapp::xilinx::simutils::usf_resolve_uut_name uut]"
+    }
+  }
   puts $fh "do \{$top.udo\}"
-  set time [get_property "RUNTIME" [get_filesets $::tclapp::xilinx::simutils::a_sim_vars(s_simset)]]
+  set time [get_property "RUNTIME" $fs_obj]
   puts $fh "run $time"
+
+  if { {} != $saif } {
+    set extn [string tolower [file extension $saif]]
+    if { {.saif} != $extn } {
+      append saif ".saif"
+    }
+    puts $fh "power report -all -bsaif $saif"
+  }
+
   # TODO:batch/gui
   puts $fh "quit -force"
   close $fh

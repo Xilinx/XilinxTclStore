@@ -38,6 +38,7 @@ proc register_options { simulator } {
     {{compile.load_glbl}      {bool}   {1}                                                   {Load GLBL module}}
     {{compile.more_options}   {string} {}                                                    {More Compilation Options}}
     {{elaborate.more_options} {string} {}                                                    {More Elaboration Options}}
+    {{simulate.saif}          {string} {}                                                    {SAIF Filename}}
     {{simulate.more_options}  {string} {}                                                    {More Simulation Options}}
   }
   # create options

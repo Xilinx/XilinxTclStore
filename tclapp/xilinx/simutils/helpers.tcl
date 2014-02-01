@@ -45,6 +45,7 @@ namespace eval ::tclapp::xilinx::simutils {
   namespace export usf_set_simulator_path
   namespace export usf_get_files_for_compilation
   namespace export usf_launch_script
+  namespace export usf_resolve_uut_name
   namespace export usf_print_args
 }
 
@@ -155,24 +156,48 @@ proc usf_create_options { simulator opts } {
     # setup property name
     set prop_name "${simulator}.${name}"
 
+    # is registered already?
+    if { [usf_is_option_registered_on_simulator $prop_name $simulator] } {
+      continue;
+    }
+
     # is enum type?
     if { {enum} == $type } {
       set e_value   [lindex $value 0]
       set e_default [lindex $value 1]
       set e_values  [lindex $value 2]
       # create enum property
-      [catch {create_property -name "${prop_name}" -type $type -description $desc -enum_values $e_values -default_value $e_default -class fileset}]
+      #[catch {create_property -name "${prop_name}" -type $type -description $desc -enum_values $e_values -default_value $e_default -class fileset}]
+      create_property -name "${prop_name}" -type $type -description $desc -enum_values $e_values -default_value $e_default -class fileset
       # set property value
       set_property "${prop_name}" $e_value ${fs_obj} 
     } else {
       set v_default $value
-      [catch {create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -class fileset}]
+      #[catch {create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -class fileset}]
+      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -class fileset
       # set property value
       set_property "${prop_name}" $value ${fs_obj} 
     }
   }
+
   send_msg_id Vivado-simutils-999 INFO "Options registered on fileset.\n"
   return 0
+}
+
+proc usf_is_option_registered_on_simulator { prop_name simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set str_1 [string toupper $prop_name]
+  # get registered options from simulator for the current simset
+  foreach option_name [get_property "REGISTERED_OPTIONS" [get_simulators $simulator]] {
+    set str_2 [string toupper $option_name]
+    if { [string compare $str_1 $str_2] == 0 } {
+      return true
+    }
+  }
+  return false
 }
 
 proc usf_set_simulation_flow {} {
@@ -736,13 +761,52 @@ proc usf_create_do_file { simulator do_filename } {
 
   variable a_sim_vars
   set fs_obj [current_fileset -simset]
+  set top $::tclapp::xilinx::simutils::a_sim_vars(s_sim_top)
   set do_file [file join $a_sim_vars(s_launch_dir) $do_filename]
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id Vivado-simutils-999 ERROR "failed to open file to write ($do_file)\n"
   } else {
+    # generate saif file for power estimation
+    set saif {}
+    set uut [get_property "UNIT_UNDER_TEST" $fs_obj]
+    switch -regexp -- $simulator {
+      "ies" {
+        set saif [get_property "IES.SIMULATE.SAIF" $fs_obj]
+        if { {} != $saif } {
+          if { {} == $uut } {
+            set uut "/$top/uut/*"
+          }
+          puts $fh_do "dumpsaif -scope $uut -overwrite -output $saif"
+        }
+      }
+      "vcs_mx" {
+        set saif [get_property "VCS_MX.SIMULATE.SAIF" $fs_obj]
+        if { {} != $saif } {
+          if { {} == $uut } {
+            set uut "$top.uut"
+          }
+          puts $fh_do "power $uut"
+          puts $fh_do "power -enable"
+        }
+      }
+    }
     set time [get_property "RUNTIME" $fs_obj]
     puts $fh_do "run $time"
+    if { {} != $saif } {
+      switch -regexp -- $simulator {
+        "ies"    { puts $fh_do "dumpsaif -end" }
+        "vcs_mx" {
+          set timescale {1}
+          if { {} == $uut } {
+            set uut "$top.uut"
+          }
+          set module    $uut 
+          puts $fh_do "power -disable"
+          puts $fh_do "power -report $saif $timescale $module"
+        }
+      }
+    }
     switch -regexp -- $simulator {
       "ies"    { puts $fh_do "exit" }
       "vcs_mx" { puts $fh_do "quit" }
@@ -1102,6 +1166,28 @@ proc usf_write_shell_step_fn { fh } {
   puts $fh "exit \$RETVAL"
   puts $fh "fi"
   puts $fh "\}"
+}
+
+proc usf_resolve_uut_name { uut_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $uut_arg uut
+  set uut [string map {\\ /} $uut]]
+  # prepend slash
+  if { ![string match "/*" $uut] } {
+    set uut "/$uut"
+  }
+  # append *
+  if { [string match "*/" $uut] } {
+    set uut "${uut}*"
+  }
+  # append /*
+  if { ![string match "*/\*" $uut] } {
+    set uut "${uut}/*"
+  }
+  return $uut
 }
 
 proc usf_print_args {} {
@@ -1668,7 +1754,13 @@ proc usf_get_compiler_name { simulator file_type } {
     }
   } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) } {
     switch $simulator {
-      {xsim} { set compiler "verilog" }
+      {xsim} {
+        if { ({SystemVerilog} == $file_type) } {
+          set compiler "sv"
+        } else {
+          set compiler "verilog"
+        }
+      }
       {modelsim} { set compiler "vlog" }
       {ies} { set compiler "ncvlog" }
       {vcs_mx} { set compiler "vlogan" }
@@ -1865,8 +1957,8 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
     } else {
       # no synthesis, so no recommendation to do a synth checkpoint.
     }
-    send_msg_id Vivado-simutils-999 ERROR "$error_msg\n"
-    return 1
+    send_msg_id Vivado-simutils-999 WARNING "$error_msg\n"
+    #return 1
   }
   send_msg_id Vivado-simutils-999 INFO "Processing complete:'$ip_name'\n"
 }
