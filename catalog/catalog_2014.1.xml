@@ -168,6 +168,139 @@
       </procs>
     </app>
     <app>
+      <revision>1.0</revision>
+      <name>ies</name>
+      <pkg_require>Vivado 2013.1</pkg_require>
+      <company>xilinx</company>
+      <summary>Simulation script to verify design using IES Simulator</summary>
+      <procs>
+        <proc>
+          <name>compile</name>
+          <summary>compile design</summary>
+        </proc>
+        <proc>
+          <name>elaborate</name>
+          <summary>elaborate design</summary>
+        </proc>
+        <proc>
+          <name>register_options</name>
+          <summary>Create options for IES Simulator</summary>
+        </proc>
+        <proc>
+          <name>setup</name>
+          <summary>setup design</summary>
+        </proc>
+        <proc>
+          <name>simulate</name>
+          <summary>simulate design</summary>
+        </proc>
+        <proc>
+          <name>usf_ies_init_simulation_vars</name>
+        </proc>
+        <proc>
+          <name>usf_ies_setup_args</name>
+        </proc>
+        <proc>
+          <name>usf_ies_setup_simulation</name>
+        </proc>
+        <proc>
+          <name>usf_ies_verify_compiled_lib</name>
+        </proc>
+        <proc>
+          <name>usf_ies_write_compile_script</name>
+        </proc>
+        <proc>
+          <name>usf_ies_write_elaborate_script</name>
+        </proc>
+        <proc>
+          <name>usf_ies_write_setup_files</name>
+        </proc>
+        <proc>
+          <name>usf_ies_write_simulate_script</name>
+        </proc>
+      </procs>
+    </app>
+    <app>
+      <revision>1.0</revision>
+      <name>modelsim</name>
+      <pkg_require>Vivado 2013.1</pkg_require>
+      <company>xilinx</company>
+      <summary>Simulation script to verify design using ModelSim/Questa Simulator</summary>
+      <procs>
+        <proc>
+          <name>compile</name>
+          <summary>compile design</summary>
+        </proc>
+        <proc>
+          <name>elaborate</name>
+          <summary>elaborate design</summary>
+        </proc>
+        <proc>
+          <name>register_options</name>
+          <summary>Create options for ModelSim/Questa Simulator</summary>
+        </proc>
+        <proc>
+          <name>setup</name>
+          <summary>setup design</summary>
+        </proc>
+        <proc>
+          <name>simulate</name>
+          <summary>simulate design</summary>
+        </proc>
+        <proc>
+          <name>usf_modelsim_create_do_file_for_compilation</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_create_do_file_for_elaboration</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_create_do_file_for_simulation</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_create_udo_file</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_create_wave_do_file</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_get_design_libs</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_get_elaboration_cmdline</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_init_simulation_vars</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_setup_args</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_setup_simulation</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_verify_compiled_lib</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_write_compile_script</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_write_driver_shell_script</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_write_elaborate_script</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_write_header</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_write_setup_files</name>
+        </proc>
+        <proc>
+          <name>usf_modelsim_write_simulate_script</name>
+        </proc>
+      </procs>
+    </app>
+    <app>
       <commit_id>01ce05fb09f</commit_id>
       <name>myapp</name>
       <company>mycompany</company>
@@ -200,6 +333,229 @@
         <proc>
           <name>write_project_tcl</name>
           <summary>Export Tcl script for re-creating the current project</summary>
+        </proc>
+      </procs>
+    </app>
+    <app>
+      <revision>1.0</revision>
+      <name>simutils</name>
+      <pkg_require>Vivado 2013.1</pkg_require>
+      <company>xilinx</company>
+      <summary>Helper utilities for the simulator apps</summary>
+      <procs>
+        <proc>
+          <name>usf_add_secureip</name>
+        </proc>
+        <proc>
+          <name>usf_add_simprims</name>
+        </proc>
+        <proc>
+          <name>usf_add_unifast</name>
+        </proc>
+        <proc>
+          <name>usf_add_unimacro</name>
+        </proc>
+        <proc>
+          <name>usf_add_unique_incl_paths</name>
+        </proc>
+        <proc>
+          <name>usf_add_unisims</name>
+        </proc>
+        <proc>
+          <name>usf_append_compiler_options</name>
+        </proc>
+        <proc>
+          <name>usf_append_define_generics</name>
+          <summary>append generics to the command line</summary>
+        </proc>
+        <proc>
+          <name>usf_append_other_options</name>
+        </proc>
+        <proc>
+          <name>usf_compile_glbl_file</name>
+        </proc>
+        <proc>
+          <name>usf_contains_verilog</name>
+          <summary>return true if design contains verilog sources</summary>
+        </proc>
+        <proc>
+          <name>usf_create_do_file</name>
+        </proc>
+        <proc>
+          <name>usf_create_launch_dir</name>
+          <summary>create simulation run directory</summary>
+        </proc>
+        <proc>
+          <name>usf_create_options</name>
+          <summary>create and set options</summary>
+        </proc>
+        <proc>
+          <name>usf_export_data_files</name>
+        </proc>
+        <proc>
+          <name>usf_export_fs_data_files</name>
+        </proc>
+        <proc>
+          <name>usf_generate_comp_file_for_simulation</name>
+        </proc>
+        <proc>
+          <name>usf_generate_ip_netlist</name>
+        </proc>
+        <proc>
+          <name>usf_get_bin_path</name>
+        </proc>
+        <proc>
+          <name>usf_get_compile_order_for_obj</name>
+          <summary>get design compile order</summary>
+        </proc>
+        <proc>
+          <name>usf_get_compile_order_libs</name>
+          <summary>get the list of design libraries</summary>
+        </proc>
+        <proc>
+          <name>usf_get_compiler_name</name>
+        </proc>
+        <proc>
+          <name>usf_get_file_cmd_str</name>
+        </proc>
+        <proc>
+          <name>usf_get_file_type_category</name>
+        </proc>
+        <proc>
+          <name>usf_get_files_for_compilation</name>
+        </proc>
+        <proc>
+          <name>usf_get_files_from_block_filesets</name>
+        </proc>
+        <proc>
+          <name>usf_get_glbl_file</name>
+        </proc>
+        <proc>
+          <name>usf_get_global_include_file_cmdstr</name>
+        </proc>
+        <proc>
+          <name>usf_get_global_include_files</name>
+        </proc>
+        <proc>
+          <name>usf_get_header_include_paths</name>
+        </proc>
+        <proc>
+          <name>usf_get_incl_dirs_from_ip</name>
+        </proc>
+        <proc>
+          <name>usf_get_incl_files_from_ip</name>
+        </proc>
+        <proc>
+          <name>usf_get_include_dirs</name>
+        </proc>
+        <proc>
+          <name>usf_get_include_file_dirs</name>
+          <summary>get the include file directory paths</summary>
+        </proc>
+        <proc>
+          <name>usf_get_netlist_extn</name>
+        </proc>
+        <proc>
+          <name>usf_get_netlist_filename</name>
+        </proc>
+        <proc>
+          <name>usf_get_netlist_writer_cmd_args</name>
+        </proc>
+        <proc>
+          <name>usf_get_relative_file_path</name>
+        </proc>
+        <proc>
+          <name>usf_get_script_extn</name>
+        </proc>
+        <proc>
+          <name>usf_get_sdf_writer_cmd_args</name>
+        </proc>
+        <proc>
+          <name>usf_get_sim_files_for_fs</name>
+        </proc>
+        <proc>
+          <name>usf_get_sim_files_for_ip</name>
+        </proc>
+        <proc>
+          <name>usf_get_testbench_files_from_ip</name>
+        </proc>
+        <proc>
+          <name>usf_get_top</name>
+        </proc>
+        <proc>
+          <name>usf_get_top_library</name>
+          <summary>get the top library name</summary>
+        </proc>
+        <proc>
+          <name>usf_get_verilog_header_paths</name>
+        </proc>
+        <proc>
+          <name>usf_get_xil_simulator_lib</name>
+        </proc>
+        <proc>
+          <name>usf_init_vars</name>
+          <summary>initialize simulation global variables</summary>
+        </proc>
+        <proc>
+          <name>usf_is_axi_bfm_ip</name>
+        </proc>
+        <proc>
+          <name>usf_is_embedded_flow</name>
+        </proc>
+        <proc>
+          <name>usf_is_fileset</name>
+          <summary>return true if specified tcl object is fileset</summary>
+        </proc>
+        <proc>
+          <name>usf_is_ip</name>
+        </proc>
+        <proc>
+          <name>usf_launch_script</name>
+        </proc>
+        <proc>
+          <name>usf_make_file_executable</name>
+        </proc>
+        <proc>
+          <name>usf_prepare_ip_for_simulation</name>
+        </proc>
+        <proc>
+          <name>usf_print_args</name>
+        </proc>
+        <proc>
+          <name>usf_remove_duplicate_files</name>
+        </proc>
+        <proc>
+          <name>usf_resolve_file_path</name>
+        </proc>
+        <proc>
+          <name>usf_set_ref_dir</name>
+          <summary>set reference dir for setting source paths</summary>
+        </proc>
+        <proc>
+          <name>usf_set_run_dir</name>
+          <summary>set simulation run directory</summary>
+        </proc>
+        <proc>
+          <name>usf_set_sim_tcl_obj</name>
+          <summary>set simulation tcl object</summary>
+        </proc>
+        <proc>
+          <name>usf_set_simulation_flow</name>
+          <summary>set simulation flow</summary>
+        </proc>
+        <proc>
+          <name>usf_set_simulator_path</name>
+        </proc>
+        <proc>
+          <name>usf_uniquify_cmd_str</name>
+          <summary>remove duplicate command line strings</summary>
+        </proc>
+        <proc>
+          <name>usf_write_design_netlist</name>
+          <summary>write design netlist</summary>
+        </proc>
+        <proc>
+          <name>usf_write_shell_step_fn</name>
         </proc>
       </procs>
     </app>
@@ -268,6 +624,133 @@
         <proc>
           <name>wait_for_response</name>
           <summary>Waits for client_return to be set (called by rexec_wait)</summary>
+        </proc>
+      </procs>
+    </app>
+    <app>
+      <revision>1.0</revision>
+      <name>vcs_mx</name>
+      <pkg_require>Vivado 2013.1</pkg_require>
+      <company>xilinx</company>
+      <summary>Simulation script to verify design using VCS_MX Simulator</summary>
+      <procs>
+        <proc>
+          <name>compile</name>
+          <summary>compile design</summary>
+        </proc>
+        <proc>
+          <name>elaborate</name>
+          <summary>elaborate design</summary>
+        </proc>
+        <proc>
+          <name>register_options</name>
+          <summary>Create options for VCS_MX Simulator</summary>
+        </proc>
+        <proc>
+          <name>setup</name>
+          <summary>setup design</summary>
+        </proc>
+        <proc>
+          <name>simulate</name>
+          <summary>simulate design</summary>
+        </proc>
+        <proc>
+          <name>usf_vcs_mx_init_simulation_vars</name>
+        </proc>
+        <proc>
+          <name>usf_vcs_mx_setup_args</name>
+        </proc>
+        <proc>
+          <name>usf_vcs_mx_setup_simulation</name>
+        </proc>
+        <proc>
+          <name>usf_vcs_mx_verify_compiled_lib</name>
+        </proc>
+        <proc>
+          <name>usf_vcs_mx_write_compile_script</name>
+        </proc>
+        <proc>
+          <name>usf_vcs_mx_write_elaborate_script</name>
+        </proc>
+        <proc>
+          <name>usf_vcs_mx_write_setup_files</name>
+        </proc>
+        <proc>
+          <name>usf_vcs_mx_write_simulate_script</name>
+        </proc>
+      </procs>
+    </app>
+    <app>
+      <revision>1.0</revision>
+      <name>xsim</name>
+      <pkg_require>Vivado 2013.1</pkg_require>
+      <company>xilinx</company>
+      <summary>Simulation script to verify design using Vivado Simulator</summary>
+      <procs>
+        <proc>
+          <name>compile</name>
+          <summary>compile design</summary>
+        </proc>
+        <proc>
+          <name>elaborate</name>
+          <summary>elaborate design</summary>
+        </proc>
+        <proc>
+          <name>register_options</name>
+          <summary>Create options for Vivado Simulator</summary>
+        </proc>
+        <proc>
+          <name>setup</name>
+          <summary>setup design</summary>
+        </proc>
+        <proc>
+          <name>simulate</name>
+          <summary>simulate design</summary>
+        </proc>
+        <proc>
+          <name>usf_xsim_get_running_simulation_obj_key</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_get_sim_flow_type_as_pretty_str</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_get_sim_mode_as_pretty_str</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_get_snapshot</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_get_top_level_instance_names</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_get_xelab_cmdline_args</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_get_xsim_cmdline_args</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_init_simulation_vars</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_setup_args</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_setup_simulation</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_write_cmd_file</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_write_compile_script</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_write_elaborate_script</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_write_setup_files</name>
+        </proc>
+        <proc>
+          <name>usf_xsim_write_simulate_script</name>
         </proc>
       </procs>
     </app>
