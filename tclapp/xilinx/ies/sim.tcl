@@ -466,7 +466,7 @@ proc usf_ies_write_simulate_script {} {
   if { $::tclapp::xilinx::simutils::a_sim_vars(b_batch) } {
    # no gui
   } else {
-    #set arg_list [linsert $arg_list end "-gui"]
+    set arg_list [linsert $arg_list end "-gui"]
   }
 
   if {$::tcl_platform(platform) == "unix"} { 

@@ -514,6 +514,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
 
   set top $::tclapp::xilinx::simutils::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::simutils::a_sim_vars(s_launch_dir)
+  set b_batch $::tclapp::xilinx::simutils::a_sim_vars(b_batch)
   set fs_obj [get_filesets $::tclapp::xilinx::simutils::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
@@ -556,8 +557,9 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     puts $fh "power report -all -bsaif $saif"
   }
 
-  # TODO:batch/gui
-  puts $fh "quit -force"
+  if { $b_batch } {
+    puts $fh "quit -force"
+  }
   close $fh
 }
 
@@ -626,6 +628,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   # Return Value:
 
   set dir $::tclapp::xilinx::simutils::a_sim_vars(s_launch_dir)
+  set b_batch $::tclapp::xilinx::simutils::a_sim_vars(b_batch)
 
   set scr_filename $step;append scr_filename [::tclapp::xilinx::simutils::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -635,16 +638,28 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     return 1
   }
 
+  set batch_sw {-c}
+  if { ({simulate} == $step) && (!$b_batch) } {
+    set batch_sw {}
+  }
+
+  set s_64bit {}
+  if {$::tcl_platform(platform) == "unix"} {
+    if { {64} == $::tclapp::xilinx::simutils::a_sim_vars(s_int_os_type) } {
+      set s_64bit {-64}
+    }
+  }
+
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "bin_path=\"$::tclapp::xilinx::simutils::a_sim_vars(s_tool_bin_path)\""
     ::tclapp::xilinx::simutils::usf_write_shell_step_fn $fh_scr
-    puts $fh_scr "ExecStep \$bin_path/vsim -c -do $do_filename -l $log_filename"
+    puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set bin_path=$::tclapp::xilinx::simutils::a_sim_vars(s_tool_bin_path)"
-    puts $fh_scr "call %bin_path%/vsim -c -do $do_filename -l $log_filename"
+    puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
   }
   close $fh_scr
 }

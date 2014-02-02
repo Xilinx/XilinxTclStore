@@ -393,9 +393,9 @@ proc usf_vcs_mx_write_simulate_script {} {
   puts $fh_scr ""
   set arg_list [list "./${top}_simv"]
   if { $::tclapp::xilinx::simutils::a_sim_vars(b_batch) } {
-   # no gui
+    # no gui
   } else {
-    #set arg_list [linsert $arg_list end "-gui"]
+    set arg_list [linsert $arg_list end "-gui"]
   }
   set arg_list [list $arg_list "\$${tool}_opts" "-do" "$do_filename"]
   set cmd_str [join $arg_list " "]
