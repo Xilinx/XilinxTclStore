@@ -664,23 +664,20 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   if { {timing} == $::tclapp::xilinx::simutils::a_sim_vars(s_type) } {
     set b_timimg 1
   }
-
-  set b_saif_file_specified 0
-  set saif_file [get_property "XSIM.SIMULATE.SAIF" $fs_obj]
-  if { {} != $saif_file } {
-    puts $fh_scr "open_saif \"$saif_file \""
-    set uut [get_property "UUT" $fs_obj]
+  # generate saif file for power estimation
+  set saif [get_property "XSIM.SIMULATE.SAIF" $fs_obj]
+  if { {} != $saif } {
+    set uut [get_property "UNIT_UNDER_TEST" $fs_obj]
+    puts $fh_scr "open_saif \"$saif\""
+    if { {} == $uut } {
+      set uut "/$top/uut/*"
+    }
     if { $b_timing } {
-       puts $fh_scr "log_saif \[get_objects -r *\]"
+      puts $fh_scr "log_saif \[get_objects -r *\]"
     } else {
       set filter "get_objects -filter \{type==in_port || type==out_port || type==inout_port\}"
-      if { {} == $uut } {
-        puts $fh_scr "log_saif /tb/uut/*"
-      } else {
-        puts $fh_scr "log_aif \[$filter [resolve_uut_name $uut]\]"
-      }
+      puts $fh_scr "log_saif \[$filter [::tclapp::xilinx::simutils::usf_resolve_uut_name uut]\]"
     }
-    set b_saif_file_specified 1
   }
 
   set runtime [get_property "RUNTIME" $fs_obj]
@@ -688,8 +685,8 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr "run $runtime"
   }
 
-  if { $b_saif_file_specified } {
-    puts $fh_scr "close_aif"
+  if { {} != $saif } {
+    puts $fh_scr "close_saif"
   }
 
   set filter "FILE_TYPE == \"TCL\""
