@@ -728,7 +728,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
             set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
             set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
-            set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
+            set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
             set file_props [list_property $file_object]
 
             if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -821,7 +821,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set l_remote_file_list [list]
 
         # return if empty fileset
-        if {[llength [get_files -quiet -of_objects $tcl_obj]] == 0 } {
+        if {[llength [get_files -quiet -of_objects [get_filesets $tcl_obj]]] == 0 } {
           lappend l_script_data "# Empty (no sources present)\n"
           return
         }
@@ -831,13 +831,13 @@ namespace eval ::tclapp::xilinx::projutils {
         set import_coln [list]
         set add_file_coln [list]
 
-        foreach file [get_files -norecurse -of_objects $tcl_obj] {
+        foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
           set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
           set src_file [join [lrange $path_dirs $begin+1 end] "/"]
 
           # fetch first object
-          set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
+          set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
           set file_props [list_property $file_object]
       
           if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -1070,9 +1070,9 @@ namespace eval ::tclapp::xilinx::projutils {
 
          set file_object ""
          if { [string equal $file_category "local"] } {
-           set file_object [lindex [get_files -of_objects $fs_name [list "*$file"]] 0]
+           set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
          } elseif { [string equal $file_category "remote"] } {
-           set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
+           set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
          }
 
          set file_props [list_property $file_object]
@@ -1132,7 +1132,7 @@ namespace eval ::tclapp::xilinx::projutils {
            } else {
              lappend l_script_data "set file \"$file\""
            }
-           lappend l_script_data "set file_obj \[get_files -of_objects $tcl_obj \[list \"*\$file\"\]\]"
+           lappend l_script_data "set file_obj \[get_files -of_objects \[get_filesets $tcl_obj\] \[list \"*\$file\"\]\]"
            set get_what "get_files"
            write_properties $prop_info_list $get_what $tcl_obj
            incr file_prop_count
