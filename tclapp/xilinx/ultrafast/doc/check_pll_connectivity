@@ -1,0 +1,18 @@
+
+  Description: Report MMCM/PLL information
+  
+     This command displays the signals hooked up to each PLL and
+     MMCM in the design.  A warning is displayed if the RST port or
+     LOCKED port are not connected to signals.  Floating inputs are
+     also reported.  Display of outputs that are No-Connects can be
+     optionally disabled by setting display_no_connects to 0.
+   
+     check_pll and check_mmcm control which of PLL and/or MMCM's are
+     checked.  By default, both are checked.  Setting check_pll to
+     0 disables PLL checking while setting check_mmcm to 0 disables
+     MMCM checking.
+
+  Example:
+     check_pll_connectivity
+     check_pll_connectivity -mmcm
+     check_pll_connectivity -mmcm -hide_unconnected -file myreport.rpt -append
