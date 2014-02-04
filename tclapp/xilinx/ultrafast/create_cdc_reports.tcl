@@ -11,12 +11,13 @@
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ## 
-## Version:        02/03/2014
+## Version:        02/04/2014
 ## Tool Version:   Vivado 2013.3
 ##
 ########################################################################################
 
 ########################################################################################
+## 02/04/2014 - Renamed file and various additional updates for Tcl App Store 
 ## 02/03/2014 - Updated the namespace and definition of the command line arguments 
 ##              for the Tcl App Store
 ## 09/16/2013 - Added meta-comment 'Categories' to all procs
@@ -62,7 +63,7 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports { args } {
 
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::ultrafast::create_cdc_reports { 
-  variable version {02/03/2014}
+  variable version {02/04/2014}
 } ]
 
 # -------------------------------------------------------------------------
@@ -198,7 +199,9 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::create_cdc_reports {args} 
            set verbose 1
       }
       -usage -
-      {^-u(s(a(ge?)?)?)?$} {
+      {^-u(s(a(ge?)?)?)?$} -
+      -help -
+      {^-h(e(lp?)?)?$} {
            set help 1
       }
       ^--version$ {

@@ -9,4 +9,3 @@
 # full path name of this file's directory.
 
 package ifneeded ::tclapp::xilinx::ultrafast 1.0 [list source [file join $dir checklist_pkg.tcl]]
-
