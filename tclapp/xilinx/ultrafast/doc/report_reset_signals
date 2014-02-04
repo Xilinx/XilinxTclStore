@@ -1,0 +1,10 @@
+
+  Description: Reports Information about Reset/Clear/Preset/SetPreset Pins
+
+     This command reports detailed infromation about the control signals.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+     report_reset_signals -set
+     report_reset_signals -verbose -file myreport.rpt -append

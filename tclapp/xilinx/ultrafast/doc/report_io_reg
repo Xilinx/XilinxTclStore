@@ -1,0 +1,13 @@
+
+  Description: Report I/O ports information
+
+     This command displays information related to IO ports.  It is a 
+     supplement to the I/O ports view in Vivado.  It shows the site, 
+     clock region, coordinate, as well as whether IDELAY/ODELAY and 
+     ILOGIC/OLOGIC are instantiated for the ports in use.
+     
+     Warnings are displayed if IDELAY/ODELAYs are not used
+  
+  Example:
+     report_io_reg
+     report_io_reg -verbose -file myreport.rpt
