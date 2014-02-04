@@ -1,18 +1,3 @@
-/*******************************************************************************
-# Copyright (C) XILINX
-#
-# MODULE:  bench16
-# OWNER:   Gregory SERVEL - XILINX
-# PURPOSE:
-#
-# Date:    2012/10/22
-# Author:  Gregory SERVEL - XILINX
-#
-# HISTORY:
-#
-# first version.
-#
-*******************************************************************************/
 
 (* CORE_GENERATION_INFO = "mmcm0,clk_wiz_v4_4,{component_name=mmcm0,use_phase_alignment=true,use_min_o_jitter=false,use_max_i_jitter=false,use_dyn_phase_shift=false,use_inclk_switchover=false,use_dyn_reconfig=false,feedback_source=FDBK_AUTO,primitive=MMCME2,num_out_clk=3,clkin1_period=10.0,clkin2_period=10.0,use_power_down=false,use_reset=false,use_locked=false,use_inclk_stopped=false,feedback_type=SINGLE,clock_mgr_type=NA,manual_override=false}" *)
 
