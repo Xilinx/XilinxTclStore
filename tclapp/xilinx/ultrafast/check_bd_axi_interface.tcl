@@ -11,12 +11,13 @@
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ##
-## Version:        02/03/2014
+## Version:        02/04/2014
 ## Tool Version:   Vivado 2013.3
 ##
 ########################################################################################
 
 ########################################################################################
+## 02/04/2014 - Renamed file and various additional updates for Tcl App Store 
 ## 02/03/2014 - Updated the namespace and definition of the command line arguments 
 ##              for the Tcl App Store
 ## 09/18/2013 - Changes for 2013.3
@@ -57,7 +58,7 @@ proc ::tclapp::xilinx::ultrafast::check_bd_axi_interface { args } {
 
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::ultrafast::check_bd_axi_interface {
-  variable version {02/03/2014}
+  variable version {02/04/2014}
 } ]
 
 #JEL 2013.2
@@ -113,7 +114,9 @@ proc ::tclapp::xilinx::ultrafast::check_bd_axi_interface::check_bd_axi_interface
            set returnString 1
       }
       -usage -
-      {^-u(s(a(ge?)?)?)?$} {
+      {^-u(s(a(ge?)?)?)?$} -
+      -help -
+      {^-h(e(lp?)?)?$} {
            set help 1
       }
       ^--version$ {
