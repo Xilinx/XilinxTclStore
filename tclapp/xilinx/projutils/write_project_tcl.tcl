@@ -436,6 +436,24 @@ namespace eval ::tclapp::xilinx::projutils {
 
           set get_what_fs "get_filesets"
 
+          # set IP REPO PATHS (if any) for filesets of type "DesignSrcs" or "BlockSrcs"
+          if { (({DesignSrcs} == $fs_type) || ({BlockSrcs} == $fs_type)) } {
+            if { ({RTL} == [get_property design_mode [get_filesets $tcl_obj]]) } {
+              set repo_paths [get_ip_repo_paths $tcl_obj]
+              if { [llength $repo_paths] > 0 } {
+                lappend l_script_data "# Set IP repository paths"
+                lappend l_script_data "set obj \[get_filesets $tcl_obj\]"
+                set path_list [list]
+                foreach path $repo_paths {
+                  lappend path_list $path
+                }
+                set repo_path_str [join $path_list " "]
+                lappend l_script_data "set_property \"ip_repo_paths\" \{${repo_path_str}\} \$obj" 
+                lappend l_script_data "" 
+              }
+            }
+          }
+  
           lappend l_script_data "# Add files to '$tcl_obj' fileset"
           lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
           write_files $proj_dir $proj_name $tcl_obj $type
@@ -566,6 +584,24 @@ namespace eval ::tclapp::xilinx::projutils {
         puts ""
     }
 
+    proc get_ip_repo_paths { tcl_obj } {
+
+        # Summary:
+        # Iterate over the fileset properties and get the ip_repo_paths (if set)
+    
+        # Argument Usage: 
+        # tcl_obj : fileset
+    
+        # Return Value:
+        # List of repo paths
+ 
+        set repo_path_list [list]
+        foreach path [get_property ip_repo_paths [get_filesets $tcl_obj]] {
+          lappend repo_path_list $path
+        }
+        return $repo_path_list
+    }
+
     proc filter { prop val } {
 
         # Summary: filter special properties
@@ -598,6 +634,11 @@ namespace eval ::tclapp::xilinx::projutils {
           if { [lsearch $l_filetype_filter $val] != -1 } {
             return 1
           }
+        }
+
+        # filter ip_repo_paths (ip_repo_paths is set before adding sources)
+        if { [string equal -nocase $prop {ip_repo_paths}] } {
+          return 1
         }
     
         return 0
