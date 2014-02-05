@@ -321,7 +321,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>981cb936b012036821eaca54163b42b25e1122d6</commit_id>
+      <commit_id>925c6a359ee222f0df6bb7068f32a7230669da50</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <author>Raj Klair</author>
