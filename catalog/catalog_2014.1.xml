@@ -33,6 +33,22 @@
           <summary>Creates differential _N port for each _P port in a pinplanning design</summary>
         </proc>
         <proc>
+          <name>generate_runs</name>
+          <summary>Create all possible combinations of runs</summary>
+        </proc>
+        <proc>
+          <name>get_clock_interaction</name>
+          <summary>Return a specific string within the clock interaction report</summary>
+        </proc>
+        <proc>
+          <name>get_connected_ref_pins</name>
+          <summary>Return a list of reference pins connected to the pin</summary>
+        </proc>
+        <proc>
+          <name>get_data_through_pins</name>
+          <summary>Return the data pins of a single timing path</summary>
+        </proc>
+        <proc>
           <name>get_host_platform</name>
           <summary>return the host platform (windows|unix)</summary>
         </proc>
@@ -73,7 +89,8 @@
           <summary>insert a list of buffers or any 2-pins cells on a net</summary>
         </proc>
         <proc>
-          <name>lcm</name>
+          <name>is_fabric_connected</name>
+          <summary>Determine if the given pin is connected to a SLICE. For input pins, check just the driver. For output pins, check all loads</summary>
         </proc>
         <proc>
           <name>prettyTable</name>

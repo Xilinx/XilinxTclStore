@@ -13,19 +13,16 @@ namespace eval ::tclapp::xilinx::designutils {
 
 
 proc ::tclapp::xilinx::designutils::is_fabric_connected {analyze_pin} {
-  # Summary : determine if the given pin is connected to a SLICE
-  #           for input pins, check just the driver
-  #           for output pins, check all loads
+  # Summary : Determine if the given pin is connected to a SLICE. For input pins, check just the driver. For output pins, check all loads
 
   # Argument Usage:
-  # analyze_pin : the desired pin to check if it is connected to a SLICE
+  # analyze_pin : The desired pin to check if it is connected to a SLICE
 
   # Return Value:
-  #               1 if true
-  #               0 if false
+  # 1 if true
+  # 0 if false
 
   # Categories: xilinxtclstore, designutils
-
 
 
   # First check the IS_CONNECTED property

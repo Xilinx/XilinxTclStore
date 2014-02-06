@@ -13,22 +13,12 @@ namespace eval ::tclapp::xilinx::designutils {
 
 
 proc ::tclapp::xilinx::designutils::get_clock_interaction { from_clock to_clock return_item} {
-  # Summary : return a specific string within the clock interaction report
+  # Summary : Return a specific string within the clock interaction report
 
   # Argument Usage:
-  # from_clock : a single timing path from get_timing_paths
-  # to_clock : 
-  # return_item: the entry in the clock interaction report desired for the from_clock and to_clock
-  #              return_item only supports the following:
-  #                                                         from_edge
-  #                                                         to_edge
-  #                                                         wns
-  #                                                         tns
-  #                                                         tns_end
-  #                                                         tot_end
-  #                                                         wns_req
-  #                                                         common
-  #                                                         inter_clock
+  # from_clock : The launching clock name
+  # to_clock : The capturing clock name
+  # return_item: The entry in the clock interaction report desired for the from_clock and to_clock. The valid values are: from_edge to_edge wns tns tns_end tot_end wns_req common inter_clock
 
   # Return Value:
   # String of the return_item in the clock interaction report.  NOT_FOUND will be returned if it is not found.

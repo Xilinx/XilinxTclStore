@@ -15,10 +15,10 @@ namespace eval ::tclapp::xilinx::designutils {
 
 
 proc ::tclapp::xilinx::designutils::get_connected_ref_pins {analyze_pin} {
-  # Summary : return a list of reference pins connected to the pin
+  # Summary : Return a list of reference pins connected to the pin
 
   # Argument Usage:
-  # analyze_pin : pin to analyze
+  # analyze_pin : Pin to analyze
 
   # Return Value:
   # List of reference pins.  This is the REF_PIN_NAME property of the pins connected.

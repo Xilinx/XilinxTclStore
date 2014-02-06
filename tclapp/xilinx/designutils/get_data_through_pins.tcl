@@ -13,15 +13,16 @@ namespace eval ::tclapp::xilinx::designutils {
 
 
 proc ::tclapp::xilinx::designutils::get_data_through_pins {timing_path} {
-  # Summary : return the data pins of a single timing path
+  # Summary : Return the data pins of a single timing path
 
   # Argument Usage:
-  # timing_path : a single timing path from get_timing_paths
+  # timing_path : Single timing path from get_timing_paths
 
   # Return Value:
-  # list of pins
+  # List of pins
 
   # Categories: xilinxtclstore, designutils
+  
   set count_flag 0
   set rpt_tim [report_timing -no_nets -no_header -return_string -of $timing_path]
 

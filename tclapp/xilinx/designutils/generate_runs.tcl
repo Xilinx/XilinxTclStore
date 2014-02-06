@@ -8,19 +8,18 @@
 package require Vivado 2013.1
 
 namespace eval ::tclapp::xilinx::designutils {
-    namespace export get_data_through_pins
+    namespace export generate_runs
 }
 
 
 proc ::tclapp::xilinx::designutils::generate_runs {perform_phys_opt} {
-  # Summary : create all possible combinations of runs
+  # Summary : Create all possible combinations of runs
 
   # Argument Usage:
-  # perform_phys_opt : 0 - do not perform phys_opt_design
-  #                    1 - perform phys_opt_design
+  # perform_phys_opt : 0 - do not perform phys_opt_design | 1 - perform phys_opt_design
 
   # Return Value:
-  # returns nothing, creates all possible combinations of runs in your session
+  # Returns nothing, creates all possible combinations of runs in your session
 
   # Categories: xilinxtclstore, designutils
 
@@ -105,7 +104,7 @@ proc ::tclapp::xilinx::designutils::generate_runs {perform_phys_opt} {
 	  puts "Created Synthesis run: $run_name"
   }
 
-foreach synth_run [get_runs -filter {NAME!~*dummy&&IS_SYNTHESIS} ] {
+  foreach synth_run [get_runs -filter {NAME!~*dummy&&IS_SYNTHESIS} ] {
      puts "Creating Child Implementation Runs for Synthesis Run: $synth_run"
      foreach place $place_directives {
         if { $perform_phys_opt } {
