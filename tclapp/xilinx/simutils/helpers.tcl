@@ -1126,7 +1126,7 @@ proc usf_launch_script { simulator step } {
     {elaborate} {
       usf_make_file_executable $scr_file
       if {[catch {rdi::run_program $scr_file} error_log]} {
-        send_msg_id Vivado-simutils-999 ERROR "failed to launch $scr_file:$error_log\n"
+        send_msg_id Vivado-simutils-999 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"
         set faulty_run 1
       }
     }
@@ -1147,6 +1147,7 @@ proc usf_launch_script { simulator step } {
   }
   cd $cwd
   if { $faulty_run } {
+    error "_SIMUTILS_LAUNCH_EXEC_ERROR_"
     return 1
   }
   return 0

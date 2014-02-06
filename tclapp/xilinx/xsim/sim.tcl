@@ -60,7 +60,6 @@ proc elaborate { args } {
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::simutils::usf_launch_script "xsim" $step
-  return 0
 }
 
 proc simulate { args } {
@@ -318,8 +317,15 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set xv_path=\"$::env(RDI_BINROOT)\""
-    puts $fh_scr "call %xv_path%/xvlog $a_xsim_vars(s_dbg_sw) -prj $vlog_filename"
-    puts $fh_scr "call %xv_path%/xvhdl $a_xsim_vars(s_dbg_sw) -prj $vhdl_filename"
+    puts $fh_scr "call %xv_path%/xvlog $a_xsim_vars(s_dbg_sw) -prj $vlog_filename -log compile.log"
+    puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
+    puts $fh_scr "call %xv_path%/xvhdl $a_xsim_vars(s_dbg_sw) -prj $vhdl_filename -log compile.log"
+    puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
+    puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
+    puts $fh_scr ":END"
+    puts $fh_scr "exit 1"
+    puts $fh_scr ":SUCCESS"
+    puts $fh_scr "exit 0"
   }
   close $fh_scr
 }
@@ -355,6 +361,12 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     puts $fh_scr "set xv_path=\"$::env(RDI_BINROOT)\""
     set args [usf_xsim_get_xelab_cmdline_args]
     puts $fh_scr "call %xv_path%/xelab $a_xsim_vars(s_dbg_sw) $args"
+    puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
+    puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
+    puts $fh_scr ":END"
+    puts $fh_scr "exit 1"
+    puts $fh_scr ":SUCCESS"
+    puts $fh_scr "exit 0"
   }
   close $fh_scr
 }
@@ -439,6 +451,12 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
     puts $fh_scr "set xv_path=\"$::env(RDI_BINROOT)\""
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_file $b_add_view]
     puts $fh_scr "call %xv_path%/xsim $cmd_args"
+    puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
+    puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
+    puts $fh_scr ":END"
+    puts $fh_scr "exit 1"
+    puts $fh_scr ":SUCCESS"
+    puts $fh_scr "exit 0"
   }
   close $fh_scr
 }
