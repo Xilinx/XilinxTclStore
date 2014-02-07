@@ -1,0 +1,9 @@
+
+  Description: Report AXI Interconnect Internal Blocks for Every AXI Master
+               and AXI Slave in an AXI Interconnect instance.
+
+     This command must be run on an opened block design.
+
+  Example:
+     check_bd_axi_interface axi_interconnect_1 -file myreport.rpt
+     check_bd_axi_interface axi_interconnect_1 axi_interconnect_2 -block axi_interconnect_3

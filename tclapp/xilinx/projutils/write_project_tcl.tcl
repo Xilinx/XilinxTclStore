@@ -36,6 +36,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # Export Tcl script for re-creating the current project
 
         # Argument Usage: 
+        # [-paths_relative_to <arg>]: Make all source file paths relative to this directory
         # [-target_proj_dir <arg>]: Directory where the project needs to be restored
         # [-force]: Overwrite existing tcl script file
         # [-all_properties]: Write all properties (default & non-default) for the project object(s)
@@ -58,6 +59,7 @@ namespace eval ::tclapp::xilinx::projutils {
         for {set i 0} {$i < [llength $args]} {incr i} {
           set option [string trim [lindex $args $i]]
           switch -regexp -- $option {
+            "-paths_relative_to"    { incr i;set a_global_vars(s_relative_to) [lindex $args $i] }
             "-target_proj_dir"      { incr i;set a_global_vars(s_target_proj_dir) [lindex $args $i] }
             "-force"                { set a_global_vars(b_arg_force) 1 }
             "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
@@ -159,6 +161,9 @@ namespace eval ::tclapp::xilinx::projutils {
 
         variable a_global_vars
 
+        set a_global_vars(s_relative_to)        ""
+        set a_global_vars(b_path_relative_to)   0
+        set a_global_vars(s_target_src_dir)     ""
         set a_global_vars(s_target_proj_dir)    ""
         set a_global_vars(b_arg_force)          0
         set a_global_vars(b_arg_no_copy_srcs)   0
@@ -295,8 +300,26 @@ namespace eval ::tclapp::xilinx::projutils {
         variable a_global_vars
         variable l_script_data
 
-        lappend l_script_data "# Set the original project directory path for adding/importing sources in the new project"
+        set origin_src_dir {}
+        set relative_path $a_global_vars(s_relative_to)
+        if { {} == $relative_path } {
+          set origin_src_dir $proj_dir
+          # default origin dir (project directory)
+          set a_global_vars(s_target_src_dir) $proj_dir
+          set a_global_vars(b_path_relative_to) 0
+        } else {
+          set origin_src_dir $relative_path
+          # normalized path
+          set a_global_vars(s_target_src_dir) [file normalize $relative_path]
+          set a_global_vars(b_path_relative_to) 1
+        }
+
+        lappend l_script_data "# Set the directory path for the original project from where this script was exported"
         lappend l_script_data "set orig_proj_dir \"$proj_dir\""
+        lappend l_script_data ""
+
+        lappend l_script_data "# Set the directory path for making the source file(s) paths relative to this value in the new project"
+        lappend l_script_data "set origin_dir \"$origin_src_dir\""
         lappend l_script_data ""
 
         # create project
@@ -413,6 +436,24 @@ namespace eval ::tclapp::xilinx::projutils {
 
           set get_what_fs "get_filesets"
 
+          # set IP REPO PATHS (if any) for filesets of type "DesignSrcs" or "BlockSrcs"
+          if { (({DesignSrcs} == $fs_type) || ({BlockSrcs} == $fs_type)) } {
+            if { ({RTL} == [get_property design_mode [get_filesets $tcl_obj]]) } {
+              set repo_paths [get_ip_repo_paths $tcl_obj]
+              if { [llength $repo_paths] > 0 } {
+                lappend l_script_data "# Set IP repository paths"
+                lappend l_script_data "set obj \[get_filesets $tcl_obj\]"
+                set path_list [list]
+                foreach path $repo_paths {
+                  lappend path_list $path
+                }
+                set repo_path_str [join $path_list " "]
+                lappend l_script_data "set_property \"ip_repo_paths\" \{${repo_path_str}\} \$obj" 
+                lappend l_script_data "" 
+              }
+            }
+          }
+  
           lappend l_script_data "# Add files to '$tcl_obj' fileset"
           lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
           write_files $proj_dir $proj_name $tcl_obj $type
@@ -499,7 +540,7 @@ namespace eval ::tclapp::xilinx::projutils {
         puts $a_global_vars(fh) "# 1. This project restoration tcl script (${tcl_file}) that was generated."
         puts $a_global_vars(fh) "#"
         puts $a_global_vars(fh) "# 2. The following source(s) files that were local or imported into the original project."
-        puts $a_global_vars(fh) "#    (Please see the '\$orig_proj_dir' variable setting below at the start of the script)\n#"
+        puts $a_global_vars(fh) "#    (Please see the '\$orig_proj_dir' and '\$origin_dir' variable setting below at the start of the script)\n#"
 
         if {[llength $l_local_files] == 0} {
           puts $a_global_vars(fh) "#    <none>"
@@ -543,6 +584,24 @@ namespace eval ::tclapp::xilinx::projutils {
         puts ""
     }
 
+    proc get_ip_repo_paths { tcl_obj } {
+
+        # Summary:
+        # Iterate over the fileset properties and get the ip_repo_paths (if set)
+    
+        # Argument Usage: 
+        # tcl_obj : fileset
+    
+        # Return Value:
+        # List of repo paths
+ 
+        set repo_path_list [list]
+        foreach path [get_property ip_repo_paths [get_filesets $tcl_obj]] {
+          lappend repo_path_list $path
+        }
+        return $repo_path_list
+    }
+
     proc filter { prop val } {
 
         # Summary: filter special properties
@@ -575,6 +634,11 @@ namespace eval ::tclapp::xilinx::projutils {
           if { [lsearch $l_filetype_filter $val] != -1 } {
             return 1
           }
+        }
+
+        # filter ip_repo_paths (ip_repo_paths is set before adding sources)
+        if { [string equal -nocase $prop {ip_repo_paths}] } {
+          return 1
         }
     
         return 0
@@ -715,7 +779,7 @@ namespace eval ::tclapp::xilinx::projutils {
             if { [is_local_to_project $file] } {
               set proj_file_path "\$proj_dir/$src_file"
             } else {
-              set proj_file_path "\$orig_proj_dir/$src_file"
+              set proj_file_path "\$origin_dir/$src_file"
             }
             set prop_entry "[string tolower $prop]#$proj_file_path"
 
@@ -728,11 +792,12 @@ namespace eval ::tclapp::xilinx::projutils {
 
             set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
             set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
-            set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
+            set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
             set file_props [list_property $file_object]
 
             if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
               if { $a_global_vars(b_arg_no_copy_srcs) } {
+                #set proj_file_path "\$origin_dir/${proj_name}.srcs/$src_file"
                 set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
               } else {
                 set proj_file_path "\$proj_dir/${proj_name}.srcs/$src_file"
@@ -742,6 +807,7 @@ namespace eval ::tclapp::xilinx::projutils {
               if { [is_local_to_project $file] } {
                 # is file inside fileset dir?
                 if { [regexp "^${fs_name}/" $src_file] } {
+                  #set proj_file_path "\$origin_dir/${proj_name}.srcs/$src_file"
                   set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
                 } else {
                   set proj_file_path "$file"
@@ -751,8 +817,9 @@ namespace eval ::tclapp::xilinx::projutils {
                   set proj_file_path "$file"
                 } else {
                   set file_no_quotes [string trim $file "\""]
-                  set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
-                  set proj_file_path "\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]"
+                  #set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
+                  set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_target_src_dir)]
+                  set proj_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
                 }
               }
             }
@@ -821,7 +888,7 @@ namespace eval ::tclapp::xilinx::projutils {
         set l_remote_file_list [list]
 
         # return if empty fileset
-        if {[llength [get_files -quiet -of_objects $tcl_obj]] == 0 } {
+        if {[llength [get_files -quiet -of_objects [get_filesets $tcl_obj]]] == 0 } {
           lappend l_script_data "# Empty (no sources present)\n"
           return
         }
@@ -831,19 +898,20 @@ namespace eval ::tclapp::xilinx::projutils {
         set import_coln [list]
         set add_file_coln [list]
 
-        foreach file [get_files -norecurse -of_objects $tcl_obj] {
+        foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
           set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
           set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
           set src_file [join [lrange $path_dirs $begin+1 end] "/"]
 
           # fetch first object
-          set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
+          set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
           set file_props [list_property $file_object]
       
           if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
 
             # import files
             set imported_path [get_property "imported_from" $file]
+            #set proj_file_path "\$origin_dir/${proj_name}.srcs/$src_file"
             set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
             set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
 
@@ -884,8 +952,13 @@ namespace eval ::tclapp::xilinx::projutils {
             # add file to collection
             if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
               set file_no_quotes [string trim $file "\""]
-              set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
-              set file1 "\"\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]\""
+              #set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
+              set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_target_src_dir)]
+              if { $a_global_vars(b_path_relative_to) } {
+                set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
+              } else {
+                set file1 "\"\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]\""
+              }
               lappend add_file_coln "$file1"
             } else {
               lappend add_file_coln "$file"
@@ -908,8 +981,13 @@ namespace eval ::tclapp::xilinx::projutils {
                 lappend l_script_data " $file\\"
               } else {
                 set file_no_quotes [string trim $file "\""]
-                set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
-                lappend l_script_data " \"\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]\"\\"
+                #set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
+                set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_target_src_dir)]
+                if { $a_global_vars(b_path_relative_to) } {
+                  lappend l_script_data " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
+                } else {
+                  lappend l_script_data " \"\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]\"\\"
+                }
               }
             }
           }
@@ -1070,9 +1148,9 @@ namespace eval ::tclapp::xilinx::projutils {
 
          set file_object ""
          if { [string equal $file_category "local"] } {
-           set file_object [lindex [get_files -of_objects $fs_name [list "*$file"]] 0]
+           set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
          } elseif { [string equal $file_category "remote"] } {
-           set file_object [lindex [get_files -of_objects $fs_name [list $file]] 0]
+           set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
          }
 
          set file_props [list_property $file_object]
@@ -1126,13 +1204,14 @@ namespace eval ::tclapp::xilinx::projutils {
              if { $a_global_vars(b_absolute_path) } {
                lappend l_script_data "set file \"$file\""
              } else {
-               lappend l_script_data "set file \"\$orig_proj_dir/[get_relative_file_path $file $proj_dir]\""
+               #lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path $file $proj_dir]\""
+               lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path $file $a_global_vars(s_target_src_dir)]\""
                lappend l_script_data "set file \[file normalize \$file\]"
              }
            } else {
              lappend l_script_data "set file \"$file\""
            }
-           lappend l_script_data "set file_obj \[get_files -of_objects $tcl_obj \[list \"*\$file\"\]\]"
+           lappend l_script_data "set file_obj \[get_files -of_objects \[get_filesets $tcl_obj\] \[list \"*\$file\"\]\]"
            set get_what "get_files"
            write_properties $prop_info_list $get_what $tcl_obj
            incr file_prop_count

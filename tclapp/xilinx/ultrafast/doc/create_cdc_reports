@@ -1,0 +1,8 @@
+
+  Description: Create CDC report for each clock-pair in the design
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+     create_cdc_reports
+     create_cdc_reports -report_unconstrained -delay_type min_max -file myreport.rpt
