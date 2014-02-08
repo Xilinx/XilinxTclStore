@@ -24,9 +24,15 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc {args} {
 	# Return Value:
 	# The name of the output file
 
-	# Categories: xilinctclstore, designutils
+	# Categories: xilinxtclstore, designutils
+
 	return [uplevel ::tclapp::xilinx::designutils::write_slr_pblock_xdc::write_slr_pblock_xdc $args]
 }
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::xilinx::designutils::write_slr_pblock_xdc {
+} ]
+
 
 proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::write_slr_pblock_xdc {args} {	
     # Summary :
@@ -34,7 +40,7 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::write_slr_pblock_xdc {
     # Argument Usage:
 
     # Return Value:
-    # Verilog template
+    # 
 
     # Categories: xilinctclstore, designutils
   
@@ -158,7 +164,7 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::write_slr_pblock_xdc {
 	## send the data to the file
 	foreach slrName [lsort [array names slrConstraintArray]] {
 		## Get 
-		set clockRegionList [get_clock_regions_from_slr -name $slrName]
+		set clockRegionList [get_clock_regions_from_slr -name $slrName -return_string]
 	
 		puts $fileHandle "create_pblock $opts(-pblock_prefix)$slrName"
 		puts $fileHandle "resize_pblock $opts(-pblock_prefix)$slrName -add \[list [join $clockRegionList]\]"
@@ -181,7 +187,7 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::process_slr_pblock_fro
     # Argument Usage:
 
     # Return Value:
-    # Verilog template
+    # 
 
     # Categories: xilinctclstore, designutils
 	
@@ -235,8 +241,11 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::process_slr_pblock_fro
 		
 		## Loop through each SLR location of the array
 		foreach slrName [array names slrCellArray] {
+			## Sort and uniquify the list of cells for the specified SLR
+			set slrCellList [lsort -uniq $slrCellArray($slrName)]
+			
 			## Store the XDC pblock constraint equivalent for the list of cells
-			lappend constraintArray($slrName) "add_cells_to_pblock $opts(-pblock_prefix)$slrName \[get_cells \[list [lsort -uniq $slrCellArray($slrName)]\]\]"
+			lappend constraintArray($slrName) "add_cells_to_pblock $opts(-pblock_prefix)$slrName \[get_cells \[list $slrCellList\]\]; # [llength $slrCellList] cell count"
 		}
 		
 		## Unset the SLR Cell Array
@@ -249,13 +258,15 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::process_slr_pblock_fro
 			current_instance -quiet
 			## Move the current instance to the current child cell
 			current_instance -quiet $childCellObj
+			## Get hierarchical cell list of current child cell instance level
+			set currentCellList [get_cells -quiet -hier]
 			## Get the SLR list of all the hierarchical cells under the current child hierarchy level
-			set slrList [get_slrs -quiet -of_objects [get_cells -quiet -hier]]
+			set slrList [get_slrs -quiet -of_objects $currentCellList]
 			
 			## Check to see if the cells are contained in a single SLR  
 			if {[llength $slrList]==1} {
 				## Store the XDC pblock constraint equivalent for the current child cell
-				lappend constraintArray($slrList) "add_cells_to_pblock $opts(-pblock_prefix)$slrList \[get_cells $childCellObj\]"
+				lappend constraintArray($slrList) "add_cells_to_pblock $opts(-pblock_prefix)$slrList \[get_cells $childCellObj\]; # [llength $currentCellList] cell count"
 			} else {
 				## Process the current child level hierarchy for pblock SLR constraint extraction
 				array set constraintArray [process_slr_pblock_from_hierarchy -constraint_list [array get constraintArray] -pblock_prefix $opts(-pblock_prefix)]
@@ -278,7 +289,7 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::get_clock_regions_from
     # Argument Usage:
 
     # Return Value:
-    # Verilog template
+    # 
 
     # Categories: xilinctclstore, designutils
 	
@@ -332,7 +343,7 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::lshift {varname {nth 0
     # Argument Usage:
 
     # Return Value:
-    # Verilog template
+    # 
 
     # Categories: xilinctclstore, designutils
 	
