@@ -140,6 +140,10 @@
           <name>write_template</name>
           <summary>generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)</summary>
         </proc>
+        <proc>
+          <name>write_slr_pblock_xdc</name>
+          <summary>Exports the current SLR placement to pblock constraints in an XDC file</summary>
+        </proc>
       </procs>
     </app>
     <app>
