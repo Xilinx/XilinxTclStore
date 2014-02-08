@@ -9,9 +9,6 @@ lappend auto_path $::env(XILINX_TCLAPP_REPO)
 # set name "check_pll_connectivity_0001"
 set name [file rootname [file tail [info script]]]
 
-set file_dir {/wrk/hdstaff/dpefour/support/TclApps/XilinxTclStore/tclapp/xilinx/ultrafast/test}
-set name {check_pll_connectivity_0001}
-
 create_project $name -in_memory
 
 # add_files -fileset sources_1 "$file_dir/src/bench16/bench16.v"
