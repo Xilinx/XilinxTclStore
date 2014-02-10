@@ -50,15 +50,15 @@ There are two main ways to send commands:
 
 1. Blindly
     
-    rexec {puts "command for server"}
+```rexec {puts "command for server"}```
     
 2. Waiting for response
     
-    set response [ rexec_wait {return "value"} ]
-    # this will send the command ```return "value"``` to the server
-    # the client will wait for the server to respond 
-    # the server will respond with the return value, in this case "value"
-    # then response is set to the return value, in this case "value"
+This will send the command ```return "value"``` to the server
+The client will wait for the server to respond 
+The server will respond with the return value, in this case "value"
+Then response is set to the return value, in this case "value"
+```set response [ rexec_wait {return "value"} ]```
 
 ### All done!
 
