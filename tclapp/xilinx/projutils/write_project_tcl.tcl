@@ -7,7 +7,7 @@
 # Date Created     :  01/25/2013
 # Script name      :  write_project_tcl.tcl
 # Procedures       :  write_project_tcl
-# Tool Version     :  Vivado 2013.3
+# Tool Version     :  Vivado 2014.1
 # Description      :  Write a Tcl script for the current project in order to re-build the project, based
 #                     on the current project settings.
 #
@@ -36,7 +36,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # Export Tcl script for re-creating the current project
 
         # Argument Usage: 
-        # [-paths_relative_to <arg>]: Make all source file paths relative to this directory
+        # [-paths_relative_to <arg>]: Calculate the source file paths relative to the specified value
         # [-target_proj_dir <arg>]: Directory where the project needs to be restored
         # [-force]: Overwrite existing tcl script file
         # [-all_properties]: Write all properties (default & non-default) for the project object(s)
@@ -109,6 +109,9 @@ namespace eval ::tclapp::xilinx::projutils {
           send_msg_id Vivado-projutils-004 ERROR "Tcl Script '$a_global_vars(script_file)' already exist. Use -force option to overwrite."
           return 1
         }
+
+        # set script file directory path
+        set a_global_vars(s_path_to_script_dir) [file normalize $file_path]
         
         # now write
         if {[write_project_tcl_script]} {
@@ -161,9 +164,8 @@ namespace eval ::tclapp::xilinx::projutils {
 
         variable a_global_vars
 
-        set a_global_vars(s_relative_to)        ""
-        set a_global_vars(b_path_relative_to)   0
-        set a_global_vars(s_target_src_dir)     ""
+        set a_global_vars(s_relative_to)        {.}
+        set a_global_vars(s_path_to_script_dir) ""
         set a_global_vars(s_target_proj_dir)    ""
         set a_global_vars(b_arg_force)          0
         set a_global_vars(b_arg_no_copy_srcs)   0
@@ -218,14 +220,14 @@ namespace eval ::tclapp::xilinx::projutils {
   
         # dump project in canonical form
         if { $a_global_vars(b_arg_dump_proj_info) } {
-          set dump_file "${proj_name}_dump.txt"
+          set dump_file [file normalize [file join $a_global_vars(s_path_to_script_dir) ${proj_name}_dump.txt]]
           if {[catch {open $dump_file w} a_global_vars(dp_fh)]} {
             send_msg_id Vivado-projutils-006 ERROR "failed to open file for write ($dump_file)\n"
             return 1
           }
   
           # default value output file script handle
-          set def_val_file "${proj_name}_def_val.txt"
+          set def_val_file [file normalize [file join $a_global_vars(s_path_to_script_dir) ${proj_name}_def_val.txt]]
           if {[catch {open $def_val_file w} a_global_vars(def_val_fh)]} {
             send_msg_id Vivado-projutils-007 ERROR "failed to open file for write ($file)\n"
             return 1
@@ -300,26 +302,12 @@ namespace eval ::tclapp::xilinx::projutils {
         variable a_global_vars
         variable l_script_data
 
-        set origin_src_dir {}
-        set relative_path $a_global_vars(s_relative_to)
-        if { {} == $relative_path } {
-          set origin_src_dir $proj_dir
-          # default origin dir (project directory)
-          set a_global_vars(s_target_src_dir) $proj_dir
-          set a_global_vars(b_path_relative_to) 0
-        } else {
-          set origin_src_dir $relative_path
-          # normalized path
-          set a_global_vars(s_target_src_dir) [file normalize $relative_path]
-          set a_global_vars(b_path_relative_to) 1
-        }
-
         lappend l_script_data "# Set the directory path for the original project from where this script was exported"
         lappend l_script_data "set orig_proj_dir \"$proj_dir\""
         lappend l_script_data ""
 
-        lappend l_script_data "# Set the directory path for making the source file(s) paths relative to this value in the new project"
-        lappend l_script_data "set origin_dir \"$origin_src_dir\""
+        lappend l_script_data "# Calculate the directory path for making the source file(s) paths relative to this value in the new project"
+        lappend l_script_data "set origin_dir \"$a_global_vars(s_relative_to)\""
         lappend l_script_data ""
 
         # create project
@@ -775,11 +763,11 @@ namespace eval ::tclapp::xilinx::projutils {
             set srcs_dir "${proj_name}.srcs"
             set file_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
             set src_file [join [lrange $file_dirs [lsearch -exact $file_dirs "$srcs_dir"] end] "/"]
-      
+
             if { [is_local_to_project $file] } {
               set proj_file_path "\$proj_dir/$src_file"
             } else {
-              set proj_file_path "\$origin_dir/$src_file"
+              set proj_file_path "[get_relative_file_path $src_file $a_global_vars(s_path_to_script_dir)]"
             }
             set prop_entry "[string tolower $prop]#$proj_file_path"
 
@@ -797,7 +785,6 @@ namespace eval ::tclapp::xilinx::projutils {
 
             if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
               if { $a_global_vars(b_arg_no_copy_srcs) } {
-                #set proj_file_path "\$origin_dir/${proj_name}.srcs/$src_file"
                 set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
               } else {
                 set proj_file_path "\$proj_dir/${proj_name}.srcs/$src_file"
@@ -807,7 +794,6 @@ namespace eval ::tclapp::xilinx::projutils {
               if { [is_local_to_project $file] } {
                 # is file inside fileset dir?
                 if { [regexp "^${fs_name}/" $src_file] } {
-                  #set proj_file_path "\$origin_dir/${proj_name}.srcs/$src_file"
                   set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
                 } else {
                   set proj_file_path "$file"
@@ -817,8 +803,7 @@ namespace eval ::tclapp::xilinx::projutils {
                   set proj_file_path "$file"
                 } else {
                   set file_no_quotes [string trim $file "\""]
-                  #set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
-                  set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_target_src_dir)]
+                  set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
                   set proj_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
                 }
               }
@@ -911,8 +896,9 @@ namespace eval ::tclapp::xilinx::projutils {
 
             # import files
             set imported_path [get_property "imported_from" $file]
-            #set proj_file_path "\$origin_dir/${proj_name}.srcs/$src_file"
-            set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
+            set rel_file_path [get_relative_file_path $file $a_global_vars(s_path_to_script_dir)]
+            set proj_file_path "\$origin_dir/$rel_file_path"
+
             set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
 
             if { $a_global_vars(b_arg_no_copy_srcs) } {
@@ -952,13 +938,8 @@ namespace eval ::tclapp::xilinx::projutils {
             # add file to collection
             if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
               set file_no_quotes [string trim $file "\""]
-              #set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
-              set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_target_src_dir)]
-              if { $a_global_vars(b_path_relative_to) } {
-                set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
-              } else {
-                set file1 "\"\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]\""
-              }
+              set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+              set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
               lappend add_file_coln "$file1"
             } else {
               lappend add_file_coln "$file"
@@ -981,13 +962,8 @@ namespace eval ::tclapp::xilinx::projutils {
                 lappend l_script_data " $file\\"
               } else {
                 set file_no_quotes [string trim $file "\""]
-                #set rel_file_path [get_relative_file_path $file_no_quotes $proj_dir]
-                set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_target_src_dir)]
-                if { $a_global_vars(b_path_relative_to) } {
-                  lappend l_script_data " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
-                } else {
-                  lappend l_script_data " \"\[file normalize \"\$orig_proj_dir/$rel_file_path\"\]\"\\"
-                }
+                set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+                lappend l_script_data " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
               }
             }
           }
@@ -1204,8 +1180,7 @@ namespace eval ::tclapp::xilinx::projutils {
              if { $a_global_vars(b_absolute_path) } {
                lappend l_script_data "set file \"$file\""
              } else {
-               #lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path $file $proj_dir]\""
-               lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path $file $a_global_vars(s_target_src_dir)]\""
+               lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path $file $a_global_vars(s_path_to_script_dir)]\""
                lappend l_script_data "set file \[file normalize \$file\]"
              }
            } else {

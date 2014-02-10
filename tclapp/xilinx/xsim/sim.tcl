@@ -152,7 +152,7 @@ proc usf_xsim_setup_simulation { args } {
   ::tclapp::xilinx::simutils::usf_get_compile_order_for_obj
 
   # create setup file
-  usf_xsim_write_setup_files
+  #usf_xsim_write_setup_files
 
   return 0
 }
