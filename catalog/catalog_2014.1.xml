@@ -137,12 +137,12 @@
           <summary>Convert a Verilog formatted number to an integer</summary>
         </proc>
         <proc>
-          <name>write_template</name>
-          <summary>generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)</summary>
-        </proc>
-        <proc>
           <name>write_slr_pblock_xdc</name>
           <summary>Exports the current SLR placement to pblock constraints in an XDC file</summary>
+        </proc>
+        <proc>
+          <name>write_template</name>
+          <summary>generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)</summary>
         </proc>
       </procs>
     </app>
@@ -342,7 +342,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>925c6a359ee222f0df6bb7068f32a7230669da50</commit_id>
+      <commit_id>b7f1f1df9d1d6b0633526820d935deb1f8d5abee</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <author>Raj Klair</author>
@@ -361,7 +361,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>821d6de0cc1a47cb92870864f325b55579b9eea1</commit_id>
+      <commit_id>b7f1f1df9d1d6b0633526820d935deb1f8d5abee</commit_id>
       <name>simutils</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
@@ -741,7 +741,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>5fad4b16dd4035a618051c0d79853def2aeb6d08</commit_id>
+      <commit_id>b7f1f1df9d1d6b0633526820d935deb1f8d5abee</commit_id>
       <name>xsim</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>

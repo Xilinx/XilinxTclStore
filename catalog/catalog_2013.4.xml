@@ -33,6 +33,22 @@
           <summary>Creates differential _N port for each _P port in a pinplanning design</summary>
         </proc>
         <proc>
+          <name>generate_runs</name>
+          <summary>Create all possible combinations of runs</summary>
+        </proc>
+        <proc>
+          <name>get_clock_interaction</name>
+          <summary>Return a specific string within the clock interaction report</summary>
+        </proc>
+        <proc>
+          <name>get_connected_ref_pins</name>
+          <summary>Return a list of reference pins connected to the pin</summary>
+        </proc>
+        <proc>
+          <name>get_data_through_pins</name>
+          <summary>Return the data pins of a single timing path</summary>
+        </proc>
+        <proc>
           <name>get_host_platform</name>
           <summary>return the host platform (windows|unix)</summary>
         </proc>
@@ -73,7 +89,8 @@
           <summary>insert a list of buffers or any 2-pins cells on a net</summary>
         </proc>
         <proc>
-          <name>lcm</name>
+          <name>is_fabric_connected</name>
+          <summary>Determine if the given pin is connected to a SLICE. For input pins, check just the driver. For output pins, check all loads</summary>
         </proc>
         <proc>
           <name>prettyTable</name>
@@ -118,6 +135,10 @@
         <proc>
           <name>verilog2int</name>
           <summary>Convert a Verilog formatted number to an integer</summary>
+        </proc>
+        <proc>
+          <name>write_slr_pblock_xdc</name>
+          <summary>Exports the current SLR placement to pblock constraints in an XDC file</summary>
         </proc>
         <proc>
           <name>write_template</name>
@@ -321,7 +342,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>925c6a359ee222f0df6bb7068f32a7230669da50</commit_id>
+      <commit_id>b7f1f1df9d1d6b0633526820d935deb1f8d5abee</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <author>Raj Klair</author>
@@ -340,7 +361,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>821d6de0cc1a47cb92870864f325b55579b9eea1</commit_id>
+      <commit_id>b7f1f1df9d1d6b0633526820d935deb1f8d5abee</commit_id>
       <name>simutils</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
@@ -720,7 +741,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>5fad4b16dd4035a618051c0d79853def2aeb6d08</commit_id>
+      <commit_id>b7f1f1df9d1d6b0633526820d935deb1f8d5abee</commit_id>
       <name>xsim</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
