@@ -36,7 +36,7 @@ namespace eval ::tclapp::xilinx::projutils {
         # Export Tcl script for re-creating the current project
 
         # Argument Usage: 
-        # [-paths_relative_to <arg>]: Calculate the source file paths relative to the specified value
+        # [-paths_relative_to <arg>]: Override the reference directory variable for source file relative paths
         # [-target_proj_dir <arg>]: Directory where the project needs to be restored
         # [-force]: Overwrite existing tcl script file
         # [-all_properties]: Write all properties (default & non-default) for the project object(s)
@@ -306,7 +306,7 @@ namespace eval ::tclapp::xilinx::projutils {
         lappend l_script_data "set orig_proj_dir \"$proj_dir\""
         lappend l_script_data ""
 
-        lappend l_script_data "# Calculate the directory path for making the source file(s) paths relative to this value in the new project"
+        lappend l_script_data "# Set the reference directory for source file relative paths (by default the value is script directory path)"
         lappend l_script_data "set origin_dir \"$a_global_vars(s_relative_to)\""
         lappend l_script_data ""
 
