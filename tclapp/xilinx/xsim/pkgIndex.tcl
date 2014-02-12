@@ -9,3 +9,4 @@
 # full path name of this file's directory.
 
 package ifneeded ::tclapp::xilinx::xsim 1.0 [list source [file join $dir xsim.tcl]]
+package ifneeded ::tclapp::xilinx::xsim::helpers 1.0 [list source [file join $dir helpers.tcl]]

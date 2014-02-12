@@ -9,3 +9,4 @@
 # full path name of this file's directory.
 
 package ifneeded ::tclapp::xilinx::ies 1.0 [list source [file join $dir ies.tcl]]
+package ifneeded ::tclapp::xilinx::ies::helpers 1.0 [list source [file join $dir helpers.tcl]]

@@ -12,6 +12,8 @@
 #
 ####################################################################################################
 package require Vivado 2013.1
+package require ::tclapp::xilinx::modelsim::helpers
+
 namespace eval ::tclapp::xilinx::modelsim {
 proc register_options { simulator } {
   # Summary:
@@ -46,7 +48,7 @@ proc register_options { simulator } {
     {{simulate.vsim_more_options} {string} {}                                      {More VSIM options}}
   }
   # create options
-  ::tclapp::xilinx::simutils::usf_create_options $simulator $options
+  ::tclapp::xilinx::modelsim::usf_create_options $simulator $options
   return 0
 }
 }

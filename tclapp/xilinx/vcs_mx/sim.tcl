@@ -13,6 +13,8 @@
 #
 ####################################################################################################
 package require Vivado 2013.1
+package require ::tclapp::xilinx::vcs_mx::helpers
+
 #
 # Main Launch Steps
 #
@@ -23,7 +25,7 @@ proc setup { args } {
   # Return Value:
 
   # initialize global variables
-  ::tclapp::xilinx::simutils::usf_init_vars
+  ::tclapp::xilinx::vcs_mx::usf_init_vars
 
   # initialize IES simulator variables
   usf_vcs_mx_init_simulation_vars
@@ -46,7 +48,7 @@ proc compile { args } {
   usf_vcs_mx_write_compile_script
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
-  ::tclapp::xilinx::simutils::usf_launch_script "vcs_mx" $step
+  ::tclapp::xilinx::vcs_mx::usf_launch_script "vcs_mx" $step
 }
 
 proc elaborate { args } {
@@ -59,7 +61,7 @@ proc elaborate { args } {
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
-  ::tclapp::xilinx::simutils::usf_launch_script "vcs_mx" $step
+  ::tclapp::xilinx::vcs_mx::usf_launch_script "vcs_mx" $step
   return 0
 }
 
@@ -73,7 +75,7 @@ proc simulate { args } {
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
-  ::tclapp::xilinx::simutils::usf_launch_script "vcs_mx" $step
+  ::tclapp::xilinx::vcs_mx::usf_launch_script "vcs_mx" $step
   return 0
 }
 }
@@ -89,36 +91,36 @@ proc usf_vcs_mx_setup_simulation { args } {
 
   variable a_sim_vars
 
-  ::tclapp::xilinx::simutils::usf_set_simulator_path "vcs_mx"
+  ::tclapp::xilinx::vcs_mx::usf_set_simulator_path "vcs_mx"
 
   # set the simulation flow
-  ::tclapp::xilinx::simutils::usf_set_simulation_flow
+  ::tclapp::xilinx::vcs_mx::usf_set_simulation_flow
 
   # set the simulation run dir
-  ::tclapp::xilinx::simutils::usf_set_run_dir
+  ::tclapp::xilinx::vcs_mx::usf_set_run_dir
 
   # create simulation launch dir <project>/<project.sim>/<simset>/<mode>/<type>
-  ::tclapp::xilinx::simutils::usf_create_launch_dir
+  ::tclapp::xilinx::vcs_mx::usf_create_launch_dir
 
   # set default object
-  if { [::tclapp::xilinx::simutils::usf_set_sim_tcl_obj] } {
+  if { [::tclapp::xilinx::vcs_mx::usf_set_sim_tcl_obj] } {
     puts "failed to set tcl obj"
     return 1
   }
 
   # print launch_simulation arg values
-  ::tclapp::xilinx::simutils::usf_print_args
+  ::tclapp::xilinx::vcs_mx::usf_print_args
 
   # write functional/timing netlist for post-* simulation
-  ::tclapp::xilinx::simutils::usf_write_design_netlist
+  ::tclapp::xilinx::vcs_mx::usf_write_design_netlist
 
   # prepare IP's for simulation
-  ::tclapp::xilinx::simutils::usf_prepare_ip_for_simulation
+  ::tclapp::xilinx::vcs_mx::usf_prepare_ip_for_simulation
 
   usf_vcs_mx_verify_compiled_lib
 
   # fetch the compile order for the specified object
-  ::tclapp::xilinx::simutils::usf_get_compile_order_for_obj
+  ::tclapp::xilinx::vcs_mx::usf_get_compile_order_for_obj
 
   # create setup file
   usf_vcs_mx_write_setup_files
@@ -147,7 +149,7 @@ proc usf_vcs_mx_setup_args { args } {
   # [-scripts_only]: Only generate scripts
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
-  # [-install_path <arg>]: Custom ModelSim installation directory path
+  # [-install_path <arg>]: Custom VCS_MX installation directory path
   # [-noclean_dir]: Do not remove simulation run directory files
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-int_os_type]: OS type (32 or 64) (internal use)
@@ -156,7 +158,7 @@ proc usf_vcs_mx_setup_args { args } {
   # Return Value:
   # true (0) if success, false (1) otherwise
 
-  # Categories: xilinxtclstore, simutils
+  # Categories: xilinxtclstore, vcs_mx
 
   set args [string trim $args "\}\{"]
 
@@ -164,21 +166,21 @@ proc usf_vcs_mx_setup_args { args } {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-simset"         { incr i;set ::tclapp::xilinx::simutils::a_sim_vars(s_simset) [lindex $args $i] }
-      "-mode"           { incr i;set ::tclapp::xilinx::simutils::a_sim_vars(s_mode) [lindex $args $i] }
-      "-type"           { incr i;set ::tclapp::xilinx::simutils::a_sim_vars(s_type) [lindex $args $i] }
-      "-scripts_only"   { set ::tclapp::xilinx::simutils::a_sim_vars(b_scripts_only) 1 }
-      "-of_objects"     { incr i;set ::tclapp::xilinx::simutils::a_sim_vars(s_comp_file) [lindex $args $i]}
-      "-absolute_path"  { set ::tclapp::xilinx::simutils::a_sim_vars(b_absolute_path) 1 }
-      "-install_path"   { incr i;set ::tclapp::xilinx::simutils::a_sim_vars(s_install_path) [lindex $args $i] }
-      "-noclean_dir"    { set ::tclapp::xilinx::simutils::a_sim_vars(b_noclean_dir) 1 }
-      "-batch"          { set ::tclapp::xilinx::simutils::a_sim_vars(b_batch) 1 }
-      "-int_os_type"    { incr i;set ::tclapp::xilinx::simutils::a_sim_vars(s_int_os_type) [lindex $args $i] }
-      "-int_debug_mode" { incr i;set ::tclapp::xilinx::simutils::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
+      "-simset"         { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_simset) [lindex $args $i] }
+      "-mode"           { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_mode) [lindex $args $i] }
+      "-type"           { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_type) [lindex $args $i] }
+      "-scripts_only"   { set ::tclapp::xilinx::vcs_mx::a_sim_vars(b_scripts_only) 1 }
+      "-of_objects"     { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_comp_file) [lindex $args $i]}
+      "-absolute_path"  { set ::tclapp::xilinx::vcs_mx::a_sim_vars(b_absolute_path) 1 }
+      "-install_path"   { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_install_path) [lindex $args $i] }
+      "-noclean_dir"    { set ::tclapp::xilinx::vcs_mx::a_sim_vars(b_noclean_dir) 1 }
+      "-batch"          { set ::tclapp::xilinx::vcs_mx::a_sim_vars(b_batch) 1 }
+      "-int_os_type"    { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_int_os_type) [lindex $args $i] }
+      "-int_debug_mode" { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id Vivado-simutils-999 ERROR "Unknown option '$option', please type 'simulate -help' for usage info.\n"
+          send_msg_id Vivado-VCS_MX-999 ERROR "Unknown option '$option', please type 'simulate -help' for usage info.\n"
           return 1
         }
       }
@@ -193,7 +195,7 @@ proc usf_vcs_mx_verify_compiled_lib {} {
 
   set syn_file "synopsys_sim.setup"
   set compiled_lib_dir {}
-  send_msg_id Vivado-simutils-999 INFO "Finding pre-compiled libraries...\n"
+  send_msg_id Vivado-VCS_MX-999 INFO "Finding pre-compiled libraries...\n"
   # check property value
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
   set file [file normalize [file join $dir $syn_file]]
@@ -211,11 +213,11 @@ proc usf_vcs_mx_verify_compiled_lib {} {
   # return if found, else warning
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
-   send_msg_id Vivado-simutils-999 INFO "Compiled library path:'dir'\n"
+   send_msg_id Vivado-VCS_MX-999 INFO "Compiled library path:'dir'\n"
    return
   }
-  send_msg_id Vivado-simutils-999 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library information!\n"
-  send_msg_id Vivado-simutils-999 INFO "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled.\n"
+  send_msg_id Vivado-VCS_MX-999 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library information!\n"
+  send_msg_id Vivado-VCS_MX-999 INFO "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled.\n"
 }
 
 proc usf_vcs_mx_write_setup_files {} {
@@ -223,8 +225,8 @@ proc usf_vcs_mx_write_setup_files {} {
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::simutils::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::simutils::a_sim_vars(s_launch_dir)
+  set top $::tclapp::xilinx::vcs_mx::a_sim_vars(s_sim_top)
+  set dir $::tclapp::xilinx::vcs_mx::a_sim_vars(s_launch_dir)
   set filename "synopsys_sim.setup"
   set file [file normalize [file join $dir $filename]]
   set fh 0
@@ -234,7 +236,7 @@ proc usf_vcs_mx_write_setup_files {} {
   }
   puts $fh "OTHERS=$::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(s_compiled_lib_dir)/$filename"
   set libs [list]
-  foreach lib [::tclapp::xilinx::simutils::usf_get_compile_order_libs] {
+  foreach lib [::tclapp::xilinx::vcs_mx::usf_get_compile_order_libs] {
     if {[string length $lib] == 0} { continue; }
     if { ({work} == $lib) && ({vcs_mx} == $simulator) } { continue; }
     lappend libs [string tolower $lib]
@@ -259,11 +261,11 @@ proc usf_vcs_mx_write_compile_script {} {
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::simutils::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::simutils::a_sim_vars(s_launch_dir)
-  set fs_obj [get_filesets $::tclapp::xilinx::simutils::a_sim_vars(s_simset)]
+  set top $::tclapp::xilinx::vcs_mx::a_sim_vars(s_sim_top)
+  set dir $::tclapp::xilinx::vcs_mx::a_sim_vars(s_launch_dir)
+  set fs_obj [get_filesets $::tclapp::xilinx::vcs_mx::a_sim_vars(s_simset)]
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
-  set scr_filename "compile";append scr_filename [::tclapp::xilinx::simutils::usf_get_script_extn]
+  set scr_filename "compile";append scr_filename [::tclapp::xilinx::vcs_mx::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -272,13 +274,13 @@ proc usf_vcs_mx_write_compile_script {} {
   }
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::simutils::a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set bin_path=\"$::tclapp::xilinx::simutils::a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "set bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
   }
 
-  ::tclapp::xilinx::simutils::usf_set_ref_dir $fh_scr
+  ::tclapp::xilinx::vcs_mx::usf_set_ref_dir $fh_scr
   set tool "vhdlan"
   set arg_list [list "-l" "${tool}.log"]
   if { !$::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(b_32bit) } {
@@ -299,7 +301,7 @@ proc usf_vcs_mx_write_compile_script {} {
   } else {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
-  set files [::tclapp::xilinx::simutils::usf_uniquify_cmd_str [::tclapp::xilinx::simutils::usf_get_files_for_compilation "vcs_mx"]]
+  set files [::tclapp::xilinx::vcs_mx::usf_uniquify_cmd_str [::tclapp::xilinx::vcs_mx::usf_get_files_for_compilation "vcs_mx"]]
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
@@ -308,12 +310,12 @@ proc usf_vcs_mx_write_compile_script {} {
   }
   # compile glbl file
   set b_load_glbl [get_property "VCS_MX.COMPILE.LOAD_GLBL" $fs_obj]
-  if { [::tclapp::xilinx::simutils::usf_compile_glbl_file "vcs_mx" $b_load_glbl] } {
+  if { [::tclapp::xilinx::vcs_mx::usf_compile_glbl_file "vcs_mx" $b_load_glbl] } {
     set work_lib_sw {}
     if { {work} != $default_lib } {
       set work_lib_sw "-work $default_lib "
     }
-    set file_str "${work_lib_sw}\"[::tclapp::xilinx::simutils::usf_get_glbl_file]\""
+    set file_str "${work_lib_sw}\"[::tclapp::xilinx::vcs_mx::usf_get_glbl_file]\""
     puts $fh_scr "\n# Compile glbl module\n\$bin_path/vlogan \$vlogan_opts +v2k $file_str"
   }
   close $fh_scr
@@ -324,10 +326,10 @@ proc usf_vcs_mx_write_elaborate_script {} {
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::simutils::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::simutils::a_sim_vars(s_launch_dir)
-  set fs_obj [get_filesets $::tclapp::xilinx::simutils::a_sim_vars(s_simset)]
-  set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::simutils::usf_get_script_extn]
+  set top $::tclapp::xilinx::vcs_mx::a_sim_vars(s_sim_top)
+  set dir $::tclapp::xilinx::vcs_mx::a_sim_vars(s_launch_dir)
+  set fs_obj [get_filesets $::tclapp::xilinx::vcs_mx::a_sim_vars(s_simset)]
+  set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::vcs_mx::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -336,12 +338,12 @@ proc usf_vcs_mx_write_elaborate_script {} {
   }
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::simutils::a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
   } else {
-    puts $fh_scr "set bin_path=\"$::tclapp::xilinx::simutils::a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "set bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
   }
   set tool "vcs"
-  set top_lib [::tclapp::xilinx::simutils::usf_get_top_library]
+  set top_lib [::tclapp::xilinx::vcs_mx::usf_get_top_library]
   set arg_list [list]
   if { [get_property "VCS_MX.ELABORATE.DEBUG_PP" $fs_obj] } {
     lappend arg_list {-debug_pp}
@@ -357,7 +359,7 @@ proc usf_vcs_mx_write_elaborate_script {} {
   }
   set tool_path "\$bin_path/$tool"
   set arg_list [list "${tool_path}" "\$${tool}_opts" "${top_lib}.$top"]
-  if { [::tclapp::xilinx::simutils::usf_contains_verilog] } {
+  if { [::tclapp::xilinx::vcs_mx::usf_contains_verilog] } {
     lappend arg_list "${top_lib}.glbl"
   }
   lappend arg_list "-o"
@@ -372,8 +374,8 @@ proc usf_vcs_mx_write_simulate_script {} {
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::simutils::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::simutils::a_sim_vars(s_launch_dir)
+  set top $::tclapp::xilinx::vcs_mx::a_sim_vars(s_sim_top)
+  set dir $::tclapp::xilinx::vcs_mx::a_sim_vars(s_launch_dir)
   set filename "simulate";append filename ".sh"
   set file [file normalize [file join $dir $filename]]
   set fh_scr 0
@@ -383,16 +385,16 @@ proc usf_vcs_mx_write_simulate_script {} {
   }
  
   puts $fh_scr "#!/bin/sh -f"
-  puts $fh_scr "bin_path=\"$::tclapp::xilinx::simutils::a_sim_vars(s_tool_bin_path)\""
+  puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
   set do_filename "${top}.do"
-  ::tclapp::xilinx::simutils::usf_create_do_file "vcs_mx" $do_filename
+  ::tclapp::xilinx::vcs_mx::usf_create_do_file "vcs_mx" $do_filename
   set tool "${top}_simv"
-  set top_lib [::tclapp::xilinx::simutils::usf_get_top_library]
+  set top_lib [::tclapp::xilinx::vcs_mx::usf_get_top_library]
   set arg_list [list "-ucli" "-licwait" "-60" "-l" "simulate.log"]
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   puts $fh_scr ""
   set arg_list [list "./${top}_simv"]
-  if { $::tclapp::xilinx::simutils::a_sim_vars(b_batch) } {
+  if { $::tclapp::xilinx::vcs_mx::a_sim_vars(b_batch) } {
     # no gui
   } else {
     set arg_list [linsert $arg_list end "-gui"]
