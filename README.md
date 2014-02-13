@@ -9,5 +9,5 @@ tclstore@xilinx.com
 
 The wiki contains documentation on how to use and contribute to the App Store:
 
-[Click Here to go to the Wiki](https://github.com/Xilinx/XilinxTclStore/wiki/Xilinx-Tcl-App-Store-Home)
+[Click Here to go to the Wiki](https://github.com/Xilinx/XilinxTclStore/wiki/Xilinx-Tcl-Store-Home)
 
