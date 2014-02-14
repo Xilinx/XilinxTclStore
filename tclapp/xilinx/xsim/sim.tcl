@@ -80,6 +80,11 @@ proc simulate { args } {
   set b_add_view 0
   usf_xsim_write_simulate_script cmd_file wcfg_file b_add_view scr_filename
 
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
+    send_msg_id Vivado-XSim-999 INFO "Scripts generated."
+    return 0
+  }
+
   # set launch args
   set key [usf_xsim_get_running_simulation_obj_key]
   #set log_file ${snapshot};append log_file ".log"
