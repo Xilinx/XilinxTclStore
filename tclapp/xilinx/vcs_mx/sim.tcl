@@ -1,23 +1,16 @@
-####################################################################################################
-# COPYRIGHT NOTICE
-# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
+######################################################################
 #
-# Date Created     :  01/01/2014
-# Script name      :  sim.tcl
-# Tool Version     :  Vivado 2014.1
-# Description      :  Simulation flow for "VCS_MX" Simulator  
+# sim.tcl (simulation script for the 'Synopsys VCS_MX Simulator')
 #
-# Revision History :
-#   01/01/2014 1.0  - Initial version
+# Script created on 01/06/2014 by Raj Klair (Xilinx, Inc.)
 #
-####################################################################################################
+# 2014.1 - v1.0 (rev 1)
+#  * initial version
+#
+######################################################################
 package require Vivado 2013.1
 package require ::tclapp::xilinx::vcs_mx::helpers
 
-#
-# Main Launch Steps
-#
 namespace eval ::tclapp::xilinx::vcs_mx {
 proc setup { args } {
   # Summary:

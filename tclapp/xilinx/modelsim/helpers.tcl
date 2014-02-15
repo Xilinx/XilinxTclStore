@@ -1,23 +1,17 @@
-####################################################################################################
-# COPYRIGHT NOTICE
-# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
+###############################################################################
 #
-# Date Created     :  01/01/2014
-# Script name      :  helpers.tcl
-# Tool Version     :  Vivado 2014.1
-# Description      :  This file provides helpers for the simulation flow 
+# helpers.tcl (simulation helper utilities for the 'ModelSim/Questa Simulator')
 #
-# Revision History :
-#   01/01/2014 1.0  - Initial version
+# Script created on 01/06/2014 by Raj Klair (Xilinx, Inc.)
 #
-####################################################################################################
+# 2014.1 - v1.0 (rev 1)
+#  * initial version
+#
+###############################################################################
 package require Vivado 2013.1
-#
-# Exported procs for simulator apps
-# 
+
 namespace eval ::tclapp::xilinx::modelsim {
-# no export
+  # do not export procs from this file
 }
 
 namespace eval ::tclapp::xilinx::modelsim {

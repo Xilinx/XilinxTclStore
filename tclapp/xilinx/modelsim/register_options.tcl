@@ -1,16 +1,14 @@
-####################################################################################################
-# COPYRIGHT NOTICE
-# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
+#########################################################################
 #
-# Date Created     :  01/01/2014
-# Script name      :  register_options.tcl
-# Tool Version     :  Vivado 2014.1
-# Description      :  Setup "ModelSim/Questa" simulator options on the simulation fileset
-# Revision History :
-#   01/01/2014 1.0  - Initial version
+# register_options.tcl (create simulation fileset properties with default
+#                       values for the 'ModelSim/Questa Simulator')
 #
-####################################################################################################
+# Script created on 01/06/2014 by Raj Klair (Xilinx, Inc.)
+#
+# 2014.1 - v1.0 (rev 1)
+#  * initial version
+#
+#########################################################################
 package require Vivado 2013.1
 package require ::tclapp::xilinx::modelsim::helpers
 

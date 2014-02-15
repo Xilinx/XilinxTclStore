@@ -1,15 +1,14 @@
-####################################################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Nik Cimino
-# 
-# Created Date:   11/20/12
-# Script name:    gui_helpers.tcl
+####################################################################################
+#
+# gui_helpers.tcl (helper utilities for tk_tunnel)
+#
+# Script created on 11/20/2012 by Nik Cimino (Xilinx, Inc.)
+#
+# 2012 - version 1.0 (rev. 1)
+#  * initial version
+#
+####################################################################################
+
 # 
 # Getting Started:
 #     http://www.tkdocs.com/tutorial/windows.html
@@ -17,7 +16,6 @@
 #     None of these helpers are required for the Tk Tunnel, as raw Tcl/Tk commands can be used,
 #     These commands are simply meant to help ease dialogs and prompts.
 #
-####################################################################################################
 
 namespace eval ::tclapp::xilinx::tk_tunnel {
 	

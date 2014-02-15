@@ -1,15 +1,14 @@
-####################################################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Nik Cimino
-# 
-# Created Date:   11/20/12
-# Script name:    server/start.tcl
+####################################################################################
+#
+# server/start.tcl (start Tk server)
+#
+# Script created on 11/20/2012 by Nik Cimino (Xilinx, Inc.)
+#
+# 2012 - version 1.0 (rev. 1)
+#  * initial version
+#
+####################################################################################
+
 # 
 # Getting Started:
 #   This script is the default called by the launch_server command.
@@ -28,7 +27,6 @@
 #		exec cmd.exe /c start cmd /k "/usr/bin/tclsh8.5" "~/start_server.tcl" &   # windows
 #		exec xterm -iconic -e "/usr/bin/tclsh8.5" "~/start_server.tcl" &          # linux
 #		
-####################################################################################################
 
 # This file is executed by the server to start the Tk listner
 

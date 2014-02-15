@@ -1,3 +1,3 @@
-Vivado Simulator simulation script
+Tcl App for Vivado Simulator
 
-This script can be used to verify the design using Xilinx "Vivado Simulator" Simulator
+Simulate a design in Vivado with Xilinx Vivado Simulator

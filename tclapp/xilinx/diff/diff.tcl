@@ -1,24 +1,9 @@
-####################################################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Nik Cimino
-# 
-# Created Date:   06/01/12
-# Script name:    diff.tcl
-# Classes:        html, report, design, diff
-# Procedures:     new_report, new_diff, diff_lists, diff_reports, diff_props, diff_close_designs
-# Tool Versions:  Vivado 2012.2
-# Description:    This script is used to compare 2 designs that have been loaded into memory.
-# Dependencies:   struct package
-#                 stooop package
-# Notes:          
-#     For more information on STOOOP visit: http://wiki.tcl.tk/2165 
-#     For more information on STRUCT visit: http://tcllib.sourceforge.net/doc/struct_set.html
+#######################################################################
+#
+# diff.tcl (allow Tcl to find tclindex and provide package version 1.0)
+#
+#######################################################################
+
 # 
 # Getting Started:
 #     % package require ::tclapp::xilinx::diff
@@ -30,26 +15,15 @@
 #     % diff_props $of {get_timing_paths}
 #     % diff_close_designs $of
 #     % delete $of
-#
-####################################################################################################
-
-
-# title: Vivado Design Differencing
-
 
 package require Tcl 8.5
 package require struct::set 2.2.3
 package require struct::list 1.7
 package require stooop 4
-
 namespace eval ::tclapp::xilinx::diff {
-
-    # Allow Tcl to find tclIndex
-    variable home [file join [pwd] [file dirname [info script]]]
-    if {[lsearch -exact $::auto_path $home] == -1} {
-	lappend ::auto_path $home
-    }
-
+  variable home [file join [pwd] [file dirname [info script]]]
+  if {[lsearch -exact $::auto_path $home] == -1} {
+    lappend ::auto_path $home
+  }
 }
-
 package provide ::tclapp::xilinx::diff 1.2

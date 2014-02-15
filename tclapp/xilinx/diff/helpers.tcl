@@ -1,18 +1,17 @@
-####################################################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Nik Cimino
-# 
-# Created Date:   09/13/12
-# Script name:    helpers.tcl
-# Procedures:     new_report, new_diff, diff_lists, diff_reports, diff_props, diff_close_designs
-# Tool Versions:  Vivado 2012.3
-# Description:    This script is used to compare 2 designs that have been loaded into memory.
+##########################################################################
+#
+# helpers.tcl (compare 2 designs that have been loaded into memory)
+#
+# Script created on 09/13/12 by Nik Cimino (Xilinx, Inc.)
+#
+# Procedures:- new_report, new_diff, diff_lists, diff_reports, diff_props,
+#              diff_close_designs
+#
+# 2012 - v1.0 (rev 1)
+#  * initial version
+#
+##########################################################################
+
 # 
 # Getting Started:
 #     % source ./diff.tcl
@@ -24,7 +23,6 @@
 #     % diff_close_designs $of
 #     % delete $of
 #
-####################################################################################################
 
 # This file requires the stooop classes provided by classes.tcl 
 package require ::tclapp::xilinx::diff::classes
