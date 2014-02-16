@@ -1,4 +1,10 @@
 ###########################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+###########################################################################
 #
 # helpers.tcl (simulation helper utilities for the 'Cadence IES Simulator')
 #
@@ -284,7 +290,7 @@ proc usf_set_sim_tcl_obj {} {
   } else {
     set a_sim_vars(sp_tcl_obj) [current_fileset -simset]
   }
-  send_msg_id Vivado-IES-999 INFO "Simulation object is '$a_sim_vars(sp_tcl_obj)'...\n"
+  #send_msg_id Vivado-IES-999 INFO "Simulation object is '$a_sim_vars(sp_tcl_obj)'...\n"
   return 0
 }
 
@@ -320,7 +326,6 @@ proc usf_write_design_netlist {} {
   variable a_sim_vars
   # is behavioral?, return
   if { {behav_sim} == $a_sim_vars(s_simulation_flow) } { 
-    puts "Netlist not generated (behavioral)...skip"
     return
   } 
   set extn [usf_get_netlist_extn 0]
@@ -915,7 +920,7 @@ proc usf_set_simulator_path { simulator } {
  set a_sim_vars(s_tool_bin_path) $bin_path
 }
 
-proc usf_get_files_for_compilation { simulator } {
+proc usf_get_files_for_compilation {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -938,7 +943,7 @@ proc usf_get_files_for_compilation { simulator } {
     #send_msg_id Vivado-IES-999 INFO "Adding netlist files:-\n"
     if { {} != $netlist_file } {
       set file_type $target_lang
-      set cmd_str [usf_get_file_cmd_str $netlist_file $file_type $simulator {}]
+      set cmd_str [usf_get_file_cmd_str $netlist_file $file_type {}]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         #send_msg_id Vivado-IES-999 INFO " +$cmd_str\n"
@@ -954,7 +959,7 @@ proc usf_get_files_for_compilation { simulator } {
       }
       #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
       set file_type [get_property "FILE_TYPE" $file]
-      set cmd_str [usf_get_file_cmd_str $file $file_type $simulator {}]
+      set cmd_str [usf_get_file_cmd_str $file $file_type {}]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         #send_msg_id Vivado-IES-999 INFO " +$cmd_str\n"
@@ -969,7 +974,7 @@ proc usf_get_files_for_compilation { simulator } {
       }
       #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
       set file_type [get_property "FILE_TYPE" $file]
-      set cmd_str [usf_get_file_cmd_str $file $file_type $simulator {}]
+      set cmd_str [usf_get_file_cmd_str $file $file_type {}]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         #send_msg_id Vivado-IES-999 INFO " +$cmd_str\n"
@@ -989,7 +994,7 @@ proc usf_get_files_for_compilation { simulator } {
       set vhdl_filter "FILE_TYPE == \"VHDL\""
       foreach file [usf_get_files_from_block_filesets $vhdl_filter] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-        set cmd_str [usf_get_file_cmd_str $file $file_type $simulator {}]
+        set cmd_str [usf_get_file_cmd_str $file $file_type {}]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           #send_msg_id Vivado-IES-999 INFO " +$cmd_str\n"
@@ -1000,7 +1005,7 @@ proc usf_get_files_for_compilation { simulator } {
       set verilog_filter "FILE_TYPE == \"Verilog\""
       foreach file [usf_get_files_from_block_filesets $verilog_filter] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-        set cmd_str [usf_get_file_cmd_str $file $file_type $simulator $global_files]
+        set cmd_str [usf_get_file_cmd_str $file $file_type $global_files]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           #send_msg_id Vivado-IES-999 INFO " +$cmd_str\n"
@@ -1015,7 +1020,7 @@ proc usf_get_files_for_compilation { simulator } {
           if { ({Verilog} != $file_type) && ({VHDL} != $file_type) } { continue }
           set g_files $global_files
           if { ({VHDL} == $file_type) } { set g_files {} }
-          set cmd_str [usf_get_file_cmd_str $file $file_type $simulator $g_files]
+          set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
           if { {} != $cmd_str } {
             lappend files $cmd_str
             #send_msg_id Vivado-IES-999 INFO " +$cmd_str\n"
@@ -1035,7 +1040,7 @@ proc usf_get_files_for_compilation { simulator } {
         if { ({Verilog} != $file_type) && ({VHDL} != $file_type) } { continue }
         set g_files $global_files
         if { ({VHDL} == $file_type) } { set g_files {} }
-        set cmd_str [usf_get_file_cmd_str $file $file_type $simulator $g_files]
+        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           #send_msg_id Vivado-IES-999 INFO " +$cmd_str\n"
@@ -1050,7 +1055,7 @@ proc usf_get_files_for_compilation { simulator } {
       if { ({Verilog} != $file_type) && ({VHDL} != $file_type) } { continue }
       set g_files $global_files
       if { ({VHDL} == $file_type) } { set g_files {} }
-      set cmd_str [usf_get_file_cmd_str $file $file_type $simulator $g_files]
+      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         #send_msg_id Vivado-IES-999 INFO " +$cmd_str\n"
@@ -1697,14 +1702,14 @@ proc usf_is_embedded_flow {} {
   # Return Value:
 
   variable s_embedded_files_filter
-  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]]
+  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
   if { [llength $embedded_files] > 0 } {
     return 1
   }
   return 0
 }
 
-proc usf_get_compiler_name { simulator file_type } {
+proc usf_get_compiler_name { file_type } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1712,25 +1717,9 @@ proc usf_get_compiler_name { simulator file_type } {
   variable a_sim_vars
   set compiler ""
   if { {VHDL} == $file_type } {
-    switch $simulator {
-      {xsim} { set compiler "vhdl" }
-      {modelsim} { set compiler "vcom" }
-      {ies} { set compiler "ncvhdl" }
-      {vcs_mx} { set compiler "vhdlan" }
-    }
+    set compiler "ncvhdl"
   } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) } {
-    switch $simulator {
-      {xsim} {
-        if { ({SystemVerilog} == $file_type) } {
-          set compiler "sv"
-        } else {
-          set compiler "verilog"
-        }
-      }
-      {modelsim} { set compiler "vlog" }
-      {ies} { set compiler "ncvlog" }
-      {vcs_mx} { set compiler "vlogan" }
-    }
+    set compiler "ncvlog"
   }
   return $compiler
 }
@@ -2033,7 +2022,7 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   return [join $file_str " "]
 }
 
-proc usf_get_file_cmd_str { file file_type simulator global_files} {
+proc usf_get_file_cmd_str { file file_type global_files} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2054,22 +2043,11 @@ proc usf_get_file_cmd_str { file file_type simulator global_files} {
   } else {
     set file "[usf_get_relative_file_path $file $dir]"
   }
-  set compiler [usf_get_compiler_name $simulator $file_type]
+  set compiler [usf_get_compiler_name $file_type]
   if { [string length $compiler] > 0 } {
     set arg_list [list $compiler]
     usf_append_compiler_options $compiler $file_type arg_list
-    switch -regexp -- $simulator {
-      {xsim}     { set arg_list [linsert $arg_list end "$associated_library" "$global_files" "\"$file\""] }
-      {modelsim} { set arg_list [linsert $arg_list end "-work $associated_library" "$global_files" "\"$file\""] }
-      {ies}      { set arg_list [linsert $arg_list end "-work $associated_library" "$global_files" "\"$file\""] }
-      {vcs_mx}   {
-        if { [string equal -nocase $associated_library "work"] } {
-          set arg_list [linsert $arg_list end "$global_files" "\"$file\""]
-        } else {
-          set arg_list [linsert $arg_list end "-work $associated_library" "$global_files" "\"$file\""]
-        }
-      }
-    }
+    set arg_list [linsert $arg_list end "-work $associated_library" "$global_files" "\"$file\""]
   }
   usf_append_other_options $compiler $file_type arg_list
   set file_str [join $arg_list " "]
@@ -2170,7 +2148,7 @@ proc usf_get_sdf_writer_cmd_args { } {
 # not used currently
 #
 namespace eval ::tclapp::xilinx::ies {
-proc usf_get_xil_simulator_lib { simulator } {
+proc usf_get_xil_simulator_lib {} {
   # Summary: Finds the simulator library from the install directory
   # Argument Usage:
   # Return Value:
@@ -2178,16 +2156,7 @@ proc usf_get_xil_simulator_lib { simulator } {
 
   variable a_sim_vars
   set xil_sim_lib_path {}
-  set lib_name {}
-  switch -regexp -- $simulator {
-    "ies"       { set lib_name "libxil_ncsim.so" }
-    "vcs_mx"    { set lib_name "libxil_vcs.so" }
-    default {
-      send_msg_id Vivado-IES-999 ERROR "Invalid simulator ($simulator)\n"
-      close $fh
-      return 1
-    }
-  }
+  set lib_name "libxil_ncsim.so"
   set platform "lin32"
   if { $::tcl_platform(machine) eq "x86_64" } {
     set platform "lin64"

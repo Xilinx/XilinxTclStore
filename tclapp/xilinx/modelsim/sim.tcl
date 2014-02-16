@@ -1,4 +1,10 @@
 ######################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+######################################################################
 #
 # sim.tcl (simulation script for the 'ModelSim/Questa Simulator')
 #
@@ -401,9 +407,9 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     puts $fh "onerror {quit -f}"
   }
 
-  puts $fh "vlib work"
+  puts $fh "vlib work\n"
 
-  set files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation "modelsim"]]
+  set files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation]]
   set design_libs [usf_modelsim_get_design_libs $files]
 
   # TODO:
@@ -414,11 +420,13 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     if {[string length $lib] == 0} { continue; }
     puts $fh "vlib msim/$lib"
   }
+  puts $fh ""
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     puts $fh "vmap $lib msim/$lib"
   }
+  puts $fh ""
 
   if { $b_absolute_path } {
     puts $fh "set reference_dir \"$dir\""
@@ -427,6 +435,8 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
   puts $fh "set vlog_opts \{-incr\}"
   puts $fh "set vcom_opts \{-93\}"
+  puts $fh ""
+
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]

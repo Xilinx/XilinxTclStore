@@ -1,4 +1,10 @@
 ######################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+######################################################################
 #
 # sim.tcl (simulation script for the 'Vivado Simulator')
 #
@@ -267,7 +273,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     return 1
   }
  
-  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation "xsim"]]
+  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
@@ -405,9 +411,8 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
       set b_linked_wcfg_exist 1
     }
   } else {
-    if { [file exists $wcfg_file] } {
-      set wcfg_file [file normalize $wcfg_file]
-    } else {
+    set wcfg_file [file normalize $wcfg_file]
+    if { ![file exists $wcfg_file] } {
       send_msg_id Vivado-XSim-999 WARNING "Specified wcfg file '$wcfg_file' doesn't exist, ignored\n"
       set wcfg_file {}
     }

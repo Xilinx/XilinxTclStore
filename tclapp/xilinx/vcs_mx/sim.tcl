@@ -1,4 +1,10 @@
 ######################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+######################################################################
 #
 # sim.tcl (simulation script for the 'Synopsys VCS_MX Simulator')
 #
@@ -294,7 +300,7 @@ proc usf_vcs_mx_write_compile_script {} {
   } else {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
-  set files [::tclapp::xilinx::vcs_mx::usf_uniquify_cmd_str [::tclapp::xilinx::vcs_mx::usf_get_files_for_compilation "vcs_mx"]]
+  set files [::tclapp::xilinx::vcs_mx::usf_uniquify_cmd_str [::tclapp::xilinx::vcs_mx::usf_get_files_for_compilation]]
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]

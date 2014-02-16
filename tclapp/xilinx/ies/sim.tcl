@@ -1,4 +1,10 @@
 ######################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+######################################################################
 #
 # sim.tcl (simulation script for the 'Cadence IES Simulator')
 #
@@ -321,7 +327,7 @@ proc usf_ies_write_compile_script {} {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
 
-  set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation "ies"]]
+  set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation]]
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]

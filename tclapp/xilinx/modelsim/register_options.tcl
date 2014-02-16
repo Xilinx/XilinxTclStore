@@ -1,4 +1,10 @@
 #########################################################################
+# HEADER_BEGIN
+# COPYRIGHT NOTICE
+# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
+# http://www.xilinx.com/support
+# HEADER_END
+#########################################################################
 #
 # register_options.tcl (create simulation fileset properties with default
 #                       values for the 'ModelSim/Questa Simulator')
