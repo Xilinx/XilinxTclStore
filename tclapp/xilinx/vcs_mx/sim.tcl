@@ -19,9 +19,11 @@ package require ::tclapp::xilinx::vcs_mx::helpers
 
 namespace eval ::tclapp::xilinx::vcs_mx {
 proc setup { args } {
-  # Summary:
+  # Summary: initialize global vars and prepare for simulation
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # true (0) if success, false (1) otherwise
 
   # initialize global variables
   ::tclapp::xilinx::vcs_mx::usf_init_vars
@@ -40,9 +42,11 @@ proc setup { args } {
 }
 
 proc compile { args } {
-  # Summary:
+  # Summary: run the compile step for compiling the design files
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # none
 
   usf_vcs_mx_write_compile_script
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -51,9 +55,11 @@ proc compile { args } {
 }
 
 proc elaborate { args } {
-  # Summary:
+  # Summary: run the elaboration step for elaborating the compiled design
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # none
 
   send_msg_id Vivado-VCS_MX-999 INFO "vcs_mx::elaborate design"
   usf_vcs_mx_write_elaborate_script
@@ -61,13 +67,14 @@ proc elaborate { args } {
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::vcs_mx::usf_launch_script "vcs_mx" $step
-  return 0
 }
 
 proc simulate { args } {
-  # Summary:
+  # Summary: run the simulation step for simulating the elaborated design
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # none
 
   send_msg_id Vivado-VCS_MX-999 INFO "vcs_mx::simulate design"
   usf_vcs_mx_write_simulate_script
@@ -75,7 +82,6 @@ proc simulate { args } {
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::vcs_mx::usf_launch_script "vcs_mx" $step
-  return 0
 }
 }
 
@@ -98,9 +104,6 @@ proc usf_vcs_mx_setup_simulation { args } {
   # set the simulation run dir
   ::tclapp::xilinx::vcs_mx::usf_set_run_dir
 
-  # create simulation launch dir <project>/<project.sim>/<simset>/<mode>/<type>
-  ::tclapp::xilinx::vcs_mx::usf_create_launch_dir
-
   # set default object
   if { [::tclapp::xilinx::vcs_mx::usf_set_sim_tcl_obj] } {
     puts "failed to set tcl obj"
@@ -108,7 +111,7 @@ proc usf_vcs_mx_setup_simulation { args } {
   }
 
   # print launch_simulation arg values
-  ::tclapp::xilinx::vcs_mx::usf_print_args
+  #::tclapp::xilinx::vcs_mx::usf_print_args
 
   # write functional/timing netlist for post-* simulation
   ::tclapp::xilinx::vcs_mx::usf_write_design_netlist
@@ -149,7 +152,6 @@ proc usf_vcs_mx_setup_args { args } {
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-install_path <arg>]: Custom VCS_MX installation directory path
-  # [-noclean_dir]: Do not remove simulation run directory files
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
@@ -172,7 +174,6 @@ proc usf_vcs_mx_setup_args { args } {
       "-of_objects"     { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::vcs_mx::a_sim_vars(b_absolute_path) 1 }
       "-install_path"   { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_install_path) [lindex $args $i] }
-      "-noclean_dir"    { set ::tclapp::xilinx::vcs_mx::a_sim_vars(b_noclean_dir) 1 }
       "-batch"          { set ::tclapp::xilinx::vcs_mx::a_sim_vars(b_batch) 1 }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::vcs_mx::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
@@ -197,7 +198,7 @@ proc usf_vcs_mx_verify_compiled_lib {} {
   send_msg_id Vivado-VCS_MX-999 INFO "Finding pre-compiled libraries...\n"
   # check property value
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
-  set file [file normalize [file join $dir $syn_file]]
+  set syn_file [file normalize [file join $dir $syn_file]]
   if { [file exists $syn_file] } {
     set compiled_lib_dir $dir
   }
@@ -212,7 +213,7 @@ proc usf_vcs_mx_verify_compiled_lib {} {
   # return if found, else warning
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
-   send_msg_id Vivado-VCS_MX-999 INFO "Compiled library path:'dir'\n"
+   send_msg_id Vivado-VCS_MX-999 INFO "Compiled library path:'$compiled_lib_dir'\n"
    return
   }
   send_msg_id Vivado-VCS_MX-999 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library information!\n"
@@ -233,7 +234,11 @@ proc usf_vcs_mx_write_setup_files {} {
     send_msg_id Vivado-VCS_MX-043 ERROR "failed to open file to write ($file)\n"
     return 1
   }
-  puts $fh "OTHERS=$::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(s_compiled_lib_dir)/$filename"
+  set lib_map_path $::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(s_compiled_lib_dir)
+  if { {} == $lib_map_path } {
+    set lib_map_path "?"
+  }
+  puts $fh "OTHERS=$lib_map_path/$filename"
   set libs [list]
   foreach lib [::tclapp::xilinx::vcs_mx::usf_get_compile_order_libs] {
     if {[string length $lib] == 0} { continue; }
@@ -273,7 +278,9 @@ proc usf_vcs_mx_write_compile_script {} {
   }
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
+    ::tclapp::xilinx::vcs_mx::usf_write_script_header_info $fh_scr $scr_file
+    puts $fh_scr "\n# installation path setting"
+    puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\"\n"
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
@@ -285,6 +292,7 @@ proc usf_vcs_mx_write_compile_script {} {
   if { !$::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-full64"]
   }
+  puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   } else {
@@ -295,12 +303,15 @@ proc usf_vcs_mx_write_compile_script {} {
   if { !$::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-full64"]
   }
+  puts $fh_scr "\n# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
   } else {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
+
   set files [::tclapp::xilinx::vcs_mx::usf_uniquify_cmd_str [::tclapp::xilinx::vcs_mx::usf_get_files_for_compilation]]
+  puts $fh_scr "# compile design source files"
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
@@ -315,7 +326,7 @@ proc usf_vcs_mx_write_compile_script {} {
       set work_lib_sw "-work $default_lib "
     }
     set file_str "${work_lib_sw}\"[::tclapp::xilinx::vcs_mx::usf_get_glbl_file]\""
-    puts $fh_scr "\n# Compile glbl module\n\$bin_path/vlogan \$vlogan_opts +v2k $file_str"
+    puts $fh_scr "\n# compile glbl module\n\$bin_path/vlogan \$vlogan_opts +v2k $file_str"
   }
   close $fh_scr
 }
@@ -337,7 +348,9 @@ proc usf_vcs_mx_write_elaborate_script {} {
   }
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
+    ::tclapp::xilinx::vcs_mx::usf_write_script_header_info $fh_scr $scr_file
+    puts $fh_scr "\n# installation path setting"
+    puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\"\n"
   } else {
     puts $fh_scr "set bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
   }
@@ -351,6 +364,8 @@ proc usf_vcs_mx_write_elaborate_script {} {
   if { !$::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(b_32bit) } {
      set arg_list [linsert $arg_list 0 "-full64"]
   }
+
+  puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
   } else {
@@ -364,6 +379,8 @@ proc usf_vcs_mx_write_elaborate_script {} {
   lappend arg_list "-o"
   lappend arg_list "${top}_simv"
   set cmd_str [join $arg_list " "]
+
+  puts $fh_scr "# run elaboration"
   puts $fh_scr "$cmd_str"
   close $fh_scr
 }
@@ -384,12 +401,16 @@ proc usf_vcs_mx_write_simulate_script {} {
   }
  
   puts $fh_scr "#!/bin/sh -f"
-  puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\""
+  ::tclapp::xilinx::vcs_mx::usf_write_script_header_info $fh_scr $file
+  puts $fh_scr "\n# installation path setting"
+  puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs_mx::a_sim_vars(s_tool_bin_path)\"\n"
   set do_filename "${top}.do"
   ::tclapp::xilinx::vcs_mx::usf_create_do_file "vcs_mx" $do_filename
   set tool "${top}_simv"
   set top_lib [::tclapp::xilinx::vcs_mx::usf_get_top_library]
   set arg_list [list "-ucli" "-licwait" "-60" "-l" "simulate.log"]
+
+  puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   puts $fh_scr ""
   set arg_list [list "./${top}_simv"]
@@ -400,6 +421,8 @@ proc usf_vcs_mx_write_simulate_script {} {
   }
   set arg_list [list $arg_list "\$${tool}_opts" "-do" "$do_filename"]
   set cmd_str [join $arg_list " "]
+
+  puts $fh_scr "# run simulation"
   puts $fh_scr "$cmd_str"
   close $fh_scr
 }

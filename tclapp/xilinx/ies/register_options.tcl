@@ -20,9 +20,11 @@ package require ::tclapp::xilinx::ies::helpers
 
 namespace eval ::tclapp::xilinx::ies {
 proc register_options { simulator } {
-  # Summary:
+  # Summary: define simulation fileset options
   # Argument Usage:
+  # simulator: name of the simulator for which the options needs to be defined
   # Return Value:
+  # true (0) if success, false (1) otherwise
 
   variable options
   if { {} == $simulator } {

@@ -43,7 +43,6 @@ proc usf_init_vars {} {
   set a_sim_vars(s_comp_file)        {}
   set a_sim_vars(b_absolute_path)    0
   set a_sim_vars(s_install_path)     {}
-  set a_sim_vars(b_noclean_dir)      0
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
@@ -246,35 +245,6 @@ proc usf_set_run_dir {} {
   set mode [get_property "SIM_MODE" [get_filesets $a_sim_vars(s_simset)]]
   set run_dir [file normalize [file join $a_sim_vars(s_project_dir) $sim_dir $a_sim_vars(s_simset) $a_sim_vars(s_flow_dir_key)]]
   set a_sim_vars(s_launch_dir) $run_dir
-}
-
-proc usf_create_launch_dir {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
-  # launch dir exist?
-  if { [file exists $run_dir] } {
-    # if no clean requested, return
-    if { $a_sim_vars(b_noclean_dir) } {
-      return 0
-    }
-    # clean first
-    if {[catch {file delete -force $run_dir} error_msg] } {
-      send_msg_id Vivado-XSim-999 ERROR "failed to delete directory ($run_dir): $error_msg\n"
-      return 1
-    }
-  }
-  # create fresh directories now
-  if { ![file exists $run_dir] } {
-    if {[catch {file mkdir $run_dir} error_msg] } {
-      send_msg_id Vivado-XSim-999 ERROR "failed to create the directory ($run_dir): $error_msg\n"
-      return 1
-    }
-  }
-  return 0
 }
 
 proc usf_set_sim_tcl_obj {} {
@@ -616,14 +586,6 @@ proc usf_compile_glbl_file { simulator b_load_glbl } {
   if { (({VHDL} == $target_lang) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
     return 1
   }
-  switch $simulator {
-    {ies} -
-    {vcs_mx} {
-      if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-        return 1
-      }
-    }
-  }
   return 0
 }
 
@@ -750,37 +712,9 @@ proc usf_create_do_file { simulator do_filename } {
           puts $fh_do "dumpsaif -scope $uut -overwrite -output $saif"
         }
       }
-      "vcs_mx" {
-        set saif [get_property "VCS_MX.SIMULATE.SAIF" $fs_obj]
-        if { {} != $saif } {
-          if { {} == $uut } {
-            set uut "$top.uut"
-          }
-          puts $fh_do "power $uut"
-          puts $fh_do "power -enable"
-        }
-      }
     }
     set time [get_property "RUNTIME" $fs_obj]
     puts $fh_do "run $time"
-    if { {} != $saif } {
-      switch -regexp -- $simulator {
-        "ies"    { puts $fh_do "dumpsaif -end" }
-        "vcs_mx" {
-          set timescale {1}
-          if { {} == $uut } {
-            set uut "$top.uut"
-          }
-          set module    $uut 
-          puts $fh_do "power -disable"
-          puts $fh_do "power -report $saif $timescale $module"
-        }
-      }
-    }
-    switch -regexp -- $simulator {
-      "ies"    { puts $fh_do "exit" }
-      "vcs_mx" { puts $fh_do "quit" }
-    }
   }
   close $fh_do
 }
@@ -849,75 +783,6 @@ proc usf_prepare_ip_for_simulation { } {
   foreach fs $fs_objs {
     update_compile_order -fileset [get_filesets $fs]
   }
-}
-
-proc usf_set_simulator_path { simulator } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set bin_path  {}
-  set tool_name {} 
-  set path_sep  {;}
-  set tool_extn {.exe}
-  if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
-  if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
-  set install_path $a_sim_vars(s_install_path)
-  send_msg_id Vivado-XSim-999 INFO "Finding simulator installation...\n"
-  switch -regexp -- $simulator {
-    {modelsim} {
-      set tool_name "vsim";append tool_name ${tool_extn}
-      if { {} == $install_path } {
-        set install_path [get_param "simulator.modelsimInstallPath"]
-      }
-    }
-    {ies} {
-      set tool_name "ncsim";append tool_name ${tool_extn}
-      if { {} == $install_path } {
-        set install_path [get_param "simulator.iesInstallPath"]
-      }
-    }
-    {vcs_mx} {
-      set tool_name "vcs";append tool_name ${tool_extn}
-      if { {} == $install_path } {
-        set install_path [get_param "simulator.vcsmxInstallPath"]
-      }
-    }
- }
- 
- if { {} == $install_path } {
-   set bin_path [usf_get_bin_path $tool_name $path_sep]
-   if { {} == $bin_path } {
-     #send_msg_id Vivado-XSim-999 ERROR "
-     error \
-       "Failed to locate '$tool_name' executable in the shell environment 'PATH' variable. Please source \
-        the settings script included with the installation and retry this operation again.\n"
-   }
- } else {
-   set install_path [file normalize [string map {\\ /} $install_path]]
-   set install_path [string trimright $install_path {/}]
-   set bin_path $install_path
-   set tool_path [file join $install_path $tool_name]
-   # Couldn't find it at install path, so try inserting /bin.
-   # This is a bit roundabout with new variables so we don't change the
-   # originals. If this doesn't work, we want the error messages to report
-   # based on the originals.
-   set tool_bin_path {}
-   if { ![file exists $tool_path] } {
-     set tool_bin_path [file join $install_path "bin" $tool_name]
-     if { [file exists $tool_bin_path] } {
-       set tool_path $tool_bin_path
-       set bin_path [file join $install_path "bin"]
-     }
-   }
-   if { [file exists $tool_path] && ![file isdirectory $tool_path] } {
-     send_msg_id Vivado-XSim-999 INFO "Using simulator executables from '$tool_path'\n"
-   } else {
-     send_msg_id Vivado-XSim-999 ERROR "Path to custom '$tool_name' executable program does not exist:$tool_path'\n"
-   }
- }
- set a_sim_vars(s_tool_bin_path) $bin_path
 }
 
 proc usf_get_files_for_compilation {} {
@@ -1017,7 +882,7 @@ proc usf_get_files_for_compilation {} {
         #send_msg_id Vivado-XSim-999 INFO "Adding compile order files (behav simulation):-\n"
         foreach file $::tclapp::xilinx::xsim::l_compile_order_files {
           set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-          if { ({Verilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+          if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
           set g_files $global_files
           if { ({VHDL} == $file_type) } { set g_files {} }
           set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
@@ -1037,7 +902,7 @@ proc usf_get_files_for_compilation {} {
       #send_msg_id Vivado-XSim-999 INFO "Adding additional simulation fileset files (behav simulation):-\n"
       foreach file [get_files -all -of_objects [current_fileset -simset]] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-        if { ({Verilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
         set g_files $global_files
         if { ({VHDL} == $file_type) } { set g_files {} }
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
@@ -1052,7 +917,7 @@ proc usf_get_files_for_compilation {} {
     #send_msg_id Vivado-XSim-999 INFO "Adding IP compile order files:-\n"
     foreach file $::tclapp::xilinx::xsim::l_compile_order_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-      if { ({Verilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
       set g_files $global_files
       if { ({VHDL} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
@@ -1117,7 +982,9 @@ proc usf_launch_script { simulator step } {
   }
   cd $cwd
   if { $faulty_run } {
-    error "_SIMUTILS_LAUNCH_EXEC_ERROR_"
+    # IMPORTANT - *** DONOT MODIFY THIS ***
+    error "_SIM_STEP_RUN_EXEC_ERROR_"
+    # IMPORTANT - *** DONOT MODIFY THIS ***
     return 1
   }
   return 0
@@ -1166,7 +1033,6 @@ proc usf_print_args {} {
   # Argument Usage:
   # Return Value:
   
-  return
   puts "*******************************"
   puts "-simset         = $::tclapp::xilinx::xsim::a_sim_vars(s_simset)"
   puts "-mode           = $::tclapp::xilinx::xsim::a_sim_vars(s_mode)"
@@ -1175,7 +1041,6 @@ proc usf_print_args {} {
   puts "-of_objects     = $::tclapp::xilinx::xsim::a_sim_vars(s_comp_file)"
   puts "-absolute_path  = $::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path)"
   puts "-install_path   = $::tclapp::xilinx::xsim::a_sim_vars(s_install_path)"
-  puts "-noclean_dir    = $::tclapp::xilinx::xsim::a_sim_vars(b_noclean_dir)"
   puts "-batch          = $::tclapp::xilinx::xsim::a_sim_vars(b_batch)"
   puts "-int_os_type    = $::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type)"
   puts "-int_debug_mode = $::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode)"
@@ -1306,7 +1171,7 @@ proc usf_export_fs_data_files { filter b_check_for_user_disabled } {
   # Return Value:
 
   variable a_sim_vars
-  set fs_obj       [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
+  set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
   set data_files [list]
   # ip data files
   set ips [get_files -all -quiet -filter "FILE_TYPE == \"IP\""]
@@ -1324,12 +1189,16 @@ proc usf_export_fs_data_files { filter b_check_for_user_disabled } {
     }
   }
   set filesets [list]
+
   # block fileset data files
   lappend filesets [get_filesets -filter "FILESET_TYPE == \"BlockSrcs\""]
+
   # current source set fileset data files
   lappend filesets [current_fileset -srcset]
+
   # current simulation fileset data files
   lappend filesets [current_fileset -simset]
+
   # collect all fileset data files
   foreach fs_obj $filesets {
     foreach file [get_files -all -quiet -of_objects [get_filesets $fs_obj] -filter $filter] {
@@ -1743,49 +1612,6 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
     "verilog" {
       #lappend opts "\$${tool}_opts"
     }
-    "vcom" {
-      lappend opts "\$${tool}_opts"
-    }
-    "vlog" {
-      lappend opts "\$${tool}_opts"
-    }
-    "ncvlog" {
-      lappend opts "\$${tool}_opts"
-      if { [string equal -nocase $file_type "systemverilog"] } {
-        lappend opts "-sv"
-      }
-    }
-    "ncvhdl" -
-    "vhdlan" {
-      lappend opts "\$${tool}_opts"
-    }
-    "vlogan" {
-      lappend opts "\$${tool}_opts"
-      if { [string equal -nocase $file_type "verilog"] } {
-        lappend opts "+v2k"
-      } elseif { [string equal -nocase $file_type "systemverilog"] } {
-        lappend opts "-sverilog"
-      }
-    }
-  }
-  # append verilog defines, include dirs and include file dirs
-  switch $tool {
-    "ncvlog" -
-    "vlogan" {
-      # verilog defines
-      if { [usf_is_fileset $a_sim_vars(sp_tcl_obj)] } {
-        set verilog_defines [list]
-        set verilog_defines [get_property "VERILOG_DEFINE" [get_filesets $a_sim_vars(sp_tcl_obj)]]
-        if { [llength $verilog_defines] > 0 } {
-          usf_append_define_generics $verilog_defines $tool opts
-        }
-      }
-      # include dirs
-      foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs]] {
-        #lappend opts "+incdir+\"$dir\""
-        lappend opts "+incdir+$dir"
-      }
-    }
   }
 }
 
@@ -1800,20 +1626,6 @@ proc usf_append_other_options { tool file_type opts_arg } {
   set fs_obj [current_fileset -simset]
 
   switch $tool {
-    "vlog" {
-      # verilog defines
-      if { [usf_is_fileset $a_sim_vars(sp_tcl_obj)] } {
-        set verilog_defines [list]
-        set verilog_defines [get_property "VERILOG_DEFINE" [get_filesets $a_sim_vars(sp_tcl_obj)]]
-        if { [llength $verilog_defines] > 0 } {
-          usf_append_define_generics $verilog_defines $tool opts
-        }
-      }
-      # verilog incl dir's and verilog headers directory path if any
-      foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths]] {
-        lappend opts "+incdir+$dir"
-      }
-    }
     "verilog" {
       # include_dirs
       set unique_incl_dirs [list]

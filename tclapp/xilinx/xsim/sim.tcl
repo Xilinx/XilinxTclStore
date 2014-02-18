@@ -19,9 +19,11 @@ package require ::tclapp::xilinx::xsim::helpers
 
 namespace eval ::tclapp::xilinx::xsim {
 proc setup { args } {
-  # Summary:
+  # Summary: initialize global vars and prepare for simulation
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task 
   # Return Value:
+  # true (0) if success, false (1) otherwise
 
   # initialize global variables
   ::tclapp::xilinx::xsim::usf_init_vars
@@ -40,9 +42,11 @@ proc setup { args } {
 }
 
 proc compile { args } {
-  # Summary:
+  # Summary: run the compile step for compiling the design files
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task 
   # Return Value:
+  # none
 
   set scr_filename {}
   usf_xsim_write_compile_script scr_filename
@@ -52,9 +56,11 @@ proc compile { args } {
 }
 
 proc elaborate { args } {
-  # Summary:
+  # Summary: run the elaborate step for elaborating the compiled design
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task 
   # Return Value:
+  # none
 
   set scr_filename {}
   send_msg_id Vivado-XSim-999 INFO "xsim::elaborate design"
@@ -65,9 +71,11 @@ proc elaborate { args } {
 }
 
 proc simulate { args } {
-  # Summary:
+  # Summary: run the simulate step for simulating the elaborated design
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task 
   # Return Value:
+  # none
 
   set scr_filename {}
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
@@ -82,7 +90,24 @@ proc simulate { args } {
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
     send_msg_id Vivado-XSim-999 INFO "Scripts generated."
-    return 0
+    return
+  }
+
+  # is dll requuested?
+  set b_dll [get_property "XSIM.ELABORATE.DLL" $fs_obj]
+  if { $b_dll } {
+    set lib_extn {.dll}
+    if {$::tcl_platform(platform) == "unix"} {
+      set lib_extn {.so}
+    }
+    set dll_lib_name "xsimk";append dll_lib_name $lib_extn
+    set dll_file [file normalize [file join $dir "xsim.dir" $snapshot $dll_lib_name]]
+    if { [file exists $dll_file] } {
+      send_msg_id Vivado-XSim-999 INFO "Shared library for snapshot '$snapshot' generated:$dll_file"
+    } else {
+      send_msg_id Vivado-XSim-999 ERROR "Failed to generate the shared library for snapshot '$snapshot'!"
+    }
+    return
   }
 
   # set launch args
@@ -113,8 +138,6 @@ proc simulate { args } {
     send_msg_id Vivado-XSim-999 INFO "Closing simulation..."
     close_sim
   }
-
-  return 0
 }
 }
 
@@ -135,19 +158,13 @@ proc usf_xsim_setup_simulation { args } {
 
   set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
-  # create simulation launch dir <project>/<project.sim>/<simset>/<mode>/<type>
-  if { [file exists $run_dir] && (!$::tclapp::xilinx::xsim::a_sim_vars(b_noclean_dir)) } {
-    # TODO: check for running snapshots if any (shutdown them first)
-  }
-  ::tclapp::xilinx::xsim::usf_create_launch_dir
-
   # set default object
   if { [::tclapp::xilinx::xsim::usf_set_sim_tcl_obj] } {
     puts "failed to set tcl obj"
     return 1
   }
   # print launch_simulation arg values
-  ::tclapp::xilinx::xsim::usf_print_args
+  #::tclapp::xilinx::xsim::usf_print_args
 
   # write functional/timing netlist for post-* simulation
   ::tclapp::xilinx::xsim::usf_write_design_netlist
@@ -185,7 +202,6 @@ proc usf_xsim_setup_args { args } {
   # [-scripts_only]: Only generate scripts
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
-  # [-noclean_dir]: Do not remove simulation run directory files
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
@@ -207,7 +223,6 @@ proc usf_xsim_setup_args { args } {
       "-scripts_only"   { set ::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) 1 }
       "-of_objects"     { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) 1 }
-      "-noclean_dir"    { set ::tclapp::xilinx::xsim::a_sim_vars(b_noclean_dir) 1 }
       "-batch"          { set ::tclapp::xilinx::xsim::a_sim_vars(b_batch) 1 }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
@@ -274,6 +289,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   }
  
   set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
+  puts $fh_vlog "# compile verilog/system verilog design source files"
+  puts $fh_vhdl "# compile vhdl design source files"
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
@@ -394,19 +411,20 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   # get the wdb file information
   set wdf_file [get_property "XSIM.SIMULATE.WDB" $fs_obj]
   if { {} == $wdf_file } {
-    #set wdf_file $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot);append wdf_file ".wdb"
-    set wdf_file "xsim";append wdf_file ".wdb"
+    set wdf_file $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot);append wdf_file ".wdb"
+    #set wdf_file "xsim";append wdf_file ".wdb"
   } else {
     set wdf_file [file normalize $wdf_file]
   }
 
   # get the wcfg file information
   set b_linked_wcfg_exist 0
-  set wdb_filename [file root [file tail $wdf_file]]
   set wcfg_file [get_property "XSIM.SIMULATE.VIEW" $fs_obj]
+  set wdb_filename [file root [file tail $wdf_file]]
   if { {} == $wcfg_file } {
+    # check WCFG file with the same prefix name present in the WDB file
     set wcfg_file_in_wdb_dir ${wdb_filename};append wcfg_file_in_wdb_dir ".wcfg"
-    set wcfg_file_in_wdb_dir [file normalize [file join $dir $wcfg_file_in_wdb_dir]]
+    #set wcfg_file_in_wdb_dir [file normalize [file join $dir $wcfg_file_in_wdb_dir]]
     if { [file exists $wcfg_file_in_wdb_dir] } {
       set b_linked_wcfg_exist 1
     }
@@ -421,6 +439,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   set b_add_wave 0
   set b_add_view 0
 
+  # wcfg file specified?
   if { {} != $wcfg_file } {
     # pass -view
     set b_add_view 1
@@ -743,17 +762,19 @@ proc usf_xsim_get_snapshot {} {
   # Return Value:
 
   variable a_sim_vars
-  #set snapshot [get_property "XELAB.SNAPSHOT" [get_filesets $a_sim_vars(s_simset)]]
-  set snapshot {<Default>}
+  set snapshot [get_property "XSIM.ELABORATE.SNAPSHOT" [get_filesets $a_sim_vars(s_simset)]]
   if { ({<Default>} == $snapshot) || ({} == $snapshot) } {
     set snapshot $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
     switch -regexp -- $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow) {
-      {behav_sim} { set snapshot [append snapshot "_behav"] }
+      {behav_sim} {
+        set snapshot [append snapshot "_behav"]
+      }
       {post_synth_sim} -
       {post_impl_sim} {
         switch -regexp -- $a_sim_vars(s_type) {
           {functional} { set snapshot [append snapshot "_func"] }
-          {timing} {set snapshot [append snapshot "_time"] }
+          {timing}     { set snapshot [append snapshot "_time"] }
+          default      { set snapshot [append snapshot "_unknown"] }
         }
       }
     }

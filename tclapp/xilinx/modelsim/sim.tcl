@@ -19,9 +19,11 @@ package require ::tclapp::xilinx::modelsim::helpers
 
 namespace eval ::tclapp::xilinx::modelsim {
 proc setup { args } {
-  # Summary:
+  # Summary: initialize global vars and prepare for simulation
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # true (0) if success, false (1) otherwise
 
   # initialize global variables
   ::tclapp::xilinx::modelsim::usf_init_vars
@@ -40,9 +42,11 @@ proc setup { args } {
 }
 
 proc compile { args } {
-  # Summary:
+  # Summary: run the compile step for compiling the design files
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # none
 
   usf_modelsim_write_compile_script
 
@@ -52,9 +56,11 @@ proc compile { args } {
 }
 
 proc elaborate { args } {
-  # Summary:
+  # Summary: run the elaborate step for elaborating the compiled design
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # none
 
   send_msg_id Vivado-ModelSim-999 INFO "modelsim::elaborate design"
 
@@ -63,14 +69,14 @@ proc elaborate { args } {
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::modelsim::usf_launch_script "modelsim" $step
-
-  return 0
 }
 
 proc simulate { args } {
-  # Summary:
+  # Summary: run the simulate step for simulating the elaborated design
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # none
 
   send_msg_id Vivado-ModelSim-999 INFO "modelsim::simulate design"
 
@@ -79,7 +85,6 @@ proc simulate { args } {
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::modelsim::usf_launch_script "modelsim" $step
-  return 0
 }
 }
 
@@ -104,9 +109,6 @@ proc usf_modelsim_setup_simulation { args } {
   # set the simulation run dir
   ::tclapp::xilinx::modelsim::usf_set_run_dir
 
-  # create simulation launch dir <project>/<project.sim>/<simset>/<mode>/<type>
-  ::tclapp::xilinx::modelsim::usf_create_launch_dir
-
   # set default object
   if { [::tclapp::xilinx::modelsim::usf_set_sim_tcl_obj] } {
     puts "failed to set tcl obj"
@@ -114,7 +116,7 @@ proc usf_modelsim_setup_simulation { args } {
   }
 
   # print launch_simulation arg values
-  ::tclapp::xilinx::modelsim::usf_print_args
+  #::tclapp::xilinx::modelsim::usf_print_args
 
   # write functional/timing netlist for post-* simulation
   ::tclapp::xilinx::modelsim::usf_write_design_netlist
@@ -157,7 +159,6 @@ proc usf_modelsim_setup_args { args } {
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-install_path <arg>]: Custom ModelSim installation directory path
-  # [-noclean_dir]: Do not remove simulation run directory files
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
@@ -180,7 +181,6 @@ proc usf_modelsim_setup_args { args } {
       "-of_objects"     { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) 1 }
       "-install_path"   { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_install_path) [lindex $args $i] }
-      "-noclean_dir"    { set ::tclapp::xilinx::modelsim::a_sim_vars(b_noclean_dir) 1 }
       "-batch"          { set ::tclapp::xilinx::modelsim::a_sim_vars(b_batch) 1 }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
@@ -271,10 +271,10 @@ proc usf_modelsim_write_setup_files {} {
     }
   }
 
-  if { [catch {file mkdir $lib_dir} error_msg] } {
-    send_msg_id Vivado-ModelSim-999 ERROR "failed to create the directory ($lib_dir): $error_msg\n"
-    return 1
-  }
+  #if { [catch {file mkdir $lib_dir} error_msg] } {
+  #  send_msg_id Vivado-ModelSim-999 ERROR "failed to create the directory ($lib_dir): $error_msg\n"
+  #  return 1
+  #}
 }
 
 proc usf_modelsim_write_compile_script {} {
@@ -380,7 +380,9 @@ proc usf_modelsim_create_wave_do_file { file } {
   }
   usf_modelsim_write_header $fh $file "WAVEDOFILE"
   puts $fh "add wave *"
-  # TODO
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog] } {
+    puts $fh "add wave /glbl/GSR"
+  }
   close $fh
 }
 
@@ -402,12 +404,13 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   usf_modelsim_write_header $fh $do_file "DOFILE"
 
-  if { ![get_param "simulator.modelsimNoQuitOnError"] } {
+  if { [get_param "simulator.modelsimNoQuitOnError"] } {
     puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}"
   }
 
-  puts $fh "vlib work\n"
+  puts $fh "vlib work"
+  puts $fh "vlib msim\n"
 
   set files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation]]
   set design_libs [usf_modelsim_get_design_libs $files]
@@ -450,7 +453,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     set file_str "-work $default_lib \"[::tclapp::xilinx::modelsim::usf_get_glbl_file]\""
     puts $fh "\n# Compile glbl module\nvlog $file_str"
   }
-  puts $fh "quit -force"
+  puts $fh "\nquit -force"
   close $fh
 }
 
@@ -467,6 +470,10 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
     return 1
   }
   usf_modelsim_write_header $fh $do_file "DOFILE"
+  if { [get_param "simulator.modelsimNoQuitOnError"] } {
+    puts $fh "\nonbreak {quit -f}"
+    puts $fh "onerror {quit -f}\n"
+  }
   set cmd_str [usf_modelsim_get_elaboration_cmdline]
   puts $fh "$cmd_str"
   puts $fh "quit -force"
@@ -487,12 +494,6 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set arg_list [list]
-  foreach lib [::tclapp::xilinx::modelsim::usf_get_compile_order_libs] {
-    if {[string length $lib] == 0} { continue; }
-    lappend arg_list "-lib"
-    lappend arg_list "[string tolower $lib]"
-  }
-
   # add simulation libraries
   set b_compile_unifast [get_property "MODELSIM.COMPILE.UNIFAST" $fs_obj]
   if { [::tclapp::xilinx::modelsim::usf_add_unisims $b_compile_unifast] } { set arg_list [linsert $arg_list end "-L" "unisims_ver"] }
@@ -500,6 +501,16 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   if { [::tclapp::xilinx::modelsim::usf_add_unifast $b_compile_unifast] } {  set arg_list [linsert $arg_list end "-L" "unifast"] }
   if { [::tclapp::xilinx::modelsim::usf_add_unimacro] } { set arg_list [linsert $arg_list end "-L" "unimacro"] }
   if { [::tclapp::xilinx::modelsim::usf_add_secureip] } { set arg_list [linsert $arg_list end "-L" "secureip"] }
+
+  # add design libraries
+  foreach lib [::tclapp::xilinx::modelsim::usf_get_compile_order_libs] {
+    if {[string length $lib] == 0} { continue; }
+    lappend arg_list "-L"
+    lappend arg_list "[string tolower $lib]"
+  }
+
+  lappend arg_list "-lib"
+  lappend arg_list [get_property "DEFAULT_LIB" [current_project]]
 
   set d_libs [join $arg_list " "]
   set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
@@ -532,6 +543,10 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
   usf_modelsim_create_wave_do_file $wave_do_file
   set cmd_str [usf_modelsim_get_elaboration_cmdline]
+  if { $b_batch && [get_param "simulator.modelsimNoQuitOnError"] } {
+    puts $fh "\nonbreak {quit -f}"
+    puts $fh "onerror {quit -f}\n"
+  }
   puts $fh "$cmd_str"
   puts $fh "do \{$wave_do_filename\}"
   puts $fh "view wave"
@@ -579,53 +594,34 @@ proc usf_modelsim_write_header { fh filename file_type } {
   set copyright   [lindex $version_txt 2]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
-  set timestamp   ""
-  set flow_type $::tclapp::xilinx::modelsim::a_sim_vars(s_type)
+  set timestamp   [clock format [clock seconds]]
+  set mode_type   $::tclapp::xilinx::modelsim::a_sim_vars(s_mode)
+  set name        [file tail $filename]
+  puts $fh "######################################################################"
+  puts $fh "#"
+  puts $fh "# File name : $name"
+  puts $fh "# Created on: $timestamp"
+  puts $fh "#"
+  puts $fh "# Auto generated by $product for '$mode_type' simulation"
+  puts $fh "#"
   switch $file_type {
     "DOFILE" {
-      puts $fh "######################################################################"
-      puts $fh "##"
-      puts $fh "## Filename: [file tail $filename]"
-      puts $fh "## Created on: $timestamp"
-      puts $fh "##"
-      puts $fh "##  Auto generated by $product for $flow_type"
-      puts $fh "##"
-      puts $fh "##  ---------------------DO NOT EDIT THIS FILE-------------------------"
-      puts $fh "##  You may want to add additional commands to control the simulation"
-      puts $fh "##  in the user specific do file (<module>.udo) which is automatically"
-      puts $fh "##  generated in the simulation directory and will not be removed on"
-      puts $fh "##  subsequent simulation flow runs from $product"
-      puts $fh "##  ---------------------DO NOT EDIT THIS FILE-------------------------"
-      puts $fh "##"
-      puts $fh "######################################################################"
+      puts $fh "# ---------------------DO NOT EDIT THIS FILE-------------------------"
+      puts $fh "# You may want to add additional commands to control the simulation"
+      puts $fh "# in the user specific do file (<module>.udo) which is automatically"
+      puts $fh "# generated in the simulation directory and will not be removed on"
+      puts $fh "# subsequent simulation flow runs from $product"
+      puts $fh "# ---------------------DO NOT EDIT THIS FILE-------------------------"
     }
-    "UDOFILE" {
-      puts $fh "######################################################################"
-      puts $fh "##"
-      puts $fh "## Filename: $filename"
-      puts $fh "## Created on: $timestamp"
-      puts $fh "##"
-      puts $fh "##  Auto generated by $product for $flow_type"
-      puts $fh "##"
-      puts $fh "##  You may want to edit this file to control the simulation"
-      puts $fh "##"
-      puts $fh "######################################################################\n"
-    }
+    "UDOFILE" -
     "WAVEDOFILE" {
-      puts $fh "######################################################################"
-      puts $fh "##"
-      puts $fh "## Filename: $filename"
-      puts $fh "## Created on: $timestamp"
-      puts $fh "##"
-      puts $fh "##  Auto generated by $product for $flow_type"
-      puts $fh "##"
-      puts $fh "##  You may want to edit this file to control the simulation"
-      puts $fh "##"
-      puts $fh "######################################################################\n"
+      puts $fh "# You may want to edit this file to control the simulation"
     }
     default: {
     }
   }
+  puts $fh "#"
+  puts $fh "######################################################################"
 }
 
 proc usf_modelsim_write_driver_shell_script { do_filename step } {

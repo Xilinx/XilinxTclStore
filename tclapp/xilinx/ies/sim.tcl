@@ -19,9 +19,11 @@ package require ::tclapp::xilinx::ies::helpers
 
 namespace eval ::tclapp::xilinx::ies {
 proc setup { args } {
-  # Summary:
+  # Summary: initialize global vars and prepare for simulation
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # true (0) if success, false (1) otherwise
 
   # initialize global variables
   ::tclapp::xilinx::ies::usf_init_vars
@@ -40,9 +42,11 @@ proc setup { args } {
 }
 
 proc compile { args } {
-  # Summary:
+  # Summary: run the compile step for compiling the design files
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # none
 
   usf_ies_write_compile_script
 
@@ -52,9 +56,11 @@ proc compile { args } {
 }
 
 proc elaborate { args } {
-  # Summary:
+  # Summary: run the elaborate step for elaborating the compiled design
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # none
 
   send_msg_id Vivado-IES-999 INFO "ies::elaborate design"
 
@@ -63,13 +69,14 @@ proc elaborate { args } {
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::ies::usf_launch_script "ies" $step
-  return 0
 }
 
 proc simulate { args } {
-  # Summary:
+  # Summary: run the simulate step for simulating the elaborated design
   # Argument Usage:
+  # args: command line args passed from launch_simulation tcl task
   # Return Value:
+  # none
 
   send_msg_id Vivado-IES-999 INFO "ies::simulate design"
 
@@ -78,8 +85,6 @@ proc simulate { args } {
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::ies::usf_launch_script "ies" $step
-
-  return 0
 }
 }
 
@@ -103,9 +108,6 @@ proc usf_ies_setup_simulation { args } {
   # set the simulation run dir
   ::tclapp::xilinx::ies::usf_set_run_dir
 
-  # create simulation launch dir <project>/<project.sim>/<simset>/<mode>/<type>
-  ::tclapp::xilinx::ies::usf_create_launch_dir
-
   # set default object
   if { [::tclapp::xilinx::ies::usf_set_sim_tcl_obj] } {
     puts "failed to set tcl obj"
@@ -113,7 +115,7 @@ proc usf_ies_setup_simulation { args } {
   }
 
   # print launch_simulation arg values
-  ::tclapp::xilinx::ies::usf_print_args
+  #::tclapp::xilinx::ies::usf_print_args
 
   # write functional/timing netlist for post-* simulation
   ::tclapp::xilinx::ies::usf_write_design_netlist
@@ -155,7 +157,6 @@ proc usf_ies_setup_args { args } {
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-install_path <arg>]: Custom IES installation directory path
-  # [-noclean_dir]: Do not remove simulation run directory files
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
@@ -178,7 +179,6 @@ proc usf_ies_setup_args { args } {
       "-of_objects"     { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::ies::a_sim_vars(b_absolute_path) 1 }
       "-install_path"   { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_install_path) [lindex $args $i] }
-      "-noclean_dir"    { set ::tclapp::xilinx::ies::a_sim_vars(b_noclean_dir) 1 }
       "-batch"          { set ::tclapp::xilinx::ies::a_sim_vars(b_batch) 1 }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
@@ -205,7 +205,7 @@ proc usf_ies_verify_compiled_lib {} {
   send_msg_id Vivado-ies-999 INFO "Finding pre-compiled libraries...\n"
   # check property value
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
-  set file [file normalize [file join $dir $cds_file]]
+  set cds_file [file normalize [file join $dir $cds_file]]
   if { [file exists $cds_file] } {
     set compiled_lib_dir $dir
   }
@@ -220,7 +220,7 @@ proc usf_ies_verify_compiled_lib {} {
   # return if found, else warning
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::ies::a_ies_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
-   send_msg_id Vivado-ies-999 INFO "Compiled library path:'dir'\n"
+   send_msg_id Vivado-ies-999 INFO "Compiled library path:$compiled_lib_dir\n"
    return
   }
   send_msg_id Vivado-ies-999 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library information!\n"
@@ -245,7 +245,11 @@ proc usf_ies_write_setup_files {} {
     send_msg_id Vivado-IES-999 ERROR "failed to open file to write ($file)\n"
     return 1
   }
-  puts $fh "INCLUDE $::tclapp::xilinx::ies::a_ies_sim_vars(s_compiled_lib_dir)/$filename"
+  set lib_map_path $::tclapp::xilinx::ies::a_ies_sim_vars(s_compiled_lib_dir)
+  if { {} == $lib_map_path } {
+    set lib_map_path "?"
+  }
+  puts $fh "INCLUDE $lib_map_path/$filename"
   set libs [list]
   foreach lib [::tclapp::xilinx::ies::usf_get_compile_order_libs] {
     if {[string length $lib] == 0} { continue; }
@@ -288,17 +292,19 @@ proc usf_ies_write_compile_script {} {
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
 
   set filename "compile";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
-  set file [file normalize [file join $dir $filename]]
+  set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
 
-  if {[catch {open $file w} fh_scr]} {
-    send_msg_id Vivado-IES-999 ERROR "failed to open file to write ($file)\n"
+  if {[catch {open $scr_file w} fh_scr]} {
+    send_msg_id Vivado-IES-999 ERROR "failed to open file to write ($scr_file)\n"
     return 1
   }
 
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "#!/bin/sh -f"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
+    ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+    puts $fh_scr "\n# installation path setting"
+    puts $fh_scr "bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\"\n"
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
@@ -310,6 +316,7 @@ proc usf_ies_write_compile_script {} {
   if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
+  puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   } else {
@@ -321,6 +328,7 @@ proc usf_ies_write_compile_script {} {
   if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
+  puts $fh_scr "\n# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
   } else {
@@ -328,6 +336,7 @@ proc usf_ies_write_compile_script {} {
   }
 
   set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation]]
+  puts $fh_scr "# compile design source files"
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
@@ -339,7 +348,7 @@ proc usf_ies_write_compile_script {} {
   set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
   if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl] } {
     set file_str "-work $default_lib \"[::tclapp::xilinx::ies::usf_get_glbl_file]\""
-    puts $fh_scr "\n# Compile glbl module\n\$bin_path/ncvlog \$ncvlog_opts $file_str"
+    puts $fh_scr "\n# compile glbl module\n\$bin_path/ncvlog \$ncvlog_opts $file_str"
   }
 
   close $fh_scr
@@ -355,17 +364,19 @@ proc usf_ies_write_elaborate_script {} {
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
 
   set filename "elaborate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
-  set file [file normalize [file join $dir $filename]]
+  set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
 
-  if {[catch {open $file w} fh_scr]} {
-    send_msg_id Vivado-IES-999 ERROR "failed to open file to write ($file)\n"
+  if {[catch {open $scr_file w} fh_scr]} {
+    send_msg_id Vivado-IES-999 ERROR "failed to open file to write ($scr_file)\n"
     return 1
   }
  
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "#!/bin/sh -f"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
+    ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+    puts $fh_scr "\n# installation path setting"
+    puts $fh_scr "bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\"\n"
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
@@ -379,6 +390,7 @@ proc usf_ies_write_elaborate_script {} {
      set arg_list [linsert $arg_list 0 "-64bit"]
   }
 
+  puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   } else {
@@ -386,14 +398,6 @@ proc usf_ies_write_elaborate_script {} {
   }
 
   set arg_list [list]
-  foreach lib [::tclapp::xilinx::ies::usf_get_compile_order_libs] {
-     if {[string length $lib] == 0} {
-       continue;
-     }
-     lappend arg_list "-libname"
-     lappend arg_list "[string tolower $lib]"
-  }
-
   # add simulation libraries
   set b_compile_unifast [get_property "IES.COMPILE.UNIFAST" $fs_obj]
   if { [::tclapp::xilinx::ies::usf_add_unisims $b_compile_unifast] } { set arg_list [linsert $arg_list end "-libname" "unisims_ver"] }
@@ -402,6 +406,16 @@ proc usf_ies_write_elaborate_script {} {
   if { [::tclapp::xilinx::ies::usf_add_unimacro] } { set arg_list [linsert $arg_list end "-libname" "unimacro"] }
   if { [::tclapp::xilinx::ies::usf_add_secureip] } { set arg_list [linsert $arg_list end "-libname" "secureip"] }
 
+  # add design libraries
+  foreach lib [::tclapp::xilinx::ies::usf_get_compile_order_libs] {
+    if {[string length $lib] == 0} {
+      continue;
+    }
+    lappend arg_list "-libname"
+    lappend arg_list "[string tolower $lib]"
+  }
+
+  puts $fh_scr "\n# set design libraries"
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "design_libs_elab=\"[join $arg_list " "]\"\n"
   } else {
@@ -420,12 +434,13 @@ proc usf_ies_write_elaborate_script {} {
     }
   }
 
+  lappend arg_list "\$design_libs_elab"
   lappend arg_list "${top_lib}.$top"
   if { [::tclapp::xilinx::ies::usf_contains_verilog] } {
     lappend arg_list "${top_lib}.glbl"
   }
 
-  lappend arg_list "\$design_libs_elab"
+  puts $fh_scr "# run elaboration"
   set cmd_str [join $arg_list " "]
   puts $fh_scr "$cmd_str"
   close $fh_scr
@@ -439,17 +454,19 @@ proc usf_ies_write_simulate_script {} {
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set filename "simulate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
-  set file [file normalize [file join $dir $filename]]
+  set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
 
-  if { [catch {open $file w} fh_scr] } {
+  if { [catch {open $scr_file w} fh_scr] } {
     send_msg_id Vivado-IES-999 ERROR "failed to open file to write ($file)\n"
     return 1
   }
 
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "#!/bin/sh -f"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
+    ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+    puts $fh_scr "\n# installation path setting"
+    puts $fh_scr "bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\"\n"
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
@@ -471,6 +488,7 @@ proc usf_ies_write_simulate_script {} {
     set arg_list [linsert $arg_list end "-gui"]
   }
 
+  puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   } else {
@@ -482,6 +500,7 @@ proc usf_ies_write_simulate_script {} {
   set arg_list [list "${tool_path}" "\$${tool}_opts" "${top_lib}.$top" "-input" "$do_filename"]
   set cmd_str [join $arg_list " "]
 
+  puts $fh_scr "# run simulation"
   puts $fh_scr "$cmd_str"
   close $fh_scr
 }
