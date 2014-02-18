@@ -46,6 +46,7 @@ proc register_options { simulator } {
     {{compile.unifast}            {bool}   {0}                                     {Enable fast simulation models}}
     {{compile.vlog_more_options}  {string} {}                                      {More VLOG options}}
     {{compile.vcom_more_options}  {string} {}                                      {More VCOM options}}
+    {{simulate.runtime}           {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.custom_do}         {string} {}                                      {Specify name of the custom do file}}
     {{simulate.custom_udo}        {string} {}                                      {Specify name of the custom user do file}}
     {{simulate.sdf_delay}         {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}

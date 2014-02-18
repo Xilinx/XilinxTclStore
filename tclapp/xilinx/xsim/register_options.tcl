@@ -51,6 +51,7 @@ proc register_options { simulator } {
     {{elaborate.sdf_delay}         {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
     {{elaborate.unifast}           {bool}   {0}                                                  {Enable fast simulation models}}
     {{elaborate.more_options}      {string} {}                                                   {More Elaboration Options}}
+    {{simulate.runtime}            {string} {1000ns}                                             {Specify simulation run time}}
     {{simulate.wdb}                {string} {}                                                   {Specify Waveform Database file}}
     {{simulate.saif}               {string} {}                                                   {SAIF Filename}}
     {{simulate.tclbatch}           {string} {}                                                   {Specify custom command file for simulation}}

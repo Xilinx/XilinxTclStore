@@ -731,7 +731,7 @@ proc usf_create_do_file { simulator do_filename } {
         }
       }
     }
-    set time [get_property "RUNTIME" $fs_obj]
+    set time [get_property "VCS_MX.SIMULATE.RUNTIME" $fs_obj]
     puts $fh_do "run $time"
     if { {} != $saif } {
       switch -regexp -- $simulator {

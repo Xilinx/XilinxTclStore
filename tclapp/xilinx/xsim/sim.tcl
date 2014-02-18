@@ -721,7 +721,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     }
   }
 
-  set runtime [get_property "RUNTIME" $fs_obj]
+  set runtime [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]
   if { {} != $runtime } {
     puts $fh_scr "run $runtime"
   }

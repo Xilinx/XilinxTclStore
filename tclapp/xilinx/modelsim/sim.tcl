@@ -405,8 +405,8 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   usf_modelsim_write_header $fh $do_file "DOFILE"
 
   if { [get_param "simulator.modelsimNoQuitOnError"] } {
-    puts $fh "onbreak {quit -f}"
-    puts $fh "onerror {quit -f}"
+    puts $fh "\nonbreak {quit -f}"
+    puts $fh "onerror {quit -f}\n"
   }
 
   puts $fh "vlib work"
@@ -567,7 +567,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     }
   }
   puts $fh "do \{$top.udo\}"
-  set time [get_property "RUNTIME" $fs_obj]
+  set time [get_property "MODELSIM.SIMULATE.RUNTIME" $fs_obj]
   puts $fh "run $time"
 
   if { {} != $saif } {

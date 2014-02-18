@@ -45,6 +45,7 @@ proc register_options { simulator } {
     {{compile.load_glbl}      {bool}   {1}                                                   {Load GLBL module}}
     {{compile.more_options}   {string} {}                                                    {More Compilation Options}}
     {{elaborate.more_options} {string} {}                                                    {More Elaboration Options}}
+    {{simulate.runtime}       {string} {1000ns}                                              {Specify simulation run time}}
     {{simulate.saif}          {string} {}                                                    {SAIF Filename}}
     {{simulate.more_options}  {string} {}                                                    {More Simulation Options}}
   }
