@@ -298,7 +298,7 @@ proc usf_write_design_netlist {} {
   if { {behav_sim} == $a_sim_vars(s_simulation_flow) } { 
     return
   } 
-  set extn [usf_get_netlist_extn 0]
+  set extn [usf_get_netlist_extn 1]
   # generate netlist
   set net_filename [usf_get_netlist_filename];append net_filename "$extn"
   set sdf_filename [usf_get_netlist_filename];append sdf_filename ".sdf"
@@ -807,7 +807,7 @@ proc usf_get_files_for_compilation {} {
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     #send_msg_id Vivado-XSim-999 INFO "Adding netlist files:-\n"
     if { {} != $netlist_file } {
-      set file_type $target_lang
+      set file_type "Verilog"
       set cmd_str [usf_get_file_cmd_str $netlist_file $file_type {}]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -1068,6 +1068,8 @@ proc usf_get_netlist_extn { warning } {
   # Summary:
   # Argument Usage:
   # Return Value:
+  
+  variable a_sim_vars
 
   set extn {.v}
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
@@ -1075,10 +1077,10 @@ proc usf_get_netlist_extn { warning } {
     set extn {.vhdl}
   }
 
-  if { ({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type)) } {
+  if { ({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type) || {functional} == $a_sim_vars(s_type)) } {
     set extn {.v}
     if { $warning } {
-      send_msg_id Vivado-XSim-999 INFO "The target language is set to VHDL, it is not supported for simulation type 'timing', using Verilog instead.\n"
+      send_msg_id Vivado-XSim-999 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
     }
   }
   return $extn

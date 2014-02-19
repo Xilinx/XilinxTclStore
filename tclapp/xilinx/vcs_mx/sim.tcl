@@ -365,6 +365,16 @@ proc usf_vcs_mx_write_elaborate_script {} {
      set arg_list [linsert $arg_list 0 "-full64"]
   }
 
+  # design contains ax-bfm ip? insert bfm library
+  if { [::tclapp::xilinx::vcs_mx::usf_is_axi_bfm_ip] } {
+    set simulator_lib [usf_get_simulator_lib_for_bfm]
+    if { {} != $simulator_lib } {
+      set arg_list [linsert $arg_list 0 "-load \"$simulator_lib:xilinx_register_systf\""]
+    } else {
+      send_msg_id Vivado-VCS_MX-999 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+    }
+  }
+
   puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"

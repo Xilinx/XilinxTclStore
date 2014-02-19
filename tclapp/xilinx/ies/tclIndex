@@ -84,6 +84,7 @@ set auto_index(::tclapp::xilinx::ies::usf_get_file_cmd_str) [list source [file j
 set auto_index(::tclapp::xilinx::ies::usf_get_file_type_category) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_get_netlist_writer_cmd_args) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_get_sdf_writer_cmd_args) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::ies::usf_get_xil_simulator_lib) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_get_top) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::ies::usf_get_platform) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_is_axi_bfm_ip) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::ies::usf_get_simulator_lib_for_bfm) [list source [file join $dir helpers.tcl]]

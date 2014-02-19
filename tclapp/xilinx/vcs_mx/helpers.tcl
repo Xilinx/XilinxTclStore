@@ -298,7 +298,7 @@ proc usf_write_design_netlist {} {
   if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
     return
   } 
-  set extn [usf_get_netlist_extn 0]
+  set extn [usf_get_netlist_extn 1]
   # generate netlist
   set net_filename [usf_get_netlist_filename];append net_filename "$extn"
   set sdf_filename [usf_get_netlist_filename];append sdf_filename ".sdf"
@@ -900,7 +900,7 @@ proc usf_get_files_for_compilation {} {
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     #send_msg_id Vivado-VCS_MX-999 INFO "Adding netlist files:-\n"
     if { {} != $netlist_file } {
-      set file_type $target_lang
+      set file_type "Verilog"
       set cmd_str [usf_get_file_cmd_str $netlist_file $file_type {}]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -1175,6 +1175,71 @@ proc usf_get_script_extn {} {
   }
   return $scr_extn
 }
+
+proc usf_get_platform {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  set platform {} 
+  set os $::tcl_platform(platform)
+  if { {windows}   == $os } { set platform "win32" }
+  if { {windows64} == $os } { set platform "win64" }
+  if { {unix} == $os } {
+    if { {x86_64} == $::tcl_platform(machine) } {
+      set platform "lin64"
+    } else {
+      set platform "lin32"
+    }
+  }
+  return $platform
+}
+
+proc usf_is_axi_bfm_ip {} {
+  # Summary: Finds VLNV property value for the IP and checks to see if the IP is AXI_BFM
+  # Argument Usage:
+  # Return Value:
+  # true (1) if specified IP is axi_bfm, false (0) otherwise
+
+  foreach ip [get_ips] {
+    set ip_def [lindex [split [get_property "IPDEF" [get_ips $ip]] {:}] 2]
+    set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
+    if { [regexp -nocase {axi_bfm} $value] } {
+      return 1
+    }
+  }
+  return 0
+}
+
+proc usf_get_simulator_lib_for_bfm {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set simulator_lib {}
+  set xil           $::env(XILINX)
+  set path_sep      {;}
+  set lib_extn      {.dll}
+  set platform      [::tclapp::xilinx::vcs_mx::usf_get_platform]
+
+  if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
+  if {$::tcl_platform(platform) == "unix"} { set lib_extn {.so} }
+
+  set lib_name "libxil_vcs";append lib_name $lib_extn
+  if { {} != $xil } {
+    set lib_path {}
+    foreach path [split $xil $path_sep] {
+      set file [file normalize [file join $path "lib" $platform $lib_name]]
+      if { [file exists $file] } {
+        set simulator_lib $file
+        break
+      }
+    }
+  } else {
+    send_msg_id Vivado-VCS_MX-999 ERROR "Environment variable 'XILINX' is not set!"
+  }
+  return $simulator_lib
+}
 }
 
 #
@@ -1185,6 +1250,8 @@ proc usf_get_netlist_extn { warning } {
   # Summary:
   # Argument Usage:
   # Return Value:
+ 
+  variable a_sim_vars
 
   set extn {.v}
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
@@ -1192,10 +1259,10 @@ proc usf_get_netlist_extn { warning } {
     set extn {.vhdl}
   }
 
-  if { ({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type)) } {
+  if { ({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type) || {functional} == $a_sim_vars(s_type)) } {
     set extn {.v}
     if { $warning } {
-      send_msg_id Vivado-VCS_MX-999 INFO "The target language is set to VHDL, it is not supported for simulation type 'timing', using Verilog instead.\n"
+      send_msg_id Vivado-VCS_MX-999 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
     }
   }
   return $extn
@@ -2058,36 +2125,13 @@ proc usf_get_sdf_writer_cmd_args { } {
   set cmd_args [join $args " "]
   return $cmd_args
 }
+
 }
 
 #
 # not used currently
 #
 namespace eval ::tclapp::xilinx::vcs_mx {
-proc usf_get_xil_simulator_lib {} {
-  # Summary: Finds the simulator library from the install directory
-  # Argument Usage:
-  # Return Value:
-  # File path to the library
-
-  variable a_sim_vars
-  set xil_sim_lib_path {}
-  set lib_name "libxil_vcs.so"
-  set platform "lin32"
-  if { $::tcl_platform(machine) eq "x86_64" } {
-    set platform "lin64"
-  }
-  foreach path [split $::env(XILINX) {:}] {
-    set xil_path [file normalize $path]
-    set file_path [file normalize [file join $xil_path "lib" $platform $lib_name]]
-    if { [file exist $file_path] } {
-      set xil_sim_lib_path $file_path
-      break;
-    }
-  }
-  return $xil_sim_lib_path
-}
-
 proc usf_get_top { top_arg } {
   # Summary:
   # Argument Usage:
@@ -2102,22 +2146,6 @@ proc usf_get_top { top_arg } {
        value is provided for 'top'. The value for 'top' can be set/changed using the 'Top Module Name' field under\
        'Project Settings', or using the 'set_property top' Tcl command (e.g. set_property top <name> \[current_fileset\])."
     return 1
-  }
-  return 0
-}
-
-proc usf_is_axi_bfm_ip {} {
-  # Summary: Finds VLNV property value for the IP and checks to see if the IP is AXI_BFM
-  # Argument Usage:
-  # Return Value:
-  # true (1) if specified IP is axi_bfm, false (0) otherwise
-
-  foreach ip [get_ips] {
-    set ip_def [lindex [split [get_property "IPDEF" [get_ips $ip]] {:}] 2]
-    set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
-    if { [regexp -nocase {axi_bfm} $value] } {
-      return 1
-    }
   }
   return 0
 }

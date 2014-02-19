@@ -491,6 +491,17 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set tool "vsim"
   set arg_list [list "-voptargs=\\\"+acc\\\"" "-t 1ps"]
+
+  # design contains ax-bfm ip? insert bfm library
+  if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {
+    set simulator_lib [usf_get_simulator_lib_for_bfm]
+    if { {} != $simulator_lib } {
+      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
+    } else {
+      send_msg_id Vivado-VCS_MX-999 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+    }
+  }
+
   set t_opts [join $arg_list " "]
 
   set arg_list [list]
