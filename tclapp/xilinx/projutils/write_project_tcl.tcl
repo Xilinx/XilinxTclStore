@@ -115,9 +115,6 @@ proc write_project_tcl {args} {
   if {[write_project_tcl_script]} {
     return 1
   }
-     
-  # TCL_OK 
-  return 0
 }
 }
 
@@ -138,6 +135,9 @@ variable l_filetype_filter [list]
 set l_filetype_filter [list "ip" "embedded design sources" "elf" "coefficient files" "configuration files" \
                             "block diagrams" "block designs" "dsp design sources" "text" \
                             "design checkpoint" "waveform configuration file"]
+# ip file extension types
+variable l_valid_ip_extns [list]
+set l_valid_ip_extns      [list ".xci" ".bd" ".slx"]
 
 # set fileset types
 variable a_fileset_types
@@ -349,8 +349,8 @@ proc wr_project_properties { proj_dir proj_name } {
   lappend l_script_data "# Set project properties"
   lappend l_script_data "set obj \[$get_what $tcl_obj\]"
 
-  # is project "board" set already?
-  if { [string length [get_property "board" $tcl_obj]] > 0 } {
+  # is project "board_part" set already?
+  if { [string length [get_property "board_part" $tcl_obj]] > 0 } {
     set b_project_board_set 1
   }
 
@@ -394,7 +394,7 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
     set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
 
     lappend l_script_data "# Create '$tcl_obj' fileset (if not found)"
-    lappend l_script_data "if \{\[string equal \[get_filesets $tcl_obj\] \"\"\]\} \{"
+    lappend l_script_data "if \{\[string equal \[get_filesets -quiet $tcl_obj\] \"\"\]\} \{"
 
     set fs_sw_type [get_fileset_type_switch $fs_type]
     lappend l_script_data "  create_fileset $fs_sw_type $tcl_obj"
@@ -440,12 +440,22 @@ proc wr_runs { proj_dir proj_name } {
   # Return Value:
   # None
 
+  variable l_script_data
+
   # write runs (synthesis, Implementation)
   set runs [get_runs -filter {IS_SYNTHESIS == 1}]
   write_specified_run $proj_dir $proj_name $runs
 
+  if { {RTL} == [get_property design_mode [current_fileset]] } {
+    lappend l_script_data "# set the current synth run"
+    lappend l_script_data "current_run -synthesis \[get_runs [current_run -synthesis]\]\n"
+  }
+
   set runs [get_runs -filter {IS_IMPLEMENTATION == 1}]
   write_specified_run $proj_dir $proj_name $runs
+
+  lappend l_script_data "# set the current impl run"
+  lappend l_script_data "current_run -implementation \[get_runs [current_run -implementation]\]"
 }
 
 proc wr_proj_info { proj_name } {
@@ -553,7 +563,7 @@ proc get_ip_repo_paths { tcl_obj } {
   return $repo_path_list
 }
 
-proc filter { prop val } {
+proc filter { prop val { file {} } } {
   # Summary: filter special properties
   # This helper command is used to script help.
   # Argument Usage: 
@@ -561,9 +571,11 @@ proc filter { prop val } {
   # true (1) if found, false (1) otherwise
 
   variable l_filetype_filter
+  variable l_valid_ip_extns
 
   set prop [string toupper $prop]
-  if { [expr { $prop == "IS_HD" } || \
+  if { [expr { $prop == "BOARD" } || \
+             { $prop == "IS_HD" } || \
              { $prop == "IS_PARTIAL_RECONFIG" } || \
              { $prop == "ADD_STEP" }]} {
     return 1
@@ -580,6 +592,13 @@ proc filter { prop val } {
   set val  [string tolower $val]
   if { [string equal $prop "FILE_TYPE"] } {
     if { [lsearch $l_filetype_filter $val] != -1 } {
+      return 1
+    }
+  }
+
+  # filter readonly is_managed property for ip
+  if { [string equal $prop "IS_MANAGED"] } {
+    if { [lsearch -exact $l_valid_ip_extns [string tolower [file extension $file]]] >= 0 } {
       return 1
     }
   }
@@ -688,14 +707,14 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
     # filter special properties
     if { [filter $prop $cur_val] } { continue }
 
-    # do not set "runs" or "project" part, if "board" is set
+    # do not set "runs" or "project" part, if "board_part" is set
     if { ([string equal $type "project"] || [string equal $type "run"]) && 
          [string equal -nocase $prop "part"] &&
          $b_project_board_set } {
       continue
     }
 
-    # do not set "fileset" target_part, if "board" is set
+    # do not set "fileset" target_part, if "board_part" is set
     if { [string equal $type "fileset"] &&
          [string equal -nocase $prop "target_part"] &&
          $b_project_board_set } {
@@ -775,7 +794,35 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       }
       set prop_entry "[string tolower $prop]#$compile_lib_dir_path"
     }
- 
+
+    # process run step tcl pre/post properties
+    if { [string equal $type "run"] } {
+      if { [regexp "STEPS" $prop] } {
+        if { [regexp "TCL.PRE" $prop] || [regexp "TCL.POST" $prop] } {
+          if { ($cur_val != "") } {
+            set file $cur_val
+
+            set srcs_dir "${proj_name}.srcs"
+            set file_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
+            set src_file [join [lrange $file_dirs [lsearch -exact $file_dirs "$srcs_dir"] end] "/"]
+
+            set tcl_file_path {}
+            if { [is_local_to_project $file] } {
+              set tcl_file_path "\$proj_dir/$src_file"
+            } else {
+              if { $a_global_vars(b_absolute_path) } {
+                set tcl_file_path "$file"
+              } else {
+                set rel_file_path "[get_relative_file_path $src_file $a_global_vars(s_path_to_script_dir)]"
+                set tcl_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
+              }
+            }
+            set prop_entry "[string tolower $prop]#$tcl_file_path"
+          }
+        }
+      }
+    }
+
     if { $a_global_vars(b_arg_all_props) } {
       lappend prop_info_list $prop_entry
     } else {
@@ -971,9 +1018,12 @@ proc write_specified_run { proj_dir proj_name runs } {
     set cur_strat_type_val [get_property strategy [$get_what $tcl_obj]]
 
     lappend l_script_data "# Create '$tcl_obj' run (if not found)"
-    lappend l_script_data "if \{\[string equal \[get_runs $tcl_obj\] \"\"\]\} \{"
+    lappend l_script_data "if \{\[string equal \[get_runs -quiet $tcl_obj\] \"\"\]\} \{"
     set cmd_str "  create_run -name $tcl_obj -part $part -flow {$cur_flow_type_val} -strategy \"$cur_strat_type_val\""
     lappend l_script_data "$cmd_str -constrset $constrs_set$parent_run_str"
+    lappend l_script_data "\} else \{"
+    lappend l_script_data "  set_property strategy \"$cur_strat_type_val\" \[get_runs $tcl_obj\]"
+    lappend l_script_data "  set_property flow \"$cur_flow_type_val\" \[get_runs $tcl_obj\]"
     lappend l_script_data "\}"
 
     lappend l_script_data "set obj \[$get_what $tcl_obj\]"
@@ -1080,7 +1130,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
       set cur_val [get_property $file_prop $file_object]
 
       # filter special properties
-      if { [filter $file_prop $cur_val] } { continue }
+      if { [filter $file_prop $cur_val $file] } { continue }
 
       # re-align values
       set cur_val [get_target_bool_val $def_val $cur_val]
