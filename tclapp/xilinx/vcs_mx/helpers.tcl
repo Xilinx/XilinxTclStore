@@ -847,11 +847,14 @@ proc usf_set_simulator_path { simulator } {
  if { {} == $install_path } {
    set bin_path [usf_get_bin_path $tool_name $path_sep]
    if { {} == $bin_path } {
-     #send_msg_id Vivado-VCS_MX-999 ERROR "
-     error \
-       "Failed to locate '$tool_name' executable in the shell environment 'PATH' variable. Please source \
-        the settings script included with the installation and retry this operation again.\n"
+     send_msg_id Vivado-VCS_MX-999 ERROR \
+       "Failed to locate '$tool_name' executable in the shell environment 'PATH' variable. Please source the settings script included with the installation and retry this operation again.\n"
+     # IMPORTANT - *** DONOT MODIFY THIS ***
+     error "_SIM_STEP_RUN_EXEC_ERROR_"
+     # IMPORTANT - *** DONOT MODIFY THIS ***
+     return 1
    }
+   send_msg_id Vivado-VCS_MX-999 INFO "Using simulator executables from '$bin_path'\n"
  } else {
    set install_path [file normalize [string map {\\ /} $install_path]]
    set install_path [string trimright $install_path {/}]
