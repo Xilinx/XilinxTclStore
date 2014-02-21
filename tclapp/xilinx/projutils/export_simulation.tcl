@@ -32,9 +32,9 @@ proc export_simulation {args} {
   # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator. 
 
   # Argument Usage:
-  # [-of_objects <arg>]: Export simulation script for the specified object
-  # [-lib_map_path <arg>]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
-  # [-script_name <arg>]: Output shell script filename. If not specified, then file with a default name will be created with the '.sh' extension.
+  # [-of_objects <arg> = None]: Export simulation script for the specified object
+  # [-lib_map_path <arg> = Empty]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
+  # [-script_name <arg> = top_module.sh]: Output shell script filename. If not specified, then file with a default name will be created with the '.sh' extension.
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files

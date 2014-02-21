@@ -34,8 +34,8 @@ proc write_project_tcl {args} {
   # Export Tcl script for re-creating the current project
 
   # Argument Usage: 
-  # [-paths_relative_to <arg>]: Override the reference directory variable for source file relative paths
-  # [-target_proj_dir <arg>]: Directory where the project needs to be restored
+  # [-paths_relative_to <arg> = Script output directory path]: Override the reference directory variable for source file relative paths
+  # [-target_proj_dir <arg> = Current project directory path]: Directory where the project needs to be restored
   # [-force]: Overwrite existing tcl script file
   # [-all_properties]: Write all properties (default & non-default) for the project object(s)
   # [-no_copy_sources]: Do not import sources even if they were local in the original project
