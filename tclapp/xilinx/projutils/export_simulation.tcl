@@ -770,6 +770,17 @@ proc write_elaboration_cmds { fh } {
       if { !$a_xport_sim_vars(b_32bit) } {
         set arg_list [linsert $arg_list 0 "-64bit"]
       }
+
+      # design contains ax-bfm ip? insert bfm library
+      if { [is_axi_bfm_ip] } {
+        set simulator_lib [get_simulator_lib_for_bfm "ies"]
+        if { {} != $simulator_lib } {
+          set arg_list [linsert $arg_list 0 "-loadvpi $simulator_lib:xilinx_register_systf"]
+        } else {
+          send_msg_id Vivado-projutils-059 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+        }
+      }
+
       puts $fh "  ${tool}_opts=\"[join $arg_list " "]\""
 
       set arg_list [list]
@@ -804,6 +815,17 @@ proc write_elaboration_cmds { fh } {
       if { !$a_xport_sim_vars(b_32bit) } {
         set arg_list [linsert $arg_list 0 "-full64"]
       }
+
+      # design contains ax-bfm ip? insert bfm library
+      if { [is_axi_bfm_ip] } {
+        set simulator_lib [get_simulator_lib_for_bfm "vcs_mx"]
+        if { {} != $simulator_lib } {
+          set arg_list [linsert $arg_list 0 "-load $simulator_lib:xilinx_register_systf"]
+        } else {
+          send_msg_id Vivado-projutils-057 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+        }
+      }
+
       puts $fh "  ${tool}_opts=\"[join $arg_list " "]\"\n"
  
       set arg_list [list "$tool" "\$${tool}_opts" "${top_lib}.$a_xport_sim_vars(s_sim_top)"]
@@ -1632,4 +1654,74 @@ proc print_main_function { fh } {
   puts $fh "# Launch script"
   puts $fh "run \$1"
 }
+
+proc is_axi_bfm_ip {} {
+  # Summary: Finds VLNV property value for the IP and checks to see if the IP is AXI_BFM
+  # Argument Usage:
+  # Return Value:
+  # true (1) if specified IP is axi_bfm, false (0) otherwise
+
+  foreach ip [get_ips] {
+    set ip_def [lindex [split [get_property "IPDEF" [get_ips $ip]] {:}] 2]
+    set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
+    if { [regexp -nocase {axi_bfm} $value] } {
+      return 1
+    }
+  }
+  return 0
+}
+
+proc get_platform_name {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set platform {}
+  set os $::tcl_platform(platform)
+  if { {windows}   == $os } { set platform "win32" }
+  if { {windows64} == $os } { set platform "win64" }
+  if { {unix} == $os } {
+    if { {x86_64} == $::tcl_platform(machine) } {
+      set platform "lin64"
+    } else {
+      set platform "lin32"
+    }
+  }
+  return $platform
+}
+
+proc get_simulator_lib_for_bfm { simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set simulator_lib {}
+  set xil           $::env(XILINX)
+  set path_sep      {;}
+  set lib_extn      {.dll}
+  set platform      [get_platform_name]
+
+  if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
+  if {$::tcl_platform(platform) == "unix"} { set lib_extn {.so} }
+
+  set lib_name "libxil_ncsim"
+  if { {vcs_mx} == $simulator } {
+    set lib_name "libxil_vcs"
+  }
+  set lib_name $lib_name$lib_extn
+  if { {} != $xil } {
+    set lib_path {}
+    foreach path [split $xil $path_sep] {
+      set file [file normalize [file join $path "lib" $platform $lib_name]]
+      if { [file exists $file] } {
+        set simulator_lib $file
+        break
+      }
+    }
+  } else {
+    send_msg_id Vivado-projutils-058 ERROR "Environment variable 'XILINX' is not set!"
+  }
+  return $simulator_lib
+}
+
 }
