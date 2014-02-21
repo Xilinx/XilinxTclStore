@@ -1,0 +1,962 @@
+#-----------------------------------------------------------
+# Vivado v2013.4 (64-bit)
+# SW Build 353583 on Mon Dec  9 17:49:19 MST 2013
+# IP Build 208076 on Mon Dec  2 12:38:17 MST 2013
+# Start of session at: Thu Feb 20 23:42:28 2014
+# Process ID: 14712
+# Log file: C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/vivado.log
+# Journal file: C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace\vivado.jou
+#-----------------------------------------------------------
+Attempting to get a license: Implementation
+Feature available: Implementation
+Loading parts and site information from C:/Xilinx/Vivado/2013.4/data/parts/arch.xml
+Parsing RTL primitives file [C:/Xilinx/Vivado/2013.4/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+Finished parsing RTL primitives file [C:/Xilinx/Vivado/2013.4/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+source {C:\Users\nikc\Desktop\jenkins\project_flow_high\run.tcl}
+# lappend ::auto_path [ file normalize C:/Users/nikc/tcl/XilinxTclStore/tclapp/ ]
+# package require ::tclapp::xilinx::junit
+# namespace import ::tclapp::xilinx::junit::*
+# set_report ./report.xml
+# file delete [ glob ./* ]
+# create_project -force tp tp -part xc7vx485tffg1157-1
+# add_files [ glob ../../src/* ]
+# update_compile_order
+# launch_runs synth_1
+[Thu Feb 20 23:42:33 2014] Launched synth_1...
+Run output will be captured here: C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/tp/tp.runs/synth_1/runme.log
+# wait_on_run synth_1
+[Thu Feb 20 23:42:33 2014] Waiting for synth_1 to finish...
+
+*** Running vivado
+    with args -log ff_replicator.rds -m64 -mode batch -messageDb vivado.pb -source ff_replicator.tcl
+
+
+****** Vivado v2013.4 (64-bit)
+  **** SW Build 353583 on Mon Dec  9 17:49:19 MST 2013
+  **** IP Build 208076 on Mon Dec  2 12:38:17 MST 2013
+    ** Copyright 1986-1999, 2001-2013 Xilinx, Inc. All Rights Reserved.
+
+Attempting to get a license: Implementation
+Feature available: Implementation
+Loading parts and site information from C:/Xilinx/Vivado/2013.4/data/parts/arch.xml
+Parsing RTL primitives file [C:/Xilinx/Vivado/2013.4/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+Finished parsing RTL primitives file [C:/Xilinx/Vivado/2013.4/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+source ff_replicator.tcl
+# set_msg_config -id {HDL 9-1061} -limit 100000
+# set_msg_config -id {HDL 9-1654} -limit 100000
+# create_project -in_memory -part xc7vx485tffg1157-1
+# set_property target_language Verilog [current_project]
+# set_param project.compositeFile.enableAutoGeneration 0
+# read_verilog {
+#   C:/Users/nikc/Desktop/jenkins/src/ff_ce_sync_rst.v
+#   C:/Users/nikc/Desktop/jenkins/src/ff_replicator.v
+# }
+# read_xdc C:/Users/nikc/Desktop/jenkins/src/ff_replicator.xdc
+# set_property used_in_implementation false [get_files C:/Users/nikc/Desktop/jenkins/src/ff_replicator.xdc]
+# set_param synth.vivado.isSynthRun true
+# set_property webtalk.parent_dir C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/tp/tp.data/wt [current_project]
+# set_property parent.project_dir C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/tp [current_project]
+# synth_design -top ff_replicator -part xc7vx485tffg1157-1
+Command: synth_design -top ff_replicator -part xc7vx485tffg1157-1
+
+Starting synthesis...
+
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7vx485t'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7vx485t'
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:04 ; elapsed = 00:00:05 . Memory (MB): peak = 232.891 ; gain = 85.586
+---------------------------------------------------------------------------------
+INFO: [Synth 8-638] synthesizing module 'ff_replicator' [C:/Users/nikc/Desktop/jenkins/src/ff_replicator.v:1]
+	Parameter WIDTH bound to: 10 - type: integer 
+	Parameter STAGES bound to: 10 - type: integer 
+INFO: [Synth 8-638] synthesizing module 'ff_ce_sync_rst' [C:/Users/nikc/Desktop/jenkins/src/ff_ce_sync_rst.v:1]
+	Parameter INIT_VALUE bound to: 0 - type: integer 
+INFO: [Synth 8-256] done synthesizing module 'ff_ce_sync_rst' (1#1) [C:/Users/nikc/Desktop/jenkins/src/ff_ce_sync_rst.v:1]
+INFO: [Synth 8-256] done synthesizing module 'ff_replicator' (2#1) [C:/Users/nikc/Desktop/jenkins/src/ff_replicator.v:1]
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:05 ; elapsed = 00:00:06 . Memory (MB): peak = 266.230 ; gain = 118.926
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start RTL Optimization
+---------------------------------------------------------------------------------
+
+Report Check Netlist: 
++------+------------------+-------+---------+-------+------------------+
+|      |Item              |Errors |Warnings |Status |Description       |
++------+------------------+-------+---------+-------+------------------+
+|1     |multi_driven_nets |      0|        0|Passed |Multi driven nets |
++------+------------------+-------+---------+-------+------------------+
+Loading clock regions from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/virtex7/xc7vx485t/ClockRegion.xml
+Loading clock buffers from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/virtex7/xc7vx485t/ClockBuffers.xml
+Loading clock placement rules from C:/Xilinx/Vivado/2013.4/data/parts/xilinx/virtex7/ClockPlacerRules.xml
+Loading package pin functions from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/PinFunctions.xml...
+Loading package from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/virtex7/xc7vx485t/ffg1157/Package.xml
+Loading io standards from C:/Xilinx/Vivado/2013.4/data\./parts/xilinx/virtex7/IOStandards.xml
+Loading device configuration modes from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/ConfigModes.xml
+
+Processing XDC Constraints
+Parsing XDC File [C:/Users/nikc/Desktop/jenkins/src/ff_replicator.xdc]
+Finished Parsing XDC File [C:/Users/nikc/Desktop/jenkins/src/ff_replicator.xdc]
+INFO: [Project 1-236] Implementation specific constraints were found while reading constraint file [C:/Users/nikc/Desktop/jenkins/src/ff_replicator.xdc]. These constraints will be ignored for synthesis but will be used in implementation. Impacted constraints are listed in the file [C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/tp/tp.runs/synth_1/.Xil/ff_replicator_propImpl.xdc].
+Resolution: To avoid this message, exclude constraints listed in [C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/tp/tp.runs/synth_1/.Xil/ff_replicator_propImpl.xdc] from synthesis with the used_in_synthesis property (File Properties dialog in GUI) and re-run elaboration/synthesis.
+Completed Processing XDC Constraints
+
+INFO: [Memdata 28-144] Successfully populated the BRAM INIT strings from the following elf files: 
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+
+---------------------------------------------------------------------------------
+Start RTL Optimization
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:22 ; elapsed = 00:00:24 . Memory (MB): peak = 614.156 ; gain = 466.852
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Finished RTL Optimization : Time (s): cpu = 00:00:22 ; elapsed = 00:00:24 . Memory (MB): peak = 614.156 ; gain = 466.852
+---------------------------------------------------------------------------------
+
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7vx485tffg1157-1
+Part Resources:
+DSPs: 2800 (col length:140)
+BRAMs: 2060 (col length: RAMB18 140 RAMB36 70)
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:33 ; elapsed = 00:00:35 . Memory (MB): peak = 665.008 ; gain = 517.703
+---------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Registers : 
+	                1 Bit    Registers := 100   
+
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start RTL Hierarchical Component Statistics 
+---------------------------------------------------------------------------------
+Hierarchical RTL Component report 
+Module ff_replicator 
+Detailed RTL Component Info : 
+Module ff_ce_sync_rst 
+Detailed RTL Component Info : 
++---Registers : 
+	                1 Bit    Registers := 1     
+
+---------------------------------------------------------------------------------
+Finished RTL Hierarchical Component Statistics
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start Cross Boundary Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Cross Boundary Optimization : Time (s): cpu = 00:00:33 ; elapsed = 00:00:35 . Memory (MB): peak = 675.594 ; gain = 528.289
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start RAM, DSP and Shift Register Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RAM, DSP and Shift Register Reporting
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start Area Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Area Optimization : Time (s): cpu = 00:00:33 ; elapsed = 00:00:35 . Memory (MB): peak = 676.258 ; gain = 528.953
+---------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:00:33 ; elapsed = 00:00:35 . Memory (MB): peak = 676.258 ; gain = 528.953
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:33 ; elapsed = 00:00:35 . Memory (MB): peak = 676.258 ; gain = 528.953
+---------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:33 ; elapsed = 00:00:35 . Memory (MB): peak = 685.570 ; gain = 538.266
+---------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+Gated Clock Conversion mode: off
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:34 ; elapsed = 00:00:36 . Memory (MB): peak = 685.570 ; gain = 538.266
+---------------------------------------------------------------------------------
+
+
+Report Check Netlist: 
++------+------------------+-------+---------+-------+------------------+
+|      |Item              |Errors |Warnings |Status |Description       |
++------+------------------+-------+---------+-------+------------------+
+|1     |multi_driven_nets |      0|        0|Passed |Multi driven nets |
++------+------------------+-------+---------+-------+------------------+
+
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:34 ; elapsed = 00:00:36 . Memory (MB): peak = 685.570 ; gain = 538.266
+---------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:34 ; elapsed = 00:00:36 . Memory (MB): peak = 685.570 ; gain = 538.266
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start RAM, DSP and Shift Register Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RAM, DSP and Shift Register Reporting
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+-----+------+
+|      |Cell |Count |
++------+-----+------+
+|1     |BUFG |     1|
+|2     |FDRE |   100|
+|3     |IBUF |    13|
+|4     |OBUF |    10|
++------+-----+------+
+
+Report Instance Areas: 
++------+---------------------------------+------------------+------+
+|      |Instance                         |Module            |Cells |
++------+---------------------------------+------------------+------+
+|1     |top                              |                  |   124|
+|2     |  \ff_stage[7].ff_channel[6].ff  |ff_ce_sync_rst    |     1|
+|3     |  \ff_stage[5].ff_channel[9].ff  |ff_ce_sync_rst_0  |     1|
+|4     |  \ff_stage[6].ff_channel[6].ff  |ff_ce_sync_rst_1  |     1|
+|5     |  \ff_stage[4].ff_channel[9].ff  |ff_ce_sync_rst_2  |     1|
+|6     |  \ff_stage[5].ff_channel[6].ff  |ff_ce_sync_rst_3  |     1|
+|7     |  \ff_stage[6].ff_channel[3].ff  |ff_ce_sync_rst_4  |     1|
+|8     |  \ff_stage[4].ff_channel[6].ff  |ff_ce_sync_rst_5  |     1|
+|9     |  \ff_stage[5].ff_channel[3].ff  |ff_ce_sync_rst_6  |     1|
+|10    |  \ff_stage[3].ff_channel[6].ff  |ff_ce_sync_rst_7  |     1|
+|11    |  \ff_stage[4].ff_channel[3].ff  |ff_ce_sync_rst_8  |     1|
+|12    |  \ff_stage[5].ff_channel[0].ff  |ff_ce_sync_rst_9  |     1|
+|13    |  \ff_stage[3].ff_channel[3].ff  |ff_ce_sync_rst_10 |     1|
+|14    |  \ff_stage[4].ff_channel[0].ff  |ff_ce_sync_rst_11 |     1|
+|15    |  \ff_stage[2].ff_channel[3].ff  |ff_ce_sync_rst_12 |     1|
+|16    |  \ff_stage[9].ff_channel[1].ff  |ff_ce_sync_rst_13 |     1|
+|17    |  \ff_stage[3].ff_channel[0].ff  |ff_ce_sync_rst_14 |     1|
+|18    |  \ff_stage[2].ff_channel[0].ff  |ff_ce_sync_rst_15 |     1|
+|19    |  \ff_stage[1].ff_channel[0].ff  |ff_ce_sync_rst_16 |     1|
+|20    |  \ff_stage[5].ff_channel[7].ff  |ff_ce_sync_rst_17 |     1|
+|21    |  \ff_stage[4].ff_channel[7].ff  |ff_ce_sync_rst_18 |     1|
+|22    |  \ff_stage[3].ff_channel[7].ff  |ff_ce_sync_rst_19 |     1|
+|23    |  \ff_stage[4].ff_channel[4].ff  |ff_ce_sync_rst_20 |     1|
+|24    |  \ff_stage[2].ff_channel[7].ff  |ff_ce_sync_rst_21 |     1|
+|25    |  \ff_stage[9].ff_channel[5].ff  |ff_ce_sync_rst_22 |     1|
+|26    |  \ff_stage[3].ff_channel[4].ff  |ff_ce_sync_rst_23 |     1|
+|27    |  \ff_stage[1].ff_channel[7].ff  |ff_ce_sync_rst_24 |     1|
+|28    |  \ff_stage[2].ff_channel[4].ff  |ff_ce_sync_rst_25 |     1|
+|29    |  \ff_stage[9].ff_channel[2].ff  |ff_ce_sync_rst_26 |     1|
+|30    |  \ff_stage[3].ff_channel[1].ff  |ff_ce_sync_rst_27 |     1|
+|31    |  \ff_stage[1].ff_channel[4].ff  |ff_ce_sync_rst_28 |     1|
+|32    |  \ff_stage[2].ff_channel[1].ff  |ff_ce_sync_rst_29 |     1|
+|33    |  \ff_stage[8].ff_channel[2].ff  |ff_ce_sync_rst_30 |     1|
+|34    |  \ff_stage[0].ff_channel[4].ff  |ff_ce_sync_rst_31 |     1|
+|35    |  \ff_stage[1].ff_channel[1].ff  |ff_ce_sync_rst_32 |     1|
+|36    |  \ff_stage[0].ff_channel[1].ff  |ff_ce_sync_rst_33 |     1|
+|37    |  \ff_stage[4].ff_channel[8].ff  |ff_ce_sync_rst_34 |     1|
+|38    |  \ff_stage[9].ff_channel[9].ff  |ff_ce_sync_rst_35 |     1|
+|39    |  \ff_stage[3].ff_channel[8].ff  |ff_ce_sync_rst_36 |     1|
+|40    |  \ff_stage[2].ff_channel[8].ff  |ff_ce_sync_rst_37 |     1|
+|41    |  \ff_stage[9].ff_channel[6].ff  |ff_ce_sync_rst_38 |     1|
+|42    |  \ff_stage[3].ff_channel[5].ff  |ff_ce_sync_rst_39 |     1|
+|43    |  \ff_stage[1].ff_channel[8].ff  |ff_ce_sync_rst_40 |     1|
+|44    |  \ff_stage[8].ff_channel[6].ff  |ff_ce_sync_rst_41 |     1|
+|45    |  \ff_stage[2].ff_channel[5].ff  |ff_ce_sync_rst_42 |     1|
+|46    |  \ff_stage[9].ff_channel[3].ff  |ff_ce_sync_rst_43 |     1|
+|47    |  \ff_stage[0].ff_channel[8].ff  |ff_ce_sync_rst_44 |     1|
+|48    |  \ff_stage[1].ff_channel[5].ff  |ff_ce_sync_rst_45 |     1|
+|49    |  \ff_stage[8].ff_channel[3].ff  |ff_ce_sync_rst_46 |     1|
+|50    |  \ff_stage[2].ff_channel[2].ff  |ff_ce_sync_rst_47 |     1|
+|51    |  \ff_stage[0].ff_channel[5].ff  |ff_ce_sync_rst_48 |     1|
+|52    |  \ff_stage[9].ff_channel[0].ff  |ff_ce_sync_rst_49 |     1|
+|53    |  \ff_stage[7].ff_channel[3].ff  |ff_ce_sync_rst_50 |     1|
+|54    |  \ff_stage[1].ff_channel[2].ff  |ff_ce_sync_rst_51 |     1|
+|55    |  \ff_stage[8].ff_channel[0].ff  |ff_ce_sync_rst_52 |     1|
+|56    |  \ff_stage[0].ff_channel[2].ff  |ff_ce_sync_rst_53 |     1|
+|57    |  \ff_stage[7].ff_channel[0].ff  |ff_ce_sync_rst_54 |     1|
+|58    |  \ff_stage[6].ff_channel[0].ff  |ff_ce_sync_rst_55 |     1|
+|59    |  \ff_stage[3].ff_channel[9].ff  |ff_ce_sync_rst_56 |     1|
+|60    |  \ff_stage[2].ff_channel[9].ff  |ff_ce_sync_rst_57 |     1|
+|61    |  \ff_stage[9].ff_channel[7].ff  |ff_ce_sync_rst_58 |     1|
+|62    |  \ff_stage[1].ff_channel[9].ff  |ff_ce_sync_rst_59 |     1|
+|63    |  \ff_stage[8].ff_channel[7].ff  |ff_ce_sync_rst_60 |     1|
+|64    |  \ff_stage[2].ff_channel[6].ff  |ff_ce_sync_rst_61 |     1|
+|65    |  \ff_stage[9].ff_channel[4].ff  |ff_ce_sync_rst_62 |     1|
+|66    |  \ff_stage[0].ff_channel[9].ff  |ff_ce_sync_rst_63 |     1|
+|67    |  \ff_stage[7].ff_channel[7].ff  |ff_ce_sync_rst_64 |     1|
+|68    |  \ff_stage[1].ff_channel[6].ff  |ff_ce_sync_rst_65 |     1|
+|69    |  \ff_stage[8].ff_channel[4].ff  |ff_ce_sync_rst_66 |     1|
+|70    |  \ff_stage[6].ff_channel[7].ff  |ff_ce_sync_rst_67 |     1|
+|71    |  \ff_stage[0].ff_channel[6].ff  |ff_ce_sync_rst_68 |     1|
+|72    |  \ff_stage[7].ff_channel[4].ff  |ff_ce_sync_rst_69 |     1|
+|73    |  \ff_stage[1].ff_channel[3].ff  |ff_ce_sync_rst_70 |     1|
+|74    |  \ff_stage[8].ff_channel[1].ff  |ff_ce_sync_rst_71 |     1|
+|75    |  \ff_stage[6].ff_channel[4].ff  |ff_ce_sync_rst_72 |     1|
+|76    |  \ff_stage[0].ff_channel[3].ff  |ff_ce_sync_rst_73 |     1|
+|77    |  \ff_stage[7].ff_channel[1].ff  |ff_ce_sync_rst_74 |     1|
+|78    |  \ff_stage[5].ff_channel[4].ff  |ff_ce_sync_rst_75 |     1|
+|79    |  \ff_stage[6].ff_channel[1].ff  |ff_ce_sync_rst_76 |     1|
+|80    |  \ff_stage[0].ff_channel[0].ff  |ff_ce_sync_rst_77 |     1|
+|81    |  \ff_stage[5].ff_channel[1].ff  |ff_ce_sync_rst_78 |     1|
+|82    |  \ff_stage[4].ff_channel[1].ff  |ff_ce_sync_rst_79 |     1|
+|83    |  \ff_stage[9].ff_channel[8].ff  |ff_ce_sync_rst_80 |     1|
+|84    |  \ff_stage[8].ff_channel[8].ff  |ff_ce_sync_rst_81 |     1|
+|85    |  \ff_stage[7].ff_channel[8].ff  |ff_ce_sync_rst_82 |     1|
+|86    |  \ff_stage[8].ff_channel[5].ff  |ff_ce_sync_rst_83 |     1|
+|87    |  \ff_stage[6].ff_channel[8].ff  |ff_ce_sync_rst_84 |     1|
+|88    |  \ff_stage[0].ff_channel[7].ff  |ff_ce_sync_rst_85 |     1|
+|89    |  \ff_stage[7].ff_channel[5].ff  |ff_ce_sync_rst_86 |     1|
+|90    |  \ff_stage[5].ff_channel[8].ff  |ff_ce_sync_rst_87 |     1|
+|91    |  \ff_stage[6].ff_channel[5].ff  |ff_ce_sync_rst_88 |     1|
+|92    |  \ff_stage[7].ff_channel[2].ff  |ff_ce_sync_rst_89 |     1|
+|93    |  \ff_stage[5].ff_channel[5].ff  |ff_ce_sync_rst_90 |     1|
+|94    |  \ff_stage[6].ff_channel[2].ff  |ff_ce_sync_rst_91 |     1|
+|95    |  \ff_stage[4].ff_channel[5].ff  |ff_ce_sync_rst_92 |     1|
+|96    |  \ff_stage[5].ff_channel[2].ff  |ff_ce_sync_rst_93 |     1|
+|97    |  \ff_stage[4].ff_channel[2].ff  |ff_ce_sync_rst_94 |     1|
+|98    |  \ff_stage[3].ff_channel[2].ff  |ff_ce_sync_rst_95 |     1|
+|99    |  \ff_stage[8].ff_channel[9].ff  |ff_ce_sync_rst_96 |     1|
+|100   |  \ff_stage[7].ff_channel[9].ff  |ff_ce_sync_rst_97 |     1|
+|101   |  \ff_stage[6].ff_channel[9].ff  |ff_ce_sync_rst_98 |     1|
++------+---------------------------------+------------------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:34 ; elapsed = 00:00:36 . Memory (MB): peak = 685.570 ; gain = 538.266
+---------------------------------------------------------------------------------
+
+Synthesis finished with 0 errors, 0 critical warnings and 0 warnings.
+Synthesis Optimization Complete : Time (s): cpu = 00:00:34 ; elapsed = 00:00:36 . Memory (MB): peak = 685.570 ; gain = 538.266
+INFO: [Netlist 29-17] Analyzing 13 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Opt 31-140] Inserted 0 IBUFs to IO ports without IO buffers.
+INFO: [Opt 31-141] Inserted 0 OBUFs to IO ports without IO buffers.
+INFO: [Opt 31-138] Pushed 0 inverter(s).
+INFO: [Memdata 28-144] Successfully populated the BRAM INIT strings from the following elf files: 
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+INFO: [Common 17-83] Releasing license: Synthesis
+16 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:50 ; elapsed = 00:00:52 . Memory (MB): peak = 1196.672 ; gain = 1011.715
+# write_checkpoint ff_replicator.dcp
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+# report_utilization -file ff_replicator_utilization_synth.rpt -pb ff_replicator_utilization_synth.pb
+report_utilization: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.098 . Memory (MB): peak = 1196.672 ; gain = 0.000
+INFO: [Common 17-206] Exiting Vivado at Thu Feb 20 23:43:28 2014...
+[Thu Feb 20 23:43:33 2014] synth_1 finished
+wait_on_run: Time (s): cpu = 00:00:00 ; elapsed = 00:01:00 . Memory (MB): peak = 192.512 ; gain = 7.078
+# launch_runs impl_1
+[Thu Feb 20 23:43:33 2014] Launched impl_1...
+Run output will be captured here: C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/tp/tp.runs/impl_1/runme.log
+# wait_on_run impl_1
+[Thu Feb 20 23:43:33 2014] Waiting for impl_1 to finish...
+
+*** Running vivado
+    with args -log ff_replicator.rdi -applog -m64 -messageDb vivado.pb -mode batch -source ff_replicator.tcl -notrace
+
+
+****** Vivado v2013.4 (64-bit)
+  **** SW Build 353583 on Mon Dec  9 17:49:19 MST 2013
+  **** IP Build 208076 on Mon Dec  2 12:38:17 MST 2013
+    ** Copyright 1986-1999, 2001-2013 Xilinx, Inc. All Rights Reserved.
+
+Attempting to get a license: Implementation
+Feature available: Implementation
+Loading parts and site information from C:/Xilinx/Vivado/2013.4/data/parts/arch.xml
+Parsing RTL primitives file [C:/Xilinx/Vivado/2013.4/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+Finished parsing RTL primitives file [C:/Xilinx/Vivado/2013.4/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+source ff_replicator.tcl -notrace
+Design is defaulting to srcset: sources_1
+Design is defaulting to constrset: constrs_1
+INFO: [Netlist 29-17] Analyzing 13 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2013.4
+Loading clock regions from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/virtex7/xc7vx485t/ClockRegion.xml
+Loading clock buffers from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/virtex7/xc7vx485t/ClockBuffers.xml
+Loading clock placement rules from C:/Xilinx/Vivado/2013.4/data/parts/xilinx/virtex7/ClockPlacerRules.xml
+Loading package pin functions from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/PinFunctions.xml...
+Loading package from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/virtex7/xc7vx485t/ffg1157/Package.xml
+Loading io standards from C:/Xilinx/Vivado/2013.4/data\./parts/xilinx/virtex7/IOStandards.xml
+Loading device configuration modes from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/ConfigModes.xml
+INFO: [Opt 31-140] Inserted 0 IBUFs to IO ports without IO buffers.
+INFO: [Opt 31-141] Inserted 0 OBUFs to IO ports without IO buffers.
+Parsing XDC File [C:/Users/nikc/Desktop/jenkins/src/ff_replicator.xdc]
+Finished Parsing XDC File [C:/Users/nikc/Desktop/jenkins/src/ff_replicator.xdc]
+Parsing XDC File [C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/tp/tp.runs/impl_1/.Xil/Vivado-14588-/dcp/ff_replicator.xdc]
+Finished Parsing XDC File [C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/tp/tp.runs/impl_1/.Xil/Vivado-14588-/dcp/ff_replicator.xdc]
+INFO: [Opt 31-138] Pushed 0 inverter(s).
+INFO: [Memdata 28-144] Successfully populated the BRAM INIT strings from the following elf files: 
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+link_design: Time (s): cpu = 00:00:34 ; elapsed = 00:00:35 . Memory (MB): peak = 1096.605 ; gain = 911.852
+Command: opt_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7vx485t'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7vx485t'
+Running DRC as a precondition to command opt_design
+
+Starting DRC Task
+INFO: [Drc 23-27] Running DRC with 2 threads
+INFO: [Project 1-461] DRC finished with 0 Errors
+INFO: [Project 1-462] Please refer to the DRC report (report_drc) for more information.
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.102 . Memory (MB): peak = 1098.105 ; gain = 1.500
+
+Starting Logic Optimization Task
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+
+Phase 1 Retarget
+
+INFO: [Opt 31-138] Pushed 0 inverter(s).
+INFO: [Opt 31-49] Retargeted 0 cell(s).
+Phase 1 Retarget | Checksum: 2a28cadf4
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.047 . Memory (MB): peak = 1105.508 ; gain = 7.402
+
+Phase 2 Constant Propagation
+INFO: [Opt 31-138] Pushed 0 inverter(s).
+INFO: [Opt 31-10] Eliminated 0 cells.
+Phase 2 Constant Propagation | Checksum: 2a28cadf4
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.052 . Memory (MB): peak = 1105.508 ; gain = 7.402
+
+Phase 3 Sweep
+INFO: [Opt 31-12] Eliminated 0 unconnected nets.
+INFO: [Opt 31-11] Eliminated 0 unconnected cells.
+Phase 3 Sweep | Checksum: 2a28cadf4
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.060 . Memory (MB): peak = 1105.508 ; gain = 7.402
+Ending Logic Optimization Task | Checksum: 2a28cadf4
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.062 . Memory (MB): peak = 1105.508 ; gain = 7.402
+Implement Debug Cores | Checksum: 2a28cadf4
+Logic Optimization | Checksum: 2a28cadf4
+
+Starting Power Optimization Task
+Ending Power Optimization Task | Checksum: 2a28cadf4
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 1105.508 ; gain = 0.000
+INFO: [Common 17-83] Releasing license: Implementation
+20 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+opt_design completed successfully
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+Writing XDEF routing.
+Writing XDEF routing logical nets.
+Writing XDEF routing special nets.
+Write XDEF Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.354 . Memory (MB): peak = 1106.727 ; gain = 0.000
+Command: place_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7vx485t'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7vx485t'
+Running DRC as a precondition to command place_design
+INFO: [Drc 23-27] Running DRC with 2 threads
+INFO: [Vivado_Tcl 4-198] DRC finished with 0 Errors
+INFO: [Vivado_Tcl 4-199] Please refer to the DRC report (report_drc) for more information.
+
+Starting Placer Task
+INFO: [Place 30-611] Multithreading enabled for place_design using a maximum of 2 CPUs
+
+Phase 1 Placer Initialization
+
+Phase 1.1 Placer Initialization Core
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 1113.652 ; gain = 0.000
+
+Phase 1.1.1 Mandatory Logic Optimization
+INFO: [Opt 31-140] Inserted 0 IBUFs to IO ports without IO buffers.
+INFO: [Opt 31-141] Inserted 0 OBUFs to IO ports without IO buffers.
+INFO: [Opt 31-138] Pushed 0 inverter(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1113.652 ; gain = 0.000
+Phase 1.1.1 Mandatory Logic Optimization | Checksum: 15f7b072d
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.079 . Memory (MB): peak = 1113.652 ; gain = 0.000
+
+Phase 1.1.2 Build Super Logic Region (SLR) Database
+Phase 1.1.2 Build Super Logic Region (SLR) Database | Checksum: 15f7b072d
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.174 . Memory (MB): peak = 1113.652 ; gain = 0.000
+
+Phase 1.1.3 Add Constraints
+Phase 1.1.3 Add Constraints | Checksum: 15f7b072d
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.175 . Memory (MB): peak = 1113.652 ; gain = 0.000
+
+Phase 1.1.4 Build Macros
+Phase 1.1.4 Build Macros | Checksum: 207a83a49
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.229 . Memory (MB): peak = 1113.652 ; gain = 0.000
+
+Phase 1.1.5 Implementation Feasibility check
+Phase 1.1.5 Implementation Feasibility check | Checksum: 207a83a49
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.284 . Memory (MB): peak = 1113.652 ; gain = 0.000
+
+Phase 1.1.6 Pre-Place Cells
+Phase 1.1.6 Pre-Place Cells | Checksum: 207a83a49
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.291 . Memory (MB): peak = 1113.652 ; gain = 0.000
+
+Phase 1.1.7 IO Placement/ Clock Placement/ Build Placer Device
+Phase 1.1.7 IO Placement/ Clock Placement/ Build Placer Device | Checksum: 1c30c99b3
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1121.098 ; gain = 7.445
+
+Phase 1.1.8 Build Placer Netlist Model
+
+Phase 1.1.8.1 Place Init Design
+
+Phase 1.1.8.1.1 Build Clock Data
+Phase 1.1.8.1.1 Build Clock Data | Checksum: 200112200
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1125.504 ; gain = 11.852
+Phase 1.1.8.1 Place Init Design | Checksum: 29a57915e
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1125.504 ; gain = 11.852
+Phase 1.1.8 Build Placer Netlist Model | Checksum: 29a57915e
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1125.504 ; gain = 11.852
+
+Phase 1.1.9 Constrain Clocks/Macros
+
+Phase 1.1.9.1 Constrain Global/Regional Clocks
+Phase 1.1.9.1 Constrain Global/Regional Clocks | Checksum: 29a57915e
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1125.504 ; gain = 11.852
+Phase 1.1.9 Constrain Clocks/Macros | Checksum: 29a57915e
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1125.504 ; gain = 11.852
+Phase 1.1 Placer Initialization Core | Checksum: 29a57915e
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1125.504 ; gain = 11.852
+Phase 1 Placer Initialization | Checksum: 29a57915e
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1125.504 ; gain = 11.852
+
+Phase 2 Global Placement
+
+Phase 2.1 Run Budgeter
+Phase 2.1 Run Budgeter | Checksum: 20b92d159
+
+Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 1152.957 ; gain = 39.305
+Phase 2 Global Placement | Checksum: 2b47f6339
+
+Time (s): cpu = 00:00:04 ; elapsed = 00:00:03 . Memory (MB): peak = 1152.957 ; gain = 39.305
+
+Phase 3 Detail Placement
+
+Phase 3.1 Commit Multi Column Macros
+Phase 3.1 Commit Multi Column Macros | Checksum: 2b47f6339
+
+Time (s): cpu = 00:00:04 ; elapsed = 00:00:03 . Memory (MB): peak = 1152.957 ; gain = 39.305
+
+Phase 3.2 Commit Most Macros & LUTRAMs
+Phase 3.2 Commit Most Macros & LUTRAMs | Checksum: 293753bfb
+
+Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 1152.957 ; gain = 39.305
+
+Phase 3.3 Area Swap Optimization
+Phase 3.3 Area Swap Optimization | Checksum: 2aa42c5e2
+
+Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 1152.957 ; gain = 39.305
+
+Phase 3.4 Timing Path Optimizer
+Phase 3.4 Timing Path Optimizer | Checksum: 1f86d13c4
+
+Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 1152.957 ; gain = 39.305
+
+Phase 3.5 Commit Small Macros & Core Logic
+Phase 3.5 Commit Small Macros & Core Logic | Checksum: 2a2cbdbdb
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 3.6 Re-assign LUT pins
+Phase 3.6 Re-assign LUT pins | Checksum: 2a2cbdbdb
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+Phase 3 Detail Placement | Checksum: 2a2cbdbdb
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 4 Post Placement Optimization and Clean-Up
+
+Phase 4.1 PCOPT Shape updates
+Phase 4.1 PCOPT Shape updates | Checksum: 2a2cbdbdb
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 4.2 Post Placement Optimization
+
+Phase 4.2.1 Post Placement Timing Optimization
+Phase 4.2.1 Post Placement Timing Optimization | Checksum: 2861584d6
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+Phase 4.2 Post Placement Optimization | Checksum: 2861584d6
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 4.3 Post Placement Cleanup
+Phase 4.3 Post Placement Cleanup | Checksum: 2861584d6
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 4.4 Placer Reporting
+
+Phase 4.4.1 Congestion Reporting
+Phase 4.4.1 Congestion Reporting | Checksum: 2861584d6
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 4.4.2 updateTiming final
+Phase 4.4.2 updateTiming final | Checksum: 237de88be
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 4.4.3 Dump Critical Paths 
+Phase 4.4.3 Dump Critical Paths  | Checksum: 237de88be
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 4.4.4 Restore STA
+Phase 4.4.4 Restore STA | Checksum: 237de88be
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 4.4.5 Print Final WNS
+INFO: [Place 30-100] Post Placement Timing Summary | WNS=4.334  | TNS=0.000  |
+
+Phase 4.4.5 Print Final WNS | Checksum: 237de88be
+
+Time (s): cpu = 00:00:06 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+Phase 4.4 Placer Reporting | Checksum: 237de88be
+
+Time (s): cpu = 00:00:06 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+
+Phase 4.5 Final Placement Cleanup
+Phase 4.5 Final Placement Cleanup | Checksum: 237de88be
+
+Time (s): cpu = 00:00:06 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+Phase 4 Post Placement Optimization and Clean-Up | Checksum: 237de88be
+
+Time (s): cpu = 00:00:06 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+Ending Placer Task | Checksum: 1f64c9e59
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 54.762
+INFO: [Common 17-83] Releasing license: Implementation
+31 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+place_design completed successfully
+place_design: Time (s): cpu = 00:00:07 ; elapsed = 00:00:05 . Memory (MB): peak = 1168.414 ; gain = 61.688
+INFO: [Timing 38-163] DEBUG : Generate clock report | CPU: 0 secs 
+
+report_utilization: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.148 . Memory (MB): peak = 1168.414 ; gain = 0.000
+INFO: [Designutils 20-134] DEBUG : Generate Control Sets report | CPU: 0 secs 
+Writing XDEF routing.
+Writing XDEF routing logical nets.
+Writing XDEF routing special nets.
+Write XDEF Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.312 . Memory (MB): peak = 1168.414 ; gain = 0.000
+Command: route_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7vx485t'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7vx485t'
+Running DRC as a precondition to command route_design
+INFO: [Drc 23-27] Running DRC with 2 threads
+INFO: [Vivado_Tcl 4-198] DRC finished with 0 Errors
+INFO: [Vivado_Tcl 4-199] Please refer to the DRC report (report_drc) for more information.
+
+
+Starting Routing Task
+INFO: [Route 35-254] Multithreading enabled for route_design using a maximum of 2 CPUs
+
+Starting Route Task
+
+Phase 1 Build RT Design
+
+Phase 1.1 Build Netlist & NodeGraph
+Phase 1.1 Build Netlist & NodeGraph | Checksum: 1f64c9e59
+
+Time (s): cpu = 00:05:11 ; elapsed = 00:02:22 . Memory (MB): peak = 1486.738 ; gain = 236.785
+Phase 1 Build RT Design | Checksum: 1317815a7
+
+Time (s): cpu = 00:05:11 ; elapsed = 00:02:22 . Memory (MB): peak = 1486.738 ; gain = 236.785
+
+Phase 2 Router Initialization
+
+Phase 2.1 Create Timer
+Phase 2.1 Create Timer | Checksum: 1317815a7
+
+Time (s): cpu = 00:05:11 ; elapsed = 00:02:22 . Memory (MB): peak = 1486.738 ; gain = 236.785
+
+Phase 2.2 Restore Routing
+Phase 2.2 Restore Routing | Checksum: 1317815a7
+
+Time (s): cpu = 00:05:12 ; elapsed = 00:02:23 . Memory (MB): peak = 1519.625 ; gain = 269.672
+
+Phase 2.3 Special Net Routing
+ Number of Nodes with overlaps = 0
+Phase 2.3 Special Net Routing | Checksum: 1bfb4aa9e
+
+Time (s): cpu = 00:05:12 ; elapsed = 00:02:23 . Memory (MB): peak = 1529.789 ; gain = 279.836
+
+Phase 2.4 Local Clock Net Routing
+Phase 2.4 Local Clock Net Routing | Checksum: 1bfb4aa9e
+
+Time (s): cpu = 00:05:12 ; elapsed = 00:02:23 . Memory (MB): peak = 1529.789 ; gain = 279.836
+
+Phase 2.5 Update Timing
+
+Phase 2.5.1 Update timing with NCN CRPR
+
+Phase 2.5.1.1 Hold Budgeting
+Phase 2.5.1.1 Hold Budgeting | Checksum: 1bfb4aa9e
+
+Time (s): cpu = 00:05:12 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+Phase 2.5.1 Update timing with NCN CRPR | Checksum: 1bfb4aa9e
+
+Time (s): cpu = 00:05:12 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+Phase 2.5 Update Timing | Checksum: 1bfb4aa9e
+
+Time (s): cpu = 00:05:12 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+INFO: [Route 35-57] Estimated Timing Summary | WNS=4.33   | TNS=0      | WHS=-2.12  | THS=-428   |
+
+
+Phase 2.6 Budgeting
+Phase 2.6 Budgeting | Checksum: 1bfb4aa9e
+
+Time (s): cpu = 00:05:12 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+Phase 2 Router Initialization | Checksum: 1bfb4aa9e
+
+Time (s): cpu = 00:05:12 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+
+Phase 3 Initial Routing
+Phase 3 Initial Routing | Checksum: 9f69796d
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+
+Phase 4 Rip-up And Reroute
+
+Phase 4.1 Global Iteration 0
+
+Phase 4.1.1 Remove Overlaps
+ Number of Nodes with overlaps = 0
+Phase 4.1.1 Remove Overlaps | Checksum: 12c07eef2
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+
+Phase 4.1.2 Update Timing
+Phase 4.1.2 Update Timing | Checksum: 12c07eef2
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+INFO: [Route 35-57] Estimated Timing Summary | WNS=4.38   | TNS=0      | WHS=N/A    | THS=N/A    |
+
+
+Phase 4.1.3 collectNewHoldAndFix
+Phase 4.1.3 collectNewHoldAndFix | Checksum: 12c07eef2
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+Phase 4.1 Global Iteration 0 | Checksum: 12c07eef2
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+Phase 4 Rip-up And Reroute | Checksum: 12c07eef2
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+
+Phase 5 Delay CleanUp
+
+Phase 5.1 Update Timing
+Phase 5.1 Update Timing | Checksum: 12c07eef2
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+INFO: [Route 35-57] Estimated Timing Summary | WNS=4.38   | TNS=0      | WHS=N/A    | THS=N/A    |
+
+Phase 5 Delay CleanUp | Checksum: 12c07eef2
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+
+Phase 6 Post Hold Fix
+
+Phase 6.1 Full Hold Analysis
+
+Phase 6.1.1 Update Timing
+Phase 6.1.1 Update Timing | Checksum: 12c07eef2
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+INFO: [Route 35-57] Estimated Timing Summary | WNS=4.38   | TNS=0      | WHS=-0.652 | THS=-87.2  |
+
+Phase 6.1 Full Hold Analysis | Checksum: 12c07eef2
+
+Time (s): cpu = 00:05:13 ; elapsed = 00:02:24 . Memory (MB): peak = 1529.789 ; gain = 279.836
+Phase 6 Post Hold Fix | Checksum: a1011e5e
+
+Time (s): cpu = 00:05:15 ; elapsed = 00:02:26 . Memory (MB): peak = 1537.520 ; gain = 287.566
+
+Router Utilization Summary
+  Global Vertical Routing Utilization    = 0.0250335 %
+  Global Horizontal Routing Utilization  = 0.0240667 %
+  Routable Net Status*
+  *Does not include unroutable nets such as driverless and loadless.
+  Run report_route_status for detailed report.
+  Number of Failed Nets               = 0
+  Number of Unrouted Nets             = 0
+  Number of Partially Routed Nets     = 0
+  Number of Node Overlaps             = 0
+
+
+Phase 7 Verifying routed nets
+
+ Verification completed successfully
+Phase 7 Verifying routed nets | Checksum: a1011e5e
+
+Time (s): cpu = 00:05:16 ; elapsed = 00:02:26 . Memory (MB): peak = 1541.016 ; gain = 291.063
+
+Phase 8 Depositing Routes
+Phase 8 Depositing Routes | Checksum: a1011e5e
+
+Time (s): cpu = 00:05:16 ; elapsed = 00:02:26 . Memory (MB): peak = 1541.016 ; gain = 291.063
+
+Phase 9 Post Router Timing
+INFO: [Route 35-20] Post Routing Timing Summary | WNS=4.380  | TNS=0.000  | WHS=0.131  | THS=0.000  |
+
+INFO: [Route 35-61] The design met the timing requirement.
+Phase 9 Post Router Timing | Checksum: a1011e5e
+
+Time (s): cpu = 00:05:16 ; elapsed = 00:02:26 . Memory (MB): peak = 1541.016 ; gain = 291.063
+INFO: [Route 35-16] Router Completed Successfully
+Ending Route Task | Checksum: a1011e5e
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:02:26 . Memory (MB): peak = 1541.016 ; gain = 291.063
+
+Routing Is Done.
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:02:26 . Memory (MB): peak = 1541.016 ; gain = 291.063
+INFO: [Common 17-83] Releasing license: Implementation
+46 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+route_design completed successfully
+route_design: Time (s): cpu = 00:05:17 ; elapsed = 00:02:28 . Memory (MB): peak = 1541.016 ; gain = 372.602
+INFO: [Drc 23-27] Running DRC with 2 threads
+INFO: [Coretcl 2-168] The results of DRC are in file C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/tp/tp.runs/impl_1/ff_replicator_drc_routed.rpt.
+Running Vector-less Activity Propagation...
+
+Finished Running Vector-less Activity Propagation
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -1, Delay Type: min_max, Constraints type: SDC.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+Writing XDEF routing.
+Writing XDEF routing logical nets.
+Writing XDEF routing special nets.
+Write XDEF Complete: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.317 . Memory (MB): peak = 1541.016 ; gain = 0.000
+INFO: [Common 17-206] Exiting Vivado at Thu Feb 20 23:46:51 2014...
+[Thu Feb 20 23:46:53 2014] impl_1 finished
+wait_on_run: Time (s): cpu = 00:00:00 ; elapsed = 00:03:20 . Memory (MB): peak = 192.512 ; gain = 0.000
+# process_runs [ list [ get_runs synth_1 ] [ get_runs impl_1 ] ] 
+Design is defaulting to impl run constrset: constrs_1
+Design is defaulting to synth run part: xc7vx485tffg1157-1
+INFO: [Netlist 29-17] Analyzing 13 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2013.4
+Loading clock regions from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/virtex7/xc7vx485t/ClockRegion.xml
+Loading clock buffers from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/virtex7/xc7vx485t/ClockBuffers.xml
+Loading clock placement rules from C:/Xilinx/Vivado/2013.4/data/parts/xilinx/virtex7/ClockPlacerRules.xml
+Loading package pin functions from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/PinFunctions.xml...
+Loading package from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/virtex7/xc7vx485t/ffg1157/Package.xml
+Loading io standards from C:/Xilinx/Vivado/2013.4/data\./parts/xilinx/virtex7/IOStandards.xml
+Loading device configuration modes from C:/Xilinx/Vivado/2013.4/data\parts/xilinx/virtex7/ConfigModes.xml
+INFO: [Opt 31-140] Inserted 0 IBUFs to IO ports without IO buffers.
+INFO: [Opt 31-141] Inserted 0 OBUFs to IO ports without IO buffers.
+Parsing XDC File [C:/Users/nikc/Desktop/jenkins/src/ff_replicator.xdc]
+Finished Parsing XDC File [C:/Users/nikc/Desktop/jenkins/src/ff_replicator.xdc]
+INFO: [Opt 31-138] Pushed 0 inverter(s).
+INFO: [Memdata 28-144] Successfully populated the BRAM INIT strings from the following elf files: 
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+open_run: Time (s): cpu = 00:00:35 ; elapsed = 00:00:35 . Memory (MB): peak = 1099.566 ; gain = 907.055
+INFO: [Drc 23-27] Running DRC with 2 threads
+INFO: [Drc 23-27] Running DRC with 2 threads
+INFO: [Netlist 29-17] Analyzing 13 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2013.4
+Parsing XDC File [C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/.Xil/Vivado-14712-/dcp/ff_replicator.xdc]
+Finished Parsing XDC File [C:/Users/nikc/Desktop/jenkins/project_flow_high/workspace/.Xil/Vivado-14712-/dcp/ff_replicator.xdc]
+Reading XDEF placement.
+Reading XDEF routing.
+Read XDEF File: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.051 . Memory (MB): peak = 1242.422 ; gain = 0.000
+Restoring placement.
+Restored 42 out of 42 XDEF sites from archive | CPU: 0.000000 secs | Memory: 0.000000 MB |
+INFO: [Opt 31-138] Pushed 0 inverter(s).
+INFO: [Memdata 28-144] Successfully populated the BRAM INIT strings from the following elf files: 
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+open_run: Time (s): cpu = 00:00:18 ; elapsed = 00:00:18 . Memory (MB): peak = 1242.422 ; gain = 0.000
+INFO: [Drc 23-27] Running DRC with 2 threads
+# write_results
+INFO: [Common 17-206] Exiting Vivado at Thu Feb 20 23:47:51 2014...

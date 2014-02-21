@@ -1,0 +1,10 @@
+#-----------------------------------------------------------
+# Vivado v2013.4 (64-bit)
+# SW Build 353583 on Mon Dec  9 17:49:19 MST 2013
+# IP Build 208076 on Mon Dec  2 12:38:17 MST 2013
+# Start of session at: Thu Feb 20 23:48:17 2014
+# Process ID: 6280
+# Log file: C:/Users/nikc/Desktop/jenkins/project_hook_high/workspace/tp/tp.runs/synth_1/ff_replicator.rds
+# Journal file: C:/Users/nikc/Desktop/jenkins/project_hook_high/workspace/tp/tp.runs/synth_1\vivado.jou
+#-----------------------------------------------------------
+source ff_replicator.tcl
