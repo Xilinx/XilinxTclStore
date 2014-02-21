@@ -1,32 +1,18 @@
-####################################################################################################
+############################################################################
+# HEADER_BEGIN
 # COPYRIGHT NOTICE
-# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
 # http://www.xilinx.com/support
-# 
-# Created Date:   01/25/2013
-# Script name:    projutils.tcl
-# Tool Versions:  Vivado 2013.3
-# Description:    This script exports projutils package
-# 
-# Getting Started:
-#     % write_project_tcl 
-#     % export_simulation
+# HEADER_END
+############################################################################
 #
-####################################################################################################
-
-
-# title: Vivado Project Re-Build Tcl Script
-
-#package require Tcl 8.5
-
+# projutils.tcl (allow Tcl to find tclindex and provide package version 1.0)
+#
+############################################################################
 namespace eval ::tclapp::xilinx::projutils {
-
-    # Allow Tcl to find tclIndex
-    variable home [file join [pwd] [file dirname [info script]]]
-    if {[lsearch -exact $::auto_path $home] == -1} {
-	lappend ::auto_path $home
-    }
-
+  variable home [file join [pwd] [file dirname [info script]]]
+  if {[lsearch -exact $::auto_path $home] == -1} {
+    lappend ::auto_path $home
+  }
 }
-
 package provide ::tclapp::xilinx::projutils 1.0

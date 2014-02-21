@@ -1,23 +1,30 @@
-####################################################################################################
+#########################################################################
+# HEADER_BEGIN
 # COPYRIGHT NOTICE
 # Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
 # http://www.xilinx.com/support
+# HEADER_END
+#########################################################################
 #
-# Date Created     :  01/01/2014
-# Script name      :  register_options.tcl
-# Tool Version     :  Vivado 2014.1
-# Description      :  Setup "IES" simulator options on the simulation fileset
+# register_options.tcl (create simulation fileset properties with default
+#                       values for the 'Cadence IES Simulator')
 #
-# Revision History :
-#   01/01/2014 1.0  - Initial version
+# Script created on 01/06/2014 by Raj Klair (Xilinx, Inc.)
 #
-####################################################################################################
+# 2014.1 - v1.0 (rev 1)
+#  * initial version
+#
+#########################################################################
 package require Vivado 2013.1
+package require ::tclapp::xilinx::ies::helpers
+
 namespace eval ::tclapp::xilinx::ies {
 proc register_options { simulator } {
-  # Summary:
+  # Summary: define simulation fileset options
   # Argument Usage:
+  # simulator: name of the simulator for which the options needs to be defined
   # Return Value:
+  # true (0) if success, false (1) otherwise
 
   variable options
   if { {} == $simulator } {
@@ -38,11 +45,12 @@ proc register_options { simulator } {
     {{compile.load_glbl}      {bool}   {1}                                                   {Load GLBL module}}
     {{compile.more_options}   {string} {}                                                    {More Compilation Options}}
     {{elaborate.more_options} {string} {}                                                    {More Elaboration Options}}
+    {{simulate.runtime}       {string} {1000ns}                                              {Specify simulation run time}}
     {{simulate.saif}          {string} {}                                                    {SAIF Filename}}
     {{simulate.more_options}  {string} {}                                                    {More Simulation Options}}
   }
   # create options
-  ::tclapp::xilinx::simutils::usf_create_options $simulator $options
+  ::tclapp::xilinx::ies::usf_create_options $simulator $options
   return 0
 }
 }

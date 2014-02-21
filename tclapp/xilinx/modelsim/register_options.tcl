@@ -1,22 +1,30 @@
-####################################################################################################
+#########################################################################
+# HEADER_BEGIN
 # COPYRIGHT NOTICE
 # Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
 # http://www.xilinx.com/support
+# HEADER_END
+#########################################################################
 #
-# Date Created     :  01/01/2014
-# Script name      :  register_options.tcl
-# Tool Version     :  Vivado 2014.1
-# Description      :  Setup "ModelSim/Questa" simulator options on the simulation fileset
-# Revision History :
-#   01/01/2014 1.0  - Initial version
+# register_options.tcl (create simulation fileset properties with default
+#                       values for the 'ModelSim/Questa Simulator')
 #
-####################################################################################################
+# Script created on 01/06/2014 by Raj Klair (Xilinx, Inc.)
+#
+# 2014.1 - v1.0 (rev 1)
+#  * initial version
+#
+#########################################################################
 package require Vivado 2013.1
+package require ::tclapp::xilinx::modelsim::helpers
+
 namespace eval ::tclapp::xilinx::modelsim {
 proc register_options { simulator } {
-  # Summary:
+  # Summary: define simulation fileset options
   # Argument Usage:
+  # simulator: name of the simulator for which the options needs to be defined
   # Return Value:
+  # true (0) if success, false (1) otherwise
 
   variable options
   if { {} == $simulator } {
@@ -38,6 +46,7 @@ proc register_options { simulator } {
     {{compile.unifast}            {bool}   {0}                                     {Enable fast simulation models}}
     {{compile.vlog_more_options}  {string} {}                                      {More VLOG options}}
     {{compile.vcom_more_options}  {string} {}                                      {More VCOM options}}
+    {{simulate.runtime}           {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.custom_do}         {string} {}                                      {Specify name of the custom do file}}
     {{simulate.custom_udo}        {string} {}                                      {Specify name of the custom user do file}}
     {{simulate.sdf_delay}         {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}
@@ -46,7 +55,7 @@ proc register_options { simulator } {
     {{simulate.vsim_more_options} {string} {}                                      {More VSIM options}}
   }
   # create options
-  ::tclapp::xilinx::simutils::usf_create_options $simulator $options
+  ::tclapp::xilinx::modelsim::usf_create_options $simulator $options
   return 0
 }
 }

@@ -1,22 +1,30 @@
-####################################################################################################
+#########################################################################
+# HEADER_BEGIN
 # COPYRIGHT NOTICE
 # Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
 # http://www.xilinx.com/support
+# HEADER_END
+#########################################################################
 #
-# Date Created     :  01/01/2014
-# Script name      :  register_options.tcl
-# Tool Version     :  Vivado 2014.1
-# Description      :  Setup "Vivado Simulator" options on the simulation fileset
-# Revision History :
-#   01/01/2014 1.0  - Initial version
+# register_options.tcl (create simulation fileset properties with default
+#                       values for the 'Vivado Simulator')
 #
-####################################################################################################
+# Script created on 01/06/2014 by Raj Klair (Xilinx, Inc.)
+#
+# 2014.1 - v1.0 (rev 1)
+#  * initial version
+#
+#########################################################################
 package require Vivado 2013.1
+package require ::tclapp::xilinx::xsim::helpers
+
 namespace eval ::tclapp::xilinx::xsim {
 proc register_options { simulator } {
-  # Summary:
+  # Summary: define simulation fileset options
   # Argument Usage:
+  # simulator: name of the simulator for which the options needs to be defined
   # Return Value:
+  # true (0) if success, false (1) otherwise
  
   variable options
   if { {} == $simulator } {
@@ -43,6 +51,7 @@ proc register_options { simulator } {
     {{elaborate.sdf_delay}         {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
     {{elaborate.unifast}           {bool}   {0}                                                  {Enable fast simulation models}}
     {{elaborate.more_options}      {string} {}                                                   {More Elaboration Options}}
+    {{simulate.runtime}            {string} {1000ns}                                             {Specify simulation run time}}
     {{simulate.wdb}                {string} {}                                                   {Specify Waveform Database file}}
     {{simulate.saif}               {string} {}                                                   {SAIF Filename}}
     {{simulate.tclbatch}           {string} {}                                                   {Specify custom command file for simulation}}
@@ -50,7 +59,7 @@ proc register_options { simulator } {
     {{simulate.more_options}       {string} {}                                                   {More Simulation Options}}
   }
   # create options
-  ::tclapp::xilinx::simutils::usf_create_options $simulator $options
+  ::tclapp::xilinx::xsim::usf_create_options $simulator $options
   return 0
 }
 }

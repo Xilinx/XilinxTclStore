@@ -1,24 +1,29 @@
-####################################################################################################
+#########################################################################################
 # HEADER_BEGIN
 # COPYRIGHT NOTICE
-# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
 # http://www.xilinx.com/support
 # HEADER_END
-####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Nik Cimino
-# 
-# Created Date:   06/01/12
-# Script name:    diff.tcl
-# Classes:        html, report, design, diff
-# Procedures:     new_report, new_diff, diff_lists, diff_reports, diff_props, diff_close_designs
-# Tool Versions:  Vivado 2012.2
-# Description:    This script is used to compare 2 designs that have been loaded into memory.
-# Dependencies:   struct package
-#                 stooop package
-# Notes:          
-#     For more information on STOOOP visit: http://wiki.tcl.tk/2165 
-#     For more information on STRUCT visit: http://tcllib.sourceforge.net/doc/struct_set.html
+#########################################################################################
+#
+# diff.tcl (compare 2 designs that have been loaded into memory)
+#
+# Script created on 06/01/12 by Nik Cimino (Xilinx, Inc.)
+#
+# Classes     :- html, report, design, diff
+# Procedures  :- new_report, new_diff, diff_lists, diff_reports, diff_props,
+#                diff_close_designs
+# Dependencies:- struct package
+#                stooop package
+#
+# For more information on STOOOP visit: http://wiki.tcl.tk/2165 
+# For more information on STRUCT visit: http://tcllib.sourceforge.net/doc/struct_set.html
+#
+# 2012 - v1.0 (rev 1)
+#  * initial version
+#
+#########################################################################################
+
 # 
 # Getting Started:
 #     % source ./diff.tcl
@@ -30,8 +35,6 @@
 #     % diff_close_designs $of
 #     % delete $of
 #
-####################################################################################################
-
 
 # title: Vivado Design Differencing
 

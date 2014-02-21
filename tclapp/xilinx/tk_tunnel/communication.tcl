@@ -1,16 +1,21 @@
-####################################################################################################
+####################################################################################
 # HEADER_BEGIN
 # COPYRIGHT NOTICE
-# Copyright 2001-2013 Xilinx Inc. All Rights Reserved.
+# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
 # http://www.xilinx.com/support
 # HEADER_END
-####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Nik Cimino
-# 
-# Created Date:   11/20/12
-# Script name:    communication.tcl
-# 
+####################################################################################
+#
+# communication.tcl (helper utilities for tk_tunnel)
+#
+# Script created on 11/20/2012 by Nik Cimino (Xilinx, Inc.)
+#
+# 2012 - version 1.0 (rev. 1)
+#  * initial version
+#
+####################################################################################
+
+#
 # Getting Started:
 #     % package require ::tclapp::xilinx::tk_tunnel
 #     % namespace import ::tclapp::xilinx::tk_tunnel::*
@@ -18,7 +23,6 @@
 #     % start_client
 #     % rexec { tk::toplevel .w; wm title .w "New Window"; }
 #
-####################################################################################################
 
 namespace eval ::tclapp::xilinx::tk_tunnel {
 

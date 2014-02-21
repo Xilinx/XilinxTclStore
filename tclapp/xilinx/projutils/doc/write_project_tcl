@@ -10,6 +10,10 @@ Description:
 
 Arguments:
 
+  -paths_relative_to - (Optional) Specify the directory path relative to which
+  the sources will referenced when re-creating the project. The path will be
+  set for the "origin_dir" variable in the generated script.
+
   -target_proj_dir - (Optional) Specify the directory path where the project
   will be recreated. The tool will write "create_project" command with the
   directory path specified with this switch.

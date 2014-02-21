@@ -1,3 +1,3 @@
-VCS_MX simulation script
+Tcl App for VCS_MX Simulator
 
-This script can be used to verify the design using Synopsys "VCS_MX" Simulator
+Simulate a design in Vivado with Synopsys VCS_MX Simulator

@@ -5,7 +5,7 @@
     <app>
       <revision>1.0</revision>
       <revision_history>Modified README; package requirement is Vivado 2013.1; updated commit id</revision_history>
-      <commit_id>f7b789cbc1904798b741d7352faf1e3aa03f853f</commit_id>
+      <commit_id>c9b8ab2b4d2fdcb24bb823f07e10762223f5851a</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <author>Multiple people</author>
@@ -137,18 +137,18 @@
           <summary>Convert a Verilog formatted number to an integer</summary>
         </proc>
         <proc>
-          <name>write_template</name>
-          <summary>generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)</summary>
-        </proc>
-        <proc>
           <name>write_slr_pblock_xdc</name>
           <summary>Exports the current SLR placement to pblock constraints in an XDC file</summary>
+        </proc>
+        <proc>
+          <name>write_template</name>
+          <summary>generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)</summary>
         </proc>
       </procs>
     </app>
     <app>
       <revision>1.2</revision>
-      <commit_id>dbe419f284c3f93e904ac7f808af49e2fe4511c8</commit_id>
+      <commit_id>c9b8ab2b4d2fdcb24bb823f07e10762223f5851a</commit_id>
       <name>diff</name>
       <author>Nik Cimino</author>
       <company>xilinx</company>
@@ -190,7 +190,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>2f6bffba5890f779b13beb7c1a3f7b1666716654</commit_id>
+      <commit_id>c9b8ab2b4d2fdcb24bb823f07e10762223f5851a</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
@@ -244,7 +244,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>2f6bffba5890f779b13beb7c1a3f7b1666716654</commit_id>
+      <commit_id>c9b8ab2b4d2fdcb24bb823f07e10762223f5851a</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
@@ -342,7 +342,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>925c6a359ee222f0df6bb7068f32a7230669da50</commit_id>
+      <commit_id>c9b8ab2b4d2fdcb24bb823f07e10762223f5851a</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <author>Raj Klair</author>
@@ -361,231 +361,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>821d6de0cc1a47cb92870864f325b55579b9eea1</commit_id>
-      <name>simutils</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
-      <company>xilinx</company>
-      <summary>Helper utilities for the simulator apps</summary>
-      <procs>
-        <proc>
-          <name>usf_add_secureip</name>
-        </proc>
-        <proc>
-          <name>usf_add_simprims</name>
-        </proc>
-        <proc>
-          <name>usf_add_unifast</name>
-        </proc>
-        <proc>
-          <name>usf_add_unimacro</name>
-        </proc>
-        <proc>
-          <name>usf_add_unique_incl_paths</name>
-        </proc>
-        <proc>
-          <name>usf_add_unisims</name>
-        </proc>
-        <proc>
-          <name>usf_append_compiler_options</name>
-        </proc>
-        <proc>
-          <name>usf_append_define_generics</name>
-          <summary>append generics to the command line</summary>
-        </proc>
-        <proc>
-          <name>usf_append_other_options</name>
-        </proc>
-        <proc>
-          <name>usf_compile_glbl_file</name>
-        </proc>
-        <proc>
-          <name>usf_contains_verilog</name>
-          <summary>return true if design contains verilog sources</summary>
-        </proc>
-        <proc>
-          <name>usf_create_do_file</name>
-        </proc>
-        <proc>
-          <name>usf_create_launch_dir</name>
-          <summary>create simulation run directory</summary>
-        </proc>
-        <proc>
-          <name>usf_create_options</name>
-          <summary>create and set options</summary>
-        </proc>
-        <proc>
-          <name>usf_export_data_files</name>
-        </proc>
-        <proc>
-          <name>usf_export_fs_data_files</name>
-        </proc>
-        <proc>
-          <name>usf_generate_comp_file_for_simulation</name>
-        </proc>
-        <proc>
-          <name>usf_generate_ip_netlist</name>
-        </proc>
-        <proc>
-          <name>usf_get_bin_path</name>
-        </proc>
-        <proc>
-          <name>usf_get_compile_order_for_obj</name>
-          <summary>get design compile order</summary>
-        </proc>
-        <proc>
-          <name>usf_get_compile_order_libs</name>
-          <summary>get the list of design libraries</summary>
-        </proc>
-        <proc>
-          <name>usf_get_compiler_name</name>
-        </proc>
-        <proc>
-          <name>usf_get_file_cmd_str</name>
-        </proc>
-        <proc>
-          <name>usf_get_file_type_category</name>
-        </proc>
-        <proc>
-          <name>usf_get_files_for_compilation</name>
-        </proc>
-        <proc>
-          <name>usf_get_files_from_block_filesets</name>
-        </proc>
-        <proc>
-          <name>usf_get_glbl_file</name>
-        </proc>
-        <proc>
-          <name>usf_get_global_include_file_cmdstr</name>
-        </proc>
-        <proc>
-          <name>usf_get_global_include_files</name>
-        </proc>
-        <proc>
-          <name>usf_get_header_include_paths</name>
-        </proc>
-        <proc>
-          <name>usf_get_incl_dirs_from_ip</name>
-        </proc>
-        <proc>
-          <name>usf_get_incl_files_from_ip</name>
-        </proc>
-        <proc>
-          <name>usf_get_include_dirs</name>
-        </proc>
-        <proc>
-          <name>usf_get_include_file_dirs</name>
-          <summary>get the include file directory paths</summary>
-        </proc>
-        <proc>
-          <name>usf_get_netlist_extn</name>
-        </proc>
-        <proc>
-          <name>usf_get_netlist_filename</name>
-        </proc>
-        <proc>
-          <name>usf_get_netlist_writer_cmd_args</name>
-        </proc>
-        <proc>
-          <name>usf_get_relative_file_path</name>
-        </proc>
-        <proc>
-          <name>usf_get_script_extn</name>
-        </proc>
-        <proc>
-          <name>usf_get_sdf_writer_cmd_args</name>
-        </proc>
-        <proc>
-          <name>usf_get_sim_files_for_fs</name>
-        </proc>
-        <proc>
-          <name>usf_get_sim_files_for_ip</name>
-        </proc>
-        <proc>
-          <name>usf_get_testbench_files_from_ip</name>
-        </proc>
-        <proc>
-          <name>usf_get_top</name>
-        </proc>
-        <proc>
-          <name>usf_get_top_library</name>
-          <summary>get the top library name</summary>
-        </proc>
-        <proc>
-          <name>usf_get_verilog_header_paths</name>
-        </proc>
-        <proc>
-          <name>usf_get_xil_simulator_lib</name>
-        </proc>
-        <proc>
-          <name>usf_init_vars</name>
-          <summary>initialize simulation global variables</summary>
-        </proc>
-        <proc>
-          <name>usf_is_axi_bfm_ip</name>
-        </proc>
-        <proc>
-          <name>usf_is_embedded_flow</name>
-        </proc>
-        <proc>
-          <name>usf_is_fileset</name>
-          <summary>return true if specified tcl object is fileset</summary>
-        </proc>
-        <proc>
-          <name>usf_is_ip</name>
-        </proc>
-        <proc>
-          <name>usf_launch_script</name>
-        </proc>
-        <proc>
-          <name>usf_make_file_executable</name>
-        </proc>
-        <proc>
-          <name>usf_prepare_ip_for_simulation</name>
-        </proc>
-        <proc>
-          <name>usf_print_args</name>
-        </proc>
-        <proc>
-          <name>usf_remove_duplicate_files</name>
-        </proc>
-        <proc>
-          <name>usf_resolve_file_path</name>
-        </proc>
-        <proc>
-          <name>usf_set_ref_dir</name>
-          <summary>set reference dir for setting source paths</summary>
-        </proc>
-        <proc>
-          <name>usf_set_run_dir</name>
-          <summary>set simulation run directory</summary>
-        </proc>
-        <proc>
-          <name>usf_set_sim_tcl_obj</name>
-          <summary>set simulation tcl object</summary>
-        </proc>
-        <proc>
-          <name>usf_set_simulation_flow</name>
-          <summary>set simulation flow</summary>
-        </proc>
-        <proc>
-          <name>usf_set_simulator_path</name>
-        </proc>
-        <proc>
-          <name>usf_uniquify_cmd_str</name>
-          <summary>remove duplicate command line strings</summary>
-        </proc>
-        <proc>
-          <name>usf_write_design_netlist</name>
-          <summary>write design netlist</summary>
-        </proc>
-        <proc>
-          <name>usf_write_shell_step_fn</name>
-        </proc>
-      </procs>
-    </app>
-    <app>
-      <revision>1.0</revision>
-      <commit_id>990d7be00c1fb890cec76a063b8204da081ab1c4</commit_id>
+      <commit_id>c9b8ab2b4d2fdcb24bb823f07e10762223f5851a</commit_id>
       <name>tk_tunnel</name>
       <author>Nik Cimino</author>
       <company>xilinx</company>
@@ -653,6 +429,7 @@
     </app>
     <app>
       <revision>1.0</revision>
+      <commit_id>c9b8ab2b4d2fdcb24bb823f07e10762223f5851a</commit_id>
       <name>ultrafast</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <author>Xilinx</author>
@@ -687,7 +464,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>2f6bffba5890f779b13beb7c1a3f7b1666716654</commit_id>
+      <commit_id>c9b8ab2b4d2fdcb24bb823f07e10762223f5851a</commit_id>
       <name>vcs_mx</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
@@ -741,7 +518,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>5fad4b16dd4035a618051c0d79853def2aeb6d08</commit_id>
+      <commit_id>c9b8ab2b4d2fdcb24bb823f07e10762223f5851a</commit_id>
       <name>xsim</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
