@@ -6,6 +6,10 @@ set ::driverDir [ file normalize [ file dirname [ info script ] ] ]
 # a variable from one source would be available in another sourced script
 # using different namespaces ensures correct variable references
 
+namespace eval test0 {
+  source [ file join $::driverDir project_step_high_ns run.tcl ]
+}
+
 namespace eval test1 {
   source [ file join $::driverDir project_step_high run.tcl ]
 }

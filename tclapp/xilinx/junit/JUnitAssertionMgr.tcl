@@ -5,29 +5,38 @@
 # http://www.xilinx.com/support
 # HEADER_END
 ####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Nik Cimino
+#
+# JUnitAssertionMgr.tcl (api and assertion utilities for junit)
+#
+# Script created on 01/31/2014 by Nik Cimino (Xilinx, Inc.)
+#
+# 2014 - version 1.0 (rev. 1)
+#  * initial version
+#
+####################################################################################################
 # 
-# Created Date:   01/31/14
-# Script name:    JUnitAssertionMgr.tcl
 # Procedures:
-#   run_step                     run_command
-#   process_runs                 process_impl_design
-#   process_synth_design         get_report
-#   set_report                   write_results
-#   validate_logic               validate_timing
-#   validate_routing             validate_messages
-#   validate_drcs                validate_run_properties
+#   run_step                     run_command                  run_silent
+#
+#   process_runs                 process_impl_design          process_synth_design         
+#
+#   get_report                   set_report                   write_results
+#
+#   validate_logic               validate_timing              validate_routing             
+#   validate_messages            validate_drcs                validate_run_properties
+#   
 #   get_results                  reset_results
+#
 #   assert_same                  assert_exists
+#
 #   set_stdout                   set_stderr
-#   new_testsuites               new_testsuite
-#   new_testcase                 new_error
-#   new_failure                  new_stdout
-#   new_stderr                   init
+#
+#   new_testsuites               new_testsuite                new_testcase                 
+#   new_error                    new_failure                  new_stdout
+#   new_stderr                   
+#   
 #   validate_objects             validate_object
-# Tool Versions:  Vivado 2013.4
-# Description:    JUnit Reporting API
+#
 # Dependencies:   ::struct::graph
 #                 ::struct::stack
 #                 
@@ -58,6 +67,7 @@ set report      "report.xml"
 
 namespace export run_step
 namespace export run_command
+namespace export run_silent
 namespace export process_runs
 namespace export process_impl_design
 namespace export process_synth_design

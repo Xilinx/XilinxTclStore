@@ -1,30 +1,13 @@
-####################################################################################################
+###########################################################################################
 # HEADER_BEGIN
 # COPYRIGHT NOTICE
 # Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
 # http://www.xilinx.com/support
 # HEADER_END
-####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Nik Cimino
-# 
-# Created Date:   01/31/14
-# Script name:    junit.tcl
-# Procedures:     ?
-# Tool Versions:  Vivado 2013.4
-# Description:    Xilinx (Tcl) Reporting API
-# Dependencies:   ?
-#                 
-# Notes:          
-#     ?
-# 
-# Getting Started:
-#     % package require ::tclapp::xilinx::junit
-#     % ?
+############################################################################
 #
-####################################################################################################
-
-# title: Xilinx (Tcl) Reporting API
+# junit.tcl (allow Tcl to find tclindex and provide package version 1.0)
+# 
 
 namespace eval ::tclapp::xilinx::junit {
 
@@ -36,4 +19,4 @@ namespace eval ::tclapp::xilinx::junit {
 
 }
 
-package provide ::tclapp::xilinx::junit 1.0
+package provide ::tclapp::xilinx::junit 0.1

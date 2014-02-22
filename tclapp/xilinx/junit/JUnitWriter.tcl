@@ -5,26 +5,22 @@
 # http://www.xilinx.com/support
 # HEADER_END
 ####################################################################################################
-# Company:        Xilinx, Inc.
-# Created by:     Nik Cimino
+#
+# JUnitWriter.tcl (xml writer utilities for junit)
+#
+# Script created on 01/31/2014 by Nik Cimino (Xilinx, Inc.)
+#
+# 2014 - version 1.0 (rev. 1)
+#  * initial version
+#
+####################################################################################################
 # 
-# Created Date:   01/31/14
-# Script name:    JUnitWriter.tcl
 # Procedures:     format_junit
 #                 graph_to_xml
 #                 write
-# Tool Versions:  Vivado 2013.4
-# Description:    JUnit Reporting API
 # Dependencies:   ::struct::graph
 #                 ::struct::stack
 #                 
-# Notes:          
-#     ?
-# 
-# Getting Started:
-#     % package require ::tclapp::xilinx::junit
-#     % ?
-#
 ####################################################################################################
 
 ####################################################################################################
