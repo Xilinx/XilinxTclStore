@@ -15,13 +15,14 @@
 #     % start_client
 #     % rexec { tk::toplevel .w; wm title .w "New Window"; }
 #
-############################################################################
+
 package require Tcl 8.5
 catch {package require Tk} 
 namespace eval ::tclapp::xilinx::tk_tunnel {
+  # Allow Tcl to find tclIndex
   variable home [file join [pwd] [file dirname [info script]]]
   if {[lsearch -exact $::auto_path $home] == -1} {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::tk_tunnel 1.0
+package provide ::tclapp::xilinx::tk_tunnel 1.1

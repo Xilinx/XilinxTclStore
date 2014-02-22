@@ -1,5 +1,0 @@
-Xilinx Tk Tunnel App
-
-This app can be used to launch a Tcl/Tk 8.5 server using a standalone Tcl shell, and pass commands
-from Vivado to the Tk shell.
-

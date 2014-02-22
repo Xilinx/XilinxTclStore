@@ -17,10 +17,10 @@ start_client
 
 # Raw Tk example
 rexec {
-    tk::toplevel .window_rexec; \
-    wm title .window_rexec "New from rexec"; \
-    wm geometry .window_rexec 300x200-5+40; \
-    wm resizable .window_rexec 0 0; \
+  tk::toplevel .window_rexec; \
+  wm title .window_rexec "New from rexec"; \
+  wm geometry .window_rexec 300x200-5+40; \
+  wm resizable .window_rexec 0 0; \
 }
 
 rexec "source [file normalize [file join [file dirname [info script]] {tk.tcl}]]"
@@ -47,8 +47,8 @@ set answer [rexec_wait {ask_or_cancel "Are you sure you want to do this?"}]
 puts "Answer: $answer"
 
 while {$answer != "retry"} {
-    set answer [rexec_wait {failed "Operation failed!"}]
-    puts "Answer: $answer"
+  set answer [rexec_wait {failed "Operation failed!"}]
+  puts "Answer: $answer"
 }
 
 set answer [rexec_wait {msg "Have a nice day!"}]
