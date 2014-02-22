@@ -1,10 +1,4 @@
 #########################################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-#########################################################################################
 #
 # diff.tcl (compare 2 designs that have been loaded into memory)
 #

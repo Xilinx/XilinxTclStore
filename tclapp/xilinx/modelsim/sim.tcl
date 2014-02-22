@@ -1,10 +1,4 @@
 ######################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-######################################################################
 #
 # sim.tcl (simulation script for the 'ModelSim/Questa Simulator')
 #
@@ -62,7 +56,7 @@ proc elaborate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-ModelSim-999 INFO "modelsim::elaborate design"
+  send_msg_id Vivado-ModelSim-003 INFO "modelsim::elaborate design"
 
   usf_modelsim_write_elaborate_script
 
@@ -78,7 +72,7 @@ proc simulate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-ModelSim-999 INFO "modelsim::simulate design"
+  send_msg_id Vivado-ModelSim-004 INFO "modelsim::simulate design"
 
   usf_modelsim_write_simulate_script
 
@@ -100,7 +94,7 @@ proc usf_modelsim_setup_simulation { args } {
   variable a_sim_vars
 
   if { [catch {::tclapp::xilinx::modelsim::usf_set_simulator_path "modelsim"} err_msg] } {
-    send_msg_id Vivado-ModelSim-999 ERROR "$err_msg\n"
+    send_msg_id Vivado-ModelSim-005 ERROR "$err_msg\n"
   }
 
   # set the simulation flow
@@ -187,7 +181,7 @@ proc usf_modelsim_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id Vivado-ModelSim-999 ERROR "Unknown option '$option', please type 'simulate -help' for usage info.\n"
+          send_msg_id Vivado-ModelSim-006 ERROR "Unknown option '$option', please type 'simulate -help' for usage info.\n"
           return 1
         }
       }
@@ -205,7 +199,7 @@ proc usf_modelsim_verify_compiled_lib {} {
   set ini_file "modelsim.ini"
   set compiled_lib_dir {}
 
-  send_msg_id Vivado-modelsim-999 INFO "Finding pre-compiled libraries...\n"
+  send_msg_id Vivado-modelsim-007 INFO "Finding pre-compiled libraries...\n"
 
   # 1. find in project default dir (<project>/<project>.cache/compile_simlib
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
@@ -235,8 +229,8 @@ proc usf_modelsim_verify_compiled_lib {} {
   if { {} == $compiled_lib_dir } {
     set file [file normalize [file join $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
-      send_msg_id Vivado-modelsim-999 "CRITICAL WARNING" "Failed to find the Xilinx pre-compiled simulation library!\n"
-      send_msg_id Vivado-modelsim-999 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
+      send_msg_id Vivado-modelsim-008 "CRITICAL WARNING" "Failed to find the Xilinx pre-compiled simulation library!\n"
+      send_msg_id Vivado-modelsim-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
                                              - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the compiled library directory, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
                                              - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
@@ -246,9 +240,9 @@ proc usf_modelsim_verify_compiled_lib {} {
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
     if { [file exists $ini_file_path] } {
       if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)} error_msg] } {
-        send_msg_id Vivado-modelsim-999 ERROR "failed to copy file ($ini_file): $error_msg\n"
+        send_msg_id Vivado-modelsim-010 ERROR "failed to copy file ($ini_file): $error_msg\n"
       } else {
-        send_msg_id Vivado-modelsim-999 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)'\n"
+        send_msg_id Vivado-modelsim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)'\n"
       }
     }
   }
@@ -266,13 +260,13 @@ proc usf_modelsim_write_setup_files {} {
   set lib_dir [file normalize [file join $dir "msim"]]
   if { [file exists $lib_dir] } {
     if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id Vivado-ModelSim-999 ERROR "failed to delete directory ($lib_dir): $error_msg\n"
+      send_msg_id Vivado-ModelSim-012 ERROR "failed to delete directory ($lib_dir): $error_msg\n"
       return 1
     }
   }
 
   #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id Vivado-ModelSim-999 ERROR "failed to create the directory ($lib_dir): $error_msg\n"
+  #  send_msg_id Vivado-ModelSim-013 ERROR "failed to create the directory ($lib_dir): $error_msg\n"
   #  return 1
   #}
 }
@@ -290,13 +284,13 @@ proc usf_modelsim_write_compile_script {} {
   # is custom do file specified?
   set custom_do_file [get_property "MODELSIM.SIMULATE.CUSTOM_DO" $fs_obj]
   if { {} != $custom_do_file } {
-    send_msg_id Vivado-ModelSim-999 INFO "Using custom 'do' file '$custom_do_file'...\n"
+    send_msg_id Vivado-ModelSim-014 INFO "Using custom 'do' file '$custom_do_file'...\n"
     set do_filename $custom_do_file
   } else {
     set do_filename $top;append do_filename "_compile.do"
     set do_file [file normalize [file join $dir $do_filename]]
 
-    send_msg_id Vivado-ModelSim-999 INFO "Creating automatic 'do' files...\n"
+    send_msg_id Vivado-ModelSim-015 INFO "Creating automatic 'do' files...\n"
 
     # create custom UDO file
     set udo_file [get_property "MODELSIM.SIMULATE.CUSTOM_UDO" $fs_obj]
@@ -357,7 +351,7 @@ proc usf_modelsim_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-ModelSim-999 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-ModelSim-016 ERROR "failed to open file to write ($file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $file "UDOFILE"
@@ -375,7 +369,7 @@ proc usf_modelsim_create_wave_do_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-ModelSim-999 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-ModelSim-017 ERROR "failed to open file to write ($file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $file "WAVEDOFILE"
@@ -398,7 +392,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id Vivado-ModelSim-999 ERROR "failed to open file to write ($do_file)\n"
+    send_msg_id Vivado-ModelSim-018 ERROR "failed to open file to write ($do_file)\n"
     return 1
   }
 
@@ -466,7 +460,7 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id Vivado-ModelSim-999 ERROR "failed to open file to write ($do_file)\n"
+    send_msg_id Vivado-ModelSim-019 ERROR "failed to open file to write ($do_file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $do_file "DOFILE"
@@ -498,7 +492,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      send_msg_id Vivado-VCS_MX-999 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id Vivado-VCS_MX-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
     }
   }
 
@@ -546,7 +540,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id Vivado-ModelSim-999 ERROR "failed to open file to write ($do_file)\n"
+    send_msg_id Vivado-ModelSim-021 ERROR "failed to open file to write ($do_file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $do_file "DOFILE"
@@ -647,7 +641,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-ModelSim-999 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-ModelSim-022 ERROR "failed to open file to write ($scr_file)\n"
     return 1
   }
 

@@ -1,10 +1,4 @@
 ####################################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-####################################################################################
 #
 # gui_helpers.tcl (helper utilities for tk_tunnel)
 #

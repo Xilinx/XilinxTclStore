@@ -28,6 +28,8 @@ set auto_index(::tclapp::xilinx::xsim::usf_xsim_get_sim_mode_as_pretty_str) [lis
 set auto_index(::tclapp::xilinx::xsim::register_options) [list source [file join $dir register_options.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_init_vars) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_create_options) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::xsim::usf_create_fs_options_spec) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::xsim::usf_set_fs_options) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_is_option_registered_on_simulator) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_set_simulation_flow) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_set_run_dir) [list source [file join $dir helpers.tcl]]

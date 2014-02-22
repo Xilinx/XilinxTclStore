@@ -1,10 +1,4 @@
 #########################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-#########################################################################
 #
 # register_options.tcl (create simulation fileset properties with default
 #                       values for the 'Vivado Simulator')
@@ -28,15 +22,13 @@ proc register_options { simulator } {
  
   variable options
   if { {} == $simulator } {
-    send_msg_id Vivado-XSim-999 ERROR "Simulator not specified.\n"
+    send_msg_id Vivado-XSim-001 ERROR "Simulator not specified.\n"
   }
   # is simulator registered?
   if { {-1} == [lsearch [get_simulators] $simulator] } {
-    send_msg_id Vivado-XSim-999 ERROR "Simulator '$simulator' is not registered\n"
+    send_msg_id Vivado-XSim-002 ERROR "Simulator '$simulator' is not registered\n"
     return 1
   }
-  # simulation fileset object on which the options will be created and value set
-  set fs_obj [current_fileset -simset]
   set options {
     {{compile.xvlog.nosort}        {bool}   {0}                                                  {Donot sort}}
     {{compile.xvlog.more_options}  {string} {}                                                   {More Xvlog compilation Options}}
