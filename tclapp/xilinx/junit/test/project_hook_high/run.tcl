@@ -1,26 +1,60 @@
 #!vivado
-lappend ::auto_path [ file normalize C:/Users/nikc/tcl/XilinxTclStore/tclapp/ ]
+
+# prep
+set testDir   [ file normalize [ file dirname [ info script ] ] ]
+set appDir    [ file normalize [ file join $testDir .. .. .. .. ] ]
+set runDir    [ file join $testDir run ]
+lappend ::auto_path $appDir
+puts "Using App Dir:\n  $appDir"
+puts "Using Test Dir:\n  $testDir"
+puts "Using Run Dir:\n  $runDir"
+
+# clean
+if { [ file exists $runDir ] } { file delete -force $runDir }
+file mkdir $runDir
 
 package require ::tclapp::xilinx::junit
 namespace import ::tclapp::xilinx::junit::*
 
-file delete [ glob ./* ]
+set projectDir [ file join $runDir tp ]
+create_project tp $projectDir -part xc7vx485tffg1157-1
 
-create_project -force tp tp -part xc7vx485tffg1157-1
-
-add_files [ glob ../../src/* ]
+set srcFiles [ file normalize [ file join $runDir .. .. src * ] ]
+puts "Searching for source files with:\n  ${srcFiles}"
+add_files [ glob $srcFiles ]
 
 update_compile_order
 
-set_property STEPS.SYNTH_DESIGN.TCL.POST {C:/Users/nikc/Desktop/jenkins/project_hook_high/hook_synth.tcl} [get_runs synth_1]
-set_property STEPS.ROUTE_DESIGN.TCL.POST {C:/Users/nikc/Desktop/jenkins/project_hook_high/hook_impl.tcl} [get_runs impl_1]
+set_property STEPS.SYNTH_DESIGN.TCL.POST [ file join $testDir hook_synth.tcl ] [get_runs synth_1]
+# this script will output to
+set synthReport [ file join $runDir synthReport.xml ] 
+
+#set_property STEPS.ROUTE_DESIGN.TCL.POST [ file join $testDir hook_impl.tcl ] [get_runs impl_1]
+# this script will output to
+#set implReport [ file join $runDir implReport.xml ] 
 
 launch_runs synth_1
 wait_on_run synth_1
 
-launch_runs impl_1
-wait_on_run impl_1
+#launch_runs impl_1
+#wait_on_run impl_1
 
-#combine_junit {./tp/tp.runs/synth_1/report.xml ./tp/tp.runs/impl_1/report.xml} ./report.xml
-file copy ./tp/tp.runs/impl_1/report.xml ./report.xml
+# a potential enhancement would be to combine the synth and impl reports
+#   1. could build a parser... lots of work
+#   2. could write partial reports (<testsuite...> only) and later stitch partial reports together 
+#      with <testsuites> and <?xml...?> nodes added during stitching process 
+set outputReport [ file join $runDir report.xml ]
+file copy $synthReport $outputReport
+#file copy $implReport $outputReport
+
+close_project
+
+# smoke test to just make sure XML is generated
+if { ! [ file exists $outputReport ] } {
+  error "Couldn't find junit report: '$outputReport'"
+}
+
+# clean on success
+file delete -force $runDir 
+puts "done."
 

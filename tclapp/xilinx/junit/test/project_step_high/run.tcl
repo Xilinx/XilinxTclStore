@@ -1,52 +1,78 @@
 #!vivado
-lappend ::auto_path [ file normalize C:/Users/nikc/tcl/XilinxTclStore/tclapp/ ]
+# 
+# Validation checks
+#
+# checked here:
+#   validate_logic
+#   validate_routing
+#   validate_timing
+#   validate_messages
+#   validate_drcs
+# not here:
+#   validate_run_properties
+
+# prep
+set testDir   [ file normalize [ file dirname [ info script ] ] ]
+set appDir    [ file normalize [ file join $testDir .. .. .. .. ] ]
+set runDir    [ file join $testDir run ]
+lappend ::auto_path $appDir
+puts "Using App Dir:\n  $appDir"
+puts "Using Test Dir:\n  $testDir"
+puts "Using Run Dir:\n  $runDir"
+
+# clean
+if { [ file exists $runDir ] } { file delete -force $runDir }
+file mkdir $runDir
 
 package require ::tclapp::xilinx::junit
 namespace import ::tclapp::xilinx::junit::*
 
-file delete [ glob ./* ]
-
 # set optional report name (default: report.xml)
-set_report ./report.xml
+set outputReport [ file join $runDir report.xml ]
+set_report $outputReport
 
-add_files [ glob ../../src/* ]
+set srcFiles [ file normalize [ file join $runDir .. .. src * ] ]
+puts "Searching for source files with:\n  ${srcFiles}"
+add_files [ glob $srcFiles ]
 
 update_compile_order
 
 # synth_design
+#   run_step will: track runtime, catch and log errors, validate_messages, and validate_drcs
 run_step {synth_design -top ff_replicator -part xc7vx485tffg1157-1}
-write_checkpoint synthesis.dcp
+write_checkpoint [ file join $runDir synthesis.dcp ]
 # validation
 validate_timing "Post synth_design"
 validate_logic "Post synth_design"
+validate_routing "Post synth_design"; # this is not a rational check, just for testing - see post-route_design
 
-# opt_design
-run_step {opt_design}
-write_checkpoint opt_design.dcp
-# validation
-validate_timing "Post opt_design"
-validate_logic "Post opt_design"
-
-# place_design
-run_step {place_design}
-write_checkpoint place_design.dcp
-# validation
-validate_timing "Post place_design"
-validate_logic "Post place_design"
-
-# phys_opt_design
-run_step {phys_opt_design}
-write_checkpoint phys_opt_design.dcp
-# validation
-validate_timing "Post phys_opt_design"
-validate_logic "Post phys_opt_design"
-
-# route_design
-run_step {route_design}
-write_checkpoint route_design.dcp
-# validation
-validate_timing "Post route_design"
-validate_routing "Post route_design"
+## opt_design
+#run_step {opt_design}
+#write_checkpoint [ file join $runDir opt_design.dcp ]
+## validation
+#validate_timing "Post opt_design"
+#validate_logic "Post opt_design"
+#
+## place_design
+#run_step {place_design}
+#write_checkpoint [ file join $runDir place_design.dcp ]
+## validation
+#validate_timing "Post place_design"
+#validate_logic "Post place_design"
+#
+## phys_opt_design
+#run_step {phys_opt_design}
+#write_checkpoint [ file join $runDir phys_opt_design.dcp ]
+## validation
+#validate_timing "Post phys_opt_design"
+#validate_logic "Post phys_opt_design"
+#
+## route_design
+#run_step {route_design}
+#write_checkpoint [ file join $runDir route_design.dcp ]
+## validation
+#validate_timing "Post route_design"
+#validate_routing "Post route_design"
 
 
 # done after each step
@@ -56,9 +82,14 @@ validate_drcs "Final"
 
 write_results 
 
-# validate_logic
-# validate_routing
-# validate_timing
-# validate_messages
-# validate_drcs
-# validate_run_properties
+
+# smoke test to just make sure XML is generated
+if { ! [ file exists $outputReport ] } {
+  error "Couldn't find junit report: '$outputReport'"
+}
+
+# clean on success
+file delete -force $runDir 
+puts "done."
+
+

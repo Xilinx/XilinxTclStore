@@ -31,13 +31,6 @@
 # Dependencies:   ::struct::graph
 #                 ::struct::stack
 #                 
-# Notes:          
-#     ?
-# 
-# Getting Started:
-#     % package require ::tclapp::xilinx::junit
-#     % ?
-#
 ####################################################################################################
 
 

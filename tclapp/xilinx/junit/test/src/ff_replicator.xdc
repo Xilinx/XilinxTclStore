@@ -20,7 +20,6 @@ set_property CONFIG_VOLTAGE 3.3 [current_design]
 set_property CFGBVS VCCO [current_design]
 
 set_property PACKAGE_PIN AN29 [get_ports ce]
-set_property PACKAGE_PIN AL31 [get_ports ce]
 set_property PACKAGE_PIN AL31 [get_ports clk]
 set_property PACKAGE_PIN AF24 [get_ports {din[0]}]
 set_property PACKAGE_PIN AP27 [get_ports {din[1]}]

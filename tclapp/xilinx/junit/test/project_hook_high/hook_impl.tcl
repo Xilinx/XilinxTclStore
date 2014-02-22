@@ -1,9 +1,18 @@
 #!vivado
-lappend ::auto_path [ file normalize C:/Users/nikc/tcl/XilinxTclStore/tclapp/ ]
+
+# prep
+set testDir   [ file normalize [ file dirname [ info script ] ] ]
+set appDir    [ file normalize [ file join $testDir .. .. .. .. ] ]
+set runDir    [ file join $testDir run ]
+lappend ::auto_path $appDir
+puts "Using App Dir:\n  $appDir"
+puts "Using Test Dir:\n  $testDir"
+puts "Using Run Dir:\n  $runDir"
 
 package require ::tclapp::xilinx::junit
 namespace import ::tclapp::xilinx::junit::*
 
-set_report ./report.xml
+set outputReport [ file join $runDir implReport.xml ]
+set_report $outputReport
 process_impl_design [ current_design ]
 write_results

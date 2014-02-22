@@ -46,71 +46,106 @@ namespace export write
 # Summary:
 # Converts the results of the in-memory data object to JUnit
 #
-# This conversion process is in place to handle conversion to different output types
-# Seeing as this package is provided as JUnit only, this step could be removed (after 
-# refactoring)
+# !! this section of code can be confusing !!
+#
+# This conversion process is in place to handle conversion to different output types.
+# This is a JUnit package, and thus it would be more ideal to make the data graph a 
+# 1:1 mapping with the junit xml graph.
+#
+# Conceptually: The JUnit package works with a 'data graph'/results object in memory.
+# Before we dump to disk, this method is called to build a 'junit graph' that will 
+# map information from the 'data graph' to the best matching 'junit graph' node/field.
+# 
 # 
 # Argument Usage: 
 #:     format_junit _dataGraph
 # 
 # Parameters:
-#     _args          - Command to run 
+#     _dataGraph     - The Data Graph to convert to a JUnit Graph
 # 
 # Return Value:
-#     returned       - Return value from the command
+#     jUnitGraph     - Returns the JUnit Graph
 # 
 # Example:
 #     
-#:     # execute create_project and catch errors and log runtime
-#:     run_command {create_project test test}
+#:     # converts graph to junit format and then dumps juni graph to xml
+#:     ::struct::graph myGraph
+#:     ...
+#:     write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
 #
 proc format_junit { _dataGraph } {
+
   # reset the jUnitGraph if it exists
   set jUnitGraph ::tclapp::xilinx::junit::junit_graph
-  if { [ info command $jUnitGraph ] == "$jUnitGraph" } {
+  if { "[ info command $jUnitGraph ]" == "$jUnitGraph" } {
     $jUnitGraph destroy
   }
+  
+  # (re-)build new/empty jUnitGraph
   ::struct::graph $jUnitGraph
-  # find root node of dataGraph
+  
+  # find root node of dataGraph ("testsuites")
   set data_root [ $_dataGraph nodes -filter ::tclapp::xilinx::junit::is_root_node ]
   set junit_root [ add_node $jUnitGraph "testsuites" ]
+
   # iterate over all of the testsuite nodes (the outs from the root)
   foreach data_ts [ $_dataGraph nodes -out $data_root ] {
+    
     # extract and convert testsuite attrs
     set attrs {}
-    lappend attrs [ list name [ $_dataGraph node get $data_ts name ] ]
-    lappend attrs [ list timestamp [ $_dataGraph node get $data_ts starttime ] ]
-    lappend attrs [ list hostname [ $_dataGraph node get $data_ts hostname ] ]
+    lappend attrs [ list name [ $_dataGraph node get $data_ts name ] ]              ; # name -> name
+    lappend attrs [ list timestamp [ $_dataGraph node get $data_ts starttime ] ]    ; # starttime -> timestamp
+    lappend attrs [ list hostname [ $_dataGraph node get $data_ts hostname ] ]      ; # hostname -> hostname
+    
     # add the node testsuite to the jUnitGraph
     set junit_ts [ add_node $jUnitGraph "testsuite" $attrs {} $junit_root ]
+    
     # iterate over all of the testcase, stdout, or stderr nodes (the outs from the testsuite)
     foreach data_tc_std [ $_dataGraph nodes -out $data_ts ] {
+      
       # extract and convert testcase, stdout, or stderr attrs
+      ## 'type' defines the xml tagname in this context - used for all 3 ( testcase, stdout, stderr)
       set attrs {}
-      set type [ $_dataGraph node get $data_tc_std type ]
+      set type [ $_dataGraph node get $data_tc_std type ]                           ; # type -> type
       set content {}
+
       if { "$type" == "testcase" } {
-        # extract and convert testcase only attrs
-        lappend attrs [ list classname [ $_dataGraph node get $data_tc_std group ] ]
-        lappend attrs [ list name [ $_dataGraph node get $data_tc_std name ] ]
-        lappend attrs [ list time [ $_dataGraph node get $data_tc_std walltime ] ]
-      } else {
-        # extract and convert stdout or stderr only attrs
-        set content [ $_dataGraph node get $data_tc_std content ]
+        
+        # extract and convert - testcase only attrs
+        lappend attrs [ list classname [ $_dataGraph node get $data_tc_std group ] ]; # group -> classname
+        lappend attrs [ list name [ $_dataGraph node get $data_tc_std name ] ]      ; # name -> name
+        lappend attrs [ list time [ $_dataGraph node get $data_tc_std walltime ] ]  ; # walltime -> time
+
+      } else { 
+        
+        # extract and convert - stdout or stderr only attrs
+        ## 'content' defines the xml content in this context
+        set content [ $_dataGraph node get $data_tc_std content ]                   ; # content -> content
+
       }
+      
       # add testcase, stdout, or stderr node
       set junit_tc [ add_node $jUnitGraph $type $attrs $content $junit_ts ]
+      
       # iterate over all of the status messages nested within testcase
       foreach data_status [ $_dataGraph nodes -out $data_tc_std ] {
+        
         # extract and convert error or failure nodes to junit nodes
+        ## 'content' defines the xml content in this context
         set tagname [ $_dataGraph node get $data_status type ]
         set attrs {}
-        lappend attrs [ list message [ $_dataGraph node get $data_status message ] ]
+        lappend attrs [ list message [ $_dataGraph node get $data_status message ] ]; # message -> message
         set content [ $_dataGraph node get $data_status content ]
+
+        # add error or failure node
         set junit_status [ add_node $jUnitGraph $tagname $attrs $content $junit_tc ]
-      }
-    }
-  }
+
+      }; # foreach on data_status - handles error, failure nodes
+
+    }; # foreach on data_tc_std - handles testcase, stdout, stderr nodes
+
+  }; # foreach on data_ts - handles testsuite nodes
+
   return $jUnitGraph
 }
 
@@ -131,8 +166,10 @@ proc format_junit { _dataGraph } {
 # 
 # Example:
 #     
-#:     # converts and generates XML
-#:     puts [ graph_to_xml graph [ format_junit graph ] ]
+#:     # converts graph to junit format and then dumps juni graph to xml
+#:     ::struct::graph myGraph
+#:     ...
+#:     write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
 #
 proc graph_to_xml { _graph { _rootnodes {} } } {
   set delimiter "\n"
@@ -154,7 +191,7 @@ proc graph_to_xml { _graph { _rootnodes {} } } {
 # Write out the output content to a file
 #
 # Argument Usage: 
-#:     add_node _outputContent ?_filename?
+#:     write _outputContent ?_filename?
 # 
 # Parameters:
 #     _outputContent - The output content to go into the file
@@ -187,7 +224,7 @@ proc write { _outputContent { _filename "test.xml" } } {
 #     _name          - Node name 
 #     _attrs         - Node attrs (key value pair list)
 #     _content       - Content of the node, {} means empty
-#     _paremt        - The parent node to add this node to
+#     _parent        - The parent node to add this node to
 # 
 # Return Value:
 #     node           - The newly created node
@@ -356,46 +393,3 @@ proc is_root_node { _graph _node } {
 
 }; # namespace ::tclapp::xilinx::junit
 
-
-####################################################################################################
-# JUnitXML schema = JUnit test result schema for the Apache Ant JUnit and JUnitReport tasks 
-# Copyright © 2011, Windy Road Technology Pty. Limited The Apache Ant JUnit XML Schema is distributed 
-# under the terms of the GNU Lesser General Public License (LGPL) 
-# http://www.gnu.org/licenses/lgpl.html Permission to waive conditions of this license may be 
-# requested from Windy Road Support (http://windyroad.org/support).
-#   http://windyroad.com.au/dl/Open%20Source/JUnit.xsd
-#   http://www.w3schools.com/schema/el_simpletype.asp
-####################################################################################################
-# ISO8601_DATETIME_PATTERN = [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}
-# pre-string = string 
-#   attr: whiteSpace = preserve
-# testsuites = Contains an aggregation of testsuite results
-# -| testsuite(0-n) = Contains the results of exexuting a testsuite
-# -|   attr: name token(1) = Full class name of the test for non-aggregated testsuite documents. Class name without the package for aggregated testsuites documents
-# -|   attr: timestamp ISO8601_DATETIME_PATTERN = When the test was executed. Timezone may not be specified.
-# -|   attr: hostname token(1) = Host on which the tests were executed. 'localhost' should be used if the hostname cannot be determined.
-# -|   attr: tests int = The total number of tests in the suite
-# -|   attr: failures int = The total number of tests in the suite that failed. A failure is a test which the code has explicitly failed by using the mechanisms for that purpose. e.g., via an assertEquals
-# -|   attr: errors int = The total number of tests in the suite that errorrd. An errored test is one that had an unanticipated problem. e.g., an unchecked throwable; or a problem with the implementation of the test.
-# -|   attr: time decimal = Time taken (in seconds) to execute the tests in the suite
-# ---| properties = Properties (e.g., environment settings) set during test execution
-# -----| property 
-# -----|   attr: name token(1)
-# -----|   attr: value string
-# ---| testcase(0-n) 
-# ---|   attr: classname token(1) = Full class name for the class the test method is in.
-# ---|   attr: name token(1) = Name of the test method
-# ---|   attr: time decimal = Time taken (in seconds) to execute the test
-# -----| error = Indicates that the test errored. An errored test is one that had an unanticipated problem. e.g., an unchecked throwable; or a problem with the implementation of the test. Contains as a text node relevant data for the error, e.g., a stack trace
-# -----|   content: pre-string 
-# -----|   attr: message string = The error message. e.g., if a java exception is thrown, the return value of getMessage()
-# -----|   attr: type string = The type of error that occured. e.g., if a java execption is thrown the full class name of the exception.
-# -----| failure = Indicates that the test failed. A failure is a test which the code has explicitly failed by using the mechanisms for that purpose. e.g., via an assertEquals. Contains as a text node relevant data for the failure, e.g., a stack trace
-# -----|   content: pre-string 
-# -----|   attr: message string = The message specified in the assert
-# -----|   attr: type string = The type of the assert.
-# ---| system-out = Data that was written to standard out while the test was executed
-# ---|   content: pre-string
-# ---| system-err = Data that was written to standard error while the test was executed
-# ---|   content: pre-string
-####################################################################################################:
