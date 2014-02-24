@@ -163,6 +163,11 @@ proc usf_set_fs_options { fs_obj simulator opts } {
 
     set prop_name "${simulator}.${name}"
 
+    # is registered already?
+    if { [usf_is_option_registered_on_simulator $prop_name $simulator] } {
+      continue;
+    }
+
     # is enum type?
     if { {enum} == $type } {
       set e_value   [lindex $value 0]
@@ -182,10 +187,10 @@ proc usf_is_option_registered_on_simulator { prop_name simulator } {
   # Argument Usage:
   # Return Value:
 
-  set str_1 [string toupper $prop_name]
+  set str_1 [string tolower $prop_name]
   # get registered options from simulator for the current simset
   foreach option_name [get_property "REGISTERED_OPTIONS" [get_simulators $simulator]] {
-    set str_2 [string toupper $option_name]
+    set str_2 [string tolower $option_name]
     if { [string compare $str_1 $str_2] == 0 } {
       return true
     }
