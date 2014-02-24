@@ -667,6 +667,12 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     puts $fh_scr "@echo off"
     puts $fh_scr "set bin_path=$::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)"
     puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
+    puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
+    puts $fh_scr ":END"
+    puts $fh_scr "exit 1"
+    puts $fh_scr ":SUCCESS"
+    puts $fh_scr "exit 0"
   }
   close $fh_scr
 }

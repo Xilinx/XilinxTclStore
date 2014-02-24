@@ -861,7 +861,11 @@ proc usf_set_simulator_path { simulator } {
       send_msg_id Vivado-ModelSim-051 ERROR "Path to custom '$tool_name' executable program does not exist:$tool_path'\n"
     }
   }
-  set a_sim_vars(s_tool_bin_path) $bin_path
+
+  set a_sim_vars(s_tool_bin_path) [string map {/ \\\\} $bin_path]
+  if {$::tcl_platform(platform) == "unix"} {
+    set a_sim_vars(s_tool_bin_path) $bin_path
+  }
 }
 
 proc usf_get_files_for_compilation {} {

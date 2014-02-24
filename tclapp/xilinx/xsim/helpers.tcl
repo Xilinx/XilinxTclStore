@@ -1983,6 +1983,17 @@ proc usf_get_sdf_writer_cmd_args { } {
   set cmd_args [join $args " "]
   return $cmd_args
 }
+
+proc usf_get_rdi_bin_path {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set rdi_path $::env(RDI_BINROOT)
+  set rdi_path [string map {/ \\\\} $rdi_path]
+  return $rdi_path
+}
+
 }
 
 #

@@ -183,7 +183,6 @@ proc usf_xsim_init_simulation_vars {} {
   variable a_xsim_vars
   set a_xsim_vars(b_32bit)    0
   set a_xsim_vars(s_snapshot) [usf_xsim_get_snapshot]
-  set a_xsim_vars(s_dbg_sw)   {-dbg}
 }
 
 proc usf_xsim_setup_args { args } {
@@ -323,6 +322,12 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     send_msg_id Vivado-XSim-015 ERROR "failed to open file to write ($scr_file)\n"
     return 1
   }
+
+  set s_dbg_sw {}
+  set dbg $::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode)
+  if { $dbg } {
+    set s_dbg_sw {-dbg}
+  }
  
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
@@ -332,10 +337,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     puts $fh_scr "ExecStep \$xv_path/bin/xvhdl -prj $vhdl_filename" 
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set xv_path=\"$::env(RDI_BINROOT)\""
-    puts $fh_scr "call %xv_path%/xvlog $a_xsim_vars(s_dbg_sw) -prj $vlog_filename -log compile.log"
+    puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
+    puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw -prj $vlog_filename -log compile.log"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
-    puts $fh_scr "call %xv_path%/xvhdl $a_xsim_vars(s_dbg_sw) -prj $vhdl_filename -log compile.log"
+    puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw -prj $vhdl_filename -log compile.log"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
@@ -366,6 +371,12 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     return 1
   }
 
+  set s_dbg_sw {}
+  set dbg $::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode)
+  if { $dbg } {
+    set s_dbg_sw {-dbg}
+  }
+
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
@@ -374,9 +385,9 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     puts $fh_scr "ExecStep \$xv_path/bin/xelab $args"
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set xv_path=\"$::env(RDI_BINROOT)\""
+    puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
     set args [usf_xsim_get_xelab_cmdline_args]
-    puts $fh_scr "call %xv_path%/xelab $a_xsim_vars(s_dbg_sw) $args"
+    puts $fh_scr "call %xv_path%/xelab $s_dbg_sw $args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr ":END"
@@ -465,7 +476,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
     puts $fh_scr "ExecStep \$xv_path/bin/xsim $cmd_args"
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set xv_path=\"$::env(RDI_BINROOT)\""
+    puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_file $b_add_view]
     puts $fh_scr "call %xv_path%/xsim $cmd_args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
@@ -493,9 +504,6 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set os $::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type)
   if { {64} == $os } { lappend args_list "-m64" }
   if { {32} == $os } { lappend args_list "-m32" }
-
-  set dbg $::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode)
-  if { $dbg } { lappend args_list "-dbg" }
 
   # --debug
   set value [get_property "XSIM.ELABORATE.DEBUG_LEVEL" $fs_obj]

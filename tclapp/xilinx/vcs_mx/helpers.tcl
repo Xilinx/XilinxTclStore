@@ -870,43 +870,47 @@ proc usf_set_simulator_path { simulator } {
         set install_path [get_param "simulator.vcsmxInstallPath"]
       }
     }
- }
+  }
  
- if { {} == $install_path } {
-   set bin_path [usf_get_bin_path $tool_name $path_sep]
-   if { {} == $bin_path } {
-     send_msg_id Vivado-VCS_MX-041 ERROR \
-       "Failed to locate '$tool_name' executable in the shell environment 'PATH' variable. Please source the settings script included with the installation and retry this operation again.\n"
-     # IMPORTANT - *** DONOT MODIFY THIS ***
-     error "_SIM_STEP_RUN_EXEC_ERROR_"
-     # IMPORTANT - *** DONOT MODIFY THIS ***
-     return 1
-   }
-   send_msg_id Vivado-VCS_MX-042 INFO "Using simulator executables from '$bin_path'\n"
- } else {
-   set install_path [file normalize [string map {\\ /} $install_path]]
-   set install_path [string trimright $install_path {/}]
-   set bin_path $install_path
-   set tool_path [file join $install_path $tool_name]
-   # Couldn't find it at install path, so try inserting /bin.
-   # This is a bit roundabout with new variables so we don't change the
-   # originals. If this doesn't work, we want the error messages to report
-   # based on the originals.
-   set tool_bin_path {}
-   if { ![file exists $tool_path] } {
-     set tool_bin_path [file join $install_path "bin" $tool_name]
-     if { [file exists $tool_bin_path] } {
-       set tool_path $tool_bin_path
-       set bin_path [file join $install_path "bin"]
-     }
-   }
-   if { [file exists $tool_path] && ![file isdirectory $tool_path] } {
-     send_msg_id Vivado-VCS_MX-043 INFO "Using simulator executables from '$tool_path'\n"
-   } else {
-     send_msg_id Vivado-VCS_MX-044 ERROR "Path to custom '$tool_name' executable program does not exist:$tool_path'\n"
-   }
- }
- set a_sim_vars(s_tool_bin_path) $bin_path
+  if { {} == $install_path } {
+    set bin_path [usf_get_bin_path $tool_name $path_sep]
+    if { {} == $bin_path } {
+      send_msg_id Vivado-VCS_MX-041 ERROR \
+        "Failed to locate '$tool_name' executable in the shell environment 'PATH' variable. Please source the settings script included with the installation and retry this operation again.\n"
+      # IMPORTANT - *** DONOT MODIFY THIS ***
+      error "_SIM_STEP_RUN_EXEC_ERROR_"
+      # IMPORTANT - *** DONOT MODIFY THIS ***
+      return 1
+    }
+    send_msg_id Vivado-VCS_MX-042 INFO "Using simulator executables from '$bin_path'\n"
+  } else {
+    set install_path [file normalize [string map {\\ /} $install_path]]
+    set install_path [string trimright $install_path {/}]
+    set bin_path $install_path
+    set tool_path [file join $install_path $tool_name]
+    # Couldn't find it at install path, so try inserting /bin.
+    # This is a bit roundabout with new variables so we don't change the
+    # originals. If this doesn't work, we want the error messages to report
+    # based on the originals.
+    set tool_bin_path {}
+    if { ![file exists $tool_path] } {
+      set tool_bin_path [file join $install_path "bin" $tool_name]
+      if { [file exists $tool_bin_path] } {
+        set tool_path $tool_bin_path
+        set bin_path [file join $install_path "bin"]
+      }
+    }
+    if { [file exists $tool_path] && ![file isdirectory $tool_path] } {
+      send_msg_id Vivado-VCS_MX-043 INFO "Using simulator executables from '$tool_path'\n"
+    } else {
+      send_msg_id Vivado-VCS_MX-044 ERROR "Path to custom '$tool_name' executable program does not exist:$tool_path'\n"
+    }
+  }
+ 
+  set a_sim_vars(s_tool_bin_path) [string map {/ \\\\} $bin_path]
+  if {$::tcl_platform(platform) == "unix"} {
+    set a_sim_vars(s_tool_bin_path) $bin_path
+  }
 }
 
 proc usf_get_files_for_compilation {} {
