@@ -30,14 +30,16 @@
 
 # This file is executed by the server to start the Tk listner
 
-if { [info tclversion] != "8.5" } { 
-    puts "The tk_tunnel was designed to run with Tcl/Tk 8.5\n\
-            \tDetected tcl version: [info tclversion]\n\
-            \tYou can point to a Tcl/Tk 8.5 installation with:\n\
-            \tlaunch_server '/usr/bin/tclsh8.5'\n\
-        (press return to continue, and cancel the client)" 
-    gets stdin
-    exit
+puts "Starting server..."
+
+if { [ info tclversion ] != "8.5" } {
+  puts "The tk_tunnel package was designed to run with Tcl/Tk 8.5\n\
+    \tDetected tcl version: '[info tclversion]'\n\
+    \tYou can point to a Tcl/Tk 8.5 installation with:\n\
+    \tlaunch_server '/usr/bin/tclsh8.5'\n\
+    (press return to continue, and cancel the client)" 
+  gets stdin
+  exit
 }
 
 # Add the Xilinx Tcl libraries to the regular Tcl shell
