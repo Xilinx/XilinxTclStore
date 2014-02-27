@@ -692,7 +692,12 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         set prop_type [get_property type [lindex $attr_names [lsearch $attr_names $prop]]]
       }
     } else {
-      set prop_type [get_property type [rdi::get_attr_specs $prop -object [$get_what $tcl_obj]]]
+      set attr_spec [rdi::get_attr_specs -quiet $prop -object [$get_what $tcl_obj]]
+      if { {} == $attr_spec } {
+        set prop_lower [string tolower $prop]
+        set attr_spec [rdi::get_attr_specs -quiet $prop_lower -object [$get_what $tcl_obj]]
+      }
+      set prop_type [get_property type $attr_spec]
     }
     set def_val [list_property_value -default $prop $tcl_obj]
     set dump_prop_name [string tolower ${obj_name}_${type}_$prop]
