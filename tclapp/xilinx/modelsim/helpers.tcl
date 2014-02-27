@@ -323,9 +323,9 @@ proc usf_write_design_netlist {} {
 
   variable a_sim_vars
   # is behavioral?, return
-  if { {behav_sim} == $a_sim_vars(s_simulation_flow) } { 
+  if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
     return
-  } 
+  }
   set extn [usf_get_netlist_extn 1]
   # generate netlist
   set net_filename [usf_get_netlist_filename];append net_filename "$extn"
@@ -335,19 +335,30 @@ proc usf_write_design_netlist {} {
   set sdf_file [file normalize [file join $a_sim_vars(s_launch_dir) $sdf_filename]]
   set netlist_cmd_args [usf_get_netlist_writer_cmd_args]
   set sdf_cmd_args [usf_get_sdf_writer_cmd_args]
-
+  set design_mode [get_property DESIGN_MODE [current_fileset]]
   # check run status
   switch -regexp -- $a_sim_vars(s_simulation_flow) {
     {post_synth_sim} {
-      set status [get_property "STATUS" [current_run synth_1]]
-      if { ({Not started} == $status) } {
-        send_msg_id Vivado-ModelSim-031 ERROR \
-           "Synthesis results not available! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console and retry this operation.\n"
+      if { {RTL} == $design_mode } {
+        set synth_run [current_run -synthesis]
+        set status [get_property "STATUS" $synth_run]
+        if { ([regexp -nocase {^synth_design complete} $status] != 1) } {
+          send_msg_id Vivado-XSim-028 ERROR \
+             "Synthesis results not available! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console and retry this operation.\n"
+          return 1
+        }
+      }
+
+      if { {RTL} == $design_mode } {
+        set synth_run [current_run -synthesis]
+        open_run $synth_run -name netlist_1
+      } elseif { {GateLvl} == $design_mode } {
+        link_design -name netlist_1
+      } else {
+        send_msg_id Vivado-XSim-028 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
         return 1
       }
-      open_run synth_1 -name netlist_1
-
-      send_msg_id Vivado-ModelSim-032 INFO "Generarting simulation netlist '$net_file'"
+      send_msg_id Vivado-XSim-029 INFO "Generating simulation netlist '$net_file'"
       # write netlist/sdf
       # TODO: write_verilog is not taking cmd_args
       if { {functional} == $a_sim_vars(s_type) } {
@@ -356,21 +367,23 @@ proc usf_write_design_netlist {} {
         write_verilog -mode timesim -force -sdf_file $sdf_file $net_file
       }
       if { {timing} == $a_sim_vars(s_type) } {
-        send_msg_id Vivado-ModelSim-033 INFO "Writing SDF file '$sdf_file'"
+        send_msg_id Vivado-XSim-030 INFO "Writing SDF file '$sdf_file'"
         write_sdf -mode timesim -force $sdf_file
       }
       set a_sim_vars(s_netlist_file) $net_file
     }
     {post_impl_sim} {
-      # TODO: check if impl run exist
-      set status [get_property "STATUS" [current_run impl_1]]
-      if { ({Not started} == $status) } {
-        send_msg_id Vivado-ModelSim-034 ERROR \
+      set impl_run [current_run -implementation]
+      set status [get_property "STATUS" $impl_run]
+      if { ([regexp -nocase {^route_design complete} $status] != 1) } {
+        send_msg_id Vivado-XSim-031 ERROR \
            "Implementation results not available! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console and retry this operation.\n"
         return 1
       }
-      open_run impl_1 -name netlist_1
-      send_msg_id Vivado-ModelSim-035 INFO "Generarting simulation netlist '$net_file'"
+
+      open_run $impl_run -name netlist_1
+
+      send_msg_id Vivado-XSim-032 INFO "Generating simulation netlist '$net_file'"
 
       # write netlist/sdf
       # TODO: write_verilog is not taking cmd_args
@@ -380,15 +393,15 @@ proc usf_write_design_netlist {} {
         write_verilog -mode timesim -force -sdf_file $sdf_file $net_file
       }
       if { {timing} == $a_sim_vars(s_type) } {
-        send_msg_id Vivado-ModelSim-036 INFO "Writing SDF file '$sdf_file'"
+        send_msg_id Vivado-XSim-033 INFO "Writing SDF file '$sdf_file'"
         write_sdf -mode timesim -force $sdf_file
       }
 
       set a_sim_vars(s_netlist_file) $net_file
     }
   }
-  if { [file exist $net_file] } { send_msg_id Vivado-ModelSim-037 INFO "Netlist generated:'$net_file'" }
-  if { [file exist $sdf_file] } { send_msg_id Vivado-ModelSim-038 INFO "SDF generated:'$sdf_file'" }
+  if { [file exist $net_file] } { send_msg_id Vivado-XSim-034 INFO "Netlist generated:'$net_file'" }
+  if { [file exist $sdf_file] } { send_msg_id Vivado-XSim-035 INFO "SDF generated:'$sdf_file'" }
 }
 
 proc usf_get_compile_order_for_obj { } {
@@ -1191,7 +1204,7 @@ proc usf_get_simulator_lib_for_bfm {} {
   set xil           $::env(XILINX)
   set path_sep      {;}
   set lib_extn      {.dll}
-  set platform      [::tclapp::xilinx::vcs_mx::usf_get_platform]
+  set platform      [::tclapp::xilinx::modelsim::usf_get_platform]
 
   if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
   if {$::tcl_platform(platform) == "unix"} { set lib_extn {.so} }

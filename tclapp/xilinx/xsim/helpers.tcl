@@ -335,19 +335,31 @@ proc usf_write_design_netlist {} {
   set sdf_file [file normalize [file join $a_sim_vars(s_launch_dir) $sdf_filename]]
   set netlist_cmd_args [usf_get_netlist_writer_cmd_args]
   set sdf_cmd_args [usf_get_sdf_writer_cmd_args]
-
+  set design_mode [get_property DESIGN_MODE [current_fileset]]
   # check run status
   switch -regexp -- $a_sim_vars(s_simulation_flow) {
     {post_synth_sim} {
-      set status [get_property "STATUS" [current_run synth_1]]
-      if { ({Not started} == $status) } {
-        send_msg_id Vivado-XSim-028 ERROR \
-           "Synthesis results not available! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console and retry this operation.\n"
+      if { {RTL} == $design_mode } {
+        set synth_run [current_run -synthesis]
+        set status [get_property "STATUS" $synth_run]
+        if { ([regexp -nocase {^synth_design complete} $status] != 1) } {
+          send_msg_id Vivado-XSim-028 ERROR \
+             "Synthesis results not available! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console and retry this operation.\n"
+          return 1
+        }
+      }
+    
+      if { {RTL} == $design_mode } {
+        set synth_run [current_run -synthesis]
+        open_run $synth_run -name netlist_1
+      } elseif { {GateLvl} == $design_mode } {
+        link_design -name netlist_1
+      } else {
+        send_msg_id Vivado-XSim-028 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
         return 1
       }
-      open_run synth_1 -name netlist_1
 
-      send_msg_id Vivado-XSim-029 INFO "Generarting simulation netlist '$net_file'"
+      send_msg_id Vivado-XSim-029 INFO "Generating simulation netlist '$net_file'"
       # write netlist/sdf
       # TODO: write_verilog is not taking cmd_args
       if { {functional} == $a_sim_vars(s_type) } {
@@ -362,15 +374,17 @@ proc usf_write_design_netlist {} {
       set a_sim_vars(s_netlist_file) $net_file
     }
     {post_impl_sim} {
-      # TODO: check if impl run exist
-      set status [get_property "STATUS" [current_run impl_1]]
-      if { ({Not started} == $status) } {
+      set impl_run [current_run -implementation]
+      set status [get_property "STATUS" $impl_run]
+      if { ([regexp -nocase {^route_design complete} $status] != 1) } {
         send_msg_id Vivado-XSim-031 ERROR \
            "Implementation results not available! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console and retry this operation.\n"
         return 1
       }
-      open_run impl_1 -name netlist_1
-      send_msg_id Vivado-XSim-032 INFO "Generarting simulation netlist '$net_file'"
+
+      open_run $impl_run -name netlist_1
+
+      send_msg_id Vivado-XSim-032 INFO "Generating simulation netlist '$net_file'"
 
       # write netlist/sdf
       # TODO: write_verilog is not taking cmd_args
@@ -1656,7 +1670,8 @@ proc usf_append_other_options { tool file_type opts_arg } {
   set fs_obj [current_fileset -simset]
 
   switch $tool {
-    "verilog" {
+    "verilog" -
+    "sv" {
       # include_dirs
       set unique_incl_dirs [list]
       foreach incl_dir [get_property "INCLUDE_DIRS" $fs_obj] {
