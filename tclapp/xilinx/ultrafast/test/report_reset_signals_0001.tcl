@@ -1,12 +1,10 @@
+# Set the File Directory to the current directory location of the script
 set file_dir [file normalize [file dirname [info script]]]
 
+# Set the Xilinx Tcl App Store Repository to the current repository location
 puts "== Unit Test directory: $file_dir"
-set ::env(XILINX_TCLAPP_REPO) [file normalize [file join $file_dir .. .. ..]]
 
-puts "== Application directory: $::env(XILINX_TCLAPP_REPO)"
-lappend auto_path $::env(XILINX_TCLAPP_REPO)
-
-# set name "check_pll_connectivity_0001"
+# Set the Name to the name of the script
 set name [file rootname [file tail [info script]]]
 
 create_project $name -in_memory
