@@ -39,6 +39,7 @@ proc register_options { simulator } {
     {{compile.vlog_more_options}  {string} {}                                      {More VLOG options}}
     {{compile.vcom_more_options}  {string} {}                                      {More VCOM options}}
     {{simulate.runtime}           {string} {1000ns}                                {Specify simulation run time}}
+    {{simulate.uut}               {string} {}                                      {Specify instance name for design under test (default:/uut)}}
     {{simulate.custom_do}         {string} {}                                      {Specify name of the custom do file}}
     {{simulate.custom_udo}        {string} {}                                      {Specify name of the custom user do file}}
     {{simulate.sdf_delay}         {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}

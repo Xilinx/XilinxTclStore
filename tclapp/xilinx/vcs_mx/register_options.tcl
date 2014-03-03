@@ -36,6 +36,7 @@ proc register_options { simulator } {
     {{elaborate.debug_pp}     {bool}   {1}                                                   {Enable post-process debug access}}
     {{elaborate.more_options} {string} {}                                                    {More Elaboration Options}}
     {{simulate.runtime}       {string} {1000ns}                                              {Specify simulation run time}}
+    {{simulate.uut}           {string} {}                                                    {Specify instance name for design under test (default:/uut)}}
     {{simulate.saif}          {string} {}                                                    {SAIF Filename}}
     {{simulate.more_options}  {string} {}                                                    {More Simulation Options}}
   }

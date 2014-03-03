@@ -399,7 +399,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   usf_modelsim_write_header $fh $do_file "DOFILE"
 
   if { [get_param "simulator.modelsimNoQuitOnError"] } {
-    puts $fh "\nonbreak {quit -f}"
+    puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}\n"
   }
 
@@ -445,7 +445,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
   if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl] } {
     set file_str "-work $default_lib \"[::tclapp::xilinx::modelsim::usf_get_glbl_file]\""
-    puts $fh "\n# Compile glbl module\nvlog $file_str"
+    puts $fh "\n# compile glbl module\nvlog $file_str"
   }
   puts $fh "\nquit -force"
   close $fh
@@ -465,12 +465,12 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
   }
   usf_modelsim_write_header $fh $do_file "DOFILE"
   if { [get_param "simulator.modelsimNoQuitOnError"] } {
-    puts $fh "\nonbreak {quit -f}"
+    puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}\n"
   }
   set cmd_str [usf_modelsim_get_elaboration_cmdline]
   puts $fh "$cmd_str"
-  puts $fh "quit -force"
+  puts $fh "\nquit -force"
   close $fh
 }
 
@@ -481,7 +481,11 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+
+  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   set tool "vsim"
   set arg_list [list "-voptargs=\\\"+acc\\\"" "-t 1ps"]
@@ -498,17 +502,36 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set t_opts [join $arg_list " "]
 
-  set arg_list [list]
   # add simulation libraries
+  set arg_list [list]
+  # post* simulation
+  if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+    if { [usf_contains_verilog] || ({Verilog} == $target_lang) } {
+      if { {timesim} == $netlist_mode } {
+        set arg_list [linsert $arg_list end "-L" "simprims_ver"]
+      } else {
+        set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+      }
+    }
+  }
+
+  # behavioral simulation
   set b_compile_unifast [get_property "MODELSIM.COMPILE.UNIFAST" $fs_obj]
-  if { [::tclapp::xilinx::modelsim::usf_add_unisims $b_compile_unifast] } { set arg_list [linsert $arg_list end "-L" "unisims_ver"] }
-  if { [::tclapp::xilinx::modelsim::usf_add_simprims] } { set arg_list [linsert $arg_list end "-L" "simprims_ver"] } 
-  if { [::tclapp::xilinx::modelsim::usf_add_unifast $b_compile_unifast] } {  set arg_list [linsert $arg_list end "-L" "unifast"] }
-  if { [::tclapp::xilinx::modelsim::usf_add_unimacro] } { set arg_list [linsert $arg_list end "-L" "unimacro"] }
-  if { [::tclapp::xilinx::modelsim::usf_add_secureip] } { set arg_list [linsert $arg_list end "-L" "secureip"] }
+  if { ([usf_contains_verilog]) && ({behav_sim} == $flow) } {
+    if { $b_compile_unifast } {
+      set arg_list [linsert $arg_list end "-L" "unifast_ver"]
+    }
+    set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+    set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
+  }
+
+  # add secureip
+  set arg_list [linsert $arg_list end "-L" "secureip"]
 
   # add design libraries
-  foreach lib [::tclapp::xilinx::modelsim::usf_get_compile_order_libs] {
+  set files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation]]
+  set design_libs [usf_modelsim_get_design_libs $files]
+  foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend arg_list "-L"
     lappend arg_list "[string tolower $lib]"
@@ -549,42 +572,47 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   usf_modelsim_create_wave_do_file $wave_do_file
   set cmd_str [usf_modelsim_get_elaboration_cmdline]
   if { $b_batch && [get_param "simulator.modelsimNoQuitOnError"] } {
-    puts $fh "\nonbreak {quit -f}"
+    puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}\n"
   }
   puts $fh "$cmd_str"
-  puts $fh "do \{$wave_do_filename\}"
-  puts $fh "view wave"
+  puts $fh "\ndo \{$wave_do_filename\}"
+  puts $fh "\nview wave"
   puts $fh "view structure"
-  puts $fh "view signals"
+  puts $fh "view signals\n"
  
   # generate saif file for power estimation
   set saif [get_property "MODELSIM.SIMULATE.SAIF" $fs_obj] 
   if { {} != $saif } {
-    set uut [get_property "UNIT_UNDER_TEST" $fs_obj] 
+    set uut [get_property "MODELSIM.SIMULATE.UUT" $fs_obj] 
     if { {} == $uut } {
       set uut "/$top/uut/*"
     }
     if { {timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type) } {
-      puts $fh "power add -r -in -inout -out -internal [::tclapp::xilinx::modelsim::usf_resolve_uut_name uut]"
+      puts $fh "power add -r -in -inout -out -internal [::tclapp::xilinx::modelsim::usf_resolve_uut_name uut]\n"
     } else {
-      puts $fh "power add -in -inout -out -internal [::tclapp::xilinx::modelsim::usf_resolve_uut_name uut]"
+      puts $fh "power add -in -inout -out -internal [::tclapp::xilinx::modelsim::usf_resolve_uut_name uut]\n"
     }
   }
-  puts $fh "do \{$top.udo\}"
+  set udo_file [get_property "MODELSIM.SIMULATE.CUSTOM_UDO" $fs_obj]
+  if { {} == $udo_file } {
+    puts $fh "do \{$top.udo\}"
+  } else {
+    puts $fh "do \{$udo_file\}"
+  }
   set time [get_property "MODELSIM.SIMULATE.RUNTIME" $fs_obj]
-  puts $fh "run $time"
+  puts $fh "\nrun $time"
 
   if { {} != $saif } {
     set extn [string tolower [file extension $saif]]
     if { {.saif} != $extn } {
       append saif ".saif"
     }
-    puts $fh "power report -all -bsaif $saif"
+    puts $fh "\npower report -all -bsaif $saif"
   }
 
   if { $b_batch } {
-    puts $fh "quit -force"
+    puts $fh "\nquit -force"
   }
   close $fh
 }
@@ -604,27 +632,10 @@ proc usf_modelsim_write_header { fh filename file_type } {
   set name        [file tail $filename]
   puts $fh "######################################################################"
   puts $fh "#"
-  puts $fh "# File name : $name"
-  puts $fh "# Created on: $timestamp"
+  puts $fh "# File name  : $name"
+  puts $fh "# Created on : $timestamp"
   puts $fh "#"
   puts $fh "# Auto generated by $product for '$mode_type' simulation"
-  puts $fh "#"
-  switch $file_type {
-    "DOFILE" {
-      puts $fh "# ---------------------DO NOT EDIT THIS FILE-------------------------"
-      puts $fh "# You may want to add additional commands to control the simulation"
-      puts $fh "# in the user specific do file (<module>.udo) which is automatically"
-      puts $fh "# generated in the simulation directory and will not be removed on"
-      puts $fh "# subsequent simulation flow runs from $product"
-      puts $fh "# ---------------------DO NOT EDIT THIS FILE-------------------------"
-    }
-    "UDOFILE" -
-    "WAVEDOFILE" {
-      puts $fh "# You may want to edit this file to control the simulation"
-    }
-    default: {
-    }
-  }
   puts $fh "#"
   puts $fh "######################################################################"
 }

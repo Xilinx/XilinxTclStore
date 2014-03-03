@@ -405,10 +405,16 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
           lappend l_script_data "set obj \[get_filesets $tcl_obj\]"
           set path_list [list]
           foreach path $repo_paths {
-            lappend path_list $path
+            if { $a_global_vars(b_absolute_path) } {
+              lappend path_list $path
+            } else {
+              set rel_file_path "[get_relative_file_path $path $a_global_vars(s_path_to_script_dir)]"
+              set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
+              lappend path_list $path
+            }
           }
           set repo_path_str [join $path_list " "]
-          lappend l_script_data "set_property \"ip_repo_paths\" \{${repo_path_str}\} \$obj" 
+          lappend l_script_data "set_property \"ip_repo_paths\" \"${repo_path_str}\" \$obj" 
           lappend l_script_data "" 
         }
       }

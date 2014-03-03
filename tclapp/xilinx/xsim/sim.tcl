@@ -88,7 +88,7 @@ proc simulate { args } {
   }
 
   # is dll requuested?
-  set b_dll [get_property "XSIM.ELABORATE.DLL" $fs_obj]
+  set b_dll [get_property "XELAB.DLL" $fs_obj]
   if { $b_dll } {
     set lib_extn {.dll}
     if {$::tcl_platform(platform) == "unix"} {
@@ -247,7 +247,10 @@ proc usf_xsim_write_setup_files {} {
     return 1
   }
 
-  foreach lib [::tclapp::xilinx::xsim::usf_get_compile_order_libs] {
+  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
+  set design_libs [usf_xsim_get_design_libs $files]
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
     puts $fh "$lib=xsim.dir/$lib"
   }
   close $fh
@@ -302,7 +305,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl] } {
     set default_lib [get_property "DEFAULT_LIB" [current_project]]
     set file_str "$default_lib \"[::tclapp::xilinx::xsim::usf_get_glbl_file]\""
-    puts $fh_vlog "\n# Compile glbl module\nverilog $file_str"
+    puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
   }
  
   # nosort?
@@ -499,6 +502,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set sim_flow $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
 
+  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
+
   set args_list [list]
 
   set os $::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type)
@@ -514,7 +520,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { $value } { lappend args_list "--rangecheck" }
 
   # --dll
-  set value [get_property "XSIM.ELABORATE.DLL" $fs_obj]
+  set value [get_property "XELAB.DLL" $fs_obj]
   if { $value } { lappend args_list "--dll" }
 
   # --relax
@@ -577,17 +583,37 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # design source libs
-  foreach lib [::tclapp::xilinx::xsim::usf_get_compile_order_libs] {
+  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
+  set design_libs [usf_xsim_get_design_libs $files]
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
   }
 
   # add simulation libraries
+  # post* simulation
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { [usf_contains_verilog] || ({Verilog} == $target_lang) } {
+      if { {timesim} == $netlist_mode } {
+        lappend args_list "-L simprims_ver"
+      } else {
+        lappend args_list "-L unisims_ver"
+      }
+    }
+  }
+
+  # behavioral simulation
   set b_compile_unifast [get_property "XSIM.ELABORATE.UNIFAST" $fs_obj]
-  if { [::tclapp::xilinx::xsim::usf_add_unisims $b_compile_unifast] } { lappend args_list "-L unisims_ver" }
-  if { [::tclapp::xilinx::xsim::usf_add_simprims] } { lappend args_list "-L simprims_ver" }
-  if { [::tclapp::xilinx::xsim::usf_add_unifast $b_compile_unifast] } { lappend args_list "-L unifast_ver" }
-  if { [::tclapp::xilinx::xsim::usf_add_unimacro] } { lappend args_list "-L unimacro_ver" }
-  if { [::tclapp::xilinx::xsim::usf_add_secureip] } { lappend args_list "-L secureip" }
+  if { ([usf_contains_verilog]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast } {
+      lappend args_list "-L unifast_ver"
+    }
+    lappend args_list "-L unisims_ver"
+    lappend args_list "-L unimacro_ver"
+  }
+
+  # add secureip
+  lappend args_list "-L secureip"
 
   # snapshot
   lappend args_list "--snapshot $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)"
@@ -710,7 +736,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   # generate saif file for power estimation
   set saif [get_property "XSIM.SIMULATE.SAIF" $fs_obj]
   if { {} != $saif } {
-    set uut [get_property "UNIT_UNDER_TEST" $fs_obj]
+    set uut [get_property "XSIM.SIMULATE.UUT" $fs_obj]
     puts $fh_scr "open_saif \"$saif\""
     if { {} == $uut } {
       set uut "/$top/uut/*"
@@ -850,5 +876,25 @@ proc usf_xsim_get_sim_mode_as_pretty_str { mode } {
     set ms "Unknown"
   }
   return $ms
+}
+
+proc usf_xsim_get_design_libs { files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set libs [list]
+  foreach file $files {
+    set type    [lindex [split $file {#}] 0]
+    set library [lindex [split $file {#}] 1]
+    set cmd_str [lindex [split $file {#}] 2]
+    if { {} == $library } {
+      continue;
+    }
+    if { [lsearch -exact $libs $library] == -1 } {
+      lappend libs $library
+    }
+  }
+  return $libs
 }
 }

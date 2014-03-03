@@ -34,7 +34,6 @@ proc register_options { simulator } {
     {{compile.xvlog.more_options}  {string} {}                                                   {More Xvlog compilation Options}}
     {{compile.xvhdl.more_options}  {string} {}                                                   {More Xvhdl Compilation Options}}
     {{elaborate.snapshot}          {string} {}                                                   {Specify name of the simulation snapshot}}
-    {{elaborate.dll}               {bool}   {0}                                                  {Generate DLL file}}
     {{elaborate.debug_level}       {enum}   {{typical} {typical} {{all} {typical} {off}}}        {Specify simulation debug visibility level}}
     {{elaborate.relax}             {bool}   {1}                                                  {Relax}}
     {{elaborate.mt_level}          {enum}   {{auto} {auto} {{auto} {off} {2} {4} {8} {16} {32}}} {Specify number of sub-compilation jobs to run in parallel}}
@@ -44,6 +43,7 @@ proc register_options { simulator } {
     {{elaborate.unifast}           {bool}   {0}                                                  {Enable fast simulation models}}
     {{elaborate.more_options}      {string} {}                                                   {More Elaboration Options}}
     {{simulate.runtime}            {string} {1000ns}                                             {Specify simulation run time}}
+    {{simulate.uut}                {string} {}                                                   {Specify instance name for design under test (default:/uut)}}
     {{simulate.wdb}                {string} {}                                                   {Specify Waveform Database file}}
     {{simulate.saif}               {string} {}                                                   {SAIF Filename}}
     {{simulate.tclbatch}           {string} {}                                                   {Specify custom command file for simulation}}

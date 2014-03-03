@@ -1239,6 +1239,7 @@ proc verify_ip_status { tcl_obj } {
          ({1} == [get_property is_auto_disabled [get_files -all ${ip}.xci]]) } {
       return
     }
+    dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips $ip]]
     dict set regen_ip $ip generated [get_property is_ip_generated [get_ips $ip]]
     dict set regen_ip $ip stale [get_property stale_targets [get_ips $ip]]
   } else {
@@ -1248,6 +1249,7 @@ proc verify_ip_status { tcl_obj } {
            ({1} == [get_property is_auto_disabled [get_files -all ${ip}.xci]]) } {
         continue
       }
+      dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips $ip]]
       dict set regen_ip $ip generated [get_property is_ip_generated $ip]
       dict set regen_ip $ip stale [get_property stale_targets $ip]
     }
@@ -1257,6 +1259,9 @@ proc verify_ip_status { tcl_obj } {
   set stale_ips [list]
   dict for {ip regen} $regen_ip {
     dic with regen {
+      if { {} == $d_targets } {
+        continue
+      }
       if { {0} == $generated } {
         lappend not_generated $ip
       } else {
