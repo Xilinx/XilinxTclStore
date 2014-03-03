@@ -244,6 +244,132 @@
     </app>
     <app>
       <revision>1.0</revision>
+      <commit_id>a0ac10b308cf0d4edeff8d4e4da88663ab44e426</commit_id>
+      <name>junit</name>
+      <author>Xilinx, Inc</author>
+      <company>xilinx</company>
+      <summary>The JUnit App is built with 3 layers of APIs. The high level API enables a user to run generic tests or a group of predefined tests on demand. The intermediate level API enables a user to call assertions and customize the tests. Both the high level and intermediate level APIs are automatically generating a JUnit report in memory. The low level API enables the user to work directly with the &quot;data graph&quot; in memory. There is a section in the writer class where this in-memory &quot;data graph&quot; is converted to a &quot;junit graph&quot;. The &quot;junit graph&quot; is then just dumped to an XML file.  The conversion from &quot;data graph&quot; to &quot;junit graph&quot; exists to enable users to convert the data to other formats.</summary>
+      <procs>
+        <proc>
+          <name>assert_exists</name>
+          <summary>Asserts that all file exist</summary>
+        </proc>
+        <proc>
+          <name>assert_same</name>
+          <summary>Asserts that two values are the same, else a failure is logged</summary>
+        </proc>
+        <proc>
+          <name>format_junit</name>
+          <summary>Converts the results of the in-memory data object to JUnit</summary>
+        </proc>
+        <proc>
+          <name>get_report</name>
+          <summary>Returns the currently set JUnit API output location</summary>
+        </proc>
+        <proc>
+          <name>get_results</name>
+          <summary>Returns the in-memory results, this is a ::struct::graph name. The name of a struct graph is a procedure and is used to configure and retrieve data from the graph object</summary>
+        </proc>
+        <proc>
+          <name>graph_to_xml</name>
+          <summary>Write xml file</summary>
+        </proc>
+        <proc>
+          <name>new_stderr</name>
+          <summary>Create a new node 'stderr' in the provided results object</summary>
+        </proc>
+        <proc>
+          <name>new_stdout</name>
+          <summary>Create a new node 'stdout' in the provided results object</summary>
+        </proc>
+        <proc>
+          <name>new_testcase</name>
+          <summary>Create a new node 'testcase' in the provided results object</summary>
+        </proc>
+        <proc>
+          <name>new_testsuite</name>
+          <summary>Create a new node 'testsuite' in the provided results object</summary>
+        </proc>
+        <proc>
+          <name>new_testsuites</name>
+          <summary>Create a new node 'testsuites' in the provided results object</summary>
+        </proc>
+        <proc>
+          <name>process_impl_design</name>
+          <summary>Used to process an implemented design</summary>
+        </proc>
+        <proc>
+          <name>process_runs</name>
+          <summary>Used to post-process runs.</summary>
+        </proc>
+        <proc>
+          <name>process_synth_design</name>
+          <summary>Used to process an synthesized design</summary>
+        </proc>
+        <proc>
+          <name>reset_results</name>
+          <summary>Resets the in-memory results, if it exists</summary>
+        </proc>
+        <proc>
+          <name>run_command</name>
+          <summary>Used to wrap a run step while logging success, errors, and runtimes</summary>
+        </proc>
+        <proc>
+          <name>run_silent</name>
+          <summary>Used to wrap any command while logging errors _only_. A JUnitXml entry is not created on success!!</summary>
+        </proc>
+        <proc>
+          <name>run_step</name>
+          <summary>Used to wrap a run step while logging success, errors, and runtimes</summary>
+        </proc>
+        <proc>
+          <name>set_report</name>
+          <summary>Configures the JUnit API output location</summary>
+        </proc>
+        <proc>
+          <name>set_stderr</name>
+          <summary>Adds a stderr entry to the global testsuite and sets it&apos;s content</summary>
+        </proc>
+        <proc>
+          <name>set_stdout</name>
+          <summary>Adds a stdout entry to the global testsuite and sets it&apos;s content</summary>
+        </proc>
+        <proc>
+          <name>validate_drcs</name>
+          <summary>Checks if any DRCs are found</summary>
+        </proc>
+        <proc>
+          <name>validate_logic</name>
+          <summary>Checks for driverless nets and latches</summary>
+        </proc>
+        <proc>
+          <name>validate_messages</name>
+          <summary>Checks if Warnings, Critical Warnings, or Errors exist. If Errors are found, then the process is stopped</summary>
+        </proc>
+        <proc>
+          <name>validate_routing</name>
+          <summary>Checks for unrouted nets</summary>
+        </proc>
+        <proc>
+          <name>validate_run_properties</name>
+          <summary>Logs run walltime. Validates the run is at 100% progress, else logs error and stops process</summary>
+        </proc>
+        <proc>
+          <name>validate_timing</name>
+          <summary>Checks for unrouted nets</summary>
+        </proc>
+        <proc>
+          <name>write</name>
+          <summary>Write out the output content to a file</summary>
+        </proc>
+        <proc>
+          <name>write_results</name>
+          <summary>Write the in-memory results to dist (uses the set_report/get_report location)</summary>
+        </proc>
+      </procs>
+    </app>
+    <app>
+      <revision>1.0</revision>
       <commit_id>68bbc30ff320f71cac4751187d36495b7ba7c6d7</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2013.1</pkg_require>
