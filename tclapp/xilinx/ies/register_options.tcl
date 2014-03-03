@@ -38,6 +38,7 @@ proc register_options { simulator } {
     {{compile.more_options}   {string} {}                                                    {More Compilation Options}}
     {{elaborate.more_options} {string} {}                                                    {More Elaboration Options}}
     {{simulate.runtime}       {string} {1000ns}                                              {Specify simulation run time}}
+    {{simulate.uut}           {string} {}                                                    {Specify instance name for design under test (default:/uut)}}
     {{simulate.saif}          {string} {}                                                    {SAIF Filename}}
     {{simulate.more_options}  {string} {}                                                    {More Simulation Options}}
   }

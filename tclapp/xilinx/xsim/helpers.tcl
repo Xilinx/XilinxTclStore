@@ -76,14 +76,9 @@ proc usf_init_vars {} {
                 FILE_TYPE != \"UCF\"                          && \
                 FILE_TYPE != \"XDC\"                          && \
                 FILE_TYPE != \"NGO\"                          && \
+                FILE_TYPE != \"Waveform Configuration File\"  && \
                 FILE_TYPE != \"BMM\"                          && \
-                FILE_TYPE != \"ELF\"                          && \
-                FILE_TYPE != \"Data Files\"                   && \
-                FILE_TYPE != \"Coefficient Files\"            && \
-                FILE_TYPE != \"TM_XML_IPXACT\"                && \
-                FILE_TYPE != \"Design Checkpoint\"            && \
-                FILE_TYPE != \"Memory Initialization Files\"  && \
-                FILE_TYPE != \"Waveform Configuration File\""
+                FILE_TYPE != \"ELF\""
 
   # simulation mode types
   variable a_sim_mode_types
@@ -323,19 +318,20 @@ proc usf_write_design_netlist {} {
 
   variable a_sim_vars
   # is behavioral?, return
-  if { {behav_sim} == $a_sim_vars(s_simulation_flow) } { 
+  if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
     return
-  } 
+  }
   set extn [usf_get_netlist_extn 1]
+
   # generate netlist
-  set net_filename [usf_get_netlist_filename];append net_filename "$extn"
-  set sdf_filename [usf_get_netlist_filename];append sdf_filename ".sdf"
-  set extn         {.v}
-  set net_file [file normalize [file join $a_sim_vars(s_launch_dir) $net_filename]]
-  set sdf_file [file normalize [file join $a_sim_vars(s_launch_dir) $sdf_filename]]
-  set netlist_cmd_args [usf_get_netlist_writer_cmd_args]
-  set sdf_cmd_args [usf_get_sdf_writer_cmd_args]
-  set design_mode [get_property DESIGN_MODE [current_fileset]]
+  set net_filename     [usf_get_netlist_filename];append net_filename "$extn"
+  set sdf_filename     [usf_get_netlist_filename];append sdf_filename ".sdf"
+  set net_file         [file normalize [file join $a_sim_vars(s_launch_dir) $net_filename]]
+  set sdf_file         [file normalize [file join $a_sim_vars(s_launch_dir) $sdf_filename]]
+  set netlist_cmd_args [usf_get_netlist_writer_cmd_args $extn]
+  set sdf_cmd_args     [usf_get_sdf_writer_cmd_args]
+  set design_mode      [get_property DESIGN_MODE [current_fileset]]
+
   # check run status
   switch -regexp -- $a_sim_vars(s_simulation_flow) {
     {post_synth_sim} {
@@ -348,7 +344,7 @@ proc usf_write_design_netlist {} {
           return 1
         }
       }
-    
+
       if { {RTL} == $design_mode } {
         set synth_run [current_run -synthesis]
         open_run $synth_run -name netlist_1
@@ -359,17 +355,21 @@ proc usf_write_design_netlist {} {
         return 1
       }
 
-      send_msg_id Vivado-XSim-029 INFO "Generating simulation netlist '$net_file'"
+      send_msg_id Vivado-XSim-029 INFO "Writing simulation netlist file..."
       # write netlist/sdf
-      # TODO: write_verilog is not taking cmd_args
+      set wv_args "-nolib $netlist_cmd_args -file $net_file"
       if { {functional} == $a_sim_vars(s_type) } {
-        write_verilog -mode funcsim -force $net_file
+        set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
-        write_verilog -mode timesim -force -sdf_file $sdf_file $net_file
+        set wv_args "-mode timesim $wv_args"
       }
+      send_msg_id Vivado-XSim-999 INFO "write_verilog $wv_args"
+      eval "write_verilog $wv_args"
       if { {timing} == $a_sim_vars(s_type) } {
-        send_msg_id Vivado-XSim-030 INFO "Writing SDF file '$sdf_file'"
-        write_sdf -mode timesim -force $sdf_file
+        send_msg_id Vivado-XSim-030 INFO "Writing SDF file..."
+        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        send_msg_id Vivado-XSim-999 INFO "write_sdf $ws_args"
+        eval "write_sdf $ws_args"
       }
       set a_sim_vars(s_netlist_file) $net_file
     }
@@ -383,26 +383,29 @@ proc usf_write_design_netlist {} {
       }
 
       open_run $impl_run -name netlist_1
-
-      send_msg_id Vivado-XSim-032 INFO "Generating simulation netlist '$net_file'"
+      send_msg_id Vivado-XSim-032 INFO "Writing simulation netlist file..."
 
       # write netlist/sdf
-      # TODO: write_verilog is not taking cmd_args
+      set wv_args "-nolib $netlist_cmd_args -file $net_file"
       if { {functional} == $a_sim_vars(s_type) } {
-        write_verilog -mode funcsim -force $net_file
+        set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
-        write_verilog -mode timesim -force -sdf_file $sdf_file $net_file
+        set wv_args "-mode timesim $wv_args"
       }
+      send_msg_id Vivado-XSim-999 INFO "write_verilog $wv_args"
+      eval "write_verilog $wv_args"
       if { {timing} == $a_sim_vars(s_type) } {
-        send_msg_id Vivado-XSim-033 INFO "Writing SDF file '$sdf_file'"
-        write_sdf -mode timesim -force $sdf_file
+        send_msg_id Vivado-XSim-033 INFO "Writing SDF file..."
+        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        send_msg_id Vivado-XSim-999 INFO "write_sdf $ws_args"
+        eval "write_sdf $ws_args"
       }
 
       set a_sim_vars(s_netlist_file) $net_file
     }
   }
-  if { [file exist $net_file] } { send_msg_id Vivado-XSim-034 INFO "Netlist generated:'$net_file'" }
-  if { [file exist $sdf_file] } { send_msg_id Vivado-XSim-035 INFO "SDF generated:'$sdf_file'" }
+  if { [file exist $net_file] } { send_msg_id Vivado-XSim-034 INFO "Netlist generated:$net_file" }
+  if { [file exist $sdf_file] } { send_msg_id Vivado-XSim-035 INFO "SDF generated:$sdf_file" }
 }
 
 proc usf_get_compile_order_for_obj { } {
@@ -442,10 +445,10 @@ proc usf_get_compile_order_for_obj { } {
     }
     # export all fileset data files to run dir
     if { [get_param "project.copyDataFilesForSim"] } {
-      usf_export_fs_data_files $s_data_files_filter "false"
+      usf_export_fs_data_files $s_data_files_filter
     }
     # export non-hdl data files to run dir
-    usf_export_fs_data_files $s_non_hdl_data_files_filter "true"
+    usf_export_fs_non_hdl_data_files
   } else {
     send_msg_id Vivado-XSim-038 INFO "Unsupported object source: $tcl_obj\n"
     return 1
@@ -631,93 +634,6 @@ proc usf_compile_glbl_file { simulator b_load_glbl } {
   return 0
 }
 
-proc usf_add_unisims { b_compile_unifast } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set fs_obj       [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
-  set flow         $a_sim_vars(s_simulation_flow)
-  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
-  set netlist_mode [get_property "NL.MODE" $fs_obj]
-  if { {behav_sim} == $flow } {
-    if { [usf_contains_verilog] } {
-      if { ! $b_compile_unifast } {
-        return 1
-      }
-    }
-  } elseif { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-    if { [usf_contains_verilog] || ({Verilog} == $target_lang) } {
-      if { {timesim} != $netlist_mode } {
-        return 1
-      }
-    }
-  }
-  return 0
-}
-
-proc usf_add_simprims {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set flow         $a_sim_vars(s_simulation_flow)
-  set fs_obj       [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
-  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
-  set netlist_mode [get_property "NL.MODE" $fs_obj]
-  if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-    if { [usf_contains_verilog] || ({Verilog} == $target_lang) } {
-      if { {timesim} == $netlist_mode } {
-        return 1
-      }
-    }
-  }
-  return 0
-}
-
-proc usf_add_unifast { b_compile_unifast } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set flow        $a_sim_vars(s_simulation_flow)
-  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-  if { {behav_sim} == $flow } {
-    if { [usf_contains_verilog] } {
-      if { $b_compile_unifast } {
-        return 1
-      }
-    }
-  }
-  return 0
-}
-
-proc usf_add_unimacro {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set flow        $a_sim_vars(s_simulation_flow)
-  if { {behav_sim} == $flow } {
-    if { [usf_contains_verilog] } {
-      return 1
-    }
-  }
-  return 0
-}
-
-proc usf_add_secureip {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  return 1
-}
-
 proc usf_get_glbl_file {} {
   # Summary:
   # Argument Usage:
@@ -726,39 +642,6 @@ proc usf_get_glbl_file {} {
   set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
   set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
   return $glbl_file
-}
-
-proc usf_create_do_file { simulator do_filename } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set fs_obj [current_fileset -simset]
-  set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
-  set do_file [file join $a_sim_vars(s_launch_dir) $do_filename]
-  set fh_do 0
-  if {[catch {open $do_file w} fh_do]} {
-    send_msg_id Vivado-XSim-039 ERROR "failed to open file to write ($do_file)\n"
-  } else {
-    # generate saif file for power estimation
-    set saif {}
-    set uut [get_property "UNIT_UNDER_TEST" $fs_obj]
-    switch -regexp -- $simulator {
-      "ies" {
-        set saif [get_property "IES.SIMULATE.SAIF" $fs_obj]
-        if { {} != $saif } {
-          if { {} == $uut } {
-            set uut "/$top/uut/*"
-          }
-          puts $fh_do "dumpsaif -scope $uut -overwrite -output $saif"
-        }
-      }
-    }
-    set time [get_property "RUNTIME" $fs_obj]
-    puts $fh_do "run $time"
-  }
-  close $fh_do
 }
 
 proc usf_prepare_ip_for_simulation { } {
@@ -982,9 +865,15 @@ proc usf_launch_script { simulator step } {
   # Return Value:
 
   variable a_sim_vars
+  set extn [usf_get_script_extn]
+  set scr_file ${step}$extn
   set run_dir $a_sim_vars(s_launch_dir)
+
+  set shell_script_file [file normalize [file join $run_dir $scr_file]]
+  usf_make_file_executable $shell_script_file
+
   if { $a_sim_vars(b_scripts_only) } {
-    send_msg_id Vivado-XSim-060 INFO "Scripts generated."
+    send_msg_id Vivado-XSim-060 INFO "Script generated:[file normalize [file join $run_dir $scr_file]]"
     return 0
   }
 
@@ -992,8 +881,6 @@ proc usf_launch_script { simulator step } {
   if { $a_sim_vars(b_batch) } {
     set b_wait 1 
   }
-  set extn [usf_get_script_extn]
-  set scr_file ${step}$extn
   set faulty_run 0
   set cwd [pwd]
   cd $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
@@ -1001,14 +888,12 @@ proc usf_launch_script { simulator step } {
   switch $step {
     {compile} -
     {elaborate} {
-      usf_make_file_executable $scr_file
       if {[catch {rdi::run_program $scr_file} error_log]} {
         send_msg_id Vivado-XSim-062 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"
         set faulty_run 1
       }
     }
     {simulate} {
-      usf_make_file_executable $scr_file
       set retval 0
       set error_log {}
       if { $b_wait } {
@@ -1209,7 +1094,7 @@ proc usf_get_sim_files_for_fs { tcl_obj } {
   return 0
 }
 
-proc usf_export_fs_data_files { filter b_check_for_user_disabled } {
+proc usf_export_fs_data_files { filter } {
   # Summary: Copy fileset IP data files to output directory
   # Argument Usage:
   # Return Value:
@@ -1222,13 +1107,6 @@ proc usf_export_fs_data_files { filter b_check_for_user_disabled } {
   foreach ip $ips {
     set ip_name [file tail $ip]
     foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
-      if { $b_check_for_user_disabled } {
-        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
-          if { [get_property {IS_USER_DISABLED} $file] } {
-            continue;
-          }
-        }
-      }
       lappend data_files $file
     }
   }
@@ -1248,6 +1126,28 @@ proc usf_export_fs_data_files { filter b_check_for_user_disabled } {
     foreach file [get_files -all -quiet -of_objects [get_filesets $fs_obj] -filter $filter] {
       lappend data_files $file
     }
+  }
+  usf_export_data_files $data_files
+}
+
+proc usf_export_fs_non_hdl_data_files {} {
+  # Summary: Copy fileset IP data files to output directory
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  variable s_non_hdl_data_files_filter
+
+  set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
+  set data_files [list]
+  foreach file [get_files -all -quiet -of_objects [get_filesets $fs_obj] -filter $s_non_hdl_data_files_filter] {
+    # skip user disabled (if the file supports is_user_disabled property
+    if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+      if { [get_property {IS_USER_DISABLED} $file] } {
+        continue;
+      }
+    }
+    lappend data_files $file
   }
   usf_export_data_files $data_files
 }
@@ -1398,7 +1298,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
   set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
   set vh_files [get_files -quiet -filter $filter]
   foreach file $vh_files {
-    if { [get_property "IS_GLOBAL_INCLUDE" [get_files -quiet $file]] } {
+    if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet $file] 0]] } {
       continue
     }
     set file_path [file normalize [string map {\\ /} [file dirname $file]]]
@@ -1431,7 +1331,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
   foreach fs_obj $filesets {
     set vh_files [get_files -quiet -of_objects $fs_obj -filter $filter]
     foreach file $vh_files {
-      if { ![get_property "IS_GLOBAL_INCLUDE" [get_files -quiet $file]] } {
+      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet $file] 0]] } {
         continue
       }
       set file [file normalize [string map {\\ /} $file]]
@@ -1743,7 +1643,10 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
     # does ip generated simulation products? if not, generate them
     if { ![get_property "IS_IP_GENERATED_SIM" $comp_file] } {
       send_msg_id Vivado-XSim-071 INFO "Generating simulation products for IP '$ip_name'...\n"
-      generate_target {simulation} [get_files $comp_file] -force
+      set delivered_targets [get_property delivered_targets [get_ips -quiet ${ip_name}]]
+      if { [regexp -nocase {simulation} $delivered_targets] } {
+        generate_target {simulation} [get_files $comp_file] -force
+      }
     } else {
       send_msg_id Vivado-XSim-074 INFO "IP '$ip_name' is upto date for simulation\n"
     }
@@ -1928,7 +1831,7 @@ proc usf_get_file_type_category { file_type } {
   return $type
 }
 
-proc usf_get_netlist_writer_cmd_args { } {
+proc usf_get_netlist_writer_cmd_args { extn } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1936,38 +1839,31 @@ proc usf_get_netlist_writer_cmd_args { } {
   variable a_sim_vars
   set fs_obj                 [get_filesets $a_sim_vars(s_simset)]
   set nl_cell                [get_property "NL.CELL" $fs_obj]
-  set nl_mode                [get_property "NL.MODE" $fs_obj]
-  set nl_nolib               [get_property "NL.NOLIB" $fs_obj]
-  set nl_write_all_overrides [get_property "NL.WRITE_ALL_OVERRIDES" $fs_obj]
+  set nl_incl_unisim_models  [get_property "NL.INCL_UNISIM_MODELS" $fs_obj]
   set nl_rename_top          [get_property "NL.RENAME_TOP" $fs_obj]
   set nl_sdf_anno            [get_property "NL.SDF_ANNO" $fs_obj]
-  set nl_process_corner      [get_property "NL.PROCESS_CORNER" $fs_obj]
-  set nl_incl_unisim_models  [get_property "NL.INCL_UNISIM_MODELS" $fs_obj]
-  set ng_sdf_path            [get_property "NG.SDF_PATH" $fs_obj]
-  set args [list]
-  if { {} != $nl_cell } {
-    lappend args "-cell";lappend args $nl_cell
-  }
-  lappend args "-mode";lappend args $nl_mode
-  if { $nl_nolib } {
-    lappend "-nolib"
-  }
-  if { $nl_write_all_overrides } {
-    lappend args "-write_all_overrides"
-  }
+  set nl_write_all_overrides [get_property "NL.WRITE_ALL_OVERRIDES" $fs_obj]
+  set args                   [list]
+
+  if { {} != $nl_cell }          { lappend args "-cell";lappend args $nl_cell }
+  if { $nl_write_all_overrides } { lappend args "-write_all_overrides" }
+
   if { {} != $nl_rename_top } {
     if { {.v} == $extn } {
-      lappend "-rename_top_module";lappend args $nl_rename_top
+      lappend args "-rename_top_module";lappend args $nl_rename_top
     } elseif { {.vhd} == $extn } {
-      lappend "-rename_top_entity";lappend args $nl_rename_top
+      lappend args "-rename_top_entity";lappend args $nl_rename_top
     }
   }
-  if { $nl_sdf_anno && ({timing} == $a_sim_vars(s_type)) } {
-    lappend args "-sdf_anno"
+
+  if { ({timing} == $a_sim_vars(s_type)) } {
+    if { $nl_sdf_anno } {
+      lappend args "-sdf_anno true"
+    } else {
+      lappend args "-sdf_anno false"
+    }
   }
-  if { {} != $ng_sdf_path } {
-    lappend args "-sdf_path";lappend args $ng_sdf_path 
-  }
+
   if { $nl_incl_unisim_models } { lappend args "-include_unisim" }
   lappend args "-force"
   set cmd_args [join $args " "]
@@ -1980,20 +1876,15 @@ proc usf_get_sdf_writer_cmd_args { } {
   # Return Value:
 
   variable a_sim_vars
-  set fs_obj                 [get_filesets $a_sim_vars(s_simset)]
-  set nl_cell                [get_property "NL.CELL" $fs_obj]
-  set nl_mode                [get_property "NL.MODE" $fs_obj]
-  set nl_rename_top          [get_property "NL.RENAME_TOP" $fs_obj]
-  set nl_process_corner      [get_property "NL.PROCESS_CORNER" $fs_obj]
-  set args [list]
-  if { {} != $nl_cell } {
-    lappend args "-cell";lappend args $nl_cell
-  }
-  lappend args "-mode";lappend args $nl_mode
+  set fs_obj            [get_filesets $a_sim_vars(s_simset)]
+  set nl_cell           [get_property "NL.CELL" $fs_obj]
+  set nl_rename_top     [get_property "NL.RENAME_TOP" $fs_obj]
+  set nl_process_corner [get_property "NL.PROCESS_CORNER" $fs_obj]
+  set args              [list]
+
+  if { {} != $nl_cell } {lappend args "-cell";lappend args $nl_cell}
   lappend args "-process_corner";lappend args $nl_process_corner
-  if { {} != $nl_rename_top } {
-    lappend "-rename_top_module";lappend args $nl_rename_top
-  }
+  if { {} != $nl_rename_top } {lappend "-rename_top_module";lappend args $nl_rename_top}
   lappend args "-force"
   set cmd_args [join $args " "]
   return $cmd_args
@@ -2029,22 +1920,6 @@ proc usf_get_top { top_arg } {
        value is provided for 'top'. The value for 'top' can be set/changed using the 'Top Module Name' field under\
        'Project Settings', or using the 'set_property top' Tcl command (e.g. set_property top <name> \[current_fileset\])."
     return 1
-  }
-  return 0
-}
-
-proc usf_is_axi_bfm_ip {} {
-  # Summary: Finds VLNV property value for the IP and checks to see if the IP is AXI_BFM
-  # Argument Usage:
-  # Return Value:
-  # true (1) if specified IP is axi_bfm, false (0) otherwise
-
-  foreach ip [get_ips] {
-    set ip_def [lindex [split [get_property "IPDEF" [get_ips $ip]] {:}] 2]
-    set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
-    if { [regexp -nocase {axi_bfm} $value] } {
-      return 1
-    }
   }
   return 0
 }

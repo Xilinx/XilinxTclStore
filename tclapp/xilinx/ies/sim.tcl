@@ -245,7 +245,9 @@ proc usf_ies_write_setup_files {} {
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
   set libs [list]
-  foreach lib [::tclapp::xilinx::ies::usf_get_compile_order_libs] {
+  set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation]]
+  set design_libs [usf_ies_get_design_libs $files]
+  foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
   }
@@ -274,6 +276,10 @@ proc usf_ies_write_setup_files {} {
     return 1
   }
   close $fh
+
+  # create setup file
+  usf_ies_create_setup_script
+
 }
 
 proc usf_ies_write_compile_script {} {
@@ -355,7 +361,11 @@ proc usf_ies_write_elaborate_script {} {
 
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+  set flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
+
+  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   set filename "elaborate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $filename]]
@@ -403,15 +413,35 @@ proc usf_ies_write_elaborate_script {} {
 
   set arg_list [list]
   # add simulation libraries
+
+  # post* simulation
+  if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+    if { [usf_contains_verilog] || ({Verilog} == $target_lang) } {
+      if { {timesim} == $netlist_mode } {
+        set arg_list [linsert $arg_list end "-libname" "simprims_ver"]
+      } else {
+        set arg_list [linsert $arg_list end "-libname" "unisims_ver"]
+      }
+    }
+  }
+
+  # behavioral simulation
   set b_compile_unifast [get_property "IES.COMPILE.UNIFAST" $fs_obj]
-  if { [::tclapp::xilinx::ies::usf_add_unisims $b_compile_unifast] } { set arg_list [linsert $arg_list end "-libname" "unisims_ver"] }
-  if { [::tclapp::xilinx::ies::usf_add_simprims] } { set arg_list [linsert $arg_list end "-libname" "simprims_ver"] }
-  if { [::tclapp::xilinx::ies::usf_add_unifast $b_compile_unifast] } {  set arg_list [linsert $arg_list end "-libname" "unifast"] }
-  if { [::tclapp::xilinx::ies::usf_add_unimacro] } { set arg_list [linsert $arg_list end "-libname" "unimacro"] }
-  if { [::tclapp::xilinx::ies::usf_add_secureip] } { set arg_list [linsert $arg_list end "-libname" "secureip"] }
+  if { ([usf_contains_verilog]) && ({behav_sim} == $flow) } {
+    if { $b_compile_unifast } {
+      set arg_list [linsert $arg_list end "-libname" "unifast_ver"]
+    }
+    set arg_list [linsert $arg_list end "-libname" "unisims_ver"]
+    set arg_list [linsert $arg_list end "-libname" "unimacro_ver"]
+  }
+
+  # add secureip
+  set arg_list [linsert $arg_list end "-libname" "secureip"]
 
   # add design libraries
-  foreach lib [::tclapp::xilinx::ies::usf_get_compile_order_libs] {
+  set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation]]
+  set design_libs [usf_ies_get_design_libs $files]
+  foreach lib $design_libs {
     if {[string length $lib] == 0} {
       continue;
     }
@@ -476,7 +506,7 @@ proc usf_ies_write_simulate_script {} {
     puts $fh_scr "set bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
   }
 
-  set do_filename "${top}.do"
+  set do_filename "${top}_simulate.do"
 
   ::tclapp::xilinx::ies::usf_create_do_file "ies" $do_filename
 	
@@ -507,5 +537,104 @@ proc usf_ies_write_simulate_script {} {
   puts $fh_scr "# run simulation"
   puts $fh_scr "$cmd_str"
   close $fh_scr
+}
+
+proc usf_ies_get_design_libs { files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set libs [list]
+  foreach file $files {
+    set type    [lindex [split $file {#}] 0]
+    set library [lindex [split $file {#}] 1]
+    set cmd_str [lindex [split $file {#}] 2]
+    if { {} == $library } {
+      continue;
+    }
+    if { [lsearch -exact $libs $library] == -1 } {
+      lappend libs $library
+    }
+  }
+  return $libs
+}
+
+proc usf_ies_create_setup_script {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+  set filename "setup";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
+  set scr_file [file normalize [file join $dir $filename]]
+  set fh_scr 0
+  if {[catch {open $scr_file w} fh_scr]} {
+    send_msg_id Vivado-IES-999 ERROR "failed to open file to write ($scr_file)\n"
+    return 1
+  }
+
+  if {$::tcl_platform(platform) == "unix"} { 
+    puts $fh_scr "#!/bin/sh -f"
+    ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+    puts $fh_scr "\n# Create design library directory paths and define design library mappings in cds.lib"
+    puts $fh_scr "create_lib_mappings()"
+    puts $fh_scr "\{"
+    set simulator "ies"
+    set libs [list]
+    set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation]]
+    set design_libs [usf_ies_get_design_libs $files]
+    foreach lib $design_libs {
+      if { {} == $lib } {
+        continue;
+      }
+      lappend libs [string tolower $lib]
+    }
+
+    puts $fh_scr "  libs=([join $libs " "])"
+    puts $fh_scr "  file=\"cds.lib\""
+    puts $fh_scr "  dir=\"$simulator\"\n"
+    puts $fh_scr "  if \[\[ -e \$file \]\]; then"
+    puts $fh_scr "    rm -f \$file"
+    puts $fh_scr "  fi"
+    puts $fh_scr "  if \[\[ -e \$dir \]\]; then"
+    puts $fh_scr "    rm -rf \$dir"
+    puts $fh_scr "  fi"
+    puts $fh_scr ""
+    puts $fh_scr "  touch \$file"
+
+    set compiled_lib_dir $::tclapp::xilinx::ies::a_ies_sim_vars(s_compiled_lib_dir)
+    if { ![file exists $compiled_lib_dir] } {
+      puts $fh_scr "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
+    } else {
+      puts $fh_scr "  lib_map_path=\"$compiled_lib_dir\""
+    }
+
+    set file "cds.lib"
+    puts $fh_scr "  incl_ref=\"INCLUDE \$lib_map_path/$file\""
+    puts $fh_scr "  echo \$incl_ref >> \$file"
+    puts $fh_scr "  for (( i=0; i<\$\{#libs\[*\]\}; i++ )); do"
+    puts $fh_scr "    lib=\"\$\{libs\[i\]\}\""
+    puts $fh_scr "    lib_dir=\"\$dir/\$lib\""
+    puts $fh_scr "    if \[\[ ! -e \$lib_dir \]\]; then"
+    puts $fh_scr "      mkdir -p \$lib_dir"
+    puts $fh_scr "      mapping=\"DEFINE \$lib \$dir/\$lib\""
+    puts $fh_scr "      echo \$mapping >> \$file"
+    puts $fh_scr "    fi"
+    puts $fh_scr "  done"
+    puts $fh_scr "\}"
+    puts $fh_scr ""
+    puts $fh_scr "setup()"
+    puts $fh_scr "\{"
+    puts $fh_scr "  create_lib_mappings"
+    puts $fh_scr "  touch hdl.var"
+    puts $fh_scr "  # Add any setup/initialization commands here:-"
+    puts $fh_scr "  # <user specific commands>"
+    puts $fh_scr "\}"
+    puts $fh_scr ""
+    puts $fh_scr "setup"
+  }
+  close $fh_scr
+
+  usf_make_file_executable $scr_file
 }
 }

@@ -234,7 +234,9 @@ proc usf_vcs_mx_write_setup_files {} {
   }
   puts $fh "OTHERS=$lib_map_path/$filename"
   set libs [list]
-  foreach lib [::tclapp::xilinx::vcs_mx::usf_get_compile_order_libs] {
+  set files [::tclapp::xilinx::vcs_mx::usf_uniquify_cmd_str [::tclapp::xilinx::vcs_mx::usf_get_files_for_compilation]]
+  set design_libs [usf_vcs_mx_get_design_libs $files]
+  foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { ({work} == $lib) && ({vcs_mx} == $simulator) } { continue; }
     lappend libs [string tolower $lib]
@@ -252,6 +254,10 @@ proc usf_vcs_mx_write_setup_files {} {
     puts $fh "$lib_name : $lib_dir"
   }
   close $fh
+
+  # create setup file
+  usf_vcs_mx_create_setup_script
+
 }
 
 proc usf_vcs_mx_write_compile_script {} {
@@ -429,5 +435,105 @@ proc usf_vcs_mx_write_simulate_script {} {
   puts $fh_scr "# run simulation"
   puts $fh_scr "$cmd_str"
   close $fh_scr
+}
+
+proc usf_vcs_mx_get_design_libs { files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set libs [list]
+  foreach file $files {
+    set type    [lindex [split $file {#}] 0]
+    set library [lindex [split $file {#}] 1]
+    set cmd_str [lindex [split $file {#}] 2]
+    if { {} == $library } {
+      continue;
+    }
+    if { [lsearch -exact $libs $library] == -1 } {
+      lappend libs $library
+    }
+  }
+  return $libs
+}
+
+proc usf_vcs_mx_create_setup_script {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set dir $::tclapp::xilinx::vcs_mx::a_sim_vars(s_launch_dir)
+  set filename "setup";append filename [::tclapp::xilinx::vcs_mx::usf_get_script_extn]
+  set scr_file [file normalize [file join $dir $filename]]
+  set fh_scr 0
+  if {[catch {open $scr_file w} fh_scr]} {
+    send_msg_id Vivado-VCS_MX-999 ERROR "failed to open file to write ($scr_file)\n"
+    return 1
+  }
+  if {$::tcl_platform(platform) == "unix"} {
+    puts $fh_scr "#!/bin/sh -f"
+    ::tclapp::xilinx::vcs_mx::usf_write_script_header_info $fh_scr $scr_file
+    puts $fh_scr "\n# Create design library directory paths and define design library mappings in cds.lib"
+    puts $fh_scr "create_lib_mappings()"
+    puts $fh_scr "\{"
+    set simulator "vcs_mx"
+    set libs [list]
+    set files [::tclapp::xilinx::vcs_mx::usf_uniquify_cmd_str [::tclapp::xilinx::vcs_mx::usf_get_files_for_compilation]]
+    set design_libs [usf_vcs_mx_get_design_libs $files]
+    foreach lib $design_libs {
+      if { {} == $lib } {
+        continue;
+      }
+      if { {work} == $lib } {
+        continue;
+      }
+      lappend libs [string tolower $lib]
+    }
+
+    puts $fh_scr "  libs=([join $libs " "])"
+    puts $fh_scr "  file=\"synopsys_sim.setup\""
+    puts $fh_scr "  dir=\"$simulator\"\n"
+    puts $fh_scr "  if \[\[ -e \$file \]\]; then"
+    puts $fh_scr "    rm -f \$file"
+    puts $fh_scr "  fi"
+    puts $fh_scr "  if \[\[ -e \$dir \]\]; then"
+    puts $fh_scr "    rm -rf \$dir"
+    puts $fh_scr "  fi"
+    puts $fh_scr ""
+    puts $fh_scr "  touch \$file"
+
+    set compiled_lib_dir $::tclapp::xilinx::vcs_mx::a_vcs_mx_sim_vars(s_compiled_lib_dir)
+    if { ![file exists $compiled_lib_dir] } {
+      puts $fh_scr "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
+    } else {
+      puts $fh_scr "  lib_map_path=\"$compiled_lib_dir\""
+    }
+
+    set file "synopsys_sim.setup"
+    puts $fh_scr "  incl_ref=\"OTHERS=\$lib_map_path/$file\""
+    puts $fh_scr "  echo \$incl_ref >> \$file"
+    puts $fh_scr "  for (( i=0; i<\$\{#libs\[*\]\}; i++ )); do"
+    puts $fh_scr "    lib=\"\$\{libs\[i\]\}\""
+    puts $fh_scr "    lib_dir=\"\$dir/\$lib\""
+    puts $fh_scr "    if \[\[ ! -e \$lib_dir \]\]; then"
+    puts $fh_scr "      mkdir -p \$lib_dir"
+    puts $fh_scr "      mapping=\"\$lib : \$dir/\$lib\""
+    puts $fh_scr "      echo \$mapping >> \$file"
+    puts $fh_scr "    fi"
+    puts $fh_scr "  done"
+    puts $fh_scr "\}"
+    puts $fh_scr ""
+    puts $fh_scr "setup()"
+    puts $fh_scr "\{"
+    puts $fh_scr "  create_lib_mappings"
+    puts $fh_scr "  # Add any setup/initialization commands here:-"
+    puts $fh_scr "  # <user specific commands>"
+    puts $fh_scr "\}"
+    puts $fh_scr ""
+    puts $fh_scr "setup"
+  }
+  close $fh_scr
+
+  usf_make_file_executable $scr_file
 }
 }
