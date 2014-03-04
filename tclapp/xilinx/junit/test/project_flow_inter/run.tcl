@@ -49,7 +49,7 @@ if { [ catch { assert_same 1 [ expr $seconds < $threshold ] "Synthesis runtime w
 set projDir [ get_property DIRECTORY [ current_project ] ]
 set projName [ get_property NAME [ current_project ] ]
 
-set synthReport [ file join $projDir ${projName}.runs synth_1 ff_replicator.rds ]
+set synthReport [ file join $projDir ${projName}.runs synth_1 ff_replicator.vds ]
 assert_exists $synthReport "Synthesis report was not found"
 
 #launch_runs impl_1
