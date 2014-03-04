@@ -8,7 +8,7 @@
 #  * initial version
 #
 ###########################################################################
-package require Vivado 2013.1
+package require Vivado 1.2013.1
 
 namespace eval ::tclapp::xilinx::ies {
   # do not export procs from this file
