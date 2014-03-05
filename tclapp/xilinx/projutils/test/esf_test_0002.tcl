@@ -13,5 +13,5 @@ add_files -fileset sources_1 "$file_dir/src/top.v"
 add_files -fileset sim_1 "$file_dir/src/tb.v"
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
-export_simulation -simulator vcs_mx -dir ./filelist
+export_simulation -simulator vcs_mx -directory ./filelist/vcs_mx
 close_project
