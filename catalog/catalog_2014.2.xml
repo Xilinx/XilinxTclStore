@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <release>2014.1</release>
+  <release>2014.2</release>
   <apps>
     <app>
       <revision>1.0</revision>
@@ -8,8 +8,8 @@
       <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2013.1</pkg_require>
-      <author>Multiple people</author>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
       <summary>This directory is a collection of random scripts and utilties in no particular organization.</summary>
       <procs>
         <proc>
@@ -150,8 +150,8 @@
       <revision>1.2</revision>
       <commit_id>bd3e4d0ac0e424463341c39766b44d4e25ba36d8</commit_id>
       <name>diff</name>
-      <author>Nik Cimino</author>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
       <summary>Vivado Design Differencing</summary>
       <procs>
         <proc>
@@ -194,14 +194,16 @@
       <name>ies</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <visible>project.enableUnifiedSimulation</visible>
       <summary>Simulation script to verify design using IES Simulator</summary>
     </app>
     <app>
       <revision>1.0</revision>
       <commit_id>a0ac10b308cf0d4edeff8d4e4da88663ab44e426</commit_id>
       <name>junit</name>
-      <author>Xilinx, Inc</author>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
       <summary>The JUnit App is built with 3 layers of APIs. The high level API enables a user to run generic tests or a group of predefined tests on demand. The intermediate level API enables a user to call assertions and customize the tests. Both the high level and intermediate level APIs are automatically generating a JUnit report in memory. The low level API enables the user to work directly with the &quot;data graph&quot; in memory. There is a section in the writer class where this in-memory &quot;data graph&quot; is converted to a &quot;junit graph&quot;. The &quot;junit graph&quot; is then just dumped to an XML file.  The conversion from &quot;data graph&quot; to &quot;junit graph&quot; exists to enable users to convert the data to other formats.</summary>
       <procs>
         <proc>
@@ -328,12 +330,15 @@
       <name>modelsim</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <visible>project.enableUnifiedSimulation</visible>
       <summary>Simulation script to verify design using ModelSim/Questa Simulator</summary>
     </app>
     <app>
       <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
       <name>myapp</name>
       <company>mycompany</company>
+      <company_display>Xilinx, Inc.</company_display>
       <summary>example myapp</summary>
       <procs>
         <proc>
@@ -352,8 +357,8 @@
       <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2013.1</pkg_require>
-      <author>Raj Klair</author>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
       <summary>This script can be used to write a Tcl script for re-building the current project from the Vivado Tcl shell</summary>
       <procs>
         <proc>
@@ -370,8 +375,9 @@
       <revision>1.0</revision>
       <commit_id>bd3e4d0ac0e424463341c39766b44d4e25ba36d8</commit_id>
       <name>tk_tunnel</name>
-      <author>Nik Cimino</author>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <visible>false</visible>
       <summary>This app can be used to launch a Tcl/Tk 8.5 server using a standalone Tcl shell, and pass commands from Vivado to the Tk shell.</summary>
       <procs>
         <proc>
@@ -439,8 +445,8 @@
       <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
       <name>ultrafast</name>
       <pkg_require>Vivado 2013.1</pkg_require>
-      <author>Xilinx</author>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
       <summary>Scripts for the UltraFast Design Methodology Checklist</summary>
       <procs>
         <proc>
@@ -475,6 +481,8 @@
       <name>vcs_mx</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <visible>project.enableUnifiedSimulation</visible>
       <summary>Simulation script to verify design using VCS_MX Simulator</summary>
     </app>
     <app>
@@ -483,6 +491,8 @@
       <name>xsim</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <visible>project.enableUnifiedSimulation</visible>
       <summary>Simulation script to verify design using Vivado Simulator</summary>
     </app>
   </apps>
