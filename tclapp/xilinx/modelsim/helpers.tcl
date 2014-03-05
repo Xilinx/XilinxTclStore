@@ -137,6 +137,12 @@ proc usf_create_fs_options_spec { simulator opts } {
       set e_values  [lindex $value 2]
       # create enum property
       create_property -name "${prop_name}" -type $type -description $desc -enum_values $e_values -default_value $e_default -class fileset
+    } elseif { {file} == $type } {
+      set f_extns   [lindex $row 4]
+      set f_desc    [lindex $row 5]
+      # create file property
+      set v_default $value
+      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -file_types $f_extns -display_text $f_desc -class fileset
     } else {
       set v_default $value
       create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -class fileset
@@ -376,7 +382,7 @@ proc usf_write_design_netlist {} {
     {post_impl_sim} {
       set impl_run [current_run -implementation]
       set status [get_property "STATUS" $impl_run]
-      if { ([regexp -nocase {^route_design complete} $status] != 1) } {
+      if { ![get_property can_open_results $impl_run] } {
         send_msg_id Vivado-ModelSim-031 ERROR \
            "Implementation results not available! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console and retry this operation.\n"
         return 1

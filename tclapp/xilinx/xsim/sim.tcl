@@ -457,12 +457,8 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
     set b_add_wave 1
   }
 
-  # get command file (if specified)
-  set cmd_file [get_property "XSIM.SIMULATE.TCLBATCH" $fs_obj]
-  if { {} == $cmd_file } {
-    set cmd_file ${top};append cmd_file ".tcl"
-    usf_xsim_write_cmd_file $cmd_file $b_add_wave
-  }
+  set cmd_file ${top};append cmd_file ".tcl"
+  usf_xsim_write_cmd_file $cmd_file $b_add_wave
 
   set scr_filename "simulate";append scr_filename [::tclapp::xilinx::xsim::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]

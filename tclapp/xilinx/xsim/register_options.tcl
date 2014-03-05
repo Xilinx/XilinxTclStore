@@ -46,8 +46,7 @@ proc register_options { simulator } {
     {{simulate.uut}                {string} {}                                                   {Specify instance name for design under test (default:/uut)}}
     {{simulate.wdb}                {string} {}                                                   {Specify Waveform Database file}}
     {{simulate.saif}               {string} {}                                                   {SAIF Filename}}
-    {{simulate.tclbatch}           {string} {}                                                   {Specify custom command file for simulation}}
-    {{simulate.view}               {string} {}                                                   {Specify Waveform Configuration file}}
+    {{simulate.view}               {file}   {}                                                   {Specify Waveform Configuration file} {wcfg} {Select WCFG file}}
     {{simulate.more_options}       {string} {}                                                   {More Simulation Options}}
   }
   # create options
