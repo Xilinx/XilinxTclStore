@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <release>2014.2</release>
+  <release>2014.1</release>
   <apps>
     <app>
       <revision>1.0</revision>
@@ -190,13 +190,13 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
+      <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <visible>project.enableUnifiedSimulation</visible>
       <summary>Simulation script to verify design using IES Simulator</summary>
+      <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
       <revision>1.0</revision>
@@ -232,23 +232,23 @@
         </proc>
         <proc>
           <name>new_stderr</name>
-          <summary>Create a new node 'stderr' in the provided results object</summary>
+          <summary>Create a new node &apos;stderr&apos; in the provided results object</summary>
         </proc>
         <proc>
           <name>new_stdout</name>
-          <summary>Create a new node 'stdout' in the provided results object</summary>
+          <summary>Create a new node &apos;stdout&apos; in the provided results object</summary>
         </proc>
         <proc>
           <name>new_testcase</name>
-          <summary>Create a new node 'testcase' in the provided results object</summary>
+          <summary>Create a new node &apos;testcase&apos; in the provided results object</summary>
         </proc>
         <proc>
           <name>new_testsuite</name>
-          <summary>Create a new node 'testsuite' in the provided results object</summary>
+          <summary>Create a new node &apos;testsuite&apos; in the provided results object</summary>
         </proc>
         <proc>
           <name>new_testsuites</name>
-          <summary>Create a new node 'testsuites' in the provided results object</summary>
+          <summary>Create a new node &apos;testsuites&apos; in the provided results object</summary>
         </proc>
         <proc>
           <name>process_impl_design</name>
@@ -326,13 +326,13 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
+      <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <visible>project.enableUnifiedSimulation</visible>
       <summary>Simulation script to verify design using ModelSim/Questa Simulator</summary>
+      <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
       <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
@@ -377,8 +377,8 @@
       <name>tk_tunnel</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <visible>false</visible>
       <summary>This app can be used to launch a Tcl/Tk 8.5 server using a standalone Tcl shell, and pass commands from Vivado to the Tk shell.</summary>
+      <visible>false</visible>
       <procs>
         <proc>
           <name>accept_connection</name>
@@ -477,23 +477,23 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
+      <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>vcs_mx</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <visible>project.enableUnifiedSimulation</visible>
       <summary>Simulation script to verify design using VCS_MX Simulator</summary>
+      <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
+      <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>xsim</name>
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <visible>project.enableUnifiedSimulation</visible>
       <summary>Simulation script to verify design using Vivado Simulator</summary>
+      <visible>project.enableUnifiedSimulation</visible>
     </app>
   </apps>
 </catalog>
