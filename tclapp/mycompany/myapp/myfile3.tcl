@@ -30,6 +30,7 @@ proc ::tclapp::mycompany::myapp::myproc3 {args} {
       return $arg
     }
 
+    puts "I am pushing it to github 2014-03-05"
     puts "Calling ::tclapp::mycompany::myapp::myproc3 '$args'"
     
     #-------------------------------------------------------
