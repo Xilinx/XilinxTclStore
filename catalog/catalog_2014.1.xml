@@ -10,7 +10,7 @@
       <pkg_require>Vivado 2013.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This directory is a collection of scripts and utiltiy application that are grouped by relevance to querying and analyzing a logical design, principally around the netlist object model.</summary>
+      <summary>This directory is a collection of scripts and utility application that are grouped by relevance to querying and analyzing a logical design, principally around the netlist object model.</summary>
       <procs>
         <proc>
           <name>bisect_pblock</name>
