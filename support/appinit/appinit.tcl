@@ -17,10 +17,6 @@ proc ::tclapp::support::appinit::load_app {repo app {ns ""}} {
     # Return Value:
     # List of app procs that were registered with Vivado
 
-    if {[lsearch -exact $::auto_path $repo] == -1} {
-      lset ::auto_path [linsert $::auto_path 0 $repo]
-    }
-
     set slave [interp create]
 
     $slave eval {
