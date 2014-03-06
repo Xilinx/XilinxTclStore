@@ -335,7 +335,7 @@
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
+      <commit_id>4f9d5e2b6ee3c389e8397c75d22749ab7ea787ee</commit_id>
       <name>myapp</name>
       <company>mycompany</company>
       <company_display>Xilinx, Inc.</company_display>
