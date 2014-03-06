@@ -1,4 +1,4 @@
-package require Vivado 1.2013.1
+package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::designutils {
     namespace export insert_buffer insert_buffer_chain remove_buffer

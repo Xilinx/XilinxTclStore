@@ -8,7 +8,7 @@
 #  * initial version
 #
 ###############################################################################
-package require Vivado 1.2013.1
+package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::vcs_mx {
   # do not export procs from this file

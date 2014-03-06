@@ -8,7 +8,7 @@
       <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
       <name>designutils</name>
       <display>Design Utilities</display>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>This is a collection of scripts and utility application that are grouped by relevance to querying and analyzing a logical design, principally around the netlist object model.</summary>
@@ -194,7 +194,7 @@
       <revision>1.0</revision>
       <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>ies</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>Simulation script to verify design using IES Simulator</summary>
@@ -331,7 +331,7 @@
       <revision>1.0</revision>
       <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>modelsim</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>Simulation script to verify design using ModelSim/Questa Simulator</summary>
@@ -360,7 +360,7 @@
       <commit_id>b1c657f7393f53f6e98579a15d26861ad4c3694e</commit_id>
       <name>projutils</name>
       <display>Project Utilities</display>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>This is a collection of scripts and utility application that are grouped by relevance to manipulation of projects.</summary>
@@ -450,7 +450,7 @@
       <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
       <name>ultrafast</name>
       <display>UltraFast Design Methodology</display>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 ‘UltraFast Design Methodology Guide for the Vivado Design Suite’ for further information.</summary>
@@ -485,7 +485,7 @@
       <revision>1.0</revision>
       <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>vcs_mx</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>Simulation script to verify design using VCS_MX Simulator</summary>
@@ -495,7 +495,7 @@
       <revision>1.0</revision>
       <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>xsim</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>Simulation script to verify design using Vivado Simulator</summary>

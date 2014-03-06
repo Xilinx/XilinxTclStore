@@ -9,7 +9,7 @@
 #  * initial version
 #
 #########################################################################
-package require Vivado 1.2013.1
+package require Vivado 1.2014.1
 package require ::tclapp::xilinx::modelsim::helpers
 
 namespace eval ::tclapp::xilinx::modelsim {

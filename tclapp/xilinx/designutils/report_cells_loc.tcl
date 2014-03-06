@@ -4,7 +4,7 @@
 #
 ######################################################################
 
-package require Vivado 1.2013.1
+package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::designutils {
     namespace export report_cells_loc
