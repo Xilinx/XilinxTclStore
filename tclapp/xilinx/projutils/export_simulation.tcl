@@ -118,6 +118,12 @@ proc export_simulation {args} {
     return 1
   }
 
+  # generate mem files
+  if { [is_embedded_flow] } {
+    send_msg_id Vivado-projutils-060 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
+    generate_mem_files $a_xport_sim_vars(s_out_dir)
+  }
+
   # TCL_OK
   return 0
 }
@@ -138,6 +144,10 @@ set l_valid_ip_extns [list ".xci" ".bd" ".slx"]
 
 variable s_data_files_filter
 set s_data_files_filter "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
+
+# embedded file extension types
+variable s_embedded_files_filter
+set s_embedded_files_filter        "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ElF\""
 
 proc reset_global_sim_vars {} {
   # Summary: initializes global namespace simulation vars
@@ -1721,6 +1731,19 @@ proc get_simulator_lib_for_bfm { simulator } {
     send_msg_id Vivado-projutils-058 ERROR "Environment variable 'XILINX' is not set!"
   }
   return $simulator_lib
+}
+
+proc is_embedded_flow {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable s_embedded_files_filter
+  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
+  if { [llength $embedded_files] > 0 } {
+    return 1
+  }
+  return 0
 }
 
 }
