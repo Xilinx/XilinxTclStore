@@ -3401,7 +3401,7 @@ proc ::lint::check_package_documentation { file_name } {
     ## this prints out an example template file so that the user's can
     # easily see the proper syntax for declaring packages, nameespaces, etc.
     proc ::lint::print_template {} {
-        puts "package require Vivado 1.2013.1"
+        puts "package require Vivado 1.2014.1"
 	puts ""
         puts "namespace eval ::tclapp::<provider>::<app> \{"
         puts "    namespace export <proc> ..."

@@ -1,4 +1,4 @@
-package require Vivado 1.2013.1
+package require Vivado 1.2014.1
 
 namespace eval ::tclapp::mycompany::myapp {
     # Export procs that should be allowed to import into other namespaces

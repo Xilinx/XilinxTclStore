@@ -7,10 +7,11 @@
       <revision_history>Modified README; package requirement is Vivado 2013.1; updated commit id</revision_history>
       <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
       <name>designutils</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <display>Design Utilities</display>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This directory is a collection of scripts and utility application that are grouped by relevance to querying and analyzing a logical design, principally around the netlist object model.</summary>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to querying and analyzing a logical design, principally around the netlist object model.</summary>
       <procs>
         <proc>
           <name>bisect_pblock</name>
@@ -150,9 +151,11 @@
       <revision>1.2</revision>
       <commit_id>bd3e4d0ac0e424463341c39766b44d4e25ba36d8</commit_id>
       <name>diff</name>
+      <display>Design Comparison</display>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>Vivado Design Differencing</summary>
+      <summary>The Diff App compares two different designs at a time. Designs can be any combination of checkpoints or runs. With two designs loaded into memory this App enables the user to compare reports, lists, or first-class object properties between the two designs.  The output is generated in the form of interactive reporting (stdout), a text report, or an html report. The app can be used to compare a design against a reference or golden design or to dtermine where divergence occurred (isolation of problems and root cause analysis).</summary>
+      <visible>false</visible>
       <procs>
         <proc>
           <name>delete</name>
@@ -192,7 +195,7 @@
       <revision>1.0</revision>
       <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>ies</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>Simulation script to verify design using IES Simulator</summary>
@@ -202,6 +205,7 @@
       <revision>1.0</revision>
       <commit_id>a0ac10b308cf0d4edeff8d4e4da88663ab44e426</commit_id>
       <name>junit</name>
+      <display>JUnit Utilities</display>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>The JUnit App is built with 3 layers of APIs. The high level API enables a user to run generic tests or a group of predefined tests on demand. The intermediate level API enables a user to call assertions and customize the tests. Both the high level and intermediate level APIs are automatically generating a JUnit report in memory. The low level API enables the user to work directly with the &quot;data graph&quot; in memory. There is a section in the writer class where this in-memory &quot;data graph&quot; is converted to a &quot;junit graph&quot;. The &quot;junit graph&quot; is then just dumped to an XML file.  The conversion from &quot;data graph&quot; to &quot;junit graph&quot; exists to enable users to convert the data to other formats.</summary>
@@ -328,7 +332,7 @@
       <revision>1.0</revision>
       <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>modelsim</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>Simulation script to verify design using ModelSim/Questa Simulator</summary>
@@ -356,10 +360,11 @@
       <revision>2.0</revision>
       <commit_id>7882e9936b4bced098eaef683fb073b5d9dc670f</commit_id>
       <name>projutils</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <display>Project Utilities</display>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This script can be used to write a Tcl script for re-building the current project from the Vivado Tcl shell</summary>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to manipulation of projects.</summary>
       <procs>
         <proc>
           <name>export_simulation</name>
@@ -375,9 +380,10 @@
       <revision>1.0</revision>
       <commit_id>ec126ab0bcef3d8cc5284631f8f13ccd88df3e43</commit_id>
       <name>tk_tunnel</name>
+      <display>Tk Tunnel</display>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This app can be used to launch a Tcl/Tk 8.5 server using a standalone Tcl shell, and pass commands from Vivado to the Tk shell.</summary>
+      <summary>The Tk_tunnel app can be used to launch a Tcl/Tk 8.5 server outside of Vivado using a standalone Tcl shell, and pass commands from Vivado console to the Tk shell. One of the benefits of this app is to provide a bridge for simple Tk-based GUI.</summary>
       <visible>false</visible>
       <procs>
         <proc>
@@ -444,10 +450,11 @@
       <revision>1.0</revision>
       <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
       <name>ultrafast</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <display>UltraFast Design Methodology</display>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>Scripts for the UltraFast Design Methodology Checklist</summary>
+      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 ‘UltraFast Design Methodology Guide for the Vivado Design Suite’ for further information.</summary>
       <procs>
         <proc>
           <name>check_bd_axi_interface</name>
@@ -479,7 +486,7 @@
       <revision>1.0</revision>
       <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>vcs_mx</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>Simulation script to verify design using VCS_MX Simulator</summary>
@@ -489,7 +496,7 @@
       <revision>1.0</revision>
       <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
       <name>xsim</name>
-      <pkg_require>Vivado 2013.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>Simulation script to verify design using Vivado Simulator</summary>
