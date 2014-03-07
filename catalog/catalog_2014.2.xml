@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <release>2014.1</release>
+  <release>2014.2</release>
   <apps>
     <app>
       <revision>1.0</revision>
       <revision_history>Modified README; package requirement is Vivado 2013.1; updated commit id</revision_history>
-      <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>designutils</name>
       <display>Design Utilities</display>
       <pkg_require>Vivado 2014.1</pkg_require>
@@ -149,7 +149,7 @@
     </app>
     <app>
       <revision>1.2</revision>
-      <commit_id>bd3e4d0ac0e424463341c39766b44d4e25ba36d8</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>diff</name>
       <display>Design Comparison</display>
       <company>xilinx</company>
@@ -193,7 +193,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -203,7 +203,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>a0ac10b308cf0d4edeff8d4e4da88663ab44e426</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>junit</name>
       <display>JUnit Utilities</display>
       <company>xilinx</company>
@@ -330,7 +330,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -339,7 +339,7 @@
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>4f9d5e2b6ee3c389e8397c75d22749ab7ea787ee</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>myapp</name>
       <company>mycompany</company>
       <company_display>Xilinx, Inc.</company_display>
@@ -358,7 +358,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>b1c657f7393f53f6e98579a15d26861ad4c3694e</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>projutils</name>
       <display>Project Utilities</display>
       <pkg_require>Vivado 2014.1</pkg_require>
@@ -378,7 +378,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>bd3e4d0ac0e424463341c39766b44d4e25ba36d8</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>tk_tunnel</name>
       <display>Tk Tunnel</display>
       <company>xilinx</company>
@@ -448,13 +448,13 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>cbcbaca60d3c756a8a44fd636ced87e17bb5e7b8</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>ultrafast</name>
       <display>UltraFast Design Methodology</display>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 'UltraFast Design Methodology Guide for the Vivado Design Suite' for further information.</summary>
+      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 ‘UltraFast Design Methodology Guide for the Vivado Design Suite’ for further information.</summary>
       <procs>
         <proc>
           <name>check_bd_axi_interface</name>
@@ -484,7 +484,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>vcs_mx</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -494,7 +494,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>3bc0e1daa92d437047433ee007f0a68c8ff4960e</commit_id>
+      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
