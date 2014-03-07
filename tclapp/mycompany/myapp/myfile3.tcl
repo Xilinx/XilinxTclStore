@@ -8,6 +8,7 @@ namespace eval ::tclapp::mycompany::myapp {
 proc ::tclapp::mycompany::myapp::myproc3 {args} {
 
     # Summary : A one line summary of what this proc does
+    # 3_7_2014
     
     # Argument Usage:
     # [-cell <arg> = current_instance]: Cell to generate template on. If not specified, runs on current_instance
