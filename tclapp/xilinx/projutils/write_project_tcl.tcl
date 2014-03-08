@@ -283,12 +283,18 @@ proc wr_create_project { proj_dir name } {
   variable a_global_vars
   variable l_script_data
 
-  lappend l_script_data "# Set the directory path for the original project from where this script was exported"
-  lappend l_script_data "set orig_proj_dir \"$proj_dir\""
-  lappend l_script_data ""
-
   lappend l_script_data "# Set the reference directory for source file relative paths (by default the value is script directory path)"
   lappend l_script_data "set origin_dir \"$a_global_vars(s_relative_to)\""
+  lappend l_script_data ""
+
+  lappend l_script_data "# Set the directory path for the original project from where this script was exported"
+  if { $a_global_vars(b_absolute_path) } {
+    lappend l_script_data "set orig_proj_dir \"$proj_dir\""
+  } else {
+    set rel_file_path "[get_relative_file_path $proj_dir $a_global_vars(s_path_to_script_dir)]"
+    set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
+    lappend l_script_data "set orig_proj_dir \"$path\""
+  }
   lappend l_script_data ""
 
   # create project
@@ -929,7 +935,9 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         }
 
         # add to the import collection
-        lappend import_coln $file
+        set file_no_quotes [string trim $file "\""]
+        set org_file_path "\$origin_dir/[get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]"
+        lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
         lappend l_local_file_list $file
       } else {
         lappend l_remote_file_list $file

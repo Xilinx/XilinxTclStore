@@ -400,7 +400,7 @@ proc usf_ies_write_elaborate_script {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list 0 "-loadvpi \"$simulator_lib:xilinx_register_systf\""]
     } else {
-      send_msg_id Vivado-VCS_MX-015 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id Vivado-IES-015 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
     }
   }
 

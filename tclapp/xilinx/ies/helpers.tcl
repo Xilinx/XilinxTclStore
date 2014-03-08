@@ -1184,7 +1184,7 @@ proc usf_get_simulator_lib_for_bfm {} {
       }
     }
   } else {
-    send_msg_id Vivado-VCS_MX-066 ERROR "Environment variable 'XILINX' is not set!"
+    send_msg_id Vivado-IES-066 ERROR "Environment variable 'XILINX' is not set!"
   }
   return $simulator_lib
 }

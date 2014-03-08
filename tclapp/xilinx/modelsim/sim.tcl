@@ -496,7 +496,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      send_msg_id Vivado-VCS_MX-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id Vivado-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
     }
   }
 

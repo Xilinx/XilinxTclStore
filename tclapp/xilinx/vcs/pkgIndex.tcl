@@ -8,5 +8,5 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::vcs_mx 1.0 [list source [file join $dir vcs_mx.tcl]]
-package ifneeded ::tclapp::xilinx::vcs_mx::helpers 1.0 [list source [file join $dir helpers.tcl]]
+package ifneeded ::tclapp::xilinx::vcs 1.0 [list source [file join $dir vcs.tcl]]
+package ifneeded ::tclapp::xilinx::vcs::helpers 1.0 [list source [file join $dir helpers.tcl]]
