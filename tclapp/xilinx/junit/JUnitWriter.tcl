@@ -54,14 +54,13 @@ proc format_junit { _dataGraph } {
   # 
    
   # Argument Usage: 
-  #:     format_junit _dataGraph
-   
-  # Parameters:
   #     _dataGraph     - The Data Graph to convert to a JUnit Graph
    
   # Return Value:
   #     jUnitGraph     - Returns the JUnit Graph
-   
+    
+  # Categories: xilinxtclstore, junit
+ 
   # Example:
   #     
   #:     # converts graph to junit format and then dumps juni graph to xml
@@ -150,15 +149,14 @@ proc graph_to_xml { _graph { _rootnodes {} } } {
   # Converts a struct::graph object directly to xml
   
   # Argument Usage: 
-  #:    graph_to_xml _graph ?_rootnodes?
-   
-  # Parameters:
   #     _graph         - The output content to go into the file
   #     _rootnodes     - The nodes to start with, else all root nodes are used
    
   # Return Value:
   #     xml            - XML from graph
-   
+    
+  # Categories: xilinxtclstore, junit
+ 
   # Example:
   #     
   #:     # converts graph to junit format and then dumps juni graph to xml
@@ -186,15 +184,14 @@ proc write { _outputContent { _filename "test.xml" } } {
   # Write out the output content to a file
   
   # Argument Usage: 
-  #:     write _outputContent ?_filename?
-   
-  # Parameters:
   #     _outputContent - The output content to go into the file
   #     _filename      - Write the output contents to filename
    
   # Return Value:
   #     void           - Unusued
-   
+    
+  # Categories: xilinxtclstore, junit
+ 
   # Example:
   #     
   #:     # creates and adds node
@@ -212,9 +209,6 @@ proc add_node { _graph _name { _attrs {} } { _content {} } { _parent {} }} {
   # Adds a node to a graph
   
   # Argument Usage: 
-  #:     add_node _graph _name ?_attrs? ?_content? ?_parent?
-   
-  # Parameters:
   #     _graph         - Graph is used to store the node
   #     _name          - Node name 
   #     _attrs         - Node attrs (key value pair list)
@@ -223,7 +217,9 @@ proc add_node { _graph _name { _attrs {} } { _content {} } { _parent {} }} {
    
   # Return Value:
   #     node           - The newly created node
-   
+    
+  # Categories: xilinxtclstore, junit
+ 
   # Example:
   #     
   #:     # creates and adds node
@@ -257,15 +253,14 @@ proc node_to_xml { _graph _node } {
   #     <tagname attr1="val1" .../>
   
   # Argument Usage: 
-  #:     node_to_xml _graph _node
-   
-  # Parameters:
   #     _graph         - Graph is used to retrieve node
   #     _node          - Node is converted to XML
    
   # Return Value:
   #     xml            - The XML generated for the provided node
-   
+    
+  # Categories: xilinxtclstore, junit
+ 
   # Example:
   #     
   #:     # converts the graph node into XML
@@ -302,14 +297,13 @@ proc attrs_to_string { _attrs } {
   # Converts a list of key value pairs into a string of attributes
   
   # Argument Usage: 
-  #:     attrs_to_string _attrs
-   
-  # Parameters:
   #     _attrs         - A list of key value pairs
    
   # Return Value:
   #     string         - A string of the key value pairs
-   
+    
+  # Categories: xilinxtclstore, junit
+ 
   # Example:
   #     
   #:     # converts the graph node into XML
@@ -337,14 +331,13 @@ proc xml_escape { _string } {
   #   > = &gt;
   
   # Argument Usage: 
-  #:     is_root_node _graph _node
-   
-  # Parameters:
   #     _string        - String to escape
    
   # Return Value:
   #     output         - The escaped version of the input string
-   
+    
+  # Categories: xilinxtclstore, junit
+ 
   # Example:
   #     
   #:     # returns the root nodes of graph
@@ -368,15 +361,14 @@ proc is_root_node { _graph _node } {
   # Filter used to return the root node
   
   # Argument Usage: 
-  #:     is_root_node _graph _node
-   
-  # Parameters:
   #     _graph         - Graph object is passed in by the filter
   #     _node          - Node object is passed in by the filter 
    
   # Return Value:
   #     returned       - Return true if the node has zero ins (must be root)
-   
+    
+  # Categories: xilinxtclstore, junit
+ 
   # Example:
   #     
   #:     # returns the root nodes of graph

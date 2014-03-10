@@ -126,14 +126,13 @@ proc run_step _args {
   #   validate_drcs 
 
   # Argument Usage: 
-  #:     run_step _args
-
-  # Parameters:
   #     _args          - Run step command for the run step
 
   # Return Value:
   #     returned       - This is the return value from the run step command
   
+  # Categories: xilinxtclstore, junit
+
   # Example:
   #     
   #:     # run synth_design
@@ -159,13 +158,12 @@ proc run_command _args {
   # Used to wrap any command while logging success, errors, and runtime
   
   # Argument Usage: 
-  #:     run_command _args
-
-  # Parameters:
   #     _args          - Command to run 
    
   # Return Value:
   #     returned       - Return value from the command
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -200,13 +198,12 @@ proc run_silent _args {
   # A JUnitXml entry is not created on success!!
   
   # Argument Usage: 
-  #:     run_silent _args
-   
-  # Parameters:
   #     _args          - Command to run 
    
   # Return Value:
   #     returned       - This is the return value from the command
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -246,14 +243,13 @@ proc process_runs { _runs { _group "ProcessRuns" } } {
   #   process_synth_design
    
   # Argument Usage: 
-  #:     process_runs _runs ?_group?
-   
-  # Parameters:
   #     _runs          - List of run objects to process
   #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -286,14 +282,13 @@ proc process_impl_design { _design { _group "ProcessImplDesign" } } {
   #   validate_messages
    
   # Argument Usage: 
-  #:     process_impl_design _design ?_group?
-   
-  # Parameters:
   #     _design        - Design objects to process
   #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -319,14 +314,13 @@ proc process_synth_design { _design { _group "ProcessSynthDesign" } } {
   #   validate_messages
    
   # Argument Usage: 
-  #:     process_synth_design _design ?_group?
-   
-  # Parameters:
   #     _design        - Design object to process
   #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -353,13 +347,12 @@ proc validate_messages { { _group "ValidateMessages" } } {
   # If Errors are found, then the process is stopped
    
   # Argument Usage: 
-  #:     validate_messages ?_group?
-   
-  # Parameters:
   #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -407,13 +400,12 @@ proc validate_drcs { { _group "ValidateDRCs" } } {
   # Checks if any DRCs are found
    
   # Argument Usage: 
-  #:     validate_drcs ?_group?
-   
-  # Parameters:
   #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -440,13 +432,12 @@ proc validate_logic { { _group "ValidateLogic" } } {
   # Checks for driverless nets and latches
    
   # Argument Usage: 
-  #:     validate_logic ?_group?
-   
-  # Parameters:
   #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -492,13 +483,12 @@ proc validate_routing { { _group "ValidateRouting" } } {
   # Checks for unrouted nets
    
   # Argument Usage: 
-  #:     validate_routing ?_group?
-   
-  # Parameters:
   #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -525,13 +515,12 @@ proc validate_timing { { _group "ValidateTiming" } } {
   # Checks for unrouted nets
    
   # Argument Usage: 
-  #:     validate_timing ?_group?
-   
-  # Parameters:
   #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -562,14 +551,13 @@ proc validate_run_properties { _run { _group "ValidateRunProperties" } } {
   # Validates the run is at 100% progress, else logs error and stops process
    
   # Argument Usage: 
-  #:     validate_run_properties _run ?_group?
-   
-  # Parameters:
   #     _run           - Run object to use for validation
   #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -608,13 +596,12 @@ proc set_report { _file } {
   # Configures the JUnit API output location
    
   # Argument Usage: 
-  #:     set_report _file
-   
-  # Parameters:
   #     _file          - Report file name
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -631,13 +618,12 @@ proc get_report {} {
   # Returns the currently set JUnit API output location 
    
   # Argument Usage: 
-  #:     get_report
-   
-  # Parameters:
   #     void           - Unused
    
   # Return Value:
-  #     void           - Unused
+  #     report         - The report file name that is currently set
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -652,16 +638,15 @@ proc get_report {} {
 
 proc write_results {} {
   # Summary:
-  # Write the in-memory results to dist (uses the set_report/get_report location)
+  # Write the in-memory results to disk (uses the set_report/get_report location)
    
   # Argument Usage: 
-  #:     write_results
-   
-  # Parameters:
   #     void           - Unused
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -686,13 +671,12 @@ proc get_results {} {
   # and retrieve data from the graph object
    
   # Argument Usage: 
-  #:     get_results
-   
-  # Parameters:
   #     void           - Unused
    
   # Return Value:
-  #     void           - Unused
+  #     results        - The in-memory results as the name of a struct::graph
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -710,13 +694,12 @@ proc reset_results {} {
   # Resets the in-memory results, if it exists
    
   # Argument Usage: 
-  #:     reset_results
-   
-  # Parameters:
   #     void           - Unused
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -737,13 +720,12 @@ proc set_stdout { _content } {
   # Adds a stdout entry to the global testsuite and sets it's content
    
   # Argument Usage: 
-  #:     set_stdout _content
-   
-  # Parameters:
   #     _content       - This is the content that stdout will have
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -762,13 +744,12 @@ proc set_stderr { _content } {
   # Adds a stderr entry to the global testsuite and sets it's content
    
   # Argument Usage: 
-  #:     set_stderr _content
-   
-  # Parameters:
   #     _content       - This is the content that stderr will have
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -782,23 +763,11 @@ proc set_stderr { _content } {
 }
 
 
-# Deprecated: proc profile: instead use run_command, run_step, or run_silent
-#proc profile _cmd {
-#  set starttime [ clock milliseconds ] 
-#  uplevel "eval { $_cmd }"
-#  set endtime [ clock milliseconds ]
-#  return [ expr ( $endtime - $starttime ) / 1000.0 ]
-#}
-
-
 proc assert_same { _expected _actual _msg { _name "Same" } { _group "Assertions" } } {
   # Summary:
   # Asserts that two values are the same, else a failure is logged
    
   # Argument Usage: 
-  #:     assert_same _expected _actual _msg ?_name? ?_group?
-   
-  # Parameters:
   #     _expected      - The expected return value
   #     _actual        - The received (actual) return value
   #     _msg           - Message to log on failure
@@ -807,6 +776,8 @@ proc assert_same { _expected _actual _msg { _name "Same" } { _group "Assertions"
    
   # Return Value:
   #     true           - Returns true else an error is thrown
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -846,9 +817,6 @@ proc assert_exists { _files _msg { _name "FileExists" } { _group "Assertions" } 
   # Asserts that all file exist
    
   # Argument Usage: 
-  #:     assert_exists _files _msg ?_name? ?_group?
-   
-  # Parameters:
   #     _files         - List of files to check for existance
   #     _msg           - Message to log on failure
   #     _name          - Name of the test (maps to JUnit's 'name')
@@ -856,6 +824,8 @@ proc assert_exists { _files _msg { _name "FileExists" } { _group "Assertions" } 
    
   # Return Value:
   #     true           - Returns true else an error is thrown
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -904,13 +874,12 @@ proc new_results { _name } {
   # Create a new in-memory results object
    
   # Argument Usage: 
-  #:     new_results _name
-   
-  # Parameters:
   #     _name          - Name of the results object
    
   # Return Value:
   #     _name          - Returns the name of the new object 
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -928,13 +897,12 @@ proc new_testsuites { _results } {
   # Create a new node 'testsuites' in the provided results object
    
   # Argument Usage: 
-  #:     new_testsuites _results
-   
-  # Parameters:
   #     _results       - The results object to add the testsuites node to
    
   # Return Value:
   #     node           - Returns the new testsuites node 
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -955,9 +923,6 @@ proc new_testsuite { _results _parent _name _starttime _hostname } {
   # Added under the provided parent node (testsuites)
    
   # Argument Usage: 
-  #:     new_testsuite _results _parent _name _starttime _hostname
-   
-  # Parameters:
   #     _results       - The results object to add the testsuites node to
   #     _parent        - The testsuites node to add the testsuite node under
   #     _name          - The name of the testsuite node
@@ -966,6 +931,8 @@ proc new_testsuite { _results _parent _name _starttime _hostname } {
    
   # Return Value:
   #     node           - Returns the new testsuite node 
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -996,9 +963,6 @@ proc new_testcase { _results _parent _name _group { _walltime 0 } } {
   # Added under the provided parent node (testsuite)
    
   # Argument Usage: 
-  #:     new_testcase _results _parent _name _group ?_walltime?
-   
-  # Parameters:
   #     _results       - The results object to add the testsuites node to
   #     _parent        - The testsuite node to add the testcase node under
   #     _name          - The name of the testcase node
@@ -1007,6 +971,8 @@ proc new_testcase { _results _parent _name _group { _walltime 0 } } {
    
   # Return Value:
   #     node           - Returns the new testcase node 
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -1045,15 +1011,14 @@ proc new_stdout { _results _parent _content } {
   # Added under the provided parent node (testsuite)
    
   # Argument Usage: 
-  #:     new_stdout _results _parent _content
-   
-  # Parameters:
   #     _results       - The results object to add the testsuites node to
   #     _parent        - The testsuite node to add the testcase node under
   #     _content       - The content of stdout
    
   # Return Value:
   #     node           - Returns the new stdout node 
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -1075,15 +1040,14 @@ proc new_stderr { _results _parent _content } {
   # Added under the provided parent node (testsuite)
    
   # Argument Usage: 
-  #:     new_stderr _results _parent _content
-   
-  # Parameters:
   #     _results       - The results object to add the testsuites node to
   #     _parent        - The testsuite node to add the stderr node under
   #     _content       - The content of stderr
    
   # Return Value:
   #     node           - Returns the new stderr node 
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -1111,9 +1075,6 @@ proc new_failure { _results _parent _content _message } {
   # Added under the provided parent node (testcase)
    
   # Argument Usage: 
-  #:     new_failure _results _parent _content _message
-   
-  # Parameters:
   #     _results       - The results object to add the failure node to
   #     _parent        - The testcase node to add the failure node under
   #     _content       - The content of the failure
@@ -1121,6 +1082,8 @@ proc new_failure { _results _parent _content _message } {
    
   # Return Value:
   #     node           - Returns the new failure node 
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -1158,9 +1121,6 @@ proc new_error { _results _parent _content _message } {
   # Added under the provided parent node (testcase)
    
   # Argument Usage: 
-  #:     new_error _results _parent _content _message
-   
-  # Parameters:
   #     _results       - The results object to add the error node to
   #     _parent        - The testcase node to add the error node under
   #     _content       - The content of the error
@@ -1168,6 +1128,8 @@ proc new_error { _results _parent _content _message } {
    
   # Return Value:
   #     node           - Returns the new error node 
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -1210,13 +1172,12 @@ proc init {} {
   # Initialize the new global results and global testsuite
    
   # Argument Usage: 
-  #:     init
-   
-  # Parameters:
   #     void           - Unused
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -1239,14 +1200,13 @@ proc validate_objects { _objects _expected } {
   # Validates the object types to make sure they are of the expected type
    
   # Argument Usage: 
-  #:     validate_objects _objects _expected
-   
-  # Parameters:
   #     _objects       - Objects to verify
   #     _expected      - Object type to validate
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
@@ -1263,14 +1223,13 @@ proc validate_object { _object _expected } {
   # Validates the object type to make sure it is of the expected type
    
   # Argument Usage: 
-  #:     validate_object _object _expected
-   
-  # Parameters:
   #     _object        - Object to verify
   #     _expected      - Object type to validate
    
   # Return Value:
   #     void           - Unused
+  
+  # Categories: xilinxtclstore, junit
    
   # Example:
   #     
