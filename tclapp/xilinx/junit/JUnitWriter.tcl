@@ -38,37 +38,38 @@ namespace export graph_to_xml
 namespace export write
 
 
+# proc: format_junit
+# Summary:
+# Converts the results of the in-memory data object to JUnit
+#
+# !! this section of code can be confusing !!
+#
+# This conversion process is in place to handle conversion to different output types.
+# This is a JUnit package, and thus it would be more ideal to make the data graph a 
+# 1:1 mapping with the junit xml graph.
+#
+# Conceptually: The JUnit package works with a 'data graph'/results object in memory.
+# Before we dump to disk, this method is called to build a 'junit graph' that will 
+# map information from the 'data graph' to the best matching 'junit graph' node/field.
+# 
+# 
+# Argument Usage: 
+#:     format_junit _dataGraph
+# 
+# Parameters:
+#     _dataGraph     - The Data Graph to convert to a JUnit Graph
+# 
+# Return Value:
+#     jUnitGraph     - Returns the JUnit Graph
+# 
+# Example:
+#     
+#:     # converts graph to junit format and then dumps juni graph to xml
+#:     ::struct::graph myGraph
+#:     ...
+#:     write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
+#
 proc format_junit { _dataGraph } {
-  # Summary:
-  # Converts the results of the in-memory data object to JUnit
-  #
-  # !! this section of code can be confusing !!
-  #
-  # This conversion process is in place to handle conversion to different output types.
-  # This is a JUnit package, and thus it would be more ideal to make the data graph a 
-  # 1:1 mapping with the junit xml graph.
-  #
-  # Conceptually: The JUnit package works with a 'data graph'/results object in memory.
-  # Before we dump to disk, this method is called to build a 'junit graph' that will 
-  # map information from the 'data graph' to the best matching 'junit graph' node/field.
-  # 
-   
-  # Argument Usage: 
-  #:     format_junit _dataGraph
-   
-  # Parameters:
-  #     _dataGraph     - The Data Graph to convert to a JUnit Graph
-   
-  # Return Value:
-  #     jUnitGraph     - Returns the JUnit Graph
-   
-  # Example:
-  #     
-  #:     # converts graph to junit format and then dumps juni graph to xml
-  #:     ::struct::graph myGraph
-  #:     ...
-  #:     write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
-  #
 
   # reset the jUnitGraph if it exists
   set jUnitGraph ::tclapp::xilinx::junit::junit_graph
@@ -145,28 +146,28 @@ proc format_junit { _dataGraph } {
 }
 
 
+# proc: graph_to_xml
+# Summary:
+# 
+#
+# Argument Usage: 
+#:    graph_to_xml _graph ?_rootnodes?
+# 
+# Parameters:
+#     _graph         - The output content to go into the file
+#     _rootnodes     - Write the output contents to filename
+# 
+# Return Value:
+#     xml            - XML from graph
+# 
+# Example:
+#     
+#:     # converts graph to junit format and then dumps juni graph to xml
+#:     ::struct::graph myGraph
+#:     ...
+#:     write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
+#
 proc graph_to_xml { _graph { _rootnodes {} } } {
-  # Summary:
-  # Converts a struct::graph object directly to xml
-  
-  # Argument Usage: 
-  #:    graph_to_xml _graph ?_rootnodes?
-   
-  # Parameters:
-  #     _graph         - The output content to go into the file
-  #     _rootnodes     - The nodes to start with, else all root nodes are used
-   
-  # Return Value:
-  #     xml            - XML from graph
-   
-  # Example:
-  #     
-  #:     # converts graph to junit format and then dumps juni graph to xml
-  #:     ::struct::graph myGraph
-  #:     ...
-  #:     write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
-  #
-
   set delimiter "\n"
   set xml {}
   if { $_rootnodes == {} } {
@@ -181,55 +182,55 @@ proc graph_to_xml { _graph { _rootnodes {} } } {
 }
 
 
+# proc: write
+# Summary:
+# Write out the output content to a file
+#
+# Argument Usage: 
+#:     write _outputContent ?_filename?
+# 
+# Parameters:
+#     _outputContent - The output content to go into the file
+#     _filename      - Write the output contents to filename
+# 
+# Return Value:
+#     void           - Unusued
+# 
+# Example:
+#     
+#:     # creates and adds node
+#:     write $content "report.xml"
+#
 proc write { _outputContent { _filename "test.xml" } } {
-  # Summary:
-  # Write out the output content to a file
-  
-  # Argument Usage: 
-  #:     write _outputContent ?_filename?
-   
-  # Parameters:
-  #     _outputContent - The output content to go into the file
-  #     _filename      - Write the output contents to filename
-   
-  # Return Value:
-  #     void           - Unusued
-   
-  # Example:
-  #     
-  #:     # creates and adds node
-  #:     write $content "report.xml"
-  #
-
   set fh [ open $_filename "w+" ]
   puts $fh $_outputContent
   close $fh
 }
 
 
+# proc: add_node
+# Summary:
+# Adds a node to a graph
+#
+# Argument Usage: 
+#:     add_node _graph _name ?_attrs? ?_content? ?_parent?
+# 
+# Parameters:
+#     _graph         - Graph is used to store the node
+#     _name          - Node name 
+#     _attrs         - Node attrs (key value pair list)
+#     _content       - Content of the node, {} means empty
+#     _parent        - The parent node to add this node to
+# 
+# Return Value:
+#     node           - The newly created node
+# 
+# Example:
+#     
+#:     # creates and adds node
+#:     set node [ add_node graph "testsuite" {{name "Synthesis"}} {} $testsuites
+#
 proc add_node { _graph _name { _attrs {} } { _content {} } { _parent {} }} {
-  # Summary:
-  # Adds a node to a graph
-  
-  # Argument Usage: 
-  #:     add_node _graph _name ?_attrs? ?_content? ?_parent?
-   
-  # Parameters:
-  #     _graph         - Graph is used to store the node
-  #     _name          - Node name 
-  #     _attrs         - Node attrs (key value pair list)
-  #     _content       - Content of the node, {} means empty
-  #     _parent        - The parent node to add this node to
-   
-  # Return Value:
-  #     node           - The newly created node
-   
-  # Example:
-  #     
-  #:     # creates and adds node
-  #:     set node [ add_node graph "testsuite" {{name "Synthesis"}} {} $testsuites
-  #
-
   set node [ $_graph node insert ]
   $_graph node set $node tagname $_name
   if { [ llength $_attrs ] > 0 } {
@@ -245,33 +246,33 @@ proc add_node { _graph _name { _attrs {} } { _content {} } { _parent {} }} {
 }
 
 
+# proc: node_to_xml
+# Summary:
+# Converts a regular graph node into XML
+# The node's keys are used to populate XML data, keys are:
+#   tagname = tag name <tagname...>
+#   attrs = attributes on node <tagname attr1="val1" ...>
+#   content = content of node
+#     <tagname attr1="val1" ...>content</tagname>
+#       else
+#     <tagname attr1="val1" .../>
+#
+# Argument Usage: 
+#:     node_to_xml _graph _node
+# 
+# Parameters:
+#     _graph         - Graph is used to retrieve node
+#     _node          - Node is converted to XML
+# 
+# Return Value:
+#     xml            - The XML generated for the provided node
+# 
+# Example:
+#     
+#:     # converts the graph node into XML
+#:     set xml [ node_to_xml graph $node ]
+#
 proc node_to_xml { _graph _node } {
-  # Summary:
-  # Converts a regular graph node into XML
-  # The node's keys are used to populate XML data, keys are:
-  #   tagname = tag name <tagname...>
-  #   attrs = attributes on node <tagname attr1="val1" ...>
-  #   content = content of node
-  #     <tagname attr1="val1" ...>content</tagname>
-  #       else
-  #     <tagname attr1="val1" .../>
-  
-  # Argument Usage: 
-  #:     node_to_xml _graph _node
-   
-  # Parameters:
-  #     _graph         - Graph is used to retrieve node
-  #     _node          - Node is converted to XML
-   
-  # Return Value:
-  #     xml            - The XML generated for the provided node
-   
-  # Example:
-  #     
-  #:     # converts the graph node into XML
-  #:     set xml [ node_to_xml graph $node ]
-  #
-
   set tagname [ $_graph node get $_node tagname ]
   set attrsStr {}
   if { [ $_graph node keyexists $_node attrs ] } {
@@ -297,28 +298,28 @@ proc node_to_xml { _graph _node } {
 }
 
 
+# proc: attrs_to_string
+# Summary:
+# Converts a list of key value pairs into a string of attributes
+#
+# Argument Usage: 
+#:     attrs_to_string _attrs
+# 
+# Parameters:
+#     _attrs         - A list of key value pairs
+# 
+# Return Value:
+#     string         - A string of the key value pairs
+# 
+# Example:
+#     
+#:     # converts the graph node into XML
+#:     set attrs { {name "test"} {enabled 0} }
+#:     set attrString [ node_to_xml graph $node ]
+#:     puts $attrString
+#:     # name="test" enabled="0"
+#
 proc attrs_to_string { _attrs } {
-  # Summary:
-  # Converts a list of key value pairs into a string of attributes
-  
-  # Argument Usage: 
-  #:     attrs_to_string _attrs
-   
-  # Parameters:
-  #     _attrs         - A list of key value pairs
-   
-  # Return Value:
-  #     string         - A string of the key value pairs
-   
-  # Example:
-  #     
-  #:     # converts the graph node into XML
-  #:     set attrs { {name "test"} {enabled 0} }
-  #:     set attrString [ node_to_xml graph $node ]
-  #:     puts $attrString
-  #:     # name="test" enabled="0"
-  #
-
   set string ""
   foreach attr $_attrs {
     lappend string " [ xml_escape [ lindex $attr 0 ] ]=\"[ xml_escape [ lindex $attr 1 ] ]\""
@@ -327,32 +328,32 @@ proc attrs_to_string { _attrs } {
 }
 
 
+# proc: xml_escape
+# Summary:
+# Escapes all XML characters
+#   & = &amp;
+#   " = &quot;
+#   ' = &apos;
+#   < = &lt;
+#   > = &gt;
+#
+# Argument Usage: 
+#:     is_root_node _graph _node
+# 
+# Parameters:
+#     _string        - String to escape
+# 
+# Return Value:
+#     output         - The escaped version of the input string
+# 
+# Example:
+#     
+#:     # returns the root nodes of graph
+#:     set escaped [ xml_escape {"The beginning & the <empty>"} ]
+#:     puts $escaped
+#:     # &quot;The beginning &amp; the &lt;empty&gt;&quot;
+#
 proc xml_escape { _string } {
-  # Summary:
-  # Escapes all XML characters
-  #   & = &amp;
-  #   " = &quot;
-  #   ' = &apos;
-  #   < = &lt;
-  #   > = &gt;
-  
-  # Argument Usage: 
-  #:     is_root_node _graph _node
-   
-  # Parameters:
-  #     _string        - String to escape
-   
-  # Return Value:
-  #     output         - The escaped version of the input string
-   
-  # Example:
-  #     
-  #:     # returns the root nodes of graph
-  #:     set escaped [ xml_escape {"The beginning & the <empty>"} ]
-  #:     puts $escaped
-  #:     # &quot;The beginning &amp; the &lt;empty&gt;&quot;
-  #
-
   set output $_string
   set output [ string map {& &amp;} $output ]
   set output [ string map {\" &quot;} $output ]
@@ -363,26 +364,26 @@ proc xml_escape { _string } {
 }
 
 
+# proc: is_root_node
+# Summary:
+# Filter used to return the root node
+#
+# Argument Usage: 
+#:     is_root_node _graph _node
+# 
+# Parameters:
+#     _graph         - Graph object is passed in by the filter
+#     _node          - Node object is passed in by the filter 
+# 
+# Return Value:
+#     returned       - Return true if the node has zero ins (must be root)
+# 
+# Example:
+#     
+#:     # returns the root nodes of graph
+#:     set data_root [ graph nodes -filter ::tclapp::xilinx::junit::is_root_node ]
+#
 proc is_root_node { _graph _node } {
-  # Summary:
-  # Filter used to return the root node
-  
-  # Argument Usage: 
-  #:     is_root_node _graph _node
-   
-  # Parameters:
-  #     _graph         - Graph object is passed in by the filter
-  #     _node          - Node object is passed in by the filter 
-   
-  # Return Value:
-  #     returned       - Return true if the node has zero ins (must be root)
-   
-  # Example:
-  #     
-  #:     # returns the root nodes of graph
-  #:     set data_root [ graph nodes -filter ::tclapp::xilinx::junit::is_root_node ]
-  #
-
   return [ expr [ $_graph node degree -in $_node ] == 0 ]
 }
 
