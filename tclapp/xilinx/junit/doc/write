@@ -1,0 +1,6 @@
+
+Example:
+    
+  # creates and adds node
+  write $content "report.xml"
+

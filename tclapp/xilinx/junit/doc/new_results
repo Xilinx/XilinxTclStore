@@ -1,0 +1,6 @@
+
+Example:
+
+  # creates a new in-memory results object
+  set myResults [ new_results "uniqueResultsName" ]
+

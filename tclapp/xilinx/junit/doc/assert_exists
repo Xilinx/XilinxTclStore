@@ -1,0 +1,17 @@
+
+Example:
+    
+  set name "SourceExists"
+  set group "ProjectSetup"
+  set files {"top.v" "sub.v"}
+  set msg "All source files were not found"
+   
+  # checks that all source files exist, else log an error and stop the flow
+  assert_exists $files $msg $name $group
+  
+  # checks that all source files exist, else log an error and then let the flow continue
+  if { [ catch { assert_exists $files $msg $name $group } error ] } {
+    puts "ERROR: $error"
+    puts "Process will now continue..."
+  }
+

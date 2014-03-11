@@ -1,0 +1,14 @@
+
+Example:
+    
+  # creates a new in-memory results object
+  set myResults [ new_results "uniqueResultsName" ]
+
+  # creates a new testsuites node on the results object
+  set RootNode [ new_testsuites $myResults ]
+
+  # creates a new testsuite node under the testsuites node
+  set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
+  set hostname [ info hostname ]
+  set TSNode [ new_testsuite $myResults $RootNode "SynthesisTests" $time $hostname ]
+

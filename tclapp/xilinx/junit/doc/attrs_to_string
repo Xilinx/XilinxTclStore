@@ -1,0 +1,9 @@
+
+Example:
+    
+  # converts the graph node into XML
+  set attrs { {name "test"} {enabled 0} }
+  set attrString [ node_to_xml graph $node ]
+  puts $attrString
+  # name="test" enabled="0"
+

@@ -1,0 +1,6 @@
+
+Example:
+    
+  # sets stdout node for the global testsuite
+  set_stdout "All processes finished, and returned: 0"
+

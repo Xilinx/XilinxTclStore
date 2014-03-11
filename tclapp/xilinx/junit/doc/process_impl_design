@@ -1,0 +1,6 @@
+
+Example:
+    
+  # process the current design
+  process_impl_design [ current_design ] "PostRoutedDesignProcessing"
+

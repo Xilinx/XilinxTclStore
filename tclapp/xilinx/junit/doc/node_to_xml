@@ -1,0 +1,6 @@
+
+Example:
+    
+  # converts the graph node into XML
+  set xml [ node_to_xml graph $node ]
+

@@ -1,0 +1,6 @@
+
+Example:
+    
+  # set up and initialize the global variables
+  validate_objects [ get_runs ] "run"
+

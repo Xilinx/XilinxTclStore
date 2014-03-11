@@ -1,0 +1,6 @@
+
+Example:
+    
+  # sets stderr node for the global testsuite
+  set_stderr "All processes finished, '2' errors detected"
+

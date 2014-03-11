@@ -1,0 +1,9 @@
+
+Example:
+
+  # run synth_design
+  run_step {synth_design -top top -part xc7vx485tffg1157-1}
+
+  # run opt_design
+  run_step {opt_design}
+

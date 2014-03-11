@@ -1,0 +1,18 @@
+
+Example:
+    
+  set name "ProgressTest"
+  set group "SynthesisTests"
+  set expected "100%"
+  set progress [ get_property PROGRESS [ get_runs synth_1 ] ]
+  set msg "synth_1 is not at 100%"
+
+  # checks that synth_1 progress is at 100% else the error is logged and the flow is stopped
+  assert_same $expected $progress $msg $name $group
+
+  # checks that synth_1 progress is at 100% else an error is logged and the flow continues
+  if { [ catch { assert_same $expected $progress $msg $name $group } error ] } {
+    puts "ERROR: $error"
+    pits "Process will now continue..."
+  }
+
