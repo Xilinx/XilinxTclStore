@@ -179,7 +179,8 @@ proc run_command _args {
 
 proc run_silent _args {
   # Summary:
-  # Used to wrap any command while logging errors _only_. A JUnitXml entry is not created on success!
+  # Used to wrap any command while logging errors _only_. 
+  # A JUnitXml entry is not created on success!
   
   # Argument Usage: 
   #   args : Command to run 
@@ -224,7 +225,6 @@ proc process_runs { _runs { _group "ProcessRuns" } } {
   #   group : Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -257,7 +257,6 @@ proc process_impl_design { _design { _group "ProcessImplDesign" } } {
   #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -283,7 +282,6 @@ proc process_synth_design { _design { _group "ProcessSynthDesign" } } {
   #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -309,7 +307,6 @@ proc validate_messages { { _group "ValidateMessages" } } {
   #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -350,13 +347,12 @@ proc validate_messages { { _group "ValidateMessages" } } {
 
 proc validate_drcs { { _group "ValidateDRCs" } } {
   # Summary:
-  # Checks if any DRCs are found.
+  # Checks if any DRC Violations are found.
    
   # Argument Usage: 
   #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -382,7 +378,6 @@ proc validate_logic { { _group "ValidateLogic" } } {
   #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -427,7 +422,6 @@ proc validate_routing { { _group "ValidateRouting" } } {
   #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -447,13 +441,12 @@ proc validate_routing { { _group "ValidateRouting" } } {
 
 proc validate_timing { { _group "ValidateTiming" } } {
   # Summary:
-  # Checks for unrouted nets.
+  # Checks for paths with negative slack.
    
   # Argument Usage: 
   #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -476,15 +469,14 @@ proc validate_timing { { _group "ValidateTiming" } } {
 
 proc validate_run_properties { _run { _group "ValidateRunProperties" } } {
   # Summary:
-  # Logs run walltime. 
-  # Validates the run is at 100% progress, else logs error and stops process.
+  # Logs run walltime. Validates the run is at 100% 
+  # progress, else logs error and stops process.
    
   # Argument Usage: 
   #   run : Run object to use for validation.
   #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  # Unused.
   
   # Categories: xilinxtclstore, junit
    
@@ -522,7 +514,6 @@ proc set_report { _file } {
   #   file : Report file name.
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -535,7 +526,6 @@ proc get_report {} {
   # Returns the currently set JUnit API output location (see: set_report).
    
   # Argument Usage: 
-  # Unused
    
   # Return Value:
   # The currently set report file name.
@@ -549,22 +539,14 @@ proc get_report {} {
 
 proc write_results {} {
   # Summary:
-  # Write the in-memory results to disk (uses the set_report/get_report location)
+  # Write the in-memory results to disk (uses the set_report/get_report location).
    
   # Argument Usage: 
-  # Unused
    
   # Return Value:
-  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # commits the in memory test results to disk
-  #:     write_report
-  #
-
   variable report
   write [ graph_to_xml [ format_junit [ get_results ] ] ] $report  
 }
@@ -577,24 +559,17 @@ proc write_results {} {
 
 proc get_results {} {
   # Summary:
-  # Returns the in-memory results, this is a ::struct::graph name
-  # The name of a struct graph is a procedure and is used to configure
-  # and retrieve data from the graph object
+  # Returns the in-memory results, this is a ::struct::graph name.
+  # The name of a struct graph is a procedure and is used to configure 
+  # and retrieve data from the graph object.
    
   # Argument Usage: 
-  #     void           - Unused
    
   # Return Value:
-  #     results        - The in-memory results as the name of a struct::graph
+  #   The name of the struct::graph holding on to the in-memory results.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # commits the in memory test results to disk, using get_results to retrieve the data
-  #:     write [ graph_to_xml [ format_junit [ get_results ] ] ] "report.xml" 
-  #
-
   variable results 
   return $results
 }
@@ -602,22 +577,14 @@ proc get_results {} {
 
 proc reset_results {} {
   # Summary:
-  # Resets the in-memory results, if it exists
+  # Resets the in-memory results, if it exists.
    
   # Argument Usage: 
-  #     void           - Unused
    
   # Return Value:
-  #     void           - Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # resets the in-memory results
-  #:     reset_results
-  #
-
   variable results
   if { "[ info command $results ]" == "$results" } {
     $results destroy
@@ -628,22 +595,15 @@ proc reset_results {} {
 
 proc set_stdout { _content } {
   # Summary:
-  # Adds a stdout entry to the global testsuite and sets it's content
+  # Adds a stdout entry to the global testsuite and sets it's content.
    
   # Argument Usage: 
-  #     _content       - This is the content that stdout will have
+  #   content : This is the content that stdout will have.
    
   # Return Value:
-  #     void           - Unused
   
   # Categories: xilinxtclstore, junit
-   
-  # Example:
-  #     
-  #:     # sets stdout node for the global testsuite
-  #:     set_stdout "All process finished, and return: 0"
-  #
-
+  
   variable results
   variable testsuite
   new_stdout $results $testsuite $_content
@@ -652,22 +612,15 @@ proc set_stdout { _content } {
 
 proc set_stderr { _content } {
   # Summary:
-  # Adds a stderr entry to the global testsuite and sets it's content
+  # Adds a stderr entry to the global testsuite and sets it's content.
    
   # Argument Usage: 
-  #     _content       - This is the content that stderr will have
+  #   content : This is the content that stderr will have.
    
   # Return Value:
-  #     void           - Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # sets stderr node for the global testsuite
-  #:     set_stderr "All process finished, '2' errors detected"
-  #
-
   variable results
   variable testsuite
   new_stderr $results $testsuite $_content
@@ -676,38 +629,20 @@ proc set_stderr { _content } {
 
 proc assert_same { _expected _actual _msg { _name "Same" } { _group "Assertions" } } {
   # Summary:
-  # Asserts that two values are the same, else a failure is logged
+  # Asserts that two values are the same, else a failure is logged.
    
   # Argument Usage: 
-  #     _expected      - The expected return value
-  #     _actual        - The received (actual) return value
-  #     _msg           - Message to log on failure
-  #     _name          - Name of the test (maps to JUnit's 'name')
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   expected : The expected return value.
+  #   actual : The received (actual) return value.
+  #   msg : Message to log on failure.
+  #   name : Name of the test (maps to JUnit's 'name').
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     true           - Returns true else an error is thrown
+  # Returns true, else an error is thrown.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     set name "ProgressTest"
-  #:     set group "SynthesisTests"
-  #:     set expected "100%"
-  #:     set progress [ get_property PROGRESS [ get_runs synth_1 ] ]
-  #:     set msg "synth_1 is not at 100%"
-  #:      
-  #:     # checks that synth_1 progress is at 100% else the error is logged and the flow is stopped
-  #:     assert_same $expected $progress $msg $name $group
-  #:     
-  #:     # checks that synth_1 progress is at 100% else an error is logged and the flow continues
-  #:     if { [ catch { assert_same $expected $progress $msg $name $group } error ] } {
-  #:       puts "ERROR: $error"
-  #:       pits "Process will now continue..."
-  #:     }
-  #
-
   variable testsuite
   variable results
   set testcase [ new_testcase $results $testsuite $_name $_group ]
@@ -725,36 +660,19 @@ proc assert_same { _expected _actual _msg { _name "Same" } { _group "Assertions"
 
 proc assert_exists { _files _msg { _name "FileExists" } { _group "Assertions" } } {
   # Summary:
-  # Asserts that all file exist
+  # Asserts that all files exist.
    
   # Argument Usage: 
-  #     _files : List of files to check for existence
-  #     _msg : Message to log on failure
-  #     _name : Name of the test (maps to JUnit's 'name')
-  #     _group : Name of the grouping of tests (maps to JUnit's 'classname')
+  #   files : List of files to check for existence.
+  #   msg : Message to log on failure.
+  #   name : Name of the test (maps to JUnit's 'name').
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     true : Returns true else an error is thrown
+  # Returns true, else an error is thrown.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     set name "SourceExists"
-  #:     set group "ProjectSetup"
-  #:     set files {"top.v" "sub.v"}
-  #:     set msg "All source files were not found"
-  #:      
-  #:     # checks that all source files exist, else log an error and stop the flow
-  #:     assert_exists $files $msg $name $group
-  #:     
-  #:     # checks that all source files exist, else log an error and then let the flow continue
-  #:     if { [ catch { assert_exists $files $msg $name $group } error ] } {
-  #:       puts "ERROR: $error"
-  #:       pits "Process will now continue..."
-  #:     }
-  #
-
   variable testsuite
   variable results
   set testcase [ new_testcase $results $testsuite $_name $_group ]
@@ -782,22 +700,16 @@ proc assert_exists { _files _msg { _name "FileExists" } { _group "Assertions" } 
 
 proc new_results { _name } {
   # Summary:
-  # Create a new in-memory results object
+  # Create a new in-memory results object.
    
   # Argument Usage: 
-  #     _name          - Name of the results object
+  #   name : Name of the results object.
    
   # Return Value:
-  #     _name          - Returns the name of the new object 
+  # Returns the name of the new object.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # creates a new in-memory results object
-  #:     set myResults [ new_results "uniqueResultsName" ]
-  #
-
   ::struct::graph $_name
   return $_name
 }
@@ -805,60 +717,37 @@ proc new_results { _name } {
 
 proc new_testsuites { _results } {
   # Summary:
-  # Create a new node 'testsuites' in the provided results object
+  # Create a new node 'testsuites' in the provided results object.
    
   # Argument Usage: 
-  #     _results       - The results object to add the testsuites node to
+  #   results : The results object to add the testsuites node to.
    
   # Return Value:
-  #     node           - Returns the new testsuites node 
+  # Returns the new testsuites node. 
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # creates a new in-memory results object
-  #:     set myResults [ new_results "uniqueResultsName" ]
-  #:
-  #:     # creates a new testsuites node on the results object
-  #:     set myTestsuitesNode [ new_testsuites $myResults ]
-  #
-
   return [ $_results node insert ]
 }
 
 
 proc new_testsuite { _results _parent _name _starttime _hostname } {
   # Summary:
-  # Create a new node 'testsuite' in the provided results object
-  # Added under the provided parent node (testsuites)
+  # Create a new node 'testsuite' in the provided results object.
+  # Added under the provided parent node (testsuites).
    
   # Argument Usage: 
-  #     _results       - The results object to add the testsuites node to
-  #     _parent        - The testsuites node to add the testsuite node under
-  #     _name          - The name of the testsuite node
-  #     _starttime     - The starttime of the testsuite node
-  #     _hostname      - The hostname of the testsuite node
+  #   results : The results object to add the testsuites node to.
+  #   parent : The testsuites node to add the testsuite node under.
+  #   name : The name of the testsuite node.
+  #   starttime : The starttime of the testsuite node.
+  #   hostname : The hostname of the testsuite node.
    
   # Return Value:
-  #     node           - Returns the new testsuite node 
+  # Returns the new testsuite node.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # creates a new in-memory results object
-  #:     set myResults [ new_results "uniqueResultsName" ]
-  #:
-  #:     # creates a new testsuites node on the results object
-  #:     set RootNode [ new_testsuites $myResults ]
-  #:
-  #:     # creates a new testsuite node under the testsuites node
-  #:     set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
-  #:     set hostname [ info hostname ]
-  #:     set TSNode [ new_testsuite $myResults $RootNode "SynthesisTests" $time $hostname ]
-  #
-
   set node [ $_results node insert ]
   $_results node set $node name $_name
   $_results node set $node starttime $_starttime
@@ -870,42 +759,21 @@ proc new_testsuite { _results _parent _name _starttime _hostname } {
 
 proc new_testcase { _results _parent _name _group { _walltime 0 } } {
   # Summary:
-  # Create a new node 'testcase' in the provided results object
-  # Added under the provided parent node (testsuite)
+  # Create a new node 'testcase' in the provided results object.
+  # Added under the provided parent node (testsuite).
    
   # Argument Usage: 
-  #     _results       - The results object to add the testsuites node to
-  #     _parent        - The testsuite node to add the testcase node under
-  #     _name          - The name of the testcase node
-  #     _group         - The group of the testcase node
-  #     _walltime      - The walltime of the testcase node
+  #   results : The results object to add the testsuites node to.
+  #   parent : The testsuite node to add the testcase node under.
+  #   name : The name of the testcase node.
+  #   group : The group of the testcase node.
+  #   walltime : The walltime of the testcase node.
    
   # Return Value:
-  #     node           - Returns the new testcase node 
+  # Returns the new testcase node.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # creates a new in-memory results object
-  #:     set results [ new_results "uniqueResultsName" ]
-  #:
-  #:     # creates a new testsuites node on the results object
-  #:     set testsuites [ new_testsuites $results ]
-  #:
-  #:     # creates a new testsuite node under the testsuites node
-  #:     set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
-  #:     set hostname [ info hostname ]
-  #:     set testsuite [ new_testsuite $myResults $testsuites "SynthesisTests" $time $hostname ]
-  #:
-  #:     # creates a new testcase node under the testsuite node
-  #:     set startTime [ clock milliseconds ] 
-  #:     create_project -force project project
-  #:     set endTime [ clock milliseconds ]
-  #:     set wallTime [ expr ( $endTime - $startTime ) / 1000.0 ]
-  #:     set testcase [ new_testcase graph $testsuite "ProjectCreation" "Setup" $wallTime ]
-  #
-
   set node [ $_results node insert ]
   $_results node set $node type "testcase"
   $_results node set $node name $_name
@@ -918,25 +786,19 @@ proc new_testcase { _results _parent _name _group { _walltime 0 } } {
 
 proc new_stdout { _results _parent _content } {
   # Summary:
-  # Create a new node 'stdout' in the provided results object
-  # Added under the provided parent node (testsuite)
+  # Create a new node 'stdout' in the provided results object.
+  # Added under the provided parent node (testsuite).
    
   # Argument Usage: 
-  #     _results       - The results object to add the testsuites node to
-  #     _parent        - The testsuite node to add the testcase node under
-  #     _content       - The content of stdout
+  #   results : The results object to add the testsuites node to.
+  #   parent : The testsuite node to add the testcase node under.
+  #   content : The content of stdout.
    
   # Return Value:
-  #     node           - Returns the new stdout node 
+  # Returns the new stdout node.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # creates a new stdout node under the testsuite node
-  #:     new_stdout $results $testsuite "STDOUT content"
-  #
-
   set node [ $_results node insert ]
   $_results node set $node type "system-out"
   $_results node set $node content $_content
@@ -947,31 +809,19 @@ proc new_stdout { _results _parent _content } {
 
 proc new_stderr { _results _parent _content } {
   # Summary:
-  # Create a new node 'stderr' in the provided results object
-  # Added under the provided parent node (testsuite)
+  # Create a new node 'stderr' in the provided results object.
+  # Added under the provided parent node (testsuite).
    
   # Argument Usage: 
-  #     _results       - The results object to add the testsuites node to
-  #     _parent        - The testsuite node to add the stderr node under
-  #     _content       - The content of stderr
+  #   results : The results object to add the testsuites node to.
+  #   parent : The testsuite node to add the stderr node under.
+  #   content : The content of stderr.
    
   # Return Value:
-  #     node           - Returns the new stderr node 
+  # Returns the new stderr node. 
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # creates a new in-memory results object
-  #:     set results [ new_results "uniqueResultsName" ]
-  #:
-  #:     # creates a new testsuites node on the results object
-  #:     set testsuites [ new_testsuites $results ]
-  #:
-  #:     # creates a new stderr node under the testsuites node
-  #:     new_stderr $results $testsuites "STDERR content"
-  #
-
   set node [ $_results node insert ]
   $_results node set $node type "system-err"
   $_results node set $node content $_content
@@ -982,41 +832,20 @@ proc new_stderr { _results _parent _content } {
 
 proc new_failure { _results _parent _content _message } {
   # Summary:
-  # Create a new node 'failure' in the provided results object
-  # Added under the provided parent node (testcase)
+  # Create a new node 'failure' in the provided results object.
+  # Added under the provided parent node (testcase).
    
   # Argument Usage: 
-  #     _results       - The results object to add the failure node to
-  #     _parent        - The testcase node to add the failure node under
-  #     _content       - The content of the failure
-  #     _message       - The message of the failure
+  #   results : The results object to add the failure node to.
+  #   parent : The testcase node to add the failure node under.
+  #   content : The content of the failure.
+  #   message : The message of the failure.
    
   # Return Value:
-  #     node           - Returns the new failure node 
+  # Returns the new failure node.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # creates a new in-memory results object
-  #:     set results [ new_results "uniqueResultsName" ]
-  #:
-  #:     # creates a new testsuites node on the results object
-  #:     set testsuites [ new_testsuites $results ]
-  #:
-  #:     # creates a new testsuite node under the testsuites node
-  #:     set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
-  #:     set hostname [ info hostname ]
-  #:     set testsuite [ new_testsuite $results $testsuites "SynthesisTests" $time $hostname ]
-  #:
-  #:     # creates a new testcase node under the testsuite node
-  #:     set testcase [ new_testcase graph $testsuite "Warning" "Messages" ]
-  #:     set cmd {get_msg_config -count -severity {WARNING}}
-  #:     set count [ eval $cmd ]
-  #:     if { $count > 0 } {
-  #:       new_failure $results $testcase "Warnings were detected, found: $count" $cmd
-  #:     }
-
   set node [ $_results node insert ]
   $_results node set $node type "failure"
   $_results node set $node content $_content
@@ -1028,43 +857,20 @@ proc new_failure { _results _parent _content _message } {
 
 proc new_error { _results _parent _content _message } {
   # Summary:
-  # Create a new node 'error' in the provided results object
-  # Added under the provided parent node (testcase)
+  # Create a new node 'error' in the provided results object.
+  # Added under the provided parent node (testcase).
    
   # Argument Usage: 
-  #     _results       - The results object to add the error node to
-  #     _parent        - The testcase node to add the error node under
-  #     _content       - The content of the error
-  #     _message       - The message of the error
+  #   results : The results object to add the error node to.
+  #   parent : The testcase node to add the error node under.
+  #   content : The content of the error.
+  #   message : The message of the error.
    
   # Return Value:
-  #     node           - Returns the new error node 
+  # Returns the new error node.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # creates a new in-memory results object
-  #:     set results [ new_results "uniqueResultsName" ]
-  #:
-  #:     # creates a new testsuites node on the results object
-  #:     set testsuites [ new_testsuites $results ]
-  #:
-  #:     # creates a new testsuite node under the testsuites node
-  #:     set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
-  #:     set hostname [ info hostname ]
-  #:     set testsuite [ new_testsuite $results $testsuites "SynthesisTests" $time $hostname ]
-  #:
-  #:     # creates a new testcase node under the testsuite node
-  #:     set testcase [ new_testcase graph $testsuite "ERROR" "Messages" ]
-  #:     set cmd {get_msg_config -count -severity {ERROR}}
-  #:     set count [ eval $cmd ]
-  #:     if { $count > 0 } {
-  #:       new_error $results $testcase "Errors were detected, found: $count" $cmd
-  #:       write [ graph_to_xml [ format_junit $results ] ] report.xml
-  #:       error $cmd
-  #:     }
-
   set node [ $_results node insert ]
   $_results node set $node type "error"
   $_results node set $node content $_content
@@ -1080,22 +886,14 @@ proc new_error { _results _parent _content _message } {
 
 proc init {} {
   # Summary:
-  # Initialize the new global results and global testsuite
+  # Initialize the new global results and global testsuite.
    
   # Argument Usage: 
-  #     void           - Unused
    
   # Return Value:
-  #     void           - Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # set up and initialize the global variables
-  #:     init
-  #
-
   variable results
   #if { "[ info command $results ]" == "$results" } { return }
   set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
@@ -1108,22 +906,16 @@ proc init {} {
 
 proc validate_objects { _objects _expected } {
   # Summary:
-  # Validates the object types to make sure they are of the expected type
+  # Validates the object types to make sure they are of the expected type.
    
   # Argument Usage: 
-  #     _objects       - Objects to verify
-  #     _expected      - Object type to validate
+  #   objects : Objects to verify.
+  #   expected : Object type to validate.
    
   # Return Value:
-  #     void           - Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # set up and initialize the global variables
-  #:     validate_objects [ get_runs ] "run"
-
   catch { lsort -unique [ get_property class $_objects ] } clazz
   if { "$clazz" != "$_expected" } { error "Expected '${_expected}' object(s) received: '${clazz}'" }
 }
@@ -1131,22 +923,16 @@ proc validate_objects { _objects _expected } {
 
 proc validate_object { _object _expected } {
   # Summary:
-  # Validates the object type to make sure it is of the expected type
+  # Validates the object type to make sure it is of the expected type.
    
   # Argument Usage: 
-  #     _object        - Object to verify
-  #     _expected      - Object type to validate
+  #   object : Object to verify.
+  #   expected : Object type to validate.
    
   # Return Value:
-  #     void           - Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # set up and initialize the global variables
-  #:     validate_object [ get_runs synth_1 ] "run"
-
   catch { get_property class $_object } clazz
   if { "$clazz" != "$_expected" } { error "Expected '${_expected}' object(s) received: '${clazz}'" }
 }

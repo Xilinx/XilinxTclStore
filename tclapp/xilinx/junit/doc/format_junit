@@ -1,0 +1,8 @@
+
+Example:
+    
+  # converts graph to junit format and then dumps juni graph to xml
+  ::struct::graph myGraph
+  ...
+  write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
+

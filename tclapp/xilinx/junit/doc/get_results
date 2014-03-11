@@ -1,0 +1,6 @@
+
+Example:
+    
+  # commits the in memory test results to disk, using get_results to retrieve the data
+  write [ graph_to_xml [ format_junit [ get_results ] ] ] "report.xml" 
+

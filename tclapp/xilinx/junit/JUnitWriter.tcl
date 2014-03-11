@@ -40,9 +40,7 @@ namespace export write
 
 proc format_junit { _dataGraph } {
   # Summary:
-  # Converts the results of the in-memory data object to JUnit
-  #
-  # !! this section of code can be confusing !!
+  # Converts the results of the in-memory data object to JUnit.
   #
   # This conversion process is in place to handle conversion to different output types.
   # This is a JUnit package, and thus it would be more ideal to make the data graph a 
@@ -51,23 +49,16 @@ proc format_junit { _dataGraph } {
   # Conceptually: The JUnit package works with a 'data graph'/results object in memory.
   # Before we dump to disk, this method is called to build a 'junit graph' that will 
   # map information from the 'data graph' to the best matching 'junit graph' node/field.
-  # 
    
   # Argument Usage: 
-  #     _dataGraph     - The Data Graph to convert to a JUnit Graph
+  #   dataGraph : The Data Graph to convert to a JUnit Graph.
    
   # Return Value:
-  #     jUnitGraph     - Returns the JUnit Graph
+  # Returns the JUnit Graph.
     
   # Categories: xilinxtclstore, junit
  
-  # Example:
-  #     
-  #:     # converts graph to junit format and then dumps juni graph to xml
-  #:     ::struct::graph myGraph
-  #:     ...
-  #:     write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
-  #
+  # !! this section of code can be confusing, proceed with caution !!
 
   # reset the jUnitGraph if it exists
   set jUnitGraph ::tclapp::xilinx::junit::junit_graph
@@ -146,25 +137,17 @@ proc format_junit { _dataGraph } {
 
 proc graph_to_xml { _graph { _rootnodes {} } } {
   # Summary:
-  # Converts a struct::graph object directly to xml
+  # Converts a struct::graph object directly to xml.
   
   # Argument Usage: 
-  #     _graph         - The output content to go into the file
-  #     _rootnodes     - The nodes to start with, else all root nodes are used
+  #   graph : The output content to go into the file.
+  #   rootnodes : The nodes to start with, else all root nodes are used.
    
   # Return Value:
-  #     xml            - XML from graph
+  # XML from graph.
     
   # Categories: xilinxtclstore, junit
  
-  # Example:
-  #     
-  #:     # converts graph to junit format and then dumps juni graph to xml
-  #:     ::struct::graph myGraph
-  #:     ...
-  #:     write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
-  #
-
   set delimiter "\n"
   set xml {}
   if { $_rootnodes == {} } {
@@ -181,23 +164,16 @@ proc graph_to_xml { _graph { _rootnodes {} } } {
 
 proc write { _outputContent { _filename "test.xml" } } {
   # Summary:
-  # Write out the output content to a file
+  # Write out the output content to a file.
   
   # Argument Usage: 
-  #     _outputContent - The output content to go into the file
-  #     _filename      - Write the output contents to filename
+  #   outputContent : The output content to go into the file.
+  #   filename : Write the output contents to filename.
    
   # Return Value:
-  #     void           - Unusued
     
   # Categories: xilinxtclstore, junit
  
-  # Example:
-  #     
-  #:     # creates and adds node
-  #:     write $content "report.xml"
-  #
-
   set fh [ open $_filename "w+" ]
   puts $fh $_outputContent
   close $fh
@@ -206,26 +182,20 @@ proc write { _outputContent { _filename "test.xml" } } {
 
 proc add_node { _graph _name { _attrs {} } { _content {} } { _parent {} }} {
   # Summary:
-  # Adds a node to a graph
+  # Adds a node to a graph.
   
   # Argument Usage: 
-  #     _graph         - Graph is used to store the node
-  #     _name          - Node name 
-  #     _attrs         - Node attrs (key value pair list)
-  #     _content       - Content of the node, {} means empty
-  #     _parent        - The parent node to add this node to
+  #   graph : Graph is used to store the node.
+  #   name : Node name.
+  #   attrs : Node attrs (key value pair list).
+  #   content : Content of the node, {} means empty.
+  #   parent : The parent node to add this node to.
    
   # Return Value:
-  #     node           - The newly created node
+  # The newly created node.
     
   # Categories: xilinxtclstore, junit
  
-  # Example:
-  #     
-  #:     # creates and adds node
-  #:     set node [ add_node graph "testsuite" {{name "Synthesis"}} {} $testsuites
-  #
-
   set node [ $_graph node insert ]
   $_graph node set $node tagname $_name
   if { [ llength $_attrs ] > 0 } {
@@ -243,7 +213,7 @@ proc add_node { _graph _name { _attrs {} } { _content {} } { _parent {} }} {
 
 proc node_to_xml { _graph _node } {
   # Summary:
-  # Converts a regular graph node into XML
+  # Converts a regular graph node into XML.
   # The node's keys are used to populate XML data, keys are:
   #   tagname = tag name <tagname...>
   #   attrs = attributes on node <tagname attr1="val1" ...>
@@ -253,20 +223,14 @@ proc node_to_xml { _graph _node } {
   #     <tagname attr1="val1" .../>
   
   # Argument Usage: 
-  #     _graph         - Graph is used to retrieve node
-  #     _node          - Node is converted to XML
+  #   graph : Graph is used to retrieve node.
+  #   node : Node is converted to XML.
    
   # Return Value:
-  #     xml            - The XML generated for the provided node
+  # The XML generated for the provided node.
     
   # Categories: xilinxtclstore, junit
  
-  # Example:
-  #     
-  #:     # converts the graph node into XML
-  #:     set xml [ node_to_xml graph $node ]
-  #
-
   set tagname [ $_graph node get $_node tagname ]
   set attrsStr {}
   if { [ $_graph node keyexists $_node attrs ] } {
@@ -294,25 +258,16 @@ proc node_to_xml { _graph _node } {
 
 proc attrs_to_string { _attrs } {
   # Summary:
-  # Converts a list of key value pairs into a string of attributes
+  # Converts a list of key value pairs into a string of attributes.
   
   # Argument Usage: 
-  #     _attrs         - A list of key value pairs
+  #   attrs : A list of key value pairs.
    
   # Return Value:
-  #     string         - A string of the key value pairs
+  # A string of the key value pairs.
     
   # Categories: xilinxtclstore, junit
  
-  # Example:
-  #     
-  #:     # converts the graph node into XML
-  #:     set attrs { {name "test"} {enabled 0} }
-  #:     set attrString [ node_to_xml graph $node ]
-  #:     puts $attrString
-  #:     # name="test" enabled="0"
-  #
-
   set string ""
   foreach attr $_attrs {
     lappend string " [ xml_escape [ lindex $attr 0 ] ]=\"[ xml_escape [ lindex $attr 1 ] ]\""
@@ -323,7 +278,7 @@ proc attrs_to_string { _attrs } {
 
 proc xml_escape { _string } {
   # Summary:
-  # Escapes all XML characters
+  # Escapes all XML characters.
   #   & = &amp;
   #   " = &quot;
   #   ' = &apos;
@@ -331,21 +286,13 @@ proc xml_escape { _string } {
   #   > = &gt;
   
   # Argument Usage: 
-  #     _string        - String to escape
+  #   string : String to escape
    
   # Return Value:
-  #     output         - The escaped version of the input string
+  # The escaped version of the input string.
     
   # Categories: xilinxtclstore, junit
  
-  # Example:
-  #     
-  #:     # returns the root nodes of graph
-  #:     set escaped [ xml_escape {"The beginning & the <empty>"} ]
-  #:     puts $escaped
-  #:     # &quot;The beginning &amp; the &lt;empty&gt;&quot;
-  #
-
   set output $_string
   set output [ string map {& &amp;} $output ]
   set output [ string map {\" &quot;} $output ]
@@ -358,23 +305,17 @@ proc xml_escape { _string } {
 
 proc is_root_node { _graph _node } {
   # Summary:
-  # Filter used to return the root node
+  # Filter used to return the root node.
   
   # Argument Usage: 
-  #     _graph         - Graph object is passed in by the filter
-  #     _node          - Node object is passed in by the filter 
+  #   graph : Graph object is passed in by the filter.
+  #   node : Node object is passed in by the filter.
    
   # Return Value:
-  #     returned       - Return true if the node has zero ins (must be root)
+  # Return true if the node has zero ins (must be root).
     
   # Categories: xilinxtclstore, junit
  
-  # Example:
-  #     
-  #:     # returns the root nodes of graph
-  #:     set data_root [ graph nodes -filter ::tclapp::xilinx::junit::is_root_node ]
-  #
-
   return [ expr [ $_graph node degree -in $_node ] == 0 ]
 }
 

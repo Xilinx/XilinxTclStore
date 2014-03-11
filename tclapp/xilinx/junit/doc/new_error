@@ -1,0 +1,24 @@
+
+Example:
+    
+  # creates a new in-memory results object
+  set results [ new_results "uniqueResultsName" ]
+
+  # creates a new testsuites node on the results object
+  set testsuites [ new_testsuites $results ]
+
+  # creates a new testsuite node under the testsuites node
+  set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
+  set hostname [ info hostname ]
+  set testsuite [ new_testsuite $results $testsuites "SynthesisTests" $time $hostname ]
+
+  # creates a new testcase node under the testsuite node
+  set testcase [ new_testcase graph $testsuite "ERROR" "Messages" ]
+  set cmd {get_msg_config -count -severity {ERROR}}
+  set count [ eval $cmd ]
+  if { $count > 0 } {
+    new_error $results $testcase "Errors were detected, found: $count" $cmd
+    write [ graph_to_xml [ format_junit $results ] ] report.xml
+    error $cmd
+  }
+

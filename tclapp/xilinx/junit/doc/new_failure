@@ -1,0 +1,22 @@
+
+Example:
+    
+  # creates a new in-memory results object
+  set results [ new_results "uniqueResultsName" ]
+
+  # creates a new testsuites node on the results object
+  set testsuites [ new_testsuites $results ]
+
+  # creates a new testsuite node under the testsuites node
+  set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
+  set hostname [ info hostname ]
+  set testsuite [ new_testsuite $results $testsuites "SynthesisTests" $time $hostname ]
+
+  # creates a new testcase node under the testsuite node
+  set testcase [ new_testcase graph $testsuite "Warning" "Messages" ]
+  set cmd {get_msg_config -count -severity {WARNING}}
+  set count [ eval $cmd ]
+  if { $count > 0 } {
+    new_failure $results $testcase "Warnings were detected, found: $count" $cmd
+  }
+
