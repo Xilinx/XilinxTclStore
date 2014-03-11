@@ -7,11 +7,11 @@
       <revision_history>Modified README; package requirement is Vivado 2013.1; updated commit id</revision_history>
       <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>designutils</name>
-      <display>Design Utilities</display>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>This is a collection of scripts and utility application that are grouped by relevance to querying and analyzing a logical design, principally around the netlist object model.</summary>
+      <display>Design Utilities</display>
       <procs>
         <proc>
           <name>bisect_pblock</name>
@@ -151,10 +151,10 @@
       <revision>1.2</revision>
       <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>diff</name>
-      <display>Design Comparison</display>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>The Diff App compares two different designs at a time. Designs can be any combination of checkpoints or runs. With two designs loaded into memory this App enables the user to compare reports, lists, or first-class object properties between the two designs.  The output is generated in the form of interactive reporting (stdout), a text report, or an html report. The app can be used to compare a design against a reference or golden design or to dtermine where divergence occurred (isolation of problems and root cause analysis).</summary>
+      <display>Design Comparison</display>
       <visible>false</visible>
       <procs>
         <proc>
@@ -193,22 +193,23 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
+      <commit_id>6218187b617deed6a79d8778b2df6f51652a23e1</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>Simulation script to verify design using IES Simulator</summary>
+      <summary>This is a Cadence Incisive Enterprise Simulator (IES) integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;IES Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>Incisive Enterprise Simulator (IES)</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
+      <commit_id>4732f82b901c18e1bdecf5a5b4ba196410e7ef2d</commit_id>
       <name>junit</name>
-      <display>JUnit Utilities</display>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>The JUnit App is built with 3 layers of APIs. The high level API enables a user to run generic tests or a group of predefined tests on demand. The intermediate level API enables a user to call assertions and customize the tests. Both the high level and intermediate level APIs are automatically generating a JUnit report in memory. The low level API enables the user to work directly with the &quot;data graph&quot; in memory. There is a section in the writer class where this in-memory &quot;data graph&quot; is converted to a &quot;junit graph&quot;. The &quot;junit graph&quot; is then just dumped to an XML file.  The conversion from &quot;data graph&quot; to &quot;junit graph&quot; exists to enable users to convert the data to other formats.</summary>
+      <display>JUnit Utilities</display>
       <procs>
         <proc>
           <name>assert_exists</name>
@@ -330,16 +331,17 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
+      <commit_id>6218187b617deed6a79d8778b2df6f51652a23e1</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>Simulation script to verify design using ModelSim/Questa Simulator</summary>
+      <summary>This is a Mentor Graphics ModelSim/QuestaSim Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;ModelSim/QuestaSim Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>ModelSim/QuestaSim Simulator</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>2b6a0d0ac50eb7c4cb34e0a535032f0a559da305</commit_id>
+      <commit_id>1ed2534e4d48be55e5028ad38eeb2a1a31695aeb</commit_id>
       <name>myapp</name>
       <company>mycompany</company>
       <company_display>Xilinx, Inc.</company_display>
@@ -358,13 +360,13 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
+      <commit_id>6218187b617deed6a79d8778b2df6f51652a23e1</commit_id>
       <name>projutils</name>
-      <display>Project Utilities</display>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>This is a collection of scripts and utility application that are grouped by relevance to manipulation of projects.</summary>
+      <display>Project Utilities</display>
       <procs>
         <proc>
           <name>export_simulation</name>
@@ -380,10 +382,10 @@
       <revision>1.0</revision>
       <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>tk_tunnel</name>
-      <display>Tk Tunnel</display>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>The Tk_tunnel app can be used to launch a Tcl/Tk 8.5 server outside of Vivado using a standalone Tcl shell, and pass commands from Vivado console to the Tk shell. One of the benefits of this app is to provide a bridge for simple Tk-based GUI.</summary>
+      <display>Tk Tunnel</display>
       <visible>false</visible>
       <procs>
         <proc>
@@ -450,11 +452,11 @@
       <revision>1.0</revision>
       <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>ultrafast</name>
-      <display>UltraFast Design Methodology</display>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 ‘UltraFast Design Methodology Guide for the Vivado Design Suite’ for further information.</summary>
+      <display>UltraFast Design Methodology</display>
       <procs>
         <proc>
           <name>check_bd_axi_interface</name>
@@ -484,12 +486,24 @@
     </app>
     <app>
       <revision>1.0</revision>
+      <commit_id>6218187b617deed6a79d8778b2df6f51652a23e1</commit_id>
+      <name>vcs</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a Synopsys VCS/VCS-MX Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;VCS Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>Verilog Compiler Simulator (VCS)</display>
+      <visible>project.enableUnifiedSimulation</visible>
+    </app>
+    <app>
+      <revision>1.0</revision>
       <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>vcs_mx</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>Simulation script to verify design using VCS_MX Simulator</summary>
+      <summary>This is a Synopsys VCS/VCS-MX Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;VCS Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>Verilog Compiler Simulator (VCS)</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
@@ -499,7 +513,8 @@
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>Simulation script to verify design using Vivado Simulator</summary>
+      <summary>This is a Xilinx Vivado Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;Vivado Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command.</summary>
+      <display>Vivado Simulator</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
   </apps>
