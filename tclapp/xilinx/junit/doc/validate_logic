@@ -1,0 +1,6 @@
+
+Example:
+    
+  # checks if DRC violations exist
+  validate_logic "ValidateLogic"
+

@@ -1,0 +1,6 @@
+
+Example:
+    
+  # process a list of runs after they have been completed
+  process_runs [ get_runs synth_1 impl_1 ] "PostRunProcessing"
+

@@ -1,0 +1,6 @@
+
+Example:
+    
+  # checks if timing violations exist
+  validate_run_properties [ get_runs impl_1 ] "ValidateTiming"
+

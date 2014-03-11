@@ -1,0 +1,6 @@
+
+Example:
+    
+  # checks if timing violations exist
+  get_report
+

@@ -1,0 +1,6 @@
+
+Example:
+    
+  # process the current design
+  process_synth_design [ current_design ] "PostSynthDesignProcessing"
+

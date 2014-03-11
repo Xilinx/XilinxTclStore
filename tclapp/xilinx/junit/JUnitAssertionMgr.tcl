@@ -120,27 +120,18 @@ namespace export new_stderr
 
 proc run_step _args {
   # Summary:
-  # Used to wrap a run step while logging success, errors, and runtimes
-  # Runs 
+  # Used to wrap a run-step while logging success, errors, and run-times.
+  # Runs the following validations after:
   #   validate_messages 
   #   validate_drcs 
 
   # Argument Usage: 
-  #     _args          - Run step command for the run step
+  #   args : Run-step command for the run step.
 
   # Return Value:
-  #     returned       - This is the return value from the run step command
+  # The return value from the run-step command.
   
   # Categories: xilinxtclstore, junit
-
-  # Example:
-  #     
-  #:     # run synth_design
-  #:     run_step {synth_design -top top -part xc7vx485tffg1157-1}
-  #:     
-  #:     # run opt_design
-  #:     run_step {opt_design}
-  #
 
   set commandName [ lindex $_args 0 ]
   
@@ -155,22 +146,16 @@ proc run_step _args {
 
 proc run_command _args {
   # Summary:
-  # Used to wrap any command while logging success, errors, and runtime
+  # Used to wrap any command while logging success, errors, and runtime.
   
   # Argument Usage: 
-  #     _args          - Command to run 
+  #   args : Command to run.
    
   # Return Value:
-  #     returned       - Return value from the command
+  # Return value from the command.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # execute create_project and catch errors and log runtime
-  #:     run_command {create_project test test}
-  #
-
   variable results
   variable testsuite
 
@@ -194,23 +179,16 @@ proc run_command _args {
 
 proc run_silent _args {
   # Summary:
-  # Used to wrap any command while logging errors _only_
-  # A JUnitXml entry is not created on success!!
+  # Used to wrap any command while logging errors _only_. A JUnitXml entry is not created on success!
   
   # Argument Usage: 
-  #     _args          - Command to run 
+  #   args : Command to run 
    
   # Return Value:
-  #     returned       - This is the return value from the command
+  # The return value from the command
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # execute create_project and catch as well as log errors on failure
-  #:     run_silent {create_project test test}
-  #
-
   variable results
   variable testsuite
 
@@ -233,9 +211,8 @@ proc run_silent _args {
 
 proc process_runs { _runs { _group "ProcessRuns" } } {
   # Summary:
-  # Used to post-process runs
-  # This requires using the project managed runs infrastructure
-  # Runs on each run
+  # Used to post-process runs. This requires using the project managed runs infrastructure
+  # Runs the following validations on each run:
   #   validate_run_properties
   #   validate_messages
   #   process_impl_design
@@ -243,20 +220,14 @@ proc process_runs { _runs { _group "ProcessRuns" } } {
   #   process_synth_design
    
   # Argument Usage: 
-  #     _runs          - List of run objects to process
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   runs : List of run objects to process.
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # process a list of runs after they have been completed
-  #:     process_runs [ get_runs synth_1 impl_1 ] "PostRunProcessing"
-  #
-
   validate_objects $_runs "run"
   foreach run $_runs {    
     validate_run_properties $run $_group
@@ -274,7 +245,7 @@ proc process_runs { _runs { _group "ProcessRuns" } } {
 
 proc process_impl_design { _design { _group "ProcessImplDesign" } } {
   # Summary:
-  # Used to process an implemented design
+  # Used to process an implemented design.
   # Runs
   #   validate_timing
   #   validate_routing
@@ -282,20 +253,14 @@ proc process_impl_design { _design { _group "ProcessImplDesign" } } {
   #   validate_messages
    
   # Argument Usage: 
-  #     _design        - Design objects to process
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   design : Implementation design objects to process.
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # process the current design
-  #:     process_impl_design [ current_design ] "PostRoutedDesignProcessing"
-  #
-
   validate_object $_design "design"
   current_design $_design
   validate_timing $_group
@@ -307,27 +272,21 @@ proc process_impl_design { _design { _group "ProcessImplDesign" } } {
 
 proc process_synth_design { _design { _group "ProcessSynthDesign" } } {
   # Summary:
-  # Used to process an synthesized design
+  # Used to process an synthesized design.
   # Runs
   #   validate_logic
   #   validate_drcs
   #   validate_messages
    
   # Argument Usage: 
-  #     _design        - Design object to process
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   design : Design object to process.
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # process the current design
-  #:     process_synth_design [ current_design ] "PostSynthDesignProcessing"
-  #
-
   validate_object $_design "design"
   current_design $_design
   validate_logic $_group
@@ -343,23 +302,17 @@ proc process_synth_design { _design { _group "ProcessSynthDesign" } } {
 
 proc validate_messages { { _group "ValidateMessages" } } {
   # Summary:
-  # Checks if Warnings, Critical Warnings, or Errors exist
-  # If Errors are found, then the process is stopped
+  # Checks if Warnings, Critical Warnings, or Errors exist.
+  # If Errors are found, then the process is stopped (Tcl error).
    
   # Argument Usage: 
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # checks if messages exist
-  #:     validate_messages "ValidateMessages"
-  #
-
   variable results
   variable testsuite
 
@@ -397,22 +350,16 @@ proc validate_messages { { _group "ValidateMessages" } } {
 
 proc validate_drcs { { _group "ValidateDRCs" } } {
   # Summary:
-  # Checks if any DRCs are found
+  # Checks if any DRCs are found.
    
   # Argument Usage: 
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # checks if DRC violations exist
-  #:     validate_drcs "ValidateDRCs"
-  #
-
   variable results
   variable testsuite
 
@@ -429,22 +376,16 @@ proc validate_drcs { { _group "ValidateDRCs" } } {
 
 proc validate_logic { { _group "ValidateLogic" } } {
   # Summary:
-  # Checks for driverless nets and latches
+  # Checks for driver-less nets and latches.
    
   # Argument Usage: 
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # checks if DRC violations exist
-  #:     validate_logic "ValidateLogic"
-  #
-
   variable results
   variable testsuite
 
@@ -480,22 +421,16 @@ proc validate_logic { { _group "ValidateLogic" } } {
 
 proc validate_routing { { _group "ValidateRouting" } } {
   # Summary:
-  # Checks for unrouted nets
+  # Checks for unrouted nets.
    
   # Argument Usage: 
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # checks if DRC violations exist
-  #:     validate_routing "ValidateRouting"
-  #
-
   variable results
   variable testsuite
   
@@ -512,22 +447,16 @@ proc validate_routing { { _group "ValidateRouting" } } {
 
 proc validate_timing { { _group "ValidateTiming" } } {
   # Summary:
-  # Checks for unrouted nets
+  # Checks for unrouted nets.
    
   # Argument Usage: 
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # checks if timing violations exist
-  #:     validate_timing "ValidateTiming"
-  #
-
   variable results
   variable testsuite
   
@@ -547,24 +476,18 @@ proc validate_timing { { _group "ValidateTiming" } } {
 
 proc validate_run_properties { _run { _group "ValidateRunProperties" } } {
   # Summary:
-  # Logs run walltime 
-  # Validates the run is at 100% progress, else logs error and stops process
+  # Logs run walltime. 
+  # Validates the run is at 100% progress, else logs error and stops process.
    
   # Argument Usage: 
-  #     _run           - Run object to use for validation
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #   run : Run object to use for validation.
+  #   group : Name of the grouping of tests (maps to JUnit's 'classname').
    
   # Return Value:
-  #     void           - Unused
+  # Unused.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # checks if timing violations exist
-  #:     validate_run_properties [ get_runs impl_1 ] "ValidateTiming"
-  #
-
   variable results
   variable testsuite
 
@@ -593,44 +516,32 @@ proc validate_run_properties { _run { _group "ValidateRunProperties" } } {
 
 proc set_report { _file } {
   # Summary:
-  # Configures the JUnit API output location
+  # Configures the JUnit API output location.
    
   # Argument Usage: 
-  #     _file          - Report file name
+  #   file : Report file name.
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # checks if timing violations exist
-  #:     set_report "results.xml"
-  #
-
   variable report $_file
 }
 
 
 proc get_report {} {
   # Summary:
-  # Returns the currently set JUnit API output location 
+  # Returns the currently set JUnit API output location (see: set_report).
    
   # Argument Usage: 
-  #     void           - Unused
+  # Unused
    
   # Return Value:
-  #     report         - The report file name that is currently set
+  # The currently set report file name.
   
   # Categories: xilinxtclstore, junit
    
-  # Example:
-  #     
-  #:     # checks if timing violations exist
-  #:     get_report
-  #
-
   variable report
   return $report
 }
@@ -641,10 +552,10 @@ proc write_results {} {
   # Write the in-memory results to disk (uses the set_report/get_report location)
    
   # Argument Usage: 
-  #     void           - Unused
+  # Unused
    
   # Return Value:
-  #     void           - Unused
+  # Unused
   
   # Categories: xilinxtclstore, junit
    
@@ -817,13 +728,13 @@ proc assert_exists { _files _msg { _name "FileExists" } { _group "Assertions" } 
   # Asserts that all file exist
    
   # Argument Usage: 
-  #     _files         - List of files to check for existance
-  #     _msg           - Message to log on failure
-  #     _name          - Name of the test (maps to JUnit's 'name')
-  #     _group         - Name of the grouping of tests (maps to JUnit's 'classname')
+  #     _files : List of files to check for existence
+  #     _msg : Message to log on failure
+  #     _name : Name of the test (maps to JUnit's 'name')
+  #     _group : Name of the grouping of tests (maps to JUnit's 'classname')
    
   # Return Value:
-  #     true           - Returns true else an error is thrown
+  #     true : Returns true else an error is thrown
   
   # Categories: xilinxtclstore, junit
    

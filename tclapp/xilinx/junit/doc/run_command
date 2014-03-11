@@ -1,0 +1,6 @@
+
+Example:
+
+  # execute create_project, log errors, and log runtime
+  run_command {create_project test test}
+

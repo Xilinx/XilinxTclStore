@@ -1,0 +1,7 @@
+
+Example:
+    
+  # checks if timing violations exist
+  validate_timing "ValidateTiming"
+
+

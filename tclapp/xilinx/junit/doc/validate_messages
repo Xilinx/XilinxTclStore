@@ -1,0 +1,6 @@
+
+Example:
+    
+  # checks if messages exist
+  validate_messages "ValidateMessages"
+
