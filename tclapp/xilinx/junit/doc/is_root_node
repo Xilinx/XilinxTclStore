@@ -2,5 +2,5 @@
 Example:
     
   # returns the root nodes of graph
-  set data_root [ graph nodes -filter ::tclapp::xilinx::junit::is_root_node ]
+  set data_root [ ::struct::graph nodes -filter ::tclapp::xilinx::junit::is_root_node ]
 

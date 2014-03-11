@@ -2,5 +2,5 @@
 Example:
 
   # execute create_project, and log errors
-  run_silent {create_project test test}
+  ::xilinx::junit::run_silent {create_project test test}
 

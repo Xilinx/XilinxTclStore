@@ -2,5 +2,5 @@
 Example:
     
   # commits the in memory test results to disk
-  write_report
+  ::xilinx::junit::write_report
 

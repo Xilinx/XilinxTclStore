@@ -2,5 +2,5 @@
 Example:
     
   # creates and adds node
-  write $content "report.xml"
+  ::xilinx::junit::write $content "report.xml"
 

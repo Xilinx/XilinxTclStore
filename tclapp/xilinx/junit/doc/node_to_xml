@@ -2,5 +2,5 @@
 Example:
     
   # converts the graph node into XML
-  set xml [ node_to_xml graph $node ]
+  set xml [ ::xilinx::junit::node_to_xml graphName $node ]
 

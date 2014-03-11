@@ -2,11 +2,11 @@
 Example:
     
   # creates a new in-memory results object
-  set results [ new_results "uniqueResultsName" ]
+  set results [ ::xilinx::junit::new_results "uniqueResultsName" ]
 
   # creates a new testsuites node on the results object
-  set testsuites [ new_testsuites $results ]
+  set testsuites [ ::xilinx::junit::new_testsuites $results ]
 
   # creates a new stderr node under the testsuites node
-  new_stderr $results $testsuites "STDERR content"
+  ::xilinx::junit::new_stderr $results $testsuites "STDERR content"
 

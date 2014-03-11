@@ -2,5 +2,5 @@
 Example:
     
   # return the currently set JUnit report location
-  get_report
+  ::xilinx::junit::get_report
 

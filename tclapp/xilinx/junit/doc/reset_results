@@ -2,5 +2,5 @@
 Example:
     
   # resets the in-memory results
-  reset_results
+  ::xilinx::junit::reset_results
 

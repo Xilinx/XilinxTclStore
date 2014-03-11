@@ -2,5 +2,5 @@
 Example:
     
   # process the current design
-  process_impl_design [ current_design ] "PostRoutedDesignProcessing"
+  ::xilinx::junit::process_impl_design [ current_design ] "PostRoutedDesignProcessing"
 

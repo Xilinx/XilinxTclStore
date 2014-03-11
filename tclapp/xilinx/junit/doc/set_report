@@ -2,5 +2,5 @@
 Example:
     
   # checks if timing violations exist
-  set_report "results.xml"
+  ::xilinx::junit::set_report "results.xml"
 
