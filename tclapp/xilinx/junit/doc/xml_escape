@@ -2,7 +2,7 @@
 Example:
     
   # returns the root nodes of graph
-  set escaped [ xml_escape {"The beginning & the <empty>"} ]
+  set escaped [ ::xilinx::junit::xml_escape {"The beginning & the <empty>"} ]
   puts $escaped
   # &quot;The beginning &amp; the &lt;empty&gt;&quot;
 

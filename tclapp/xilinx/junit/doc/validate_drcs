@@ -2,5 +2,5 @@
 Example:
     
   # checks if DRC violations exist
-  validate_drcs "ValidateDRCs"
+  ::xilinx::junit::validate_drcs "ValidateDRCs"
 

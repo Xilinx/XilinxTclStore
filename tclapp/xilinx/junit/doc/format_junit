@@ -1,8 +1,8 @@
 
 Example:
     
-  # converts graph to junit format and then dumps juni graph to xml
+  # converts graph to junit format and then dumps junit graph to xml
   ::struct::graph myGraph
   ...
-  write [ graph_to_xml [ format_junit myGraph ] ] $outputReport
+  ::xilinx::junit::write [ ::xilinx::junit::graph_to_xml [ ::xilinx::junit::format_junit myGraph ] ] $outputReport
 

@@ -2,8 +2,8 @@
 Example:
     
   # creates a new in-memory results object
-  set myResults [ new_results "uniqueResultsName" ]
+  set myResults [ ::xilinx::junit::new_results "uniqueResultsName" ]
 
   # creates a new testsuites node on the results object
-  set myTestsuitesNode [ new_testsuites $myResults ]
+  set myTestsuitesNode [ ::xilinx::junit::new_testsuites $myResults ]
 

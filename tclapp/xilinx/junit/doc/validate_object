@@ -2,5 +2,5 @@
 Example:
     
   # set up and initialize the global variables
-  validate_object [ get_runs synth_1 ] "run"
+  ::xilinx::junit::validate_object [ get_runs synth_1 ] "run"
 

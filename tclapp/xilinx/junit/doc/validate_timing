@@ -2,6 +2,6 @@
 Example:
     
   # checks if timing violations exist
-  validate_timing "ValidateTiming"
+  ::xilinx::junit::validate_timing "ValidateTiming"
 
 

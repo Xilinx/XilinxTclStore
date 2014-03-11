@@ -2,5 +2,5 @@
 Example:
     
   # creates a new stdout node under the testsuite node
-  new_stdout $results $testsuite "STDOUT content"
+  ::xilinx::junit::new_stdout $results $testsuite "STDOUT content"
 

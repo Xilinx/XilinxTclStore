@@ -2,5 +2,5 @@
 Example:
 
   # execute create_project, log errors, and log runtime
-  run_command {create_project test test}
+  ::xilinx::junit::run_command {create_project test test}
 
