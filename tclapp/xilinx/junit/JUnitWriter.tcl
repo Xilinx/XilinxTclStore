@@ -320,4 +320,3 @@ proc is_root_node { _graph _node } {
 }
 
 }; # namespace ::tclapp::xilinx::junit
-
