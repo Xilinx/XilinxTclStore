@@ -1,4 +1,4 @@
-package require Vivado 2013.4
+package require Vivado 2013.1
 
 namespace eval ::tclapp::topic::dyplo {
     # Export procs that should be allowed to import into other namespaces
