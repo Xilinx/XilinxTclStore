@@ -1,0 +1,12 @@
+
+  Description: This is a longer description for what the
+               proc is doing. This fragment help file is
+               appended at the end of the help generated
+               by Vivado for this command
+
+     This command must be run on an opened synthesized design.
+
+  Example:
+     tclapp::mycompany::template::my_command3 foo
+     tclapp::mycompany::template::my_command3 foo2 ,
+     tclapp::mycompany::template::my_command3 foo2 sep
