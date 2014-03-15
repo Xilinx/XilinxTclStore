@@ -1,7 +1,5 @@
 package require Vivado 1.2014.1
 
-package require ::tclapp::xilinx::designutils 1.0
-
 namespace eval ::tclapp::xilinx::designutils {
     namespace export get_pid_mem get_mem
 }
