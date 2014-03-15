@@ -426,15 +426,18 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
       }
     }
 
-    lappend l_script_data "# Add files to '$tcl_obj' fileset"
+    lappend l_script_data "# Set '$tcl_obj' fileset object"
     lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
-    write_files $proj_dir $proj_name $tcl_obj $type
-
+    if { {Constrs} == $fs_type } {
+      lappend l_script_data ""
+      write_constrs $proj_dir $proj_name $tcl_obj $type
+    } else {
+      write_files $proj_dir $proj_name $tcl_obj $type
+    }
+  
     lappend l_script_data "# Set '$tcl_obj' fileset properties"
     lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
     write_props $proj_dir $proj_name $get_what_fs $tcl_obj "fileset"
-
-    if { [string equal [get_property fileset_type [$get_what_fs $tcl_obj]] "Constrs"] } { continue }
   }
 }
 
@@ -777,7 +780,10 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
           if { [regexp "^${fs_name}/" $src_file] } {
             set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
           } else {
-            set proj_file_path "$file"
+            set file_no_quotes [string trim $file "\""]
+            set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+            set proj_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
+            #set proj_file_path "$file"
           }
         } else {
           if { $a_global_vars(b_absolute_path) } {
@@ -1000,6 +1006,250 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   # write fileset file properties for local files (imported sources)
   write_fileset_file_properties $tcl_obj $fs_name $proj_dir $l_local_file_list "local"
 
+}
+
+proc write_constrs { proj_dir proj_name tcl_obj type } {
+  # Summary: write constrs fileset files and properties 
+  # Argument Usage: 
+  # Return Value:
+  # none
+
+  variable a_global_vars
+  variable l_script_data
+
+  set fs_name [get_filesets $tcl_obj]
+
+  # return if empty fileset
+  if {[llength [get_files -quiet -of_objects [get_filesets $tcl_obj]]] == 0 } {
+    lappend l_script_data "# Empty (no sources present)\n"
+    return
+  }
+
+  foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
+    lappend l_script_data "# Add/Import constrs file and set constrs file properties"
+    set constrs_file  {}
+    set file_category {}
+    set path_dirs     [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
+    set begin         [lsearch -exact $path_dirs "$proj_name.srcs"]
+    set src_file      [join [lrange $path_dirs $begin+1 end] "/"]
+    set file_object   [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+    set file_props    [list_property $file_object]
+
+    # constrs sources imported? 
+    if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
+      set imported_path  [get_property "imported_from" $file]
+      set rel_file_path  [get_relative_file_path $file $a_global_vars(s_path_to_script_dir)]
+      set proj_file_path "\$origin_dir/$rel_file_path"
+      set file           "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
+      # donot copy imported constrs in new project? set it as remote file in new project.
+      if { $a_global_vars(b_arg_no_copy_srcs) } {
+        set constrs_file $file
+        set file_category "remote"
+        if { $a_global_vars(b_absolute_path) } {
+          add_constrs_file "$file"
+        } else {
+          set str "\"\[file normalize \"$proj_file_path\"\]\""
+          add_constrs_file $str
+        }
+      } else {
+        # copy imported constrs in new project. Set it as local file in new project.
+        set constrs_file $file
+        set file_category "local"
+        if { $a_global_vars(b_absolute_path) } {
+          import_constrs_file $tcl_obj "$file"
+        } else {
+          set str "\"\[file normalize \"$proj_file_path\"\]\""
+          import_constrs_file $tcl_obj $str
+        }
+      }
+    } else {
+      # constrs sources were added, so check if these are local or added from remote location
+      set file "\"$file\""
+      set constrs_file $file
+
+      # is added constrs local to the project? import it in the new project and set it as local in the new project
+      if { [is_local_to_project $file] } {
+        # file is added from within project, so set it as local in the new project
+        set file_category "local"
+
+        if { $a_global_vars(b_arg_dump_proj_info) } {
+          set src_file "\$PSRCDIR/$src_file"
+        }
+        set file_no_quotes [string trim $file "\""]
+        set org_file_path "\$origin_dir/[get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]"
+        set str "\"\[file normalize \"$org_file_path\"\]\""
+        import_constrs_file $tcl_obj $str
+      } else {
+        # file is added from remote location, so set it as remote in the new project
+        set file_category "remote"
+ 
+        # find relative file path of the added constrs if no_copy in the new project
+        if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
+          set file_no_quotes [string trim $file "\""]
+          set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+          set file_1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
+          add_constrs_file "$file_1"
+        } else {
+          add_constrs_file "$file"
+        }
+      }
+
+      # set flag that local sources were found and print warning at the end
+      if { !$a_global_vars(b_local_sources) } {
+        set a_global_vars(b_local_sources) 1
+      }
+    }
+    write_constrs_fileset_file_properties $tcl_obj $fs_name $proj_dir $constrs_file $file_category
+  }
+}
+
+proc add_constrs_file { file_str } {
+  # Summary: add constrs file 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none
+
+  variable a_global_vars
+  variable l_script_data
+
+  if { $a_global_vars(b_absolute_path) } {
+    lappend l_script_data "set file $file_str"
+  } else {
+    if { $a_global_vars(b_arg_no_copy_srcs) } {
+      lappend l_script_data "set file $file_str"
+    } else {
+      set file_no_quotes [string trim $file_str "\""]
+      set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+      lappend l_script_data "set file \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
+    }
+  }
+  lappend l_script_data "set file_added \[add_files -norecurse -fileset \$obj \$file\]"
+}
+
+proc import_constrs_file { tcl_obj file_str } {
+  # Summary: import constrs file 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none
+
+  variable a_global_vars
+  variable l_script_data
+
+  # now import local files if -no_copy_sources is not specified
+  if { ! $a_global_vars(b_arg_no_copy_srcs)} {
+    lappend l_script_data "set file $file_str"
+    lappend l_script_data "set file_imported \[import_files -fileset $tcl_obj \$file\]"
+  }
+}
+
+proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_category } {
+  # Summary: write constrs fileset file properties 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none
+
+  variable a_global_vars
+  variable l_script_data
+  variable l_local_files
+  variable l_remote_files
+
+  set file_prop_count 0
+
+  # collect local/remote files for the header section
+  if { [string equal $file_category "local"] } {
+    lappend l_local_files $file
+  } elseif { [string equal $file_category "remote"] } {
+    lappend l_remote_files $file
+  }
+
+  set file [string trim $file "\""]
+  
+  # fix file path for local files
+  if { [string equal $file_category "local"] } {
+    set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
+    set src_file [join [lrange $path_dirs end-1 end] "/"]
+    set src_file [string trimleft $src_file "/"]
+    set src_file [string trimleft $src_file "\\"]
+    set file $src_file
+  }
+
+  set file_object ""
+  if { [string equal $file_category "local"] } {
+    set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
+  } elseif { [string equal $file_category "remote"] } {
+    set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+  }
+
+  # get the constrs file properties
+  set file_props [list_property $file_object]
+  set prop_info_list [list]
+  set prop_count 0
+  foreach file_prop $file_props {
+    set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
+    if { [string equal $is_readonly "1"] } {
+      continue
+    }
+    set prop_type [get_property type [rdi::get_attr_specs $file_prop -object $file_object]]
+    set def_val   [list_property_value -default $file_prop $file_object]
+    set cur_val   [get_property $file_prop $file_object]
+
+    # filter special properties
+    if { [filter $file_prop $cur_val $file] } { continue }
+
+    # re-align values
+    set cur_val [get_target_bool_val $def_val $cur_val]
+
+    set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
+    set prop_entry ""
+    if { [string equal $file_category "local"] } {
+      set prop_entry "[string tolower $file_prop]#[get_property $file_prop $file_object]"
+    } elseif { [string equal $file_category "remote"] } {
+      set prop_value_entry [get_property $file_prop $file_object]
+      set prop_entry "[string tolower $file_prop]#$prop_value_entry"
+    }
+    # include all properties?
+    if { $a_global_vars(b_arg_all_props) } {
+      lappend prop_info_list $prop_entry
+      incr prop_count
+    } else {
+      # include only non-default (default behavior)
+      if { $def_val != $cur_val } {
+        lappend prop_info_list $prop_entry
+        incr prop_count
+      }
+    }
+
+    if { $a_global_vars(b_arg_dump_proj_info) } {
+      puts $a_global_vars(def_val_fh) "[file tail $file]=$file_prop ($prop_type) :DEFAULT_VALUE ($def_val)==CURRENT_VALUE ($cur_val)"
+      puts $a_global_vars(dp_fh) "$dump_prop_name=$cur_val"
+    }
+  }
+
+  # write properties now
+  if { $prop_count>0 } {
+    if { {remote} == $file_category } {
+      if { $a_global_vars(b_absolute_path) } {
+        lappend l_script_data "set file \"$file\""
+      } else {
+        lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path $file $a_global_vars(s_path_to_script_dir)]\""
+        lappend l_script_data "set file \[file normalize \$file\]"
+      }
+    } else {
+      lappend l_script_data "set file \"$file\""
+    }
+
+    lappend l_script_data "set file_obj \[get_files -of_objects \[get_filesets $tcl_obj\] \[list \"*\$file\"\]\]"
+    set get_what "get_files"
+    write_properties $prop_info_list $get_what $tcl_obj
+    incr file_prop_count
+  }
+
+  if { $file_prop_count == 0 } {
+    lappend l_script_data "# None"
+  }
 }
 
 proc write_specified_run { proj_dir proj_name runs } {

@@ -676,7 +676,7 @@ proc usf_create_do_file { simulator do_filename } {
     set saif [get_property "IES.SIMULATE.SAIF" $fs_obj]
     if { {} != $saif } {
       if { {} == $uut } {
-        set uut "/$top/uut/*"
+        set uut "/$top/uut"
       }
       puts $fh_do "dumpsaif -scope $uut -overwrite -output $saif"
     }
