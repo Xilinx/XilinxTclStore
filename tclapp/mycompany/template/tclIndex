@@ -9,3 +9,4 @@
 set auto_index(::tclapp::mycompany::template::my_command2) [list source [file join $dir myscript2.tcl]]
 set auto_index(::tclapp::mycompany::template::my_command3) [list source [file join $dir myscript2.tcl]]
 set auto_index(::tclapp::mycompany::template::my_command1) [list source [file join $dir myscript1.tcl]]
+
