@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<commit_id>990d7be00c1fb890cec76a063b8204da081ab1c4</commit_id>
+<revision>0.1</revision>
+<name>Dyplo</name>
+<company>Topic</company>
+<summary>Dyplo utils test</summary>
+<procs>
+  <proc>
+    <name>dyplo_hello</name>
+  </proc>
+  <proc>
+    <name>dyplo_create_bd</name>
+  </proc>
+</procs>
