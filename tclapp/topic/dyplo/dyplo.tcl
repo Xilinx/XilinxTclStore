@@ -9,4 +9,4 @@ namespace eval ::tclapp::topic::dyplo {
     }
 
 }
-package provide ::tclapp::topic::dyplo 1.0
+package provide ::tclapp::topic::dyplo 0.1

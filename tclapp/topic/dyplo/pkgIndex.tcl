@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::topic::dyplo 1.0 [list source [file join $dir dyplo.tcl]]
+package ifneeded ::tclapp::topic::dyplo 0.1 [list source [file join $dir dyplo.tcl]]
