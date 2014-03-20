@@ -10,14 +10,11 @@ puts "== Unit Test name: $unit_test"
 set name [file rootname [file tail [info script]]]
 
 # Load the Design Checkpoint for the specific test
-open_checkpoint "$file_dir/src/write_slr_pblock_xdc/$name.dcp"
+open_checkpoint "$file_dir/src/convert_muxfx_to_luts/$name.dcp"
 
 # Run the write_slr_pblock_xdc script and verify that no error was reported
-if {[catch { ::tclapp::xilinx::designutils::write_slr_pblock_xdc -file $name.xdc } catchErrorString]} {
+if {[catch { ::tclapp::xilinx::designutils::convert_muxfx_to_luts } catchErrorString]} {
     error [format " -E- Unit test $name failed: %s" $catchErrorString]   
 }
-
-# Clean up the generated files from the script run
-foreach generatedFileName [glob -nocomplain $name.xdc] { file delete -force $generatedFileName }
 
 return 0
