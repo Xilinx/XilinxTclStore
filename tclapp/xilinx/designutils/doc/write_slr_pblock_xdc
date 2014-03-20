@@ -1,5 +1,5 @@
 
-  Description: Create CDC report for each clock-pair in the design
+  Description:
 
      Writes XDC specific pblock constraints based on the current design placement
      for each SLR.  The XDC file can be exported from the top-level or from a

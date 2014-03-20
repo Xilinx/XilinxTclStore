@@ -1,5 +1,5 @@
 
-  Description: Create CDC report for each clock-pair in the design
+  Description:
 
      Replaces all the MUXFX (MUXF7 and MUXF8) cells within an open synthesized design
      with LUT3 cells.  The design must be unplaced and the MUXFX cells cannot be part
