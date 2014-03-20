@@ -14,7 +14,10 @@ open_checkpoint "$file_dir/src/convert_muxfx_to_luts/$name.dcp"
 
 # Run the write_slr_pblock_xdc script and verify that no error was reported
 if {[catch { ::tclapp::xilinx::designutils::convert_muxfx_to_luts } catchErrorString]} {
+    close_design
     error [format " -E- Unit test $name failed: %s" $catchErrorString]   
 }
+
+close_design
 
 return 0

@@ -36,7 +36,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer {net {bufferType BUFH}} {
 }
 
 proc ::tclapp::xilinx::designutils::remove_buffer {cell} {
-  # Summary : insert a buffer or any 2-pins cell on a net
+  # Summary : remove a buffer or any 2-pins cell on a net
 
   # Argument Usage:
   # cell : Cell to be removed

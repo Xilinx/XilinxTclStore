@@ -30,8 +30,8 @@
           <summary>Clone the driver cell of a net. Run after synthesis</summary>
         </proc>
         <proc>
-		  <name>convert_muxfx_to_luts</name>
-		  <summary>Replaces MUXFX cells with LUT3 cells in an open synthesized design</summary>
+          <name>convert_muxfx_to_luts</name>
+          <summary>Replaces MUXFX cells with LUT3 cells in an open synthesized design</summary>
 		</proc>
         <proc>
           <name>create_diff_ports</name>
@@ -90,6 +90,10 @@
           <summary>highlight the destination sites of the enable signals reported by report_control_set command</summary>
         </proc>
         <proc>
+          <name>insert_buffer</name>
+          <summary>insert a buffer or any 2-pins cell on a net</summary>
+        </proc>
+        <proc>
           <name>insert_buffer_chain</name>
           <summary>insert a list of buffers or any 2-pins cells on a net</summary>
         </proc>
@@ -110,8 +114,16 @@
           <summary>this command queries the tool-chosen defaults from implementation and &quot;apply&quot; them so it looks like the user did it from the beginning. This complies with the bit export restriction that all ios be LOCd and explicitly set to an IO Standard</summary>
         </proc>
         <proc>
+          <name>remove_buffer</name>
+          <summary>remove a buffer or any 2-pins cell on a net</summary>
+        </proc>
+        <proc>
           <name>replicate_high_fanout_registers</name>
           <summary>Replicate registers to limit register fanout to maxFan.  Run after synthesis</summary>
+        </proc>
+        <proc>
+          <name>report_all_primitives</name>
+          <summary>reports all primitives (LIB_CELL) in the design</summary>
         </proc>
         <proc>
           <name>report_cells_fanout</name>

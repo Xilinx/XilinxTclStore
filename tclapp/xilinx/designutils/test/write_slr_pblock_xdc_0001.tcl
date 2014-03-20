@@ -14,8 +14,11 @@ open_checkpoint "$file_dir/src/write_slr_pblock_xdc/$name.dcp"
 
 # Run the write_slr_pblock_xdc script and verify that no error was reported
 if {[catch { ::tclapp::xilinx::designutils::write_slr_pblock_xdc -file $name.xdc } catchErrorString]} {
+    close_design
     error [format " -E- Unit test $name failed: %s" $catchErrorString]   
 }
+
+close_design
 
 # Clean up the generated files from the script run
 foreach generatedFileName [glob -nocomplain $name.xdc] { file delete -force $generatedFileName }
