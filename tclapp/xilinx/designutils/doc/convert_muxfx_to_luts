@@ -1,0 +1,13 @@
+
+  Description: Create CDC report for each clock-pair in the design
+
+     Replaces all the MUXFX (MUXF7 and MUXF8) cells within an open synthesized design
+     with LUT3 cells.  The design must be unplaced and the MUXFX cells cannot be part
+     of a primitive macro.
+
+  Example:
+
+     The following example creates will replace all the MUXF7 and MUXF8 cells within
+     within the opened synthesized design.
+
+       convert_muxfx_to_luts
