@@ -5,7 +5,7 @@
     <app>
       <revision>1.1</revision>
       <revision_history>Modified README; package requirement is Vivado 2013.1; updated commit id</revision_history>
-      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
+      <commit_id>2a02d316ca000e28a8ba239b8e65889c45c6ae4a</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
