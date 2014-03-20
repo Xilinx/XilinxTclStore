@@ -3,7 +3,7 @@
   <release>2014.2</release>
   <apps>
     <app>
-      <revision>1.0</revision>
+      <revision>1.1</revision>
       <revision_history>Modified README; package requirement is Vivado 2013.1; updated commit id</revision_history>
       <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>designutils</name>
