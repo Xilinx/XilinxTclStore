@@ -119,3 +119,4 @@ set auto_index(::tclapp::xilinx::designutils::get_connected_ref_pins) [list sour
 set auto_index(::tclapp::xilinx::designutils::get_data_through_pins) [list source [file join $dir get_data_through_pins.tcl]]
 set auto_index(::tclapp::xilinx::designutils::is_fabric_connected) [list source [file join $dir is_fabric_connected.tcl]]
 set auto_index(::tclapp::xilinx::designutils::write_slr_pblock_xdc) [list source [file join $dir write_slr_pblock_xdc.tcl]]
+set auto_index(::tclapp::xilinx::designutils::convert_muxfx_to_luts) [list source [file join $dir convert_muxfx_to_luts.tcl]]

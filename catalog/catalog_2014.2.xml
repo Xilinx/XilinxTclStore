@@ -30,6 +30,10 @@
           <summary>Clone the driver cell of a net. Run after synthesis</summary>
         </proc>
         <proc>
+		  <name>convert_muxfx_to_luts</name>
+		  <summary>Replaces MUXFX cells with LUT3 cells in an open synthesized design</summary>
+		</proc>
+        <proc>
           <name>create_diff_ports</name>
           <summary>Creates differential _N port for each _P port in a pinplanning design</summary>
         </proc>
