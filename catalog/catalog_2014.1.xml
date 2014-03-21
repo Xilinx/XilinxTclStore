@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <release>2014.1</release>
+  <release>2014.2</release>
   <apps>
     <app>
       <revision>1.1</revision>
@@ -209,13 +209,13 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>d665d803a749b2f10a9d05228894da7b0eb70595</commit_id>
+      <commit_id>6218187b617deed6a79d8778b2df6f51652a23e1</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This is a Cadence&amp;reg; Incisive&amp;reg; Enterprise Simulator (IES) integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;Incisive Enterprise Simulator (IES)&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
-      <display>Incisive&amp;reg; Enterprise Simulator IES</display>
+      <summary>This is a Cadence Incisive Enterprise Simulator (IES) integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;IES Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>Incisive Enterprise Simulator (IES)</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
@@ -357,7 +357,7 @@
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>1ed2534e4d48be55e5028ad38eeb2a1a31695aeb</commit_id>
+      <commit_id>3d151a50b0718d7c4feaaeb55ccd024bcfe845e4</commit_id>
       <name>myapp</name>
       <company>mycompany</company>
       <company_display>Xilinx, Inc.</company_display>
@@ -376,7 +376,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>d665d803a749b2f10a9d05228894da7b0eb70595</commit_id>
+      <commit_id>6218187b617deed6a79d8778b2df6f51652a23e1</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -507,8 +507,8 @@
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This is a Synopsys VCS&amp;reg;/VCS-MX Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;Verilog Compiler Simulator (VCS)&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
-      <display>Verilog Compiler Simulator VCS&amp;reg;</display>
+      <summary>This is a Synopsys VCS/VCS-MX Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;VCS Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>Verilog Compiler Simulator (VCS)</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>

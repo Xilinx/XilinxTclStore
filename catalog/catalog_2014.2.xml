@@ -32,7 +32,7 @@
         <proc>
           <name>convert_muxfx_to_luts</name>
           <summary>Replaces MUXFX cells with LUT3 cells in an open synthesized design</summary>
-		</proc>
+        </proc>
         <proc>
           <name>create_diff_ports</name>
           <summary>Creates differential _N port for each _P port in a pinplanning design</summary>
@@ -357,7 +357,7 @@
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>1ed2534e4d48be55e5028ad38eeb2a1a31695aeb</commit_id>
+      <commit_id>3d151a50b0718d7c4feaaeb55ccd024bcfe845e4</commit_id>
       <name>myapp</name>
       <company>mycompany</company>
       <company_display>Xilinx, Inc.</company_display>
