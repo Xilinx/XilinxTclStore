@@ -1636,7 +1636,9 @@ namespace eval check_dangling_pointers {
 
     ## top level call for the checker
     proc ::check_dangling_pointers::walk {tree} {
-	eval $tree
+	if [catch {eval $tree} result] {
+	    puts "Ignoring tcl eval error \"$result\" encountered during check for dangling pointers."
+	}
     }
 
     ## Literal without any delimiters
@@ -2571,6 +2573,135 @@ namespace eval package_documentation_requirements {
 	}
 	return \"${result}\"
     }
+proc ::package_documentation_requirements::parse_arg_usage_spec { argUsageSpec results } {
+    # NOTE: This code was copied verbatim from args.tcl.That is not good, but
+    # we don't currently have a better solution, and there is aleady other code 
+    # in this file (e.g. get_documentation_section) that is also in args.tcl.
+
+
+    # Summary: Returns 1 if the argument spec parsed out ok, 0 otherwise.
+    
+    # Argument Usage:
+    # spec : a string which purports to hold an argument spec.
+    # results : an array containing the results of parsing the argument spec
+    
+    # Return Value:
+    # 1 is returned if we can recognize this as a well-formed argument spec
+    # 0 is returned if we cannot recognize it as such.
+    # 
+    # If the function returns 1, then the following data are
+    # communicated back to the caller via the "results" argument.
+    # The following keys will have values set:
+    # results(isOptional)    : 1 implies this is a spec for an optional argument
+    # results(isPositional)  : 1 implies this is a spec for a positional argument,
+    # results(isSwitch)      : 1 implies this is a boolean switch
+    # results(defaultValue)  : if the spec indicates a default value for this
+    #                        : argument, it is set to the indicated value.
+    #                        : if there is no default, the value is <UNSET>
+    # results(argName)       : a string which is the name of the argument
+    # results(description)   : a string briefly describing the argument
+    #
+    # if the function returns 0, then the value of "results"
+    # is undefined.
+    
+    # Categories:
+    # system
+    # non-user visible
+    
+    # enble pass-by-reference for the output arg
+    upvar $results iResults
+    # clear it out
+    if { [array exists iResults] } {
+        array unset iResults
+    }
+    
+    if { [info exists iResults] } {
+        unset iResults
+    }
+    
+    # initialize to uninitialized :-)
+    set iResults(isOptional)    {<UNSET>}
+    set iResults(isPositional)  {<UNSET>}
+    set iResults(isSwitch)      {<UNSET>}
+    set iResults(defaultValue)  {<UNSET>}
+    set iResults(argName)       {<UNSET>}
+    set iResults(description)   {<UNSET>}
+    
+    # e.g. # [-report_name <arg> = report.txt] : when specified write a report to the specified name
+    if { [regexp {[\s]*\[[\s]*-([^<]*)[\s]*\<arg\>[\s]*=[\s]*([^\]]*)\][\s]*:([^\n]*)} $argUsageSpec -> name def desc] } {
+        set iResults(isOptional)    1
+        set iResults(isPositional)  0
+        set iResults(isSwitch)      0
+        set iResults(defaultValue)  [string trim $def]
+        set iResults(argName)       [string trim $name]
+        set iResults(description)   [string trim $desc]
+        return 1
+    }
+    
+    # e.g.  # [-report_name <arg>] : when specified write a report to the specified name
+    if { [regexp {[\s]*\[[\s]*-([^<]*)[\s]*\<arg\>[\s]*\][\s]*:([^\n]*)} $argUsageSpec -> name desc] } {
+        set iResults(isOptional)    1
+        set iResults(isPositional)  0
+        set iResults(isSwitch)      0
+        set iResults(argName)       [string trim $name]
+        set iResults(description)   [string trim $desc]
+        return 1
+    }
+    
+    # e.g.  # [-no_whammies] : when specified, don't allow whamies
+    if { [regexp {[\s]*\[[\s]*-(no_[^:]*)[\s]*\][\s]*:([^\n]*)} $argUsageSpec -> name desc] } {
+        set iResults(isOptional)    1
+        set iResults(isPositional)  0
+        set iResults(isSwitch)      1
+        set iResults(defaultValue)  1
+        set iResults(argName)       [string trim $name]
+        set iResults(description)   [string trim $desc]
+        return 1
+    }
+    
+    # e.g.  # [-use_smart_algorithm] : do it the good way, not the bad way
+    if { [regexp {[\s]*\[[\s]*-([^:]*)[\s]*\][\s]*:([^\n]*)} $argUsageSpec -> name desc] } {
+        set iResults(isOptional)    1
+        set iResults(isPositional)  0
+        set iResults(isSwitch)      1
+        set iResults(defaultValue)  0
+        set iResults(argName)       [string trim $name]
+        set iResults(description)   [string trim $desc]
+        return 1
+    }
+    
+    # e.g. # [pattern=*]     : Match cell names against patterns
+    if { [regexp {[\s]*\[[\s]*([^=]*)=[\s]*([^\]]*)\][\s]*:([^\n]*)} $argUsageSpec -> name def desc] } {
+        set iResults(isOptional)    1
+        set iResults(isPositional)  1
+        set iResults(isSwitch)      0
+        set iResults(defaultValue)  [string trim $def]
+        set iResults(argName)       [string trim $name]
+        set iResults(description)   [string trim $desc]
+        return 1
+    }
+    
+    # e.g.  # -report_name <arg> : write a report to the specified name
+    if { [regexp {[\s]*[\s]*-([^<]*)[\s]*\<arg\>[\s]*[\s]*:([^\n]*)} $argUsageSpec -> name desc] } {
+        set iResults(isOptional)    0
+        set iResults(isPositional)  0
+        set iResults(isSwitch)      0
+        set iResults(argName)       [string trim $name]
+        set iResults(description)   [string trim $desc]
+        return 1
+    }
+    
+    # e.g. # name : just a simple positional argument
+    if { [regexp {[\s]*([^:]*):([^\n]*)} $argUsageSpec -> name desc] } {
+        set iResults(isOptional)    0
+        set iResults(isPositional)  1
+        set iResults(isSwitch)      0
+        set iResults(argName)       [string trim $name]
+        set iResults(description)   [string trim $desc]
+        return 1
+    }
+    return 0
+}
     
     ## commands without {*}-construction
     proc ::package_documentation_requirements::Cd {interval text args} {
@@ -2592,7 +2723,17 @@ namespace eval package_documentation_requirements {
 	    # Enforce the existence of an "Argument Usage" section
 	    set extracted_section {}
 	    if { [::documentation_utils::get_documentation_section $args "Argument Usage" extracted_section] } {
-		# puts "found return value \n $extracted_section"
+		# now parse them using the reading scheme
+		set argUsageSpecs [string trim $extracted_section]
+		set argUsageSpecs [split $argUsageSpecs "\n"]
+		foreach argUsageSpec $argUsageSpecs {
+		    # parse the arg spec and extract the relevant info
+		    array unset pr
+		    array set pr {}
+		    if {! [parse_arg_usage_spec $argUsageSpec pr] } {
+			error_reporter::error $interval "invalid text \"$argUsageSpec\" in \"Argument Usage\" section."
+		    }
+		}
 	    } else {
 		error_reporter::error $interval "proceedure needs a \"Argument Usage\" section."
 	    }

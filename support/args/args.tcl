@@ -186,6 +186,12 @@ proc ::tclapp::support::args::build_get_arg_cache {} {
     uplevel 2 $cmd
 }
 
+################################################################################
+# NOTE: I have discovered that this proc is defined twice in this file. The
+# second definition is about 400 lines down, and is the one acutally executed
+# by tcl. So this is really dead code (I think). Since I don't have much
+# tcl knowledge, I'm reluctant to remove it, but be warned!. dm.
+################################################################################
 
 proc ::tclapp::support::args::parse_arg_usage_spec { argUsageSpec results } {
     # Summary: Returns 1 if the argument spec parsed out ok, 0 otherwise.
@@ -313,6 +319,11 @@ proc ::tclapp::support::args::parse_arg_usage_spec { argUsageSpec results } {
     return 0
 }
 
+############################################################################
+# NOTE: This proc also appears in tcl_lint.tcl (and so probably do a lot
+# of other procs in this file - argh! So if you change this proc, consider
+# updating the version in tcl_lint.tcl to match.
+############################################################################
 
 proc ::tclapp::support::args::get_documentation_section { procBody sectionName section } {
     # Summary : extracts the documentation section named $section from $body
@@ -608,7 +619,12 @@ proc ::tclapp::support::args::get_args { procName argUsageSpecs procArgs argVals
     # success!!
     return 1
 }
-
+################################################################################
+# This is the second definition of this proc in this file. And AFAIK it is
+# the one actually used. ALSO - be warned that this code is replicated in 
+# tcl_lint.tcl. So if you modify this code to change how we parse the
+# meta comments, you also need to update that file. dm.
+################################################################################
 proc ::tclapp::support::args::parse_arg_usage_spec { argUsageSpec results } {
     # Summary: Returns 1 if the argument spec parsed out ok, 0 otherwise.
     
