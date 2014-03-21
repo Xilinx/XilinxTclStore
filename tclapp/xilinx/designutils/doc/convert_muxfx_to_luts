@@ -7,7 +7,7 @@
 
   Example:
 
-     The following example creates will replace all the MUXF7 and MUXF8 cells within
+     The following example will replace all the MUXF7 and MUXF8 cells within
      the opened synthesized design.
 
        convert_muxfx_to_luts
