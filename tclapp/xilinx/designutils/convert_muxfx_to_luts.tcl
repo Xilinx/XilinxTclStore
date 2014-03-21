@@ -77,7 +77,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
         puts "Example:"
 		puts ""
         puts "  The following example will replace all the MUXF7 and MUXF8 cells within"
-        puts "  within the opened synthesized design."
+        puts "  the opened synthesized design."
         puts ""
         puts "  convert_muxfx_to_luts"
         puts ""
