@@ -205,7 +205,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					## Connect the net object to the I2 pin of the LUT3
 					if {[catch {connect_net -quiet -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
-						remove_cell -quiet $lutCellObj
+# 						remove_cell -quiet $lutCellObj
+            # The linter complains on the above line. The workaround is to call remove_cell as below:
+            eval [list remove_cell -quiet $lutCellObj]
 						## Append to the warning list the error returned
 						lappend warningList $returnString
 						## Break the loop and move onto the next MUXFX cell
@@ -227,7 +229,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					## Connect the net object to the I1 pin of the LUT3
 					if {[catch {connect_net -quiet -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
-						remove_cell -quiet $lutCellObj
+# 						remove_cell -quiet $lutCellObj
+            # The linter complains on the above line. The workaround is to call remove_cell as below:
+            eval [list remove_cell -quiet $lutCellObj]
 						## Append to the warning list the error returned
 						lappend warningList $returnString
 						## Break the loop and move onto the next MUXFX cell
@@ -249,7 +253,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					## Connect the net object to the I0 pin of the LUT3
 					if {[catch {connect_net -quiet -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
-						remove_cell -quiet $lutCellObj
+# 						remove_cell -quiet $lutCellObj
+            # The linter complains on the above line. The workaround is to call remove_cell as below:
+            eval [list remove_cell -quiet $lutCellObj]
 						## Append to the warning list the error returned
 						lappend warningList $returnString
 						## Break the loop and move onto the next MUXFX cell
@@ -271,7 +277,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					## Connect the net object to the O pin of the LUT3
 					if {[catch {connect_net -quiet -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
-						remove_cell -quiet $lutCellObj
+# 						remove_cell -quiet $lutCellObj
+            # The linter complains on the above line. The workaround is to call remove_cell as below:
+            eval [list remove_cell -quiet $lutCellObj]
 						## Append to the warning list the error returned
 						lappend warningList $returnString
 						## Break the loop and move onto the next MUXFX cell
@@ -291,7 +299,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		## Check to ensure the entire pin list was converted
 		if {$pinCount==[llength $pinList]} {
 			## Delete the MUXFX cell
-			remove_cell -quiet $cellObj
+# 			remove_cell -quiet $cellObj
+      # The linter complains on the above line. The workaround is to call remove_cell as below:
+      eval [list remove_cell -quiet $cellObj]
 		} else {
 			## Append to the warning list that the MUX was not converted
 			lappend warningList "CRITICAL WARNING: \[convert_mux_cells_to_luts\] Unable to convert MUX $cellObj to LUT object."
