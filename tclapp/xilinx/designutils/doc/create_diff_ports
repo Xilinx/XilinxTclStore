@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Creates differential _N port for each _P port in a pinplanning design.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::create_diff_ports
+

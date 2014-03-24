@@ -1,0 +1,13 @@
+
+
+  Description: 
+
+     Checks all the Cross Domain Crossing paths for typical issues.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+    The following example reports issues for all the CDC paths:
+     ::tclapp::xilinx::designutils::check_cdc_paths
+

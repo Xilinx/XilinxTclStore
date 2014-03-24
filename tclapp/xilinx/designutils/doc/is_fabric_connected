@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Determine if the given pin is connected to a SLICE. For input pins, check just the driver. For output pins, check all loads.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     set flag [::tclapp::xilinx::designutils::is_fabric_connected [get_pins ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1/Q]]
+

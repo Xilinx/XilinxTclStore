@@ -1,0 +1,13 @@
+
+
+  Description: 
+
+     Report the fanout of cells matching <ref_name> pattern.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::report_cells_fanout
+     ::tclapp::xilinx::designutils::report_cells_fanout LUT*
+

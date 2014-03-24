@@ -1,0 +1,15 @@
+
+
+  Description: 
+
+     Create all possible combinations of runs.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+    The following example generate all possible combination of runs (phys_opt_design is not run):
+     ::tclapp::xilinx::designutils::generate_runs 0
+
+    The following example generate all possible combination of runs (phys_opt_design is run):
+     ::tclapp::xilinx::designutils::generate_runs 1

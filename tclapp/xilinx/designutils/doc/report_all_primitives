@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Reports all primitives (LIB_CELL) in the design.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::report_all_primitives
+

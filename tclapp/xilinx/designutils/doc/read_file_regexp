@@ -1,0 +1,14 @@
+
+
+  Description: 
+
+     Returns all lines that match occurrence of the regular expression in the file.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     foreach line [::tclapp::xilinx::designutils::read_file_regexp myreport.rpt {Cell:}] {
+       # Process one-by-one, all the lines that matched the pattern: Cell:
+     }
+

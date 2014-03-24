@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Return the data pins of a single timing path.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::get_data_through_pins [lindex [get_timing_paths] 0]
+

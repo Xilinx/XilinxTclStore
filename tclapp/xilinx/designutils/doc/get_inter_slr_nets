@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Get all the inter-SLR nets.
+
+     This command must be run on a placed design.
+
+  Example:
+  
+     set nets [::tclapp::xilinx::designutils::get_inter_slr_nets]
+

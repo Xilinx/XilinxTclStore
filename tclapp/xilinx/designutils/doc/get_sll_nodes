@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Returns all the sll node objects in the device for matching SLRs.
+
+     This command must be run on an implemented design.
+
+  Example:
+  
+     set nodes [::tclapp::xilinx::designutils::get_sll_nodes]
+

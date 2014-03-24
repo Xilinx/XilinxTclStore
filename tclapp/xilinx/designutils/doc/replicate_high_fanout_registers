@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Replicate registers to limit register fanout.
+
+     This command should be preferably run on a synthesized design.
+
+  Example:
+  
+    The following example replicate the registers to limit the register fanout to 150:
+     ::tclapp::xilinx::designutils::replicate_high_fanout_registers 150

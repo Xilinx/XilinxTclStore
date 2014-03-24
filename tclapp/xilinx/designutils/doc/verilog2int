@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Convert a Verilog formatted number into an integer.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::verilog2int <verilogNumber>
+
