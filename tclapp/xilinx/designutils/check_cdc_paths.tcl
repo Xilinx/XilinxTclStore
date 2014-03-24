@@ -4,17 +4,18 @@ namespace eval ::tclapp::xilinx::designutils {
     namespace export check_cdc_paths
 }
 
-proc ::tclapp::xilinx::designutils::check_cdc_paths {} {
+proc ::tclapp::xilinx::designutils::check_cdc_paths {args} {
   # Summary : checks all the Cross Domain Crossing paths for typical issues
   
   # Argument Usage: 
+  # [-no_reset_paths] : Set this parameter if you want to skip asynchronous reset paths from the analysis.
 
   # Return Value:
   # 0
   
   # Categories: xilinxtclstore, designutils
 
-  uplevel ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths
+  uplevel ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths $args
   return 0
 }
 
@@ -23,16 +24,31 @@ eval [list namespace eval ::tclapp::xilinx::designutils::check_cdc_paths {
   variable messages [list]
 } ]
 
-proc ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths {} {
+proc ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths {args} {
   # Summary: checks all the CDC paths for typical issues
   
   # Argument Usage:
-  
+    
   # Return Value:
   # 0
   
   # Categories: xilinxtclstore, designutils
-
+	
+	## Set Default option values
+	array set opts {}
+	
+	## Parse arguments from option command line
+	while {[string match -* [lindex $args 0]]} {
+        switch -regexp -- [lindex $args 0] {
+			{-n(o(_(r(e(s(e(t(_(p(a(t(h)?)?)?)?)?)?)?)?)?)?)?)?$}  { set opts(-no_reset_paths) 1}
+             default {
+                return -code error "ERROR: \[check_cdc_paths\] Unknown option '[lindex $args 0]', please type 'check_cdc_paths -help' for usage info."
+            }
+        }
+        lshift args
+	}
+    
+	
   variable messages
   set messages [list]
 
@@ -51,8 +67,17 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths {} {
         continue
       }
       set info {}
+	  
+	  # Ignore timing paths on asynchronous reset paths. These are not always synchronized to the destination clock, 
+	  # and a false path is applied on them.
+	  # Sometimes we want to put aside these paths and concentrate on the real crossings. 
+	  set filter {}
+	  if {[info exists opts(-no_reset_paths)]} {
+		set filter {ENDPOINT_PIN !~ */CLR && ENDPOINT_PIN !~ */PRE}
+	  }  
+	  
       # -quiet suppresses warnings when no paths are found
-      set paths [get_timing_paths -quiet -max_paths 101 -unique_pins -nworst 1 -from $clk1 -to $clk2]
+      set paths [get_timing_paths -quiet -max_paths 101 -unique_pins -nworst 1 -from $clk1 -to $clk2 -filter $filter]
       set error 0
       foreach path $paths {
         if {![checkPathSynchronizer $path]} {
@@ -236,4 +261,23 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::areClocksRelated {clk1 clk2
   }
   # assume the clocks are related
   return 1
+}
+
+# #########################################################
+#  lshift
+# #########################################################
+proc ::tclapp::xilinx::designutils::check_cdc_paths::lshift {varname {nth 0}} {
+    # Summary :
+
+    # Argument Usage:
+
+    # Return Value:
+    # 
+
+    # Categories: xilinctclstore, designutils
+	
+	upvar $varname args
+	set r [lindex $args $nth]
+	set args [lreplace $args $nth $nth]
+	return $r
 }
