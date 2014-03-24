@@ -9,4 +9,4 @@
 
     The following example creates an XDC file which contains SLR specific
     pblock constraints for each of the cells under the current level of hierarchy.
-      write_slr_pblock_xdc -file slr_pblock.xdc
+      ::tclapp::xilinx::designutils::write_slr_pblock_xdc -file slr_pblock.xdc

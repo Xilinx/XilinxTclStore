@@ -115,7 +115,7 @@
         </proc>
         <proc>
           <name>remove_buffer</name>
-          <summary>remove a buffer or any 2-pins cell on a net</summary>
+          <summary>remove a buffer or any 2-pins cell</summary>
         </proc>
         <proc>
           <name>replicate_high_fanout_registers</name>
