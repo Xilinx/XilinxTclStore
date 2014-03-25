@@ -16,6 +16,7 @@ package require ::tclapp::xilinx::designutils
 # Start the unit tests
 puts "script is invoked from $test_dir"
 source -notrace [file join $test_dir check_cdc_paths_0001.tcl]
+source -notrace [file join $test_dir check_cdc_paths_0002.tcl]
 source -notrace [file join $test_dir convert_muxfx_to_luts_0001.tcl]
 source -notrace [file join $test_dir write_slr_pblock_xdc_0001.tcl]
 
