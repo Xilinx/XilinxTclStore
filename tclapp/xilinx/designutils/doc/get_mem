@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Queries the kernel for current heap memory of Vivado session.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     set mem [::tclapp::xilinx::designutils::get_mem]
+

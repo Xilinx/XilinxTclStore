@@ -1,0 +1,13 @@
+
+
+  Description: 
+
+     Report the cell utilization below hierarchical instances.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::report_hier_util
+     ::tclapp::xilinx::designutils::report_hier_util ingressLoop[6].ingressFifo/buffer_fifo/*
+

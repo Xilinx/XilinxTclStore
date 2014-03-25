@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Queries the kernel for the heap memory of a specific process.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     set mem [::tclapp::xilinx::designutils::get_pid_mem <pid>]
+

@@ -1,0 +1,18 @@
+
+
+  Description: 
+
+     Returns the next line that matches occurrence of regular expression in the file.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     set FH [open myreport.rpt r]
+     while {![eof $FH]} {
+       set status [::tclapp::xilinx::designutils::gets_regexp $FH {Cell:} line]
+       if {$status == 0} { 
+         # Process one-by-one, all the lines that matched the pattern: Cell:
+       }
+     }
+     close $FH

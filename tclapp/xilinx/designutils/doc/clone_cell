@@ -1,0 +1,15 @@
+
+
+  Description: 
+
+     Clone a cell and connects all the clone input pins to the master input pins.
+
+     This command should be preferably run on a synthesized design.
+
+  Example:
+  
+    The following example clone the cell and returns the cloned cell:
+     set clone [::tclapp::xilinx::designutils::clone_cell ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1 ]
+
+    The following example add a suffix to the cloned cell name:
+     set clone [::tclapp::xilinx::designutils::clone_cell ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1 {_clone}]

@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Bisect a P block.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::bisect_pblock <PblockName> {top} {right}
+

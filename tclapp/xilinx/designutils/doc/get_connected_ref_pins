@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Return a list of reference pins connected to the pin.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::get_connected_ref_pins [get_pins ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1/Q]
+

@@ -1,0 +1,15 @@
+
+
+  Description: 
+
+     Clone the driver cell of a net.
+
+     This command should be preferably run on a synthesized design.
+
+  Example:
+  
+    The following example clone the driver of the net and returns the cloned cell:
+     set clone [::tclapp::xilinx::designutils::clone_net_driver ingressLoop[0].ingressFifo/reset_IBUF ]
+
+    The following example add a suffix to the cloned driver name:
+     set clone [::tclapp::xilinx::designutils::clone_net_driver ingressLoop[0].ingressFifo/reset_IBUF {_clone}]

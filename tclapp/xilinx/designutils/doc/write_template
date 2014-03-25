@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance).
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::write_template -verilog -return_string
+

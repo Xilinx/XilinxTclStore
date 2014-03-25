@@ -1,0 +1,13 @@
+
+
+  Description: 
+
+     Report timing critical high fanout nets based on fanout and slack.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::report_critical_hfn
+     ::tclapp::xilinx::designutils::report_critical_hfn slack 1000
+

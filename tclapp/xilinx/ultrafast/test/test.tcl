@@ -20,3 +20,5 @@ source [file join $test_dir create_cdc_reports_0001.tcl]
 source [file join $test_dir report_clock_topology_0001.tcl]
 source [file join $test_dir report_io_reg_0001.tcl]
 source [file join $test_dir report_reset_signals_0001.tcl]
+
+return 0

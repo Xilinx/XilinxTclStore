@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Highlight the destination sites of the enable signals reported by report_control_set command.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::highlight_enable_signal_sites
+

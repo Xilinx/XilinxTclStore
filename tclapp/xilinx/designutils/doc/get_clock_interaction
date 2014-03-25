@@ -1,0 +1,13 @@
+
+
+  Description: 
+
+     Return a specific string within the clock interaction report.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+    The following example gets the WNS between clocks clk0 and clk1:
+     set WNS [::tclapp::xilinx::designutils::get_clock_interaction clk0 clk1 {wns}]
+
