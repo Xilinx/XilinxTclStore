@@ -149,6 +149,10 @@
           <summary>source a script from a choice of paths</summary>
         </proc>
         <proc>
+          <name>timing_report_to_verilog</name>
+          <summary>Convert timing paths to a Verilog structural netlist</summary>
+        </proc>
+        <proc>
           <name>verilog2int</name>
           <summary>Convert a Verilog formatted number into an integer</summary>
         </proc>

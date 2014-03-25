@@ -40,8 +40,11 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
     
     ## Parse arguments from option command line
 	while {[string match -* [lindex $args 0]]} {
-        switch -regexp -- [lindex $args 0] {
-			{-c(e(l(l)?)?)?$}                          { set opts(-cell)       [lshift args 1]}
+		## Set the name of the first level option
+        set optionName [lshift args]
+		## Check for the option name in the regular expression
+		switch -regexp -- $optionName {
+			{-c(e(l(l)?)?)?$}                          { set opts(-cell)       [lshift args]}
 			{-o(n(l(y(_(m(u(x(f(8)?)?)?)?)?)?)?)?)?$}  { set opts(-only_muxf8) 1}
             {-h(e(l(p)?)?)?$}                          { set opts(-help)       1}
             {-u(s(a(g(e)?)?)?)?$}                      { set opts(-help)       1}			
@@ -49,7 +52,6 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
                 return -code error "ERROR: \[convert_mux_cells_to_luts\] Unknown option '[lindex $args 0]', please type 'convert_mux_cells_to_luts -help' for usage info."
             }
         }
-        lshift args
     }
 
 		## Display help information
@@ -321,7 +323,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 # #########################################################
 # lshift
 # #########################################################
-proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::lshift {varname {nth 0}} {
+proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::lshift {varname} {
     # Summary :
 
     # Argument Usage:
@@ -329,11 +331,10 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::lshift {varname {nth 
     # Return Value:
     # 
 
-    # Categories: xilinxtclstore, designutils
-	
-	upvar $varname args
-	set r [lindex $args $nth]
-	set args [lreplace $args $nth $nth]
+    # Categories: xilinctclstore, designutils
+	upvar $varname argv
+	set r [lindex $argv 0]
+	set argv [lrange $argv 1 end]
 	return $r
 }
 
