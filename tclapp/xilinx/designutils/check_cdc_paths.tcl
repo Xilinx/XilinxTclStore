@@ -40,7 +40,7 @@ proc ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths {args} {
 	## Parse arguments from option command line
 	while {[string match -* [lindex $args 0]]} {
         switch -regexp -- [lindex $args 0] {
-			{-n(o(_(r(e(s(e(t(_(p(a(t(h)?)?)?)?)?)?)?)?)?)?)?)?$}  { set opts(-no_reset_paths) 1}
+			{-n(o(_(r(e(s(e(t(_(p(a(t(h(s)?)?)?)?)?)?)?)?)?)?)?)?)?$}  { set opts(-no_reset_paths) 1}
              default {
                 return -code error "ERROR: \[check_cdc_paths\] Unknown option '[lindex $args 0]', please type 'check_cdc_paths -help' for usage info."
             }
