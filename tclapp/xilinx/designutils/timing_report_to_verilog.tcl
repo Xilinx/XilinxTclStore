@@ -1,13 +1,3 @@
-# #  Script name:   timing_report_to_verilog.tcl
-# #  Created on:    4/24/2012 
-# #  Author:        Josh Gold
-# #  Purpose:       Creates a Verilog structural netlist based off of a 
-# #                 timing report.
-# #
-# #  History:       Josh Gold 03/24/2014
-# #                 Initial TclAppStore release.
-# #
-
 package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::designutils {
