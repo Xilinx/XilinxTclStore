@@ -68,16 +68,16 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
         puts "  -------------------------------"
         puts "  \[-cell\]             Given cell hierarchy for processing."
         puts "                      Default: \[current_instance .\]"
-		puts "  \[-only_muxf8\]       Replaces only MUXF8 cells."
+        puts "  \[-only_muxf8\]       Replaces only MUXF8 cells."
         puts ""
-		puts "Description:"
-		puts ""
-		puts "  Replaces all the MUXFX (MUXF7 and MUXF8) cells within an open synthesized design"
-		puts "  with LUT3 cells.  The design must be unplaced and the MUXFX cells cannot be part"
-		puts "  of a primitive macro."
-		puts ""
+        puts "Description:"
+        puts ""
+        puts "  Replaces all the MUXFX (MUXF7 and MUXF8) cells within an open synthesized design"
+        puts "  with LUT3 cells.  The design must be unplaced and the MUXFX cells cannot be part"
+        puts "  of a primitive macro."
+        puts ""
         puts "Example:"
-		puts ""
+        puts ""
         puts "  The following example will replace all the MUXF7 and MUXF8 cells within"
         puts "  the opened synthesized design."
         puts ""
@@ -159,7 +159,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		set lutCellName "$cellObj\_LUT_replacement"
 		
 		## Create a LUT cell
-		if {[catch {create_cell -quiet -reference "LUT3" $lutCellName} returnString]} {
+		if {[catch {create_cell -reference "LUT3" $lutCellName} returnString]} {
 			## Append to the warning list the error returned
 			lappend warningList $returnString
 			## Move to the next cell object
@@ -205,7 +205,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					}
 		
 					## Connect the net object to the I2 pin of the LUT3
-					if {[catch {connect_net -quiet -hier -net $netObj -objects $lutPinObj} returnString]} {
+					if {[catch {connect_net -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
 # 						remove_cell -quiet $lutCellObj
             # The linter complains on the above line. The workaround is to call remove_cell as below:
@@ -229,7 +229,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					}
 		
 					## Connect the net object to the I1 pin of the LUT3
-					if {[catch {connect_net -quiet -hier -net $netObj -objects $lutPinObj} returnString]} {
+					if {[catch {connect_net -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
 # 						remove_cell -quiet $lutCellObj
             # The linter complains on the above line. The workaround is to call remove_cell as below:
@@ -253,7 +253,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					}
 		
 					## Connect the net object to the I0 pin of the LUT3
-					if {[catch {connect_net -quiet -hier -net $netObj -objects $lutPinObj} returnString]} {
+					if {[catch {connect_net -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
 # 						remove_cell -quiet $lutCellObj
             # The linter complains on the above line. The workaround is to call remove_cell as below:
@@ -277,7 +277,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					}
 		
 					## Connect the net object to the O pin of the LUT3
-					if {[catch {connect_net -quiet -hier -net $netObj -objects $lutPinObj} returnString]} {
+					if {[catch {connect_net -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
 # 						remove_cell -quiet $lutCellObj
             # The linter complains on the above line. The workaround is to call remove_cell as below:
