@@ -4,7 +4,7 @@
   <apps>
     <app>
       <revision>1.5</revision>
-      <commit_id>0d7a01addd45fc5b48f65b434e3c94c477ea5e02</commit_id>
+      <commit_id>81d49fea456cac72b1ee36be3faf304683898029</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
