@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::designutils::report_clock_interaction
+# ::tclapp::xilinx::designutils::get_leaf_cells
 #------------------------------------------------------------------------
 # Proc to export
 #------------------------------------------------------------------------

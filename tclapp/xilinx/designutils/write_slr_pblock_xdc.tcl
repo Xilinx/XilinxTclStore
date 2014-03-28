@@ -45,17 +45,19 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::write_slr_pblock_xdc {
 	
 	## Parse arguments from option command line
 	while {[string match -* [lindex $args 0]]} {
-        switch -regexp -- [lindex $args 0] {
-			{-c(e(l(l)?)?)?$}                                      { set opts(-cell)          [lshift args 1]}
-            {-fi(l(e)?)?$}                                         { set opts(-file)          [lshift args 1]}
+		## Set the name of the first level option
+        set optionName [lshift args]
+		## Check for the option name in the regular expression
+		switch -regexp -- $optionName {
+			{-c(e(l(l)?)?)?$}                                      { set opts(-cell)          [lshift args]}
+            {-fi(l(e)?)?$}                                         { set opts(-file)          [lshift args]}
 			{-fo(r(c(e)?)?)?$}                                     { set opts(-force)         1}
-			{-p(b(l(o(c(k(_(p(r(e(f(i(x)?)?)?)?)?)?)?)?)?)?)?)?$}  { set opts(-pblock_prefix) [lshift args 1]}
+			{-p(b(l(o(c(k(_(p(r(e(f(i(x)?)?)?)?)?)?)?)?)?)?)?)?$}  { set opts(-pblock_prefix) [lshift args]}
             {-u(s(a(g(e)?)?)?)?$}                                  { set opts(-help)          1}
             default {
                 return -code error "ERROR: \[write_slr_pblock_xdc\] Unknown option '[lindex $args 0]', please type 'write_slr_pblock_xdc -help' for usage info."
             }
         }
-        lshift args
     }
 	
 	## Display help information
@@ -189,15 +191,17 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::process_slr_pblock_fro
 	
 	## Parse arguments from option command line
 	while {[string match -* [lindex $args 0]]} {
-        switch -regexp -- [lindex $args 0] {
-            {-c(o(n(s(t(r(a(i(n(t(_(l(i(s(t)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-constraint_list) [lshift args 1]}
-			{-p(b(l(o(c(k(_(p(r(e(f(i(x)?)?)?)?)?)?)?)?)?)?)?)?$}         { set opts(-pblock_prefix)   [lshift args 1]}
+		## Set the name of the first level option
+        set optionName [lshift args]
+		## Check for the option name in the regular expression
+		switch -regexp -- $optionName {
+            {-c(o(n(s(t(r(a(i(n(t(_(l(i(s(t)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-constraint_list) [lshift args]}
+			{-p(b(l(o(c(k(_(p(r(e(f(i(x)?)?)?)?)?)?)?)?)?)?)?)?$}         { set opts(-pblock_prefix)   [lshift args]}
             {-h(e(l(p)?)?)?$}                                             { set opts(-help)            1}
             default {
                 return -code error "ERROR: \[process_slr_pblock_from_hierarchy\] Unknown option '[lindex $args 0]', please type 'process_slr_pblock_from_hierarchy -help' for usage info."
             }
         }
-        lshift args
     }
 	
 	## Initialize the Array to store Constraint information
@@ -291,15 +295,17 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::get_clock_regions_from
 	
 	## Parse arguments from option command line
 	while {[string match -* [lindex $args 0]]} {
-        switch -regexp -- [lindex $args 0] {
-            {-n(a(m(e)?)?)?$}                                         { set opts(-name)           [lshift args 1]}
+		## Set the name of the first level option
+        set optionName [lshift args]
+		## Check for the option name in the regular expression
+		switch -regexp -- $optionName {
+            {-n(a(m(e)?)?)?$}                                         { set opts(-name)           [lshift args]}
 			{-r(e(t(u(r(n(_(s(t(r(i(n(g(s)?)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-return_strings) 1} 
             {-h(e(l(p)?)?)?$}                                         { set opts(-help)           1}
             default {
                 return -code error "ERROR: \[get_clock_regions_from_slr\] Unknown option '[lindex $args 0]', please type 'get_clock_regions_from_slr -help' for usage info."
             }
         }
-        lshift args
     }
 	
 	## Display help information
@@ -328,9 +334,9 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::get_clock_regions_from
 }
 
 # #########################################################
-#  lshift
+# lshift
 # #########################################################
-proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::lshift {varname {nth 0}} {
+proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::lshift {varname} {
     # Summary :
 
     # Argument Usage:
@@ -339,9 +345,8 @@ proc ::tclapp::xilinx::designutils::write_slr_pblock_xdc::lshift {varname {nth 0
     # 
 
     # Categories: xilinctclstore, designutils
-	
-	upvar $varname args
-	set r [lindex $args $nth]
-	set args [lreplace $args $nth $nth]
+	upvar $varname argv
+	set r [lindex $argv 0]
+	set argv [lrange $argv 1 end]
 	return $r
 }

@@ -3,9 +3,8 @@
   <release>2014.1</release>
   <apps>
     <app>
-      <revision>1.1</revision>
-      <revision_history>Modified README; package requirement is Vivado 2013.1; updated commit id</revision_history>
-      <commit_id>d426ca11284ff214ff108e176e9cc949c7aa4feb</commit_id>
+      <revision>1.4</revision>
+      <commit_id>0d7a01addd45fc5b48f65b434e3c94c477ea5e02</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -19,7 +18,7 @@
         </proc>
         <proc>
           <name>check_cdc_paths</name>
-          <summary>checks all the CDC paths for typical issues</summary>
+          <summary>checks all the Cross Domain Crossing paths for typical issues</summary>
         </proc>
         <proc>
           <name>clone_cell</name>
@@ -83,7 +82,7 @@
         </proc>
         <proc>
           <name>gets_regexp</name>
-          <summary>returns the next line that matches occurrence of regular expression in the file</summary>
+          <summary>returns the next line that matches occurrence of a regular expression in the file</summary>
         </proc>
         <proc>
           <name>highlight_enable_signal_sites</name>
@@ -107,7 +106,7 @@
         </proc>
         <proc>
           <name>read_file_regexp</name>
-          <summary>returns all lines that match occurrence of regular expression in the file</summary>
+          <summary>returns all lines that match occurrence of a regular expression in the file</summary>
         </proc>
         <proc>
           <name>reapply_iostandard</name>
@@ -150,8 +149,12 @@
           <summary>source a script from a choice of paths</summary>
         </proc>
         <proc>
+          <name>timing_report_to_verilog</name>
+          <summary>Convert timing paths to a Verilog structural netlist</summary>
+        </proc>
+        <proc>
           <name>verilog2int</name>
-          <summary>Convert a Verilog formatted number to an integer</summary>
+          <summary>Convert a Verilog formatted number into an integer</summary>
         </proc>
         <proc>
           <name>write_slr_pblock_xdc</name>
