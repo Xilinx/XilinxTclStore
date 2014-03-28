@@ -13,7 +13,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts {args} {
 	# [-usage]: Usage information
 
 	# Return Value:
-	# 
+	# 0 if success
 
 	# Categories: xilinxtclstore, designutils
 
@@ -96,10 +96,10 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		
 		## Check if object exists
 		if {[llength $optionCellObj]==0} {
-			return -code error "ERROR: \[report_unused_luts_in_pairs\] Unable to find cell object $opts(-cell) from -cell option."
+			return -code error "ERROR: \[convert_mux_cells_to_luts\] Unable to find cell object $opts(-cell) from -cell option."
 		## Check if more than one object was returned
 		} elseif {[llength $optionCellObj]>1} {
-			return -code error "ERROR: \[report_unused_luts_in_pairs\] Found more than 1 cell object ([join $optionCellObj ',']) from -cell option."
+			return -code error "ERROR: \[convert_mux_cells_to_luts\] Found more than 1 cell object ([join $optionCellObj ',']) from -cell option."
 		} else {
 			## Set the current instance to the top of the design
 			current_instance -quiet
@@ -119,11 +119,14 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 	
 	## Check that at least one cell exists in the list
 	if {[llength $cellList]==0} {
-		puts "INFO: \[convert_mux_cells_to_luts\] No MUX cells found in the design."
+		puts "INFO: \[convert_mux_cells_to_luts\] No MUXFX cells found in the design from level [current_instance -quiet .]."
 		return
 	} else {
-		puts "INFO: \[convert_mux_cells_to_luts\] Found [llength $cellList] MUX cells in the design."
+		puts "INFO: \[convert_mux_cells_to_luts\] Found [llength $cellList] MUX cells in the design from level [current_instance -quiet .]."
 	}
+	
+	## Reset the current instance back to the top-level scope to properly create and connect objects
+	current_instance -quiet
 	
 	## Initialize the warning list variable
 	set warningList ""
@@ -147,7 +150,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		
 		## Check to ensure that the MUX is not part of a MACRO cell
 		if {[get_property -quiet PRIMITIVE_LEVEL $cellObj] eq "INTERNAL"} {
-			lappend warningList "CRITICAL WARNING: \[convert_mux_cells_to_luts\] MUX cell $cellObj belongs to MACRO level primitive."
+			lappend warningList "CRITICAL WARNING: \[convert_mux_cells_to_luts\] MUX cell $cellObj belongs to MACRO level primitive.  Unable to convert this primitive."
 			## Move to the next cell object
 			continue
 		}
@@ -171,7 +174,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		
 		## Check to ensure that the LUT object was created
 		if {[llength $lutCellObj]==0} {
-			lappend warningList "CRITICAL WARNING: \[convert_mux_cells_to_luts\] Unable to create LUT cell for MUX $cellObj."
+			lappend warningList "CRITICAL WARNING: \[convert_mux_cells_to_luts\] Unable to find newly created LUT cell $lutCellName for MUX $cellObj."
 			## Move to the next cell object
 			continue
 		}
@@ -207,9 +210,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					## Connect the net object to the I2 pin of the LUT3
 					if {[catch {connect_net -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
-# 						remove_cell -quiet $lutCellObj
-            # The linter complains on the above line. The workaround is to call remove_cell as below:
-            eval [list remove_cell -quiet $lutCellObj]
+ 						#remove_cell -quiet $lutCellObj
+                        # The linter complains on the above line. The workaround is to call remove_cell as below:
+                        eval [list remove_cell -quiet $lutCellObj]
 						## Append to the warning list the error returned
 						lappend warningList $returnString
 						## Break the loop and move onto the next MUXFX cell
@@ -231,9 +234,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					## Connect the net object to the I1 pin of the LUT3
 					if {[catch {connect_net -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
-# 						remove_cell -quiet $lutCellObj
-            # The linter complains on the above line. The workaround is to call remove_cell as below:
-            eval [list remove_cell -quiet $lutCellObj]
+ 						#remove_cell -quiet $lutCellObj
+                        # The linter complains on the above line. The workaround is to call remove_cell as below:
+                        eval [list remove_cell -quiet $lutCellObj]
 						## Append to the warning list the error returned
 						lappend warningList $returnString
 						## Break the loop and move onto the next MUXFX cell
@@ -255,9 +258,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					## Connect the net object to the I0 pin of the LUT3
 					if {[catch {connect_net -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
-# 						remove_cell -quiet $lutCellObj
-            # The linter complains on the above line. The workaround is to call remove_cell as below:
-            eval [list remove_cell -quiet $lutCellObj]
+ 						#remove_cell -quiet $lutCellObj
+                        # The linter complains on the above line. The workaround is to call remove_cell as below:
+                        eval [list remove_cell -quiet $lutCellObj]
 						## Append to the warning list the error returned
 						lappend warningList $returnString
 						## Break the loop and move onto the next MUXFX cell
@@ -279,9 +282,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 					## Connect the net object to the O pin of the LUT3
 					if {[catch {connect_net -hier -net $netObj -objects $lutPinObj} returnString]} {
 						## If error occurred during the connection, delete the LUT object
-# 						remove_cell -quiet $lutCellObj
-            # The linter complains on the above line. The workaround is to call remove_cell as below:
-            eval [list remove_cell -quiet $lutCellObj]
+ 						#remove_cell -quiet $lutCellObj
+                        # The linter complains on the above line. The workaround is to call remove_cell as below:
+                        eval [list remove_cell -quiet $lutCellObj]
 						## Append to the warning list the error returned
 						lappend warningList $returnString
 						## Break the loop and move onto the next MUXFX cell
@@ -301,9 +304,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		## Check to ensure the entire pin list was converted
 		if {$pinCount==[llength $pinList]} {
 			## Delete the MUXFX cell
-# 			remove_cell -quiet $cellObj
-      # The linter complains on the above line. The workaround is to call remove_cell as below:
-      eval [list remove_cell -quiet $cellObj]
+ 			#remove_cell -quiet $cellObj
+            # The linter complains on the above line. The workaround is to call remove_cell as below:
+            eval [list remove_cell -quiet $cellObj]
 		} else {
 			## Append to the warning list that the MUX was not converted
 			lappend warningList "CRITICAL WARNING: \[convert_mux_cells_to_luts\] Unable to convert MUX $cellObj to LUT object."
@@ -318,6 +321,8 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 	## Reset the current instance back to the scope prior to script execution
 	current_instance -quiet
 	current_instance -quiet $origCurrentInstanceCell
+	
+	return 0
 }
 
 # #########################################################
