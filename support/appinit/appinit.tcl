@@ -122,6 +122,9 @@ proc ::tclapp::support::appinit::unload_app {app ns} {
     append pattern :: *
     set appprocs [info commands $pattern]
 
+    # save app to app_orig
+    set app_orig $app
+
     append app ::
     foreach cmd $appprocs {
         # name of app proc without the namespace
@@ -136,6 +139,7 @@ proc ::tclapp::support::appinit::unload_app {app ns} {
             # ignore errors
         }
     }
+    package forget $app_orig
 }
 
 proc ::tclapp::support::appinit::app_procs {app ns} {
