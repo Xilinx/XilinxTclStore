@@ -123,9 +123,9 @@ proc simulate { args } {
   set retval [xsim $snapshot -key $key -tclbatch $cmd_file -log $log_file]
   cd $cwd
 
-  #set proc_name [lindex [split [info level 0] " "] 0]
-  #set step [lindex [split $proc_name {:}] end]
-  #::tclapp::xilinx::xsim::usf_launch_script "xsim" $step
+  set proc_name [lindex [split [info level 0] " "] 0]
+  set step [lindex [split $proc_name {:}] end]
+  ::tclapp::xilinx::xsim::usf_launch_script "xsim" $step
 
   # close for batch flow
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_batch) } {
@@ -146,11 +146,6 @@ proc usf_xsim_setup_simulation { args } {
  
   # set the simulation flow
   ::tclapp::xilinx::xsim::usf_set_simulation_flow
-
-  # set the simulation run dir
-  ::tclapp::xilinx::xsim::usf_set_run_dir
-
-  set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
   # set default object
   if { [::tclapp::xilinx::xsim::usf_set_sim_tcl_obj] } {
@@ -196,6 +191,7 @@ proc usf_xsim_setup_args { args } {
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-batch]: Execute batch flow simulation run (non-gui)
+  # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
  
@@ -217,6 +213,7 @@ proc usf_xsim_setup_args { args } {
       "-of_objects"     { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) 1 }
       "-batch"          { set ::tclapp::xilinx::xsim::a_sim_vars(b_batch) 1 }
+      "-run_dir"        { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
       default {

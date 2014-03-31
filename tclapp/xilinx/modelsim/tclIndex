@@ -34,7 +34,6 @@ set auto_index(::tclapp::xilinx::modelsim::usf_create_fs_options_spec) [list sou
 set auto_index(::tclapp::xilinx::modelsim::usf_set_fs_options) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_is_option_registered_on_simulator) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_set_simulation_flow) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::modelsim::usf_set_run_dir) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_set_sim_tcl_obj) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_set_ref_dir) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_write_design_netlist) [list source [file join $dir helpers.tcl]]

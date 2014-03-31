@@ -262,20 +262,6 @@ proc usf_set_simulation_flow {} {
   return 0
 }
 
-proc usf_set_run_dir {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-
-  # initialize simulation run dir path
-  set sim_dir $a_sim_vars(s_project_name);append sim_dir ".sim"
-  set mode [get_property "SIM_MODE" [get_filesets $a_sim_vars(s_simset)]]
-  set run_dir [file normalize [file join $a_sim_vars(s_project_dir) $sim_dir $a_sim_vars(s_simset) $a_sim_vars(s_flow_dir_key)]]
-  set a_sim_vars(s_launch_dir) $run_dir
-}
-
 proc usf_set_sim_tcl_obj {} {
   # Summary:
   # Argument Usage:
@@ -882,6 +868,10 @@ proc usf_launch_script { simulator step } {
     send_msg_id Vivado-XSim-060 INFO "Script generated:[file normalize [file join $run_dir $scr_file]]"
     return 0
   }
+ 
+  if { {simulate} == $step } {
+    return 0
+  }
 
   set b_wait 0
   if { $a_sim_vars(b_batch) } {
@@ -975,6 +965,7 @@ proc usf_print_args {} {
   puts "-absolute_path  = $::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path)"
   puts "-install_path   = $::tclapp::xilinx::xsim::a_sim_vars(s_install_path)"
   puts "-batch          = $::tclapp::xilinx::xsim::a_sim_vars(b_batch)"
+  puts "-run_dir        = $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)"
   puts "-int_os_type    = $::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type)"
   puts "-int_debug_mode = $::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode)"
   puts "*******************************"

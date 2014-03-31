@@ -99,9 +99,6 @@ proc usf_ies_setup_simulation { args } {
   # set the simulation flow
   ::tclapp::xilinx::ies::usf_set_simulation_flow
 	
-  # set the simulation run dir
-  ::tclapp::xilinx::ies::usf_set_run_dir
-
   # set default object
   if { [::tclapp::xilinx::ies::usf_set_sim_tcl_obj] } {
     puts "failed to set tcl obj"
@@ -152,6 +149,7 @@ proc usf_ies_setup_args { args } {
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-install_path <arg>]: Custom IES installation directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
+  # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
 
@@ -174,6 +172,7 @@ proc usf_ies_setup_args { args } {
       "-absolute_path"  { set ::tclapp::xilinx::ies::a_sim_vars(b_absolute_path) 1 }
       "-install_path"   { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_install_path) [lindex $args $i] }
       "-batch"          { set ::tclapp::xilinx::ies::a_sim_vars(b_batch) 1 }
+      "-run_dir"        { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_launch_dir) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
       default {
