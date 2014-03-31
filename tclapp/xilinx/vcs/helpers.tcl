@@ -262,20 +262,6 @@ proc usf_set_simulation_flow {} {
   return 0
 }
 
-proc usf_set_run_dir {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-
-  # initialize simulation run dir path
-  set sim_dir $a_sim_vars(s_project_name);append sim_dir ".sim"
-  set mode [get_property "SIM_MODE" [get_filesets $a_sim_vars(s_simset)]]
-  set run_dir [file normalize [file join $a_sim_vars(s_project_dir) $sim_dir $a_sim_vars(s_simset) $a_sim_vars(s_flow_dir_key)]]
-  set a_sim_vars(s_launch_dir) $run_dir
-}
-
 proc usf_set_sim_tcl_obj {} {
   # Summary:
   # Argument Usage:
