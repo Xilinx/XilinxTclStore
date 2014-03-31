@@ -4,6 +4,8 @@
 #
 # Script created on 02/08/2013 by Raj Klair (Xilinx, Inc.)
 #
+# 2014.2 - v2.0 (rev 4)
+#  * no change
 # 2014.1 - v2.0 (rev 3)
 #  * make source file paths relative to script output directory
 #

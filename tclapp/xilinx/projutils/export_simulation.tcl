@@ -4,6 +4,9 @@
 #
 # Script created on 07/12/2013 by Raj Klair (Xilinx, Inc.)
 #
+# 2014.2 - v2.0 (rev. 1)
+#  * no changes
+#
 # 2014.1 - v1.0 (rev. 1)
 #  * no changes
 #
