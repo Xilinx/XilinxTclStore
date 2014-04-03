@@ -717,8 +717,42 @@ proc usf_prepare_ip_for_simulation { } {
   }
   # update compile order
   foreach fs $fs_objs {
-    update_compile_order -fileset [get_filesets $fs]
+    if { [usf_fs_contains_hdl_source $fs] } {
+      update_compile_order -fileset [get_filesets $fs]
+    }
   }
+}
+
+proc usf_fs_contains_hdl_source { fs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_valid_ip_extns
+
+  set b_contains_hdl 0
+  set tokens [split [find_top -fileset $fs -return_file_paths] { }]
+  for {set i 0} {$i < [llength $tokens]} {incr i} {
+    set top [string trim [lindex $tokens $i]]
+    incr i;
+    set file [string trim [lindex $tokens $i]]
+
+    # skip ip's
+    if { [lsearch -exact $l_valid_ip_extns [file extension $file]] >= 0 } { continue; }
+
+    # check if any HDL sources present in fileset
+    set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all -of_objects [get_filesets $fs] $file] 0]]
+    if { ({Verilog}          == $file_type) || \
+         ({Verilog Header}   == $file_type) || \
+         ({Verilog Template} == $file_type) || \
+         ({SystemVerilog}    == $file_type) || \
+         ({VHDL}             == $file_type) || \
+         ({VHDL Template}    == $file_type) } {
+      set b_contains_hdl 1
+      break
+    }
+  }
+  return $b_contains_hdl
 }
 
 proc usf_set_simulator_path { simulator } {

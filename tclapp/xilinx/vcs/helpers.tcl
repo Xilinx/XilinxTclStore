@@ -651,6 +651,7 @@ proc usf_create_do_file { simulator do_filename } {
   variable a_sim_vars
   set fs_obj [current_fileset -simset]
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
+  set b_scripts_only $::tclapp::xilinx::vcs::a_sim_vars(b_scripts_only)
   set do_file [file join $a_sim_vars(s_launch_dir) $do_filename]
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
@@ -680,7 +681,7 @@ proc usf_create_do_file { simulator do_filename } {
       puts $fh_do "power -disable"
       puts $fh_do "power -report $saif $timescale $module"
     }
-    if { $a_sim_vars(b_batch) } {
+    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
       puts $fh_do "quit"
     }
   }
@@ -749,8 +750,42 @@ proc usf_prepare_ip_for_simulation { } {
   }
   # update compile order
   foreach fs $fs_objs {
-    update_compile_order -fileset [get_filesets $fs]
+    if { [usf_fs_contains_hdl_source $fs] } {
+      update_compile_order -fileset [get_filesets $fs]
+    }
   }
+}
+
+proc usf_fs_contains_hdl_source { fs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_valid_ip_extns
+
+  set b_contains_hdl 0
+  set tokens [split [find_top -fileset $fs -return_file_paths] { }]
+  for {set i 0} {$i < [llength $tokens]} {incr i} {
+    set top [string trim [lindex $tokens $i]]
+    incr i;
+    set file [string trim [lindex $tokens $i]]
+
+    # skip ip's
+    if { [lsearch -exact $l_valid_ip_extns [file extension $file]] >= 0 } { continue; }
+
+    # check if any HDL sources present in fileset
+    set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all -of_objects [get_filesets $fs] $file] 0]]
+    if { ({Verilog}          == $file_type) || \
+         ({Verilog Header}   == $file_type) || \
+         ({Verilog Template} == $file_type) || \
+         ({SystemVerilog}    == $file_type) || \
+         ({VHDL}             == $file_type) || \
+         ({VHDL Template}    == $file_type) } {
+      set b_contains_hdl 1
+      break
+    }
+  }
+  return $b_contains_hdl
 }
 
 proc usf_set_simulator_path { simulator } {

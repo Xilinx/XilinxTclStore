@@ -82,12 +82,15 @@ proc simulate { args } {
   set b_add_view 0
   usf_xsim_write_simulate_script cmd_file wcfg_file b_add_view scr_filename
 
+  set proc_name [lindex [split [info level 0] " "] 0]
+  set step [lindex [split $proc_name {:}] end]
+  ::tclapp::xilinx::xsim::usf_launch_script "xsim" $step
+
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
-    send_msg_id Vivado-XSim-005 INFO "Scripts generated."
     return
   }
 
-  # is dll requuested?
+  # is dll requested?
   set b_dll [get_property "XELAB.DLL" $fs_obj]
   if { $b_dll } {
     set lib_extn {.dll}
@@ -122,10 +125,6 @@ proc simulate { args } {
   cd $dir
   set retval [xsim $snapshot -key $key -tclbatch $cmd_file -log $log_file]
   cd $cwd
-
-  set proc_name [lindex [split [info level 0] " "] 0]
-  set step [lindex [split $proc_name {:}] end]
-  ::tclapp::xilinx::xsim::usf_launch_script "xsim" $step
 
   # close for batch flow
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_batch) } {
@@ -754,6 +753,12 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   set filter "FILE_TYPE == \"TCL\""
   foreach file [get_files -all -quiet -used_in "simulation" -filter $filter] {
      puts $fh_scr "source \{$file\}"
+  }
+
+  if { ($::tclapp::xilinx::xsim::a_sim_vars(b_batch)) || \
+       ($::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only)) } {
+    puts $fh_scr "close_sim"
+    puts $fh_scr "exit"
   }
   close $fh_scr
 }
