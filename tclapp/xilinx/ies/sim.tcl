@@ -486,6 +486,7 @@ proc usf_ies_write_simulate_script {} {
 
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+  set b_scripts_only $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)
   set filename "simulate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
@@ -515,7 +516,7 @@ proc usf_ies_write_simulate_script {} {
   if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
-  if { $::tclapp::xilinx::ies::a_sim_vars(b_batch) } {
+  if { $::tclapp::xilinx::ies::a_sim_vars(b_batch) || $b_scripts_only } {
    # no gui
   } else {
     set arg_list [linsert $arg_list end "-gui"]

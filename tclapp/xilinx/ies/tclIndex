@@ -26,6 +26,7 @@ set auto_index(::tclapp::xilinx::ies::usf_create_options) [list source [file joi
 set auto_index(::tclapp::xilinx::ies::usf_create_fs_options_spec) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_set_fs_options) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_is_option_registered_on_simulator) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::ies::usf_fs_contains_hdl_source) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_set_simulation_flow) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_set_sim_tcl_obj) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_set_ref_dir) [list source [file join $dir helpers.tcl]]

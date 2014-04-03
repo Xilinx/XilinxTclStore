@@ -559,6 +559,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
@@ -610,7 +611,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     puts $fh "\npower report -all -bsaif $saif"
   }
 
-  if { $b_batch } {
+  if { $b_batch || $b_scripts_only } {
     puts $fh "\nquit -force"
   }
   close $fh
@@ -646,6 +647,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
 
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
 
   set scr_filename $step;append scr_filename [::tclapp::xilinx::modelsim::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -656,7 +658,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   }
 
   set batch_sw {-c}
-  if { ({simulate} == $step) && (!$b_batch) } {
+  if { ({simulate} == $step) && (!$b_batch) && (!$b_scripts_only) } {
     set batch_sw {}
   }
 

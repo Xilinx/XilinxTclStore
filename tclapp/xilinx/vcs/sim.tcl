@@ -401,6 +401,7 @@ proc usf_vcs_write_simulate_script {} {
 
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
+  set b_scripts_only $::tclapp::xilinx::vcs::a_sim_vars(b_scripts_only)
   set filename "simulate";append filename ".sh"
   set file [file normalize [file join $dir $filename]]
   set fh_scr 0
@@ -423,7 +424,7 @@ proc usf_vcs_write_simulate_script {} {
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   puts $fh_scr ""
   set arg_list [list "./${top}_simv"]
-  if { $::tclapp::xilinx::vcs::a_sim_vars(b_batch) } {
+  if { $::tclapp::xilinx::vcs::a_sim_vars(b_batch) || $b_scripts_only } {
     # no gui
   } else {
     set arg_list [linsert $arg_list end "-gui"]
