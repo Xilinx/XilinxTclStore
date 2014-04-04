@@ -387,6 +387,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path)
 
   set fh 0
@@ -425,12 +426,27 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   puts $fh ""
 
   if { $b_absolute_path } {
-    puts $fh "set reference_dir \"$dir\""
+    puts $fh "set origin_dir \"$dir\""
   } else {
-    puts $fh "set reference_dir \".\""
+    puts $fh "set origin_dir \".\""
   }
-  puts $fh "set vlog_opts \{-incr\}"
-  puts $fh "set vcom_opts \{-93\}"
+
+  set vlog_arg_list [list "-incr"]
+  set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vlog_options } {
+    set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
+  }
+  set vlog_cmd_str [join $vlog_arg_list " "]
+  puts $fh "set vlog_opts \{$vlog_cmd_str\}"
+
+  set vcom_arg_list [list "-93"]
+  set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vcom_options } {
+    set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
+  }
+  set vcom_cmd_str [join $vcom_arg_list " "]
+  puts $fh "set vcom_opts \{$vcom_cmd_str\}"
+
   puts $fh ""
 
   foreach file $files {
@@ -488,6 +504,11 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set tool "vsim"
   set arg_list [list "-voptargs=\\\"+acc\\\"" "-t 1ps"]
+
+  set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_sim_options } {
+    set arg_list [linsert $arg_list end "$more_sim_options"]
+  }
 
   # design contains ax-bfm ip? insert bfm library
   if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {

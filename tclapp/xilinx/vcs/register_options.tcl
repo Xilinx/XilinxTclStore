@@ -30,15 +30,16 @@ proc register_options { simulator } {
     return 1
   }
   set options {
-    {{compile.32bit}          {bool}   {1}                                                   {Invoke 32-bit executable}}
-    {{compile.load_glbl}      {bool}   {1}                                                   {Load GLBL module}}
-    {{compile.more_options}   {string} {}                                                    {More Compilation Options}}
-    {{elaborate.debug_pp}     {bool}   {1}                                                   {Enable post-process debug access}}
-    {{elaborate.more_options} {string} {}                                                    {More Elaboration Options}}
-    {{simulate.runtime}       {string} {1000ns}                                              {Specify simulation run time}}
-    {{simulate.uut}           {string} {}                                                    {Specify instance name for design under test (default:/uut)}}
-    {{simulate.saif}          {string} {}                                                    {SAIF Filename}}
-    {{simulate.more_options}  {string} {}                                                    {More Simulation Options}}
+    {{compile.32bit}                {bool}   {1}       {Invoke 32-bit executable}}
+    {{compile.load_glbl}            {bool}   {1}       {Load GLBL module}}
+    {{compile.vhdlan.more_options}  {string} {}        {More VHDLAN compilation options}}
+    {{compile.vlogan.more_options}  {string} {}        {More VLOGAN compilation options}}
+    {{elaborate.debug_pp}           {bool}   {1}       {Enable post-process debug access}}
+    {{elaborate.vcs.more_options}   {string} {}        {More VCS elaboration options}}
+    {{simulate.runtime}             {string} {1000ns}  {Specify simulation run time}}
+    {{simulate.uut}                 {string} {}        {Specify instance name for design under test (default:/uut)}}
+    {{simulate.saif}                {string} {}        {SAIF filename}}
+    {{simulate.vcs.more_options}    {string} {}        {More VCS simulation options}}
   }
   # create options
   ::tclapp::xilinx::vcs::usf_create_options $simulator $options
