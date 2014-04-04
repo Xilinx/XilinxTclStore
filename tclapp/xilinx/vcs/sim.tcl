@@ -291,6 +291,12 @@ proc usf_vcs_write_compile_script {} {
   if { !$::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-full64"]
   }
+
+  set more_vhdlan_options [string trim [get_property "VCS.COMPILE.VHDLAN.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vhdlan_options } {
+    set arg_list [linsert $arg_list end "$more_vhdlan_options"]
+  }
+
   puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
@@ -302,6 +308,12 @@ proc usf_vcs_write_compile_script {} {
   if { !$::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-full64"]
   }
+
+  set more_vlogan_options [string trim [get_property "VCS.COMPILE.VLOGAN.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vlogan_options } {
+    set arg_list [linsert $arg_list end "$more_vlogan_options"]
+  }
+
   puts $fh_scr "\n# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
@@ -363,6 +375,11 @@ proc usf_vcs_write_elaborate_script {} {
   if { !$::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit) } {
      set arg_list [linsert $arg_list 0 "-full64"]
   }
+  
+  set more_elab_options [string trim [get_property "VCS.ELABORATE.VCS.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_elab_options } {
+    set arg_list [linsert $arg_list end "$more_elab_options"]
+  }
 
   # design contains ax-bfm ip? insert bfm library
   if { [::tclapp::xilinx::vcs::usf_is_axi_bfm_ip] } {
@@ -401,6 +418,7 @@ proc usf_vcs_write_simulate_script {} {
 
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
+  set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set b_scripts_only $::tclapp::xilinx::vcs::a_sim_vars(b_scripts_only)
   set filename "simulate";append filename ".sh"
   set file [file normalize [file join $dir $filename]]
@@ -419,6 +437,11 @@ proc usf_vcs_write_simulate_script {} {
   set tool "${top}_simv"
   set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
   set arg_list [list "-ucli" "-licwait" "-60" "-l" "simulate.log"]
+
+  set more_sim_options [string trim [get_property "VCS.SIMULATE.VCS.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_sim_options } {
+    set arg_list [linsert $arg_list end "$more_sim_options"]
+  }
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""

@@ -30,17 +30,18 @@ proc register_options { simulator } {
     return 1
   }
   set options {
-    {{compile.v93}            {bool}   {1}                                                   {Enable VHDL93 features}}
-    {{compile.32bit}          {bool}   {1}                                                   {Invoke 32-bit executable}}
-    {{compile.relax}          {bool}   {1}                                                   {Enable relaxed VHDL interpretation}}
-    {{compile.unifast}        {bool}   {0}                                                   {Enable fast simulation models}}
-    {{compile.load_glbl}      {bool}   {1}                                                   {Load GLBL module}}
-    {{compile.more_options}   {string} {}                                                    {More Compilation Options}}
-    {{elaborate.more_options} {string} {}                                                    {More Elaboration Options}}
-    {{simulate.runtime}       {string} {1000ns}                                              {Specify simulation run time}}
-    {{simulate.uut}           {string} {}                                                    {Specify instance name for design under test (default:/uut)}}
-    {{simulate.saif}          {string} {}                                                    {SAIF Filename}}
-    {{simulate.more_options}  {string} {}                                                    {More Simulation Options}}
+    {{compile.v93}                   {bool}   {1}        {Enable VHDL93 features}}
+    {{compile.32bit}                 {bool}   {1}        {Invoke 32-bit executable}}
+    {{compile.relax}                 {bool}   {1}        {Enable relaxed VHDL interpretation}}
+    {{compile.unifast}               {bool}   {0}        {Enable fast simulation models}}
+    {{compile.load_glbl}             {bool}   {1}        {Load GLBL module}}
+    {{compile.ncvhdl.more_options}   {string} {}         {More NCVHDL compilation options}}
+    {{compile.ncvlog.more_options}   {string} {}         {More NCVLOG compilation options}}
+    {{elaborate.ncelab.more_options} {string} {}         {More NCELAB elaboration options}}
+    {{simulate.runtime}              {string} {1000ns}   {Specify simulation run time}}
+    {{simulate.uut}                  {string} {}         {Specify instance name for design under test (default:/uut)}}
+    {{simulate.saif}                 {string} {}         {SAIF filename}}
+    {{simulate.ncsim.more_options}   {string} {}         {More NCSIM simulation options}}
   }
   # create options
   ::tclapp::xilinx::ies::usf_create_options $simulator $options

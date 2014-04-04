@@ -30,24 +30,24 @@ proc register_options { simulator } {
     return 1
   }
   set options {
-    {{compile.xvlog.nosort}        {bool}   {0}                                                  {Donot sort}}
-    {{compile.xvlog.more_options}  {string} {}                                                   {More Xvlog compilation Options}}
-    {{compile.xvhdl.more_options}  {string} {}                                                   {More Xvhdl Compilation Options}}
-    {{elaborate.snapshot}          {string} {}                                                   {Specify name of the simulation snapshot}}
-    {{elaborate.debug_level}       {enum}   {{typical} {typical} {{all} {typical} {off}}}        {Specify simulation debug visibility level}}
-    {{elaborate.relax}             {bool}   {1}                                                  {Relax}}
-    {{elaborate.mt_level}          {enum}   {{auto} {auto} {{auto} {off} {2} {4} {8} {16} {32}}} {Specify number of sub-compilation jobs to run in parallel}}
-    {{elaborate.load_glbl}         {bool}   {1}                                                  {Load GLBL module}}
-    {{elaborate.rangecheck}        {bool}   {0}                                                  {Enable runtime value range check for VHDL}}
-    {{elaborate.sdf_delay}         {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
-    {{elaborate.unifast}           {bool}   {0}                                                  {Enable fast simulation models}}
-    {{elaborate.more_options}      {string} {}                                                   {More Elaboration Options}}
-    {{simulate.runtime}            {string} {1000ns}                                             {Specify simulation run time}}
-    {{simulate.uut}                {string} {}                                                   {Specify instance name for design under test (default:/uut)}}
-    {{simulate.wdb}                {string} {}                                                   {Specify Waveform Database file}}
-    {{simulate.saif}               {string} {}                                                   {SAIF Filename}}
-    {{simulate.view}               {file}   {}                                                   {Specify Waveform Configuration file} {wcfg} {Select WCFG file}}
-    {{simulate.more_options}       {string} {}                                                   {More Simulation Options}}
+    {{compile.xvlog.nosort}          {bool}   {0}                                                  {Donot sort files}}
+    {{compile.xvlog.more_options}    {string} {}                                                   {More XVLOG compilation options}}
+    {{compile.xvhdl.more_options}    {string} {}                                                   {More XVHDL compilation options}}
+    {{elaborate.snapshot}            {string} {}                                                   {Specify name of the simulation snapshot}}
+    {{elaborate.debug_level}         {enum}   {{typical} {typical} {{all} {typical} {off}}}        {Specify simulation debug visibility level}}
+    {{elaborate.relax}               {bool}   {1}                                                  {Relax}}
+    {{elaborate.mt_level}            {enum}   {{auto} {auto} {{auto} {off} {2} {4} {8} {16} {32}}} {Specify number of sub-compilation jobs to run in parallel}}
+    {{elaborate.load_glbl}           {bool}   {1}                                                  {Load GLBL module}}
+    {{elaborate.rangecheck}          {bool}   {0}                                                  {Enable runtime value range check for VHDL}}
+    {{elaborate.sdf_delay}           {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
+    {{elaborate.unifast}             {bool}   {0}                                                  {Enable fast simulation models}}
+    {{elaborate.xelab.more_options}  {string} {}                                                   {More XELAB elaboration options}}
+    {{simulate.runtime}              {string} {1000ns}                                             {Specify simulation run time}}
+    {{simulate.uut}                  {string} {}                                                   {Specify instance name for design under test (default:/uut)}}
+    {{simulate.wdb}                  {string} {}                                                   {Specify waveform database file}}
+    {{simulate.saif}                 {string} {}                                                   {SAIF filename}}
+    {{simulate.view}                 {file}   {}                                                   {Specify waveform configuration file} {wcfg} {Select WCFG file}}
+    {{simulate.xsim.more_options}    {string} {}                                                   {More XSIM simulation options}}
   }
   # create options
   ::tclapp::xilinx::xsim::usf_create_options $simulator $options

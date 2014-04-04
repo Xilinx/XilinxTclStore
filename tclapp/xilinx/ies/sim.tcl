@@ -288,6 +288,8 @@ proc usf_ies_write_compile_script {} {
 
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+  set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
+
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
 
   set filename "compile";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
@@ -311,10 +313,16 @@ proc usf_ies_write_compile_script {} {
   ::tclapp::xilinx::ies::usf_set_ref_dir $fh_scr
 
   set tool "ncvhdl"
-  set arg_list [list "-V93" "-RELAX" "-logfile" "${tool}.log" "-append_log"]
+  set arg_list [list "-messages" "-V93" "-RELAX" "-logfile" "${tool}.log" "-append_log"]
   if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
+
+  set more_ncvhdl_options [string trim [get_property "IES.COMPILE.NCVHDL.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_ncvhdl_options } {
+    set arg_list [linsert $arg_list end "$more_ncvhdl_options"]
+  }
+
   puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
@@ -327,6 +335,12 @@ proc usf_ies_write_compile_script {} {
   if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
+
+  set more_ncvlog_options [string trim [get_property "IES.COMPILE.NCVLOG.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_ncvlog_options } {
+    set arg_list [linsert $arg_list end "$more_ncvlog_options"]
+  }
+
   puts $fh_scr "\n# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
@@ -391,6 +405,11 @@ proc usf_ies_write_elaborate_script {} {
 
   if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
      set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+
+  set more_elab_options [string trim [get_property "IES.ELABORATE.NCELAB.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_elab_options } {
+    set arg_list [linsert $arg_list end "$more_elab_options"]
   }
 
   # design contains ax-bfm ip? insert bfm library
@@ -486,6 +505,7 @@ proc usf_ies_write_simulate_script {} {
 
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+  set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set b_scripts_only $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)
   set filename "simulate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $filename]]
@@ -516,6 +536,12 @@ proc usf_ies_write_simulate_script {} {
   if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
+
+  set more_sim_options [string trim [get_property "IES.SIMULATE.NCSIM.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_sim_options } {
+    set arg_list [linsert $arg_list end "$more_sim_options"]
+  }
+
   if { $::tclapp::xilinx::ies::a_sim_vars(b_batch) || $b_scripts_only } {
    # no gui
   } else {

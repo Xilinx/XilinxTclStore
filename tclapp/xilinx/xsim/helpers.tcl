@@ -51,6 +51,10 @@ proc usf_init_vars {} {
   # ip file extension types
   variable l_valid_ip_extns          [list]
   set l_valid_ip_extns               [list ".xci" ".bd" ".slx"]
+
+  # hdl file extension types
+  variable l_valid_hdl_extns          [list]
+  set l_valid_hdl_extns               [list ".vhd" ".vhdl" ".vhf" ".vho" ".v" ".vf" ".verilog" ".vr" ".vg" ".vb" ".tf" ".vlog" ".vp" ".vm" ".vh" ".h" ".svh" ".sv" ".veo"]
  
   # data file extension types 
   variable s_data_files_filter
@@ -710,25 +714,21 @@ proc usf_fs_contains_hdl_source { fs } {
   # Return Value:
 
   variable l_valid_ip_extns
+  variable l_valid_hdl_extns
 
   set b_contains_hdl 0
   set tokens [split [find_top -fileset $fs -return_file_paths] { }]
   for {set i 0} {$i < [llength $tokens]} {incr i} {
-    set top [string trim [lindex $tokens $i]]
-    incr i;
+    set top [string trim [lindex $tokens $i]];incr i
     set file [string trim [lindex $tokens $i]]
+    if { ({} == $top) || ({} == $file) } { continue; }
+    set extn [file extension $file]
 
     # skip ip's
-    if { [lsearch -exact $l_valid_ip_extns [file extension $file]] >= 0 } { continue; }
+    if { [lsearch -exact $l_valid_ip_extns $extn] >= 0 } { continue; }
 
     # check if any HDL sources present in fileset
-    set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all -of_objects [get_filesets $fs] $file] 0]]
-    if { ({Verilog}          == $file_type) || \
-         ({Verilog Header}   == $file_type) || \
-         ({Verilog Template} == $file_type) || \
-         ({SystemVerilog}    == $file_type) || \
-         ({VHDL}             == $file_type) || \
-         ({VHDL Template}    == $file_type) } {
+    if { [lsearch -exact $l_valid_hdl_extns $extn] >= 0 } {
       set b_contains_hdl 1
       break
     }

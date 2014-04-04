@@ -115,7 +115,6 @@ proc simulate { args } {
   if { $b_add_view } {
     set view_arg " -view \{$wcfg_file\}"
   }
-  set more_options [string trim [get_property "XSIM.SIMULATE.MORE_OPTIONS" $fs_obj]]
 
   # launch xsim
   send_msg_id Vivado-XSim-008 INFO "Loading simulator feature"
@@ -262,6 +261,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
  
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+  set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
   set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
  
   set vlog_filename ${top};append vlog_filename "_vlog.prj"
@@ -327,19 +327,33 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   if { $dbg } {
     set s_dbg_sw {-dbg}
   }
+
+  set xvlog_arg_list [list "-prj" "$vlog_filename" "-log" "compile.log"]
+  set more_xvlog_options [string trim [get_property "XSIM.COMPILE.XVLOG.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_xvlog_options } {
+    set xvlog_arg_list [linsert $xvlog_arg_list end "$more_xvlog_options"]
+  }
+  set xvlog_cmd_str [join $xvlog_arg_list " "]
+
+  set xvhdl_arg_list [list "-prj" "$vhdl_filename" "-log" "compile.log"]
+  set more_xvhdl_options [string trim [get_property "XSIM.COMPILE.XVHDL.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_xvhdl_options } {
+    set xvhdl_arg_list [linsert $xvhdl_arg_list end "$more_xvhdl_options"]
+  }
+  set xvhdl_cmd_str [join $xvhdl_arg_list " "]
  
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
-    puts $fh_scr "ExecStep \$xv_path/bin/xvlog -prj $vlog_filename" 
-    puts $fh_scr "ExecStep \$xv_path/bin/xvhdl -prj $vhdl_filename" 
+    puts $fh_scr "ExecStep \$xv_path/bin/xvlog $xvlog_cmd_str" 
+    puts $fh_scr "ExecStep \$xv_path/bin/xvhdl $xvhdl_cmd_str" 
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
-    puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw -prj $vlog_filename -log compile.log"
+    puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw $xvlog_cmd_str"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
-    puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw -prj $vhdl_filename -log compile.log"
+    puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw $xvhdl_cmd_str"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
@@ -643,7 +657,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   lappend args_list "-log elaborate.log"
 
   # other options
-  set other_opts [get_property "XSIM.ELABORATE.MORE_OPTIONS" $fs_obj]
+  set other_opts [get_property "XSIM.ELABORATE.XELAB.MORE_OPTIONS" $fs_obj]
   if { {} != $other_opts } {
     lappend args_list "$other_opts"
   }
@@ -682,9 +696,9 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_file b_add_view } {
   lappend args_list "$log_file"
 
   # more options
-  set more_options [string trim [get_property "XSIM.SIMULATE.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_options } {
-    lappend args_list $more_options
+  set more_sim_options [string trim [get_property "XSIM.SIMULATE.XSIM.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_sim_options } {
+    lappend args_list $more_sim_options
   }
   set cmd_args [join $args_list " "]
   return $cmd_args

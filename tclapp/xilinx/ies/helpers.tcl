@@ -51,6 +51,10 @@ proc usf_init_vars {} {
   # ip file extension types
   variable l_valid_ip_extns          [list]
   set l_valid_ip_extns               [list ".xci" ".bd" ".slx"]
+
+  # hdl file extension types
+  variable l_valid_hdl_extns          [list]
+  set l_valid_hdl_extns               [list ".vhd" ".vhdl" ".vhf" ".vho" ".v" ".vf" ".verilog" ".vr" ".vg" ".vb" ".tf" ".vlog" ".vp" ".vm" ".vh" ".h" ".svh" ".sv" ".veo"]
  
   # data file extension types 
   variable s_data_files_filter
@@ -289,15 +293,15 @@ proc usf_set_ref_dir { fh } {
   puts $fh "# directory path for design sources and include directories (if any) wrt this path"
   if { $a_sim_vars(b_absolute_path) } {
     if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "reference_dir=\"$a_sim_vars(s_launch_dir)\""
+      puts $fh "origin_dir=\"$a_sim_vars(s_launch_dir)\""
     } else {
-      puts $fh "set reference_dir=\"$a_sim_vars(s_launch_dir)\""
+      puts $fh "set origin_dir=\"$a_sim_vars(s_launch_dir)\""
     }
   } else {
     if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "reference_dir=\".\""
+      puts $fh "origin_dir=\".\""
     } else {
-      puts $fh "set reference_dir=\".\""
+      puts $fh "set origin_dir=\".\""
     }
   }
   puts $fh ""
@@ -505,7 +509,7 @@ proc usf_get_include_file_dirs { { ref_dir "true" } } {
       set dir "[usf_resolve_file_path $dir]"
      } else {
        if { $ref_dir } {
-        set dir "\$reference_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
       }
     }
     lappend dir_names $dir
@@ -756,25 +760,21 @@ proc usf_fs_contains_hdl_source { fs } {
   # Return Value:
  
   variable l_valid_ip_extns 
+  variable l_valid_hdl_extns 
 
   set b_contains_hdl 0
   set tokens [split [find_top -fileset $fs -return_file_paths] { }]
   for {set i 0} {$i < [llength $tokens]} {incr i} {
-    set top [string trim [lindex $tokens $i]]
-    incr i;
+    set top [string trim [lindex $tokens $i]];incr i
     set file [string trim [lindex $tokens $i]]
-   
+    if { ({} == $top) || ({} == $file) } { continue; }
+    set extn [file extension $file]
+
     # skip ip's
-    if { [lsearch -exact $l_valid_ip_extns [file extension $file]] >= 0 } { continue; }
+    if { [lsearch -exact $l_valid_ip_extns $extn] >= 0 } { continue; }
 
     # check if any HDL sources present in fileset
-    set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all -of_objects [get_filesets $fs] $file] 0]]
-    if { ({Verilog}          == $file_type) || \
-         ({Verilog Header}   == $file_type) || \
-         ({Verilog Template} == $file_type) || \
-         ({SystemVerilog}    == $file_type) || \
-         ({VHDL}             == $file_type) || \
-         ({VHDL Template}    == $file_type) } {
+    if { [lsearch -exact $l_valid_hdl_extns $extn] >= 0 } {
       set b_contains_hdl 1
       break
     }
@@ -1453,7 +1453,7 @@ proc usf_get_include_dirs { } {
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
     } else {
-      set dir "\$reference_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
     }
     lappend dir_names $dir
   }
@@ -1568,7 +1568,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
           if { $ref_dir } {
-           set incl_file_path "\$reference_dir/[usf_get_relative_file_path $incl_file_path $dir]"
+           set incl_file_path "\$origin_dir/[usf_get_relative_file_path $incl_file_path $dir]"
           }
         }
         lappend incl_file_paths $incl_file_path
@@ -1591,7 +1591,7 @@ proc usf_get_incl_files_from_ip { tcl_obj } {
     if { $a_sim_vars(b_absolute_path) } {
       set file "[usf_resolve_file_path $file]"
     } else {
-      set file "\$reference_dir/[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+      set file "\$origin_dir/[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
     }
     lappend incl_files $file
   }
@@ -1613,7 +1613,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
     } else {
-      set dir "\$reference_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
     }
     lappend incl_dirs $dir
   }
@@ -1694,7 +1694,7 @@ proc usf_get_relative_file_path { file_path_to_convert relative_to } {
 }
 
 proc usf_resolve_file_path { file_dir_path_to_convert } {
-  # Summary: Make file path relative to reference_dir if relative component found
+  # Summary: Make file path relative to origin_dir if relative component found
   # Argument Usage:
   # file_dir_path_to_convert: input file to make relative to specfied path
   # Return Value:
@@ -2004,7 +2004,7 @@ proc usf_get_file_cmd_str { file file_type global_files} {
   if { $a_sim_vars(b_absolute_path) } {
     set file "[usf_resolve_file_path $file]"
   } else {
-    set file "[usf_get_relative_file_path $file $dir]"
+    set file "\$origin_dir/[usf_get_relative_file_path $file $dir]"
   }
   set compiler [usf_get_compiler_name $file_type]
   if { [string length $compiler] > 0 } {

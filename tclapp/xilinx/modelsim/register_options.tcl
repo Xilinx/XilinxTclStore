@@ -36,8 +36,8 @@ proc register_options { simulator } {
     {{compile.load_glbl}          {bool}   {1}                                     {Load GLBL module}}
     {{compile.incremental}        {bool}   {0}                                     {Perform incremental compilation}}
     {{compile.unifast}            {bool}   {0}                                     {Enable fast simulation models}}
-    {{compile.vlog_more_options}  {string} {}                                      {More VLOG options}}
-    {{compile.vcom_more_options}  {string} {}                                      {More VCOM options}}
+    {{compile.vlog.more_options}  {string} {}                                      {More VLOG options}}
+    {{compile.vcom.more_options}  {string} {}                                      {More VCOM options}}
     {{simulate.runtime}           {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.uut}               {string} {}                                      {Specify instance name for design under test (default:/uut)}}
     {{simulate.custom_do}         {string} {}                                      {Specify name of the custom do file}}
@@ -45,7 +45,7 @@ proc register_options { simulator } {
     {{simulate.sdf_delay}         {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}
     {{simulate.saif}              {string} {}                                      {Specify SAIF file}}
     {{simulate.64bit}             {bool}   {0}                                     {Call 64bit VSIM compiler}}
-    {{simulate.vsim_more_options} {string} {}                                      {More VSIM options}}
+    {{simulate.vsim.more_options} {string} {}                                      {More VSIM options}}
   }
   # create options
   ::tclapp::xilinx::modelsim::usf_create_options $simulator $options
