@@ -300,7 +300,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
   if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl] } {
     set default_lib [get_property "DEFAULT_LIB" [current_project]]
-    set file_str "$default_lib \"[::tclapp::xilinx::xsim::usf_get_glbl_file]\""
+    ::tclapp::xilinx::xsim::usf_copy_glbl_file
+    set file_str "$default_lib \"glbl.v\""
     puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
   }
  
@@ -546,9 +547,10 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
  
   # --include
-  foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs] {
+  set prefix_ref_dir "false"
+  foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $prefix_ref_dir] {
     set dir [string map {\\ /} $incl_dir]
-    lappend args_list "--include $dir"
+    lappend args_list "--include \"$dir\""
   }
 
   # -i

@@ -459,7 +459,8 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   # compile glbl file
   set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
   if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl] } {
-    set file_str "-work $default_lib \"[::tclapp::xilinx::modelsim::usf_get_glbl_file]\""
+    ::tclapp::xilinx::modelsim::usf_copy_glbl_file
+    set file_str "-work $default_lib \"glbl.v\""
     puts $fh "\n# compile glbl module\nvlog $file_str"
   }
   puts $fh "\nquit -force"

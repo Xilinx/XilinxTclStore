@@ -293,15 +293,15 @@ proc usf_set_ref_dir { fh } {
   puts $fh "# Directory path for design sources and include directories (if any) wrt this path"
   if { $a_sim_vars(b_absolute_path) } {
     if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "reference_dir=\"$a_sim_vars(s_launch_dir)\""
+      puts $fh "origin_dir=\"$a_sim_vars(s_launch_dir)\""
     } else {
-      puts $fh "set reference_dir=\"$a_sim_vars(s_launch_dir)\""
+      puts $fh "set origin_dir=\"$a_sim_vars(s_launch_dir)\""
     }
   } else {
     if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "reference_dir=\".\""
+      puts $fh "origin_dir=\".\""
     } else {
-      puts $fh "set reference_dir=\".\""
+      puts $fh "set origin_dir=\".\""
     }
   }
   puts $fh ""
@@ -509,7 +509,9 @@ proc usf_get_include_file_dirs { { ref_dir "true" } } {
       set dir "[usf_resolve_file_path $dir]"
      } else {
        if { $ref_dir } {
-        set dir "\$reference_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      } else {
+        set dir "[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
       }
     }
     lappend dir_names $dir
@@ -630,14 +632,25 @@ proc usf_compile_glbl_file { simulator b_load_glbl } {
   return 0
 }
 
-proc usf_get_glbl_file {} {
+proc usf_copy_glbl_file {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+  set run_dir $a_sim_vars(s_launch_dir)
+
+  set target_glbl_file [file normalize [file join $run_dir "glbl.v"]]
+  if { [file exists $target_glbl_file] } {
+    return
+  }
+
   set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-  set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
-  return $glbl_file
+  set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
+
+  if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
+    send_msg_id Vivado-XSim-999 WARNING "failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+  }
 }
 
 proc usf_prepare_ip_for_simulation { } {
@@ -845,13 +858,31 @@ proc usf_get_files_for_compilation {} {
         set b_add_sim_files 0
       } else {
         # 4. add files from SOURCE_SET property value
-        # TODO
+        set simset_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
+        set linked_src_set [get_property "SOURCE_SET" $simset_obj]
+        if { {} != $linked_src_set } {
+          set srcset_obj [get_filesets $linked_src_set]
+          if { {} != $srcset_obj } {
+            set used_in_val "simulation"
+            set ::tclapp::xilinx::xsim::l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
+            foreach file $::tclapp::xilinx::xsim::l_compile_order_files {
+              set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
+              if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+              set g_files $global_files
+              if { ({VHDL} == $file_type) } { set g_files {} }
+              set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
+              if { {} != $cmd_str } {
+                lappend files $cmd_str
+              }
+            }
+          }
+        }
       }
     }
     if { $b_add_sim_files } {
       # 5. add additional files from simulation fileset
       #send_msg_id Vivado-XSim-056 INFO "Adding additional simulation fileset files (behav simulation):-\n"
-      foreach file [get_files -all -of_objects [current_fileset -simset]] {
+      foreach file [get_files -quiet -all -of_objects [current_fileset -simset]] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
         set g_files $global_files
@@ -1259,7 +1290,7 @@ proc usf_get_include_dirs { } {
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
     } else {
-      set dir "\$reference_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
     }
     lappend dir_names $dir
   }
@@ -1374,7 +1405,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
           if { $ref_dir } {
-           set incl_file_path "\$reference_dir/[usf_get_relative_file_path $incl_file_path $dir]"
+           set incl_file_path "\$origin_dir/[usf_get_relative_file_path $incl_file_path $dir]"
           }
         }
         lappend incl_file_paths $incl_file_path
@@ -1397,7 +1428,7 @@ proc usf_get_incl_files_from_ip { tcl_obj } {
     if { $a_sim_vars(b_absolute_path) } {
       set file "[usf_resolve_file_path $file]"
     } else {
-      set file "\$reference_dir/[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+      set file "\$origin_dir/[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
     }
     lappend incl_files $file
   }
@@ -1419,7 +1450,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
     } else {
-      set dir "\$reference_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
     }
     lappend incl_dirs $dir
   }
@@ -1500,7 +1531,7 @@ proc usf_get_relative_file_path { file_path_to_convert relative_to } {
 }
 
 proc usf_resolve_file_path { file_dir_path_to_convert } {
-  # Summary: Make file path relative to reference_dir if relative component found
+  # Summary: Make file path relative to origin_dir if relative component found
   # Argument Usage:
   # file_dir_path_to_convert: input file to make relative to specfied path
   # Return Value:
@@ -1617,10 +1648,10 @@ proc usf_append_other_options { tool file_type opts_arg } {
         }
       }
       # --include
-      set calculate_ref_dir "false"
-      foreach incl_dir [usf_get_include_file_dirs $calculate_ref_dir] {
+      set prefix_ref_dir "false"
+      foreach incl_dir [usf_get_include_file_dirs $prefix_ref_dir] {
         set incl_dir [string map {\\ /} $incl_dir]
-        lappend opts "--include $incl_dir"
+        lappend opts "--include \"$incl_dir\""
       }
       # -d (verilog macros)
       set v_defines [get_property "VERILOG_DEFINE" $fs_obj]
