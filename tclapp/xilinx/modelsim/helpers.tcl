@@ -630,14 +630,25 @@ proc usf_compile_glbl_file { simulator b_load_glbl } {
   return 0
 }
 
-proc usf_get_glbl_file {} {
+proc usf_copy_glbl_file {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+  set run_dir $a_sim_vars(s_launch_dir)
+
+  set target_glbl_file [file normalize [file join $run_dir "glbl.v"]]
+  if { [file exists $target_glbl_file] } {
+    return
+  }
+
   set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-  set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
-  return $glbl_file
+  set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
+
+  if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
+    send_msg_id Vivado-ModelSim-999 WARNING "failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+  }
 }
 
 proc usf_create_do_file { simulator do_filename } {
@@ -930,13 +941,31 @@ proc usf_get_files_for_compilation {} {
         set b_add_sim_files 0
       } else {
         # 4. add files from SOURCE_SET property value
-        # TODO
+        set simset_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+        set linked_src_set [get_property "SOURCE_SET" $simset_obj]
+        if { {} != $linked_src_set } {
+          set srcset_obj [get_filesets $linked_src_set]
+          if { {} != $srcset_obj } {
+            set used_in_val "simulation"
+            set ::tclapp::xilinx::modelsim::l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
+            foreach file $::tclapp::xilinx::modelsim::l_compile_order_files {
+              set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
+              if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+              set g_files $global_files
+              if { ({VHDL} == $file_type) } { set g_files {} }
+              set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
+              if { {} != $cmd_str } {
+                lappend files $cmd_str
+              }
+            }
+          }
+        }
       }
     }
     if { $b_add_sim_files } {
       # 5. add additional files from simulation fileset
       #send_msg_id Vivado-ModelSim-064 INFO "Adding additional simulation fileset files (behav simulation):-\n"
-      foreach file [get_files -all -of_objects [current_fileset -simset]] {
+      foreach file [get_files -quiet -all -of_objects [current_fileset -simset]] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
         set g_files $global_files
@@ -1472,6 +1501,8 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
 
   upvar $unique_paths_arg      unique_paths
   upvar $incl_header_paths_arg incl_header_paths
+  variable a_sim_vars
+  set dir $a_sim_vars(s_launch_dir)
 
   # setup the filter to include only header types enabled for simulation
   set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
@@ -1482,7 +1513,12 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
     }
     set file_path [file normalize [string map {\\ /} [file dirname $file]]]
     if { [lsearch -exact $unique_paths $file_path] == -1 } {
-      lappend incl_header_paths $file_path
+      if { $a_sim_vars(b_absolute_path) } {
+        set incl_file_path "[usf_resolve_file_path $file_path]"
+      } else {
+        set incl_file_path "\$origin_dir/[usf_get_relative_file_path $file_path $dir]"
+      }
+      lappend incl_header_paths $incl_file_path
       lappend unique_paths      $file_path
     }
   }
@@ -1744,7 +1780,6 @@ proc usf_append_other_options { tool file_type opts_arg } {
 
   upvar $opts_arg opts
   variable a_sim_vars
-  set dir $a_sim_vars(s_launch_dir)
   set fs_obj [current_fileset -simset]
 
   switch $tool {

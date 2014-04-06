@@ -360,7 +360,8 @@ proc usf_ies_write_compile_script {} {
   # compile glbl file
   set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
   if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl] } {
-    set file_str "-work $default_lib \"[::tclapp::xilinx::ies::usf_get_glbl_file]\""
+    ::tclapp::xilinx::ies::usf_copy_glbl_file
+    set file_str "-work $default_lib \"glbl.v\""
     puts $fh_scr "\n# compile glbl module\n\$bin_path/ncvlog \$ncvlog_opts $file_str"
   }
 

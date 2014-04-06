@@ -336,7 +336,8 @@ proc usf_vcs_write_compile_script {} {
     if { {work} != $default_lib } {
       set work_lib_sw "-work $default_lib "
     }
-    set file_str "${work_lib_sw}\"[::tclapp::xilinx::vcs::usf_get_glbl_file]\""
+    ::tclapp::xilinx::vcs::usf_copy_glbl_file
+    set file_str "${work_lib_sw}\"glbl.v\""
     puts $fh_scr "\n# compile glbl module\n\$bin_path/vlogan \$vlogan_opts +v2k $file_str"
   }
   close $fh_scr
