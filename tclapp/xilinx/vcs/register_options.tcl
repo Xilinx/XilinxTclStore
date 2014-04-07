@@ -30,7 +30,7 @@ proc register_options { simulator } {
     return 1
   }
   set options {
-    {{compile.32bit}                {bool}   {1}       {Invoke 32-bit executable}}
+    {{compile.32bit}                {bool}   {0}       {Invoke 32-bit executable}}
     {{compile.load_glbl}            {bool}   {1}       {Load GLBL module}}
     {{compile.vhdlan.more_options}  {string} {}        {More VHDLAN compilation options}}
     {{compile.vlogan.more_options}  {string} {}        {More VLOGAN compilation options}}

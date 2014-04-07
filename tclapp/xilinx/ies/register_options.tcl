@@ -31,7 +31,7 @@ proc register_options { simulator } {
   }
   set options {
     {{compile.v93}                   {bool}   {1}        {Enable VHDL93 features}}
-    {{compile.32bit}                 {bool}   {1}        {Invoke 32-bit executable}}
+    {{compile.32bit}                 {bool}   {0}        {Invoke 32-bit executable}}
     {{compile.relax}                 {bool}   {1}        {Enable relaxed VHDL interpretation}}
     {{compile.unifast}               {bool}   {0}        {Enable fast simulation models}}
     {{compile.load_glbl}             {bool}   {1}        {Load GLBL module}}

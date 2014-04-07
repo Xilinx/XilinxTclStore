@@ -682,10 +682,15 @@ proc usf_create_do_file { simulator do_filename } {
       }
       puts $fh_do "dumpsaif -scope $uut -overwrite -output $saif"
     }
-    set time [get_property "IES.SIMULATE.RUNTIME" $fs_obj]
+    set time [string trim [get_property "IES.SIMULATE.RUNTIME" $fs_obj]]
     puts $fh_do "database -open waves -into waves.shm -default"
     puts $fh_do "probe -create -shm -all -variables -depth all"
-    puts $fh_do "run $time"
+    set time_value [string tolower $time]
+    if { ({all} == $time_value) || (![regexp {^[0-9]} $time_value]) } {
+      puts $fh_do "run"
+    } else {
+      puts $fh_do "run $time"
+    }
     if { {} != $saif } {
       puts $fh_do "dumpsaif -end"
     }
