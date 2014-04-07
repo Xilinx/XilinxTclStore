@@ -686,7 +686,12 @@ proc usf_create_do_file { simulator do_filename } {
     set time [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]
     puts $fh_do "add_wave /$top/*"
     puts $fh_do "dump -add * -depth 0"
-    puts $fh_do "run $time"
+    set time_value [string tolower $time]
+    if { ({all} == $time_value) || (![regexp {^[0-9]} $time_value]) } {
+      puts $fh_do "run"
+    } else {
+      puts $fh_do "run $time"
+    }
     if { {} != $saif } {
       set timescale {1}
       if { {} == $uut } {

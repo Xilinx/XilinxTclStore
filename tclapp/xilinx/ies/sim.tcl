@@ -131,8 +131,9 @@ proc usf_ies_init_simulation_vars {} {
   # Return Value:
 
   variable a_ies_sim_vars
+  set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
 
-  set a_ies_sim_vars(b_32bit)  0
+  set a_ies_sim_vars(b_32bit) [get_property "IES.COMPILE.32BIT" $fs_obj]
   set a_ies_sim_vars(s_compiled_lib_dir)  {}
 }
 
@@ -178,7 +179,7 @@ proc usf_ies_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id Vivado-IES-005 ERROR "Unknown option '$option', please type 'simulate -help' for usage info.\n"
+          send_msg_id Vivado-IES-005 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }
@@ -193,31 +194,32 @@ proc usf_ies_verify_compiled_lib {} {
 
   variable a_sim_vars
 
-  set cds_file "cds.lib"
+  set cds_filename "cds.lib"
   set compiled_lib_dir {}
   send_msg_id Vivado-ies-006 INFO "Finding pre-compiled libraries...\n"
   # check property value
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
-  set cds_file [file normalize [file join $dir $cds_file]]
+  set cds_file [file normalize [file join $dir $cds_filename]]
   if { [file exists $cds_file] } {
     set compiled_lib_dir $dir
   }
-  # check param
+  # 1a. find cds.lib from current working directory
   if { {} == $compiled_lib_dir } {
-    set dir [get_param "simulator.compiled_library_dir"]
-    set file [file normalize [file join $dir $cds_file]]
-    if { [file exists $file] } {
+    set dir [file normalize [pwd]]
+    set cds_file [file normalize [file join $dir $cds_filename]]
+    if { [file exists $cds_file] } {
       set compiled_lib_dir $dir
     }
   }
   # return if found, else warning
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::ies::a_ies_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
-   send_msg_id Vivado-ies-007 INFO "Compiled library path:$compiled_lib_dir\n"
+   send_msg_id Vivado-ies-007 INFO "Using cds.lib from '$compiled_lib_dir/cds.lib'\n"
    return
   }
-  send_msg_id Vivado-ies-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library information!\n"
-  send_msg_id Vivado-ies-009 INFO "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled.\n"
+  send_msg_id Vivado-ies-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+  send_msg_id Vivado-ies-009 INFO \
+     "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for IES.\n"
 }
 
 proc usf_ies_write_setup_files {} {
@@ -288,6 +290,7 @@ proc usf_ies_write_compile_script {} {
 
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+  set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
 
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
@@ -314,7 +317,9 @@ proc usf_ies_write_compile_script {} {
 
   set tool "ncvhdl"
   set arg_list [list "-messages" "-V93" "-RELAX" "-logfile" "${tool}.log" "-append_log"]
-  if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
+  if { ($::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    # donot pass os type
+  } else {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
 
@@ -332,7 +337,9 @@ proc usf_ies_write_compile_script {} {
  
   set tool "ncvlog"
   set arg_list [list "-messages" "-logfile" "${tool}.log" "-append_log"]
-  if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
+  if { ($::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    # donot pass os type
+  } else {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
 
@@ -376,6 +383,7 @@ proc usf_ies_write_elaborate_script {} {
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
+  set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
 
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
@@ -404,7 +412,9 @@ proc usf_ies_write_elaborate_script {} {
   set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
   set arg_list [list "-relax -access +rwc -messages" "-logfile" "elaborate.log"]
 
-  if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
+  if { ($::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    # donot pass os type
+  } else {
      set arg_list [linsert $arg_list 0 "-64bit"]
   }
 
@@ -506,6 +516,7 @@ proc usf_ies_write_simulate_script {} {
 
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+  set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set b_scripts_only $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)
   set filename "simulate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
@@ -534,7 +545,9 @@ proc usf_ies_write_simulate_script {} {
   set tool "ncsim"
   set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
   set arg_list [list "-logfile" "simulate.log"]
-  if { !$::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit) } {
+  if { ($::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    # donot pass os type
+  } else {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
 

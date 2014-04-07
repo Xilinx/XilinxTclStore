@@ -180,7 +180,7 @@ proc usf_modelsim_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id Vivado-ModelSim-006 ERROR "Unknown option '$option', please type 'simulate -help' for usage info.\n"
+          send_msg_id Vivado-ModelSim-006 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }
@@ -206,6 +206,14 @@ proc usf_modelsim_verify_compiled_lib {} {
   if { [file exists $file] } {
     set compiled_lib_dir $dir
   }
+  # 1a. find modelsim.ini from current working directory
+  if { {} == $compiled_lib_dir } {
+    set dir [file normalize [pwd]]
+    set file [file normalize [file join $dir $ini_file]]
+    if { [file exists $file] } {
+      set compiled_lib_dir $dir
+    }
+  }
   # 2. not found? check MODELSIM
   if { {} == $compiled_lib_dir } {
     if { [info exists ::env(MODELSIM)] } {
@@ -228,9 +236,9 @@ proc usf_modelsim_verify_compiled_lib {} {
   if { {} == $compiled_lib_dir } {
     set file [file normalize [file join $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
-      send_msg_id Vivado-modelsim-008 "CRITICAL WARNING" "Failed to find the Xilinx pre-compiled simulation library!\n"
+      send_msg_id Vivado-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
       send_msg_id Vivado-modelsim-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
-                                             - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the compiled library directory, or\n\
+                                             - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim/QuestaSim, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
                                              - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
     }

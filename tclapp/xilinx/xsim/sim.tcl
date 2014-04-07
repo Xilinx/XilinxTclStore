@@ -217,7 +217,7 @@ proc usf_xsim_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id Vivado-XSim-010 ERROR "Unknown option '$option', please type 'simulate -help' for usage info.\n"
+          send_msg_id Vivado-XSim-010 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }

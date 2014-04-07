@@ -127,7 +127,9 @@ proc usf_vcs_init_simulation_vars {} {
   # Return Value:
 
   variable a_vcs_sim_vars
-  set a_vcs_sim_vars(b_32bit)            0
+  set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
+
+  set a_vcs_sim_vars(b_32bit) [get_property "VCS.COMPILE.32BIT" $fs_obj]
   set a_vcs_sim_vars(s_compiled_lib_dir) {}
 }
 
@@ -173,7 +175,7 @@ proc usf_vcs_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id Vivado-VCS-005 ERROR "Unknown option '$option', please type 'simulate -help' for usage info.\n"
+          send_msg_id Vivado-VCS-005 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }
@@ -186,31 +188,32 @@ proc usf_vcs_verify_compiled_lib {} {
   # Argument Usage:
   # Return Value:
 
-  set syn_file "synopsys_sim.setup"
+  set syn_filename "synopsys_sim.setup"
   set compiled_lib_dir {}
   send_msg_id Vivado-VCS-006 INFO "Finding pre-compiled libraries...\n"
   # check property value
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
-  set syn_file [file normalize [file join $dir $syn_file]]
+  set syn_file [file normalize [file join $dir $syn_filename]]
   if { [file exists $syn_file] } {
     set compiled_lib_dir $dir
   }
-  # check param
+  # 1a. find setup file from current working directory
   if { {} == $compiled_lib_dir } {
-    set dir [get_param "simulator.compiled_library_dir"]
-    set file [file normalize [file join $dir $syn_file]]
-    if { [file exists $file] } {
+    set dir [file normalize [pwd]]
+    set syn_file [file normalize [file join $dir $syn_filename]]
+    if { [file exists $syn_file] } {
       set compiled_lib_dir $dir
     }
   }
   # return if found, else warning
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
-   send_msg_id Vivado-VCS-007 INFO "Compiled library path:'$compiled_lib_dir'\n"
+   send_msg_id Vivado-VCS-007 INFO "Using synopsys_sim.setup from '$compiled_lib_dir/synopsys_sim.setup'\n"
    return
   }
-  send_msg_id Vivado-VCS-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library information!\n"
-  send_msg_id Vivado-VCS-009 INFO "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled.\n"
+  send_msg_id Vivado-VCS-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+  send_msg_id Vivado-VCS-009 INFO \
+     "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for VCS.\n"
 }
 
 proc usf_vcs_write_setup_files {} {
@@ -266,6 +269,7 @@ proc usf_vcs_write_compile_script {} {
 
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
+  set os_type $::tclapp::xilinx::vcs::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set scr_filename "compile";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
@@ -288,7 +292,9 @@ proc usf_vcs_write_compile_script {} {
   ::tclapp::xilinx::vcs::usf_set_ref_dir $fh_scr
   set tool "vhdlan"
   set arg_list [list "-l" "${tool}.log"]
-  if { !$::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit) } {
+  if { ($::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    # donot pass os type
+  } else {
     set arg_list [linsert $arg_list 0 "-full64"]
   }
 
@@ -305,7 +311,9 @@ proc usf_vcs_write_compile_script {} {
   }
   set tool "vlogan"
   set arg_list [list "-l" "${tool}.log"]
-  if { !$::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit) } {
+  if { ($::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    # donot pass os type
+  } else {
     set arg_list [linsert $arg_list 0 "-full64"]
   }
 
@@ -350,6 +358,7 @@ proc usf_vcs_write_elaborate_script {} {
 
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
+  set os_type $::tclapp::xilinx::vcs::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -373,7 +382,9 @@ proc usf_vcs_write_elaborate_script {} {
     lappend arg_list {-debug_pp}
   }
   set arg_list [linsert $arg_list end "-t" "ps" "-licwait" "-60" "-l" "elaborate.log"]
-  if { !$::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit) } {
+  if { ($::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    # donot pass os type
+  } else {
      set arg_list [linsert $arg_list 0 "-full64"]
   }
   
