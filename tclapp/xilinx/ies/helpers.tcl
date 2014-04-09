@@ -1082,7 +1082,7 @@ proc usf_launch_script { simulator step } {
   switch $step {
     {compile} -
     {elaborate} {
-      if {[catch {rdi::run_program $scr_file} error_log]} {
+      if {[catch {rdi::run_program $scr_file} error_log] || [usf_check_errors $step]} {
         send_msg_id Vivado-IES-064 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"
         set faulty_run 1
       }
@@ -1107,6 +1107,55 @@ proc usf_launch_script { simulator step } {
     error "_SIM_STEP_RUN_EXEC_ERROR_"
     # IMPORTANT - *** DONOT MODIFY THIS ***
     return 1
+  }
+  return 0
+}
+
+proc usf_check_errors { step } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  switch $step {
+    {compile} {
+      # errors in ncvlog?
+      set token "ncvlog"
+      if { [usf_found_errors_in_file $token] } { return 1 }
+      # errors in ncvhdl?
+      set token "ncvhdl"
+      if { [usf_found_errors_in_file $token] } { return 1 }
+    }
+    {elaborate} {
+      # errors in ncelab?
+      set token "ncelab"
+      if { [usf_found_errors_in_file $token] } { return 1 }
+    }
+  }
+  return 0
+}
+
+proc usf_found_errors_in_file { token } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set fh 0
+  set file ${token}.log
+  if {[catch {open $file r} fh]} {
+    send_msg_id Vivado-IES-999 ERROR "failed to open file to read ($file)\n"
+    return
+  }
+  set data [read $fh]
+  close $fh
+
+  set log_data [split $data "\n"]
+  foreach line $log_data {
+    set line_str [string trim $line]
+    switch $token {
+      {ncvlog} { if { [regexp {^ncvlog:} $line_str] && ([regexp {\*E} $line_str] || [regexp {\*F} $line_str]) } { return 1 } }
+      {ncvhdl} { if { [regexp {^ncvhdl:} $line_str] && ([regexp {\*E} $line_str] || [regexp {\*F} $line_str]) } { return 1 } }
+      {ncelab} { if { [regexp {^ncelab:} $line_str] && ([regexp {\*E} $line_str] || [regexp {\*F} $line_str]) } { return 1 } }
+    }
   }
   return 0
 }

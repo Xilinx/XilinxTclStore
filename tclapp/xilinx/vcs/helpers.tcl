@@ -1088,7 +1088,7 @@ proc usf_launch_script { simulator step } {
   switch $step {
     {compile} -
     {elaborate} {
-      if {[catch {rdi::run_program $scr_file} error_log]} {
+      if {[catch {rdi::run_program $scr_file} error_log] || [usf_check_errors $step]} {
         send_msg_id Vivado-VCS-063 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"
         set faulty_run 1
       }
@@ -1113,6 +1113,55 @@ proc usf_launch_script { simulator step } {
     error "_SIM_STEP_RUN_EXEC_ERROR_"
     # IMPORTANT - *** DONOT MODIFY THIS ***
     return 1
+  }
+  return 0
+}
+
+proc usf_check_errors { step } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  switch $step {
+    {compile} {
+      # errors in vlogan?
+      set token "vlogan"
+      if { [usf_found_errors_in_file $token] } { return 1 }
+      # errors in vhdlan?
+      set token "vhdlan"
+      if { [usf_found_errors_in_file $token] } { return 1 }
+    }
+    {elaborate} {
+      # errors in vsim?
+      set token "elaborate"
+      if { [usf_found_errors_in_file $token] } { return 1 }
+    }
+  }
+  return 0
+}
+
+proc usf_found_errors_in_file { token } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set fh 0
+  set file ${token}.log
+  if {[catch {open $file r} fh]} {
+    send_msg_id Vivado-VCS-999 ERROR "failed to open file to read ($file)\n"
+    return 1
+  }
+  set data [read $fh]
+  close $fh
+
+  set log_data [split $data "\n"]
+  foreach line $log_data {
+    set line_str [string trim $line]
+    switch $token {
+      {vlogan}    { if { [regexp {^Error-} $line_str] } { return 1 } }
+      {vhdlan}    { if { [regexp {^Error-} $line_str] } { return 1 } }
+      {elaborate} { if { [regexp {^Error-} $line_str] } { return 1 } }
+    }
   }
   return 0
 }

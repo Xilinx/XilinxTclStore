@@ -618,7 +618,8 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     if { {} == $uut } {
       set uut "/$top/uut/*"
     }
-    if { {timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type) } {
+    if { ({functional} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) || \
+         ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
       puts $fh "power add -r -in -inout -out -internal [::tclapp::xilinx::modelsim::usf_resolve_uut_name uut]\n"
     } else {
       puts $fh "power add -in -inout -out -internal [::tclapp::xilinx::modelsim::usf_resolve_uut_name uut]\n"
