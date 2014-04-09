@@ -291,7 +291,7 @@ proc usf_vcs_write_compile_script {} {
 
   ::tclapp::xilinx::vcs::usf_set_ref_dir $fh_scr
   set tool "vhdlan"
-  set arg_list [list "-l" "${tool}.log"]
+  set arg_list [list]
   if { ($::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit)) || ({32} == $os_type) } {
     # donot pass os type
   } else {
@@ -310,7 +310,7 @@ proc usf_vcs_write_compile_script {} {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\""
   }
   set tool "vlogan"
-  set arg_list [list "-l" "${tool}.log"]
+  set arg_list [list]
   if { ($::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit)) || ({32} == $os_type) } {
     # donot pass os type
   } else {
@@ -331,11 +331,19 @@ proc usf_vcs_write_compile_script {} {
 
   set files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation]]
   puts $fh_scr "# compile design source files"
+  set log "unknown.log"
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
-    puts $fh_scr "\$bin_path/$cmd_str"
+
+    if { [regexp -nocase {vhdl} $type] } {
+      set log "vhdlan.log"
+    } elseif { [regexp -nocase {verilog} $type] } {
+      set log "vlogan.log"
+    }
+    set redirect_cmd_str "2>&1 | tee -a $log"
+    puts $fh_scr "\$bin_path/$cmd_str $redirect_cmd_str"
   }
   # compile glbl file
   set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
@@ -346,7 +354,7 @@ proc usf_vcs_write_compile_script {} {
     }
     ::tclapp::xilinx::vcs::usf_copy_glbl_file
     set file_str "${work_lib_sw}\"glbl.v\""
-    puts $fh_scr "\n# compile glbl module\n\$bin_path/vlogan \$vlogan_opts +v2k $file_str"
+    puts $fh_scr "\n# compile glbl module\n\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
   }
   close $fh_scr
 }

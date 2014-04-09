@@ -32,6 +32,8 @@ set auto_index(::tclapp::xilinx::vcs::usf_set_simulator_path) [list source [file
 set auto_index(::tclapp::xilinx::vcs::usf_get_files_for_compilation) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_write_script_header_info) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_launch_script) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::vcs::usf_check_errors) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::vcs::usf_found_errors_in_file) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_write_shell_step_fn) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_resolve_uut_name) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_print_args) [list source [file join $dir helpers.tcl]]

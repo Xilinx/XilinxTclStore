@@ -737,9 +737,10 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr "\}"
   }
 
-  set b_timing 0
-  if { {timing} == $::tclapp::xilinx::xsim::a_sim_vars(s_type) } {
-    set b_timimg 1
+  set b_post_sim 0
+  if { ({functional} == $::tclapp::xilinx::xsim::a_sim_vars(s_type)) || \
+       ({timing} == $::tclapp::xilinx::xsim::a_sim_vars(s_type)) } {
+    set b_post_sim 1
   }
   # generate saif file for power estimation
   set saif [get_property "XSIM.SIMULATE.SAIF" $fs_obj]
@@ -749,8 +750,8 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     if { {} == $uut } {
       set uut "/$top/uut/*"
     }
-    if { $b_timing } {
-      puts $fh_scr "log_saif \[get_objects -r *\]"
+    if { $b_post_sim } {
+      puts $fh_scr "log_saif \[get_objects -r [::tclapp::xilinx::xsim::usf_resolve_uut_name uut]\]"
     } else {
       set filter "get_objects -filter \{type==in_port || type==out_port || type==inout_port\}"
       puts $fh_scr "log_saif \[$filter [::tclapp::xilinx::xsim::usf_resolve_uut_name uut]\]"
