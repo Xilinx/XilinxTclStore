@@ -1147,9 +1147,13 @@ proc usf_found_errors_in_file { token } {
 
   set fh 0
   set file ${token}.log
-  if {[catch {open $file r} fh]} {
-    send_msg_id Vivado-VCS-999 ERROR "failed to open file to read ($file)\n"
-    return 1
+  if {[file exists $file]} {
+    if {[catch {open $file r} fh]} {
+      send_msg_id Vivado-VCS-999 ERROR "failed to open file to read ($file)\n"
+      return 1
+    }
+  } else {
+    return 0
   }
   set data [read $fh]
   close $fh
