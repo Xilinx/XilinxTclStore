@@ -299,9 +299,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   # compile glbl file
   set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
   if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl] } {
-    set default_lib [get_property "DEFAULT_LIB" [current_project]]
+    set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
     ::tclapp::xilinx::xsim::usf_copy_glbl_file
-    set file_str "$default_lib \"glbl.v\""
+    set file_str "$top_lib \"glbl.v\""
     puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
   }
  
@@ -647,12 +647,11 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       set b_verilog_sim_netlist 1
     }
   }
-  set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
   if { [::tclapp::xilinx::xsim::usf_contains_verilog] || $b_verilog_sim_netlist } {
     set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" $fs_obj]
     if { ([lsearch ${top_level_inst_names} {glbl}] == -1) && $b_load_glbl } {
-      set glbl_name ${top_lib}.glbl
-      lappend args_list "$glbl_name"
+      set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
+      lappend args_list "${top_lib}.glbl"
     }
   }
 

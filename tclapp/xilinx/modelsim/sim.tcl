@@ -421,15 +421,27 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
   # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
 
+  set b_default_lib false
+  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     puts $fh "vlib msim/$lib"
+    if { $default_lib == $lib } {
+      set b_default_lib true
+    }
   }
+  if { !$b_default_lib } {
+    puts $fh "vlib msim/$default_lib"
+  }
+   
   puts $fh ""
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     puts $fh "vmap $lib msim/$lib"
+  }
+  if { !$b_default_lib } {
+    puts $fh "vmap $default_lib msim/$default_lib"
   }
   puts $fh ""
 
@@ -468,7 +480,8 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
   if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl] } {
     ::tclapp::xilinx::modelsim::usf_copy_glbl_file
-    set file_str "-work $default_lib \"glbl.v\""
+    set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
+    set file_str "-work $top_lib \"glbl.v\""
     puts $fh "\n# compile glbl module\nvlog $file_str"
   }
   puts $fh "\nquit -force"
@@ -566,15 +579,16 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     lappend arg_list "[string tolower $lib]"
   }
 
+  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   lappend arg_list "-lib"
-  lappend arg_list [get_property "DEFAULT_LIB" [current_project]]
-
+  lappend arg_list $default_lib
+  
   set d_libs [join $arg_list " "]
   set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog] } {
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog] } {    
     lappend arg_list "${top_lib}.glbl"
   }
   set cmd_str [join $arg_list " "]

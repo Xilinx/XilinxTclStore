@@ -39,7 +39,7 @@ proc export_simulation {args} {
   # -simulator <arg>: Simulator for which the simulation script will be created (<name>: ies|vcs_mx)
 
   # Return Value:
-  # true (0) if success, false (1) otherwise
+  # None
 
   # Categories: xilinxtclstore, projutils
 
@@ -52,11 +52,11 @@ proc export_simulation {args} {
   # these options are must
   if {[lsearch $options {-simulator}] == -1} {
     send_msg_id Vivado-projutils-013 ERROR "Missing option '-simulator', please type 'export_simulation -help' for usage info.\n"
-    return 1
+    return
   }
   if {[lsearch $options {-directory}] == -1} {
     send_msg_id Vivado-projutils-039 ERROR "Missing option '-directory', please type 'export_simulation -help' for usage info.\n"
-    return 1
+    return
   }
 
   # process options
@@ -75,7 +75,7 @@ proc export_simulation {args} {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
           send_msg_id Vivado-projutils-014 ERROR "Unknown option '$option', please type 'export_simulation -help' for usage info.\n"
-          return 1
+          return
         }
       }
     }
@@ -89,18 +89,18 @@ proc export_simulation {args} {
   if { [lsearch -exact $l_valid_simulator_types $a_xport_sim_vars(s_simulator)] == -1 } {
     send_msg_id Vivado-projutils-015 ERROR \
       "Invalid simulator type specified. Please type 'export_simulation -help' for usage info.\n"
-    return 1
+    return
   }
 
   # is valid tcl obj specified?
   if { ([lsearch $options {-of_objects}] != -1) && ([llength $a_xport_sim_vars(sp_tcl_obj)] == 0) } {
     send_msg_id Vivado-projutils-038 ERROR "Invalid object specified. The object does not exist.\n"
-    return 1
+    return
   }
  
   # set pretty name
   if { [set_simulator_name] } {
-    return 1
+    return
   }
 
   # is managed project?
@@ -108,17 +108,17 @@ proc export_simulation {args} {
 
   # setup run dir
   if { [create_sim_files_dir] } {
-    return 1
+    return
   }
 
   # set default object if not specified, bail out if no object found
   if { [set_default_tcl_obj] } {
-    return 1
+    return
   }
 
   # write script
   if { [write_sim_script] } {
-    return 1
+    return
   }
 
   # generate mem files
@@ -126,9 +126,7 @@ proc export_simulation {args} {
     send_msg_id Vivado-projutils-060 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
     generate_mem_files $a_xport_sim_vars(s_out_dir)
   }
-
-  # TCL_OK
-  return 0
+  return
 }
 }
 
@@ -192,7 +190,7 @@ proc set_default_tcl_obj {} {
   set tcl_obj $a_xport_sim_vars(sp_tcl_obj)
   if { [string length $tcl_obj] == 0 } {
     if { $a_xport_sim_vars(b_is_managed) } {
-      set ips [get_ips]
+      set ips [get_ips -quiet]
       if {[llength $ips] == 0} {
         send_msg_id Vivado-projutils-016 INFO "No IP's found in the current project.\n"
         return 1
@@ -1252,17 +1250,17 @@ proc verify_ip_status { tcl_obj } {
          ({1} == [get_property is_auto_disabled [get_files -all ${ip}.xci]]) } {
       return
     }
-    dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips $ip]]
-    dict set regen_ip $ip generated [get_property is_ip_generated [get_ips $ip]]
-    dict set regen_ip $ip stale [get_property stale_targets [get_ips $ip]]
+    dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
+    dict set regen_ip $ip generated [get_property is_ip_generated [get_ips -quiet $ip]]
+    dict set regen_ip $ip stale [get_property stale_targets [get_ips -quiet $ip]]
   } else {
-    foreach ip [get_ips] {
+    foreach ip [get_ips -quiet] {
       # is user-disabled? or auto_disabled? continue
       if { ({0} == [get_property is_enabled [get_files -all ${ip}.xci]]) ||
            ({1} == [get_property is_auto_disabled [get_files -all ${ip}.xci]]) } {
         continue
       }
-      dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips $ip]]
+      dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
       dict set regen_ip $ip generated [get_property is_ip_generated $ip]
       dict set regen_ip $ip stale [get_property stale_targets $ip]
     }
@@ -1673,8 +1671,8 @@ proc is_axi_bfm_ip {} {
   # Return Value:
   # true (1) if specified IP is axi_bfm, false (0) otherwise
 
-  foreach ip [get_ips] {
-    set ip_def [lindex [split [get_property "IPDEF" [get_ips $ip]] {:}] 2]
+  foreach ip [get_ips -quiet] {
+    set ip_def [lindex [split [get_property "IPDEF" [get_ips -quiet $ip]] {:}] 2]
     set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
     if { [regexp -nocase {axi_bfm} $value] } {
       return 1

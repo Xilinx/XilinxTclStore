@@ -253,6 +253,8 @@ proc usf_ies_write_setup_files {} {
     lappend libs [string tolower $lib]
   }
   set dir_name "ies"
+  set b_default_lib false
+  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   foreach lib_name $libs {
     set lib_dir [file join $dir_name $lib_name]
     set lib_dir_path [file normalize [string map {\\ /} [file join $dir $lib_dir]]]
@@ -263,7 +265,22 @@ proc usf_ies_write_setup_files {} {
       }
     }
     puts $fh "DEFINE $lib_name $lib_dir"
+    if { $default_lib == $lib_name } {
+      set b_default_lib true
+    }
   }
+  if { !$b_default_lib } {
+    set lib_dir [file join $dir_name $default_lib]
+    set lib_dir_path [file normalize [string map {\\ /} [file join $dir $lib_dir]]]
+    if { ! [file exists $lib_dir_path] } {
+      if {[catch {file mkdir $lib_dir_path} error_msg] } {
+        send_msg_id Vivado-IES-011 ERROR "failed to create the directory ($lib_dir_path): $error_msg\n"
+        return 1
+      }
+    }
+    puts $fh "DEFINE $default_lib $lib_dir"
+  }
+ 
   close $fh
 
   #
@@ -368,7 +385,8 @@ proc usf_ies_write_compile_script {} {
   set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
   if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl] } {
     ::tclapp::xilinx::ies::usf_copy_glbl_file
-    set file_str "-work $default_lib \"glbl.v\""
+    set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+    set file_str "-work $top_lib \"glbl.v\""
     puts $fh_scr "\n# compile glbl module\n\$bin_path/ncvlog \$ncvlog_opts $file_str"
   }
 
@@ -500,6 +518,7 @@ proc usf_ies_write_elaborate_script {} {
   lappend arg_list "\$design_libs_elab"
   lappend arg_list "${top_lib}.$top"
   if { [::tclapp::xilinx::ies::usf_contains_verilog] } {
+    set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
     lappend arg_list "${top_lib}.glbl"
   }
 
@@ -628,6 +647,11 @@ proc usf_ies_create_setup_script {} {
         continue;
       }
       lappend libs [string tolower $lib]
+    }
+
+    set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+    if { [lsearch -exact $libs $default_lib] == -1 } {
+      lappend libs $default_lib
     }
 
     puts $fh_scr "  libs=([join $libs " "])"

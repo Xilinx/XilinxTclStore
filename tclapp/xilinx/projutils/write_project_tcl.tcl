@@ -64,7 +64,7 @@ proc write_project_tcl {args} {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
           send_msg_id Vivado-projutils-001 ERROR "Unknown option '$option', please type 'write_project_tcl -help' for usage info.\n"
-          return 1
+          return
         }
         set a_global_vars(script_file) $option
       }
@@ -74,13 +74,13 @@ proc write_project_tcl {args} {
   # script file is a must
   if { [string equal $a_global_vars(script_file) ""] } {
     send_msg_id Vivado-projutils-002 ERROR "Missing value for option 'file', please type 'write_project_tcl -help' for usage info.\n"
-    return 1
+    return
   }
         
   # should not be a directory
   if { [file isdirectory $a_global_vars(script_file)] } {
     send_msg_id Vivado-projutils-003 ERROR "The specified filename is a directory ($a_global_vars(script_file)), please type 'write_project_tcl -help' for usage info.\n"
-    return 1
+    return
   }
    
   # check extension
@@ -94,14 +94,14 @@ proc write_project_tcl {args} {
   if { ! [file exists $file_path] } {
     if {[catch {file mkdir $file_path} error_msg] } {
       send_msg_id Vivado-projutils-013 ERROR "failed to create the directory ($file_path): $error_msg\n"
-      return 1
+      return
     }
   }
     
   # recommend -force if file exists
   if { [file exists $a_global_vars(script_file)] && !$a_global_vars(b_arg_force) } {
-    send_msg_id Vivado-projutils-004 ERROR "Tcl Script '$a_global_vars(script_file)' already exist. Use -force option to overwrite."
-    return 1
+    send_msg_id Vivado-projutils-004 ERROR "Tcl Script '$a_global_vars(script_file)' already exist. Use -force option to overwrite.\n"
+    return
   }
 
   # set script file directory path
@@ -109,7 +109,7 @@ proc write_project_tcl {args} {
   
   # now write
   if {[write_project_tcl_script]} {
-    return 1
+    return
   }
 }
 }

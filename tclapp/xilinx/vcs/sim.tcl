@@ -243,6 +243,10 @@ proc usf_vcs_write_setup_files {} {
     if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
     lappend libs [string tolower $lib]
   }
+  set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+  if { [lsearch -exact $libs $default_lib] == -1 } {
+    lappend libs $default_lib
+  }
   set dir_name "vcs"
   foreach lib_name $libs {
     set lib_dir [file join $dir_name $lib_name]
@@ -347,10 +351,11 @@ proc usf_vcs_write_compile_script {} {
   }
   # compile glbl file
   set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
+  set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
   if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl] } {
     set work_lib_sw {}
-    if { {work} != $default_lib } {
-      set work_lib_sw "-work $default_lib "
+    if { {work} != $top_lib } {
+      set work_lib_sw "-work $top_lib "
     }
     ::tclapp::xilinx::vcs::usf_copy_glbl_file
     set file_str "${work_lib_sw}\"glbl.v\""
@@ -420,6 +425,7 @@ proc usf_vcs_write_elaborate_script {} {
   set tool_path "\$bin_path/$tool"
   set arg_list [list "${tool_path}" "\$${tool}_opts" "${top_lib}.$top"]
   if { [::tclapp::xilinx::vcs::usf_contains_verilog] } {
+    set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
     lappend arg_list "${top_lib}.glbl"
   }
   lappend arg_list "-o"
@@ -531,6 +537,11 @@ proc usf_vcs_create_setup_script {} {
         continue;
       }
       lappend libs [string tolower $lib]
+    }
+
+    set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+    if { [lsearch -exact $libs $default_lib] == -1 } {
+      lappend libs $default_lib
     }
 
     puts $fh_scr "  libs=([join $libs " "])"

@@ -527,6 +527,7 @@ proc usf_get_top_library { } {
 
   variable a_sim_vars
   variable l_compile_order_files
+
   set flow    $a_sim_vars(s_simulation_flow)
   set tcl_obj $a_sim_vars(sp_tcl_obj)
 
@@ -534,28 +535,51 @@ proc usf_get_top_library { } {
   if { [usf_is_ip $tcl_obj] } {
     set tcl_obj [current_fileset -simset]
   }
-  set top_library [get_property "DEFAULT_LIB" [current_project]]
+
+  # get the default top library set for the project
+  set default_top_library [get_property "DEFAULT_LIB" [current_project]]
+
+  # get the library associated with the top file from the 'top_lib' property on the fileset
+  set fs_top_library [get_property "TOP_LIB" [get_filesets $tcl_obj]]
+
+  # post* simulation flow
   if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
     # It isn't clear this is always appropriate, but it is at least consistent. Prior
     # to this there were cases where the post- netlist was being designated with the
     # default library, but the top_lib was being obtained from the _pSimSet, and these
     # didnt match. A better fix might be forcing the netlist into the _pSimSet top library.
-    return $top_library
-  }
-  # get the library associated with the top file from the 'top_lib' property on the fileset
-  set top_library [get_property "TOP_LIB" [get_filesets $tcl_obj]]
-  if { {} == $top_library } {
-    # fallback to fetching it from fileset source iterator (last non-disabled file)
-    if { [llength $l_compile_order_files] > 0 } {
-      set top_library [get_property "LIBRARY" [lindex [get_files -all [lindex $l_compile_order_files end]] 0]]
-    }
-    # If for some reason the associated library is empty, do not set (keep default),
-    # so, set only if we have one set in the source and is not default.
-    if { {} != $top_library } {
-      return $top_library
+    if { {} != $default_top_library } {
+      return $default_top_library
+    } elseif { {} != $fs_top_library } {
+      return $fs_top_library
+    } else {
+      return "xil_defaultlib"
     }
   }
-  return $top_library
+
+  # behavioral simulation
+
+  # fetch top library from compile order
+  set co_top_library {}
+  if { [llength $l_compile_order_files] > 0 } {
+    set co_top_library [get_property "LIBRARY" [lindex [get_files -all [lindex $l_compile_order_files end]] 0]]
+  }
+  # make sure default or fileset top library matches with the library from compile order, if not, then return the compile order library
+  if { {} != $default_top_library } {
+    if { ({} != $co_top_library) && ($default_top_library != $co_top_library) } {
+      return $co_top_library
+    } else {
+      return $default_top_library
+    }
+  } elseif { {} != $fs_top_library } {
+    if { ({} != $co_top_library) && ($fs_top_library != $co_top_library) } {
+      return $co_top_library
+    } else {
+      return $fs_top_library
+    }
+  }
+
+  return "xil_defaultlib"
 }
 
 proc usf_contains_verilog {} {
