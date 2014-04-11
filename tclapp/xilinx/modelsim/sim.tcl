@@ -505,13 +505,13 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
     puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}\n"
   }
-  set cmd_str [usf_modelsim_get_elaboration_cmdline]
+  set cmd_str [usf_modelsim_get_elaboration_cmdline "elaborate"]
   puts $fh "$cmd_str"
   puts $fh "\nquit -force"
   close $fh
 }
 
-proc usf_modelsim_get_elaboration_cmdline {} {
+proc usf_modelsim_get_elaboration_cmdline { step } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -527,7 +527,10 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set tool "vsim"
   set arg_list [list "-voptargs=\\\"+acc\\\"" "-t 1ps"]
 
-  set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  set more_sim_options [string trim [get_property "MODELSIM.ELABORATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  if { {simulate} == $step } {
+    set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  }
   if { {} != $more_sim_options } {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
@@ -614,7 +617,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set wave_do_filename $top;append wave_do_filename "_wave.do"
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
   usf_modelsim_create_wave_do_file $wave_do_file
-  set cmd_str [usf_modelsim_get_elaboration_cmdline]
+  set cmd_str [usf_modelsim_get_elaboration_cmdline "simulate"]
   if { $b_batch && [get_param "simulator.modelsimNoQuitOnError"] } {
     puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}\n"
