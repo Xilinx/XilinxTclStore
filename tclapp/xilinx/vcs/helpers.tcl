@@ -1274,9 +1274,9 @@ proc usf_get_platform {} {
   if { {windows64} == $os } { set platform "win64" }
   if { {unix} == $os } {
     if { {x86_64} == $::tcl_platform(machine) } {
-      set platform "lin64"
+      set platform "lnx64"
     } else {
-      set platform "lin32"
+      set platform "lnx32"
     }
   }
   return $platform
@@ -1291,7 +1291,7 @@ proc usf_is_axi_bfm_ip {} {
   foreach ip [get_ips -quiet] {
     set ip_def [lindex [split [get_property "IPDEF" [get_ips -quiet $ip]] {:}] 2]
     set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
-    if { [regexp -nocase {axi_bfm} $value] } {
+    if { ([regexp -nocase {axi_bfm} $value]) || ([regexp -nocase {processing_system7} $value]) } {
       return 1
     }
   }
@@ -1304,7 +1304,7 @@ proc usf_get_simulator_lib_for_bfm {} {
   # Return Value:
 
   set simulator_lib {}
-  set xil           $::env(XILINX)
+  set xil           $::env(XILINX_VIVADO)
   set path_sep      {;}
   set lib_extn      {.dll}
   set platform      [::tclapp::xilinx::vcs::usf_get_platform]
@@ -1314,6 +1314,7 @@ proc usf_get_simulator_lib_for_bfm {} {
 
   set lib_name "libxil_vcs";append lib_name $lib_extn
   if { {} != $xil } {
+    append platform ".o"
     set lib_path {}
     foreach path [split $xil $path_sep] {
       set file [file normalize [file join $path "lib" $platform $lib_name]]
@@ -1323,7 +1324,7 @@ proc usf_get_simulator_lib_for_bfm {} {
       }
     }
   } else {
-    send_msg_id Vivado-VCS-065 ERROR "Environment variable 'XILINX' is not set!"
+    send_msg_id Vivado-VCS-065 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
   }
   return $simulator_lib
 }
