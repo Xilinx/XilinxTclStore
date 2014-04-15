@@ -28,7 +28,6 @@ source -notrace [file join $test_dir my_command3_0001.tcl]
 # Uninstall the app if it was not already installed when starting the script
 if {[lsearch -exact $listInstalledApps $appName] == -1} {
   ::tclapp::unload_app $appName
-  catch "package forget ::tclapp::${appName}"
 }
 
 return 0
