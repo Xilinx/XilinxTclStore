@@ -1,24 +1,35 @@
-# Set the File Directory to the current directory location of the script
+set appName {xilinx::ultrafast}
+  
+set listInstalledApps [::tclapp::list_apps]
+
 set test_dir [file normalize [file dirname [info script]]]
-
-# Set the Xilinx Tcl App Store Repository to the current repository location
 puts "== Test directory: $test_dir"
-set ::env(XILINX_TCLAPP_REPO) [file normalize [file join $test_dir .. .. ..]]
 
-# Set the Xilinx Tcl App Store Repository path to the Tcl auto_path
-puts "== Application directory: $::env(XILINX_TCLAPP_REPO)"
-set auto_path $::env(XILINX_TCLAPP_REPO)
+set tclapp_repo [file normalize [file join $test_dir .. .. ..]]
+puts "== Application directory: $tclapp_repo"
 
-# Safely require the package
-catch {package forget ::tclapp::xilinx::ultrafast}
-package require ::tclapp::xilinx::ultrafast
+if {[lsearch -exact $listInstalledApps $appName] != -1} {
+  # Uninstall the app if it is already installed
+  ::tclapp::unload_app $appName
+}
 
+# Install the app and require the package
+catch "package forget ::tclapp::${appName}"
+::tclapp::load_app $appName
+package require ::tclapp::${appName}
+  
 # Start the unit tests
 puts "script is invoked from $test_dir"
-source [file join $test_dir check_pll_connectivity_0001.tcl]
-source [file join $test_dir create_cdc_reports_0001.tcl]
-source [file join $test_dir report_clock_topology_0001.tcl]
-source [file join $test_dir report_io_reg_0001.tcl]
-source [file join $test_dir report_reset_signals_0001.tcl]
+source -notrace [file join $test_dir check_pll_connectivity_0001.tcl]
+source -notrace [file join $test_dir create_cdc_reports_0001.tcl]
+source -notrace [file join $test_dir report_clock_topology_0001.tcl]
+source -notrace [file join $test_dir report_io_reg_0001.tcl]
+source -notrace [file join $test_dir report_reset_signals_0001.tcl]
+
+# Uninstall the app if it was not already installed when starting the script
+if {[lsearch -exact $listInstalledApps $appName] == -1} {
+  ::tclapp::unload_app $appName
+  catch "package forget ::tclapp::${appName}"
+}
 
 return 0
