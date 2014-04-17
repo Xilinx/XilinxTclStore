@@ -474,7 +474,7 @@
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 ‘UltraFast Design Methodology Guide for the Vivado Design Suite’ for further information.</summary>
+      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 'UltraFast Design Methodology Guide for the Vivado Design Suite' for further information.</summary>
       <display>UltraFast Design Methodology</display>
       <procs>
         <proc>
