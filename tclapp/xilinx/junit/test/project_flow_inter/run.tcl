@@ -2,12 +2,9 @@
 
 # prep
 set testDir   [ file normalize [ file dirname [ info script ] ] ]
-set appDir    [ file normalize [ file join $testDir .. .. .. .. ] ]
 set runDir    [ file join $testDir run ]
-lappend ::auto_path $appDir
-puts "Using App Dir:\n  $appDir"
-puts "Using Test Dir:\n  $testDir"
-puts "Using Run Dir:\n  $runDir"
+puts "= Current Test Dir:\n  $testDir"
+puts "= Current Run Dir:\n  $runDir"
 
 # clean
 if { [ file exists $runDir ] } { file delete -force $runDir }

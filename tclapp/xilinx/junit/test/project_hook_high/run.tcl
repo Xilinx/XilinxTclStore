@@ -2,12 +2,9 @@
 
 # prep
 set testDir   [ file normalize [ file dirname [ info script ] ] ]
-set appDir    [ file normalize [ file join $testDir .. .. .. .. ] ]
 set runDir    [ file join $testDir run ]
-lappend ::auto_path $appDir
-puts "Using App Dir:\n  $appDir"
-puts "Using Test Dir:\n  $testDir"
-puts "Using Run Dir:\n  $runDir"
+puts "= Current Test Dir:\n  $testDir"
+puts "= Current Run Dir:\n  $runDir"
 
 # clean
 if { [ file exists $runDir ] } { file delete -force $runDir }
@@ -19,7 +16,7 @@ namespace import ::tclapp::xilinx::junit::*
 set projectDir [ file join $runDir tp ]
 create_project tp $projectDir -part xc7vx485tffg1157-1
 
-set srcFiles [ file normalize [ file join $runDir .. .. src * ] ]
+set srcFiles [ file normalize [ file join $::test_dir src * ] ]
 puts "Searching for source files with:\n  ${srcFiles}"
 add_files [ glob $srcFiles ]
 
