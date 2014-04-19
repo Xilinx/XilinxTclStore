@@ -359,12 +359,12 @@ proc usf_write_design_netlist {} {
       } elseif { {timing} == $a_sim_vars(s_type) } {
         set wv_args "-mode timesim $wv_args"
       }
-      send_msg_id Vivado-ModelSim-999 INFO "write_verilog $wv_args"
+      send_msg_id Vivado-ModelSim-101 INFO "write_verilog $wv_args"
       eval "write_verilog $wv_args"
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id Vivado-ModelSim-030 INFO "Writing SDF file..."
         set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
-        send_msg_id Vivado-ModelSim-999 INFO "write_sdf $ws_args"
+        send_msg_id Vivado-ModelSim-102 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
       set a_sim_vars(s_netlist_file) $net_file
@@ -388,12 +388,12 @@ proc usf_write_design_netlist {} {
       } elseif { {timing} == $a_sim_vars(s_type) } {
         set wv_args "-mode timesim $wv_args"
       }
-      send_msg_id Vivado-ModelSim-999 INFO "write_verilog $wv_args"
+      send_msg_id Vivado-ModelSim-103 INFO "write_verilog $wv_args"
       eval "write_verilog $wv_args"
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id Vivado-ModelSim-033 INFO "Writing SDF file..."
         set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
-        send_msg_id Vivado-ModelSim-999 INFO "write_sdf $ws_args"
+        send_msg_id Vivado-ModelSim-104 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
 
@@ -672,7 +672,7 @@ proc usf_copy_glbl_file {} {
   set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
 
   if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
-    send_msg_id Vivado-ModelSim-999 WARNING "failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+    send_msg_id Vivado-ModelSim-105 WARNING "failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
   }
 }
 
