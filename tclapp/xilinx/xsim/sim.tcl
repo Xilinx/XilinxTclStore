@@ -80,7 +80,7 @@ proc simulate { args } {
   set cmd_file {}
   set wcfg_file {}
   set b_add_view 0
-  usf_xsim_write_simulate_script cmd_file wcfg_file b_add_view scr_filename
+  set cmd_args [usf_xsim_write_simulate_script cmd_file wcfg_file b_add_view scr_filename]
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -122,8 +122,11 @@ proc simulate { args } {
 
   set cwd [pwd]
   cd $dir
-  set retval [xsim $snapshot -key $key -tclbatch $cmd_file -log $log_file]
+  eval "xsim $cmd_args"
   cd $cwd
+  send_msg_id Vivado-XSim-096 INFO "XSim completed. Design snapshot '$snapshot' loaded."
+  set runtime [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]
+  send_msg_id Vivado-XSim-097 INFO "XSim simulation ran for $runtime"
 
   # close for batch flow
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_batch) } {
@@ -438,20 +441,18 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
 
   # get the wcfg file information
   set b_linked_wcfg_exist 0
-  set wcfg_file [get_property "XSIM.SIMULATE.VIEW" $fs_obj]
+  set wcfg_files [split [get_property "XSIM.VIEW" $fs_obj] { }]
   set wdb_filename [file root [file tail $wdf_file]]
-  if { {} == $wcfg_file } {
+  set b_wcfg_files 0
+  if { [llength $wcfg_files] > 0 } {
+    set b_wcfg_files 1
+  }
+  if { !$b_wcfg_files } {
     # check WCFG file with the same prefix name present in the WDB file
     set wcfg_file_in_wdb_dir ${wdb_filename};append wcfg_file_in_wdb_dir ".wcfg"
     #set wcfg_file_in_wdb_dir [file normalize [file join $dir $wcfg_file_in_wdb_dir]]
     if { [file exists $wcfg_file_in_wdb_dir] } {
       set b_linked_wcfg_exist 1
-    }
-  } else {
-    set wcfg_file [file normalize $wcfg_file]
-    if { ![file exists $wcfg_file] } {
-      send_msg_id Vivado-XSim-017 WARNING "Specified wcfg file '$wcfg_file' doesn't exist, ignored\n"
-      set wcfg_file {}
     }
   }
 
@@ -459,7 +460,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   set b_add_view 0
 
   # wcfg file specified?
-  if { {} != $wcfg_file } {
+  if { $b_wcfg_files } {
     # pass -view
     set b_add_view 1
   } elseif { $b_linked_wcfg_exist } {
@@ -482,12 +483,12 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
-    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_file $b_add_view]
+    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view]
     puts $fh_scr "ExecStep \$xv_path/bin/xsim $cmd_args"
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
-    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_file $b_add_view]
+    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view]
     puts $fh_scr "call %xv_path%/xsim $cmd_args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
@@ -497,6 +498,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
     puts $fh_scr "exit 0"
   }
   close $fh_scr
+  return $cmd_args
 }
 
 proc usf_xsim_get_xelab_cmdline_args {} {
@@ -667,7 +669,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   return $cmd_args
 }
 
-proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_file b_add_view } {
+proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -681,20 +683,25 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_file b_add_view } {
   set args_list [list]
   lappend args_list $snapshot
 
-  # TODO:cr filed
-  #lappend args_list "-key"
-  #lappend args_list "[usf_xsim_get_running_simulation_obj_key]"
+  lappend args_list "-key"
+  lappend args_list "\{[usf_xsim_get_running_simulation_obj_key]\}"
 
   lappend args_list "-tclbatch"
-  lappend args_list "$cmd_file" 
+  lappend args_list "\{$cmd_file\}" 
   if { $b_add_view } {
-    lappend args_list "-view"
-    lappend args_list "$wcfg_file"
+    foreach wcfg_file $wcfg_files {
+      if { ![file exists $wcfg_file] } {
+        send_msg_id Vivado-XSim-017 WARNING "WCFG file does not exist:$wcfg_file\n"
+        continue;
+      }
+      lappend args_list "-view"
+      lappend args_list "\{$wcfg_file\}"
+    }
   }
   #set log_file ${snapshot};append log_file ".log"
   set log_file "simulate";append log_file ".log"
   lappend args_list "-log"
-  lappend args_list "$log_file"
+  lappend args_list "\{$log_file\}"
 
   # more options
   set more_sim_options [string trim [get_property "XSIM.SIMULATE.XSIM.MORE_OPTIONS" $fs_obj]]
@@ -702,6 +709,8 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_file b_add_view } {
     lappend args_list $more_sim_options
   }
   set cmd_args [join $args_list " "]
+  send_msg_id Vivado-XSim-098 INFO   "*** Running xsim\n"
+  send_msg_id Vivado-XSim-099 STATUS "   with args \"$cmd_args\"\n"
   return $cmd_args
 }
 

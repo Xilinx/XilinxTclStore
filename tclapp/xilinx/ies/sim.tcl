@@ -629,7 +629,7 @@ proc usf_ies_create_setup_script {} {
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-IES-999 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-IES-099 ERROR "failed to open file to write ($scr_file)\n"
     return 1
   }
 
