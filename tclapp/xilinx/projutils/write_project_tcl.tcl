@@ -1491,11 +1491,17 @@ proc get_relative_file_path { file_path_to_convert relative_to } {
   set found_match false
   set index 0
 
+  set fc_comps_len [llength $file_comps]
+  set rt_comps_len [llength $relative_to_comps]
+
   # compare each dir element of file_to_convert and relative_to, set the flag and
-  # get the final index till these sub-dirs matched
+  # get the final index till these sub-dirs matched. Break if limit reaches.
   while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
     if { !$found_match } { set found_match true }
     incr index
+    if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
+      break;
+    }
   }
 
   # any common dirs found? convert path to relative
