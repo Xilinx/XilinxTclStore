@@ -379,7 +379,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>5943d19028787486e6d5f62611d9c6cb78263f3e</commit_id>
+      <commit_id>0c4ca093d50790c64ec92648f503089b40b23621</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
