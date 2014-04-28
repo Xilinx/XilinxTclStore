@@ -473,7 +473,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
-    puts $fh "$cmd_str"
+    puts $fh "eval $cmd_str"
   }
 
   # compile glbl file
