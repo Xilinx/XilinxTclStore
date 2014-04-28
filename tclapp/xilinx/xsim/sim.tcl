@@ -791,10 +791,8 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
      puts $fh_scr "source \{$file\}"
   }
 
-  if { ($::tclapp::xilinx::xsim::a_sim_vars(b_batch)) || \
-       ($::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only)) } {
-    #puts $fh_scr "close_sim"
-    #puts $fh_scr "quit"
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
+    puts $fh_scr "quit"
   }
   close $fh_scr
 }
