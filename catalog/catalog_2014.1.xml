@@ -3,7 +3,7 @@
   <release>2014.1</release>
   <apps>
     <app>
-      <revision>1.5</revision>
+      <revision>1.6</revision>
       <commit_id>81d49fea456cac72b1ee36be3faf304683898029</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
@@ -474,7 +474,7 @@
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 'UltraFast Design Methodology Guide for the Vivado Design Suite' for further information.</summary>
+      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 &apos;UltraFast Design Methodology Guide for the Vivado Design Suite&apos; for further information.</summary>
       <display>UltraFast Design Methodology</display>
       <procs>
         <proc>
