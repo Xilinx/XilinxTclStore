@@ -4,7 +4,8 @@
   <support_commit_id>8157418c8958e8848117a4151f3c8b28a9933699</support_commit_id>
   <apps>
     <app>
-      <revision>1.5</revision>
+      <revision>1.6</revision>
+      <revision_history>Minor enhancement to prettyTable</revision_history>
       <commit_id>81d49fea456cac72b1ee36be3faf304683898029</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
@@ -475,7 +476,7 @@
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
-      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 ‘UltraFast Design Methodology Guide for the Vivado Design Suite’ for further information.</summary>
+      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 &apos;UltraFast Design Methodology Guide for the Vivado Design Suite&apos; for further information.</summary>
       <display>UltraFast Design Methodology</display>
       <procs>
         <proc>
