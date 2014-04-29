@@ -618,7 +618,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
   usf_modelsim_create_wave_do_file $wave_do_file
   set cmd_str [usf_modelsim_get_elaboration_cmdline "simulate"]
-  if { $b_batch && [get_param "simulator.modelsimNoQuitOnError"] } {
+  if { [get_param "simulator.modelsimNoQuitOnError"] } {
     puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}\n"
   }
