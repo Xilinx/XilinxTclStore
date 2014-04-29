@@ -1,10 +1,10 @@
 set file_dir [file normalize [file dirname [info script]]]
 
 puts "== Unit Test directory: $file_dir"
-set ::env(XILINX_TCLAPP_REPO) [file normalize [file join $file_dir .. .. ..]]
+#set ::env(XILINX_TCLAPP_REPO) [file normalize [file join $file_dir .. .. ..]]
 
-puts "== Application directory: $::env(XILINX_TCLAPP_REPO)"
-lappend auto_path $::env(XILINX_TCLAPP_REPO)
+#puts "== Application directory: $::env(XILINX_TCLAPP_REPO)"
+#lappend auto_path $::env(XILINX_TCLAPP_REPO)
 
 set name "wpt_test_0002"
 

@@ -9,7 +9,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ## 
-## Version:        01/15/2014
+## Version:        04/25/2014
 ## Tool Version:   Vivado 2013.1
 ## Description:    This package provides a simple way to handle formatted tables
 ##
@@ -63,6 +63,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## 1- Interactivity:
 ## 
 ##   Vivado% ::tclapp::xilinx::designutils::prettyTable -help
+##   Vivado% set tbl [::tclapp::xilinx::designutils::prettyTable]
 ##   Vivado% $tbl 
 ##   Vivado% $tbl configure -help
 ##   Vivado% $tbl export -help
@@ -251,6 +252,9 @@ namespace eval ::tclapp::xilinx::designutils {
 ########################################################################################
 
 ########################################################################################
+## 04/25/2014 - Fixed typo inside exportToCSV
+##            - Added -help to prettyTable
+##            - Added -noheader/-notitle to method print
 ## 01/15/2014 - Added support for multi-lines titles when exporting to CSV format
 ##            - Changed namespace's variables to 'variable'
 ## 09/16/2013 - Added meta-comment 'Categories' to all procs
@@ -297,7 +301,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable {
   variable n 0 
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
   variable params [list indent 0 maxNumRows -1 maxNumRowsToDisplay -1 title {} columnsToDisplay {} ]
-  variable version {01/15/2014}
+  variable version {04/25/2014}
 } ]
 
 #------------------------------------------------------------------------
@@ -332,7 +336,11 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
     -us -
     -usa -
     -usag -
-    -usage {
+    -usage -
+    -h -
+    -he -
+    -hel -
+    -help {
       incr show_help
     }
     create {
@@ -355,7 +363,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
                   [sizeof]                 - Provides the memory consumption of all the prettyTable objects
                   [info]                   - Provides a summary of all the prettyTable objects that have been created
                   [destroyall]             - Destroy all the prettyTable objects and release the memory
-                  [-u|-usage]              - This help message
+                  [-u|-usage|-h|-help]     - This help message
                   
       Description: Utility to create and manipulate tables
       
@@ -687,12 +695,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToCSV {self args} {
   foreach line [split $params(title) \n] {
     if {$first} {
       set first 0
-      append res "# title${sepChar}[::tb::prettyTable::list2csv [list $line] $sepChar]\n"
+      append res "# title${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv [list $line] $sepChar]\n"
     } else {
-      append res "#      ${sepChar}[::tb::prettyTable::list2csv [list $line] $sepChar]\n"
+      append res "#      ${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv [list $line] $sepChar]\n"
     }
   }
-#   append res "# title${sepChar}[::tb::prettyTable::list2csv [list $params(title)] $sepChar]\n"
+#   append res "# title${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv [list $params(title)] $sepChar]\n"
   append res "# header${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $header $sepChar]\n"
   append res "# indent${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(indent) $sepChar]\n"
   append res "# limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRows) $sepChar]\n"
@@ -1145,6 +1153,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   set help 0
   set filename {}
   set startRow 0
+  set printHeader 1
+  set printTitle 1
   set append 0
   set returnVar {}
   set columnsToDisplay $params(columnsToDisplay)
@@ -1168,6 +1178,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       -column -
       -columns {
            set columnsToDisplay [lshift args]
+      }
+      -noheader {
+           set printHeader 0
+      }
+      -notitle {
+           set printTitle 0
       }
       -h -
       -help {
@@ -1193,6 +1209,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
               [-return_var <tcl_var_name>]
               [-columns <list_of_columns_to_display>]
               [-from <start_row_number>]
+              [-noheader]
+              [-notitle]
               [-help|-h]
               
   Description: Return table content.
@@ -1263,27 +1281,32 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
     if {[lsearch $columnsToDisplay $index] == -1} { continue }
     append separator "-[string repeat - [lindex $maxs $index]]-+"
   }
-  # Generate the title
-  if {$params(title) ne {}} {
-    # The upper separator should something like +----...----+
-    append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]+\n"
-    # Support multi-lines title
-    foreach line [split $params(title) \n] {
-      append res "${indentString}| "
-      append res [format "%-[expr [string length $separator] - [string length $indentString] -4]s" $line]
-      append res " |\n"
+  if {$printTitle} {
+    # Generate the title
+    if {$params(title) ne {}} {
+      # The upper separator should something like +----...----+
+      append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]+\n"
+      # Support multi-lines title
+      foreach line [split $params(title) \n] {
+        append res "${indentString}| "
+        append res [format "%-[expr [string length $separator] - [string length $indentString] -4]s" $line]
+        append res " |\n"
+      }
     }
   }
-  # Generate the table header
-  append res "${separator}\n"
-  append res "${indentString}|"
-  # Generate the table header based on the list of columns to be displayed
-#   foreach item $header max $maxs {append res [format " %-${max}s |" $item]}
-  for {set index 0} {$index < $numCols} {incr index} {
-    if {[lsearch $columnsToDisplay $index] == -1} { continue }
-    append res [format " %-[lindex $maxs $index]s |" [lindex $header $index]]
+  if {$printHeader} {
+    # Generate the table header
+    append res "${separator}\n"
+    append res "${indentString}|"
+    # Generate the table header based on the list of columns to be displayed
+  #   foreach item $header max $maxs {append res [format " %-${max}s |" $item]}
+    for {set index 0} {$index < $numCols} {incr index} {
+      if {[lsearch $columnsToDisplay $index] == -1} { continue }
+      append res [format " %-[lindex $maxs $index]s |" [lindex $header $index]]
+    }
+    append res "\n"
   }
-  append res "\n${separator}\n"
+  append res "${separator}\n"
   # Generate the table rows
   set count 0
   foreach row $table {

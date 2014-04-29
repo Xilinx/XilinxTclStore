@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <release>2014.1</release>
+  <release>2014.3</release>
+  <support_commit_id>8157418c8958e8848117a4151f3c8b28a9933699</support_commit_id>
   <apps>
     <app>
       <revision>1.6</revision>
@@ -212,7 +213,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>d665d803a749b2f10a9d05228894da7b0eb70595</commit_id>
+      <commit_id>b67caa20c886787cfc431ec00b53f96c71397bd1</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -350,7 +351,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>6218187b617deed6a79d8778b2df6f51652a23e1</commit_id>
+      <commit_id>cc96c4a8af744dbaf03eb2fa199515ee7c8e2914</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -379,7 +380,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>d665d803a749b2f10a9d05228894da7b0eb70595</commit_id>
+      <commit_id>0c4ca093d50790c64ec92648f503089b40b23621</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -505,7 +506,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>6218187b617deed6a79d8778b2df6f51652a23e1</commit_id>
+      <commit_id>b67caa20c886787cfc431ec00b53f96c71397bd1</commit_id>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -516,7 +517,7 @@
     </app>
     <app>
       <revision>1.0</revision>
-      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
+      <commit_id>220fe71f9b624fcc45af8bd92fa496064de5d941</commit_id>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
