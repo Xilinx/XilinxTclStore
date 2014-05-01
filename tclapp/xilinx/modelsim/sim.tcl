@@ -648,8 +648,18 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   } else {
     puts $fh "do \{$udo_file\}"
   }
-  set time [get_property "MODELSIM.SIMULATE.RUNTIME" $fs_obj]
-  puts $fh "\nrun $time"
+
+  set rt [string trim [get_property "MODELSIM.SIMULATE.RUNTIME" $fs_obj]]
+  if { {} == $rt } {
+    # no runtime specified
+  } else {
+    set rt_value [string tolower $rt]
+    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+      puts $fh "\nrun -all"
+    } else {
+      puts $fh "\nrun $rt"
+    }
+  }
 
   if { {} != $saif } {
     set extn [string tolower [file extension $saif]]
