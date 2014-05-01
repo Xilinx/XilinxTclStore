@@ -118,8 +118,10 @@ proc simulate { args } {
 
   send_msg_id Vivado-XSim-096 INFO "XSim completed. Design snapshot '$snapshot' loaded."
 
-  set runtime [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]
-  send_msg_id Vivado-XSim-097 INFO "XSim simulation ran for $runtime"
+  set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
+  if { {} != $rt } {
+    send_msg_id Vivado-XSim-097 INFO "XSim simulation ran for $rt"
+  }
 
   # close for batch flow
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_batch) } {
@@ -777,9 +779,16 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     }
   }
 
-  set runtime [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]
-  if { {} != $runtime } {
-    puts $fh_scr "run $runtime"
+  set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
+  if { {} == $rt } {
+    # no runtime specified
+  } else {
+    set rt_value [string tolower $rt]
+    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+      puts $fh_scr "\nrun -all"
+    } else {
+      puts $fh_scr "\nrun $rt"
+    }
   }
 
   if { {} != $saif } {

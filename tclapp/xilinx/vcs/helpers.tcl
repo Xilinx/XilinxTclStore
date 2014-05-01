@@ -707,15 +707,21 @@ proc usf_create_do_file { simulator do_filename } {
       puts $fh_do "power $uut"
       puts $fh_do "power -enable"
     }
-    set time [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]
     puts $fh_do "add_wave /$top/*"
     puts $fh_do "dump -add * -depth 0"
-    set time_value [string tolower $time]
-    if { ({all} == $time_value) || (![regexp {^[0-9]} $time_value]) } {
-      puts $fh_do "run"
+
+    set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]
+    if { {} == $rt } {
+      # no runtime specified
     } else {
-      puts $fh_do "run $time"
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh_do "\nrun"
+      } else {
+        puts $fh_do "\nrun $rt"
+      }
     }
+
     if { {} != $saif } {
       set timescale {1}
       if { {} == $uut } {
