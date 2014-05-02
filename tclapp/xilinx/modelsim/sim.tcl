@@ -652,6 +652,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set rt [string trim [get_property "MODELSIM.SIMULATE.RUNTIME" $fs_obj]]
   if { {} == $rt } {
     # no runtime specified
+    puts $fh "\nrun -all"
   } else {
     set rt_value [string tolower $rt]
     if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {

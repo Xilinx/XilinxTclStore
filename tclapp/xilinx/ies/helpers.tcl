@@ -712,6 +712,7 @@ proc usf_create_do_file { simulator do_filename } {
     set rt [string trim [get_property "IES.SIMULATE.RUNTIME" $fs_obj]]
     if { {} == $rt } {
       # no runtime specified
+      puts $fh_do "\nrun"
     } else {
       set rt_value [string tolower $rt]
       if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
