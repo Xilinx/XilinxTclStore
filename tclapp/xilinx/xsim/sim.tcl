@@ -782,10 +782,11 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
   if { {} == $rt } {
     # no runtime specified
+    puts $fh_scr "\nrun all"
   } else {
     set rt_value [string tolower $rt]
     if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-      puts $fh_scr "\nrun -all"
+      puts $fh_scr "\nrun all"
     } else {
       puts $fh_scr "\nrun $rt"
     }

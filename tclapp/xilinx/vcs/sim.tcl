@@ -394,7 +394,7 @@ proc usf_vcs_write_elaborate_script {} {
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
     lappend arg_list {-debug_pp}
   }
-  set arg_list [linsert $arg_list end "-t" "ps" "-licwait" "-60" "-l" "elaborate.log"]
+  set arg_list [linsert $arg_list end "-t" "ps" "-l" "elaborate.log"]
   if { ($::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit)) || ({32} == $os_type) } {
     # donot pass os type
   } else {
