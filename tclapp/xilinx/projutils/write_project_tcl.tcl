@@ -5,7 +5,9 @@
 # Script created on 02/08/2013 by Raj Klair (Xilinx, Inc.)
 #
 # 2014.2 - v2.0 (rev 4)
-#  * no change
+#  * do not return value from main proc
+#  * fixed bug with relative file path calculation (break from loop while comparing
+#    directory elements of file paths for file to make relative to o/p script dir)
 # 2014.1 - v2.0 (rev 3)
 #  * make source file paths relative to script output directory
 #
