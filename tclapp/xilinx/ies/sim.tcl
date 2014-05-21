@@ -22,9 +22,6 @@ proc setup { args } {
   # initialize global variables
   ::tclapp::xilinx::ies::usf_init_vars
 
-  # initialize IES simulator variables
-  usf_ies_init_simulation_vars
-
   # read simulation command line args and set global variables
   usf_ies_setup_args $args
 
@@ -104,6 +101,9 @@ proc usf_ies_setup_simulation { args } {
     puts "failed to set tcl obj"
     return 1
   }
+
+  # initialize IES simulator variables
+  usf_ies_init_simulation_vars
 
   # print launch_simulation arg values
   #::tclapp::xilinx::ies::usf_print_args
@@ -245,9 +245,10 @@ proc usf_ies_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
+  set global_files_str {}
   set libs [list]
-  set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation]]
-  set design_libs [usf_ies_get_design_libs $files]
+  set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
+  set design_libs [usf_ies_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
@@ -371,10 +372,10 @@ proc usf_ies_write_compile_script {} {
   } else {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
-
-  set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation]]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
   puts $fh_scr "# compile design source files"
-  foreach file $files {
+  foreach file $design_files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
@@ -486,8 +487,9 @@ proc usf_ies_write_elaborate_script {} {
   set arg_list [linsert $arg_list end "-libname" "secureip"]
 
   # add design libraries
-  set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation]]
-  set design_libs [usf_ies_get_design_libs $files]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
+  set design_libs [usf_ies_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} {
       continue;
@@ -654,8 +656,9 @@ proc usf_ies_create_setup_script {} {
     puts $fh_scr "\{"
     set simulator "ies"
     set libs [list]
-    set files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation]]
-    set design_libs [usf_ies_get_design_libs $files]
+    set global_files_str {}
+    set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
+    set design_libs [usf_ies_get_design_libs $design_files]
     foreach lib $design_libs {
       if { {} == $lib } {
         continue;

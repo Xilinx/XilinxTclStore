@@ -22,9 +22,6 @@ proc setup { args } {
   # initialize global variables
   ::tclapp::xilinx::vcs::usf_init_vars
 
-  # initialize IES simulator variables
-  usf_vcs_init_simulation_vars
-
   # read simulation command line args and set global variables
   usf_vcs_setup_args $args
 
@@ -100,6 +97,9 @@ proc usf_vcs_setup_simulation { args } {
     puts "failed to set tcl obj"
     return 1
   }
+
+  # initialize VCS simulator variables
+  usf_vcs_init_simulation_vars
 
   # print launch_simulation arg values
   #::tclapp::xilinx::vcs::usf_print_args
@@ -236,8 +236,9 @@ proc usf_vcs_write_setup_files {} {
   }
   puts $fh "OTHERS=$lib_map_path/$filename"
   set libs [list]
-  set files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation]]
-  set design_libs [usf_vcs_get_design_libs $files]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
+  set design_libs [usf_vcs_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
@@ -332,11 +333,11 @@ proc usf_vcs_write_compile_script {} {
   } else {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
-
-  set files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation]]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
   puts $fh_scr "# compile design source files"
   set log "unknown.log"
-  foreach file $files {
+  foreach file $design_files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
@@ -394,7 +395,7 @@ proc usf_vcs_write_elaborate_script {} {
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
     lappend arg_list {-debug_pp}
   }
-  set arg_list [linsert $arg_list end "-t" "ps" "-l" "elaborate.log"]
+  set arg_list [linsert $arg_list end "-t" "ps" "-licwait 60" "-l" "elaborate.log"]
   if { ($::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit)) || ({32} == $os_type) } {
     # donot pass os type
   } else {
@@ -541,8 +542,9 @@ proc usf_vcs_create_setup_script {} {
     puts $fh_scr "\{"
     set simulator "vcs"
     set libs [list]
-    set files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation]]
-    set design_libs [usf_vcs_get_design_libs $files]
+    set global_files_str {}
+    set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
+    set design_libs [usf_vcs_get_design_libs $design_files]
     foreach lib $design_libs {
       if { {} == $lib } {
         continue;

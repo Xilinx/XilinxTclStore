@@ -22,9 +22,6 @@ proc setup { args } {
   # initialize global variables
   ::tclapp::xilinx::modelsim::usf_init_vars
 
-  # initialize ModelSim simulator variables
-  usf_modelsim_init_simulation_vars
-
   # read simulation command line args and set global variables
   usf_modelsim_setup_args $args
 
@@ -105,6 +102,9 @@ proc usf_modelsim_setup_simulation { args } {
     puts "failed to set tcl obj"
     return 1
   }
+
+  # initialize ModelSim simulator variables
+  usf_modelsim_init_simulation_vars
 
   # print launch_simulation arg values
   #::tclapp::xilinx::modelsim::usf_print_args
@@ -414,8 +414,9 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   puts $fh "vlib work"
   puts $fh "vlib msim\n"
 
-  set files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation]]
-  set design_libs [usf_modelsim_get_design_libs $files]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+  set design_libs [usf_modelsim_get_design_libs $design_files]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -469,7 +470,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   puts $fh ""
 
-  foreach file $files {
+  foreach file $design_files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
@@ -484,6 +485,12 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     set file_str "-work $top_lib \"glbl.v\""
     puts $fh "\n# compile glbl module\nvlog $file_str"
   }
+
+  set filter "FILE_TYPE == \"TCL\""
+  foreach file [get_files -quiet -all -filter $filter] {
+     puts $fh "source \{$file\}"
+  }
+
   puts $fh "\nquit -force"
   close $fh
 }
@@ -574,12 +581,14 @@ proc usf_modelsim_get_elaboration_cmdline { step } {
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
   # add design libraries
-  set files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation]]
-  set design_libs [usf_modelsim_get_design_libs $files]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+  set design_libs [usf_modelsim_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend arg_list "-L"
-    lappend arg_list "[string tolower $lib]"
+    lappend arg_list "$lib"
+    #lappend arg_list "[string tolower $lib]"
   }
 
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
