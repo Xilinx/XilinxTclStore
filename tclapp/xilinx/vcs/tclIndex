@@ -30,6 +30,7 @@ set auto_index(::tclapp::xilinx::vcs::usf_create_do_file) [list source [file joi
 set auto_index(::tclapp::xilinx::vcs::usf_prepare_ip_for_simulation) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_set_simulator_path) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_get_files_for_compilation) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::vcs::usf_is_global_include_file) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_write_script_header_info) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_launch_script) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_check_errors) [list source [file join $dir helpers.tcl]]

@@ -129,6 +129,8 @@ proc usf_create_fs_options_spec { simulator opts } {
     # setup property name
     set prop_name "${simulator}.${name}"
 
+    set prop_name [string tolower $prop_name]
+
     # is registered already?
     if { [usf_is_option_registered_on_simulator $prop_name $simulator] } {
       continue;
@@ -140,16 +142,16 @@ proc usf_create_fs_options_spec { simulator opts } {
       set e_default [lindex $value 1]
       set e_values  [lindex $value 2]
       # create enum property
-      create_property -name "${prop_name}" -type $type -description $desc -enum_values $e_values -default_value $e_default -class fileset
+      create_property -name "${prop_name}" -type $type -description $desc -enum_values $e_values -default_value $e_default -class fileset -no_register
     } elseif { {file} == $type } {
       set f_extns   [lindex $row 4]
       set f_desc    [lindex $row 5]
       # create file property
       set v_default $value
-      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -file_types $f_extns -display_text $f_desc -class fileset
+      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -file_types $f_extns -display_text $f_desc -class fileset -no_register
     } else {
       set v_default $value
-      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -class fileset
+      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -class fileset -no_register
     }
   }
   return 0
@@ -276,10 +278,16 @@ proc usf_set_sim_tcl_obj {} {
   if { {} != $comp_file } {
     # -of_objects <full-path-to-ip-composite-file>
     set a_sim_vars(sp_tcl_obj) [get_files -all -quiet $comp_file]
+    set a_sim_vars(s_sim_top) [file root [file tail $a_sim_vars(sp_tcl_obj)]]
   } else {
-    set a_sim_vars(sp_tcl_obj) [current_fileset -simset]
+    set a_sim_vars(sp_tcl_obj) [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+    # set current simset
+    if { {} == $a_sim_vars(sp_tcl_obj) } {
+      set a_sim_vars(sp_tcl_obj) [current_fileset -simset]
+    }
+    set a_sim_vars(s_sim_top) [get_property TOP [get_filesets $a_sim_vars(sp_tcl_obj)]]
   }
-  #send_msg_id Vivado-ModelSim-030 INFO "Simulation object is '$a_sim_vars(sp_tcl_obj)'...\n"
+  send_msg_id Vivado-ModelSim-030 INFO "Simulation object is '$a_sim_vars(sp_tcl_obj)'...\n"
   return 0
 }
 
@@ -332,18 +340,22 @@ proc usf_write_design_netlist {} {
   switch -regexp -- $a_sim_vars(s_simulation_flow) {
     {post_synth_sim} {
       if { {RTL} == $design_mode } {
-        set synth_run [current_run -synthesis]
-        set status [get_property "STATUS" $synth_run]
-        if { ([regexp -nocase {^synth_design complete} $status] != 1) } {
-          send_msg_id Vivado-ModelSim-028 ERROR \
-             "Synthesis results not available! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console and retry this operation.\n"
-          return 1
+        if { [get_param "project.checkRunResultsForUnifiedSim"] } {
+          set synth_run [current_run -synthesis]
+          set status [get_property "STATUS" $synth_run]
+          if { ([regexp -nocase {^synth_design complete} $status] != 1) } {
+            send_msg_id Vivado-ModelSim-028 ERROR \
+               "Synthesis results not available! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console and retry this operation.\n"
+            return 1
+          }
         }
       }
 
       if { {RTL} == $design_mode } {
         set synth_run [current_run -synthesis]
-        open_run $synth_run -name netlist_1
+        if { [catch {open_run $synth_run -name netlist_1} open_error] } {
+          #send_msg_id Vivado-ModelSim-028 WARNING "open_run failed:$open_err"
+        }
       } elseif { {GateLvl} == $design_mode } {
         link_design -name netlist_1
       } else {
@@ -359,8 +371,13 @@ proc usf_write_design_netlist {} {
       } elseif { {timing} == $a_sim_vars(s_type) } {
         set wv_args "-mode timesim $wv_args"
       }
-      send_msg_id Vivado-ModelSim-101 INFO "write_verilog $wv_args"
-      eval "write_verilog $wv_args"
+      if { {.v} == $extn } {
+        send_msg_id Vivado-ModelSim-101 INFO "write_verilog $wv_args"
+        eval "write_verilog $wv_args"
+      } else {
+        send_msg_id Vivado-ModelSim-101 INFO "write_vhdl $wv_args"
+        eval "write_vhdl $wv_args"
+      }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id Vivado-ModelSim-030 INFO "Writing SDF file..."
         set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
@@ -371,14 +388,18 @@ proc usf_write_design_netlist {} {
     }
     {post_impl_sim} {
       set impl_run [current_run -implementation]
-      set status [get_property "STATUS" $impl_run]
-      if { ![get_property can_open_results $impl_run] } {
-        send_msg_id Vivado-ModelSim-031 ERROR \
-           "Implementation results not available! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console and retry this operation.\n"
-        return 1
+      if { [get_param "project.checkRunResultsForUnifiedSim"] } {
+        set status [get_property "STATUS" $impl_run]
+        if { ![get_property can_open_results $impl_run] } {
+          send_msg_id Vivado-ModelSim-031 ERROR \
+             "Implementation results not available! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console and retry this operation.\n"
+          return 1
+        }
       }
 
-      open_run $impl_run -name netlist_1
+      if { [catch {open_run $impl_run -name netlist_1} open_err] } {
+        #send_msg_id Vivado-ModelSim-028 WARNING "open_run failed:$open_err"
+      }
       send_msg_id Vivado-ModelSim-032 INFO "Writing simulation netlist file..."
 
       # write netlist/sdf
@@ -388,8 +409,13 @@ proc usf_write_design_netlist {} {
       } elseif { {timing} == $a_sim_vars(s_type) } {
         set wv_args "-mode timesim $wv_args"
       }
-      send_msg_id Vivado-ModelSim-103 INFO "write_verilog $wv_args"
-      eval "write_verilog $wv_args"
+      if { {.v} == $extn } {
+        send_msg_id Vivado-ModelSim-103 INFO "write_verilog $wv_args"
+        eval "write_verilog $wv_args"
+      } else {
+        send_msg_id Vivado-ModelSim-103 INFO "write_vhdl $wv_args"
+        eval "write_vhdl $wv_args"
+      }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id Vivado-ModelSim-033 INFO "Writing SDF file..."
         set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
@@ -489,13 +515,14 @@ proc usf_get_compile_order_libs { } {
   return $libs
 }
 
-proc usf_get_include_file_dirs { { ref_dir "true" } } {
+proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
   set dir_names [list]
+  set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   if { [usf_is_ip $tcl_obj] } {
     set vh_files [usf_get_incl_files_from_ip $tcl_obj]
@@ -503,6 +530,16 @@ proc usf_get_include_file_dirs { { ref_dir "true" } } {
     set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
     set vh_files [get_files -all -quiet -filter $filter]
   }
+
+  # append global files (if any)
+  if { {} != $global_files_str } {
+    set global_files [split $global_files_str { }]
+    foreach g_file $global_files {
+      set g_file [string trim $g_file {\"}]
+      lappend vh_files [get_files -quiet -all $g_file]
+    }
+  }
+
   foreach vh_file $vh_files {
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
@@ -533,7 +570,7 @@ proc usf_get_top_library { } {
 
   # was -of_objects <ip> specified?, fetch current fileset
   if { [usf_is_ip $tcl_obj] } {
-    set tcl_obj [current_fileset -simset]
+    set tcl_obj [get_filesets $a_sim_vars(s_simset)]
   }
 
   # get the default top library set for the project
@@ -642,7 +679,7 @@ proc usf_compile_glbl_file { simulator b_load_glbl } {
   # Return Value:
 
   variable a_sim_vars
-  set fs_obj      [current_fileset -simset]
+  set fs_obj      [get_filesets $a_sim_vars(s_simset)]
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set flow        $a_sim_vars(s_simulation_flow)
   if { [usf_contains_verilog] } {
@@ -857,7 +894,7 @@ proc usf_set_simulator_path { simulator } {
   }
 }
 
-proc usf_get_files_for_compilation {} {
+proc usf_get_files_for_compilation { global_files_str_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -873,13 +910,17 @@ proc usf_get_files_for_compilation {} {
   set incl_file_paths [list]
   set incl_files      [list]
   usf_get_global_include_files incl_file_paths incl_files
-  set global_files [usf_get_global_include_file_cmdstr incl_files]
+  set global_incl_files $incl_files
+  set global_files_str [usf_get_global_include_file_cmdstr incl_files]
 
   # post-* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     #send_msg_id Vivado-ModelSim-052 INFO "Adding netlist files:-\n"
     if { {} != $netlist_file } {
       set file_type "Verilog"
+      if { {.vhd} == [file extension $netlist_file] } {
+        set file_type "VHDL"
+      }
       set cmd_str [usf_get_file_cmd_str $netlist_file $file_type {}]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -942,7 +983,7 @@ proc usf_get_files_for_compilation {} {
       set verilog_filter "FILE_TYPE == \"Verilog\""
       foreach file [usf_get_files_from_block_filesets $verilog_filter] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-        set cmd_str [usf_get_file_cmd_str $file $file_type $global_files]
+        set cmd_str [usf_get_file_cmd_str $file $file_type $global_files_str]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           #send_msg_id Vivado-ModelSim-061 INFO " +$cmd_str\n"
@@ -953,9 +994,12 @@ proc usf_get_files_for_compilation {} {
       if { {All} == $src_mgmt_mode } {
         #send_msg_id Vivado-ModelSim-062 INFO "Adding compile order files (behav simulation):-\n"
         foreach file $::tclapp::xilinx::modelsim::l_compile_order_files {
+          if { [usf_is_global_include_file $global_files_str $file] } {
+            continue
+          }
           set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
           if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
-          set g_files $global_files
+          set g_files $global_files_str
           if { ({VHDL} == $file_type) } { set g_files {} }
           set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
           if { {} != $cmd_str } {
@@ -976,7 +1020,7 @@ proc usf_get_files_for_compilation {} {
             foreach file $::tclapp::xilinx::modelsim::l_compile_order_files {
               set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
               if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
-              set g_files $global_files
+              set g_files $global_files_str
               if { ({VHDL} == $file_type) } { set g_files {} }
               set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
               if { {} != $cmd_str } {
@@ -990,10 +1034,11 @@ proc usf_get_files_for_compilation {} {
     if { $b_add_sim_files } {
       # 5. add additional files from simulation fileset
       #send_msg_id Vivado-ModelSim-064 INFO "Adding additional simulation fileset files (behav simulation):-\n"
-      foreach file [get_files -quiet -all -of_objects [current_fileset -simset]] {
+      foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
-        set g_files $global_files
+        if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all $file] 0]]} { continue }
+        set g_files $global_files_str
         if { ({VHDL} == $file_type) } { set g_files {} }
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
         if { {} != $cmd_str } {
@@ -1008,7 +1053,7 @@ proc usf_get_files_for_compilation {} {
     foreach file $::tclapp::xilinx::modelsim::l_compile_order_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
-      set g_files $global_files
+      set g_files $global_files_str
       if { ({VHDL} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
       if { {} != $cmd_str } {
@@ -1022,6 +1067,20 @@ proc usf_get_files_for_compilation {} {
   #  puts "CMD_STR=$file"
   #}
   return $files
+}
+
+proc usf_is_global_include_file { global_files_str file_to_find } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  foreach g_file [split $global_files_str { }] {
+    set g_file [string trim $g_file {\"}]
+    if { [string compare $g_file $file_to_find] == 0 } {
+      return true
+    }
+  }
+  return false
 }
 
 proc usf_launch_script { simulator step } {
@@ -1110,7 +1169,7 @@ proc usf_resolve_uut_name { uut_arg } {
   # Return Value:
 
   upvar $uut_arg uut
-  set uut [string map {\\ /} $uut]]
+  set uut [string map {\\ /} $uut]
   # prepend slash
   if { ![string match "/*" $uut] } {
     set uut "/$uut"
@@ -1120,7 +1179,7 @@ proc usf_resolve_uut_name { uut_arg } {
     set uut "${uut}*"
   }
   # append /*
-  if { ![string match "*/\*" $uut] } {
+  if { {/*} != [string range $uut end-1 end] } {
     set uut "${uut}/*"
   }
   return $uut
@@ -1237,10 +1296,10 @@ proc usf_get_netlist_extn { warning } {
   set extn {.v}
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   if { {VHDL} == $target_lang } {
-    set extn {.vhdl}
+    set extn {.vhd}
   }
 
-  if { ({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type) || {functional} == $a_sim_vars(s_type)) } {
+  if { (({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type))) } {
     set extn {.v}
     if { $warning } {
       send_msg_id Vivado-ModelSim-074 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
@@ -1351,9 +1410,8 @@ proc usf_export_fs_data_files { filter } {
   # block fileset data files
   lappend filesets [get_filesets -filter "FILESET_TYPE == \"BlockSrcs\""]
 
-  # current source set fileset data files
   # current simulation fileset data files
-  lappend filesets [current_fileset -simset]
+  lappend filesets [get_filesets $a_sim_vars(s_simset)]
 
   # collect all fileset data files
   foreach fs_obj $filesets {
@@ -1551,7 +1609,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
 }
 
 proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir "true" } } {
-  # Summary:
+  # Summary: find source files marked as global include
   # Argument Usage:
   # Return Value:
 
@@ -1570,7 +1628,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
   lappend filesets $simset_obj
   set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog Template\""
   foreach fs_obj $filesets {
-    set vh_files [get_files -quiet -of_objects $fs_obj -filter $filter]
+    set vh_files [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach file $vh_files {
       if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet $file] 0]] } {
         continue
@@ -1669,11 +1727,16 @@ proc usf_get_relative_file_path { file_path_to_convert relative_to } {
   set relative_to_comps [file split $relative_to]
   set found_match false
   set index 0
+  set fc_comps_len [llength $file_comps]
+  set rt_comps_len [llength $relative_to_comps]
   # compare each dir element of file_to_convert and relative_to, set the flag and
   # get the final index till these sub-dirs matched
   while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
     if { !$found_match } { set found_match true }
     incr index
+    if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
+      break;
+    }
   }
   # any common dirs found? convert path to relative
   if { $found_match } {
@@ -1785,7 +1848,7 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
 
   upvar $opts_arg opts
   variable a_sim_vars
-  set fs_obj [current_fileset -simset]
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
   switch $tool {
     "vcom" {
       lappend opts "\$${tool}_opts"
@@ -1799,14 +1862,14 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
   }
 }
 
-proc usf_append_other_options { tool file_type opts_arg } {
+proc usf_append_other_options { tool file_type global_files_str opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   upvar $opts_arg opts
   variable a_sim_vars
-  set fs_obj [current_fileset -simset]
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
 
   switch $tool {
     "vlog" {
@@ -1999,7 +2062,7 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   return [join $file_str " "]
 }
 
-proc usf_get_file_cmd_str { file file_type global_files} {
+proc usf_get_file_cmd_str { file file_type global_files_str} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2024,9 +2087,9 @@ proc usf_get_file_cmd_str { file file_type global_files} {
   if { [string length $compiler] > 0 } {
     set arg_list [list $compiler]
     usf_append_compiler_options $compiler $file_type arg_list
-    set arg_list [linsert $arg_list end "-work $associated_library" "$global_files" "\"$file\""]
+    set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str" "\"$file\""]
   }
-  usf_append_other_options $compiler $file_type arg_list
+  usf_append_other_options $compiler $file_type $global_files_str arg_list
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
   set cmd_str "$type#$associated_library#$file_str"
@@ -2068,9 +2131,9 @@ proc usf_get_netlist_writer_cmd_args { extn } {
 
   if { {} != $nl_rename_top } {
     if { {.v} == $extn } {
-      lappend args "-rename_top_module";lappend args $nl_rename_top
+      lappend args "-rename_top";lappend args $nl_rename_top
     } elseif { {.vhd} == $extn } {
-      lappend args "-rename_top_entity";lappend args $nl_rename_top
+      lappend args "-rename_top";lappend args $nl_rename_top
     }
   }
 
@@ -2145,7 +2208,7 @@ proc usf_get_top { top_arg } {
   # Return Value:
 
   upvar $top_arg top
-  set fs_obj [current_fileset -srcset]
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
   set fs_name [get_property "NAME" $fs_obj]
   set top [get_property "TOP" $fs_obj]
   if { {} == $top } {

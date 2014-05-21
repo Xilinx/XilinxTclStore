@@ -22,9 +22,6 @@ proc setup { args } {
   # initialize global variables
   ::tclapp::xilinx::xsim::usf_init_vars
 
-  # initialize Vivado simulator variables
-  usf_xsim_init_simulation_vars
-
   # read simulation command line args and set global variables
   usf_xsim_setup_args $args
 
@@ -148,6 +145,10 @@ proc usf_xsim_setup_simulation { args } {
     puts "failed to set tcl obj"
     return 1
   }
+
+  # initialize Vivado simulator variables
+  usf_xsim_init_simulation_vars
+
   # print launch_simulation arg values
   #::tclapp::xilinx::xsim::usf_print_args
 
@@ -240,8 +241,9 @@ proc usf_xsim_write_setup_files {} {
     return 1
   }
 
-  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
-  set design_libs [usf_xsim_get_design_libs $files]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
+  set design_libs [usf_xsim_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     puts $fh "$lib=xsim.dir/$lib"
@@ -278,10 +280,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     return 1
   }
  
-  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
   puts $fh_vlog "# compile verilog/system verilog design source files"
   puts $fh_vhdl "# compile vhdl design source files"
-  foreach file $files {
+  foreach file $design_files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
@@ -514,6 +517,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set sim_flow $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
 
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
+
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
@@ -553,7 +559,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
  
   # --include
   set prefix_ref_dir "false"
-  foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $prefix_ref_dir] {
+  foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $global_files_str $prefix_ref_dir] {
     set dir [string map {\\ /} $incl_dir]
     lappend args_list "--include \"$dir\""
   }
@@ -596,8 +602,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # design source libs
-  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
-  set design_libs [usf_xsim_get_design_libs $files]
+  set design_libs [usf_xsim_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
@@ -797,7 +802,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   }
 
   set filter "FILE_TYPE == \"TCL\""
-  foreach file [get_files -all -quiet -used_in "simulation" -filter $filter] {
+  foreach file [get_files -quiet -all -filter $filter] {
      puts $fh_scr "source \{$file\}"
   }
 
