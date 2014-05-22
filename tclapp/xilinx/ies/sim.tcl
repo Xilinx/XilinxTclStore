@@ -384,7 +384,7 @@ proc usf_ies_write_compile_script {} {
 
   # compile glbl file
   set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl] } {
+  if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl $design_files] } {
     ::tclapp::xilinx::ies::usf_copy_glbl_file
     set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
     set file_str "-work $top_lib \"glbl.v\""
@@ -462,9 +462,12 @@ proc usf_ies_write_elaborate_script {} {
   set arg_list [list]
   # add simulation libraries
 
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
+
   # post* simulation
   if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-    if { [usf_contains_verilog] || ({Verilog} == $target_lang) } {
+    if { [usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-libname" "simprims_ver"]
       } else {
@@ -475,7 +478,7 @@ proc usf_ies_write_elaborate_script {} {
 
   # behavioral simulation
   set b_compile_unifast [get_property "IES.COMPILE.UNIFAST" $fs_obj]
-  if { ([usf_contains_verilog]) && ({behav_sim} == $flow) } {
+  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-libname" "unifast_ver"]
     }
@@ -519,7 +522,7 @@ proc usf_ies_write_elaborate_script {} {
 
   lappend arg_list "\$design_libs_elab"
   lappend arg_list "${top_lib}.$top"
-  if { [::tclapp::xilinx::ies::usf_contains_verilog] } {
+  if { [::tclapp::xilinx::ies::usf_contains_verilog $design_files] } {
     set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
     lappend arg_list "${top_lib}.glbl"
   }

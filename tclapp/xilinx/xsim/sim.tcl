@@ -299,7 +299,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
  
   # compile glbl file
   set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl] } {
+  if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $design_files] } {
     set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
     ::tclapp::xilinx::xsim::usf_copy_glbl_file
     set file_str "$top_lib \"glbl.v\""
@@ -611,7 +611,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   # add simulation libraries
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    if { [usf_contains_verilog] || ({Verilog} == $target_lang) } {
+    if { [::tclapp::xilinx::xsim::usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         lappend args_list "-L simprims_ver"
       } else {
@@ -622,7 +622,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   # behavioral simulation
   set b_compile_unifast [get_property "XSIM.ELABORATE.UNIFAST" $fs_obj]
-  if { ([usf_contains_verilog]) && ({behav_sim} == $sim_flow) } {
+  if { ([::tclapp::xilinx::xsim::usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       lappend args_list "-L unifast_ver"
     }
@@ -657,7 +657,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       set b_verilog_sim_netlist 1
     }
   }
-  if { [::tclapp::xilinx::xsim::usf_contains_verilog] || $b_verilog_sim_netlist } {
+  if { [::tclapp::xilinx::xsim::usf_contains_verilog $design_files] || $b_verilog_sim_netlist } {
     set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" $fs_obj]
     if { ([lsearch ${top_level_inst_names} {glbl}] == -1) && $b_load_glbl } {
       set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]

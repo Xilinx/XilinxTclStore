@@ -353,7 +353,7 @@ proc usf_vcs_write_compile_script {} {
   # compile glbl file
   set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
   set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
-  if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl] } {
+  if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl $design_files] } {
     set work_lib_sw {}
     if { {work} != $top_lib } {
       set work_lib_sw "-work $top_lib "
@@ -417,6 +417,9 @@ proc usf_vcs_write_elaborate_script {} {
     }
   }
 
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
+
   puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
@@ -425,7 +428,7 @@ proc usf_vcs_write_elaborate_script {} {
   }
   set tool_path "\$bin_path/$tool"
   set arg_list [list "${tool_path}" "\$${tool}_opts" "${top_lib}.$top"]
-  if { [::tclapp::xilinx::vcs::usf_contains_verilog] } {
+  if { [::tclapp::xilinx::vcs::usf_contains_verilog $design_files] } {
     set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
     lappend arg_list "${top_lib}.glbl"
   }

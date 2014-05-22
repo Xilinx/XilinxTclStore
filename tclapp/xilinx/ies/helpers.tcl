@@ -617,7 +617,7 @@ proc usf_get_top_library { } {
   return "xil_defaultlib"
 }
 
-proc usf_contains_verilog {} {
+proc usf_contains_verilog { design_files } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -634,6 +634,15 @@ proc usf_contains_verilog {} {
       }
     }
   } elseif { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+    # search from post* compile order
+    foreach file $design_files {
+      set type [lindex [split $file {#}] 0]
+      switch $type {
+        {VERILOG} {
+          set b_verilog_srcs 1
+        }
+      }
+    }
     set extn [file extension $a_sim_vars(s_netlist_file)]
     if { {.v} == $extn } {
       set b_verilog_srcs 1
@@ -670,7 +679,7 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
   }
 }
 
-proc usf_compile_glbl_file { simulator b_load_glbl } {
+proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -679,7 +688,7 @@ proc usf_compile_glbl_file { simulator b_load_glbl } {
   set fs_obj      [get_filesets $a_sim_vars(s_simset)]
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set flow        $a_sim_vars(s_simulation_flow)
-  if { [usf_contains_verilog] } {
+  if { [usf_contains_verilog $design_files] } {
     return 1
   }
   # target lang is vhdl and glbl is added as top for post-implementation and post-synthesis and load glbl set (default)

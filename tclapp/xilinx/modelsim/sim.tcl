@@ -381,7 +381,10 @@ proc usf_modelsim_create_wave_do_file { file } {
   }
   usf_modelsim_write_header $fh $file "WAVEDOFILE"
   puts $fh "add wave *"
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog] } {
+
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {
     puts $fh "add wave /glbl/GSR"
   }
   close $fh
@@ -479,7 +482,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   # compile glbl file
   set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl] } {
+  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
     ::tclapp::xilinx::modelsim::usf_copy_glbl_file
     set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
     set file_str "-work $top_lib \"glbl.v\""
@@ -554,11 +557,14 @@ proc usf_modelsim_get_elaboration_cmdline { step } {
 
   set t_opts [join $arg_list " "]
 
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+
   # add simulation libraries
   set arg_list [list]
   # post* simulation
   if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-    if { [usf_contains_verilog] || ({Verilog} == $target_lang) } {
+    if { [usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-L" "simprims_ver"]
       } else {
@@ -569,7 +575,7 @@ proc usf_modelsim_get_elaboration_cmdline { step } {
 
   # behavioral simulation
   set b_compile_unifast [get_property "MODELSIM.COMPILE.UNIFAST" $fs_obj]
-  if { ([usf_contains_verilog]) && ({behav_sim} == $flow) } {
+  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast_ver"]
     }
@@ -600,7 +606,7 @@ proc usf_modelsim_get_elaboration_cmdline { step } {
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog] } {    
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {    
     lappend arg_list "${top_lib}.glbl"
   }
   set cmd_str [join $arg_list " "]
