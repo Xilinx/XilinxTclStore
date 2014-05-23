@@ -395,7 +395,7 @@ proc usf_vcs_write_elaborate_script {} {
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
     lappend arg_list {-debug_pp}
   }
-  set arg_list [linsert $arg_list end "-t" "ps" "-licwait 60" "-l" "elaborate.log"]
+  set arg_list [linsert $arg_list end "-t" "ps" "-licqueue" "-l" "elaborate.log"]
   if { ($::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit)) || ({32} == $os_type) } {
     # donot pass os type
   } else {
@@ -466,7 +466,7 @@ proc usf_vcs_write_simulate_script {} {
   ::tclapp::xilinx::vcs::usf_create_do_file "vcs" $do_filename
   set tool "${top}_simv"
   set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
-  set arg_list [list "-ucli" "-licwait" "-60" "-l" "simulate.log"]
+  set arg_list [list "-ucli" "-licqueue" "-l" "simulate.log"]
 
   set more_sim_options [string trim [get_property "VCS.SIMULATE.VCS.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
