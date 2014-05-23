@@ -803,7 +803,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
 
   set filter "FILE_TYPE == \"TCL\""
   foreach file [get_files -quiet -all -filter $filter] {
-     puts $fh_scr "source \{$file\}"
+     puts $fh_scr "source -notrace \{$file\}"
   }
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
