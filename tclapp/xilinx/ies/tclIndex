@@ -90,4 +90,5 @@ set auto_index(::tclapp::xilinx::ies::usf_get_file_cmd_str) [list source [file j
 set auto_index(::tclapp::xilinx::ies::usf_get_file_type_category) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_get_netlist_writer_cmd_args) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_get_sdf_writer_cmd_args) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::ies::usf_resolve_incl_dir_property_value) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::ies::usf_get_top) [list source [file join $dir helpers.tcl]]

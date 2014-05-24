@@ -1628,12 +1628,14 @@ proc usf_get_include_dirs { } {
   variable a_sim_vars
   set dir_names [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
+  set incl_dir_str {}
   if { [usf_is_ip $tcl_obj] } {
     set incl_dir_str [usf_get_incl_dirs_from_ip $tcl_obj]
+    set incl_dirs [split $incl_dir_str " "]
   } else {
-    set incl_dir_str [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]
+    set incl_dir_str [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]]
+    set incl_dirs [split $incl_dir_str "#"]
   }
-  set incl_dirs [split $incl_dir_str " "]
   foreach vh_dir $incl_dirs {
     set dir [file normalize $vh_dir]
     if { $a_sim_vars(b_absolute_path) } {
@@ -2283,6 +2285,35 @@ proc usf_get_sdf_writer_cmd_args { } {
   lappend args "-force"
   set cmd_args [join $args " "]
   return $cmd_args
+}
+
+proc usf_resolve_incl_dir_property_value { incl_dirs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set resolved_path {}
+  set incl_dirs [string map {\\ /} $incl_dirs]
+  set path_elem {} 
+  set comps [split $incl_dirs { }]
+  foreach elem $comps {
+    # path element starts slash (/)? or drive (c:/)?
+    if { [string match "/*" $elem] || [regexp {^[a-zA-Z]:} $elem] } {
+      if { {} != $path_elem } {
+        # previous path is complete now, add hash and append to resolved path string
+        set path_elem "$path_elem#"
+        append resolved_path $path_elem
+      }
+      # setup new path
+      set path_elem "$elem"
+    } else {
+      # sub-dir with space, append to current path
+      set path_elem "$path_elem $elem"
+    }
+  }
+  append resolved_path $path_elem
+
+  return $resolved_path
 }
 }
 

@@ -90,9 +90,7 @@ proc usf_modelsim_setup_simulation { args } {
 
   variable a_sim_vars
 
-  if { [catch {::tclapp::xilinx::modelsim::usf_set_simulator_path "modelsim"} err_msg] } {
-    send_msg_id Vivado-ModelSim-005 ERROR "$err_msg\n"
-  }
+  ::tclapp::xilinx::modelsim::usf_set_simulator_path "modelsim"
 
   # set the simulation flow
   ::tclapp::xilinx::modelsim::usf_set_simulation_flow

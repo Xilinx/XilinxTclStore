@@ -90,4 +90,5 @@ set auto_index(::tclapp::xilinx::vcs::usf_vcs_write_compile_script) [list source
 set auto_index(::tclapp::xilinx::vcs::usf_vcs_write_elaborate_script) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_vcs_write_simulate_script) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_vcs_get_design_libs) [list source [file join $dir sim.tcl]]
+set auto_index(::tclapp::xilinx::vcs::usf_resolve_incl_dir_property_value) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_vcs_create_setup_script) [list source [file join $dir sim.tcl]]
