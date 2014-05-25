@@ -39,6 +39,7 @@ proc compile { args } {
   # Return Value:
   # none
 
+  send_msg_id Vivado-VCS-002 INFO "VCS::Compile design"
   usf_vcs_write_compile_script
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -52,7 +53,7 @@ proc elaborate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-VCS-003 INFO "vcs::elaborate design"
+  send_msg_id Vivado-VCS-003 INFO "VCS::Elaborate design"
   usf_vcs_write_elaborate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -67,7 +68,7 @@ proc simulate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-VCS-004 INFO "vcs::simulate design"
+  send_msg_id Vivado-VCS-004 INFO "VCS::Simulate design"
   usf_vcs_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -94,7 +95,6 @@ proc usf_vcs_setup_simulation { args } {
 
   # set default object
   if { [::tclapp::xilinx::vcs::usf_set_sim_tcl_obj] } {
-    puts "failed to set tcl obj"
     return 1
   }
 
@@ -227,7 +227,7 @@ proc usf_vcs_write_setup_files {} {
   set file [file normalize [file join $dir $filename]]
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-VCS-010 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-VCS-010 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   set lib_map_path $::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir)
@@ -254,7 +254,7 @@ proc usf_vcs_write_setup_files {} {
     set lib_dir_path [file normalize [string map {\\ /} [file join $dir $lib_dir]]]
     if { ! [file exists $lib_dir_path] } {
       if {[catch {file mkdir $lib_dir_path} error_msg] } {
-        send_msg_id Vivado-VCS-011 ERROR "failed to create the directory ($lib_dir_path): $error_msg\n"
+        send_msg_id Vivado-VCS-011 ERROR "Failed to create the directory ($lib_dir_path): $error_msg\n"
         return 1
       }
     }
@@ -281,7 +281,7 @@ proc usf_vcs_write_compile_script {} {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-VCS-012 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-VCS-012 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   if {$::tcl_platform(platform) == "unix"} {
@@ -378,7 +378,7 @@ proc usf_vcs_write_elaborate_script {} {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-VCS-013 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-VCS-013 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   if {$::tcl_platform(platform) == "unix"} {
@@ -454,7 +454,7 @@ proc usf_vcs_write_simulate_script {} {
   set file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $file w} fh_scr]} {
-    send_msg_id Vivado-VCS-015 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-VCS-015 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
  
@@ -521,7 +521,7 @@ proc usf_vcs_create_setup_script {} {
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-VCS-098 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-VCS-098 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   if {$::tcl_platform(platform) == "unix"} {

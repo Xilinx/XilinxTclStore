@@ -40,6 +40,7 @@ proc compile { args } {
   # none
 
   set scr_filename {}
+  send_msg_id Vivado-XSim-002 INFO "XSim::Compile design"
   usf_xsim_write_compile_script scr_filename
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -54,7 +55,7 @@ proc elaborate { args } {
   # none
 
   set scr_filename {}
-  send_msg_id Vivado-XSim-003 INFO "xsim::elaborate design"
+  send_msg_id Vivado-XSim-003 INFO "XSim::Elaborate design"
   usf_xsim_write_elaborate_script scr_filename
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -72,7 +73,7 @@ proc simulate { args } {
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
   set snapshot $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)
-  send_msg_id Vivado-XSim-004 INFO "xsim::simulate design"
+  send_msg_id Vivado-XSim-004 INFO "XSim::Simulate design"
   # create setup files
   set cmd_file {}
   set wcfg_file {}
@@ -237,7 +238,7 @@ proc usf_xsim_write_setup_files {} {
   set fh 0
 
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-XSim-011 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-XSim-011 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
 
@@ -268,7 +269,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set vlog_file [file normalize [file join $dir $vlog_filename]]
   set fh_vlog 0
   if {[catch {open $vlog_file w} fh_vlog]} {
-    send_msg_id Vivado-XSim-012 ERROR "failed to open file to write ($vlog_file)\n"
+    send_msg_id Vivado-XSim-012 ERROR "Failed to open file to write ($vlog_file)\n"
     return 1
   }
  
@@ -276,7 +277,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set vhdl_file [file normalize [file join $dir $vhdl_filename]]
   set fh_vhdl 0
   if {[catch {open $vhdl_file w} fh_vhdl]} {
-    send_msg_id Vivado-XSim-013 ERROR "failed to open file to write ($vhdl_file)\n"
+    send_msg_id Vivado-XSim-013 ERROR "Failed to open file to write ($vhdl_file)\n"
     return 1
   }
  
@@ -320,7 +321,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-XSim-015 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-XSim-015 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
@@ -382,7 +383,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-XSim-016 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-XSim-016 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
@@ -474,7 +475,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-XSim-018 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-XSim-018 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   set b_batch 1
@@ -744,7 +745,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   set cmd_file [file normalize [file join $dir $cmd_filename]]
   set fh_scr 0
   if {[catch {open $cmd_file w} fh_scr]} {
-    send_msg_id Vivado-XSim-019 ERROR "failed to open file to write ($cmd_file)\n"
+    send_msg_id Vivado-XSim-019 ERROR "Failed to open file to write ($cmd_file)\n"
     return 1
   }
 

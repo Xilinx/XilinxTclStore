@@ -724,7 +724,7 @@ proc usf_copy_glbl_file {} {
   set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
 
   if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
-    send_msg_id Vivado-VCS-096 WARNING "failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+    send_msg_id Vivado-VCS-096 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
   }
 }
 
@@ -740,7 +740,7 @@ proc usf_create_do_file { simulator do_filename } {
   set do_file [file join $a_sim_vars(s_launch_dir) $do_filename]
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
-    send_msg_id Vivado-VCS-035 ERROR "failed to open file to write ($do_file)\n"
+    send_msg_id Vivado-VCS-035 ERROR "Failed to open file to write ($do_file)\n"
   } else {
     # generate saif file for power estimation
     set saif {}
@@ -1202,7 +1202,7 @@ proc usf_launch_script { simulator step } {
         set retval [catch {rdi::run_program -no_wait $scr_file} error_log]
       }
       if { $retval } {
-        send_msg_id Vivado-VCS-064 ERROR "failed to launch $scr_file:$error_log\n"
+        send_msg_id Vivado-VCS-064 ERROR "Failed to launch $scr_file:$error_log\n"
         set faulty_run 1
       }
     }
@@ -1249,7 +1249,7 @@ proc usf_found_errors_in_file { token } {
   set file ${token}.log
   if {[file exists $file]} {
     if {[catch {open $file r} fh]} {
-      send_msg_id Vivado-VCS-097 ERROR "failed to open file to read ($file)\n"
+      send_msg_id Vivado-VCS-097 ERROR "Failed to open file to read ($file)\n"
       return 1
     }
   } else {
@@ -1468,9 +1468,9 @@ proc usf_export_data_files { data_files } {
     # export now
     foreach file $data_files {
       if {[catch {file copy -force $file $export_dir} error_msg] } {
-        send_msg_id Vivado-VCS-067 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
+        send_msg_id Vivado-VCS-067 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
       } else {
-        send_msg_id Vivado-VCS-068 INFO "exported '$file'\n"
+        send_msg_id Vivado-VCS-068 INFO "Exported '$file'\n"
       }
     }
   }
@@ -2023,11 +2023,11 @@ proc usf_make_file_executable { file } {
 
   if {$::tcl_platform(platform) == "unix"} {
     if {[catch {exec chmod a+x $file} error_msg] } {
-      send_msg_id Vivado-VCS-071 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id Vivado-VCS-071 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   } else {
     if {[catch {exec attrib /D -R $file} error_msg] } {
-      send_msg_id Vivado-VCS-072 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id Vivado-VCS-072 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   }
 }

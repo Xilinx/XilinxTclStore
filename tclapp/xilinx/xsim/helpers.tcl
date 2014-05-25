@@ -717,7 +717,7 @@ proc usf_copy_glbl_file {} {
   set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
 
   if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
-    send_msg_id Vivado-XSim-094 WARNING "failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+    send_msg_id Vivado-XSim-094 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
   }
 }
 
@@ -1054,7 +1054,7 @@ proc usf_launch_script { simulator step } {
         set retval [catch {rdi::run_program -no_wait $scr_file} error_log]
       }
       if { $retval } {
-        send_msg_id Vivado-XSim-063 ERROR "failed to launch $scr_file:$error_log\n"
+        send_msg_id Vivado-XSim-063 ERROR "Failed to launch $scr_file:$error_log\n"
         set faulty_run 1
       }
     }
@@ -1104,7 +1104,7 @@ proc usf_found_errors_in_file { token } {
   set file ${token}.log
   if {[file exists $file]} {
     if {[catch {open $file r} fh]} {
-      send_msg_id Vivado-XSIM-095 ERROR "failed to open file to read ($file)\n"
+      send_msg_id Vivado-XSIM-095 ERROR "Failed to open file to read ($file)\n"
       return 1
     }
   } else {
@@ -1258,9 +1258,9 @@ proc usf_export_data_files { data_files } {
     # export now
     foreach file $data_files {
       if {[catch {file copy -force $file $export_dir} error_msg] } {
-        send_msg_id Vivado-XSim-065 WARNING "failed to copy file '$file' to '$export_dir' : $error_msg\n"
+        send_msg_id Vivado-XSim-065 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
       } else {
-        send_msg_id Vivado-XSim-066 INFO "exported '$file'\n"
+        send_msg_id Vivado-XSim-066 INFO "Exported '$file'\n"
       }
     }
   }
@@ -1833,11 +1833,11 @@ proc usf_make_file_executable { file } {
 
   if {$::tcl_platform(platform) == "unix"} {
     if {[catch {exec chmod a+x $file} error_msg] } {
-      send_msg_id Vivado-XSim-069 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id Vivado-XSim-069 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   } else {
     if {[catch {exec attrib /D -R $file} error_msg] } {
-      send_msg_id Vivado-XSim-070 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id Vivado-XSim-070 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   }
 }

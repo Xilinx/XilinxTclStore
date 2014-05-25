@@ -39,6 +39,7 @@ proc compile { args } {
   # Return Value:
   # none
 
+  send_msg_id Vivado-ModelSim-002 INFO "ModelSim::Compile design"
   usf_modelsim_write_compile_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -53,8 +54,7 @@ proc elaborate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-ModelSim-003 INFO "modelsim::elaborate design"
-
+  send_msg_id Vivado-ModelSim-003 INFO "ModelSim::Elaborate design"
   usf_modelsim_write_elaborate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -69,8 +69,7 @@ proc simulate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-ModelSim-004 INFO "modelsim::simulate design"
-
+  send_msg_id Vivado-ModelSim-004 INFO "ModelSim::Simulate design"
   usf_modelsim_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -97,7 +96,6 @@ proc usf_modelsim_setup_simulation { args } {
 
   # set default object
   if { [::tclapp::xilinx::modelsim::usf_set_sim_tcl_obj] } {
-    puts "failed to set tcl obj"
     return 1
   }
 
@@ -245,7 +243,7 @@ proc usf_modelsim_verify_compiled_lib {} {
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
     if { [file exists $ini_file_path] } {
       if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)} error_msg] } {
-        send_msg_id Vivado-modelsim-010 ERROR "failed to copy file ($ini_file): $error_msg\n"
+        send_msg_id Vivado-modelsim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
       } else {
         send_msg_id Vivado-modelsim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)'\n"
       }
@@ -265,13 +263,13 @@ proc usf_modelsim_write_setup_files {} {
   set lib_dir [file normalize [file join $dir "msim"]]
   if { [file exists $lib_dir] } {
     if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id Vivado-ModelSim-012 ERROR "failed to delete directory ($lib_dir): $error_msg\n"
+      send_msg_id Vivado-ModelSim-012 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
       return 1
     }
   }
 
   #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id Vivado-ModelSim-013 ERROR "failed to create the directory ($lib_dir): $error_msg\n"
+  #  send_msg_id Vivado-ModelSim-013 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
   #  return 1
   #}
 }
@@ -356,7 +354,7 @@ proc usf_modelsim_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-ModelSim-016 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-ModelSim-016 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $file "UDOFILE"
@@ -374,7 +372,7 @@ proc usf_modelsim_create_wave_do_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-ModelSim-017 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-ModelSim-017 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $file "WAVEDOFILE"
@@ -401,7 +399,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id Vivado-ModelSim-018 ERROR "failed to open file to write ($do_file)\n"
+    send_msg_id Vivado-ModelSim-018 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
@@ -505,7 +503,7 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id Vivado-ModelSim-019 ERROR "failed to open file to write ($do_file)\n"
+    send_msg_id Vivado-ModelSim-019 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $do_file "DOFILE"
@@ -623,7 +621,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id Vivado-ModelSim-021 ERROR "failed to open file to write ($do_file)\n"
+    send_msg_id Vivado-ModelSim-021 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $do_file "DOFILE"
@@ -725,7 +723,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-ModelSim-022 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-ModelSim-022 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
