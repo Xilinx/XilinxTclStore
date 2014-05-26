@@ -507,12 +507,14 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
     return 1
   }
   usf_modelsim_write_header $fh $do_file "DOFILE"
-  if { [get_param "simulator.modelsimNoQuitOnError"] } {
-    puts $fh "onbreak {quit -f}"
-    puts $fh "onerror {quit -f}\n"
-  }
-  set cmd_str [usf_modelsim_get_elaboration_cmdline "elaborate"]
-  puts $fh "$cmd_str"
+  #if { [get_param "simulator.modelsimNoQuitOnError"] } {
+  #  puts $fh "onbreak {quit -f}"
+  #  puts $fh "onerror {quit -f}\n"
+  #}
+  #set cmd_str [usf_modelsim_get_elaboration_cmdline "elaborate"]
+  #puts $fh "$cmd_str"
+
+  puts $fh "#\n# No valid default command(s) required for this step\n#"
   puts $fh "\nquit -force"
   close $fh
 }
