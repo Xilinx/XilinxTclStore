@@ -45,6 +45,7 @@ proc compile { args } {
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::xsim::usf_launch_script "xsim" $step
+  ::tclapp::xilinx::xsim::usf_xsim_include_xvhdl_log
 }
 
 proc elaborate { args } {
@@ -325,20 +326,25 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     return 1
   }
 
+  set s_plat_sw "-m64"
+  if { {32} == $::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) } {
+    set s_plat_sw "-m32"
+  }
+
   set s_dbg_sw {}
   set dbg $::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode)
   if { $dbg } {
     set s_dbg_sw {-dbg}
   }
 
-  set xvlog_arg_list [list "-prj" "$vlog_filename" "-log" "compile.log"]
+  set xvlog_arg_list [list "$s_plat_sw" "-prj" "$vlog_filename"]
   set more_xvlog_options [string trim [get_property "XSIM.COMPILE.XVLOG.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_xvlog_options } {
     set xvlog_arg_list [linsert $xvlog_arg_list end "$more_xvlog_options"]
   }
   set xvlog_cmd_str [join $xvlog_arg_list " "]
 
-  set xvhdl_arg_list [list "-prj" "$vhdl_filename" "-log" "compile.log"]
+  set xvhdl_arg_list [list "$s_plat_sw" "-prj" "$vhdl_filename"]
   set more_xvhdl_options [string trim [get_property "XSIM.COMPILE.XVHDL.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_xvhdl_options } {
     set xvhdl_arg_list [linsert $xvhdl_arg_list end "$more_xvhdl_options"]
@@ -346,15 +352,16 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set xvhdl_cmd_str [join $xvhdl_arg_list " "]
  
   if {$::tcl_platform(platform) == "unix"} {
+    set redirect_cmd_str "2>&1 | tee -a compile.log"
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
-    puts $fh_scr "ExecStep \$xv_path/bin/xvlog $xvlog_cmd_str" 
-    puts $fh_scr "ExecStep \$xv_path/bin/xvhdl $xvhdl_cmd_str" 
+    puts $fh_scr "ExecStep \$xv_path/bin/xvlog $xvlog_cmd_str $redirect_cmd_str" 
+    puts $fh_scr "ExecStep \$xv_path/bin/xvhdl $xvhdl_cmd_str $redirect_cmd_str" 
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
-    puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw $xvlog_cmd_str"
+    puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw $xvlog_cmd_str -log compile.log"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw $xvhdl_cmd_str"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
@@ -944,5 +951,42 @@ proc usf_xsim_get_design_libs { files } {
     }
   }
   return $libs
+}
+
+proc usf_xsim_include_xvhdl_log {} {
+  # Summary: copy xvhdl log into compile log for windows
+  # Argument Usage:
+  # Return Value:
+
+  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+
+  if {$::tcl_platform(platform) == "unix"} {
+    # for unix, compile log redirection is taken care by unix commands
+  } else {
+    # for windows, append xvhdl log to compile.log
+    set compile_log [file normalize [file join $dir "compile.log"]]
+    set xvhdl_log [file normalize [file join $dir "xvhdl.log"]]
+    if { [file exists $xvhdl_log] } {
+      set fh 0
+      if {[catch {open $xvhdl_log r} fh]} {
+        send_msg_id Vivado-XSim-999 ERROR "Failed to open file for read ($xvhdl_log)\n"
+      } else {
+        set data [read $fh]
+        set log_data [split $data "\n"]
+        close $fh
+  
+        # open compile.log for append
+        set fh 0
+        if {[catch {open $compile_log a} fh]} {
+          send_msg_id Vivado-XSim-999 ERROR "Failed to open file for append ($compile_log)\n"
+        } else {
+          foreach line $log_data {
+            puts $fh [string trim $line]
+          }
+          close $fh
+        }
+      }
+    }
+  }
 }
 }
