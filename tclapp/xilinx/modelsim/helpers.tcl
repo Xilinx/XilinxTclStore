@@ -2236,6 +2236,66 @@ proc usf_resolve_incl_dir_property_value { incl_dirs } {
 
   return $resolved_path
 }
+
+proc usf_find_files { src_files_arg filter } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  upvar $src_files_arg src_files
+
+  set tcl_obj $a_sim_vars(sp_tcl_obj)
+  if { [usf_is_ip $tcl_obj] } {
+    set ip_name [file tail $tcl_obj]
+    foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
+      if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+        if { [get_property {IS_USER_DISABLED} $file] } {
+          continue;
+        }
+      }
+      set file [file normalize $file]
+      if { $a_sim_vars(b_absolute_path) } {
+        set file "[usf_resolve_file_path $file]"
+      } else {
+        set file "[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+      }
+      lappend src_files $file
+    }
+  } elseif { [usf_is_fileset $tcl_obj] } {
+    set filesets       [list]
+    set simset_obj     [get_filesets $a_sim_vars(s_simset)]
+
+    lappend filesets $simset_obj
+    set linked_src_set [get_property "SOURCE_SET" $simset_obj]
+    if { {} != $linked_src_set } {
+      lappend filesets $linked_src_set
+    }
+
+    # add block filesets
+    set blk_filter "FILESET_TYPE == \"BlockSrcs\""
+    foreach blk_fs_obj [get_filesets -filter $blk_filter] {
+      lappend filesets $blk_fs_obj
+    }
+
+    foreach fs_obj $filesets {
+      foreach file [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter] {
+        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+          if { [get_property {IS_USER_DISABLED} $file] } {
+            continue;
+          }
+        }
+        set file [file normalize $file]
+        if { $a_sim_vars(b_absolute_path) } {
+          set file "[usf_resolve_file_path $file]"
+        } else {
+          set file "[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+        }
+        lappend src_files $file
+      }
+    }
+  }
+}
 }
 
 #

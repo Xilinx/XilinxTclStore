@@ -809,11 +809,18 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr "close_saif"
   }
 
-  set filter "FILE_TYPE == \"TCL\""
-  foreach file [get_files -quiet -all -filter $filter] {
-     puts $fh_scr "source -notrace \{$file\}"
+  # add TCL sources
+  set tcl_src_files [list]
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
+  ::tclapp::xilinx::xsim::usf_find_files tcl_src_files $filter
+  if {[llength $tcl_src_files] > 0} {
+    puts $fh_scr ""
+    foreach file $tcl_src_files {
+       puts $fh_scr "source -notrace \{$file\}"
+    }
+    puts $fh_scr ""
   }
-
+    
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
     puts $fh_scr "quit"
   }

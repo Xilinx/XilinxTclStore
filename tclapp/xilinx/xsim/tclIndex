@@ -93,4 +93,5 @@ set auto_index(::tclapp::xilinx::xsim::usf_get_netlist_writer_cmd_args) [list so
 set auto_index(::tclapp::xilinx::xsim::usf_get_sdf_writer_cmd_args) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_get_rdi_bin_path) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_resolve_incl_dir_property_value) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::xsim::usf_find_files) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_get_top) [list source [file join $dir helpers.tcl]]

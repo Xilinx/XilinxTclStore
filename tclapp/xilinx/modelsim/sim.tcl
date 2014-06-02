@@ -485,11 +485,6 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     puts $fh "\n# compile glbl module\nvlog $file_str"
   }
 
-  set filter "FILE_TYPE == \"TCL\""
-  foreach file [get_files -quiet -all -filter $filter] {
-     puts $fh "source \{$file\}"
-  }
-
   puts $fh "\nquit -force"
   close $fh
 }
@@ -681,6 +676,18 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
       append saif ".saif"
     }
     puts $fh "\npower report -all -bsaif $saif"
+  }
+
+  # add TCL sources
+  set tcl_src_files [list]
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
+  ::tclapp::xilinx::modelsim::usf_find_files tcl_src_files $filter
+  if {[llength $tcl_src_files] > 0} {
+    puts $fh ""
+    foreach file $tcl_src_files {
+      puts $fh "source \{$file\}"
+    }
+    puts $fh ""
   }
 
   if { $b_batch || $b_scripts_only } {
