@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <release>2014.2</release>
   <support_commit_id>8157418c8958e8848117a4151f3c8b28a9933699</support_commit_id>
+  <release>2014.2</release>
   <apps>
     <app>
       <revision>1.6</revision>
@@ -469,7 +469,8 @@
       </procs>
     </app>
     <app>
-      <revision>1.0</revision>
+      <revision>1.1</revision>
+      <revision_history>Fixed reporting issue in report_io_reg</revision_history>
       <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
