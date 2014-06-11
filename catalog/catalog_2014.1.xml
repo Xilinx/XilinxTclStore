@@ -379,7 +379,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>d665d803a749b2f10a9d05228894da7b0eb70595</commit_id>
+      <commit_id>5d4d53c6f247d46cc7021fe2b3007075e9748c11</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -468,8 +468,9 @@
       </procs>
     </app>
     <app>
-      <revision>1.0</revision>
-      <commit_id>05af6727419d7314a024b3c313dfe6fa6f775982</commit_id>
+      <revision>1.1</revision>
+      <revision_history>Fixed reporting issue in report_io_reg</revision_history>
+      <commit_id>4ba4d8b1144918b01ebe57b2758016079acd72d1</commit_id>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -5,7 +5,9 @@
 # Script created on 02/08/2013 by Raj Klair (Xilinx, Inc.)
 #
 # 2014.2 - v2.0 (rev 4)
-#  * no change
+#  * do not return value from main proc
+#  * fixed bug with relative file path calculation (break from loop while comparing
+#    directory elements of file paths for file to make relative to o/p script dir)
 # 2014.1 - v2.0 (rev 3)
 #  * make source file paths relative to script output directory
 #
@@ -293,7 +295,7 @@ proc wr_create_project { proj_dir name } {
   if { $a_global_vars(b_absolute_path) } {
     lappend l_script_data "set orig_proj_dir \"$proj_dir\""
   } else {
-    set rel_file_path "[get_relative_file_path $proj_dir $a_global_vars(s_path_to_script_dir)]"
+    set rel_file_path "[get_relative_file_path_for_source $proj_dir $a_global_vars(s_path_to_script_dir)]"
     set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
     lappend l_script_data "set orig_proj_dir \"$path\""
   }
@@ -416,7 +418,7 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
             if { $a_global_vars(b_absolute_path) } {
               lappend path_list $path
             } else {
-              set rel_file_path "[get_relative_file_path $path $a_global_vars(s_path_to_script_dir)]"
+              set rel_file_path "[get_relative_file_path_for_source $path $a_global_vars(s_path_to_script_dir)]"
               set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               lappend path_list $path
             }
@@ -753,7 +755,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       if { [is_local_to_project $file] } {
         set proj_file_path "\$proj_dir/$src_file"
       } else {
-        set proj_file_path "[get_relative_file_path $src_file $a_global_vars(s_path_to_script_dir)]"
+        set proj_file_path "[get_relative_file_path_for_source $src_file $a_global_vars(s_path_to_script_dir)]"
       }
       set prop_entry "[string tolower $prop]#$proj_file_path"
 
@@ -783,7 +785,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
             set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
           } else {
             set file_no_quotes [string trim $file "\""]
-            set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+            set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
             set proj_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
             #set proj_file_path "$file"
           }
@@ -792,7 +794,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
             set proj_file_path "$file"
           } else {
             set file_no_quotes [string trim $file "\""]
-            set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+            set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
             set proj_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
           }
         }
@@ -832,7 +834,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
               if { $a_global_vars(b_absolute_path) } {
                 set tcl_file_path "$file"
               } else {
-                set rel_file_path "[get_relative_file_path $src_file $a_global_vars(s_path_to_script_dir)]"
+                set rel_file_path "[get_relative_file_path_for_source $src_file $a_global_vars(s_path_to_script_dir)]"
                 set tcl_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               }
             }
@@ -910,7 +912,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
       # import files
       set imported_path [get_property "imported_from" $file]
-      set rel_file_path [get_relative_file_path $file $a_global_vars(s_path_to_script_dir)]
+      set rel_file_path [get_relative_file_path_for_source $file $a_global_vars(s_path_to_script_dir)]
       set proj_file_path "\$origin_dir/$rel_file_path"
 
       set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
@@ -944,7 +946,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
         # add to the import collection
         set file_no_quotes [string trim $file "\""]
-        set org_file_path "\$origin_dir/[get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]"
+        set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]"
         lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
         lappend l_local_file_list $file
       } else {
@@ -954,7 +956,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       # add file to collection
       if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
         set file_no_quotes [string trim $file "\""]
-        set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+        set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
         set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
         lappend add_file_coln "$file1"
       } else {
@@ -978,7 +980,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
           lappend l_script_data " $file\\"
         } else {
           set file_no_quotes [string trim $file "\""]
-          set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+          set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
           lappend l_script_data " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
         }
       }
@@ -1040,7 +1042,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
     # constrs sources imported? 
     if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
       set imported_path  [get_property "imported_from" $file]
-      set rel_file_path  [get_relative_file_path $file $a_global_vars(s_path_to_script_dir)]
+      set rel_file_path  [get_relative_file_path_for_source $file $a_global_vars(s_path_to_script_dir)]
       set proj_file_path "\$origin_dir/$rel_file_path"
       set file           "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
       # donot copy imported constrs in new project? set it as remote file in new project.
@@ -1078,7 +1080,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
           set src_file "\$PSRCDIR/$src_file"
         }
         set file_no_quotes [string trim $file "\""]
-        set org_file_path "\$origin_dir/[get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]"
+        set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]"
         set str "\"\[file normalize \"$org_file_path\"\]\""
         import_constrs_file $tcl_obj $str
       } else {
@@ -1088,7 +1090,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
         # find relative file path of the added constrs if no_copy in the new project
         if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
           set file_no_quotes [string trim $file "\""]
-          set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+          set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
           set file_1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
           add_constrs_file "$file_1"
         } else {
@@ -1122,7 +1124,7 @@ proc add_constrs_file { file_str } {
       lappend l_script_data "set file $file_str"
     } else {
       set file_no_quotes [string trim $file_str "\""]
-      set rel_file_path [get_relative_file_path $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+      set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
       lappend l_script_data "set file \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
     }
   }
@@ -1236,7 +1238,7 @@ proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_
       if { $a_global_vars(b_absolute_path) } {
         lappend l_script_data "set file \"$file\""
       } else {
-        lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path $file $a_global_vars(s_path_to_script_dir)]\""
+        lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file $a_global_vars(s_path_to_script_dir)]\""
         lappend l_script_data "set file \[file normalize \$file\]"
       }
     } else {
@@ -1431,7 +1433,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
         if { $a_global_vars(b_absolute_path) } {
           lappend l_script_data "set file \"$file\""
         } else {
-          lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path $file $a_global_vars(s_path_to_script_dir)]\""
+          lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file $a_global_vars(s_path_to_script_dir)]\""
           lappend l_script_data "set file \[file normalize \$file\]"
         }
       } else {
@@ -1450,7 +1452,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
   lappend l_script_data ""
 }
 
-proc get_relative_file_path { file_path_to_convert relative_to } {
+proc get_relative_file_path_for_source { file_path_to_convert relative_to } {
   # Summary: Get the relative path wrt to path specified
   # Argument Usage:
   # file_path_to_convert: input file to make relative to specfied path

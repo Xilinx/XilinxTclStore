@@ -13,6 +13,10 @@ package require Vivado 1.2014.1
 package require ::tclapp::xilinx::vcs::helpers
 
 namespace eval ::tclapp::xilinx::vcs {
+  namespace export register_options
+}
+
+namespace eval ::tclapp::xilinx::vcs {
 proc register_options { simulator } {
   # Summary: define simulation fileset options
   # Argument Usage:

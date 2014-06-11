@@ -22,9 +22,6 @@ proc setup { args } {
   # initialize global variables
   ::tclapp::xilinx::xsim::usf_init_vars
 
-  # initialize Vivado simulator variables
-  usf_xsim_init_simulation_vars
-
   # read simulation command line args and set global variables
   usf_xsim_setup_args $args
 
@@ -43,10 +40,12 @@ proc compile { args } {
   # none
 
   set scr_filename {}
+  send_msg_id Vivado-XSim-002 INFO "XSim::Compile design"
   usf_xsim_write_compile_script scr_filename
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::xsim::usf_launch_script "xsim" $step
+  ::tclapp::xilinx::xsim::usf_xsim_include_xvhdl_log
 }
 
 proc elaborate { args } {
@@ -57,7 +56,7 @@ proc elaborate { args } {
   # none
 
   set scr_filename {}
-  send_msg_id Vivado-XSim-003 INFO "xsim::elaborate design"
+  send_msg_id Vivado-XSim-003 INFO "XSim::Elaborate design"
   usf_xsim_write_elaborate_script scr_filename
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -75,7 +74,7 @@ proc simulate { args } {
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
   set snapshot $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)
-  send_msg_id Vivado-XSim-004 INFO "xsim::simulate design"
+  send_msg_id Vivado-XSim-004 INFO "XSim::Simulate design"
   # create setup files
   set cmd_file {}
   set wcfg_file {}
@@ -118,8 +117,10 @@ proc simulate { args } {
 
   send_msg_id Vivado-XSim-096 INFO "XSim completed. Design snapshot '$snapshot' loaded."
 
-  set runtime [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]
-  send_msg_id Vivado-XSim-097 INFO "XSim simulation ran for $runtime"
+  set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
+  if { {} != $rt } {
+    send_msg_id Vivado-XSim-097 INFO "XSim simulation ran for $rt"
+  }
 
   # close for batch flow
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_batch) } {
@@ -146,6 +147,10 @@ proc usf_xsim_setup_simulation { args } {
     puts "failed to set tcl obj"
     return 1
   }
+
+  # initialize Vivado simulator variables
+  usf_xsim_init_simulation_vars
+
   # print launch_simulation arg values
   #::tclapp::xilinx::xsim::usf_print_args
 
@@ -234,12 +239,13 @@ proc usf_xsim_write_setup_files {} {
   set fh 0
 
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-XSim-011 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-XSim-011 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
 
-  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
-  set design_libs [usf_xsim_get_design_libs $files]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
+  set design_libs [usf_xsim_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     puts $fh "$lib=xsim.dir/$lib"
@@ -264,7 +270,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set vlog_file [file normalize [file join $dir $vlog_filename]]
   set fh_vlog 0
   if {[catch {open $vlog_file w} fh_vlog]} {
-    send_msg_id Vivado-XSim-012 ERROR "failed to open file to write ($vlog_file)\n"
+    send_msg_id Vivado-XSim-012 ERROR "Failed to open file to write ($vlog_file)\n"
     return 1
   }
  
@@ -272,14 +278,15 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set vhdl_file [file normalize [file join $dir $vhdl_filename]]
   set fh_vhdl 0
   if {[catch {open $vhdl_file w} fh_vhdl]} {
-    send_msg_id Vivado-XSim-013 ERROR "failed to open file to write ($vhdl_file)\n"
+    send_msg_id Vivado-XSim-013 ERROR "Failed to open file to write ($vhdl_file)\n"
     return 1
   }
  
-  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
   puts $fh_vlog "# compile verilog/system verilog design source files"
   puts $fh_vhdl "# compile vhdl design source files"
-  foreach file $files {
+  foreach file $design_files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
@@ -294,7 +301,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
  
   # compile glbl file
   set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl] } {
+  if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $design_files] } {
     set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
     ::tclapp::xilinx::xsim::usf_copy_glbl_file
     set file_str "$top_lib \"glbl.v\""
@@ -315,8 +322,13 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-XSim-015 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-XSim-015 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
+  }
+
+  set s_plat_sw "-m64"
+  if { {32} == $::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) } {
+    set s_plat_sw "-m32"
   }
 
   set s_dbg_sw {}
@@ -325,14 +337,14 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     set s_dbg_sw {-dbg}
   }
 
-  set xvlog_arg_list [list "-prj" "$vlog_filename" "-log" "compile.log"]
+  set xvlog_arg_list [list "$s_plat_sw" "-prj" "$vlog_filename"]
   set more_xvlog_options [string trim [get_property "XSIM.COMPILE.XVLOG.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_xvlog_options } {
     set xvlog_arg_list [linsert $xvlog_arg_list end "$more_xvlog_options"]
   }
   set xvlog_cmd_str [join $xvlog_arg_list " "]
 
-  set xvhdl_arg_list [list "-prj" "$vhdl_filename" "-log" "compile.log"]
+  set xvhdl_arg_list [list "$s_plat_sw" "-prj" "$vhdl_filename"]
   set more_xvhdl_options [string trim [get_property "XSIM.COMPILE.XVHDL.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_xvhdl_options } {
     set xvhdl_arg_list [linsert $xvhdl_arg_list end "$more_xvhdl_options"]
@@ -340,15 +352,16 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set xvhdl_cmd_str [join $xvhdl_arg_list " "]
  
   if {$::tcl_platform(platform) == "unix"} {
+    set redirect_cmd_str "2>&1 | tee -a compile.log"
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
-    puts $fh_scr "ExecStep \$xv_path/bin/xvlog $xvlog_cmd_str" 
-    puts $fh_scr "ExecStep \$xv_path/bin/xvhdl $xvhdl_cmd_str" 
+    puts $fh_scr "ExecStep \$xv_path/bin/xvlog $xvlog_cmd_str $redirect_cmd_str" 
+    puts $fh_scr "ExecStep \$xv_path/bin/xvhdl $xvhdl_cmd_str $redirect_cmd_str" 
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
-    puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw $xvlog_cmd_str"
+    puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw $xvlog_cmd_str -log compile.log"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw $xvhdl_cmd_str"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
@@ -377,7 +390,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-XSim-016 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-XSim-016 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
@@ -469,7 +482,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-XSim-018 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-XSim-018 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   set b_batch 1
@@ -512,6 +525,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set sim_flow $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
 
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
+
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
@@ -551,7 +567,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
  
   # --include
   set prefix_ref_dir "false"
-  foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $prefix_ref_dir] {
+  foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $global_files_str $prefix_ref_dir] {
     set dir [string map {\\ /} $incl_dir]
     lappend args_list "--include \"$dir\""
   }
@@ -594,8 +610,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # design source libs
-  set files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation]]
-  set design_libs [usf_xsim_get_design_libs $files]
+  set design_libs [usf_xsim_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
@@ -604,7 +619,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   # add simulation libraries
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    if { [usf_contains_verilog] || ({Verilog} == $target_lang) } {
+    if { [::tclapp::xilinx::xsim::usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         lappend args_list "-L simprims_ver"
       } else {
@@ -615,7 +630,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   # behavioral simulation
   set b_compile_unifast [get_property "XSIM.ELABORATE.UNIFAST" $fs_obj]
-  if { ([usf_contains_verilog]) && ({behav_sim} == $sim_flow) } {
+  if { ([::tclapp::xilinx::xsim::usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       lappend args_list "-L unifast_ver"
     }
@@ -650,7 +665,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       set b_verilog_sim_netlist 1
     }
   }
-  if { [::tclapp::xilinx::xsim::usf_contains_verilog] || $b_verilog_sim_netlist } {
+  if { [::tclapp::xilinx::xsim::usf_contains_verilog $design_files] || $b_verilog_sim_netlist } {
     set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" $fs_obj]
     if { ([lsearch ${top_level_inst_names} {glbl}] == -1) && $b_load_glbl } {
       set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
@@ -737,7 +752,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   set cmd_file [file normalize [file join $dir $cmd_filename]]
   set fh_scr 0
   if {[catch {open $cmd_file w} fh_scr]} {
-    send_msg_id Vivado-XSim-019 ERROR "failed to open file to write ($cmd_file)\n"
+    send_msg_id Vivado-XSim-019 ERROR "Failed to open file to write ($cmd_file)\n"
     return 1
   }
 
@@ -777,20 +792,35 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     }
   }
 
-  set runtime [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]
-  if { {} != $runtime } {
-    puts $fh_scr "run $runtime"
+  set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
+  if { {} == $rt } {
+    # no runtime specified
+    puts $fh_scr "\nrun all"
+  } else {
+    set rt_value [string tolower $rt]
+    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+      puts $fh_scr "\nrun all"
+    } else {
+      puts $fh_scr "\nrun $rt"
+    }
   }
 
   if { {} != $saif } {
     puts $fh_scr "close_saif"
   }
 
-  set filter "FILE_TYPE == \"TCL\""
-  foreach file [get_files -all -quiet -used_in "simulation" -filter $filter] {
-     puts $fh_scr "source \{$file\}"
+  # add TCL sources
+  set tcl_src_files [list]
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
+  ::tclapp::xilinx::xsim::usf_find_files tcl_src_files $filter
+  if {[llength $tcl_src_files] > 0} {
+    puts $fh_scr ""
+    foreach file $tcl_src_files {
+       puts $fh_scr "source -notrace \{$file\}"
+    }
+    puts $fh_scr ""
   }
-
+    
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
     puts $fh_scr "quit"
   }
@@ -928,5 +958,42 @@ proc usf_xsim_get_design_libs { files } {
     }
   }
   return $libs
+}
+
+proc usf_xsim_include_xvhdl_log {} {
+  # Summary: copy xvhdl log into compile log for windows
+  # Argument Usage:
+  # Return Value:
+
+  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+
+  if {$::tcl_platform(platform) == "unix"} {
+    # for unix, compile log redirection is taken care by unix commands
+  } else {
+    # for windows, append xvhdl log to compile.log
+    set compile_log [file normalize [file join $dir "compile.log"]]
+    set xvhdl_log [file normalize [file join $dir "xvhdl.log"]]
+    if { [file exists $xvhdl_log] } {
+      set fh 0
+      if {[catch {open $xvhdl_log r} fh]} {
+        send_msg_id Vivado-XSim-999 ERROR "Failed to open file for read ($xvhdl_log)\n"
+      } else {
+        set data [read $fh]
+        set log_data [split $data "\n"]
+        close $fh
+  
+        # open compile.log for append
+        set fh 0
+        if {[catch {open $compile_log a} fh]} {
+          send_msg_id Vivado-XSim-999 ERROR "Failed to open file for append ($compile_log)\n"
+        } else {
+          foreach line $log_data {
+            puts $fh [string trim $line]
+          }
+          close $fh
+        }
+      }
+    }
+  }
 }
 }

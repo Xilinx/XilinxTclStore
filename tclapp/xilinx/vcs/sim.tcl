@@ -22,9 +22,6 @@ proc setup { args } {
   # initialize global variables
   ::tclapp::xilinx::vcs::usf_init_vars
 
-  # initialize IES simulator variables
-  usf_vcs_init_simulation_vars
-
   # read simulation command line args and set global variables
   usf_vcs_setup_args $args
 
@@ -42,6 +39,7 @@ proc compile { args } {
   # Return Value:
   # none
 
+  send_msg_id Vivado-VCS-002 INFO "VCS::Compile design"
   usf_vcs_write_compile_script
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -55,7 +53,7 @@ proc elaborate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-VCS-003 INFO "vcs::elaborate design"
+  send_msg_id Vivado-VCS-003 INFO "VCS::Elaborate design"
   usf_vcs_write_elaborate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -70,7 +68,7 @@ proc simulate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-VCS-004 INFO "vcs::simulate design"
+  send_msg_id Vivado-VCS-004 INFO "VCS::Simulate design"
   usf_vcs_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -97,9 +95,11 @@ proc usf_vcs_setup_simulation { args } {
 
   # set default object
   if { [::tclapp::xilinx::vcs::usf_set_sim_tcl_obj] } {
-    puts "failed to set tcl obj"
     return 1
   }
+
+  # initialize VCS simulator variables
+  usf_vcs_init_simulation_vars
 
   # print launch_simulation arg values
   #::tclapp::xilinx::vcs::usf_print_args
@@ -227,7 +227,7 @@ proc usf_vcs_write_setup_files {} {
   set file [file normalize [file join $dir $filename]]
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-VCS-010 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-VCS-010 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   set lib_map_path $::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir)
@@ -236,8 +236,9 @@ proc usf_vcs_write_setup_files {} {
   }
   puts $fh "OTHERS=$lib_map_path/$filename"
   set libs [list]
-  set files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation]]
-  set design_libs [usf_vcs_get_design_libs $files]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
+  set design_libs [usf_vcs_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
@@ -253,7 +254,7 @@ proc usf_vcs_write_setup_files {} {
     set lib_dir_path [file normalize [string map {\\ /} [file join $dir $lib_dir]]]
     if { ! [file exists $lib_dir_path] } {
       if {[catch {file mkdir $lib_dir_path} error_msg] } {
-        send_msg_id Vivado-VCS-011 ERROR "failed to create the directory ($lib_dir_path): $error_msg\n"
+        send_msg_id Vivado-VCS-011 ERROR "Failed to create the directory ($lib_dir_path): $error_msg\n"
         return 1
       }
     }
@@ -280,7 +281,7 @@ proc usf_vcs_write_compile_script {} {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-VCS-012 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-VCS-012 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   if {$::tcl_platform(platform) == "unix"} {
@@ -332,11 +333,11 @@ proc usf_vcs_write_compile_script {} {
   } else {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
-
-  set files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation]]
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
   puts $fh_scr "# compile design source files"
   set log "unknown.log"
-  foreach file $files {
+  foreach file $design_files {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
@@ -352,7 +353,7 @@ proc usf_vcs_write_compile_script {} {
   # compile glbl file
   set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
   set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
-  if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl] } {
+  if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl $design_files] } {
     set work_lib_sw {}
     if { {work} != $top_lib } {
       set work_lib_sw "-work $top_lib "
@@ -377,7 +378,7 @@ proc usf_vcs_write_elaborate_script {} {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-VCS-013 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-VCS-013 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   if {$::tcl_platform(platform) == "unix"} {
@@ -394,7 +395,7 @@ proc usf_vcs_write_elaborate_script {} {
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
     lappend arg_list {-debug_pp}
   }
-  set arg_list [linsert $arg_list end "-t" "ps" "-licwait" "-60" "-l" "elaborate.log"]
+  set arg_list [linsert $arg_list end "-t" "ps" "-licqueue" "-l" "elaborate.log"]
   if { ($::tclapp::xilinx::vcs::a_vcs_sim_vars(b_32bit)) || ({32} == $os_type) } {
     # donot pass os type
   } else {
@@ -416,6 +417,9 @@ proc usf_vcs_write_elaborate_script {} {
     }
   }
 
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
+
   puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
@@ -424,7 +428,7 @@ proc usf_vcs_write_elaborate_script {} {
   }
   set tool_path "\$bin_path/$tool"
   set arg_list [list "${tool_path}" "\$${tool}_opts" "${top_lib}.$top"]
-  if { [::tclapp::xilinx::vcs::usf_contains_verilog] } {
+  if { [::tclapp::xilinx::vcs::usf_contains_verilog $design_files] } {
     set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
     lappend arg_list "${top_lib}.glbl"
   }
@@ -450,7 +454,7 @@ proc usf_vcs_write_simulate_script {} {
   set file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $file w} fh_scr]} {
-    send_msg_id Vivado-VCS-015 ERROR "failed to open file to write ($file)\n"
+    send_msg_id Vivado-VCS-015 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
  
@@ -462,7 +466,7 @@ proc usf_vcs_write_simulate_script {} {
   ::tclapp::xilinx::vcs::usf_create_do_file "vcs" $do_filename
   set tool "${top}_simv"
   set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
-  set arg_list [list "-ucli" "-licwait" "-60" "-l" "simulate.log"]
+  set arg_list [list "-ucli" "-licqueue" "-l" "simulate.log"]
 
   set more_sim_options [string trim [get_property "VCS.SIMULATE.VCS.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
@@ -517,7 +521,7 @@ proc usf_vcs_create_setup_script {} {
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-VCS-098 ERROR "failed to open file to write ($scr_file)\n"
+    send_msg_id Vivado-VCS-098 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   if {$::tcl_platform(platform) == "unix"} {
@@ -541,8 +545,9 @@ proc usf_vcs_create_setup_script {} {
     puts $fh_scr "\{"
     set simulator "vcs"
     set libs [list]
-    set files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation]]
-    set design_libs [usf_vcs_get_design_libs $files]
+    set global_files_str {}
+    set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
+    set design_libs [usf_vcs_get_design_libs $design_files]
     foreach lib $design_libs {
       if { {} == $lib } {
         continue;

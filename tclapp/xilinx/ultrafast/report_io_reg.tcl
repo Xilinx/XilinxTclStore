@@ -1,5 +1,6 @@
 
 ########################################################################################
+## 06/05/2014 - Fixed final message as the list of input/output ports were inverted 
 ## 02/04/2014 - Renamed file and various additional updates for Tcl App Store 
 ## 02/03/2014 - Updated the namespace and definition of the command line arguments 
 ##              for the Tcl App Store
@@ -213,8 +214,8 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
   set output [concat $output [split [$table print] \n] ]
 
   # Display a warning message if no OFF or IFF is detected
-  lappend output "\n # Ports with no Input FF: $noOFF"
-  lappend output " # Ports with no Output FF: $noIFF"
+  lappend output "\n # Ports with no Input FF: $noIFF"
+  lappend output " # Ports with no Output FF: $noOFF"
   lappend output " # Unconnected Ports: $noUnconnected"
 
   if {$filename !={}} {
