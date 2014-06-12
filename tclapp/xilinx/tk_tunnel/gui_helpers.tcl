@@ -41,6 +41,8 @@ proc hide_server_start {} {
   # Return Value: 
   # TCL_OK is returned if the procedure completed
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   wm title . "Tk Tunnel Server"
   wm withdraw .
   # wm iconify .
@@ -57,6 +59,8 @@ proc ask {msg} {
   # Return Value: 
   # answer : The users input / answer to the question is returned 
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   set answer [tk_messageBox -type "yesno" -message "$msg" -icon question -title "Vivado Question"]
   broadcast "puts stdout {$answer}"
   return $answer
@@ -71,6 +75,8 @@ proc ok {msg} {
 
   # Return Value: 
   # answer : The users input / answer to the question is returned 
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   set answer [tk_messageBox -type "okcancel" -message "$msg" -icon question -title "Vivado Noticication"]
   broadcast "puts stdout {$answer}"
@@ -87,6 +93,8 @@ proc failed {msg} {
   # Return Value: 
   # answer : The users input / answer to the question is returned 
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   set answer [tk_messageBox -type "retrycancel" -message "$msg" -icon question -title "Vivado Failure Noticication"]
   broadcast "puts stdout {$answer}"
   return $answer
@@ -101,6 +109,8 @@ proc ask_or_cancel {msg} {
 
   # Return Value: 
   # answer : The users input / answer to the question is returned 
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   set answer [tk_messageBox -type "yesnocancel" -message "$msg" -icon question -title "Vivado Questions"]
   broadcast "puts stdout {$answer}"
@@ -117,6 +127,8 @@ proc msg {msg} {
   # Return Value: 
   # answer : The dialog creationg return 
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   set answer [tk_messageBox -message "$msg" -title "Vivado Info"]
   broadcast "puts stdout {$answer}"
   return $answer
@@ -131,6 +143,8 @@ proc open_file {} {
 
   # Return Value: 
   # answer : The users input / selected file
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   set answer [tk_getOpenFile]
   broadcast "puts stdout {$answer}"
@@ -147,6 +161,8 @@ proc save_file {} {
   # Return Value: 
   # answer : The users input / selected file
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   set answer [tk_getSaveFile]
   broadcast "puts stdout {$answer}"
   return $answer
@@ -162,6 +178,8 @@ proc choose_dir {} {
   # Return Value: 
   # answer : The users input / selected file
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   set answer [tk_chooseDirectory]
   broadcast "puts stdout {$answer}"
   return $answer
@@ -176,6 +194,8 @@ proc choose_color {} {
 
   # Return Value: 
   # answer : The users input / selected file
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   set answer [tk_chooseColor -initialcolor #ff0000]
   broadcast "puts stdout {$answer}"

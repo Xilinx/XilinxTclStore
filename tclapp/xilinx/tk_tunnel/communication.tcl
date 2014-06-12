@@ -56,6 +56,8 @@ proc rexec {cmd} {
   # Return Value: 
   # TCL_OK is returned if the procedure completed
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   variable sock
   puts $sock "${cmd}"
   return 0
@@ -71,6 +73,8 @@ proc rexec_wait {cmd} {
 
   # Return Value: 
   # The return value of the executed command
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   variable sock
   set ::tclapp::xilinx::tk_tunnel::client_return {}
@@ -89,6 +93,8 @@ proc exec_push_return {cmd} {
   # Return Value: 
   # The return value of the executed command
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   set ::tclapp::xilinx::tk_tunnel::server_return {}
   catch {eval $cmd} ::tclapp::xilinx::tk_tunnel::server_return
   broadcast "set ::tclapp::xilinx::tk_tunnel::client_return {$::tclapp::xilinx::tk_tunnel::server_return}"
@@ -106,6 +112,8 @@ proc wait_for_response {} {
   # Return Value: 
   # The client_return value is returned after it has been set
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   puts "waiting for response..."
   vwait ::tclapp::xilinx::tk_tunnel::client_return
   return $::tclapp::xilinx::tk_tunnel::client_return
@@ -122,6 +130,8 @@ proc start_client {{host "127.0.0.1"} {port 8001}} {
 
   # Return Value: 
   # The client_return value is returned after it has been set
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   variable sock
   set sock [connect_to_server $host $port]
@@ -144,6 +154,8 @@ proc launch_server {{tclsh "tclsh"} {server_file {}}} {
 
   # Return Value: 
   # The command launch return value is returned
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   set thisFile [ dict get [ info frame [ info frame ] ] file ]
   if { $server_file == {} } {
@@ -191,6 +203,7 @@ proc socket_event {sock} {
   # Return Value:
   # return_value - Returns the return value of the executed command
 
+  # Categories: xilinxtclstore, tk_tunnel
 
   variable connected_clients
   variable local_wait_on
@@ -225,7 +238,8 @@ proc stdin_event {sock} {
 
   # Return Value:
   # input - Returns the stdin value
-  # 
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   variable local_wait_on
   set input [gets stdin]
@@ -249,6 +263,8 @@ proc connect_to_server {host port} {
 
   # Return Value:
   # socket - Returns the client-side socket 
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   puts -nonewline "connecting to server on port: '${port}'\n\twaiting on server..."
   set i 0
@@ -277,6 +293,8 @@ proc accept_connection {sock addr port} {
   # Return Value:
   # true - Returns true or throw an error
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   variable connected_clients
   fileevent $sock readable [list socket_event $sock]
   lappend connected_clients $sock
@@ -297,6 +315,8 @@ proc start_server {{port 8001}} {
 
   # Return Value:
   # server - Returns server socket object (not very useful)
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   set hostname   [info hostname]
   set server     [socket -server accept_connection $port]
@@ -322,6 +342,8 @@ proc broadcast {input} {
   # Return Value:
   # input - Returns what the input was
 
+  # Categories: xilinxtclstore, tk_tunnel
+
   variable connected_clients
   puts "broadcasting: $input"
   foreach client $connected_clients {
@@ -344,6 +366,8 @@ proc wait {{time {500}}} {
 
   # Return Value:
   # time - Returns the time waited in ms
+
+  # Categories: xilinxtclstore, tk_tunnel
 
   set wait_on {}
   after $time { set wait_on "next" }
