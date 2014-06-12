@@ -227,7 +227,7 @@
     <app>
       <revision>0.2</revision>
       <revision_history>Merged pull request 240 for Junit</revision_history>
-      <commit_id>4732f82b901c18e1bdecf5a5b4ba196410e7ef2d</commit_id>
+      <commit_id>6858e01e2c2c16077ad43c7858d755f1e6e67538</commit_id>
       <name>junit</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
