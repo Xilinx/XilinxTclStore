@@ -1,45 +1,58 @@
-set file_dir [ file normalize [ file dirname [ info script ] ] ]
-set ::env(XILINX_TCLAPP_REPO) [ file normalize [ file join $file_dir .. .. .. .. ] ]
-puts "== Unit Test directory: $file_dir"
-puts "== Application directory: $::env(XILINX_TCLAPP_REPO)"
+set appName {xilinx::tk_tunnel}
+  
+set listInstalledApps [::tclapp::list_apps]
 
-lappend auto_path [ file join $::env(XILINX_TCLAPP_REPO) "tclapp" ]
+set test_dir [file normalize [file dirname [info script]]]
+puts "== Test directory: $test_dir"
 
-package require ::tclapp::xilinx::tk_tunnel 1.1
-namespace import ::tclapp::xilinx::tk_tunnel::*
+set tclapp_repo [file normalize [file join $test_dir .. .. ..]]
+puts "== Application directory: $tclapp_repo"
 
-set launch_shell "tclsh85"
-
-# Make sure that tclsh is pointing to a Tcl/Tk 8.5 installation
-#set procid [ launch_server ]
-# else use
-#set procid [ launch_server $launch_shell ]
-
-# Manual override of launch_server for this test, using tclsh85 packaged with Git
-if { [ auto_execok $launch_shell ] == "" } {
-  error "Unable to find tclsh using '${launch_shell}' open this file and edit the exec line or change the script to use launch_server:\n[ info script ]"
+if {[lsearch -exact $listInstalledApps $appName] != -1} {
+  # Uninstall the app if it is already installed
+  ::tclapp::unload_app $appName
 }
-set server_file [ file join $::env(XILINX_TCLAPP_REPO) "tclapp" "xilinx" "tk_tunnel" "server" "start.tcl" ]
-set procid [ exec [ auto_execok cmd.exe ] /k $launch_shell ${server_file} & ]
 
-start_client
+# Install the app and require the package
+catch "package forget ::tclapp::${appName}"
+::tclapp::load_app $appName
+package require ::tclapp::${appName}
+  
+# Start the unit tests
+puts "script is invoked from $test_dir"
+
+
+if { [ info exists ::env(RDI_DEVKIT) ] } {
+  set launch_shell [ file join $::env(RDI_DEVKIT) "lnx64" "tcl-8.5.14" "bin" "tclsh8.5" ]
+} else {
+  set launch_shell "tclsh85"
+}
+
+set server_file [ file normalize [ file join $test_dir ".." "server" "start.tcl" ] ]
+
+set procid [ ::tclapp::xilinx::tk_tunnel::launch_server $launch_shell $server_file ]
+
+::tclapp::xilinx::tk_tunnel::start_client
 
 # Asynchronous : broadcasts from client using server back to client and sets global variable a to 1
-puts "Having the server set clients \$::a = "
-rexec {broadcast {set ::a 1}}
-wait; # 500 ms
-puts "The clients \$::a = "
-rexec {broadcast {puts $::a}}
-wait; # 500 ms
-puts "Puts \$::a = "
-puts $::a
+# 1) rexec sends command to server
+# 2) broadcast is executed on server which send command to all clients
+# 3) set ::a 1 is sent to and executed on client
+puts "Having the server set clients \$::tclapp::xilinx::tk_tunnel::a = "
+::tclapp::xilinx::tk_tunnel::rexec {::tclapp::xilinx::tk_tunnel::broadcast {set ::tclapp::xilinx::tk_tunnel::a 1}}
+::tclapp::xilinx::tk_tunnel::wait; # 500 ms
+puts "The clients \$::tclapp::xilinx::tk_tunnel::a = "
+::tclapp::xilinx::tk_tunnel::rexec {::tclapp::xilinx::tk_tunnel::broadcast {puts $::tclapp::xilinx::tk_tunnel::a}}
+::tclapp::xilinx::tk_tunnel::wait; # 500 ms
+puts "Puts \$::tclapp::xilinx::tk_tunnel::a = "
+puts $::tclapp::xilinx::tk_tunnel::a
 
-if { $::a != 1 } {
-  error "sent from client to server a broadcast command that should have set \$::a to 1, instead found: '$::a'"
+if { $::tclapp::xilinx::tk_tunnel::a != 1 } {
+  error "sent from client to server a broadcast command that should have set \$::tclapp::xilinx::tk_tunnel::a to 1, instead found: '$::tclapp::xilinx::tk_tunnel::a'"
 }
 
 # Synchronous : tells the server to execute 'return 2' and client to wait for the response
-set answer [rexec_wait {return 2}]
+set answer [::tclapp::xilinx::tk_tunnel::rexec_wait {return 2}]
 puts "Answer: $answer"
 set expected 2
 

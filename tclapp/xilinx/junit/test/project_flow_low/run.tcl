@@ -1,11 +1,14 @@
 #!vivado
 
-# setup and change to run dir
+# prep
 set testDir   [ file normalize [ file dirname [ info script ] ] ]
 set runDir    [ file join $testDir run ]
+puts "= Current Test Dir:\n  $testDir"
+puts "= Current Run Dir:\n  $runDir"
+
+# clean
 if { [ file exists $runDir ] } { file delete -force $runDir }
 file mkdir $runDir
-cd $runDir
 
 package require ::tclapp::xilinx::junit
 package require struct
@@ -33,7 +36,7 @@ set testcase [ new_testcase $graph $testsuite "ProjectCreation" "Setup" $wallTim
 
 set testcase [ new_testcase $graph $testsuite "SourceExistance" "Setup" ]
 set expected 3
-set files [ glob ../../src/* ] 
+set files [ glob [ file join $::test_dir src * ] ]
 if { $expected != [ llength $files ] } {
   set msg "Expected '${expected}' source files, and found '[ llength $files ]':\n\t[ join $files \n\t ]"
   new_failure $graph $testcase $msg "All source files were not found"
