@@ -98,12 +98,19 @@ proc activate_design { number } {
   current_design [ lindex $designs [ expr $number - 1 ] ]
 }
 
-proc compare_designs { difference_command design_command } {
+proc eval_cmd_ { design command } {
+  # to support eval of return
+  ::tclapp::xilinx::diff::activate_design $design
+  return [ eval $command ]
+}
+
+proc compare_designs args {
+  set difference_command [ lindex $args 0 ] 
+  set design_command [ lindex $args 1 ]
+  puts "cmd: $design_command"
   ::tclapp::xilinx::diff::print_header "$design_command"
-  ::tclapp::xilinx::diff::activate_design 1
-  set data1 [ eval $design_command ] 
-  ::tclapp::xilinx::diff::activate_design 2
-  set data2 [ eval $design_command ]
+  set data1 [ eval_cmd_ 1 $design_command ]
+  set data2 [ eval_cmd_ 2 $design_command ]
   return [ $difference_command $data1 $data2 ]
 }
 
@@ -174,6 +181,9 @@ proc compare_lines { d1_in_results d2_in_results { d1_name "data_set_1" } { d2_n
   set d2_pointer 0
   set diffs 0
   ::tclapp::xilinx::diff::print_subheader "Comparing Ordered Data..." $channel
+  if { $d1_results == $d2_results } {
+    ::tclapp::xilinx::diff::print_success "The Ordered Lines are Equivalent" $channel
+  }
   while { ( $d1_pointer < $d1_length ) && ( $d2_pointer < $d2_length ) } {
     set d1_string [ lindex $d1_results $d1_pointer ]
     set d2_string [ lindex $d2_results $d2_pointer ]
@@ -451,11 +461,8 @@ proc print_end { { channel {} } } {
 
 proc print_subheader { subheader { channel {} } } {
   set new_msg {}
-  foreach line [ split $subheader \n ] { if { $line != {} } { lappend new_msg [ string trim $line ] } }
-  #lappend html "<h3>"
-  lappend html [ html_escape [ join $new_msg \n ] ]
-  #lappend html "</h3>"
-  #lappend html "<div class='well'>"; #well
+  foreach line [ split $subheader \n ] { if { $line != {} } { lappend new_msg [ string trim [ html_escape $line ] ] } }
+  lappend html [ join $new_msg "<br/>" ]
   lappend html "<pre>"; #well
   set msg(HTML) [ join $html \n ]
   set msg(STD)  "\$\$ ${new_msg}"
@@ -464,14 +471,14 @@ proc print_subheader { subheader { channel {} } } {
 
 proc print_header { header { channel {} } } {
   set new_msg {}
-  foreach line [ split $header \n ] { if { $line != {} } { lappend new_msg [ string trim $line ] } }
+  foreach line [ split $header \n ] { if { $line != {} } { lappend new_msg [ string trim [ html_escape $line ] ] } }
   lappend html "</pre>"; #well
   lappend html "</div>"; #panel-body
   lappend html "</div>"; #panel
   lappend html "<div class='panel panel-primary'>"; #panel
   lappend html "<div class='panel-heading'>"; #panel-heading
   lappend html "<span class='toc'>"
-  lappend html [ html_escape [ join $new_msg \n ] ]
+  lappend html [ join $new_msg "<br/>" ]
   lappend html "</h2>"
   lappend html "</div>"; #panel-heading
   lappend html "<div class='panel-body'>"; #panel-body
@@ -484,7 +491,6 @@ proc print_info { info { channel {} } } {
   lappend html "<span title='[ html_escape ${info} ]' class='text-info'>"
   lappend html [ html_escape $info ]
   lappend html "</span>"
-  #lappend html "<br/>"
   set msg(HTML) [ join $html {} ]
   set msg(STD)  "** ${info}"
   print_msg [ array get msg ] $channel 0
@@ -494,7 +500,6 @@ proc print_alert { alert { channel {} } } {
   lappend html "<span class='text-danger'>"
   lappend html [ html_escape $alert ]
   lappend html "</span>"
-  #lappend html "<br/>"
   set msg(HTML) [ join $html {} ]
   set msg(STD)  "!! ${alert}"
   print_msg [ array get msg ] $channel 0
