@@ -39,8 +39,13 @@ variable checkpoints {}
 # section: export public commands
 ####################################################################################################
 namespace export set_global_report
+namespace export get_global_report
 namespace export set_verbose
-namespace export set_designs 
+namespace export get_verbose
+namespace export set_compare_objects 
+namespace export get_compare_objects 
+namespace export set_checkpoints 
+namespace export get_checkpoints 
 
 namespace export open_checkpoints 
 
@@ -74,24 +79,177 @@ namespace export print_success
 namespace export print_results
 namespace export print_end
 
+namespace export html_escape
+namespace export remove_whitespace
+namespace export remove_special
+namespace export remove_datestamps
+
 ####################################################################################################
-# section: public definitions
+# section: generic setters and getters
 ####################################################################################################
-proc open_checkpoints { checkpoint1 checkpoint2 } {
-  variable checkpoints [ list $checkpoint1 $checkpoint2 ]
-  set design1 [ open_checkpoint $checkpoint1 ]
-  set project1 [ current_project ]
-  set design2 [ open_checkpoint $checkpoint2 ]
-  set project2 [ current_project ]
-  set_designs $design1 $project1 $design2 $project2
+proc set_global_report { file } {
+  # Summary:
+  # Sets global report file name and can be set to stdout or stderr. If not specified, then each 
+  # print_* command requires a file name be provided to the channel argument.
+  
+  # Argument Usage: 
+  #   file : File name or stdout/stderr channel to use for print_* commands.
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
+  variable global_report $file 
 }
 
-proc set_designs { new_design1 new_project1 new_design2 new_project2 } {
+proc get_global_report {} {
+  # Summary:
+  # Gets global report value. The output of this command is what resource will be used to output data
+  # if unique resources are not provided to the print_* commands.  Use set_global_report to change.
+  
+  # Argument Usage: 
+   
+  # Return Value:
+  # Global report value
+    
+  # Categories: xilinxtclstore, diff
+
+  variable global_report
+  return $global_report
+}
+
+proc set_verbose { value } {
+  # Summary:
+  # Sets verbosity mode. True or 1 will print verbose, false or 0 will not.
+  
+  # Argument Usage: 
+  #   value : Value to set verbosity mode to
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
+  variable verbose $value 
+}
+
+proc get_verbose {} {
+  # Summary:
+  # Gets verbosity mode.
+  
+  # Argument Usage: 
+   
+  # Return Value:
+  # Verbosity mode value
+    
+  # Categories: xilinxtclstore, diff
+
+  variable verbose
+  return $verbose
+}
+
+proc set_compare_objects { new_design1 new_project1 new_design2 new_project2 } {
+  # Summary:
+  # Sets design and project objects to be used for design comparisons.
+  
+  # Argument Usage: 
+  #   new_design1  : Design to be used when referencing activate_design 1
+  #   new_project1 : Project to be used when referencing activate_design 1 (has design 1)
+  #   new_design2  : Design to be used when referencing activate_design 2
+  #   new_project2 : Project to be used when referencing activate_design 2 (has design 2)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   variable designs [ list $new_design1 $new_design2 ]
   variable projects [ list $new_project1 $new_project2 ]
 }
 
+proc get_compare_objects {} {
+  # Summary:
+  # Gets design and project objects to be used for design comparisons.
+  
+  # Argument Usage: 
+   
+  # Return Value:
+  # List with 2 items: [ List of Designs ] [ List of Projects ] to be used for design comparisons
+    
+  # Categories: xilinxtclstore, diff
+
+  variable designs
+  variable projects
+  return [ list $designs $projects ]
+}
+
+proc set_checkpoints { checkpoint1 checkpoint2 } {
+  # Summary:
+  # Sets checkpoints to be used for design comparisons.
+  
+  # Argument Usage: 
+  #   checkpoint1 : File name of DCP for checkpoint 1
+  #   checkpoint2 : File name of DCP for checkpoint 2
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
+  variable checkpoints [ list $checkpoint1 $checkpoint2 ]
+}
+
+proc get_checkpoints {} {
+  # Summary:
+  # Gets checkpoints to be used for design comparisons.
+  
+  # Argument Usage: 
+   
+  # Return Value:
+  # List of checkpoints to be used for design comparisons
+    
+  # Categories: xilinxtclstore, diff
+
+  variable checkpoints 
+  return $checkpoints
+}
+
+
+####################################################################################################
+# section: designs
+####################################################################################################
+proc open_checkpoints { checkpoint1 checkpoint2 } {
+  # Summary:
+  # Opens checkpoints while capturing the corresponding design and project objects.
+  # Channel is not specified here, and cannot be used with the design comparison flow.
+  # Use the set_global_report for controlling the outputs channel with design comparisons.
+  
+  # Argument Usage: 
+  #   checkpoint1 : File name of DCP for checkpoint 1
+  #   checkpoint2 : File name of DCP for checkpoint 2
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
+  set_checkpoints $checkpoint1 $checkpoint2
+  set design1 [ open_checkpoint $checkpoint1 ]
+  set project1 [ current_project ]
+  set design2 [ open_checkpoint $checkpoint2 ]
+  set project2 [ current_project ]
+  set_compare_objects $design1 $project1 $design2 $project2
+}
+
 proc activate_design { number } {
+  # Summary:
+  # Activates (makes active) the project and design of the number specified, 
+  # options are 1 or 2.  The project and design are set via set_compare_objects
+  # (or open_checkpoints).
+  
+  # Argument Usage: 
+  #   number : Design to make active, choices are 1 or 2.
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   variable designs
   variable projects
   current_project [ lindex $projects [ expr $number - 1 ] ]
@@ -99,31 +257,74 @@ proc activate_design { number } {
 }
 
 proc eval_cmd_ { design command } {
-  # to support eval of return
+  # Summary:
+  # (PRIVATE) Make a design/project combination active and then evaluates a command.
+  #
+  # There is a hidden subtlety to this proc that gives it multiline evaluation capability.
+  # When '[eval $cmd]' happens and a 'return' command is encountered it is the same as calling 
+  # return in the current scope. Because we are returning at this point, everything works as 
+  # expected.  If the $cmd does not have a 'return' then the outer return is used to return the 
+  # commands return value.
+  #
+  # e.g.  return [ expr [ eval return 0 ] + 1 ]; # returns 0, only the inner return is executed
+  
+  # Argument Usage: 
+  #   design : Design number to make active (same as activate_design's number argument)
+  #   command : Command to execute after the design is made active
+   
+  # Return Value:
+  # The return value from the command.  If multiline with a 'return' command, then that return 
+  # value is returned.
+    
+  # Categories: xilinxtclstore, diff
+
   ::tclapp::xilinx::diff::activate_design $design
   return [ eval $command ]
 }
 
 proc compare_designs args {
+  # Summary:
+  # References the design/project combinations set with set_compare_objects. Then a 'design_command'
+  # is executed with each design being made active and the outputs of those commands are captured.
+  # Those outputs are then compared using the specified 'difference_command'. The design/project 
+  # values must have been set with set_compare_objects (or open_checkpoints) before executing this command.
+  # 
+  # e.g. 
+  # open_checkpoints design1.dcp design2.dcp; # calls set_compare_objects for us and opens the DCPs 
+  # compare_designs compare_lines { report_timing -return_string -max_paths 1000 }
+  
+  # Argument Usage: 
+  #   difference_command : A compare_* command from the diff package used to compare data
+  #   design_command : A Tcl command used to extract some data from both of the designs
+   
+  # Return Value:
+  # The output from the 'difference_command' is returned (see compare_* commands for details)
+    
+  # Categories: xilinxtclstore, diff
+
   set difference_command [ lindex $args 0 ] 
   set design_command [ lindex $args 1 ]
-  puts "cmd: $design_command"
   ::tclapp::xilinx::diff::print_header "$design_command"
   set data1 [ eval_cmd_ 1 $design_command ]
   set data2 [ eval_cmd_ 2 $design_command ]
   return [ $difference_command $data1 $data2 ]
 }
 
-# Sets are unordered
-proc unique_in_first_set { set1 set2 } {
-  return [ ::struct::set difference $set1 $set2 ]
-}
-
-proc unique_in_both_sets { set1 set2 } {
-  return [ ::strung::set symdiff $set1 $set2 ]
-}
-
+####################################################################################################
+# section: data manager
+####################################################################################################
 proc serialize_object_ { object } {
+  # Summary:
+  # (PRIVATE) Serializes a single first-class Tcl object.
+  
+  # Argument Usage: 
+  #   object : First-class Tcl object to be serialized
+   
+  # Return Value:
+  # Serialized version of the first-class Tcl object
+    
+  # Categories: xilinxtclstore, diff
+
   array set serializer {}
   foreach property [ list_property $object ] {
     set serializer(${property}) [ get_property -quiet $property $object ]
@@ -132,6 +333,17 @@ proc serialize_object_ { object } {
 }
 
 proc serialize_objects { objects } {
+  # Summary:
+  # Serializes all provided first-class Tcl objects.
+  
+  # Argument Usage: 
+  #   objects : First-class Tcl objects to be serialized
+   
+  # Return Value:
+  # Serialized versions (one object per line) of the first-class Tcl objects
+    
+  # Categories: xilinxtclstore, diff
+
   set serialized_objects {}
   if { [ llength $objects ] == 1 } {
     lappend serialized_objects [ serialize_object_ $objects ]
@@ -144,12 +356,34 @@ proc serialize_objects { objects } {
 }
 
 proc serialize_to_file { serialized_data file_name } {
+  # Summary:
+  # Writes data to file. Can be used as a generic file writer, but this command always appends.
+  
+  # Argument Usage: 
+  #   serialized_data : Data to be stored in file
+  #   file_name : File name to store data
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   set file_handle [ open $file_name "a+" ]
   puts $file_handle $serialized_data
   close $file_handle
 }
 
 proc serialize_from_file { file_name } {
+  # Summary:
+  # Read data from file. Can be used as a generic file reader.
+  
+  # Argument Usage: 
+  #   file_name : File name to read data from
+   
+  # Return Value:
+  # Data from file
+    
+  # Categories: xilinxtclstore, diff
+
   set file_handle [ open $file_name "r" ]
   set serialized_data [ read $file_handle ]
   close $file_handle
@@ -157,22 +391,97 @@ proc serialize_from_file { file_name } {
 }
 
 ####################################################################################################
-# section: helper definitions
+# section: algorithms
 ####################################################################################################
+proc unique_in_first_set { set1 set2 } {
+  # Summary:
+  # Find the unique items in set1. Also known as the 'Set Difference' or U\A [ $set1 \ $set2 ].
+  
+  # Argument Usage: 
+  #   set1 : Find the unique items from this set that are not in set2
+  #   set2 : Find the unique items from set1 that do not exist in this set
+   
+  # Return Value:
+  # Unique objects that exist in set1 and not in set2
+    
+  # Categories: xilinxtclstore, diff
 
-# Files
-proc compare_files { file1 file2 { channel {} } } {
-  set handle1 [ open $file1 "r" ]
-  set data1 [ read $handle1 ]
-  close $handle1
-  set handle2 [ open $file2 "r" ]
-  set data2 [ read $handle2 ]
-  close $handle2
-  return [ ::tclapp::xilinx::diff::compare_lines $data1 $data2 $file1 $file2 $channel ]
+  return [ ::struct::set difference $set1 $set2 ]
 }
 
-# Data
+proc unique_in_both_sets { set1 set2 } {
+  # Summary:
+  # Find the unique items in set1 and in set2. Also known as the 'Symmetric Difference' or 
+  # (A\B) U (B\A) [ ( $set1 \ $set2 ) U ( $set2 \ $set1 ) ].
+  
+  # Argument Usage: 
+  #   set1 : Find the unique items from this set that are not in set2
+  #   set2 : Find the unique items from this set that are not in set1
+   
+  # Return Value:
+  # Unique objects that exist in set1 and not in set2 and vice versa
+  return [ ::strung::set symdiff $set1 $set2 ]
+}
+
+proc compare_files { file1 file2 { channel {} } } {
+  # Summary:
+  # Compares file data. Similar to the linux diff command. This algorithm is designed to be fast and
+  # does not find the best matches between files. For best matching use linux diff or the compare_lines_lcs
+  # command, but be aware: the compare_lines_lcs has a long runtime.
+  
+  # Argument Usage: 
+  #   file1 : File name of file 1 to compare
+  #   file2 : File name of file 2 to compare
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # The number of differences detected, 0 : no differences, >0 : differences detected
+    
+  # Categories: xilinxtclstore, diff
+
+  set data1 [ serialize_from_file $file1 ]
+  set data2 [ serialize_from_file $file2 ]
+  ::tclapp::xilinx::diff::print_subheader "Comparing Files..." $channel
+  return [ ::tclapp::xilinx::diff::compare_ordered_ $data1 $data2 $file1 $file2 $channel ]
+}
+
 proc compare_lines { d1_in_results d2_in_results { d1_name "data_set_1" } { d2_name "data_set_2" } { channel {} } } {
+  # Summary:
+  # Compares data by lines, and looks for the closest next line match when it encounters a difference.
+  
+  # Argument Usage: 
+  #   d1_in_results : data set 1 to compare, not a list format (expects \n to delimit lines)
+  #   d2_in_results : data set 2 to compare, not a list format (expects \n to delimit lines)
+  #   d1_name       : name to use when referencing data set 1
+  #   d2_name       : name to use when referencing data set 2
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # The number of differences detected, 0 : no differences, >0 : differences detected
+    
+  # Categories: xilinxtclstore, diff
+
+  ::tclapp::xilinx::diff::print_subheader "Comparing Lines..." $channel
+  return [ ::tclapp::xilinx::diff::compare_ordered_ $d1_in_results $d2_in_results $d1_name $d2_name $channel ]
+}
+
+# Ordered Lists
+proc compare_ordered_ { d1_in_results d2_in_results { d1_name "data_set_1" } { d2_name "data_set_2" } { channel {} } } {
+  # Summary:
+  # (PRIVATE) Compares data by lines, and looks for the closest next line match when it encounters a difference.
+  
+  # Argument Usage: 
+  #   d1_in_results : data set 1 to compare, not a list format (expects \n to delimit lines)
+  #   d2_in_results : data set 2 to compare, not a list format (expects \n to delimit lines)
+  #   d1_name       : name to use when referencing data set 1
+  #   d2_name       : name to use when referencing data set 2
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # The number of differences detected, 0 : no differences, >0 : differences detected
+    
+  # Categories: xilinxtclstore, diff
+
   set d1_results [ split $d1_in_results \n ]
   set d2_results [ split $d2_in_results \n ]
   set d1_length  [ llength $d1_results ]
@@ -180,9 +489,8 @@ proc compare_lines { d1_in_results d2_in_results { d1_name "data_set_1" } { d2_n
   set d1_pointer 0
   set d2_pointer 0
   set diffs 0
-  ::tclapp::xilinx::diff::print_subheader "Comparing Ordered Data..." $channel
   if { $d1_results == $d2_results } {
-    ::tclapp::xilinx::diff::print_success "The Ordered Lines are Equivalent" $channel
+    ::tclapp::xilinx::diff::print_success "They are Equivalent" $channel
   }
   while { ( $d1_pointer < $d1_length ) && ( $d2_pointer < $d2_length ) } {
     set d1_string [ lindex $d1_results $d1_pointer ]
@@ -228,37 +536,79 @@ proc compare_lines { d1_in_results d2_in_results { d1_name "data_set_1" } { d2_n
   return $diffs
 }
 
-# SLOW!!, but provides the best difference results
-proc compare_lines_lcs { d1_results d2_results { channel {} } } {
-  ::tclapp::xilinx::diff::print_subheader "Comparing Ordered Data..." $channel
-  ::tclapp::xilinx::diff::print_info "Analyzing Longest Common Subsequence..." $channel
+proc compare_lines_lcs { d1_in_results d2_in_results { d1_name "data_set_1" } { d2_name "data_set_2" } { channel {} } } {
+  # Summary:
+  # Compares data using the Longest Common Subsequence (LCS) algorithm.  This provides the best matching of data.
+  # However, there can a significant time hit when using this algorithm.
+  
+  # Argument Usage: 
+  #   d1_in_results : data set 1 to compare, not a list format (expects \n to delimit lines)
+  #   d2_in_results : data set 2 to compare, not a list format (expects \n to delimit lines)
+  #   d1_name       : name to use when referencing data set 1
+  #   d2_name       : name to use when referencing data set 2
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # The number of differences detected, 0 : no differences, >0 : differences detected
+    
+  # Categories: xilinxtclstore, diff
+
+  set d1_results [ split $d1_in_results \n ]
+  set d2_results [ split $d2_in_results \n ]
+  ::tclapp::xilinx::diff::print_subheader "Comparing Lines using Longest Common Subsequence (LCS)..." $channel
+  ::tclapp::xilinx::diff::print_info "Analyzing Longest Common Subsequence...\n" $channel
   set lcs [::struct::list longestCommonSubsequence $d1_results $d2_results]
-  ::tclapp::xilinx::diff::print_info "Inverting Longest Common Subsequence..." $channel
+  ::tclapp::xilinx::diff::print_info "Inverting Longest Common Subsequence...\n" $channel
   set ilcs [::struct::list lcsInvert $lcs [llength $d1_results] [llength $d2_results]]
   if { [llength $ilcs] != 0 } { 
-    ::tclapp::xilinx::diff::print_alert "Differenes were found in the reports:\n<\t$::tclapp::xilinx::diff::design::($($this,d1),name)\n>\t$::tclapp::xilinx::diff::design::($($this,d2),name)\n---" $channel
+    ::tclapp::xilinx::diff::print_alert "Differenes were found in the reports:\n<  ${d1_name}\n>  ${d2_name}\n---\n" $channel
   }
   foreach sequence $ilcs {
     set d1_lines [regsub -all {\[|\]} [eval "\[expr [join [lsort -unique -integer [lindex $sequence 1]] { + 1],[expr }] + 1\]"] {}]
     set d2_lines [regsub -all {\[|\]} [eval "\[expr [join [lsort -unique -integer [lindex $sequence 2]] { + 1],[expr }] + 1\]"] {}]
     ::tclapp::xilinx::diff::print_results "${d1_lines}[string index [lindex $sequence 0] 0]${d2_lines}\n> " $channel
     ::tclapp::xilinx::diff::print_results [join [eval "lrange \$d1_results [join [lindex $sequence 1] { }]"] "\n> "] $channel
-    ::tclapp::xilinx::diff::print_results "---\n< " $channel
+    ::tclapp::xilinx::diff::print_results "\n---\n< " $channel
     ::tclapp::xilinx::diff::print_results [join [eval "lrange \$d2_results [join [lindex $sequence 2] { }]"] "\n< "] $channel
   }
   return [llength $ilcs]
 }
 
-# Lists - ordered
 proc compare_ordered_lists { list1 list2 { channel {} } } {
+  # Summary:
+  # Compare ordered lists and finds in-order differences.  Uniqueness is not considered in this algorithm.
+  
+  # Argument Usage: 
+  #   list1 : data set 1 to compare, a list format
+  #   list2 : data set 2 to compare, a list format
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # The number of differences detected, 0 : no differences, >0 : differences detected
+    
+  # Categories: xilinxtclstore, diff
+
   set list1_lines [ join $list1 \n ]
   set list2_lines [ join $list2 \n ]
-  return [ ::tclapp::xilinx::diff::compare_lines $list1_lines $list2_lines "list_1" "list_2" $channel ]
+  ::tclapp::xilinx::diff::print_subheader "Comparing Ordered Lists..." $channel
+  return [ ::tclapp::xilinx::diff::compare_ordered_ $list1_lines $list2_lines "list_1" "list_2" $channel ]
 }
 
-# Lists - unordered
 proc compare_unordered_lists { list1 list2 { channel {} } } {
-  ::tclapp::xilinx::diff::print_subheader "Comparing Unordered Data..."
+  # Summary:
+  # Compare unordered lists and finds unique objects that exist in each list/set.
+  
+  # Argument Usage: 
+  #   list1 : data set 1 to compare, a list format
+  #   list2 : data set 2 to compare, a list format
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # A list of all of the unique values
+    
+  # Categories: xilinxtclstore, diff
+
+  ::tclapp::xilinx::diff::print_subheader "Comparing Unordered Lists..."
   set list1_only [ unique_in_first_set $list1 $list2 ]
   set list2_only [ unique_in_first_set $list2 $list1 ]
   if { ( [ llength $list1_only ] == 0 ) && ( [ llength $list2_only ] == 0 ) } {
@@ -269,14 +619,40 @@ proc compare_unordered_lists { list1 list2 { channel {} } } {
   return [ concat $list1_only $list2_only ]
 }
 
-# Objects
 proc compare_objects { objects1 objects2 { channel {} } } {
+  # Summary:
+  # Compare first-class Tcl object properties.
+  
+  # Argument Usage: 
+  #   objects1 : object group 1 to compare, must be first-class Tcl objects
+  #   objects2 : object group 2 to compare, must be first-class Tcl objects
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # A list of all properties that differ between the two objects
+    
+  # Categories: xilinxtclstore, diff
+
   set objects1_serialized [ ::tclapp::xilinx::diff::serialize_objects $objects1 ]
   set objects2_serialized [ ::tclapp::xilinx::diff::serialize_objects $objects2 ]
-  compare_serialized_objects $objects1_serialized $objects2_serialized $channel
+  return [ compare_serialized_objects $objects1_serialized $objects2_serialized $channel ]
 }
 
 proc compare_serialized_objects { serialized_objects1 serialized_objects2 { channel {} } } {
+  # Summary:
+  # Compare serialized object properties. To serialize objects use the command serialize_objects. 
+  # To read in objects that have been serialized to disk use serialize_from_file.
+  
+  # Argument Usage: 
+  #   serialized_objects1 : object group 1 to compare, must be serialized objects
+  #   serialized_objects2 : object group 2 to compare, must be serialized objects
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # A list of all properties that differ between the two objects
+    
+  # Categories: xilinxtclstore, diff
+
   ::tclapp::xilinx::diff::print_subheader "Comparing Objects..." $channel
   set differing_properties {}
   foreach serialized_object1 $serialized_objects1 serialized_object2 $serialized_objects2 {
@@ -284,7 +660,7 @@ proc compare_serialized_objects { serialized_objects1 serialized_objects2 { chan
   }
   set differing_properties [ lsort -unique $differing_properties ]
   if { [ llength $differing_properties ] > 0 } {
-    ::tclapp::xilinx::diff::print_info "Differing properties exist, differing properties are:\n  [ join $differing_properties \  ]" $channel
+    ::tclapp::xilinx::diff::print_alert "Differing properties exist, differing properties are:\n  [ join $differing_properties \  ]" $channel
   } else {
     ::tclapp::xilinx::diff::print_success "All properties for all objects are equivalent" $channel
   }
@@ -292,6 +668,19 @@ proc compare_serialized_objects { serialized_objects1 serialized_objects2 { chan
 }
 
 proc compare_object_props_ { serialized_object1 serialized_object2 { channel {} } } {
+  # Summary:
+  # (PRIVATE) Compares a single object's properties.
+  
+  # Argument Usage: 
+  #   serialized_object1 : object 1 to compare, must be a serialized object
+  #   serialized_object2 : object 2 to compare, must be a serialized object
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # A list of all properties that differ between the two objects
+    
+  # Categories: xilinxtclstore, diff
+
   variable verbose 
   array set object1_properties $serialized_object1 
   set object1_property_keys [ array names object1_properties ]
@@ -316,10 +705,12 @@ proc compare_object_props_ { serialized_object1 serialized_object2 { channel {} 
   set object2_count [ llength $serialized_object2 ]
   set object_count [ expr { ( $object1_count == $object2_count ) ? "$object1_count" : "${object1_count} <-> ${object2_count}" } ]
 
+  set comparing_info "Comparing ${object_count} properties on '${object_class}' '${object_name}'...\n"
+
   if { $serialized_object1 == $serialized_object2 } {
     if { $verbose } {
-      ::tclapp::xilinx::diff::print_info "Comparing ${object_count} properties on '${object_class}' '${object_name}'...\n" $channel
-      ::tclapp::xilinx::diff::print_success "All properties are equivalent\n" $channel
+      ::tclapp::xilinx::diff::print_info $comparing_info $channel
+      #::tclapp::xilinx::diff::print_success "All properties are equivalent\n" $channel
     }
     return {}
   }; # else difference detected
@@ -334,9 +725,9 @@ proc compare_object_props_ { serialized_object1 serialized_object2 { channel {} 
     }
     if { "$object1_properties($property)" != "$object2_properties($property)" } {
       if { "${differing_properties}" == "" } {
-        ::tclapp::xilinx::diff::print_info "Comparing ${object_count} properties on '${object_class}' '${object_name}'...\n" $channel
+        ::tclapp::xilinx::diff::print_info $comparing_info $channel
       }
-      ::tclapp::xilinx::diff::print_alert "Property '${property}' differs - '$object1_properties($property)' <=> '$object2_properties($property)'\n" $channel
+      ::tclapp::xilinx::diff::print_results "  Property '${property}' differs : '$object1_properties($property)' <=> '$object2_properties($property)'\n" $channel
       lappend differing_properties $property
     }
   }
@@ -344,22 +735,17 @@ proc compare_object_props_ { serialized_object1 serialized_object2 { channel {} 
 }
 
 ####################################################################################################
-# section: report definitions
+# section: reporting 
 ####################################################################################################
-proc set_global_report { file } {
-  variable global_report $file 
-}
-
-proc set_verbose { value } {
-  variable verbose $value 
-}
-
 proc print_stamp { { channel {} } } {
   catch { version } _version
   set _build  [lindex [lindex [split $_version \n] 0] 1]
   set _cl     [lindex [lindex [split $_version \n] 1] 1]
-  ::tclapp::xilinx::diff::print_info "Created at [clock format [clock seconds]]" $channel
-  ::tclapp::xilinx::diff::print_info "Current Build: $_build\t\tChangelist: $_cl\t\tProcess ID: [pid]" $channel
+  lappend html "Created at [clock format [clock seconds]]"
+  lappend html "Current Build: $_build    Changelist: $_cl    Process ID: [pid]"
+  set msg(HTML) [ join $html "<br/>\n" ]
+  set msg(STD)  [ join $html \n ]
+  print_msg [ array get msg ] $channel
 }
 
 proc print_css {} {
@@ -462,10 +848,10 @@ proc print_end { { channel {} } } {
 proc print_subheader { subheader { channel {} } } {
   set new_msg {}
   foreach line [ split $subheader \n ] { if { $line != {} } { lappend new_msg [ string trim [ html_escape $line ] ] } }
-  lappend html [ join $new_msg "<br/>" ]
+  lappend html [ join $new_msg "<br/>\n" ]
   lappend html "<pre>"; #well
   set msg(HTML) [ join $html \n ]
-  set msg(STD)  "\$\$ ${new_msg}"
+  set msg(STD)  "\$\$ [ join ${new_msg} \n ]"
   print_msg [ array get msg ] $channel
 }
 
@@ -478,12 +864,12 @@ proc print_header { header { channel {} } } {
   lappend html "<div class='panel panel-primary'>"; #panel
   lappend html "<div class='panel-heading'>"; #panel-heading
   lappend html "<span class='toc'>"
-  lappend html [ join $new_msg "<br/>" ]
+  lappend html [ join $new_msg "<br/>\n" ]
   lappend html "</h2>"
   lappend html "</div>"; #panel-heading
   lappend html "<div class='panel-body'>"; #panel-body
   set msg(HTML) [ join $html \n ]
-  set msg(STD)  "\n\n@@ ${header}"
+  set msg(STD)  "\n\n@@ [ join ${header} \n ]"
   print_msg [ array get msg ] $channel
 }
 
@@ -523,7 +909,16 @@ proc print_results { results { channel {} } } {
   print_msg [ array get msg ] $channel 0 ; # don't print a new line
 }
 
-proc html_escape { _string } {
+proc throw_error { error { channel {} } } {
+  ::tclapp::xilinx::diff::print_alert $error $channel
+  ::tclapp::xilinx::diff::print_end $channel
+  error $error
+}
+
+####################################################################################################
+# section: filters
+####################################################################################################
+proc html_escape { input } {
   # Summary:
   # Escapes all XML characters.
   #   & = &amp;
@@ -538,9 +933,9 @@ proc html_escape { _string } {
   # Return Value:
   # The escaped version of the input string.
     
-  # Categories: xilinxtclstore, junit
+  # Categories: xilinxtclstore, diff
  
-  set output $_string
+  set output $input
   set output [ string map {& &amp;} $output ]
   set output [ string map {\" &quot;} $output ]
   set output [ string map {' &apos;} $output ]
@@ -548,6 +943,120 @@ proc html_escape { _string } {
   set output [ string map {> &gt;} $output ]
   return $output
 }
+
+proc remove_whitespace { input } {
+  # Summary:
+  # Removes all whitespace
+  
+  # Argument Usage: 
+  #   string : String to clean
+   
+  # Return Value:
+  # The non-whitespace version of the input string.
+    
+  # Categories: xilinxtclstore, diff
+ 
+  set output $input
+  set output [ regsub -all {\s+} $output {} ]
+  return $output
+}
+
+proc remove_special { input } {
+  # Summary:
+  # Removes all special characters, except '-', '_', and whitespace
+  
+  # Argument Usage: 
+  #   string : String to clean
+   
+  # Return Value:
+  # The non-special character version of the input string.
+    
+  # Categories: xilinxtclstore, diff
+ 
+  set output $input
+  set output [ regsub -all {[^\sa-zA-Z0-9_-]+} $output { } ]
+  return $output
+}
+
+proc remove_datestamps { input { replace_with {<removed_timestamp>} } } {
+  # Summary:
+  # Removes all date stamps
+  
+  # Argument Usage: 
+  #   string : String to clean
+   
+  # Return Value:
+  # The string with date stamps removed.
+    
+  # Categories: xilinxtclstore, diff
+ 
+  set output $input
+  # Matches:  Mon Jun 16 10:02:33 MDT 2014 or Mon Jun 1 1:02:33 2014
+  set output [ regsub -all {[a-zA-Z]{3} [a-zA-Z]{3} [0-9]{1,2} [0-9]{1,2}:[0-9]{2}:[0-9]{2} ([A-Z]{3} ){0,1}[0-9]{4}} $output $replace_with ]
+  # Matches:  Mon Jun 1 1:02:33 2014
+  #set output [ regsub -all {[a-zA-Z]{3} [a-zA-Z]{3} [0-9]{1,2} [0-9]{1,2}:[0-9]{2}:[0-9]{2} [0-9]{4}} $output $replace_with ]
+  # Matches ISO 8601:  2014-01-04T07:00:23+0400
+  set output [ regsub -all {([0-9]{4}\-[0-9]{2}-[0-9]{2}([tT][0-9:\.]*)?)([zZ]|([+\-])([0-9]{2}):?([0-9]{2}))} $output $replace_with ]
+  return $output
+}
+
+####################################################################################################
+# section: assertions
+####################################################################################################
+
+proc assert_same { expected received { msg "Same As Assertion" } { channel {} } } {
+  if { "${expected}" == "" } { set expected {} }
+  if { "${received}" == "" } { set received {} }
+  if { ${expected} == ${received} } {
+    ::tclapp::xilinx::diff::print_success "OK: ${msg}: Received: '${received}'" $channel
+    return 1
+  }
+  ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}:\n  Expected: '${expected}'\n  Received: '${received}'" $channel
+}
+
+proc assert_true { boolean { msg "True Assertion" } { channel {} } } {
+  if { [ catch { set safe_boolean [ expr 1 && $boolean ] } _error ] } {
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Unable to resolve '${boolean}' to 'true' or 'false':\n  ${_error}" $channel
+  }
+  assert_same 1 $safe_boolean $msg $channel
+}
+
+proc assert_false { boolean { msg "False Assertion" } { channel {} } } {
+  if { [ catch { set safe_boolean [ expr 1 && ! ( $boolean ) ] } _error ] } {
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Unable to resolve '${boolean}' to 'true' or 'false':\n  ${_error}" $channel
+  }
+  assert_same 1 $safe_boolean $msg $channel
+}
+
+proc assert_pass { cmd { msg "Pass Assertion" } { channel {} } } {
+  if { [ catch { eval $cmd } _error ] } {
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Command Failed: {${cmd}}\n  Returned Error: '${_error}'" $channel
+  }
+  ::tclapp::xilinx::diff::print_success "OK: ${msg}: Command Passed: {${cmd}}" $channel
+  return 1
+}
+
+proc assert_fail { cmd { msg "Fail Assertion" } { channel {} } } {
+  if { ! [ catch { eval $cmd } _error ] } {
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Command Passed: {${cmd}}" $channel
+  }
+  ::tclapp::xilinx::diff::print_success "OK: ${msg}: Command Failed: {${cmd}}\n  Returned Error: '${_error}'" $channel
+  return 1
+}
+
+#export
+#proc compare_dir {} {
+#}
+#proc assert_same_file {} {
+#}
+#proc assert_file_exists {} {
+#}
+#proc assert_dir_exists {} {
+#}
+#proc assert_string_in_file {} {
+#}
+#proc assert_string_not_in_file {} {
+#}
 
 }; # end ::tclapp::xilinx::diff
 

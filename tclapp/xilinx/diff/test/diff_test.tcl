@@ -61,6 +61,9 @@ foreach report $reports {
   set_global_report $report
   print_start "My Difference Report"
 
+  print_header "Version"
+  print_stamp
+
   print_header "Comparing Serialized Parts"
   compare_serialized_objects $serialized_part1 $serialized_part2
 
@@ -77,15 +80,16 @@ foreach report $reports {
   #set project1 [ current_project ] 
   #set design2  [ open_checkpoint ${test_dir}/design2.dcp ]
   #set project2 [ current_project ]
-  #set_designs $design1 $project1 $design2 $project2
+  #set_compare_objects $design1 $project1 $design2 $project2
   open_checkpoints "${test_dir}/design1.dcp" "${test_dir}/design2.dcp"
 
   # lists
   compare_designs compare_unordered_lists { get_cells -hierarchical }
-  compare_designs compare_ordered_lists { get_cells -hierarchical }
-  compare_designs compare_unordered_lists { get_nets -hierarchical }
+  compare_designs compare_ordered_lists   { get_cells -hierarchical }
+  compare_designs compare_lines_lcs       { join [ get_cells -hierarchical ] \n }
   compare_designs compare_unordered_lists { get_clocks }
   compare_designs compare_unordered_lists { get_ports }
+  compare_designs compare_unordered_lists { get_nets -hierarchical }
 
   # unordered lists vs lines
   compare_designs compare_unordered_lists { get_property LOC [lsort [ get_cells -hierarchical ] ] }
@@ -130,6 +134,58 @@ foreach report $reports {
   	set paths [ get_timing_paths -max_paths 1000 ]
   	return $paths
   }
+
+  # filters
+  set clean { 
+    this-test is the same as_the text below
+    this test is the same as the text below
+  }
+  set white { 
+    this- test   is the same as_the text below
+	this test is the sameas the textbelow
+  }
+  set special { 
+    this-test is*the#same as_the text below
+    this%test^is!the@same(as)the+text=below
+  }
+
+  print_header "Comparing Clean"
+  compare_lines $clean $clean 
+
+  print_header "Comparing White"
+  compare_lines $clean $white 
+  
+  print_header "Comparing White Filtered"
+  compare_lines [ remove_whitespace $clean ] [ remove_whitespace $white ]
+  
+  print_header "Comparing Special"
+  compare_lines $clean $special
+  
+  print_header "Comparing Special Filtered"
+  compare_lines $clean [ remove_special $special ]
+  
+  set paused true
+  after 1000 { set paused false }; #ensures 1 second of timestamp difference
+  vwait paused
+  activate_design 1
+
+  set report1_data [ serialize_from_file $report1 ]
+  set report3_data [ report_timing -return_string -max_paths 1000 ]
+  
+  print_header "Comparing Same Reports with Differing Commands and Timestamps"
+  compare_lines $report1_data $report3_data
+
+  # manually filter '| Command.*' to deal with:
+  #| Command      : report_timing -file timing1.log -max_paths 1000
+  #| Command      : report_timing -return_string -max_paths 1000
+  set report1_data [ regsub -all -line {(\|\ Command)(.*)} $report1_data {\1<removed>} ]
+  set report3_data [ regsub -all -line {(\|\ Command)(.*)} $report3_data {\1<removed>} ]
+  
+  print_header "Comparing Same Reports with Differing Timestamps"
+  compare_lines $report1_data $report3_data
+  
+  print_header "Comparing Same Reports with Differing Timestamps Filtered"
+  compare_lines [ remove_datestamps $report1_data ] [ remove_datestamps $report3_data ]
 
   # done
   print_end
