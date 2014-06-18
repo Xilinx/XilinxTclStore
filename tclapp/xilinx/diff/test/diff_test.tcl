@@ -187,6 +187,19 @@ foreach report $reports {
   print_header "Comparing Same Reports with Differing Timestamps Filtered"
   compare_lines [ remove_datestamps $report1_data ] [ remove_datestamps $report3_data ]
 
+  # assertions
+  print_header "Assertions"
+  print_subheader ""
+  assert_same $report1_data $report1_data
+  assert_true  [ expr 1 && true ]
+  assert_false [ expr 1 && false ]
+  assert_pass { puts "test" }
+  assert_fail { puts -bad "test" }
+  assert_same_file $report1 $report1
+  assert_file_exists [ info script ]
+  assert_string_in_file {Command} $report1
+  assert_string_not_in_file {This doesn't exist} $report1
+
   # done
   print_end
 

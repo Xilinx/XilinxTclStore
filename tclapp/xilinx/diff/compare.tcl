@@ -84,13 +84,24 @@ namespace export remove_whitespace
 namespace export remove_special
 namespace export remove_datestamps
 
+namespace export assert_same
+namespace export assert_true
+namespace export assert_false
+namespace export assert_pass
+namespace export assert_fail
+namespace export assert_same_file
+namespace export assert_file_exists
+namespace export assert_string_in_file
+namespace export assert_string_not_in_file
+
 ####################################################################################################
 # section: generic setters and getters
 ####################################################################################################
 proc set_global_report { file } {
   # Summary:
   # Sets global report file name and can be set to stdout or stderr. If not specified, then each 
-  # print_* command requires a file name be provided to the channel argument.
+  # print_* command requires a file name be provided to the channel argument. If the file name 
+  # has the extension 'htm' or 'html', then an HTML report will be generated.
   
   # Argument Usage: 
   #   file : File name or stdout/stderr channel to use for print_* commands.
@@ -738,6 +749,16 @@ proc compare_object_props_ { serialized_object1 serialized_object2 { channel {} 
 # section: reporting 
 ####################################################################################################
 proc print_stamp { { channel {} } } {
+  # Summary:
+  # Print current time stamp, current build, current changelist, and process ID.
+  
+  # Argument Usage: 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   catch { version } _version
   set _build  [lindex [lindex [split $_version \n] 0] 1]
   set _cl     [lindex [lindex [split $_version \n] 1] 1]
@@ -749,6 +770,16 @@ proc print_stamp { { channel {} } } {
 }
 
 proc print_css {} {
+  # Summary:
+  # Return Cascaded Stylesheet (CSS) information for HTML report
+  
+  # Argument Usage: 
+   
+  # Return Value:
+  # CSS information for HTML report
+    
+  # Categories: xilinxtclstore, diff
+
   lappend html "<link href='http://maxcdn.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css' rel='stylesheet' />"
   lappend html "<style type='text/css'>"
   lappend html "  .panel-heading {cursor: pointer;}"
@@ -758,6 +789,16 @@ proc print_css {} {
 
 
 proc print_js {} {
+  # Summary:
+  # Return JavaScript (JS) information for HTML report
+  
+  # Argument Usage: 
+   
+  # Return Value:
+  # JS information for HTML report
+    
+  # Categories: xilinxtclstore, diff
+
   lappend html "<script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>"
   lappend html "<script type='text/javascript' src='http://maxcdn.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js'></script>"
   lappend html "<script type='text/javascript'>"
@@ -779,6 +820,19 @@ proc print_js {} {
 }
 
 proc print_msg { output { channel {} } { newline 1 } } {
+  # Summary:
+  # Print generic message. Most print_* commands use this as the base proc for reporting.
+  
+  # Argument Usage: 
+  #   output : The message to be printed
+  #   [ channel ] : The channel can be a file name, stdout, or stderr. If this ends with '.htm' 
+  #                 or '.html', then an HTML report will be generated.
+  #   [ newline ] : Determines if a new line character is inserted at the end of the 'output'
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   variable global_report
   if { "$channel" == "" } {
     set channel $global_report
@@ -806,6 +860,17 @@ proc print_msg { output { channel {} } { newline 1 } } {
 }
 
 proc print_start { { title "Difference Report" } { channel {} } } {
+  # Summary:
+  # Print report title, if using HTML, then this generates the head content of the HTML report.
+  
+  # Argument Usage: 
+  #   title : Reports title 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   lappend html "<html lang='en'>"
   lappend html "<head>"
   lappend html "<title>[ html_escape ${title} ]</title>"
@@ -827,6 +892,16 @@ proc print_start { { title "Difference Report" } { channel {} } } {
 }
 
 proc print_end { { channel {} } } {
+  # Summary:
+  # Print end of the report. If using an HTML report, then this prints the ending HTML tags.
+  
+  # Argument Usage: 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   lappend html "</pre>"; #well
   lappend html "</div>"; #panel-body
   lappend html "</div>"; #panel
@@ -846,6 +921,17 @@ proc print_end { { channel {} } } {
 }
 
 proc print_subheader { subheader { channel {} } } {
+  # Summary:
+  # Print a sub-heading. For HTML reports this begins the pre-formatted area under each heading.
+  
+  # Argument Usage: 
+  #   subheader : A sub-heading for the report
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   set new_msg {}
   foreach line [ split $subheader \n ] { if { $line != {} } { lappend new_msg [ string trim [ html_escape $line ] ] } }
   lappend html [ join $new_msg "<br/>\n" ]
@@ -856,6 +942,17 @@ proc print_subheader { subheader { channel {} } } {
 }
 
 proc print_header { header { channel {} } } {
+  # Summary:
+  # Print a heading. For HTML reports this begins the different sections of the report.
+  
+  # Argument Usage: 
+  #   header : A heading for the report
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   set new_msg {}
   foreach line [ split $header \n ] { if { $line != {} } { lappend new_msg [ string trim [ html_escape $line ] ] } }
   lappend html "</pre>"; #well
@@ -874,6 +971,17 @@ proc print_header { header { channel {} } } {
 }
 
 proc print_info { info { channel {} } } {
+  # Summary:
+  # Print a info message. For HTML reports this shows in dark blue.
+  
+  # Argument Usage: 
+  #   info : An info for the report
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   lappend html "<span title='[ html_escape ${info} ]' class='text-info'>"
   lappend html [ html_escape $info ]
   lappend html "</span>"
@@ -883,6 +991,17 @@ proc print_info { info { channel {} } } {
 }
 
 proc print_alert { alert { channel {} } } {
+  # Summary:
+  # Print an alert message. For HTML reports this shows in dark red.
+  
+  # Argument Usage: 
+  #   alert : An alert for the report
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   lappend html "<span class='text-danger'>"
   lappend html [ html_escape $alert ]
   lappend html "</span>"
@@ -892,6 +1011,17 @@ proc print_alert { alert { channel {} } } {
 }
 
 proc print_success { success { channel {} } } {
+  # Summary:
+  # Print a success message. For HTML reports this shows in dark green.
+  
+  # Argument Usage: 
+  #   success : A success for the report
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   lappend html "<span class='text-success'>"
   lappend html [ html_escape $success ]
   lappend html "</span>"
@@ -901,6 +1031,17 @@ proc print_success { success { channel {} } } {
 }
 
 proc print_results { results { channel {} } } {
+  # Summary:
+  # Print a result message. For HTML reports this shows in dark gray.
+  
+  # Argument Usage: 
+  #   result : A result for the report
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   lappend html "<span class='text-muted'>"
   lappend html [ html_escape $results ]
   lappend html "</span>"
@@ -910,6 +1051,16 @@ proc print_results { results { channel {} } } {
 }
 
 proc throw_error { error { channel {} } } {
+  # Summary:
+  # Print error (using print_alert), print report end, and then throw the same error.
+  
+  # Argument Usage: 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, diff
+
   ::tclapp::xilinx::diff::print_alert $error $channel
   ::tclapp::xilinx::diff::print_end $channel
   error $error
@@ -1005,58 +1156,206 @@ proc remove_datestamps { input { replace_with {<removed_timestamp>} } } {
 ####################################################################################################
 
 proc assert_same { expected received { msg "Same As Assertion" } { channel {} } } {
+  # Summary:
+  # Compares two values to ensure that they are the same.
+  
+  # Argument Usage: 
+  #   expected : The expected value
+  #   received : The value received
+  #   [ msg ] : Message printed 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # True or throws error
+    
+  # Categories: xilinxtclstore, diff
+
   if { "${expected}" == "" } { set expected {} }
   if { "${received}" == "" } { set received {} }
   if { ${expected} == ${received} } {
-    ::tclapp::xilinx::diff::print_success "OK: ${msg}: Received: '${received}'" $channel
+    ::tclapp::xilinx::diff::print_success "OK: ${msg}\n" $channel
     return 1
   }
-  ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}:\n  Expected: '${expected}'\n  Received: '${received}'" $channel
+  ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}:\n  Expected: '${expected}'\n  Received: '${received}'\n" $channel
 }
 
 proc assert_true { boolean { msg "True Assertion" } { channel {} } } {
+  # Summary:
+  # Compares boolean to true.
+  
+  # Argument Usage: 
+  #   boolean : The value received
+  #   [ msg ] : Message printed 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # True or throws error
+    
+  # Categories: xilinxtclstore, diff
+
   if { [ catch { set safe_boolean [ expr 1 && $boolean ] } _error ] } {
-    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Unable to resolve '${boolean}' to 'true' or 'false':\n  ${_error}" $channel
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Unable to resolve '${boolean}' to 'true' or 'false':\n  ${_error}\n" $channel
   }
   assert_same 1 $safe_boolean $msg $channel
 }
 
 proc assert_false { boolean { msg "False Assertion" } { channel {} } } {
+  # Summary:
+  # Compares boolean to false.
+  
+  # Argument Usage: 
+  #   boolean : The value received
+  #   [ msg ] : Message printed 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # True or throws error
+    
+  # Categories: xilinxtclstore, diff
+
   if { [ catch { set safe_boolean [ expr 1 && ! ( $boolean ) ] } _error ] } {
-    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Unable to resolve '${boolean}' to 'true' or 'false':\n  ${_error}" $channel
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Unable to resolve '${boolean}' to 'true' or 'false':\n  ${_error}\n" $channel
   }
   assert_same 1 $safe_boolean $msg $channel
 }
 
 proc assert_pass { cmd { msg "Pass Assertion" } { channel {} } } {
+  # Summary:
+  # Ensures that the command passes. This is normally not needed as a failing command will throw on it's own.
+  
+  # Argument Usage: 
+  #   cmd : The command to execute
+  #   [ msg ] : Message printed 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # True or throws error
+    
+  # Categories: xilinxtclstore, diff
+
   if { [ catch { eval $cmd } _error ] } {
-    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Command Failed: {${cmd}}\n  Returned Error: '${_error}'" $channel
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Command Failed: {${cmd}}\n  Returned Error: '${_error}'\n" $channel
   }
-  ::tclapp::xilinx::diff::print_success "OK: ${msg}: Command Passed: {${cmd}}" $channel
+  ::tclapp::xilinx::diff::print_success "OK: ${msg}: Command Passed: {${cmd}}\n" $channel
   return 1
 }
 
 proc assert_fail { cmd { msg "Fail Assertion" } { channel {} } } {
+  # Summary:
+  # Ensures that the command fails.
+  
+  # Argument Usage: 
+  #   cmd : The command to execute
+  #   [ msg ] : Message printed 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # True or throws error
+    
+  # Categories: xilinxtclstore, diff
+
   if { ! [ catch { eval $cmd } _error ] } {
-    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Command Passed: {${cmd}}" $channel
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Command Passed: {${cmd}}\n" $channel
   }
-  ::tclapp::xilinx::diff::print_success "OK: ${msg}: Command Failed: {${cmd}}\n  Returned Error: '${_error}'" $channel
+  ::tclapp::xilinx::diff::print_success "OK: ${msg}: Command Failed: {${cmd}}\n  Returned Error: '${_error}'\n" $channel
+  return 1
+}
+
+proc assert_same_file { file1 file2 { msg "Same File Assertion" } { channel {} } } {
+  # Summary:
+  # Compares files to ensure that they are the same.
+  
+  # Argument Usage: 
+  #   file1 : File name of file 1 to compare
+  #   file2 : File name of file 2 to compare
+  #   [ msg ] : Message printed 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # True or throws error
+    
+  # Categories: xilinxtclstore, diff
+
+  set data1 [ serialize_from_file $file1 ]
+  set data2 [ serialize_from_file $file2 ]
+  set differences [ compare_lines $data1 $data2 $msg $channel ]
+  if { $differences != 0 } {
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Files Differ:\n  ${file1}\n  ${file2}\n" $channel
+  }
+  ::tclapp::xilinx::diff::print_success "OK: ${msg}: Files are the same\n" $channel
+  return 1
+}
+
+proc assert_file_exists { file { msg "File Exists Assertion" } { channel {} } } {
+  # Summary:
+  # Ensures file exists. 
+  
+  # Argument Usage: 
+  #   file : File name to check for existence
+  #   [ msg ] : Message printed 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # True or throws error
+    
+  # Categories: xilinxtclstore, diff
+
+  if { ! [ file exists $file ] } {
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: File Does Not Exist: ${file}\n" $channel
+  }
+  ::tclapp::xilinx::diff::print_success "OK: ${msg}: File Exists: ${file}\n" $channel
+  return 1
+
+}
+
+proc assert_string_in_file { find_string file { msg "String In File Assertion" } { channel {} } } {
+  # Summary:
+  # Ensures string is in file.
+  
+  # Argument Usage: 
+  #   find_string : String to find in file
+  #   file : File name to search for string in
+  #   [ msg ] : Message printed 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # True or throws error
+    
+  # Categories: xilinxtclstore, diff
+
+  set data [ serialize_from_file $file ]
+  if { ! [ regexp $find_string $data ] } {
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: String Not Found\n  String: '${find_string}'\n  File: '${file}'\n" $channel
+  }
+  ::tclapp::xilinx::diff::print_success "OK: ${msg}: String Found: '${find_string}'\n" $channel
+  return 1
+}
+
+proc assert_string_not_in_file { find_string file { msg "String Not In File Assertion" } { channel {} } } {
+  # Summary:
+  # Ensures string is not in file.
+  
+  # Argument Usage: 
+  #   find_string : String to find in file
+  #   file : File name to search for string in
+  #   [ msg ] : Message printed 
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # True or throws error
+    
+  # Categories: xilinxtclstore, diff
+
+  set data [ serialize_from_file $file ]
+  if { [ regexp $find_string $data ] } {
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: String Not Found\n  String: '${find_string}'\n  File: '${file}'\n" $channel
+  }
+  ::tclapp::xilinx::diff::print_success "OK: ${msg}: String Found: '${find_string}'\n" $channel
   return 1
 }
 
 #export
 #proc compare_dir {} {
 #}
-#proc assert_same_file {} {
-#}
-#proc assert_file_exists {} {
-#}
-#proc assert_dir_exists {} {
-#}
-#proc assert_string_in_file {} {
-#}
-#proc assert_string_not_in_file {} {
-#}
-
 }; # end ::tclapp::xilinx::diff
 
