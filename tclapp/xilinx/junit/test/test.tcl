@@ -57,5 +57,3 @@ if {[lsearch -exact $listInstalledApps $appName] == -1} {
 
 puts "completed with all tests."
 
-exit 0
-

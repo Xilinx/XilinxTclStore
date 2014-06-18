@@ -21,9 +21,19 @@ package require ::tclapp::${appName}
 # Start the unit tests
 puts "script is invoked from $test_dir"
 
-
 if { [ info exists ::env(RDI_DEVKIT) ] } {
-  set launch_shell [ file join $::env(RDI_DEVKIT) "lnx64" "tcl-8.5.14" "bin" "tclsh8.5" ]
+  # e.g. linux>lnx unix>lnx nt>win windows>win
+  if { "$::tcl_platform(platform)" == "unix" } {
+    set os "lnx"
+  } else {
+    set os "win"
+  }
+  # e.g. 32 64 128...
+  set bits_in_word 8
+  set architecture [expr "$::tcl_platform(wordSize)*${bits_in_word}"]
+  # e.g. win32 win64 lnx32 lnx64 lnx24
+  set platform "${os}${architecture}"
+  set launch_shell [ file join $::env(RDI_DEVKIT) $platform "tcl-8.5.14" "bin" "tclsh8.5" ]
 } else {
   set launch_shell "tclsh85"
 }
@@ -36,16 +46,17 @@ set procid [ ::tclapp::xilinx::tk_tunnel::launch_server $launch_shell $server_fi
 
 # Asynchronous : broadcasts from client using server back to client and sets global variable a to 1
 # 1) rexec sends command to server
-# 2) broadcast is executed on server which send command to all clients
+# 2) broadcast is executed on server which sends command to all clients
 # 3) set ::a 1 is sent to and executed on client
-puts "Having the server set clients \$::tclapp::xilinx::tk_tunnel::a = "
+puts "Having the server set clients \$::tclapp::xilinx::tk_tunnel::a = 1"
 ::tclapp::xilinx::tk_tunnel::rexec {::tclapp::xilinx::tk_tunnel::broadcast {set ::tclapp::xilinx::tk_tunnel::a 1}}
 ::tclapp::xilinx::tk_tunnel::wait; # 500 ms
+
 puts "The clients \$::tclapp::xilinx::tk_tunnel::a = "
 ::tclapp::xilinx::tk_tunnel::rexec {::tclapp::xilinx::tk_tunnel::broadcast {puts $::tclapp::xilinx::tk_tunnel::a}}
 ::tclapp::xilinx::tk_tunnel::wait; # 500 ms
-puts "Puts \$::tclapp::xilinx::tk_tunnel::a = "
-puts $::tclapp::xilinx::tk_tunnel::a
+
+puts "Puts \$::tclapp::xilinx::tk_tunnel::a = $::tclapp::xilinx::tk_tunnel::a"
 
 if { $::tclapp::xilinx::tk_tunnel::a != 1 } {
   error "sent from client to server a broadcast command that should have set \$::tclapp::xilinx::tk_tunnel::a to 1, instead found: '$::tclapp::xilinx::tk_tunnel::a'"
@@ -73,6 +84,4 @@ if { $::tcl_platform(platform) == "unix" } {
 }
 
 puts "Done. Success."
-
-exit
 
