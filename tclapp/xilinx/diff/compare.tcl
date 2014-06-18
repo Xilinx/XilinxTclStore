@@ -61,6 +61,7 @@ namespace export serialize_from_file
 
 namespace export compare_objects
 namespace export compare_serialized_objects
+namespace export compare_dirs
 namespace export compare_files
 namespace export compare_lines
 namespace export compare_ordered_lists
@@ -434,9 +435,29 @@ proc unique_in_both_sets { set1 set2 } {
   return [ ::strung::set symdiff $set1 $set2 ]
 }
 
+proc compare_dirs { dir1 dir2 { channel {} } } {
+  # Summary:
+  # Compares directory contents.
+  
+  # Argument Usage: 
+  #   dir1 : dir name of dir 1 to compare
+  #   dir2 : dir name of dir 2 to compare
+  #   [ channel ] : dir name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # The number of differences detected, 0 : no differences, >0 : differences detected
+    
+  # Categories: xilinxtclstore, diff
+
+  set list1 [ glob -directory [ file normalize $dir1 ] -tails * ]
+  set list2 [ glob -directory [ file normalize $dir2 ] -tails * ]
+  ::tclapp::xilinx::diff::print_subheader "Comparing Dirs..." $channel
+  return [ ::tclapp::xilinx::diff::compare_unordered_ $list1 $list2 $channel ]
+}
+
 proc compare_files { file1 file2 { channel {} } } {
   # Summary:
-  # Compares file data. Similar to the linux diff command. This algorithm is designed to be fast and
+  # Compares file contents. Similar to the linux diff command. This algorithm is designed to be fast and
   # does not find the best matches between files. For best matching use linux diff or the compare_lines_lcs
   # command, but be aware: the compare_lines_lcs has a long runtime.
   
@@ -450,8 +471,8 @@ proc compare_files { file1 file2 { channel {} } } {
     
   # Categories: xilinxtclstore, diff
 
-  set data1 [ serialize_from_file $file1 ]
-  set data2 [ serialize_from_file $file2 ]
+  set data1 [ ::tclapp::xilinx::diff::serialize_from_file $file1 ]
+  set data2 [ ::tclapp::xilinx::diff::serialize_from_file $file2 ]
   ::tclapp::xilinx::diff::print_subheader "Comparing Files..." $channel
   return [ ::tclapp::xilinx::diff::compare_ordered_ $data1 $data2 $file1 $file2 $channel ]
 }
@@ -501,7 +522,7 @@ proc compare_ordered_ { d1_in_results d2_in_results { d1_name "data_set_1" } { d
   set d2_pointer 0
   set diffs 0
   if { $d1_results == $d2_results } {
-    ::tclapp::xilinx::diff::print_success "They are Equivalent" $channel
+    ::tclapp::xilinx::diff::print_success "They are equivalent" $channel
   }
   while { ( $d1_pointer < $d1_length ) && ( $d2_pointer < $d2_length ) } {
     set d1_string [ lindex $d1_results $d1_pointer ]
@@ -620,10 +641,27 @@ proc compare_unordered_lists { list1 list2 { channel {} } } {
   # Categories: xilinxtclstore, diff
 
   ::tclapp::xilinx::diff::print_subheader "Comparing Unordered Lists..."
+  return [ compare_unordered_ $list1 $list2 $channel ]
+}
+
+proc compare_unordered_ { list1 list2 { channel {} } } {
+  # Summary:
+  # (PRIVATE) Compare unordered lists and finds unique objects that exist in each list/set.
+  
+  # Argument Usage: 
+  #   list1 : data set 1 to compare, a list format
+  #   list2 : data set 2 to compare, a list format
+  #   [ channel ] : File name, stdout, or stderr for reporting (Default: see get_global_report usage)
+   
+  # Return Value:
+  # A list of all of the unique values
+    
+  # Categories: xilinxtclstore, diff
+
   set list1_only [ unique_in_first_set $list1 $list2 ]
   set list2_only [ unique_in_first_set $list2 $list1 ]
   if { ( [ llength $list1_only ] == 0 ) && ( [ llength $list2_only ] == 0 ) } {
-    ::tclapp::xilinx::diff::print_success "The lists are equivalent" $channel
+    ::tclapp::xilinx::diff::print_success "They are equivalent" $channel
   } else {
     ::tclapp::xilinx::diff::print_alert "Differences found:\n List 1 has [ llength $list1_only ] unique:\n  [ join $list1_only \n\ \  ]\n List 2 has [ llength $list2_only ] unique:\n  [ join $list2_only \n\ \  ]"
   }
@@ -937,7 +975,7 @@ proc print_subheader { subheader { channel {} } } {
   lappend html [ join $new_msg "<br/>\n" ]
   lappend html "<pre>"; #well
   set msg(HTML) [ join $html \n ]
-  set msg(STD)  "\$\$ [ join ${new_msg} \n ]"
+  set msg(STD)  "\$\$ ${subheader}"
   print_msg [ array get msg ] $channel
 }
 
@@ -966,7 +1004,7 @@ proc print_header { header { channel {} } } {
   lappend html "</div>"; #panel-heading
   lappend html "<div class='panel-body'>"; #panel-body
   set msg(HTML) [ join $html \n ]
-  set msg(STD)  "\n\n@@ [ join ${header} \n ]"
+  set msg(STD)  "\n\n@@ ${header}"
   print_msg [ array get msg ] $channel
 }
 
@@ -1276,10 +1314,9 @@ proc assert_same_file { file1 file2 { msg "Same File Assertion" } { channel {} }
     
   # Categories: xilinxtclstore, diff
 
-  set data1 [ serialize_from_file $file1 ]
-  set data2 [ serialize_from_file $file2 ]
-  set differences [ compare_lines $data1 $data2 $msg $channel ]
-  if { $differences != 0 } {
+  set data1 [ ::tclapp::xilinx::diff::serialize_from_file $file1 ]
+  set data2 [ ::tclapp::xilinx::diff::serialize_from_file $file2 ]
+  if { $data1 != $data2 } {
     ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: Files Differ:\n  ${file1}\n  ${file2}\n" $channel
   }
   ::tclapp::xilinx::diff::print_success "OK: ${msg}: Files are the same\n" $channel
@@ -1323,7 +1360,7 @@ proc assert_string_in_file { find_string file { msg "String In File Assertion" }
     
   # Categories: xilinxtclstore, diff
 
-  set data [ serialize_from_file $file ]
+  set data [ ::tclapp::xilinx::diff::serialize_from_file $file ]
   if { ! [ regexp $find_string $data ] } {
     ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: String Not Found\n  String: '${find_string}'\n  File: '${file}'\n" $channel
   }
@@ -1346,16 +1383,13 @@ proc assert_string_not_in_file { find_string file { msg "String Not In File Asse
     
   # Categories: xilinxtclstore, diff
 
-  set data [ serialize_from_file $file ]
+  set data [ ::tclapp::xilinx::diff::serialize_from_file $file ]
   if { [ regexp $find_string $data ] } {
     ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: String Not Found\n  String: '${find_string}'\n  File: '${file}'\n" $channel
   }
-  ::tclapp::xilinx::diff::print_success "OK: ${msg}: String Found: '${find_string}'\n" $channel
+  ::tclapp::xilinx::diff::print_success "OK: ${msg}: String Not Found: '${find_string}'\n" $channel
   return 1
 }
 
-#export
-#proc compare_dir {} {
-#}
 }; # end ::tclapp::xilinx::diff
 

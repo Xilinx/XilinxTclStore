@@ -70,6 +70,11 @@ foreach report $reports {
   print_header "Comparing files:\n  ${data_file1}\n  ${data_file2}"
   compare_files $data_file1 $data_file2
 
+  set this_dir [ file dirname [ info script ] ] 
+  set this_parent_dir [ file dirname $this_dir ]
+  print_header "Comparing Directories"
+  compare_dirs $this_dir $this_parent_dir
+
   set read_part1 [ serialize_from_file $data_file1 ]
   set read_part2 [ serialize_from_file $data_file2 ]
   print_header "Comparing Serialized Parts From Files"
