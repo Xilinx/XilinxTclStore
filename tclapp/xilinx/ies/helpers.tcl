@@ -849,11 +849,12 @@ proc usf_prepare_ip_for_simulation { } {
       wait_on_run [get_property "NAME" [get_runs $run]]
     }
   }
-
   # update compile order
-  foreach fs $fs_objs {
-    if { [usf_fs_contains_hdl_source $fs] } {
-      update_compile_order -fileset [get_filesets $fs]
+  if { {None} != [get_property "SOURCE_MGMT_MODE" [current_project]] } {
+    foreach fs $fs_objs {
+      if { [usf_fs_contains_hdl_source $fs] } {
+        update_compile_order -fileset [get_filesets $fs]
+      }
     }
   }
 }
