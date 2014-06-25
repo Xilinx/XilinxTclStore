@@ -8,7 +8,7 @@
     <app>
       <revision>1.7</revision>
       <revision_history>Major updates to insert_buffer.tcl script</revision_history>
-      <commit_id>e7568fe3f78ac51deb6b15d422ae0ff4ce6e724c</commit_id>
+      <commit_id>83eae809f8fcc8e2459e1d8490790544695b2b0e</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
