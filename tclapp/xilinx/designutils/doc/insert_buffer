@@ -2,12 +2,12 @@
 
   Description: 
 
-     Insert a buffer or any 2-pins cell on a net.
+     Insert a buffer or any 2-pins cell on a net or a pin.
 
-     This command should be preferably run on a synthesized design.
+     This command should be preferably run on an unplaced design.
 
   Example:
   
-     ::tclapp::xilinx::designutils::insert_buffer [get_nets ingressLoop[0].ingressFifo/reset_IBUF]
-     ::tclapp::xilinx::designutils::insert_buffer [get_nets ingressLoop[0].ingressFifo/reset_IBUF] {BUFH}
-
+     ::tclapp::xilinx::designutils::insert_buffer -net [get_nets ingressLoop[0].ingressFifo/reset_IBUF]
+     ::tclapp::xilinx::designutils::insert_buffer -net [get_nets ingressLoop[0].ingressFifo/reset_IBUF] -buffer {BUFH}
+     ::tclapp::xilinx::designutils::insert_buffer -pin [get_nets ingressLoop[0].ingressFifo/I] -buffer {IBUF}

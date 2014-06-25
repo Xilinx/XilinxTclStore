@@ -1,0 +1,19 @@
+
+
+  Description: 
+  
+     Insert a probe to connect an output leaf clock pin to an output port. The output should not exist and is created by the command
+
+     The pin to be probed should be an output clock pin, typically a BUFG output pin.
+     The probed pin is connected to the output port through an ODDR->OBUF circuitry.
+     The output port is created by the command and cannot exist before. The ODDR and OBUF
+     are created as well and instanciated at the top-level.
+   
+     If -diff_port is used instead of -port then a differential port is created and
+     driven through a OBUFDS.
+   
+     It is recommended to use the command on an unplaced design.
+
+  Example:
+     ::tclapp::xilinx::designutils::insert_clock_probe -pin bufg/O -port probe -iostandard HSTL
+     ::tclapp::xilinx::designutils::insert_clock_probe -pin bufg/O -diff_port probe -iostandard LVDS

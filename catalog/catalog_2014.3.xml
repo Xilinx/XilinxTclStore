@@ -6,7 +6,8 @@
   <revision>1.0</revision>
   <apps>
     <app>
-      <revision>1.6</revision>
+      <revision>1.7</revision>
+      <revision_history>Major updates to insert_buffer.tcl script</revision_history>
       <commit_id>e7568fe3f78ac51deb6b15d422ae0ff4ce6e724c</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
@@ -93,11 +94,15 @@
         </proc>
         <proc>
           <name>insert_buffer</name>
-          <summary>insert a buffer or any 2-pins cell on a net</summary>
+          <summary>insert a buffer or any 2-pins cell on a net or a pin</summary>
         </proc>
         <proc>
           <name>insert_buffer_chain</name>
-          <summary>insert a list of buffers or any 2-pins cells on a net</summary>
+          <summary>insert a chain of buffers or any 2-pins cells on a net or a pin</summary>
+        </proc>
+        <proc>
+          <name>insert_clock_probe</name>
+          <summary>insert a clock probe to the design and connect the probe to an output port. The output should not exist and is created by the command</summary>
         </proc>
         <proc>
           <name>is_fabric_connected</name>
@@ -118,6 +123,10 @@
         <proc>
           <name>remove_buffer</name>
           <summary>remove a buffer or any 2-pins cell</summary>
+        </proc>
+        <proc>
+          <name>rename_net</name>
+          <summary>rename a local net name</summary>
         </proc>
         <proc>
           <name>replicate_high_fanout_registers</name>
