@@ -69,10 +69,11 @@ proc ::tclapp::xilinx::designutils::insert_clock_probe {args} {
 
   # Argument Usage:
   # -pin <arg>: Output leaf clock pin
-  # [-port <arg>] : Output port name to be created
-  # [-diff_port <arg>] : Output diff port name to be created
+  # -port <arg> : Output port name to be created
+  # -diff_port <arg> : Output diff port name to be created
   # [-iostandard <arg>] : IOSTANDARD for created port(s)
   # [-schematic] : Display schematic of inserted probe
+  # [-force]: Force probe insertion when cells are placed
 
   # Return Value:
   # 0 if succeeded
@@ -89,8 +90,6 @@ proc ::tclapp::xilinx::designutils::rename_net {args} {
   # Argument Usage:
   # -net <arg>: Output leaf clock pin
   # -name <arg> : Output port name to be created
-  # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
-  # args : List of 2-pins cell types to insert
 
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened
@@ -523,8 +522,8 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insert_clock_probe {args} {
 
   # Argument Usage:
   # -pin : Output leaf clock pin
-  # [-port] : Output port name to be created
-  # [-diff_port] : Output diff port name to be created
+  # port : Output port name to be created
+  # diff_port : Output diff port name to be created
   # [-iostandard] : IOSTANDARD for created port(s)
   # [-schematic] : Display schematic of inserted probe
   # [-force]: Force probe insertion when cells are placed
