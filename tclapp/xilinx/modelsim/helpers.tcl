@@ -670,13 +670,14 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
   # Argument Usage:
   # Return Value:
 
+  upvar $opts_arg opts
   foreach element $def_gen_list {
     set key_val_pair [split $element "="]
     set name [lindex $key_val_pair 0]
     set val  [lindex $key_val_pair 1]
     if { [string length $val] > 0 } {
       switch -regexp -- $tool {
-        "vlog" { lappend opts_arg "-define"  ; lappend opts_arg "\"$name=$val\""  }
+        "vlog" { lappend opts "+define+$name=$val"  }
       }
     }
   }
@@ -1883,7 +1884,6 @@ proc usf_append_other_options { tool file_type global_files_str opts_arg } {
   upvar $opts_arg opts
   variable a_sim_vars
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
-
   switch $tool {
     "vlog" {
       # verilog defines

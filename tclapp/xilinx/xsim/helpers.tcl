@@ -664,23 +664,6 @@ proc usf_is_fileset { tcl_obj } {
   return 0
 }
 
-proc usf_append_define_generics { def_gen_list tool opts_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  foreach element $def_gen_list {
-    set key_val_pair [split $element "="]
-    set name [lindex $key_val_pair 0]
-    set val  [lindex $key_val_pair 1]
-    if { [string length $val] > 0 } {
-      switch -regexp -- $tool {
-        "vlog" { lappend opts_arg "-define"  ; lappend opts_arg "\"$name=$val\""  }
-      }
-    }
-  }
-}
-
 proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
   # Summary:
   # Argument Usage:
