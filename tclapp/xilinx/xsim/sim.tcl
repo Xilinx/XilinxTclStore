@@ -308,10 +308,16 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
   }
  
-  # nosort?
+  # nosort? (verilog)
   set b_no_sort [get_property "XSIM.COMPILE.XVLOG.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
   if { $b_no_sort || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
     puts $fh_vlog "\n# Do not sort compile order\nnosort"
+  }
+
+  # nosort? (vhdl)
+  set b_no_sort [get_property "XSIM.COMPILE.XVHDL.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
+  if { $b_no_sort || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
+    puts $fh_vhdl "\n# Do not sort compile order\nnosort"
   }
     
   close $fh_vlog
