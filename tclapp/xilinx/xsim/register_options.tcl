@@ -26,16 +26,16 @@ proc register_options { simulator } {
  
   variable options
   if { {} == $simulator } {
-    send_msg_id Vivado-XSim-001 ERROR "Simulator not specified.\n"
+    send_msg_id USF-XSim-001 ERROR "Simulator not specified.\n"
   }
   # is simulator registered?
   if { {-1} == [lsearch [get_simulators] $simulator] } {
-    send_msg_id Vivado-XSim-002 ERROR "Simulator '$simulator' is not registered\n"
+    send_msg_id USF-XSim-002 ERROR "Simulator '$simulator' is not registered\n"
     return 1
   }
   set options {
-    {{compile.xvlog.nosort}          {bool}        {1}                                                  {Donot sort verilog files}}
-    {{compile.xvhdl.nosort}          {bool}        {1}                                                  {Donot sort vhdl files}}
+    {{compile.xvlog.nosort}          {bool}        {1}                                                  {Donot sort Verilog files}}
+    {{compile.xvhdl.nosort}          {bool}        {1}                                                  {Donot sort VHDL files}}
     {{compile.xvlog.more_options}    {string}      {}                                                   {More XVLOG compilation options}}
     {{compile.xvhdl.more_options}    {string}      {}                                                   {More XVHDL compilation options}}
     {{elaborate.snapshot}            {string}      {}                                                   {Specify name of the simulation snapshot}}
