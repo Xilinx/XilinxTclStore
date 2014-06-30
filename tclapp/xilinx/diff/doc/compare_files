@@ -1,0 +1,10 @@
+
+Example:
+
+  # compares part objects that have been stored
+  set report1 "timing1.log"
+  set report1 "timing2.log"
+  report_timing -file $report1 -max_paths 1000 
+  report_timing -file $report2 -max_paths 1000 
+  ::tclapp::xilinx::diff::compare_files $report1 $report2
+

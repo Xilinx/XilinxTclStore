@@ -1,0 +1,10 @@
+
+Example:
+
+  # sets design/project combinations to be used with compare_designs command
+  set design1  [ open_checkpoint ${test_dir}/design1.dcp ]
+  set project1 [ current_project ] 
+  set design2  [ open_checkpoint ${test_dir}/design2.dcp ]
+  set project2 [ current_project ]
+  ::tclapp::xilinx::diff::set_compare_objects $design1 $project1 $design2 $project2
+

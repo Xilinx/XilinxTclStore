@@ -1,0 +1,13 @@
+
+Example:
+
+  # assertion to guarantee file exists, else throw
+  set report1 "timing1.log"
+  report_timing -file $report1 -max_paths 1000 
+
+  ::tclapp::xilinx::diff::assert_file_exists $report1
+  == OK: File Exists Assertion: File Exists: timing1.log
+
+  ::tclapp::xilinx::diff::assert_file_exists ./bad
+  !! FAIL: File Exists Assertion: File Does Not Exist: ./bad
+

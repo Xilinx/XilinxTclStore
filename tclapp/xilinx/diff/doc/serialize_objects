@@ -1,0 +1,19 @@
+
+Example:
+
+  # compares part objects that have been stored
+  set part1 [ lindex [ get_parts ] 0 ]
+  set part2 [ lindex [ get_parts ] 1 ]
+
+  set serialized_part1 [ ::tclapp::xilinx::diff::serialize_objects $part1 ]
+  set serialized_part2 [ ::tclapp::xilinx::diff::serialize_objects $part2 ]
+
+  set data_file1 "part1.dat"
+
+  # save part1 to disk for analysis at a later time... (*)
+  ::tclapp::xilinx::diff::serialize_to_file $serialized_part1 $data_file1
+
+  # can compare serialized data that was stored at a later time (*)
+  set read_part1 [ ::tclapp::xilinx::diff::serialize_from_file $data_file1 ]
+  ::tclapp::xilinx::diff::compare_serialized_objects $read_part1 $serialized_part2
+

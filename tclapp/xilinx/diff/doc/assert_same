@@ -1,0 +1,17 @@
+
+Example:
+
+  # assertion to guarantee items are the same
+  ::tclapp::xilinx::diff::assert_same "test" test "Checking that \"test\"==test"
+
+  # output
+  == OK: Checking that "test"==test
+
+  # assertion to guarantee items are the same
+  ::tclapp::xilinx::diff::assert_same "test" bad "Checking that \"test\"==test"
+  !! FAIL: Checking that "test"==test:
+    Expected: 'test'
+    Received: 'bad'
+  # !throws error and flow will not continue
+
+

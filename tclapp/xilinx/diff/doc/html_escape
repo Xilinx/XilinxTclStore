@@ -1,0 +1,9 @@
+
+Example:
+
+  # to remove the HTML special characters:
+  ::tclapp::xilinx::diff::html_escape { a b c 1 2 3 & " ' < > a b c 1 2 3 }
+
+  # output
+  a b c 1 2 3 &amp; &quot; &apos; &lt; &gt; a b c 1 2 3 
+

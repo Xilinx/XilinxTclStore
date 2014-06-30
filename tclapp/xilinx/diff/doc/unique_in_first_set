@@ -1,0 +1,7 @@
+
+Example:
+
+  # returns all of the objects that are unique in set 1
+  ::tclapp::xilinx::diff::unique_in_first_set { a b c } { c d e }
+  Returns: { a }
+

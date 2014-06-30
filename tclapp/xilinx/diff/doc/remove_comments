@@ -1,0 +1,15 @@
+
+Example:
+
+  # example strings to remove comments
+  set comments { 
+    test text ; #comment
+    #comment
+  }
+
+  # removes comments
+  ::tclapp::xilinx::diff::remove_comments $comments
+
+  # output
+  test text 
+

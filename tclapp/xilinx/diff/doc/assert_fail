@@ -1,0 +1,11 @@
+
+Example:
+
+  # asserts that the command fails (will catch errors) else throws
+  ::tclapp::xilinx::diff::assert_fail { puts 123 }
+  !! FAIL: Fail Assertion: Command Passed: { puts 123 }
+
+  ::tclapp::xilinx::diff::assert_fail { puts $abc }
+  == OK: Fail Assertion: Command Failed: { puts $abc }
+    Returned Error: 'can't read "abc": no such variable'
+

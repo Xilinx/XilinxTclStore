@@ -1,0 +1,12 @@
+
+Example:
+
+  # messages will be printed to STDOUT 
+  ::tclapp::xilinx::diff::set_global_report stdout
+
+  # text report 
+  ::tclapp::xilinx::diff::set_global_report "diff_report.log"
+
+  # html report
+  ::tclapp::xilinx::diff::set_global_report "diff_report.html"
+

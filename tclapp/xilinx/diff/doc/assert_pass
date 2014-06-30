@@ -1,0 +1,10 @@
+
+Example:
+
+  ::tclapp::xilinx::diff::assert_pass { puts 123 }
+  == OK: Pass Assertion: Command Passed: { puts 123 }
+  
+  ::tclapp::xilinx::diff::assert_pass { puts $abc }
+  !! FAIL: Pass Assertion: Command Failed: { puts $abc }
+    Returned Error: 'can't read "abc": no such variable'
+

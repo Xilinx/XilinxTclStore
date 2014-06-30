@@ -1,0 +1,39 @@
+
+Example:
+
+  # example strings to compare
+  set clean { 
+    this-test is the same as_the text below
+    this test is the same as the text below
+  }
+  set white { 
+    this- test   is the same as_the text below
+  this test is the sameas the textbelow
+  }
+
+  # errors due to differences
+  ::tclapp::xilinx::diff::compare_lines $clean $white 
+
+  # output
+  $$ Comparing Lines...
+  !! Differences found:
+  <  data_set_1
+  >  data_set_2
+  ---
+  2c2
+  <     this-test is the same as_the text below
+  ---
+  >     this- test   is the same as_the text below
+  3c3
+  <     this test is the same as the text below
+  ---
+  >   this test is the sameas the textbelow
+
+
+  # passes dues to special characters being removed
+  ::tclapp::xilinx::diff::compare_lines \
+    [ ::tclapp::xilinx::diff::remove_whitespace $clean ] \
+    [ ::tclapp::xilinx::diff::remove_whitespace $white ]
+  $$ Comparing Lines...
+  == They are equivalent
+

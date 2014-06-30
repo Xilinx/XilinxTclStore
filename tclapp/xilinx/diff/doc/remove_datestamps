@@ -1,0 +1,23 @@
+
+Example:
+
+  set report1 "timing1.log"
+  report_timing -file $report1 -max_paths 1000 
+
+  set report1_data [ ::tclapp::xilinx::diff::serialize_from_file $report1 ]
+  set report2_data [ report_timing -return_string -max_paths 1000 ]
+
+  # manually filter '| Command.*' to deal with:
+  #| Command      : report_timing -file timing1.log -max_paths 1000
+  #| Command      : report_timing -return_string -max_paths 1000
+  set report1_data [ regsub -all -line {(\|\ Command)(.*)} $report1_data {\1<removed>} ]
+  set report2_data [ regsub -all -line {(\|\ Command)(.*)} $report2_data {\1<removed>} ]
+
+  # will report differences due to timestamps/datestamps
+  ::tclapp::xilinx::diff::compare_lines $report1_data $report3_data
+
+  # will report same now that the timestamps / datestamps have been removed
+  set report1_ds [ ::tclapp::xilinx::diff::remove_datestamps $report1_data ] 
+  set report2_ds [ ::tclapp::xilinx::diff::remove_datestamps $report3_data ]
+  ::tclapp::xilinx::diff::compare_lines $report1_ds $report2_ds
+
