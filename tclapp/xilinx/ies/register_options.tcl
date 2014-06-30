@@ -39,11 +39,15 @@ proc register_options { simulator } {
     {{compile.relax}                 {bool}   {1}        {Enable relaxed VHDL interpretation}}
     {{compile.unifast}               {bool}   {0}        {Enable fast simulation models}}
     {{compile.load_glbl}             {bool}   {1}        {Load GLBL module}}
+    {{compile.update}                {bool}   {0}        {Check if unit is up-to-date before writing}}
     {{compile.ncvhdl.more_options}   {string} {}         {More NCVHDL compilation options}}
     {{compile.ncvlog.more_options}   {string} {}         {More NCVLOG compilation options}}
+    {{elaborate.update}              {bool}   {0}        {Check if unit is up-to-date before writing}}
     {{elaborate.ncelab.more_options} {string} {}         {More NCELAB elaboration options}}
     {{simulate.runtime}              {string} {1000ns}   {Specify simulation run time}}
     {{simulate.uut}                  {string} {}         {Specify instance name for design under test (default:/uut)}}
+    {{simulate.update}               {bool}   {0}        {Check if unit is up-to-date before writing}}
+    {{simulate.ieee_warnings}        {bool}   {1}        {Suppress IEEE warnings}}
     {{simulate.saif}                 {string} {}         {SAIF filename}}
     {{simulate.ncsim.more_options}   {string} {}         {More NCSIM simulation options}}
   }

@@ -339,6 +339,10 @@ proc usf_ies_write_compile_script {} {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
 
+  if { [get_property "IES.COMPILE.UPDATE" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
+  }
+
   set more_ncvhdl_options [string trim [get_property "IES.COMPILE.NCVHDL.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_ncvhdl_options } {
     set arg_list [linsert $arg_list end "$more_ncvhdl_options"]
@@ -357,6 +361,10 @@ proc usf_ies_write_compile_script {} {
     # donot pass os type
   } else {
     set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+
+  if { [get_property "IES.COMPILE.UPDATE" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
   }
 
   set more_ncvlog_options [string trim [get_property "IES.COMPILE.NCVLOG.MORE_OPTIONS" $fs_obj]]
@@ -433,6 +441,10 @@ proc usf_ies_write_elaborate_script {} {
     # donot pass os type
   } else {
      set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+
+  if { [get_property "IES.ELABORATE.UPDATE" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
   }
 
   set more_elab_options [string trim [get_property "IES.ELABORATE.NCELAB.MORE_OPTIONS" $fs_obj]]
@@ -571,6 +583,10 @@ proc usf_ies_write_simulate_script {} {
     # donot pass os type
   } else {
     set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+
+  if { [get_property "IES.SIMULATE.UPDATE" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
   }
 
   set more_sim_options [string trim [get_property "IES.SIMULATE.NCSIM.MORE_OPTIONS" $fs_obj]]

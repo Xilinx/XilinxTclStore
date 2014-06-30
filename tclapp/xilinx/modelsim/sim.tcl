@@ -506,25 +506,27 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
 
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
+
   set fh 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id USF-ModelSim-019 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $do_file
-  #if { [get_param "simulator.modelsimNoQuitOnError"] } {
-  #  puts $fh "onbreak {quit -f}"
-  #  puts $fh "onerror {quit -f}\n"
-  #}
-  #set cmd_str [usf_modelsim_get_elaboration_cmdline "elaborate"]
-  #puts $fh "$cmd_str"
-
-  puts $fh "#\n# No valid default command(s) required for this step\n#"
+  if { [get_param "simulator.modelsimNoQuitOnError"] } {
+    puts $fh "onbreak {quit -f}"
+    puts $fh "onerror {quit -f}\n"
+  }
+  set cmd_str [usf_modelsim_get_elaboration_cmdline]
+  puts $fh "$cmd_str"
   puts $fh "\nquit -force"
+
   close $fh
 }
 
-proc usf_modelsim_get_elaboration_cmdline { step } {
+proc usf_modelsim_get_elaboration_cmdline {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -537,25 +539,15 @@ proc usf_modelsim_get_elaboration_cmdline { step } {
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
-  set tool "vsim"
-  set arg_list [list "-voptargs=\\\"+acc\\\"" "-t 1ps"]
-
-  set more_sim_options [string trim [get_property "MODELSIM.ELABORATE.VSIM.MORE_OPTIONS" $fs_obj]]
-  if { {simulate} == $step } {
-    set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
-  }
-  if { {} != $more_sim_options } {
-    set arg_list [linsert $arg_list end "$more_sim_options"]
+  set tool "vopt"
+  set arg_list [list]
+  if { [get_property "MODELSIM.ELABORATE.ACC" $fs_obj] } {
+    lappend arg_list "+acc"
   }
 
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {
-    set simulator_lib [usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
-    } else {
-      send_msg_id USF-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
-    }
+  set more_vopt_options [string trim [get_property "MODELSIM.ELABORATE.VOPT.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vopt_options } {
+    set arg_list [linsert $arg_list end "$more_vopt_options"]
   }
 
   set t_opts [join $arg_list " "]
@@ -601,7 +593,7 @@ proc usf_modelsim_get_elaboration_cmdline { step } {
   }
 
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
-  lappend arg_list "-lib"
+  lappend arg_list "-work"
   lappend arg_list $default_lib
   
   set d_libs [join $arg_list " "]
@@ -612,6 +604,48 @@ proc usf_modelsim_get_elaboration_cmdline { step } {
   if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {    
     lappend arg_list "${top_lib}.glbl"
   }
+  lappend arg_list "-o"
+  lappend arg_list "${top}_opt"
+  set cmd_str [join $arg_list " "]
+  return $cmd_str
+}
+
+proc usf_modelsim_get_simulation_cmdline {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
+  set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+
+  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
+
+  set tool "vsim"
+  set arg_list [list "$tool" "-t 1ps"]
+
+  set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_sim_options } {
+    set arg_list [linsert $arg_list end "$more_sim_options"]
+  }
+
+  # design contains ax-bfm ip? insert bfm library
+  if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {
+    set simulator_lib [usf_get_simulator_lib_for_bfm]
+    if { {} != $simulator_lib } {
+      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
+    } else {
+      send_msg_id USF-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+    }
+  }
+
+  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  lappend arg_list "-lib"
+  lappend arg_list $default_lib
+  lappend arg_list "${top}_opt"
+
   set cmd_str [join $arg_list " "]
   return $cmd_str
 }
@@ -635,7 +669,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set wave_do_filename $top;append wave_do_filename "_wave.do"
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
   usf_modelsim_create_wave_do_file $wave_do_file
-  set cmd_str [usf_modelsim_get_elaboration_cmdline "simulate"]
+  set cmd_str [usf_modelsim_get_simulation_cmdline]
   if { [get_param "simulator.modelsimNoQuitOnError"] } {
     puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}\n"

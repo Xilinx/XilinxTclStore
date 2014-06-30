@@ -741,6 +741,10 @@ proc usf_create_do_file { simulator do_filename } {
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id USF-IES-036 ERROR "Failed to open file to write ($do_file)\n"
   } else {
+    # suppress ieee warnings
+    if { [get_property "IES.SIMULATE.IEEE_WARNINGS" $fs_obj] } {
+      puts $fh_do "set pack_assert_off {numeric_std std_logic_arith}\n"
+    } 
     # generate saif file for power estimation
     set saif {}
     set uut [get_property "IES.SIMULATE.UUT" $fs_obj]
@@ -752,7 +756,13 @@ proc usf_create_do_file { simulator do_filename } {
       puts $fh_do "dumpsaif -scope $uut -overwrite -output $saif"
     }
     puts $fh_do "database -open waves -into waves.shm -default"
-    puts $fh_do "probe -create -shm -all -variables -depth all"
+
+    set db "probe -create -shm -all -variables -depth all"
+    if { $a_sim_vars(b_batch) || $b_scripts_only } {
+      puts $fh_do $db
+    } else {
+      puts $fh_do "$db -waveform"
+    }
 
     set rt [string trim [get_property "IES.SIMULATE.RUNTIME" $fs_obj]]
     if { {} == $rt } {

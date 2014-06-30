@@ -43,7 +43,8 @@ proc register_options { simulator } {
     {{compile.unifast}             {bool}   {0}                                     {Enable fast simulation models}}
     {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
-    {{elaborate.vsim.more_options} {string} {}                                      {More VSIM elaboration options}}
+    {{elaborate.acc}               {bool}   {1}                                     {Enable access to certain objects which might otherwise be optimized away}}
+    {{elaborate.vopt.more_options} {string} {}                                      {More VOPT elaboration options}}
     {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.uut}                {string} {}                                      {Specify instance name for design under test (default:/uut)}}
     {{simulate.custom_do}          {string} {}                                      {Specify name of the custom do file}}

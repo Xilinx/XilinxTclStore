@@ -24,6 +24,7 @@ set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_create_wave_do_file) [li
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_create_do_file_for_compilation) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_create_do_file_for_elaboration) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_get_elaboration_cmdline) [list source [file join $dir sim.tcl]]
+set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_get_simulation_cmdline) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_create_do_file_for_simulation) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_write_header) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_write_driver_shell_script) [list source [file join $dir sim.tcl]]
