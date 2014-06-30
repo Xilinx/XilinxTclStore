@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Rename a local net name.
+
+     This command should be preferably run on an unplaced design.
+
+  Example:
+  
+     ::tclapp::xilinx::designutils::rename_net -net bufg_O_net -name newlocalname
+     ::tclapp::xilinx::designutils::rename_net -net bufg_O_net -name bufg_clk -force

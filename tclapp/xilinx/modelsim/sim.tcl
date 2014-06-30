@@ -39,8 +39,12 @@ proc compile { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-ModelSim-002 INFO "ModelSim::Compile design"
-  usf_modelsim_write_compile_script
+  send_msg_id USF-ModelSim-002 INFO "ModelSim::Compile design"
+  if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
+    usf_modelsim_write_compile_script_native
+  } else {
+    usf_modelsim_write_compile_script
+  }
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -54,7 +58,7 @@ proc elaborate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-ModelSim-003 INFO "ModelSim::Elaborate design"
+  send_msg_id USF-ModelSim-003 INFO "ModelSim::Elaborate design"
   usf_modelsim_write_elaborate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -69,7 +73,7 @@ proc simulate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-ModelSim-004 INFO "ModelSim::Simulate design"
+  send_msg_id USF-ModelSim-004 INFO "ModelSim::Simulate design"
   usf_modelsim_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -176,7 +180,7 @@ proc usf_modelsim_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id Vivado-ModelSim-006 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
+          send_msg_id USF-ModelSim-006 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }
@@ -194,7 +198,7 @@ proc usf_modelsim_verify_compiled_lib {} {
   set ini_file "modelsim.ini"
   set compiled_lib_dir {}
 
-  send_msg_id Vivado-modelsim-007 INFO "Finding pre-compiled libraries...\n"
+  send_msg_id USF-modelsim-007 INFO "Finding pre-compiled libraries...\n"
 
   # 1. find in project default dir (<project>/<project>.cache/compile_simlib
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
@@ -232,8 +236,8 @@ proc usf_modelsim_verify_compiled_lib {} {
   if { {} == $compiled_lib_dir } {
     set file [file normalize [file join $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
-      send_msg_id Vivado-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
-      send_msg_id Vivado-modelsim-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
+      send_msg_id USF-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+      send_msg_id USF-modelsim-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
                                              - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim/QuestaSim, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
                                              - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
@@ -243,9 +247,9 @@ proc usf_modelsim_verify_compiled_lib {} {
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
     if { [file exists $ini_file_path] } {
       if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)} error_msg] } {
-        send_msg_id Vivado-modelsim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
+        send_msg_id USF-modelsim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
       } else {
-        send_msg_id Vivado-modelsim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)'\n"
+        send_msg_id USF-modelsim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)'\n"
       }
     }
   }
@@ -263,13 +267,13 @@ proc usf_modelsim_write_setup_files {} {
   set lib_dir [file normalize [file join $dir "msim"]]
   if { [file exists $lib_dir] } {
     if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id Vivado-ModelSim-012 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
+      send_msg_id USF-ModelSim-012 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
       return 1
     }
   }
 
   #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id Vivado-ModelSim-013 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
+  #  send_msg_id USF-ModelSim-013 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
   #  return 1
   #}
 }
@@ -287,26 +291,32 @@ proc usf_modelsim_write_compile_script {} {
   # is custom do file specified?
   set custom_do_file [get_property "MODELSIM.SIMULATE.CUSTOM_DO" $fs_obj]
   if { {} != $custom_do_file } {
-    send_msg_id Vivado-ModelSim-014 INFO "Using custom 'do' file '$custom_do_file'...\n"
+    send_msg_id USF-ModelSim-014 INFO "Using custom 'do' file '$custom_do_file'...\n"
     set do_filename $custom_do_file
   } else {
     set do_filename $top;append do_filename "_compile.do"
     set do_file [file normalize [file join $dir $do_filename]]
 
-    send_msg_id Vivado-ModelSim-015 INFO "Creating automatic 'do' files...\n"
+    send_msg_id USF-ModelSim-015 INFO "Creating automatic 'do' files...\n"
 
-    # create custom UDO file
-    set udo_file [get_property "MODELSIM.SIMULATE.CUSTOM_UDO" $fs_obj]
-    if { {} == $udo_file } {
-      set udo_filename $top;append udo_filename ".udo"
-      set udo_file [file normalize [file join $dir $udo_filename]]
-      usf_modelsim_create_udo_file $udo_file
-    }
     usf_modelsim_create_do_file_for_compilation $do_file
   }
 
   # write compile.sh/.bat
   usf_modelsim_write_driver_shell_script $do_filename "compile"
+}
+
+proc usf_modelsim_write_compile_script_native {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  ##############################################
+  # No do file generation for native script mode
+  ##############################################
+
+  # write native compile.sh/.bat
+  usf_modelsim_write_driver_shell_script_native "compile"
 }
 
 proc usf_modelsim_write_elaborate_script {} {
@@ -354,10 +364,10 @@ proc usf_modelsim_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-ModelSim-016 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-ModelSim-016 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
-  usf_modelsim_write_header $fh $file "UDOFILE"
+  usf_modelsim_write_header $fh $file
   close $fh
 }
 
@@ -372,10 +382,10 @@ proc usf_modelsim_create_wave_do_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-ModelSim-017 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-ModelSim-017 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
-  usf_modelsim_write_header $fh $file "WAVEDOFILE"
+  usf_modelsim_write_header $fh $file
   puts $fh "add wave *"
 
   set global_files_str {}
@@ -399,11 +409,11 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id Vivado-ModelSim-018 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-ModelSim-018 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
-  usf_modelsim_write_header $fh $do_file "DOFILE"
+  usf_modelsim_write_header $fh $do_file
 
   if { [get_param "simulator.modelsimNoQuitOnError"] } {
     puts $fh "onbreak {quit -f}"
@@ -498,10 +508,10 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id Vivado-ModelSim-019 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-ModelSim-019 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
-  usf_modelsim_write_header $fh $do_file "DOFILE"
+  usf_modelsim_write_header $fh $do_file
   #if { [get_param "simulator.modelsimNoQuitOnError"] } {
   #  puts $fh "onbreak {quit -f}"
   #  puts $fh "onerror {quit -f}\n"
@@ -544,7 +554,7 @@ proc usf_modelsim_get_elaboration_cmdline { step } {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      send_msg_id Vivado-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id USF-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
     }
   }
 
@@ -618,10 +628,10 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id Vivado-ModelSim-021 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-ModelSim-021 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
-  usf_modelsim_write_header $fh $do_file "DOFILE"
+  usf_modelsim_write_header $fh $do_file
   set wave_do_filename $top;append wave_do_filename "_wave.do"
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
   usf_modelsim_create_wave_do_file $wave_do_file
@@ -650,8 +660,12 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
       puts $fh "power add -in -inout -out -internal [::tclapp::xilinx::modelsim::usf_resolve_uut_name uut]\n"
     }
   }
+  # create custom UDO file
   set udo_file [get_property "MODELSIM.SIMULATE.CUSTOM_UDO" $fs_obj]
   if { {} == $udo_file } {
+    set udo_filename $top;append udo_filename ".udo"
+    set udo_file [file normalize [file join $dir $udo_filename]]
+    usf_modelsim_create_udo_file $udo_file
     puts $fh "do \{$top.udo\}"
   } else {
     puts $fh "do \{$udo_file\}"
@@ -696,7 +710,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   close $fh
 }
 
-proc usf_modelsim_write_header { fh filename file_type } {
+proc usf_modelsim_write_header { fh filename } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -711,8 +725,8 @@ proc usf_modelsim_write_header { fh filename file_type } {
   set name        [file tail $filename]
   puts $fh "######################################################################"
   puts $fh "#"
-  puts $fh "# File name  : $name"
-  puts $fh "# Created on : $timestamp"
+  puts $fh "# File name : $name"
+  puts $fh "# Created on: $timestamp"
   puts $fh "#"
   puts $fh "# Auto generated by $product for '$mode_type' simulation"
   puts $fh "#"
@@ -732,7 +746,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-ModelSim-022 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-ModelSim-022 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
@@ -768,6 +782,34 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   close $fh_scr
 }
 
+proc usf_modelsim_write_driver_shell_script_native { step } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
+
+  set scr_filename $step;append scr_filename [::tclapp::xilinx::modelsim::usf_get_script_extn]
+  set scr_file [file normalize [file join $dir $scr_filename]]
+  set fh_scr 0
+  if {[catch {open $scr_file w} fh_scr]} {
+    send_msg_id USF-ModelSim-022 ERROR "Failed to open file to write ($scr_file)\n"
+    return 1
+  }
+
+  set log_filename "${step}.log"
+  if {$::tcl_platform(platform) == "unix"} {
+    puts $fh_scr "#!/bin/sh -f"
+    usf_modelsim_write_header $fh_scr $scr_file
+    puts $fh_scr "\n# installation path setting"
+    puts $fh_scr "bin_path=\"$::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)\""
+    usf_write_shell_step_fn_native $step $fh_scr
+  } 
+  close $fh_scr
+}
+
 proc usf_modelsim_get_design_libs { files } {
   # Summary:
   # Argument Usage:
@@ -786,5 +828,96 @@ proc usf_modelsim_get_design_libs { files } {
     }
   }
   return $libs
- }
+}
+
+proc usf_write_shell_step_fn_native { step fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
+  set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+  set b_absolute_path $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path)
+
+  puts $fh_scr "\n# directory path for design sources and include directories (if any) wrt this path"
+  if { $b_absolute_path } {
+    puts $fh_scr "origin_dir=\"$dir\""
+  } else {
+    puts $fh_scr "origin_dir=\".\""
+  }
+
+  set vlog_arg_list [list "-incr"]
+  set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vlog_options } {
+    set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
+  }
+  set vlog_cmd_str [join $vlog_arg_list " "]
+  puts $fh_scr "\n# set vlog command line args"
+  puts $fh_scr "vlog_opts=\"$vlog_cmd_str\""
+
+  set vcom_arg_list [list "-93"]
+  set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vcom_options } {
+    set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
+  }
+  set vcom_cmd_str [join $vcom_arg_list " "]
+  puts $fh_scr "\n# set vcom command line args"
+  puts $fh_scr "vcom_opts=\"$vcom_cmd_str\""
+
+  set log "${step}.log"
+  set redirect_cmd_str "2>&1 | tee -a $log"
+
+  puts $fh_scr "\n# create libraries"
+  puts $fh_scr "\$bin_path/vlib work $redirect_cmd_str"
+  puts $fh_scr "\$bin_path/vlib msim $redirect_cmd_str\n"
+
+  set global_files_str {}
+  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+  set design_libs [usf_modelsim_get_design_libs $design_files]
+
+  # TODO:
+  # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
+  # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
+
+  set b_default_lib false
+  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    puts $fh_scr "\$bin_path/vlib msim/$lib $redirect_cmd_str"
+    if { $default_lib == $lib } {
+      set b_default_lib true
+    }
+  }
+  if { !$b_default_lib } {
+    puts $fh_scr "\$bin_path/vlib msim/$default_lib $redirect_cmd_str"
+  }
+   
+  puts $fh_scr "\n# map libraries"
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    puts $fh_scr "\$bin_path/vmap $lib msim/$lib $redirect_cmd_str"
+  }
+  if { !$b_default_lib } {
+    puts $fh_scr "\$bin_path/vmap $default_lib msim/$default_lib $redirect_cmd_str"
+  }
+
+  puts $fh_scr "\n# compile design source files"
+  foreach file $design_files {
+    set type    [lindex [split $file {#}] 0]
+    set lib     [lindex [split $file {#}] 1]
+    set cmd_str [lindex [split $file {#}] 2]
+    puts $fh_scr "\$bin_path/$cmd_str $redirect_cmd_str"
+  }
+
+  # compile glbl file
+  set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
+  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
+    ::tclapp::xilinx::modelsim::usf_copy_glbl_file
+    set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
+    set file_str "-work $top_lib \"glbl.v\""
+    puts $fh_scr "\n# compile glbl module\n\$bin_path/vlog $file_str $redirect_cmd_str"
+  }
+}
 }

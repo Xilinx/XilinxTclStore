@@ -39,7 +39,7 @@ proc compile { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-VCS-002 INFO "VCS::Compile design"
+  send_msg_id USF-VCS-002 INFO "VCS::Compile design"
   usf_vcs_write_compile_script
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -53,7 +53,7 @@ proc elaborate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-VCS-003 INFO "VCS::Elaborate design"
+  send_msg_id USF-VCS-003 INFO "VCS::Elaborate design"
   usf_vcs_write_elaborate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -68,7 +68,7 @@ proc simulate { args } {
   # Return Value:
   # none
 
-  send_msg_id Vivado-VCS-004 INFO "VCS::Simulate design"
+  send_msg_id USF-VCS-004 INFO "VCS::Simulate design"
   usf_vcs_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -175,7 +175,7 @@ proc usf_vcs_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id Vivado-VCS-005 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
+          send_msg_id USF-VCS-005 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }
@@ -190,7 +190,7 @@ proc usf_vcs_verify_compiled_lib {} {
 
   set syn_filename "synopsys_sim.setup"
   set compiled_lib_dir {}
-  send_msg_id Vivado-VCS-006 INFO "Finding pre-compiled libraries...\n"
+  send_msg_id USF-VCS-006 INFO "Finding pre-compiled libraries...\n"
   # check property value
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
   set syn_file [file normalize [file join $dir $syn_filename]]
@@ -208,11 +208,11 @@ proc usf_vcs_verify_compiled_lib {} {
   # return if found, else warning
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
-   send_msg_id Vivado-VCS-007 INFO "Using synopsys_sim.setup from '$compiled_lib_dir/synopsys_sim.setup'\n"
+   send_msg_id USF-VCS-007 INFO "Using synopsys_sim.setup from '$compiled_lib_dir/synopsys_sim.setup'\n"
    return
   }
-  send_msg_id Vivado-VCS-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
-  send_msg_id Vivado-VCS-009 INFO \
+  send_msg_id USF-VCS-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+  send_msg_id USF-VCS-009 INFO \
      "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for VCS.\n"
 }
 
@@ -227,7 +227,7 @@ proc usf_vcs_write_setup_files {} {
   set file [file normalize [file join $dir $filename]]
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id Vivado-VCS-010 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-VCS-010 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   set lib_map_path $::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir)
@@ -254,7 +254,7 @@ proc usf_vcs_write_setup_files {} {
     set lib_dir_path [file normalize [string map {\\ /} [file join $dir $lib_dir]]]
     if { ! [file exists $lib_dir_path] } {
       if {[catch {file mkdir $lib_dir_path} error_msg] } {
-        send_msg_id Vivado-VCS-011 ERROR "Failed to create the directory ($lib_dir_path): $error_msg\n"
+        send_msg_id USF-VCS-011 ERROR "Failed to create the directory ($lib_dir_path): $error_msg\n"
         return 1
       }
     }
@@ -281,7 +281,7 @@ proc usf_vcs_write_compile_script {} {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-VCS-012 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-VCS-012 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   if {$::tcl_platform(platform) == "unix"} {
@@ -378,7 +378,7 @@ proc usf_vcs_write_elaborate_script {} {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-VCS-013 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-VCS-013 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   if {$::tcl_platform(platform) == "unix"} {
@@ -413,7 +413,7 @@ proc usf_vcs_write_elaborate_script {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list 0 "-load \"$simulator_lib:xilinx_register_systf\""]
     } else {
-      send_msg_id Vivado-VCS-014 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id USF-VCS-014 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
     }
   }
 
@@ -454,7 +454,7 @@ proc usf_vcs_write_simulate_script {} {
   set file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $file w} fh_scr]} {
-    send_msg_id Vivado-VCS-015 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-VCS-015 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
  
@@ -521,7 +521,7 @@ proc usf_vcs_create_setup_script {} {
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id Vivado-VCS-098 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-VCS-098 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
   if {$::tcl_platform(platform) == "unix"} {

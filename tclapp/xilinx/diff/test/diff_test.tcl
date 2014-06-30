@@ -17,7 +17,7 @@ if {[lsearch -exact $list_installed_apps $app_name] != -1} {
 catch "package forget ::tclapp::${app_name}"
 ::tclapp::load_app $app_name
 package require ::tclapp::${app_name}
-namespace import ::tclapp::${app_name}::*
+namespace import -force ::tclapp::${app_name}::*
   
 # Start the unit tests
 puts "script is invoked from $test_dir"

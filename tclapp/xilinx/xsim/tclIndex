@@ -45,7 +45,6 @@ set auto_index(::tclapp::xilinx::xsim::usf_get_include_file_dirs) [list source [
 set auto_index(::tclapp::xilinx::xsim::usf_get_top_library) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_contains_verilog) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_is_fileset) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::xsim::usf_append_define_generics) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_compile_glbl_file) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_copy_glbl_file) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_prepare_ip_for_simulation) [list source [file join $dir helpers.tcl]]
