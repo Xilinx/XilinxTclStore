@@ -84,6 +84,7 @@ namespace export html_escape
 namespace export remove_whitespace
 namespace export remove_special
 namespace export remove_datestamps
+namespace export remove_comments
 
 namespace export assert_same
 namespace export assert_true
@@ -531,7 +532,7 @@ proc compare_ordered_ { d1_in_results d2_in_results { d1_name "data_set_1" } { d
       incr d1_pointer
       incr d2_pointer
     } else {
-      if { $diffs == 0 } { ::tclapp::xilinx::diff::print_alert "Differenes found:\n<  ${d1_name}\n>  ${d2_name}\n---" $channel }
+      if { $diffs == 0 } { ::tclapp::xilinx::diff::print_alert "Differences found:\n<  ${d1_name}\n>  ${d2_name}\n---" $channel }
       incr diffs
       set d1_hit_in_d2 [ lsearch -start $d2_pointer $d2_results $d1_string ]
       set d2_hit_in_d1 [ lsearch -start $d1_pointer $d1_results $d2_string ]
@@ -565,6 +566,7 @@ proc compare_ordered_ { d1_in_results d2_in_results { d1_name "data_set_1" } { d
       incr d2_pointer
     }
   }
+  puts ""; # STDOUT seperator for return value
   return $diffs
 }
 
@@ -593,7 +595,7 @@ proc compare_lines_lcs { d1_in_results d2_in_results { d1_name "data_set_1" } { 
   ::tclapp::xilinx::diff::print_info "Inverting Longest Common Subsequence...\n" $channel
   set ilcs [::struct::list lcsInvert $lcs [llength $d1_results] [llength $d2_results]]
   if { [llength $ilcs] != 0 } { 
-    ::tclapp::xilinx::diff::print_alert "Differenes were found in the reports:\n<  ${d1_name}\n>  ${d2_name}\n---\n" $channel
+    ::tclapp::xilinx::diff::print_alert "Differences were found in the reports:\n<  ${d1_name}\n>  ${d2_name}\n---\n" $channel
   }
   foreach sequence $ilcs {
     set d1_lines [regsub -all {\[|\]} [eval "\[expr [join [lsort -unique -integer [lindex $sequence 1]] { + 1],[expr }] + 1\]"] {}]
@@ -603,6 +605,7 @@ proc compare_lines_lcs { d1_in_results d2_in_results { d1_name "data_set_1" } { 
     ::tclapp::xilinx::diff::print_results "\n---\n< " $channel
     ::tclapp::xilinx::diff::print_results [join [eval "lrange \$d2_results [join [lindex $sequence 2] { }]"] "\n< "] $channel
   }
+  puts ""; # STDOUT seperator for return value
   return [llength $ilcs]
 }
 
@@ -665,6 +668,7 @@ proc compare_unordered_ { list1 list2 { channel {} } } {
   } else {
     ::tclapp::xilinx::diff::print_alert "Differences found:\n List 1 has [ llength $list1_only ] unique:\n  [ join $list1_only \n\ \  ]\n List 2 has [ llength $list2_only ] unique:\n  [ join $list2_only \n\ \  ]"
   }
+  puts ""; # STDOUT seperator for return value
   return [ concat $list1_only $list2_only ]
 }
 
@@ -713,6 +717,7 @@ proc compare_serialized_objects { serialized_objects1 serialized_objects2 { chan
   } else {
     ::tclapp::xilinx::diff::print_success "All properties for all objects are equivalent" $channel
   }
+  puts ""; # STDOUT seperator for return value
   return $differing_properties
 }
 
@@ -761,6 +766,7 @@ proc compare_object_props_ { serialized_object1 serialized_object2 { channel {} 
       ::tclapp::xilinx::diff::print_info $comparing_info $channel
       #::tclapp::xilinx::diff::print_success "All properties are equivalent\n" $channel
     }
+    puts ""; # STDOUT seperator for return value
     return {}
   }; # else difference detected
 
@@ -780,6 +786,7 @@ proc compare_object_props_ { serialized_object1 serialized_object2 { channel {} 
       lappend differing_properties $property
     }
   }
+  puts ""; # STDOUT seperator for return value
   return $differing_properties
 }
 
@@ -874,6 +881,9 @@ proc print_msg { output { channel {} } { newline 1 } } {
   variable global_report
   if { "$channel" == "" } {
     set channel $global_report
+  }
+  if { "$channel" == "" } {
+    set channel stdout
   }
   #array set msg [ array get $output ]
   array set msg $output 
@@ -1133,6 +1143,24 @@ proc html_escape { input } {
   return $output
 }
 
+proc remove_comments { input } {
+  # Summary:
+  # Removes all comments
+  
+  # Argument Usage: 
+  #   string : String to clean
+   
+  # Return Value:
+  # The non-comment version of the input string.
+    
+  # Categories: xilinxtclstore, diff
+ 
+  set output $input
+  set output [ regsub -all -line {;\s*#.*} $output {} ]
+  set output [ regsub -all -line {\s*#.*} $output {} ]
+  return $output
+}
+
 proc remove_whitespace { input } {
   # Summary:
   # Removes all whitespace
@@ -1385,7 +1413,7 @@ proc assert_string_not_in_file { find_string file { msg "String Not In File Asse
 
   set data [ ::tclapp::xilinx::diff::serialize_from_file $file ]
   if { [ regexp $find_string $data ] } {
-    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: String Not Found\n  String: '${find_string}'\n  File: '${file}'\n" $channel
+    ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: String Found\n  String: '${find_string}'\n  File: '${file}'\n" $channel
   }
   ::tclapp::xilinx::diff::print_success "OK: ${msg}: String Not Found: '${find_string}'\n" $channel
   return 1

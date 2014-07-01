@@ -1,0 +1,16 @@
+
+Example:
+
+  # compares directories
+  ::tclapp::xilinx::diff::compare_dirs ./work1/ ./work2/
+
+  # output
+  $$ Comparing Dirs...
+  !! Differences found:
+  List 1 has 5 unique:
+    file1.txt
+    file3.txt
+  List 2 has 4 unique:
+    file2.txt
+    file4.txt
+

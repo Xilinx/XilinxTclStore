@@ -1,0 +1,15 @@
+
+Example:
+
+  # assertion to guarantee files are the same
+  set report1 "timing1.log"
+  set report2 "timing2.log"
+
+  ::tclapp::xilinx::diff::activate_design 1
+  report_timing -file $report1 -max_paths 1000 
+  ::tclapp::xilinx::diff::activate_design 2
+  report_timing -file $report2 -max_paths 1000 
+
+  ::tclapp::xilinx::diff::assert_same_file $report1 $report2
+
+

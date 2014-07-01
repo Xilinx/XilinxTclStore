@@ -1,0 +1,15 @@
+
+Example:
+
+  # Loads two designs and sets up environment for design differencing
+  ::tclapp::xilinx::diff::open_checkpoints "design1.dcp" "design2.dcp"
+
+  # equivalent to:
+  #set design1  [ open_checkpoint design1.dcp ]
+  #set project1 [ current_project ] 
+  #set design2  [ open_checkpoint design2.dcp ]
+  #set project2 [ current_project ]
+  #::tclapp::xilinx::diff::set_compare_objects $design1 $project1 $design2 $project2
+  
+  # after the designs are setup for differencing the compare_designs command can be used to compare the two
+

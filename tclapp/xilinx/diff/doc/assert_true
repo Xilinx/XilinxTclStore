@@ -1,0 +1,15 @@
+
+Example:
+
+  # assertion to guarantee items are the same
+  ::tclapp::xilinx::diff::assert_true [ expr 1 == 0 ]
+
+  # output
+  !! FAIL: True Assertion:
+    Expected: '1'
+    Received: '0'
+
+  # assertion to guarantee value is true
+  ::tclapp::xilinx::diff::assert_true [ expr 1 && true ]
+  == OK: True Assertion
+

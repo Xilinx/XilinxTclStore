@@ -1,0 +1,14 @@
+
+Example:
+
+  # asserts that the string exists in the file
+  set report1 "timing1.log"
+  report_timing -file $report1 -max_paths 1000 
+  ::tclapp::xilinx::diff::assert_string_in_file {Command} $report1
+  == OK: String In File Assertion: String Found: 'command'
+
+  ::tclapp::xilinx::diff::assert_string_in_file {missing_string} $report1
+  !! FAIL: String In File Assertion: String Not Found
+    String: 'missing_string'
+    File: 'timing1.log'
+

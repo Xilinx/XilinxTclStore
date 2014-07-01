@@ -1,0 +1,17 @@
+
+Example:
+
+  # compares all properties of the two part objects (works with any first class Tcl objects)
+  set part1 [ lindex [ get_parts ] 0 ]
+  set part2 [ lindex [ get_parts ] 1 ]
+  ::tclapp::xilinx::diff::compare_objects $part1 $part2
+
+  # output
+  $$ Comparing Objects...
+  ** Comparing 64 properties on 'part' 'xc7vx485tffg1157-1 <-> xc7vx485tffg1157-2'...
+  Property 'NAME' differs : 'xc7vx485tffg1157-1' <=> 'xc7vx485tffg1157-2'
+  Property 'SPEED' differs : '-1' <=> '-2'
+  !! Differing properties exist, differing properties are:
+  NAME SPEED
+
+

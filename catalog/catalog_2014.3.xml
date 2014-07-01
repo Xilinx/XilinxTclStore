@@ -179,15 +179,14 @@
       </procs>
     </app>
     <app>
-      <revision>2.0</revision>
+      <revision>2.1</revision>
       <revision_history>Various Updates</revision_history>
-      <commit_id>cee2bb9fd3978e3fa3387c5b855991717eadb4b9</commit_id>
+      <commit_id>276b4b9d07d09d4310fbef4653e2f539b04e9018</commit_id>
       <name>diff</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>The Diff App compares two different designs at a time. Designs can be any combination of checkpoints or runs. With two designs loaded into memory this App enables the user to compare reports, lists, or first-class object properties between the two designs.  The output is generated in the form of interactive reporting (stdout), a text report, or an html report. The app can be used to compare a design against a reference or golden design or to dtermine where divergence occurred (isolation of problems and root cause analysis).</summary>
       <display>Design Comparison</display>
-      <visible>false</visible>
       <procs>
         <proc>
           <name>activate_design</name>
@@ -332,6 +331,10 @@
         <proc>
           <name>print_success</name>
           <summary>Print a success message. For HTML reports this shows in dark green.</summary>
+        </proc>
+        <proc>
+          <name>remove_comments</name>
+          <summary>Removes all comments</summary>
         </proc>
         <proc>
           <name>remove_datestamps</name>
@@ -588,7 +591,6 @@
       <company_display>Xilinx, Inc.</company_display>
       <summary>The Tk_tunnel app can be used to launch a Tcl/Tk 8.5 server outside of Vivado using a standalone Tcl shell, and pass commands from Vivado console to the Tk shell. One of the benefits of this app is to provide a bridge for simple Tk-based GUI.</summary>
       <display>Tk Tunnel</display>
-      <visible>false</visible>
       <procs>
         <proc>
           <name>accept_connection</name>

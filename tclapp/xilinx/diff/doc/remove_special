@@ -1,0 +1,36 @@
+
+Example:
+
+  # example strings to compare
+  set clean { 
+    this-test is the same as_the text below
+    this test is the same as the text below
+  }
+  set special { 
+    this-test is*the#same as_the text below
+    this%test^is!the@same(as)the+text=below
+  }
+  
+  # errors due to differences
+  ::tclapp::xilinx::diff::compare_lines $clean $special
+
+  # output
+  $$ Comparing Lines...
+  !! Differences found:
+  <  data_set_1
+  >  data_set_2
+  ---
+  2c2
+  <     this-test is the same as_the text below
+  ---
+  >     this-test is*the#same as_the text below
+  3c3
+  <     this test is the same as the text below
+  ---
+  >     this%test^is!the@same(as)the+text=below
+
+  # passes dues to special characters being removed (doesn't change a-z A-Z 0-9 - or _)
+  ::tclapp::xilinx::diff::compare_lines $clean [ ::tclapp::xilinx::diff::remove_special $special ]
+  $$ Comparing Lines...
+  == They are equivalent
+

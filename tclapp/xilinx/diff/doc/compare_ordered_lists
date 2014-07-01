@@ -1,0 +1,21 @@
+
+Example:
+
+  # compares lists and the lists must be in order
+  ::tclapp::xilinx::diff::compare_ordered_lists { a b c d e } { b c d a e }
+
+  #output
+  $$ Comparing Ordered Lists...
+  !! Differenes found:
+  <  list_1
+  >  list_2
+  ---
+  1,2c1
+  < a
+  < b
+  ---
+  > b
+  5c4
+  < e
+  ---
+  > a

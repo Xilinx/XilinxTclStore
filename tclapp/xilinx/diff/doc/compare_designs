@@ -1,0 +1,51 @@
+
+Example:
+
+  # Loads two designs and sets up environment for design differencing
+  ::tclapp::xilinx::diff::open_checkpoints "design1.dcp" "design2.dcp"
+  # equivalent to:
+  #set design1  [ open_checkpoint design1.dcp ]
+  #set project1 [ current_project ] 
+  #set design2  [ open_checkpoint design2.dcp ]
+  #set project2 [ current_project ]
+  #::tclapp::xilinx::diff::set_compare_objects $design1 $project1 $design2 $project2
+  
+  # after the designs are setup for differencing the compare_designs command can be used to compare the two
+  ::tclapp::xilinx::diff::compare_designs compare_unordered_lists { get_cells -hierarchical }
+  ::tclapp::xilinx::diff::compare_designs compare_ordered_lists   { get_cells -hierarchical }
+  ::tclapp::xilinx::diff::compare_designs compare_lines_lcs       { join [ get_cells -hierarchical ] \n }
+  ::tclapp::xilinx::diff::compare_designs compare_unordered_lists { get_clocks }
+  ::tclapp::xilinx::diff::compare_designs compare_unordered_lists { get_ports }
+  ::tclapp::xilinx::diff::compare_designs compare_unordered_lists { get_nets -hierarchical }
+
+  # unordered lists vs lines
+  ::tclapp::xilinx::diff::compare_designs compare_unordered_lists { get_property LOC [lsort [ get_cells -hierarchical ] ] }
+  ::tclapp::xilinx::diff::compare_designs compare_lines { join [ get_property LOC [ lsort [ get_cells -hierarchical ] ] ] \n }
+
+  # objects
+  ::tclapp::xilinx::diff::compare_designs compare_serialized_objects { serialize_objects [ lrange [ get_cells -hierarchical ] 0 9 ] }
+  ::tclapp::xilinx::diff::compare_designs compare_objects { lrange [ get_cells -hierarchical ] 9 19 }
+  ::tclapp::xilinx::diff::compare_designs compare_objects { get_timing_paths -max_paths 1000 }
+
+  # multi-line capable
+  ::tclapp::xilinx::diff::compare_designs compare_unordered_lists {
+    set paths [ get_timing_paths -max_paths 1000 ]
+    return [ get_property SLACK [ lsort $paths ] ]
+  }
+
+  ::tclapp::xilinx::diff::compare_designs compare_unordered_lists {
+    set cells [ get_cells -hierarchical ]
+    return [ get_property LOC [ lsort $cells ] ]
+  } 
+
+  ::tclapp::xilinx::diff::compare_designs compare_lines {
+    set nets [ get_nets ]
+    set subset_nets [ lrange $nets 0 10 ]
+    return [ list [ report_route_status -return_string -of_objects [ get_nets $subset_nets ] ] ]
+  } 
+
+  ::tclapp::xilinx::diff::compare_designs compare_objects {
+    set paths [ get_timing_paths -max_paths 1000 ]
+    return $paths
+  }
+

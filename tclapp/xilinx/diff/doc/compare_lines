@@ -1,0 +1,13 @@
+
+Example:
+
+  # compares timing reports
+  set report1 "timing1.log"
+  report_timing -file $report1 -max_paths 1000 
+
+  ...do something to change the timing report...
+  
+  set report1_data [ ::tclapp::xilinx::diff::serialize_from_file $report1 ]
+  set report2_data [ report_timing -return_string -max_paths 1000 ]
+  ::tclapp::xilinx::diff::compare_lines $report1_data $report2_data
+

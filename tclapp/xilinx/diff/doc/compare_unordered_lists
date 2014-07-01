@@ -1,0 +1,19 @@
+
+Example:
+
+  # compares lists 
+  ::tclapp::xilinx::diff::compare_unordered_lists { a b c d e } { b c d a e }
+
+  #output
+  $$ Comparing Unordered Lists...
+  == They are equivalent
+
+
+  ::tclapp::xilinx::diff::compare_unordered_lists { a b c d e f } { b c d a e g }
+  $$ Comparing Unordered Lists...
+  !! Differences found:
+   List 1 has 1 unique:
+    f
+   List 2 has 1 unique:
+    g
+

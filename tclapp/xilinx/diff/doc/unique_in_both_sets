@@ -1,0 +1,7 @@
+
+Example:
+
+  # returns all of the objects that are unique in set 1 and in set 2 (symmetric difference)
+  ::tclapp::xilinx::diff::unique_in_both_sets { a b c } { c d e }
+  Returns: { a e }
+

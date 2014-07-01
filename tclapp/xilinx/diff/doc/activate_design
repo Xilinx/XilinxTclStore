@@ -1,0 +1,24 @@
+
+Example:
+
+  # Load two designs and set up environment for design differencing
+  ::tclapp::xilinx::diff::open_checkpoints "design1.dcp" "design2.dcp"
+  # OR same as:
+  set design1  [ open_checkpoint design1.dcp ]
+  set project1 [ current_project ] 
+  set design2  [ open_checkpoint design2.dcp ]
+  set project2 [ current_project ]
+  ::tclapp::xilinx::diff::set_compare_objects $design1 $project1 $design2 $project2
+  
+  # after the designs are setup for differencing the activate_design command can be used to control the active design
+  ::tclapp::xilinx::diff::activate_design 1
+  # same as running
+  #current_project $project1
+  #current_design $design1
+  report_timing -file $report1 -max_paths 1000 
+
+  ::tclapp::xilinx::diff::activate_design 2
+  report_timing -file $report2 -max_paths 1000 
+
+  # activate_design can only accept 1 or 2 and will activate the first project/design that was provided with 1
+

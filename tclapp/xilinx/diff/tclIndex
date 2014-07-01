@@ -43,6 +43,7 @@ set auto_index(::tclapp::xilinx::diff::print_stamp) [list source [file join $dir
 set auto_index(::tclapp::xilinx::diff::print_start) [list source [file join $dir compare.tcl]]
 set auto_index(::tclapp::xilinx::diff::print_subheader) [list source [file join $dir compare.tcl]]
 set auto_index(::tclapp::xilinx::diff::print_success) [list source [file join $dir compare.tcl]]
+set auto_index(::tclapp::xilinx::diff::remove_comments) [list source [file join $dir compare.tcl]]
 set auto_index(::tclapp::xilinx::diff::remove_datestamps) [list source [file join $dir compare.tcl]]
 set auto_index(::tclapp::xilinx::diff::remove_special) [list source [file join $dir compare.tcl]]
 set auto_index(::tclapp::xilinx::diff::remove_whitespace) [list source [file join $dir compare.tcl]]

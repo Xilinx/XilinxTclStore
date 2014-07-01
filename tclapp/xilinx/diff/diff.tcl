@@ -17,4 +17,4 @@ namespace eval ::tclapp::xilinx::diff {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::diff 2.0
+package provide ::tclapp::xilinx::diff 2.1
