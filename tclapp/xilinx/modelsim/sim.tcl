@@ -59,7 +59,11 @@ proc elaborate { args } {
   # none
 
   send_msg_id USF-ModelSim-003 INFO "ModelSim::Elaborate design"
-  usf_modelsim_write_elaborate_script
+  if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
+    usf_modelsim_write_elaborate_script_native
+  } else {
+    usf_modelsim_write_elaborate_script
+  }
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -336,6 +340,19 @@ proc usf_modelsim_write_elaborate_script {} {
   usf_modelsim_write_driver_shell_script $do_filename "elaborate"
 }
 
+proc usf_modelsim_write_elaborate_script_native {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  ##############################################
+  # No do file generation for native script mode
+  ##############################################
+
+  # write elaborate.sh/.bat
+  usf_modelsim_write_driver_shell_script_native "elaborate"
+}
+
 proc usf_modelsim_write_simulate_script {} {
   # Summary:
   # Argument Usage:
@@ -541,6 +558,17 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set tool "vopt"
   set arg_list [list]
+
+  if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
+    set s_64bit {}
+    if {$::tcl_platform(platform) == "unix"} {
+      if { {64} == $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) } {
+        set s_64bit {-64}
+      }
+    }
+    lappend arg_list $s_64bit
+  }
+
   if { [get_property "MODELSIM.ELABORATE.ACC" $fs_obj] } {
     lappend arg_list "+acc"
   }
@@ -875,83 +903,93 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path)
 
-  puts $fh_scr "\n# directory path for design sources and include directories (if any) wrt this path"
-  if { $b_absolute_path } {
-    puts $fh_scr "origin_dir=\"$dir\""
-  } else {
-    puts $fh_scr "origin_dir=\".\""
-  }
-
-  set vlog_arg_list [list "-incr"]
-  set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_vlog_options } {
-    set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
-  }
-  set vlog_cmd_str [join $vlog_arg_list " "]
-  puts $fh_scr "\n# set vlog command line args"
-  puts $fh_scr "vlog_opts=\"$vlog_cmd_str\""
-
-  set vcom_arg_list [list "-93"]
-  set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_vcom_options } {
-    set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
-  }
-  set vcom_cmd_str [join $vcom_arg_list " "]
-  puts $fh_scr "\n# set vcom command line args"
-  puts $fh_scr "vcom_opts=\"$vcom_cmd_str\""
-
-  set log "${step}.log"
-  set redirect_cmd_str "2>&1 | tee -a $log"
-
-  puts $fh_scr "\n# create libraries"
-  puts $fh_scr "\$bin_path/vlib work $redirect_cmd_str"
-  puts $fh_scr "\$bin_path/vlib msim $redirect_cmd_str\n"
-
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-  set design_libs [usf_modelsim_get_design_libs $design_files]
-
-  # TODO:
-  # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
-  # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
-
-  set b_default_lib false
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} { continue; }
-    puts $fh_scr "\$bin_path/vlib msim/$lib $redirect_cmd_str"
-    if { $default_lib == $lib } {
-      set b_default_lib true
+  if { {compile} == $step } {
+    puts $fh_scr "\n# directory path for design sources and include directories (if any) wrt this path"
+    if { $b_absolute_path } {
+      puts $fh_scr "origin_dir=\"$dir\""
+    } else {
+      puts $fh_scr "origin_dir=\".\""
     }
-  }
-  if { !$b_default_lib } {
-    puts $fh_scr "\$bin_path/vlib msim/$default_lib $redirect_cmd_str"
-  }
-   
-  puts $fh_scr "\n# map libraries"
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} { continue; }
-    puts $fh_scr "\$bin_path/vmap $lib msim/$lib $redirect_cmd_str"
-  }
-  if { !$b_default_lib } {
-    puts $fh_scr "\$bin_path/vmap $default_lib msim/$default_lib $redirect_cmd_str"
-  }
+  
+    set vlog_arg_list [list "-incr"]
+    set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
+    if { {} != $more_vlog_options } {
+      set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
+    }
+    set vlog_cmd_str [join $vlog_arg_list " "]
+    puts $fh_scr "\n# set vlog command line args"
+    puts $fh_scr "vlog_opts=\"$vlog_cmd_str\""
+  
+    set vcom_arg_list [list "-93"]
+    set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
+    if { {} != $more_vcom_options } {
+      set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
+    }
+    set vcom_cmd_str [join $vcom_arg_list " "]
+    puts $fh_scr "\n# set vcom command line args"
+    puts $fh_scr "vcom_opts=\"$vcom_cmd_str\""
+  
+    set log "${step}.log"
+    set redirect_cmd_str "2>&1 | tee -a $log"
+  
+    puts $fh_scr "\n# create libraries"
+    puts $fh_scr "\$bin_path/vlib work $redirect_cmd_str"
+    puts $fh_scr "\$bin_path/vlib msim $redirect_cmd_str\n"
+  
+    set global_files_str {}
+    set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+    set design_libs [usf_modelsim_get_design_libs $design_files]
+  
+    # TODO:
+    # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
+    # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
+  
+    set b_default_lib false
+    set default_lib [get_property "DEFAULT_LIB" [current_project]]
+    foreach lib $design_libs {
+      if {[string length $lib] == 0} { continue; }
+      puts $fh_scr "\$bin_path/vlib msim/$lib $redirect_cmd_str"
+      if { $default_lib == $lib } {
+        set b_default_lib true
+      }
+    }
+    if { !$b_default_lib } {
+      puts $fh_scr "\$bin_path/vlib msim/$default_lib $redirect_cmd_str"
+    }
+     
+    puts $fh_scr "\n# map libraries"
+    foreach lib $design_libs {
+      if {[string length $lib] == 0} { continue; }
+      puts $fh_scr "\$bin_path/vmap $lib msim/$lib $redirect_cmd_str"
+    }
+    if { !$b_default_lib } {
+      puts $fh_scr "\$bin_path/vmap $default_lib msim/$default_lib $redirect_cmd_str"
+    }
+  
+    puts $fh_scr "\n# compile design source files"
+    foreach file $design_files {
+      set type    [lindex [split $file {#}] 0]
+      set lib     [lindex [split $file {#}] 1]
+      set cmd_str [lindex [split $file {#}] 2]
+      puts $fh_scr "\$bin_path/$cmd_str $redirect_cmd_str"
+    }
+  
+    # compile glbl file
+    set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
+    if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
+      ::tclapp::xilinx::modelsim::usf_copy_glbl_file
+      set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
+      set file_str "-work $top_lib \"glbl.v\""
+      puts $fh_scr "\n# compile glbl module\n\$bin_path/vlog $file_str $redirect_cmd_str"
+    }
+  } elseif { {elaborate} == $step } {
+    set cmd_str [usf_modelsim_get_elaboration_cmdline]
+    puts $fh_scr ""
 
-  puts $fh_scr "\n# compile design source files"
-  foreach file $design_files {
-    set type    [lindex [split $file {#}] 0]
-    set lib     [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
+    set log "${step}.log"
+    set redirect_cmd_str "2>&1 | tee -a $log"
+
     puts $fh_scr "\$bin_path/$cmd_str $redirect_cmd_str"
-  }
-
-  # compile glbl file
-  set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
-    ::tclapp::xilinx::modelsim::usf_copy_glbl_file
-    set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
-    set file_str "-work $top_lib \"glbl.v\""
-    puts $fh_scr "\n# compile glbl module\n\$bin_path/vlog $file_str $redirect_cmd_str"
   }
 }
 }

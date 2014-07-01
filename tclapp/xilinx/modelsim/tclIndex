@@ -17,6 +17,7 @@ set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_verify_compiled_lib) [li
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_write_setup_files) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_write_compile_script) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_write_compile_script_native) [list source [file join $dir sim.tcl]]
+set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_write_elaborate_script_native) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_write_elaborate_script) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_write_simulate_script) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_modelsim_create_udo_file) [list source [file join $dir sim.tcl]]
