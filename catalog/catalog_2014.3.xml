@@ -179,7 +179,7 @@
       </procs>
     </app>
     <app>
-      <revision>2.0</revision>
+      <revision>2.1</revision>
       <revision_history>Various Updates</revision_history>
       <commit_id>cee2bb9fd3978e3fa3387c5b855991717eadb4b9</commit_id>
       <name>diff</name>
@@ -331,6 +331,10 @@
         <proc>
           <name>print_success</name>
           <summary>Print a success message. For HTML reports this shows in dark green.</summary>
+        </proc>
+        <proc>
+          <name>remove_comments</name>
+          <summary>Removes all comments</summary>
         </proc>
         <proc>
           <name>remove_datestamps</name>
