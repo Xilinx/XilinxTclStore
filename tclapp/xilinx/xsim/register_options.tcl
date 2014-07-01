@@ -34,8 +34,8 @@ proc register_options { simulator } {
     return 1
   }
   set options {
-    {{compile.xvlog.nosort}          {bool}        {1}                                                  {Donot sort Verilog files}}
-    {{compile.xvhdl.nosort}          {bool}        {1}                                                  {Donot sort VHDL files}}
+    {{compile.xvlog.nosort}          {bool}        {0}                                                  {Donot sort Verilog files}}
+    {{compile.xvhdl.nosort}          {bool}        {0}                                                  {Donot sort VHDL files}}
     {{compile.xvlog.more_options}    {string}      {}                                                   {More XVLOG compilation options}}
     {{compile.xvhdl.more_options}    {string}      {}                                                   {More XVHDL compilation options}}
     {{elaborate.snapshot}            {string}      {}                                                   {Specify name of the simulation snapshot}}
