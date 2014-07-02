@@ -812,6 +812,22 @@ proc usf_prepare_ip_for_simulation { } {
   }
 }
 
+proc usf_generate_mem_files_for_simulation { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  if { [usf_is_fileset $a_sim_vars(sp_tcl_obj)] } {
+    # fileset contains embedded sources? generate mem files
+    if { [usf_is_embedded_flow] } {
+      send_msg_id USF-ModelSim-106 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
+      generate_mem_files $a_sim_vars(s_launch_dir)
+    }
+  }
+}
+
 proc usf_fs_contains_hdl_source { fs } {
   # Summary:
   # Argument Usage:

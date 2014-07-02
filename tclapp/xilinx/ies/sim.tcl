@@ -110,7 +110,10 @@ proc usf_ies_setup_simulation { args } {
   ::tclapp::xilinx::ies::usf_write_design_netlist
 
   # prepare IP's for simulation
-  ::tclapp::xilinx::ies::usf_prepare_ip_for_simulation
+  #::tclapp::xilinx::ies::usf_prepare_ip_for_simulation
+
+  # generate mem files
+  ::tclapp::xilinx::ies::usf_generate_mem_files_for_simulation 
 
   usf_ies_verify_compiled_lib
 
@@ -648,7 +651,7 @@ proc usf_ies_create_setup_script {} {
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-IES-099 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-IES-017 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 

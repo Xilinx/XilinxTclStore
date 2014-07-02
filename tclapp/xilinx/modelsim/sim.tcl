@@ -117,7 +117,10 @@ proc usf_modelsim_setup_simulation { args } {
   ::tclapp::xilinx::modelsim::usf_write_design_netlist
 
   # prepare IP's for simulation
-  ::tclapp::xilinx::modelsim::usf_prepare_ip_for_simulation
+  #::tclapp::xilinx::modelsim::usf_prepare_ip_for_simulation
+
+  # generate mem files
+  ::tclapp::xilinx::modelsim::usf_generate_mem_files_for_simulation
 
   # find/copy modelsim.ini file into run dir
   usf_modelsim_verify_compiled_lib
@@ -857,7 +860,7 @@ proc usf_modelsim_write_driver_shell_script_native { step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-ModelSim-022 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-ModelSim-023 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 

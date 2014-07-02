@@ -158,7 +158,10 @@ proc usf_xsim_setup_simulation { args } {
   ::tclapp::xilinx::xsim::usf_write_design_netlist
 
   # prepare IP's for simulation
-  ::tclapp::xilinx::xsim::usf_prepare_ip_for_simulation
+  #::tclapp::xilinx::xsim::usf_prepare_ip_for_simulation
+
+  # generate mem files
+  ::tclapp::xilinx::xsim::usf_generate_mem_files_for_simulation
 
   # fetch the compile order for the specified object
   ::tclapp::xilinx::xsim::usf_get_compile_order_for_obj
@@ -515,8 +518,12 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   set b_batch 0
   set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $b_batch]
 
-  send_msg_id USF-XSim-098 INFO   "*** Running xsim\n"
-  send_msg_id USF-XSim-099 STATUS "   with args \"$cmd_args\"\n"
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
+    # scripts only
+  } else {
+    send_msg_id USF-XSim-098 INFO   "*** Running xsim\n"
+    send_msg_id USF-XSim-099 STATUS "   with args \"$cmd_args\"\n"
+  }
 
   return $cmd_args
 }
@@ -982,7 +989,7 @@ proc usf_xsim_include_xvhdl_log {} {
     if { [file exists $xvhdl_log] } {
       set fh 0
       if {[catch {open $xvhdl_log r} fh]} {
-        send_msg_id USF-XSim-999 ERROR "Failed to open file for read ($xvhdl_log)\n"
+        send_msg_id USF-XSim-100 ERROR "Failed to open file for read ($xvhdl_log)\n"
       } else {
         set data [read $fh]
         set log_data [split $data "\n"]
@@ -991,7 +998,7 @@ proc usf_xsim_include_xvhdl_log {} {
         # open compile.log for append
         set fh 0
         if {[catch {open $compile_log a} fh]} {
-          send_msg_id USF-XSim-999 ERROR "Failed to open file for append ($compile_log)\n"
+          send_msg_id USF-XSim-101 ERROR "Failed to open file for append ($compile_log)\n"
         } else {
           foreach line $log_data {
             puts $fh [string trim $line]
