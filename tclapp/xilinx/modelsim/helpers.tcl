@@ -1438,6 +1438,9 @@ proc usf_export_fs_data_files { filter } {
   # block fileset data files
   lappend filesets [get_filesets -filter "FILESET_TYPE == \"BlockSrcs\""]
 
+  # current source set fileset data files
+  lappend filesets [current_fileset -srcset]
+
   # current simulation fileset data files
   lappend filesets [get_filesets $a_sim_vars(s_simset)]
 
