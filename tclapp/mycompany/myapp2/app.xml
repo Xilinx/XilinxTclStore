@@ -7,7 +7,7 @@
   <apps>
     <app>
       <revision>1.0</revision>
-      <commit_id>e845489334961ad391a7681e0903f48ed0d1022f</commit_id>
+      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
       <name>myapp2</name>
       <company>mycompany</company>
       <company_display>Me, Inc.</company_display>

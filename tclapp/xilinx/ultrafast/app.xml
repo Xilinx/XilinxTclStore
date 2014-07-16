@@ -8,7 +8,7 @@
     <app>
       <revision>1.2</revision>
       <revision_history>Updated create_cdc_reports from ultrafast</revision_history>
-      <commit_id>7e657c5ac1f44044fa26a2fec69f4600124c3486</commit_id>
+      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
