@@ -1,7 +1,10 @@
-
 ########################################################################################
-## 02/04/2014 - Renamed file and various additional updates for Tcl App Store 
-## 02/03/2014 - Updated the namespace and definition of the command line arguments 
+## 07/16/2014 - Fixed wrong message being reported when a synchronizer is missing
+##            - Added support for -all_issues to report all issues found for each
+##              CDC path
+##            - Changed ports direction to upper case
+## 02/04/2014 - Renamed file and various additional updates for Tcl App Store
+## 02/03/2014 - Updated the namespace and definition of the command line arguments
 ##              for the Tcl App Store
 ## 09/16/2013 - Added meta-comment 'Categories' to all procs
 ## 09/13/2013 - Fixed typo in processing -report_unconstrained
@@ -31,6 +34,7 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports { args } {
   # [-nworst <arg> = 1]: List up to N worst paths to endpoint
   # [-delay_type <arg> = max]: Type of path delay: Values max, min, min_max
   # [-report_unconstrained]: Report timing on unconstrained paths
+  # [-all_issues]: Report all issues found for each CDC path
   # [-file <arg>]: Report file name
   # [-append]: Append to file
   # [-return_string]: Return report as string
@@ -46,7 +50,7 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports { args } {
 
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::ultrafast::create_cdc_reports { 
-  variable version {02/04/2014}
+  variable version {07/16/2014}
 } ]
 
 # -------------------------------------------------------------------------
@@ -97,7 +101,7 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::check_synchronizer_connect
   set enable_vcc ""
   set set_or_reset_gnd ""
   set celltype [get_property -quiet REF_NAME [get_cells -quiet $cell]]
-  foreach pin [get_pins -quiet -filter {DIRECTION==in} -of [get_cells -quiet $cell]] {
+  foreach pin [get_pins -quiet -filter {DIRECTION==IN} -of [get_cells -quiet $cell]] {
     if {[get_property -quiet IS_ENABLE $pin] == 1} {set enable_vcc [get_property -quiet LOGIC_VALUE $pin]};
     if {$celltype == "FDPE" || $celltype == "FDSE"} {
       if {[get_property -quiet IS_SETRESET $pin] == 1} {set set_or_reset_gnd [get_property -quiet LOGIC_VALUE $pin]}
@@ -113,7 +117,6 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::check_synchronizer_connect
   }
 
 }
-
 
 #**********************************************************************************#
 # #******************************************************************************# #
@@ -137,6 +140,7 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::create_cdc_reports {args} 
   set options(-max_paths) 10
   set options(-delay_type) max
   set options(-report_unconstrained) {No}
+  set options(-all_issues) 0
   set verbose 0
   set filename {}
   set mode {w}
@@ -161,6 +165,10 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::create_cdc_reports {args} 
       {^-rep((o(r(t(_(u(n(c(o(n(s(t(r(a(i(n(ed?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
            set options(-report_unconstrained) {Yes}
       }
+      -all_issues -
+      {^-al(l(_(i(s(s(u(es?)?)?)?)?)?)?)?$} {
+           set options(-all_issues) 1
+      }
       -file -
       {^-f(i(le?)?)?$} {
            set filename [[namespace parent]::lshift args]
@@ -170,7 +178,7 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::create_cdc_reports {args} 
            }
       }
       -append -
-      {^-a(p(p(e(nd?)?)?)?)?$} {
+      {^-ap(p(e(nd?)?)?)?$} {
            set mode {a}
       }
       -return_string -
@@ -212,6 +220,8 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::create_cdc_reports {args} 
                                             Default: 1
               [-delay_type <arg>]         - Type of path delay: Values max, min, min_max
                                             Default: max
+              [-all_issues]               - Report all issues found for each CDC path
+                                            Default: report only the first issue
               [-report_unconstrained]     - Report timing on unconstrained paths
               [-file]                     - Report file name
               [-append]                   - Append to file
@@ -345,6 +355,7 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::create_cdc_reports {args} 
       report_timing -from $fromClock -to $toClock -quiet -delay_type $options(-delay_type) -max_paths 1 -name "${fromClock}_to_${toClock}"
     }
     foreach timing_path $timing_path_list {
+      set cdcRpt [list]
 #       set commonPrimaryClock $common_primary(${fromClock},${toClock})
       ### Xilinx:jjb - note that the "EXCEPTION" property is not defined until 2013.1 timeframe
       if {[regexp "2012" $Version]} {
@@ -369,12 +380,12 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::create_cdc_reports {args} 
         set output_net [get_nets -quiet -of [get_pins -quiet -filter {DIRECTION==OUT} -of [get_cells -quiet -of $endpointpin]]]
         set output_net_fanout [get_property -quiet FLAT_PIN_COUNT $output_net]
         if {$output_net_fanout == 2} {
-          set next_input_pin [get_pins -quiet -leaf -filter {DIRECTION==in} -of [get_nets -quiet $output_net]]
+          set next_input_pin [get_pins -quiet -leaf -filter {DIRECTION==IN} -of [get_nets -quiet $output_net]]
           set next_input_pin_is_set [get_property -quiet IS_SETRESET $next_input_pin]
           set next_input_pin_is_reset [get_property -quiet IS_RESET $next_input_pin]
           set next_input_pin_is_enable [get_property -quiet IS_ENABLE $next_input_pin]
           set next_input_pin_is_clock [get_property -quiet IS_CLOCK $next_input_pin]
-          set next_cell [get_cells -quiet -of [get_pins -quiet -leaf -filter {DIRECTION==in} -of [get_nets -quiet $output_net]]]
+          set next_cell [get_cells -quiet -of [get_pins -quiet -leaf -filter {DIRECTION==IN} -of [get_nets -quiet $output_net]]]
           set synch_ff_check [check_synchronizer_connectivity $next_cell]
           #set synch_ff_check [check_synchronizer_connectivity2 $next_cell $toClock 2]
           set next_input_celltype [get_property -quiet REF_NAME [get_cells -quiet -of [get_pins -quiet $next_input_pin]]]
@@ -397,38 +408,65 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::create_cdc_reports {args} 
       if {($startpointcelltype == "") || ($endpointcelltype == "")} {
         set status "Ok"
         set comment "I/O Timing Path"
+        lappend cdcRpt [list {Ok} {I/O Timing Path}]
       } else {
         if {$commonPrimaryClock == "Yes"} {
           if {$pathreq < 1.000} {
+            lappend cdcRpt [list {Check} {Common Primary Clock, Tight Path Requirement}]
             set status "Check"
                   set comment "Common Primary Clock, Tight Path Requirement"
           } else {
+            lappend cdcRpt [list {Ok} {Common Primary Clock}]
             set status "Ok"
                   set comment "Common Primary Clock"
           }
         } else {
           if {[regexp "SRL" $endpointcelltype]} {
+            lappend cdcRpt [list {Check} {Endpoint Cell is SRL}]
             set status "Check"
             set comment "Endpoint Cell is SRL"
           } else {
             if {$simple_synchronizer_detected == "Yes"} {
-              set status "Ok"
-                    set comment "Simple Synchronizer Detected"
-            } else {
-              if {$logiclevels != 0} {
-                set status "Check"
-                set comment "Why are there > 0 levels of logic on CDC path?" 
-              } else {
-                set status "Check"
-                set comment "Why aren't the control signals (CE/RST) tied off on synchronizer?" 
-              }
-            }
+             if {$logiclevels != 0} {
+               lappend cdcRpt [list {Check} {Why are there > 0 levels of logic on CDC path?}]
+               set status "Check"
+               set comment "Why are there > 0 levels of logic on CDC path?" 
+             } else {
+               lappend cdcRpt [list {Ok} {Simple Synchronizer Detected}]
+               set status "Ok"
+               set comment "Simple Synchronizer Detected"
+             }
+           } else {
+             lappend cdcRpt [list {Check} {Missing synchronizer}]
+             set status "Check"
+             set comment "Missing synchronizer" 
+             if {$logiclevels != 0} {
+               lappend cdcRpt [list {Check} {Why are there > 0 levels of logic on CDC path?}]
+               set status "Check"
+               set comment "Why are there > 0 levels of logic on CDC path?" 
+             } 
+             if {$meta_ff_check == 0} {
+               lappend cdcRpt [list {Check} {Why aren't the control signals (CE/RST) tied off on synchronizer?}]
+               set status "Check"
+               set comment "Why aren't the control signals (CE/RST) tied off on synchronizer?" 
+             } 
+           }
           }
         }
       }
+
       # Saving information inside CSV and Table object
-      puts $CSVRptFile "$status,$comment,$fromClock,$toClock,${options(-delay_type)},$commonPrimaryClock,$simple_synchronizer_detected,$exception,$logiclevels,$pathreq,$skew,$slack,$startpointcelltype,$endpointcelltype,$startpointpin,$endpointpin"
-      $tableReport addrow [list $status $comment $fromClock $toClock ${options(-delay_type)} $commonPrimaryClock $simple_synchronizer_detected $exception $logiclevels $pathreq $skew $slack $startpointcelltype $endpointcelltype $startpointpin $endpointpin]
+      if {$options(-all_issues)} {
+        foreach elm $cdcRpt {
+          foreach {status comment} $elm { break }
+          puts $CSVRptFile "$status,$comment,$fromClock,$toClock,${options(-delay_type)},$commonPrimaryClock,$simple_synchronizer_detected,$exception,$logiclevels,$pathreq,$skew,$slack,$startpointcelltype,$endpointcelltype,$startpointpin,$endpointpin"
+          $tableReport addrow [list $status $comment $fromClock $toClock ${options(-delay_type)} $commonPrimaryClock $simple_synchronizer_detected $exception $logiclevels $pathreq $skew $slack $startpointcelltype $endpointcelltype $startpointpin $endpointpin]
+        }
+      } else {
+        foreach {status comment} [lindex $cdcRpt 0] { break }
+        puts $CSVRptFile "$status,$comment,$fromClock,$toClock,${options(-delay_type)},$commonPrimaryClock,$simple_synchronizer_detected,$exception,$logiclevels,$pathreq,$skew,$slack,$startpointcelltype,$endpointcelltype,$startpointpin,$endpointpin"
+        $tableReport addrow [list $status $comment $fromClock $toClock ${options(-delay_type)} $commonPrimaryClock $simple_synchronizer_detected $exception $logiclevels $pathreq $skew $slack $startpointcelltype $endpointcelltype $startpointpin $endpointpin]
+      }
     }
   }
 
