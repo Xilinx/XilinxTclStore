@@ -131,7 +131,7 @@ variable l_filetype_filter [list]
     
 # Setup filter for non-user-settable filetypes
 set l_filetype_filter [list "ip" "embedded design sources" "elf" "coefficient files" "configuration files" \
-                            "block diagrams" "block designs" "dsp design sources" "text" \
+                            "block diagrams" "block designs" "dsp design sources" "text" "bmm" \
                             "design checkpoint" "waveform configuration file"]
 # ip file extension types
 variable l_valid_ip_extns [list]

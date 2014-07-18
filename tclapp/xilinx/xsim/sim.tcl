@@ -715,6 +715,10 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view b_batch } {
   lappend args_list "-key"
   lappend args_list "\{[usf_xsim_get_running_simulation_obj_key]\}"
 
+  set user_cmd_file [get_property "XSIM.TCLBATCH" $fs_obj]
+  if { {} != $user_cmd_file } {
+    set cmd_file $user_cmd_file
+  }
   lappend args_list "-tclbatch"
   if { $b_batch } {
     lappend args_list "$cmd_file" 

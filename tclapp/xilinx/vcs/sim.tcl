@@ -244,7 +244,7 @@ proc usf_vcs_write_setup_files {} {
   set design_libs [usf_vcs_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
+    if { ({work} == $lib) } { continue; }
     lappend libs [string tolower $lib]
   }
   set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
