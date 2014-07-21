@@ -12,7 +12,7 @@ The structure of a .tcl file in this directory is something
 like this:
 
 ################################################################
-package require Vivado 2013.1
+package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::designutils {
    namespace export <list of procs to export>
