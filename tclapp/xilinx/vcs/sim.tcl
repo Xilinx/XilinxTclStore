@@ -404,7 +404,14 @@ proc usf_vcs_write_elaborate_script {} {
   } else {
      set arg_list [linsert $arg_list 0 "-full64"]
   }
-  
+
+  if { ({post-implementation} == $::tclapp::xilinx::vcs::a_sim_vars(s_mode)) || ({timing} == $::tclapp::xilinx::vcs::a_sim_vars(s_mode)) } { 
+    lappend arg_list "-liblist"
+    lappend arg_list "simprims_ver"
+    lappend arg_list "-liblist"
+    lappend arg_list "secureip"
+  }
+
   set more_elab_options [string trim [get_property "VCS.ELABORATE.VCS.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_elab_options } {
     set arg_list [linsert $arg_list end "$more_elab_options"]
