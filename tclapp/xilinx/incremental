@@ -1,8 +1,0 @@
- Xilinx Utilities App
--This directory is a collection of random scripts and utilties
--in no particular organization.
-+This directory is a collection of scripts and utiltiy application
-+that are grouped by relevance to querying and analyzing a logical
-+design, principally around the netlist object model.
-All Tcl procs, variables, etc. must be defined within the
-::tclapp::xilinx::designutils namespace. No globals of any kind are
