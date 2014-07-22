@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <remote>master</remote>
+  <support_commit_id>8157418c8958e8848117a4151f3c8b28a9933699</support_commit_id>
+  <release>2014.3</release>
+  <revision>1.0</revision>
+  <apps>
+    <app>
+      <revision>1.0</revision>
+      <revision_history>Major updates to insert_buffer.tcl script</revision_history>
+      <commit_id>68e04c1178ee53293400cde0ecc32b33002e9d2a</commit_id>
+      <name>myapp2</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>mycompany</company>
+      <company_display>My Company, Inc.</company_display>
+      <summary>Test app 2.</summary>
+      <display>My app 2</display>
+      <procs>
+        <proc>
+          <name>bisect_pblock</name>
+          <summary>bisect a P block</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
