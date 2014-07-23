@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <remote>master</remote>
+  <support_commit_id>8157418c8958e8848117a4151f3c8b28a9933699</support_commit_id>
+  <release>2014.3</release>
+  <revision>1.0</revision>
+  <apps>
+    <app>
+      <revision>1.0</revision>
+      <revision_history>Various Updates</revision_history>
+      <commit_id>f3a6e70e8bfd3080c158b83915ac7f9cddb4320e</commit_id>
+      <name>myapp2</name>
+      <company>xilinx</company>
+      <company_display>me, Inc.</company_display>
+      <summary>This is myapp2.</summary>
+      <display>My App #2</display>
+      <procs>
+        <proc>
+          <name>myapp2proc1</name>
+          <summary>Activates (makes active) the project and design of the number specified, options are 1 or 2.  The project and design are set via set_compare_objects (or open_checkpoints).</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
