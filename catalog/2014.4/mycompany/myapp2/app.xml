@@ -6,9 +6,9 @@
   <revision>1.0</revision>
   <apps>
     <app>
-      <revision>1.0</revision>
+      <revision>2.0</revision>
       <revision_history>Various Updates</revision_history>
-      <commit_id>f3a6e70e8bfd3080c158b83915ac7f9cddb4320e</commit_id>
+      <commit_id>ea695d4bffc36a1da140fc05449c26c0e2829f7f</commit_id>
       <name>myapp2</name>
       <company>xilinx</company>
       <company_display>me, Inc.</company_display>
