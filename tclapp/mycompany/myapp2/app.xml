@@ -16,7 +16,7 @@
       <display>My App #2</display>
       <procs>
         <proc>
-          <name>activate_design</name>
+          <name>myapp2proc1</name>
           <summary>Activates (makes active) the project and design of the number specified, options are 1 or 2.  The project and design are set via set_compare_objects (or open_checkpoints).</summary>
         </proc>
       </procs>
