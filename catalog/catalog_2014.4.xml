@@ -6,10 +6,10 @@
   <revision>1.0</revision>
   <apps>
     <app>
-      <commit_id>ea695d4bffc36a1da140fc05449c26c0e2829f7f</commit_id>
-      <display>My App #2</display>
-      <name>myapp2</name>
-      <revision>2.0</revision>
+      <commit_id>b813f30e909e60b926efc794c41e13ec516e4afb</commit_id>
+      <display>My App #4</display>
+      <name>myapp4</name>
+      <revision>1.0</revision>
     </app>
     <app>
       <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>

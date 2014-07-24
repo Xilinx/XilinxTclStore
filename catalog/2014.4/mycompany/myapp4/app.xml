@@ -6,17 +6,17 @@
   <revision>1.0</revision>
   <apps>
     <app>
-      <revision>2.0</revision>
+      <revision>1.0</revision>
       <revision_history>Various Updates</revision_history>
-      <commit_id>ea695d4bffc36a1da140fc05449c26c0e2829f7f</commit_id>
-      <name>myapp2</name>
+      <commit_id>b813f30e909e60b926efc794c41e13ec516e4afb</commit_id>
+      <name>myapp4</name>
       <company>xilinx</company>
       <company_display>me, Inc.</company_display>
-      <summary>This is myapp2.</summary>
-      <display>My App #2</display>
+      <summary>This is myapp4.</summary>
+      <display>My App #4</display>
       <procs>
         <proc>
-          <name>myapp2proc1</name>
+          <name>myapp4proc1</name>
           <summary>Activates (makes active) the project and design of the number specified, options are 1 or 2.  The project and design are set via set_compare_objects (or open_checkpoints).</summary>
         </proc>
       </procs>
