@@ -10,7 +10,6 @@
 #
 #########################################################################
 package require Vivado 1.2014.1
-package require ::tclapp::xilinx::modelsim::helpers
 
 namespace eval ::tclapp::xilinx::modelsim {
   namespace export register_options

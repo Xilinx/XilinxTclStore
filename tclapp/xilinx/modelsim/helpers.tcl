@@ -2341,5 +2341,3 @@ proc usf_get_top { top_arg } {
   return 0
 }
 }
-
-package provide ::tclapp::xilinx::modelsim::helpers 1.0

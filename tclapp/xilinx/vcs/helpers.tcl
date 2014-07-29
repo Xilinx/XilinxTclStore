@@ -2446,5 +2446,3 @@ proc usf_get_top { top_arg } {
   return 0
 }
 }
-
-package provide ::tclapp::xilinx::vcs::helpers 1.0

@@ -9,7 +9,6 @@
 #
 ######################################################################
 package require Vivado 1.2014.1
-package require ::tclapp::xilinx::xsim::helpers
 
 namespace eval ::tclapp::xilinx::xsim {
 proc setup { args } {
