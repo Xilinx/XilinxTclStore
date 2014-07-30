@@ -624,30 +624,26 @@ proc usf_contains_verilog { design_files } {
 
   variable l_compile_order_files
   variable a_sim_vars
+
   set flow $a_sim_vars(s_simulation_flow)
+
   set b_verilog_srcs 0
-  if { {behav_sim} == $flow } {
-    foreach file $l_compile_order_files {
-      set file_type [get_property "FILE_TYPE" [get_files -quiet -all $file]]
-      if { {Verilog} == $file_type || {SystemVerilog} == $file_type } {
+  foreach file $design_files {
+    set type [lindex [split $file {#}] 0]
+    switch $type {
+      {VERILOG} {
         set b_verilog_srcs 1
       }
     }
-  } elseif { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-    # search from post* compile order
-    foreach file $design_files {
-      set type [lindex [split $file {#}] 0]
-      switch $type {
-        {VERILOG} {
-          set b_verilog_srcs 1
-        }
-      }
-    }
+  }
+
+  if { (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && (!$b_verilog_srcs) } {
     set extn [file extension $a_sim_vars(s_netlist_file)]
     if { {.v} == $extn } {
       set b_verilog_srcs 1
     }
   }
+
   return $b_verilog_srcs
 }
 
@@ -985,140 +981,83 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
 
   variable a_sim_vars
   upvar $global_files_str_arg global_files_str
-  set files [list]
-  set sim_flow      $a_sim_vars(s_simulation_flow)
-  set netlist_file  $a_sim_vars(s_netlist_file)
-  set target_obj    $a_sim_vars(sp_tcl_obj)
-  set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
-  set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
+
+  set sim_flow $a_sim_vars(s_simulation_flow)
+
+  if { ({behav_sim} == $sim_flow) } {
+    usf_get_files_for_compilation_behav_sim $global_files_str
+  } elseif { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    usf_get_files_for_compilation_post_sim $global_files_str
+  }
+}
+
+proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  upvar $global_files_str_arg global_files_str
+
+  set files          [list]
+  set target_obj     $a_sim_vars(sp_tcl_obj)
+  set simset_obj     [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
+  set linked_src_set [get_property "SOURCE_SET" $simset_obj]
+  set target_lang    [get_property "TARGET_LANGUAGE" [current_project]]
+  set src_mgmt_mode  [get_property "SOURCE_MGMT_MODE" [current_project]]
+
   # get global include file paths
   set incl_file_paths [list]
   set incl_files      [list]
   usf_get_global_include_files incl_file_paths incl_files
+
   set global_incl_files $incl_files
   set global_files_str [usf_get_global_include_file_cmdstr incl_files]
 
-  # post-* simulation
-  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    #send_msg_id USF-IES-046 INFO "Adding netlist files:-\n"
-    if { {} != $netlist_file } {
-      set file_type "Verilog"
-      if { {.vhd} == [file extension $netlist_file] } {
-        set file_type "VHDL"
-      }
-      set cmd_str [usf_get_file_cmd_str $netlist_file $file_type {}]
-      if { {} != $cmd_str } {
-        lappend files $cmd_str
-        #send_msg_id USF-IES-047 INFO " +$cmd_str\n"
-      }
-    }
- 
-    # add testbench files if any
-    #send_msg_id USF-IES-048 INFO "Adding VHDL test bench files (post-synth/impl simulation):-\n"
-    set vhdl_filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"VHDL\""
-    foreach file [usf_get_testbench_files_from_ip $vhdl_filter] {
-      if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
-        continue;
-      }
-      #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-      set file_type [get_property "FILE_TYPE" $file]
-      set cmd_str [usf_get_file_cmd_str $file $file_type {}]
-      if { {} != $cmd_str } {
-        lappend files $cmd_str
-        #send_msg_id USF-IES-049 INFO " +$cmd_str\n"
-      }
-    }
-    #set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\""
-    #send_msg_id USF-IES-050 INFO "Adding Verilog test bench files (post-synth/impl simulation):-\n"
-    set verilog_filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog\""
-    foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
-      if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
-        continue;
-      }
-      #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-      set file_type [get_property "FILE_TYPE" $file]
-      set cmd_str [usf_get_file_cmd_str $file $file_type {}]
-      if { {} != $cmd_str } {
-        lappend files $cmd_str
-        #send_msg_id USF-IES-051 INFO " +$cmd_str\n"
-      }
-    }
-  }
-  # end post-* simulation
-
   # prepare command line args for fileset files
   if { [usf_is_fileset $target_obj] } {
-    # behavioral simulation
     set b_add_sim_files 1
-    if { ({behav_sim} == $sim_flow) } {
-
-      # 1. add vhdl files from block-filesets
-      #send_msg_id USF-IES-052 INFO "Adding block-fileset VHDL files (behav simulation):-\n"
-      set vhdl_filter "FILE_TYPE == \"VHDL\""
-      foreach file [usf_get_files_from_block_filesets $vhdl_filter] {
+    # add files from block filesets
+    if { {} != $linked_src_set } {
+      usf_add_block_fs_files $global_files_str files
+    }
+    # add files from simulation compile order
+    if { {All} == $src_mgmt_mode } {
+      foreach file $::tclapp::xilinx::ies::l_compile_order_files {
+        if { [usf_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-        set cmd_str [usf_get_file_cmd_str $file $file_type {}]
+        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+        set g_files $global_files_str
+        if { ({VHDL} == $file_type) } { set g_files {} }
+        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
         if { {} != $cmd_str } {
           lappend files $cmd_str
-          #send_msg_id USF-IES-053 INFO " +$cmd_str\n"
         }
       }
-      # 2. add verilog files from block-filesets
-      #send_msg_id USF-IES-054 INFO "Adding block-fileset Verilog files (behav simulation):-\n"
-      set verilog_filter "FILE_TYPE == \"Verilog\""
-      foreach file [usf_get_files_from_block_filesets $verilog_filter] {
-        set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-        set cmd_str [usf_get_file_cmd_str $file $file_type $global_files_str]
-        if { {} != $cmd_str } {
-          lappend files $cmd_str
-          #send_msg_id USF-IES-055 INFO " +$cmd_str\n"
-        }
-      }
- 
-      # 3. add files from simulation compile order
-      if { {All} == $src_mgmt_mode } {
-        #send_msg_id USF-IES-056 INFO "Adding compile order files (behav simulation):-\n"
-        foreach file $::tclapp::xilinx::ies::l_compile_order_files {
-          if { [usf_is_global_include_file $global_files_str $file] } {
-            continue
-          }
-          set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-          if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
-          set g_files $global_files_str
-          if { ({VHDL} == $file_type) } { set g_files {} }
-          set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
-          if { {} != $cmd_str } {
-            lappend files $cmd_str
-            #send_msg_id USF-IES-057 INFO " +$cmd_str\n"
-          }
-        }
-        set b_add_sim_files 0
-      } else {
-        # 4. add files from SOURCE_SET property value
-        set simset_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
-        set linked_src_set [get_property "SOURCE_SET" $simset_obj]
-        if { {} != $linked_src_set } {
-          set srcset_obj [get_filesets $linked_src_set]
-          if { {} != $srcset_obj } {
-            set used_in_val "simulation"
-            set ::tclapp::xilinx::ies::l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
-            foreach file $::tclapp::xilinx::ies::l_compile_order_files {
-              set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-              if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
-              set g_files $global_files_str
-              if { ({VHDL} == $file_type) } { set g_files {} }
-              set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
-              if { {} != $cmd_str } {
-                lappend files $cmd_str
-              }
+      set b_add_sim_files 0
+    } else {
+      # add files from SOURCE_SET property value
+      if { {} != $linked_src_set } {
+        set srcset_obj [get_filesets $linked_src_set]
+        if { {} != $srcset_obj } {
+          set used_in_val "simulation"
+          set ::tclapp::xilinx::ies::l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
+          foreach file $::tclapp::xilinx::ies::l_compile_order_files {
+            set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
+            if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+            set g_files $global_files_str
+            if { ({VHDL} == $file_type) } { set g_files {} }
+            set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
+            if { {} != $cmd_str } {
+              lappend files $cmd_str
             }
           }
         }
       }
     }
+
     if { $b_add_sim_files } {
-      # 5. add additional files from simulation fileset
-      #send_msg_id USF-IES-058 INFO "Adding additional simulation fileset files (behav simulation):-\n"
+      # add additional files from simulation fileset
       foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
@@ -1128,13 +1067,11 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
         if { {} != $cmd_str } {
           lappend files $cmd_str
-          #send_msg_id USF-IES-059 INFO " +$cmd_str\n"
         }
       }
     }
   } elseif { [usf_is_ip $target_obj] } {
     # prepare command line args for fileset ip files
-    #send_msg_id USF-IES-060 INFO "Adding IP compile order files:-\n"
     foreach file $::tclapp::xilinx::ies::l_compile_order_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
@@ -1143,15 +1080,125 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
       if { {} != $cmd_str } {
         lappend files $cmd_str
-        #send_msg_id USF-IES-061 INFO " +$cmd_str\n"
       }
     }
   }
-  # print all files fetched from filesets for simulation
-  #foreach file $files {
-  #  puts "CMD_STR=$file"
-  #}
   return $files
+}
+
+proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  upvar $global_files_str_arg global_files_str
+
+  set files         [list]
+  set netlist_file  $a_sim_vars(s_netlist_file)
+  set target_obj    $a_sim_vars(sp_tcl_obj)
+  set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
+  set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
+
+  # get global include file paths
+  set incl_file_paths [list]
+  set incl_files      [list]
+  usf_get_global_include_files incl_file_paths incl_files
+
+  set global_incl_files $incl_files
+  set global_files_str [usf_get_global_include_file_cmdstr incl_files]
+
+  if { {} != $netlist_file } {
+    set file_type "Verilog"
+    if { {.vhd} == [file extension $netlist_file] } {
+      set file_type "VHDL"
+    }
+    set cmd_str [usf_get_file_cmd_str $netlist_file $file_type {}]
+    if { {} != $cmd_str } {
+      lappend files $cmd_str
+    }
+  }
+
+  # add testbench files if any
+  set vhdl_filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"VHDL\""
+  foreach file [usf_get_testbench_files_from_ip $vhdl_filter] {
+    if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+      continue;
+    }
+    #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
+    set file_type [get_property "FILE_TYPE" $file]
+    set cmd_str [usf_get_file_cmd_str $file $file_type {}]
+    if { {} != $cmd_str } {
+      lappend files $cmd_str
+    }
+  }
+  #set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\""
+  set verilog_filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog\""
+  foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
+    if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+      continue;
+    }
+    #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
+    set file_type [get_property "FILE_TYPE" $file]
+    set cmd_str [usf_get_file_cmd_str $file $file_type {}]
+    if { {} != $cmd_str } {
+      lappend files $cmd_str
+    }
+  }
+
+  # prepare command line args for fileset files
+  if { [usf_is_fileset $target_obj] } {
+    # add additional files from simulation fileset
+    foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+      set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
+      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+      if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all $file] 0]]} { continue }
+      set g_files $global_files_str
+      if { ({VHDL} == $file_type) } { set g_files {} }
+      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+      }
+    }
+  } elseif { [usf_is_ip $target_obj] } {
+    # prepare command line args for fileset ip files
+    foreach file $::tclapp::xilinx::ies::l_compile_order_files {
+      set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
+      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+      set g_files $global_files_str
+      if { ({VHDL} == $file_type) } { set g_files {} }
+      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+      }
+    }
+  }
+  return $files
+}
+
+proc usf_add_block_fs_files { global_files_str files_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $files_arg files
+
+  set vhdl_filter "FILE_TYPE == \"VHDL\""
+  foreach file [usf_get_files_from_block_filesets $vhdl_filter] {
+    set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
+    set cmd_str [usf_get_file_cmd_str $file $file_type {}]
+    if { {} != $cmd_str } {
+      lappend files $cmd_str
+    }
+  }
+  set verilog_filter "FILE_TYPE == \"Verilog\""
+  foreach file [usf_get_files_from_block_filesets $verilog_filter] {
+    set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
+    set cmd_str [usf_get_file_cmd_str $file $file_type $global_files_str]
+    if { {} != $cmd_str } {
+      lappend files $cmd_str
+    }
+  }
 }
 
 proc usf_is_global_include_file { global_files_str file_to_find } {
