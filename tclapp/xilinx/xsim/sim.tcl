@@ -545,6 +545,11 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   set args_list [list]
 
+  set id [get_property ID [current_project]]
+  if { {} != $id } {
+    lappend args_list "-wto $id"
+  }
+
   set os $::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type)
   if { {64} == $os } { lappend args_list "-m64" }
   if { {32} == $os } { lappend args_list "-m32" }
