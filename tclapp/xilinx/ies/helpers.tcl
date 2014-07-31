@@ -71,6 +71,7 @@ proc usf_init_vars {} {
                 FILE_TYPE != \"Verilog Header\"               && \
                 FILE_TYPE != \"Verilog Template\"             && \
                 FILE_TYPE != \"VHDL\"                         && \
+                FILE_TYPE != \"VHDL 2008\"                    && \
                 FILE_TYPE != \"VHDL Template\"                && \
                 FILE_TYPE != \"EDIF\"                         && \
                 FILE_TYPE != \"NGC\"                          && \
@@ -689,7 +690,7 @@ proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
     return 1
   }
   # target lang is vhdl and glbl is added as top for post-implementation and post-synthesis and load glbl set (default)
-  if { (({VHDL} == $target_lang) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
+  if { ((({VHDL} == $target_lang) || ({VHDL 2008} == $target_lang)) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
     return 1
   }
   switch $simulator {
@@ -1026,9 +1027,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       foreach file $::tclapp::xilinx::ies::l_compile_order_files {
         if { [usf_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         set g_files $global_files_str
-        if { ({VHDL} == $file_type) } { set g_files {} }
+        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
         if { {} != $cmd_str } {
           lappend files $cmd_str
@@ -1044,9 +1045,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
           set ::tclapp::xilinx::ies::l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
           foreach file $::tclapp::xilinx::ies::l_compile_order_files {
             set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-            if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+            if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
             set g_files $global_files_str
-            if { ({VHDL} == $file_type) } { set g_files {} }
+            if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
             set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
             if { {} != $cmd_str } {
               lappend files $cmd_str
@@ -1060,10 +1061,10 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       # add additional files from simulation fileset
       foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all $file] 0]]} { continue }
         set g_files $global_files_str
-        if { ({VHDL} == $file_type) } { set g_files {} }
+        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
         if { {} != $cmd_str } {
           lappend files $cmd_str
@@ -1074,9 +1075,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # prepare command line args for fileset ip files
     foreach file $::tclapp::xilinx::ies::l_compile_order_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
-      if { ({VHDL} == $file_type) } { set g_files {} }
+      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -1120,7 +1121,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   }
 
   # add testbench files if any
-  set vhdl_filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"VHDL\""
+  set vhdl_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\")"
   foreach file [usf_get_testbench_files_from_ip $vhdl_filter] {
     if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
       continue;
@@ -1151,10 +1152,10 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     # add additional files from simulation fileset
     foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all $file] 0]]} { continue }
       set g_files $global_files_str
-      if { ({VHDL} == $file_type) } { set g_files {} }
+      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -1164,9 +1165,9 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     # prepare command line args for fileset ip files
     foreach file $::tclapp::xilinx::ies::l_compile_order_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
-      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) } { continue }
+      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
-      if { ({VHDL} == $file_type) } { set g_files {} }
+      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -1183,7 +1184,7 @@ proc usf_add_block_fs_files { global_files_str files_arg } {
 
   upvar $files_arg files
 
-  set vhdl_filter "FILE_TYPE == \"VHDL\""
+  set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
   foreach file [usf_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
     set cmd_str [usf_get_file_cmd_str $file $file_type {}]
@@ -2035,7 +2036,7 @@ proc usf_get_compiler_name { file_type } {
 
   variable a_sim_vars
   set compiler ""
-  if { {VHDL} == $file_type } {
+  if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } {
     set compiler "ncvhdl"
   } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) } {
     set compiler "ncvlog"
@@ -2288,8 +2289,9 @@ proc usf_get_file_cmd_str { file file_type global_files_str} {
     set file "\$origin_dir/[usf_get_relative_file_path $file $dir]"
   }
   set compiler [usf_get_compiler_name $file_type]
+  set arg_list [list]
   if { [string length $compiler] > 0 } {
-    set arg_list [list $compiler]
+    lappend arg_list $compiler
     usf_append_compiler_options $compiler $file_type arg_list
     set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str" "\"$file\""]
   }
@@ -2305,8 +2307,12 @@ proc usf_get_file_type_category { file_type } {
   # Argument Usage:
   # Return Value:
 
-  set type {VHDL}
+  set type {UNKNOWN}
   switch $file_type {
+    {VHDL} -
+    {VHDL 2008} {
+      set type {VHDL}
+    }
     {Verilog} -
     {SystemVerilog} -
     {Verilog Header} {
