@@ -225,7 +225,7 @@ proc set_default_tcl_obj {} {
       set ip_file ""
       # is ip object? fetch associated file, else just return file
       if {[regexp -nocase {^ip} [get_property [rdi::get_attr_specs CLASS -object $tcl_obj] $tcl_obj]] } {
-        set ip_file [get_files -all -quiet [get_property ip_file $tcl_obj]]
+        set ip_file [get_files -all -quiet [list "[get_property ip_file $tcl_obj]"]]
       } else {
         set ip_file [get_files -all -quiet $tcl_obj]
       }
