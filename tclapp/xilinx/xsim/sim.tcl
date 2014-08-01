@@ -309,16 +309,19 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     set file_str "$top_lib \"glbl.v\""
     puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
   }
- 
+
+  # set param to force nosort (default is false)
+  set nosort_param [get_param "simulation.donotRecalculateCompileOrderForXSim"] 
+
   # nosort? (verilog)
   set b_no_sort [get_property "XSIM.COMPILE.XVLOG.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-  if { $b_no_sort || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
+  if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
     puts $fh_vlog "\n# Do not sort compile order\nnosort"
   }
 
   # nosort? (vhdl)
   set b_no_sort [get_property "XSIM.COMPILE.XVHDL.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-  if { $b_no_sort || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
+  if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
     puts $fh_vhdl "\n# Do not sort compile order\nnosort"
   }
     
@@ -816,7 +819,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
   if { {} == $rt } {
     # no runtime specified
-    puts $fh_scr "\nrun all"
+    # puts $fh_scr "\nrun all"
   } else {
     set rt_value [string tolower $rt]
     if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
