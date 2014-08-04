@@ -47,6 +47,7 @@
 # title: JUnit Reporting API
 ####################################################################################################
 
+package require Vivado 1.2014.1
 package require struct
 
 namespace eval ::tclapp::xilinx::junit {

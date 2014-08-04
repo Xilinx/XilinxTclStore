@@ -17,6 +17,8 @@
 #     These commands are simply meant to help ease dialogs and prompts.
 #
 
+package require Vivado 1.2014.1
+
 namespace eval ::tclapp::xilinx::tk_tunnel {
 
 # Export procs that should be allowed for import into other namespaces
