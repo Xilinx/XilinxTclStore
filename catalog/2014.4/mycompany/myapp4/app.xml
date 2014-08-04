@@ -10,7 +10,7 @@
       <revision_history>Various Updates</revision_history>
       <commit_id>b813f30e909e60b926efc794c41e13ec516e4afb</commit_id>
       <name>myapp4</name>
-      <company>xilinx</company>
+      <company>mycompany</company>
       <company_display>me, Inc.</company_display>
       <summary>This is myapp4.</summary>
       <display>My App #4</display>
