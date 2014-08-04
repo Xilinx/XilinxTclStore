@@ -6,7 +6,7 @@
 # HEADER_END
 ############################################################################
 #
-# diff.tcl (allow Tcl to find tclindex and provide package version 2.0)
+# diff.tcl (allow Tcl to find tclindex and provide package version 2.1)
 # 
 
 namespace eval ::tclapp::xilinx::diff {
