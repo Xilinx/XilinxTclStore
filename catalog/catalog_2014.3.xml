@@ -564,7 +564,7 @@
     </app>
     <app>
       <revision>2.0</revision>
-      <commit_id>60a9631a7dc9aaa6fd606d177c6cfbffe6023f9a</commit_id>
+      <commit_id>e38ad5eb2acebfea2d9f917126f8bfcf803f03c4</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
