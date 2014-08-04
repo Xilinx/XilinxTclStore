@@ -91,13 +91,12 @@ proc write_project_tcl {args} {
   }
   set a_global_vars(script_file) [file normalize $a_global_vars(script_file)]
   
-  # create script file directories, if does not exist
+  # error if file directory path does not exist
   set file_path [file dirname $a_global_vars(script_file)]
   if { ! [file exists $file_path] } {
-    if {[catch {file mkdir $file_path} error_msg] } {
-      send_msg_id Vivado-projutils-013 ERROR "failed to create the directory ($file_path): $error_msg\n"
-      return
-    }
+    set script_filename [file tail $a_global_vars(script_file)]
+    send_msg_id Vivado-projutils-013 ERROR "Directory in which file ${script_filename} is to be written does not exist \[$a_global_vars(script_file)\]\n"
+    return
   }
     
   # recommend -force if file exists
