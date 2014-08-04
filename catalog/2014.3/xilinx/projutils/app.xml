@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision>2.0</revision>
+      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <name>projutils</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to manipulation of projects.</summary>
+      <display>Project Utilities</display>
+      <procs>
+        <proc>
+          <name>export_simulation</name>
+          <summary>Generate design filelist for the specified simulator for standalone simulation</summary>
+        </proc>
+        <proc>
+          <name>write_project_tcl</name>
+          <summary>Export Tcl script for re-creating the current project</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
