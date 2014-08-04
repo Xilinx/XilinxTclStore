@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
+  <remote>master</remote>
+  <support_commit_id>d29a57941bd7bf9e844e89a18c2e552897654aab</support_commit_id>
+  <release>2014.4</release>
+  <revision>2.0</revision>
   <apps>
     <app>
       <name>myapp4</name>
