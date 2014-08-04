@@ -990,10 +990,23 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   # prepare command line args for fileset files
   if { [usf_is_fileset $target_obj] } {
     # add additional files from simulation fileset
-    foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+    set b_ignore_auto_disable 0
+    set simset_files [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]]
+    if { [llength $simset_files] == 0 } {
+      # no files in simulation fileset (check compile order and ignore auto disabled files)
+      set b_ignore_auto_disable 1
+      set co_files [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(s_simset)]]
+      set simset_files [lindex $co_files end]
+    }
+    foreach file $simset_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-      if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all $file] 0]]} { continue }
+      # is this source file coming from source fileset? (they will be auto_disabled by default)
+      if { $b_ignore_auto_disable } {
+        # ignore auto_disabled file checking since this is coming from source fileset (design graph manager sets this flag for post* simulation)
+      } else {
+        if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all $file] 0]]} { continue }
+      }
       set g_files $global_files_str
       if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files]
