@@ -547,7 +547,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
-  set flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
+  set sim_flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
 
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
@@ -583,7 +583,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   # add simulation libraries
   set arg_list [list]
   # post* simulation
-  if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     if { [usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-L" "simprims_ver"]
@@ -595,7 +595,14 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   # behavioral simulation
   set b_compile_unifast [get_property "MODELSIM.COMPILE.UNIFAST" $fs_obj]
-  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $flow) } {
+
+  if { ([::tclapp::xilinx::modelsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast } {
+      set arg_list [linsert $arg_list end "-L" "unifast"]
+    }
+  }
+
+  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast_ver"]
     }

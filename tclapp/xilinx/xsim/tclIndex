@@ -43,6 +43,7 @@ set auto_index(::tclapp::xilinx::xsim::usf_uniquify_cmd_str) [list source [file 
 set auto_index(::tclapp::xilinx::xsim::usf_get_compile_order_libs) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_get_include_file_dirs) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_get_top_library) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::xsim::usf_contains_vhdl) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_contains_verilog) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_is_fileset) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::xsim::usf_compile_glbl_file) [list source [file join $dir helpers.tcl]]

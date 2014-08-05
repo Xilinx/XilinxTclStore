@@ -409,7 +409,7 @@ proc usf_ies_write_elaborate_script {} {
 
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
-  set flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
+  set sim_flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
   set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
 
@@ -478,7 +478,7 @@ proc usf_ies_write_elaborate_script {} {
   set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
 
   # post* simulation
-  if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     if { [usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-libname" "simprims_ver"]
@@ -490,7 +490,14 @@ proc usf_ies_write_elaborate_script {} {
 
   # behavioral simulation
   set b_compile_unifast [get_property "IES.COMPILE.UNIFAST" $fs_obj]
-  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $flow) } {
+
+  if { ([::tclapp::xilinx::ies::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast } {
+      set arg_list [linsert $arg_list end "-libname" "unifast"]
+    }
+  }
+
+  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-libname" "unifast_ver"]
     }

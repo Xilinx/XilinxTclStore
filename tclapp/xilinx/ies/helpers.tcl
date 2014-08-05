@@ -618,6 +618,37 @@ proc usf_get_top_library { } {
   return "xil_defaultlib"
 }
 
+proc usf_contains_vhdl { design_files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_compile_order_files
+  variable a_sim_vars
+
+  set flow $a_sim_vars(s_simulation_flow)
+
+  set b_vhdl_srcs 0
+  foreach file $design_files {
+    set type [lindex [split $file {#}] 0]
+    switch $type {
+      {VHDL} -
+      {VHDL 2008} {
+        set b_vhdl_srcs 1
+      }
+    }
+  }
+
+  if { (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && (!$b_vhdl_srcs) } {
+    set extn [file extension $a_sim_vars(s_netlist_file)]
+    if { {.vhd} == $extn } {
+      set b_vhdl_srcs 1
+    }
+  }
+
+  return $b_vhdl_srcs
+}
+
 proc usf_contains_verilog { design_files } {
   # Summary:
   # Argument Usage:

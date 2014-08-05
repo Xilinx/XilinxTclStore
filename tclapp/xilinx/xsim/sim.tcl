@@ -650,6 +650,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   # behavioral simulation
   set b_compile_unifast [get_property "XSIM.ELABORATE.UNIFAST" $fs_obj]
+
+  if { ([::tclapp::xilinx::xsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast } {
+      lappend args_list "-L unifast"
+    }
+  }
+
   if { ([::tclapp::xilinx::xsim::usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       lappend args_list "-L unifast_ver"
