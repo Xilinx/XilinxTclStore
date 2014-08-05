@@ -709,6 +709,11 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   puts $fh "\nview wave"
   puts $fh "view structure"
   puts $fh "view signals\n"
+
+  set b_log_all_signals [get_property "MODELSIM.SIMULATE.LOG_ALL_SIGNALS" $fs_obj]
+  if { $b_log_all_signals } {
+    puts $fh "log -r /*\n"
+  }
  
   # generate saif file for power estimation
   set saif [get_property "MODELSIM.SIMULATE.SAIF" $fs_obj] 
