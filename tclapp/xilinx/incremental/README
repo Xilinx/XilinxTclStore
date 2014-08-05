@@ -1,0 +1,27 @@
+ Xilinx Utilities App
+-This directory is a collection of utilties scripts for incremental flow.
++This directory is a collection of scripts and utility application
++that are grouped by relevance to querying incremental flow related attributes
++and view them on gui.
+All Tcl procs, variables, etc. must be defined within the
+::tclapp::xilinx::incremental namespace. No globals of any kind are
+allowed.
+
+The structure of a .tcl file in this directory is something
+like this:
+
+################################################################
+package require Vivado 2014.2
+
+namespace eval ::tclapp::xilinx::incremental {
+   namespace export <list of procs to export>
+}
+
+proc ::tclapp::xilinx::incremental::<proc> { ... } {
+ ...
+}
+
+proc ::tclapp::xilinx::incremental::<proc> { ... } {
+ ...
+}
+################################################################
