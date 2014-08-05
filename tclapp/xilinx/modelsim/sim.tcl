@@ -597,7 +597,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set b_compile_unifast [get_property "MODELSIM.COMPILE.UNIFAST" $fs_obj]
 
   if { ([::tclapp::xilinx::modelsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
-    if { $b_compile_unifast } {
+    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
       set arg_list [linsert $arg_list end "-L" "unifast"]
     }
   }

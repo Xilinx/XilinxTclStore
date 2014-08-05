@@ -652,7 +652,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set b_compile_unifast [get_property "XSIM.ELABORATE.UNIFAST" $fs_obj]
 
   if { ([::tclapp::xilinx::xsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
-    if { $b_compile_unifast } {
+    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
       lappend args_list "-L unifast"
     }
   }
