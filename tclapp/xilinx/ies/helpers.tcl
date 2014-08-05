@@ -1156,7 +1156,8 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
       # no files in simulation fileset (check compile order and ignore auto disabled files)
       set b_ignore_auto_disable 1
       set co_files [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(s_simset)]]
-      set simset_files [lindex $co_files end]
+      # TODO: this breaks designs with just an IP (no top level source)
+      #set simset_files [lindex $co_files end]
     }
     foreach file $simset_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all $file] 0]]
