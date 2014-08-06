@@ -293,7 +293,6 @@ proc ::tclapp::support::appinit::get_proc_metacomment {app procName {metacomment
   set section {}
   catch {unset results}
   # This comment should not appear in the metacomment
-  set space " "
   foreach line [split [uplevel 1 [list info body $procName]] \n] {
       if {[string trim $line] eq ""} continue
       # Skip comments that have been added to support rdi::register_proc command
@@ -307,7 +306,7 @@ proc ::tclapp::support::appinit::get_proc_metacomment {app procName {metacomment
         continue
       }
      if {![regexp {^\s*#(.+)} $line -> line]} break
-      append res [string trim $line]$space
+      lappend res [string trim $line]
   }
   if {$section != {}} {
     set results([string tolower $section]) $res
@@ -315,7 +314,7 @@ proc ::tclapp::support::appinit::get_proc_metacomment {app procName {metacomment
   if {$metacomment != {}} {
     set metacomment [string tolower $metacomment]
     if {[info exists results($metacomment)]} {
-      set doc $results($metacomment)
+      set doc [join $results($metacomment) " \n"]
     } else {
       set doc {}
     }
