@@ -471,6 +471,18 @@ proc usf_vcs_write_simulate_script {} {
   ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $file
   puts $fh_scr "\n# installation path setting"
   puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)\"\n"
+
+  # update ld_library_path for AXI-BFM
+  if { [::tclapp::xilinx::vcs::usf_is_axi_bfm_ip] } {
+    if { {} != [usf_get_simulator_lib_for_bfm] } {
+      set simulator_lib_path $::env(RDI_LIBDIR)
+      if { {} != $simulator_lib_path } {
+        puts $fh_scr "# simulator library path setting"
+        puts $fh_scr "LD_LIBRARY_PATH=$simulator_lib_path:\$LD_LIBRARY_PATH\n"
+      }
+    }
+  }
+
   set do_filename "${top}.do"
   ::tclapp::xilinx::vcs::usf_create_do_file "vcs" $do_filename
   set tool "${top}_simv"
