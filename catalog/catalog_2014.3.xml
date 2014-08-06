@@ -3,7 +3,7 @@
   <remote>master</remote>
   <support_commit_id>d29a57941bd7bf9e844e89a18c2e552897654aab</support_commit_id>
   <release>2014.3</release>
-  <revision>1.0</revision>
+  <revision>2.0</revision>
   <apps>
     <app>
       <revision>1.7</revision>
