@@ -6,98 +6,743 @@
   <revision>2.0</revision>
   <apps>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>mycompany</company>
-      <display>My First App</display>
-      <name>myapp</name>
-      <revision>2.1</revision>
-    </app>
-    <app>
-      <commit_id>bd28f01d4d10c734d959e105ece5c13af87272e7</commit_id>
-      <company>mycompany</company>
-      <display>My App #4</display>
-      <name>myapp4</name>
-      <revision>1.0</revision>
-    </app>
-    <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>mycompany</company>
-      <display>My App #5</display>
-      <name>myapp5</name>
-      <revision>1.0</revision>
-    </app>
-    <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>Design Utilities</display>
-      <name>designutils</name>
       <revision>1.7</revision>
+      <revision_history>Major updates to insert_buffer.tcl script</revision_history>
+      <commit_id>83eae809f8fcc8e2459e1d8490790544695b2b0e</commit_id>
+      <name>designutils</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to querying and analyzing a logical design, principally around the netlist object model.</summary>
+      <display>Design Utilities</display>
+      <procs>
+        <proc>
+          <name>bisect_pblock</name>
+          <summary>bisect a P block</summary>
+        </proc>
+        <proc>
+          <name>check_cdc_paths</name>
+          <summary>checks all the Cross Domain Crossing paths for typical issues</summary>
+        </proc>
+        <proc>
+          <name>clone_cell</name>
+          <summary>Clone a cell and connects all the clone input pins to the master input pins. Run after synthesis</summary>
+        </proc>
+        <proc>
+          <name>clone_net_driver</name>
+          <summary>Clone the driver cell of a net. Run after synthesis</summary>
+        </proc>
+        <proc>
+          <name>convert_muxfx_to_luts</name>
+          <summary>Replaces MUXFX cells with LUT3 cells in an open synthesized design</summary>
+        </proc>
+        <proc>
+          <name>create_diff_ports</name>
+          <summary>Creates differential _N port for each _P port in a pinplanning design</summary>
+        </proc>
+        <proc>
+          <name>generate_runs</name>
+          <summary>Create all possible combinations of runs</summary>
+        </proc>
+        <proc>
+          <name>get_clock_interaction</name>
+          <summary>Return a specific string within the clock interaction report</summary>
+        </proc>
+        <proc>
+          <name>get_connected_ref_pins</name>
+          <summary>Return a list of reference pins connected to the pin</summary>
+        </proc>
+        <proc>
+          <name>get_data_through_pins</name>
+          <summary>Return the data pins of a single timing path</summary>
+        </proc>
+        <proc>
+          <name>get_host_platform</name>
+          <summary>return the host platform (windows|unix)</summary>
+        </proc>
+        <proc>
+          <name>get_inter_slr_nets</name>
+          <summary>get all the inter-SLR nets</summary>
+        </proc>
+        <proc>
+          <name>get_leaf_cells</name>
+          <summary>get all the leave cells below an instance</summary>
+        </proc>
+        <proc>
+          <name>get_mem</name>
+          <summary>queries the kernel for current heap memory of Vivado session</summary>
+        </proc>
+        <proc>
+          <name>get_pid_mem</name>
+          <summary>queries the kernel for the heap memory of a specific process</summary>
+        </proc>
+        <proc>
+          <name>get_sll_nets</name>
+          <summary>get routed inter-SLR nets that have a VLONG12 cost and over 100 wire shapes on at least one of its nodes</summary>
+        </proc>
+        <proc>
+          <name>get_sll_nodes</name>
+          <summary>returns all the sll node objects in the device for matching SLRs</summary>
+        </proc>
+        <proc>
+          <name>gets_regexp</name>
+          <summary>returns the next line that matches occurrence of a regular expression in the file</summary>
+        </proc>
+        <proc>
+          <name>highlight_enable_signal_sites</name>
+          <summary>highlight the destination sites of the enable signals reported by report_control_set command</summary>
+        </proc>
+        <proc>
+          <name>insert_buffer</name>
+          <summary>insert a buffer or any 2-pins cell on a net or a pin</summary>
+        </proc>
+        <proc>
+          <name>insert_buffer_chain</name>
+          <summary>insert a chain of buffers or any 2-pins cells on a net or a pin</summary>
+        </proc>
+        <proc>
+          <name>insert_clock_probe</name>
+          <summary>insert a clock probe to the design and connect the probe to an output port. The output should not exist and is created by the command</summary>
+        </proc>
+        <proc>
+          <name>is_fabric_connected</name>
+          <summary>Determine if the given pin is connected to a SLICE. For input pins, check just the driver. For output pins, check all loads</summary>
+        </proc>
+        <proc>
+          <name>prettyTable</name>
+          <summary>utility to easily create and print tables</summary>
+        </proc>
+        <proc>
+          <name>read_file_regexp</name>
+          <summary>returns all lines that match occurrence of a regular expression in the file</summary>
+        </proc>
+        <proc>
+          <name>reapply_iostandard</name>
+          <summary>this command queries the tool-chosen defaults from implementation and &quot;apply&quot; them so it looks like the user did it from the beginning. This complies with the bit export restriction that all ios be LOCd and explicitly set to an IO Standard</summary>
+        </proc>
+        <proc>
+          <name>remove_buffer</name>
+          <summary>remove a buffer or any 2-pins cell</summary>
+        </proc>
+        <proc>
+          <name>rename_net</name>
+          <summary>rename a local net name</summary>
+        </proc>
+        <proc>
+          <name>replicate_high_fanout_registers</name>
+          <summary>Replicate registers to limit register fanout to maxFan.  Run after synthesis</summary>
+        </proc>
+        <proc>
+          <name>report_all_primitives</name>
+          <summary>reports all primitives (LIB_CELL) in the design</summary>
+        </proc>
+        <proc>
+          <name>report_cells_fanout</name>
+          <summary>report the fanout of cells matching a REF_NAME pattern</summary>
+        </proc>
+        <proc>
+          <name>report_cells_loc</name>
+          <summary>report the location of cells matching a REF_NAME pattern</summary>
+        </proc>
+        <proc>
+          <name>report_critical_hfn</name>
+          <summary>report timing critical high fanout nets based on fanout and slack</summary>
+        </proc>
+        <proc>
+          <name>report_hier_util</name>
+          <summary>report the cell utilization below hierarchical instances</summary>
+        </proc>
+        <proc>
+          <name>report_parts</name>
+          <summary>report all the available parts that match a pattern</summary>
+        </proc>
+        <proc>
+          <name>source_path</name>
+          <summary>source a script from a choice of paths</summary>
+        </proc>
+        <proc>
+          <name>timing_report_to_verilog</name>
+          <summary>Convert timing paths to a Verilog structural netlist</summary>
+        </proc>
+        <proc>
+          <name>verilog2int</name>
+          <summary>Convert a Verilog formatted number into an integer</summary>
+        </proc>
+        <proc>
+          <name>write_slr_pblock_xdc</name>
+          <summary>Exports the current SLR placement to pblock constraints in an XDC file</summary>
+        </proc>
+        <proc>
+          <name>write_template</name>
+          <summary>generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)</summary>
+        </proc>
+      </procs>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>Design Comparison</display>
-      <name>diff</name>
       <revision>2.1</revision>
+      <revision_history>Various Updates</revision_history>
+      <commit_id>276b4b9d07d09d4310fbef4653e2f539b04e9018</commit_id>
+      <name>diff</name>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>The Diff App compares two different designs at a time. Designs can be any combination of checkpoints or runs. With two designs loaded into memory this App enables the user to compare reports, lists, or first-class object properties between the two designs.  The output is generated in the form of interactive reporting (stdout), a text report, or an html report. The app can be used to compare a design against a reference or golden design or to dtermine where divergence occurred (isolation of problems and root cause analysis).</summary>
+      <display>Design Comparison</display>
+      <procs>
+        <proc>
+          <name>activate_design</name>
+          <summary>Activates (makes active) the project and design of the number specified, options are 1 or 2.  The project and design are set via set_compare_objects (or open_checkpoints).</summary>
+        </proc>
+        <proc>
+          <name>assert_fail</name>
+          <summary>Ensures that the command fails.</summary>
+        </proc>
+        <proc>
+          <name>assert_false</name>
+          <summary>Compares boolean to false.</summary>
+        </proc>
+        <proc>
+          <name>assert_file_exists</name>
+          <summary>Ensures file exists.</summary>
+        </proc>
+        <proc>
+          <name>assert_pass</name>
+          <summary>Ensures that the command passes. This is normally not needed as a failing command will throw on it&apos;s own.</summary>
+        </proc>
+        <proc>
+          <name>assert_same</name>
+          <summary>Compares two values to ensure that they are the same.</summary>
+        </proc>
+        <proc>
+          <name>assert_same_file</name>
+          <summary>Compares files to ensure that they are the same.</summary>
+        </proc>
+        <proc>
+          <name>assert_string_in_file</name>
+          <summary>Ensures string is in file.</summary>
+        </proc>
+        <proc>
+          <name>assert_string_not_in_file</name>
+          <summary>Ensures string is not in file.</summary>
+        </proc>
+        <proc>
+          <name>assert_true</name>
+          <summary>Compares boolean to true.</summary>
+        </proc>
+        <proc>
+          <name>compare_designs</name>
+          <summary>References the design/project combinations set with set_compare_objects. Then a &apos;design_command&apos; is executed with each design being made active and the outputs of those commands are captured. Those outputs are then compared using the specified &apos;difference_command&apos;. The design/project values must have been set with set_compare_objects (or open_checkpoints) before executing this command.  e.g. open_checkpoints design1.dcp design2.dcp; # calls set_compare_objects for us and opens the DCPs compare_designs compare_lines { report_timing -return_string -max_paths 1000 }</summary>
+        </proc>
+        <proc>
+          <name>compare_dirs</name>
+          <summary>Compares directory contents.</summary>
+        </proc>
+        <proc>
+          <name>compare_files</name>
+          <summary>Compares file contents. Similar to the linux diff command. This algorithm is designed to be fast and does not find the best matches between files. For best matching use linux diff or the compare_lines_lcs command, but be aware: the compare_lines_lcs has a long runtime.</summary>
+        </proc>
+        <proc>
+          <name>compare_lines</name>
+          <summary>Compares data by lines, and looks for the closest next line match when it encounters a difference.</summary>
+        </proc>
+        <proc>
+          <name>compare_objects</name>
+          <summary>Compare first-class Tcl object properties.</summary>
+        </proc>
+        <proc>
+          <name>compare_ordered_lists</name>
+          <summary>Compare ordered lists and finds in-order differences.  Uniqueness is not considered in this algorithm.</summary>
+        </proc>
+        <proc>
+          <name>compare_serialized_objects</name>
+          <summary>Compare serialized object properties. To serialize objects use the command serialize_objects. To read in objects that have been serialized to disk use serialize_from_file.</summary>
+        </proc>
+        <proc>
+          <name>compare_unordered_lists</name>
+          <summary>Compare unordered lists and finds unique objects that exist in each list/set.</summary>
+        </proc>
+        <proc>
+          <name>get_checkpoints</name>
+          <summary>Gets checkpoints to be used for design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>get_compare_objects</name>
+          <summary>Gets design and project objects to be used for design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>get_global_report</name>
+          <summary>Gets global report value. The output of this command is what resource will be used to output data if unique resources are not provided to the print_* commands.  Use set_global_report to change.</summary>
+        </proc>
+        <proc>
+          <name>get_verbose</name>
+          <summary>Gets verbosity mode.</summary>
+        </proc>
+        <proc>
+          <name>html_escape</name>
+          <summary>Escapes all XML characters. &amp; = &amp;amp; &quot; = &amp;quot; &apos; = &amp;apos; &lt; = &amp;lt; &gt; = &amp;gt;</summary>
+        </proc>
+        <proc>
+          <name>open_checkpoints</name>
+          <summary>Opens checkpoints while capturing the corresponding design and project objects. Channel is not specified here, and cannot be used with the design comparison flow. Use the set_global_report for controlling the outputs channel with design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>print_alert</name>
+          <summary>Print an alert message. For HTML reports this shows in dark red.</summary>
+        </proc>
+        <proc>
+          <name>print_css</name>
+          <summary>Return Cascaded Stylesheet (CSS) information for HTML report</summary>
+        </proc>
+        <proc>
+          <name>print_end</name>
+          <summary>Print end of the report. If using an HTML report, then this prints the ending HTML tags.</summary>
+        </proc>
+        <proc>
+          <name>print_header</name>
+          <summary>Print a heading. For HTML reports this begins the different sections of the report.</summary>
+        </proc>
+        <proc>
+          <name>print_info</name>
+          <summary>Print a info message. For HTML reports this shows in dark blue.</summary>
+        </proc>
+        <proc>
+          <name>print_js</name>
+          <summary>Return JavaScript (JS) information for HTML report</summary>
+        </proc>
+        <proc>
+          <name>print_msg</name>
+          <summary>Print generic message. Most print_* commands use this as the base proc for reporting.</summary>
+        </proc>
+        <proc>
+          <name>print_results</name>
+          <summary>Print a result message. For HTML reports this shows in dark gray.</summary>
+        </proc>
+        <proc>
+          <name>print_stamp</name>
+          <summary>Print current time stamp, current build, current changelist, and process ID.</summary>
+        </proc>
+        <proc>
+          <name>print_start</name>
+          <summary>Print report title, if using HTML, then this generates the head content of the HTML report.</summary>
+        </proc>
+        <proc>
+          <name>print_subheader</name>
+          <summary>Print a sub-heading. For HTML reports this begins the pre-formatted area under each heading.</summary>
+        </proc>
+        <proc>
+          <name>print_success</name>
+          <summary>Print a success message. For HTML reports this shows in dark green.</summary>
+        </proc>
+        <proc>
+          <name>remove_comments</name>
+          <summary>Removes all comments</summary>
+        </proc>
+        <proc>
+          <name>remove_datestamps</name>
+          <summary>Removes all date stamps</summary>
+        </proc>
+        <proc>
+          <name>remove_special</name>
+          <summary>Removes all special characters, except &apos;-&apos;, &apos;_&apos;, and whitespace</summary>
+        </proc>
+        <proc>
+          <name>remove_whitespace</name>
+          <summary>Removes all whitespace</summary>
+        </proc>
+        <proc>
+          <name>serialize_from_file</name>
+          <summary>Read data from file. Can be used as a generic file reader.</summary>
+        </proc>
+        <proc>
+          <name>serialize_objects</name>
+          <summary>Serializes all provided first-class Tcl objects.</summary>
+        </proc>
+        <proc>
+          <name>serialize_to_file</name>
+          <summary>Writes data to file. Can be used as a generic file writer, but this command always appends.</summary>
+        </proc>
+        <proc>
+          <name>set_checkpoints</name>
+          <summary>Sets checkpoints to be used for design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>set_compare_objects</name>
+          <summary>Sets design and project objects to be used for design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>set_global_report</name>
+          <summary>Sets global report file name and can be set to stdout or stderr. If not specified, then each print_* command requires a file name be provided to the channel argument. If the file name has the extension &apos;htm&apos; or &apos;html&apos;, then an HTML report will be generated.</summary>
+        </proc>
+        <proc>
+          <name>set_verbose</name>
+          <summary>Sets verbosity mode. True or 1 will print verbose, false or 0 will not.</summary>
+        </proc>
+        <proc>
+          <name>unique_in_both_sets</name>
+          <summary>Find the unique items in set1 and in set2. Also known as the &apos;Symmetric Difference&apos; or (A\B) U (B\A) [ ( $set1 \ $set2 ) U ( $set2 \ $set1 ) ].</summary>
+        </proc>
+        <proc>
+          <name>unique_in_first_set</name>
+          <summary>Find the unique items in set1. Also known as the &apos;Set Difference&apos; or U\A [ $set1 \ $set2 ].</summary>
+        </proc>
+      </procs>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>Incisive&amp;reg; Enterprise Simulator IES</display>
+      <revision>1.0</revision>
+      <commit_id>1ebbac455599ee46b0442ae7dc9f707b9f731cdf</commit_id>
       <name>ies</name>
-      <revision>1.0</revision>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a Cadence&amp;reg; Incisive&amp;reg; Enterprise Simulator (IES) integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;Incisive Enterprise Simulator (IES)&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>Incisive&amp;reg; Enterprise Simulator IES</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>JUnit Utilities</display>
+      <revision>1.0</revision>
+      <revision_history>Various Updates</revision_history>
+      <commit_id>cee2bb9fd3978e3fa3387c5b855991717eadb4b9</commit_id>
       <name>junit</name>
-      <revision>1.0</revision>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>The JUnit App is built with 3 layers of APIs. The high level API enables a user to run generic tests or a group of predefined tests on demand. The intermediate level API enables a user to call assertions and customize the tests. Both the high level and intermediate level APIs are automatically generating a JUnit report in memory. The low level API enables the user to work directly with the &quot;data graph&quot; in memory. There is a section in the writer class where this in-memory &quot;data graph&quot; is converted to a &quot;junit graph&quot;. The &quot;junit graph&quot; is then just dumped to an XML file.  The conversion from &quot;data graph&quot; to &quot;junit graph&quot; exists to enable users to convert the data to other formats.</summary>
+      <display>JUnit Utilities</display>
+      <procs>
+        <proc>
+          <name>assert_exists</name>
+          <summary>Asserts that all files exist.</summary>
+        </proc>
+        <proc>
+          <name>assert_same</name>
+          <summary>Asserts that two values are the same, else a failure is logged.</summary>
+        </proc>
+        <proc>
+          <name>format_junit</name>
+          <summary>Converts the results of the in-memory data object to JUnit.</summary>
+        </proc>
+        <proc>
+          <name>get_report</name>
+          <summary>Returns the currently set JUnit API output location (see: set_report).</summary>
+        </proc>
+        <proc>
+          <name>get_results</name>
+          <summary>Returns the in-memory results, this is a ::struct::graph name. The name of a struct graph is a procedure and is used to configure and retrieve data from the graph object.</summary>
+        </proc>
+        <proc>
+          <name>graph_to_xml</name>
+          <summary>Converts a struct::graph object directly to xml.</summary>
+        </proc>
+        <proc>
+          <name>new_error</name>
+          <summary>Create a new node &apos;error&apos; in the provided results object. Added under the provided parent node (testcase).</summary>
+        </proc>
+        <proc>
+          <name>new_failure</name>
+          <summary>Create a new node &apos;failure&apos; in the provided results object. Added under the provided parent node (testcase).</summary>
+        </proc>
+        <proc>
+          <name>new_stderr</name>
+          <summary>Create a new node &apos;stderr&apos; in the provided results object. Added under the provided parent node (testsuite).</summary>
+        </proc>
+        <proc>
+          <name>new_stdout</name>
+          <summary>Create a new node &apos;stdout&apos; in the provided results object. Added under the provided parent node (testsuite).</summary>
+        </proc>
+        <proc>
+          <name>new_testcase</name>
+          <summary>Create a new node &apos;testcase&apos; in the provided results object. Added under the provided parent node (testsuite).</summary>
+        </proc>
+        <proc>
+          <name>new_testsuite</name>
+          <summary>Create a new node &apos;testsuite&apos; in the provided results object. Added under the provided parent node (testsuites).</summary>
+        </proc>
+        <proc>
+          <name>new_testsuites</name>
+          <summary>Create a new node &apos;testsuites&apos; in the provided results object.</summary>
+        </proc>
+        <proc>
+          <name>process_impl_design</name>
+          <summary>Used to process an implemented design. Runs validate_timing validate_routing validate_drcs validate_messages</summary>
+        </proc>
+        <proc>
+          <name>process_runs</name>
+          <summary>Used to post-process runs. This requires using the project managed runs infrastructure Runs the following validations on each run: validate_run_properties validate_messages process_impl_design _or_ process_synth_design</summary>
+        </proc>
+        <proc>
+          <name>process_synth_design</name>
+          <summary>Used to process an synthesized design. Runs validate_logic validate_drcs validate_messages</summary>
+        </proc>
+        <proc>
+          <name>reset_results</name>
+          <summary>Resets the in-memory results, if it exists.</summary>
+        </proc>
+        <proc>
+          <name>run_command</name>
+          <summary>Used to wrap any command while logging success, errors, and runtime.</summary>
+        </proc>
+        <proc>
+          <name>run_silent</name>
+          <summary>Used to wrap any command while logging errors _only_. A JUnitXml entry is not created on success!</summary>
+        </proc>
+        <proc>
+          <name>run_step</name>
+          <summary>Used to wrap a run-step while logging success, errors, and run-times. Runs the following validations after: validate_messages validate_drcs</summary>
+        </proc>
+        <proc>
+          <name>set_report</name>
+          <summary>Configures the JUnit API output location.</summary>
+        </proc>
+        <proc>
+          <name>set_stderr</name>
+          <summary>Adds a stderr entry to the global testsuite and sets it&apos;s content.</summary>
+        </proc>
+        <proc>
+          <name>set_stdout</name>
+          <summary>Adds a stdout entry to the global testsuite and sets it&apos;s content.</summary>
+        </proc>
+        <proc>
+          <name>validate_drcs</name>
+          <summary>Checks if any DRC Violations are found.</summary>
+        </proc>
+        <proc>
+          <name>validate_logic</name>
+          <summary>Checks for driver-less nets and latches.</summary>
+        </proc>
+        <proc>
+          <name>validate_messages</name>
+          <summary>Checks if Warnings, Critical Warnings, or Errors exist. If Errors are found, then the process is stopped (Tcl error).</summary>
+        </proc>
+        <proc>
+          <name>validate_routing</name>
+          <summary>Checks for unrouted nets.</summary>
+        </proc>
+        <proc>
+          <name>validate_run_properties</name>
+          <summary>Logs run walltime. Validates the run is at 100% progress, else logs error and stops process.</summary>
+        </proc>
+        <proc>
+          <name>validate_timing</name>
+          <summary>Checks for paths with negative slack.</summary>
+        </proc>
+        <proc>
+          <name>write</name>
+          <summary>Write out the output content to a file.</summary>
+        </proc>
+        <proc>
+          <name>write_results</name>
+          <summary>Write the in-memory results to disk (uses the set_report/get_report location).</summary>
+        </proc>
+      </procs>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>ModelSim/QuestaSim Simulator</display>
+      <revision>1.0</revision>
+      <commit_id>1ebbac455599ee46b0442ae7dc9f707b9f731cdf</commit_id>
       <name>modelsim</name>
-      <revision>1.0</revision>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a Mentor Graphics ModelSim/QuestaSim Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;ModelSim/QuestaSim Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>ModelSim/QuestaSim Simulator</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>Project Utilities</display>
-      <name>projutils</name>
+      <commit_id>3d151a50b0718d7c4feaaeb55ccd024bcfe845e4</commit_id>
+      <name>myapp</name>
+      <company>mycompany</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>example myapp</summary>
+      <procs>
+        <proc>
+          <name>myproc1</name>
+        </proc>
+        <proc>
+          <name>myproc2</name>
+        </proc>
+        <proc>
+          <name>myproc3</name>
+        </proc>
+      </procs>
+    </app>
+    <app>
       <revision>2.0</revision>
+      <commit_id>671cfbc64660a0d98e5301118b92855a9798c7a7</commit_id>
+      <name>projutils</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to manipulation of projects.</summary>
+      <display>Project Utilities</display>
+      <procs>
+        <proc>
+          <name>export_simulation</name>
+          <summary>Generate design filelist for the specified simulator for standalone simulation</summary>
+        </proc>
+        <proc>
+          <name>write_project_tcl</name>
+          <summary>Export Tcl script for re-creating the current project</summary>
+        </proc>
+      </procs>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>Tk Tunnel</display>
+      <revision>1.2</revision>
+      <revision_history>Various updates</revision_history>
+      <commit_id>04bae0610f7e872fd13f71b2a930152d16c8cd67</commit_id>
       <name>tk_tunnel</name>
-      <revision>1.2</revision>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>The Tk_tunnel app can be used to launch a Tcl/Tk 8.5 server outside of Vivado using a standalone Tcl shell, and pass commands from Vivado console to the Tk shell. One of the benefits of this app is to provide a bridge for simple Tk-based GUI.</summary>
+      <display>Tk Tunnel</display>
+      <procs>
+        <proc>
+          <name>accept_connection</name>
+          <summary>This proc is the callback function when the server receives a connection request Tk / Server command</summary>
+        </proc>
+        <proc>
+          <name>ask</name>
+          <summary>Opens a simple yes/no dialog</summary>
+        </proc>
+        <proc>
+          <name>ask_or_cancel</name>
+          <summary>Opens a simple yes/no/cancel dialog</summary>
+        </proc>
+        <proc>
+          <name>broadcast</name>
+          <summary>This command broadcasts a command / response to all clients from the server Tk / Server command</summary>
+        </proc>
+        <proc>
+          <name>choose_color</name>
+          <summary>Opens a simple &apos;Choose Color&apos; dialog</summary>
+        </proc>
+        <proc>
+          <name>choose_dir</name>
+          <summary>Opens a simple &apos;Choose Directory&apos; dialog</summary>
+        </proc>
+        <proc>
+          <name>connect_to_server</name>
+          <summary>This proc is called to connect a client to a server, it will wait until it is connected Tk / Client command</summary>
+        </proc>
+        <proc>
+          <name>exec_push_return</name>
+          <summary>Executes a command locally and broadcasts the return to the client (called by rexec_wait) Tk / Server command</summary>
+        </proc>
+        <proc>
+          <name>failed</name>
+          <summary>Opens a simple retry/cancel dialog</summary>
+        </proc>
+        <proc>
+          <name>hide_server_start</name>
+          <summary>Hides the Tk default window manager (opens via `package require Tk`)</summary>
+        </proc>
+        <proc>
+          <name>launch_server</name>
+          <summary>Starts the server that the Tk commands will be sent to (launched from client) The user can bypass calling this proc and launch the server with a custom command, like: exec xterm -iconic -e /usr/local/tclsh ./custom_start_server.tcl &amp; User / Client command</summary>
+        </proc>
+        <proc>
+          <name>msg</name>
+          <summary>Opens a simple info dialog</summary>
+        </proc>
+        <proc>
+          <name>ok</name>
+          <summary>Opens a simple ok/cancel dialog</summary>
+        </proc>
+        <proc>
+          <name>open_file</name>
+          <summary>Opens a simple &apos;Open File&apos; dialog</summary>
+        </proc>
+        <proc>
+          <name>rexec</name>
+          <summary>Executes a command on the Tk server (remote exec) User / Client command</summary>
+        </proc>
+        <proc>
+          <name>rexec_wait</name>
+          <summary>Executes a command on the Tk server (remote exec), and waits for the response/return User / Client command</summary>
+        </proc>
+        <proc>
+          <name>save_file</name>
+          <summary>Opens a simple &apos;Save File&apos; dialog</summary>
+        </proc>
+        <proc>
+          <name>socket_event</name>
+          <summary>This proc is called when a socket event occurs Tk / Client command</summary>
+        </proc>
+        <proc>
+          <name>start_client</name>
+          <summary>Starts the client that will be sending the Tk commands User / Client command</summary>
+        </proc>
+        <proc>
+          <name>start_server</name>
+          <summary>This command launches the listening service on the server User / Server command (normally called from the start_server.tcl script)</summary>
+        </proc>
+        <proc>
+          <name>stdin_event</name>
+          <summary>This proc is called when a stdin event occurs Tk / Server command</summary>
+        </proc>
+        <proc>
+          <name>wait</name>
+          <summary>This proc will wait for a specified time Tk / Client command</summary>
+        </proc>
+        <proc>
+          <name>wait_for_response</name>
+          <summary>Waits for client_return to be set (called by rexec_wait) Tk / Client command</summary>
+        </proc>
+      </procs>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>UltraFast Design Methodology</display>
+      <revision>1.2</revision>
+      <revision_history>Updated create_cdc_reports from ultrafast</revision_history>
+      <commit_id>7e657c5ac1f44044fa26a2fec69f4600124c3486</commit_id>
       <name>ultrafast</name>
-      <revision>1.2</revision>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This app is a collection of scripts that are used by the UltraFast Design Methodology. Refer to the user guide UG949 &apos;UltraFast Design Methodology Guide for the Vivado Design Suite&apos; for further information.</summary>
+      <display>UltraFast Design Methodology</display>
+      <procs>
+        <proc>
+          <name>check_bd_axi_interface</name>
+          <summary>Report AXI Interconnect Internal Blocks for Every AXI Master and AXI Slave in an AXI Interconnect instance</summary>
+        </proc>
+        <proc>
+          <name>check_pll_connectivity</name>
+          <summary>Report MMCM/PLL information</summary>
+        </proc>
+        <proc>
+          <name>create_cdc_reports</name>
+          <summary>Create CDC report for each clock-pair in the design</summary>
+        </proc>
+        <proc>
+          <name>report_clock_topology</name>
+          <summary>Generates a Clock Topology Report</summary>
+        </proc>
+        <proc>
+          <name>report_io_reg</name>
+          <summary>Report I/O ports information</summary>
+        </proc>
+        <proc>
+          <name>report_reset_signals</name>
+          <summary>Generate Report for Control Signals (Reset/Set/Clear/Preset)</summary>
+        </proc>
+      </procs>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>Verilog Compiler Simulator VCS&amp;reg;</display>
-      <name>vcs</name>
       <revision>1.0</revision>
+      <commit_id>1ebbac455599ee46b0442ae7dc9f707b9f731cdf</commit_id>
+      <name>vcs</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a Synopsys VCS&amp;reg;/VCS-MX Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;Verilog Compiler Simulator (VCS)&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>Verilog Compiler Simulator VCS&amp;reg;</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>xilinx</company>
-      <display>Vivado Simulator</display>
-      <name>xsim</name>
       <revision>1.0</revision>
+      <commit_id>1ebbac455599ee46b0442ae7dc9f707b9f731cdf</commit_id>
+      <name>xsim</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a Xilinx Vivado Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;Vivado Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command.</summary>
+      <display>Vivado Simulator</display>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
   </apps>
