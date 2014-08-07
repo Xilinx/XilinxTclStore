@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision>2.1</revision>
+      <revision_history>Various Updates</revision_history>
+      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <name>myapp</name>
+      <company>mycompany</company>
+      <company_display>My Company, Inc.</company_display>
+      <display>My First App</display>
+      <procs>
+        <proc>
+          <name>myproc1</name>
+          <summary>A one line summary of what this proc does</summary>
+        </proc>
+        <proc>
+          <name>myproc2</name>
+          <summary>A one line summary of what this proc does</summary>
+        </proc>
+        <proc>
+          <name>myproc3</name>
+          <summary>3_10_2014</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
