@@ -1135,7 +1135,7 @@ proc usf_launch_script { simulator step } {
     {compile} -
     {elaborate} {
       if {[catch {rdi::run_program $scr_file} error_log] || [usf_check_errors $step]} {
-        send_msg_id USF-XSim-062 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"
+        [catch {send_msg_id USF-XSim-062 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"}]
         set faulty_run 1
       }
     }
@@ -1148,7 +1148,7 @@ proc usf_launch_script { simulator step } {
         set retval [catch {rdi::run_program -no_wait $scr_file} error_log]
       }
       if { $retval } {
-        send_msg_id USF-XSim-063 ERROR "Failed to launch $scr_file:$error_log\n"
+        [catch {send_msg_id USF-XSim-063 ERROR "Failed to launch $scr_file:$error_log\n"}]
         set faulty_run 1
       }
     }
@@ -1167,9 +1167,6 @@ proc usf_check_errors { step } {
   # Summary:
   # Argument Usage:
   # Return Value:
-
-  # TODO
-  return 0
 
   switch $step {
     {compile} {
@@ -1211,9 +1208,9 @@ proc usf_found_errors_in_file { token } {
   foreach line $log_data {
     set line_str [string trim $line]
     switch $token {
-      {xvlog} { if { [regexp {^foo} $line_str] } { return 1 } }
-      {xvhdl} { if { [regexp {^foo} $line_str] } { return 1 } }
-      {xelab} { if { [regexp {^foo} $line_str] } { return 1 } }
+      {xvlog} { if { [regexp {^ERROR} $line_str] } { return 1 } }
+      {xvhdl} { if { [regexp {^ERROR} $line_str] } { return 1 } }
+      {xelab} { if { [regexp {^ERROR} $line_str] } { return 1 } }
     }
   }
   return 0
