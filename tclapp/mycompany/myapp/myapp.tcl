@@ -11,3 +11,4 @@ namespace eval ::tclapp::mycompany::myapp {
 }
 package provide ::tclapp::mycompany::myapp 1.0
 # this is a comment
+# this is another comment
