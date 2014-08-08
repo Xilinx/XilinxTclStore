@@ -2,9 +2,9 @@
 <catalog>
   <apps>
     <app>
-      <revision>2.3</revision>
+      <revision>2.4</revision>
       <revision_history>Various Updates</revision_history>
-      <commit_id>32e04f2602a13f6d7e3c453acea0b1089b0513ec</commit_id>
+      <commit_id>ddcf0582a0d9f0bc5baa60fb577fe1eea118a242</commit_id>
       <name>myapp</name>
       <company>mycompany</company>
       <company_display>My Company, Inc.</company_display>
