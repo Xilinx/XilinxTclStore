@@ -60,7 +60,7 @@
       <company>xilinx</company>
       <display>ModelSim/QuestaSim Simulator</display>
       <name>modelsim</name>
-      <revision>1.0</revision>
+      <revision>1.1</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
