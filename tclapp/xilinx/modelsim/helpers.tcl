@@ -1109,7 +1109,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     }
   }
   #set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\""
-  set verilog_filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog\""
+  set verilog_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\")"
   foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
     if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
       continue;
