@@ -484,7 +484,8 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set vlog_cmd_str [join $vlog_arg_list " "]
   puts $fh "set vlog_opts \{$vlog_cmd_str\}"
 
-  set vcom_arg_list [list "-93"]
+  set vcom_arg_list [list]
+  lappend vcom_arg_list [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
   set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vcom_options } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
@@ -928,7 +929,8 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     puts $fh_scr "\n# set vlog command line args"
     puts $fh_scr "vlog_opts=\"$vlog_cmd_str\""
   
-    set vcom_arg_list [list "-93"]
+    set vcom_arg_list [list]
+    lappend vcom_arg_list [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
     set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
     if { {} != $more_vcom_options } {
       set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
