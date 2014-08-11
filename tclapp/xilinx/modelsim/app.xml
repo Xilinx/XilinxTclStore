@@ -3,7 +3,7 @@
   <apps>
     <app>
       <revision>1.1</revision>
-      <revision_history>fixed vhdl_syntax property propagation in do file</revision_history>
+      <revision_history>fixed the runtime value if not specified</revision_history>
       <commit_id>503d29417f8318fb9f16e999a71d4e981ca64875</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
