@@ -485,7 +485,8 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   puts $fh "set vlog_opts \{$vlog_cmd_str\}"
 
   set vcom_arg_list [list]
-  lappend vcom_arg_list [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
+  set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
+  lappend vcom_arg_list "-$vhdl_syntax"
   set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vcom_options } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
@@ -745,7 +746,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set rt [string trim [get_property "MODELSIM.SIMULATE.RUNTIME" $fs_obj]]
   if { {} == $rt } {
     # no runtime specified
-    puts $fh "\nrun -all"
+    puts $fh "\nrun"
   } else {
     set rt_value [string tolower $rt]
     if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
@@ -930,7 +931,8 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     puts $fh_scr "vlog_opts=\"$vlog_cmd_str\""
   
     set vcom_arg_list [list]
-    lappend vcom_arg_list [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
+    set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
+    lappend vcom_arg_list "-$vhdl_syntax"
     set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
     if { {} != $more_vcom_options } {
       set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
