@@ -3,6 +3,7 @@
   <apps>
     <app>
       <revision>1.0</revision>
+      <commit_id>da704d30aab190c5eca6388aa8bd083dd2e9e612</commit_id>
       <name>myapp6</name>
       <company>mycompany</company>
       <company_display>MY COMPANY</company_display>
