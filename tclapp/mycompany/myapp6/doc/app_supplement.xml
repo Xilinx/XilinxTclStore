@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<commit_id>990d7be00c1fb890cec76a063b8204da081ab1c4</commit_id>
+<revision>1</revision>
+<name>myapp</name>
+<company>mycompany</company>
+<summary>example myapp</summary>
+<procs>
+  <proc>
+    <name>myproc1</name>
+  </proc>
+  <proc>
+    <name>myproc2</name>
+  </proc>
+</procs>
