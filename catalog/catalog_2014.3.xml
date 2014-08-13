@@ -27,6 +27,13 @@
       <revision>1.0</revision>
     </app>
     <app>
+      <commit_id>da704d30aab190c5eca6388aa8bd083dd2e9e612</commit_id>
+      <company>mycompany</company>
+      <display>MY APP6</display>
+      <name>myapp6</name>
+      <revision>1.0</revision>
+    </app>
+    <app>
       <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
       <company>xilinx</company>
       <display>Design Utilities</display>
@@ -49,11 +56,11 @@
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>f41439cb962cc9546dce319f082e82b9dd84f064</commit_id>
+      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
       <company>xilinx</company>
       <display>JUnit Utilities</display>
       <name>junit</name>
-      <revision>1.1</revision>
+      <revision>1.0</revision>
     </app>
     <app>
       <commit_id>f41439cb962cc9546dce319f082e82b9dd84f064</commit_id>
