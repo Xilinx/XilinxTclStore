@@ -4,9 +4,9 @@
     <app>
       <revision>1.0</revision>
       <revision_history>Various Updates</revision_history>
-      <commit_id>bd28f01d4d10c734d959e105ece5c13af87272e7</commit_id>
+      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
       <name>myapp4</name>
-      <company>mycompany</company>
+      <company>mycomapny</company>
       <company_display>me, Inc.</company_display>
       <summary>This is myapp4.</summary>
       <display>My App #4</display>
