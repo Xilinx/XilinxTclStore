@@ -3,8 +3,8 @@
   <apps>
     <app>
       <revision>1.0</revision>
-      <revision_history>Iter 1. Need to put in the commit id</revision_history>
-      <commit_id>5f17533c49fc2ba45d46ba4764c6e504ff02b135</commit_id>
+      <revision_history>Iter 2. Need to put in the commit id</revision_history>
+      <commit_id>13352316673364cb2b0e7e318a5a8b80a13bb072</commit_id>
       <name>myapp6</name>
       <company>mycompany</company>
       <company_display>MY COMPANY</company_display>
