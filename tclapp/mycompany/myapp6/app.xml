@@ -3,6 +3,7 @@
   <apps>
     <app>
       <revision>1.0</revision>
+      <revision_history>Need to put in the commit id</revision_history>
       <name>myapp6</name>
       <company>mycompany</company>
       <company_display>MY COMPANY</company_display>
