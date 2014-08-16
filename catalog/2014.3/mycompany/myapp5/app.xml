@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
+  <remote>master</remote>
+  <support_commit_id>8157418c8958e8848117a4151f3c8b28a9933699</support_commit_id>
+  <release>2014.3</release>
+  <revision>1.0</revision>
   <apps>
     <app>
       <revision>1.0</revision>
       <revision_history>Various Updates</revision_history>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <commit_id></commit_id>
       <name>myapp5</name>
-      <company>mycompany</company>
+      <company>mycomapny</company>
       <company_display>me, Inc.</company_display>
       <summary>This is myapp5.</summary>
       <display>My App #5</display>
