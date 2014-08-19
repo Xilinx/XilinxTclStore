@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <remote>8_19_2014.3</remote>
+  <support_commit_id>d29a57941bd7bf9e844e89a18c2e552897654aab</support_commit_id>
+  <release>2014.3</release>
+  <revision>2.0</revision>
+  <apps>
+    <app>
+      <commit_id>ddcf0582a0d9f0bc5baa60fb577fe1eea118a242</commit_id>
+      <company>mycompany</company>
+      <display>My First App</display>
+      <name>myapp</name>
+      <revision>2.4</revision>
+    </app>
+    <app>
+      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <company>mycomapny</company>
+      <display>My App #4</display>
+      <name>myapp4</name>
+      <revision>1.0</revision>
+    </app>
+    <app>
+      <commit_id></commit_id>
+      <company>mycomapny</company>
+      <display>My App #5</display>
+      <name>myapp5</name>
+      <revision>1.0</revision>
+    </app>
+    <app>
+      <commit_id>e924f1cb60522bfe44a72bfcc51a37d4bcc4a1c7</commit_id>
+      <company>mycompany</company>
+      <display>MY APP6</display>
+      <name>myapp6</name>
+      <revision>1.1</revision>
+    </app>
+    <app>
+      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
+      <company>xilinx</company>
+      <display>Design Utilities</display>
+      <name>designutils</name>
+      <revision>1.7</revision>
+    </app>
+    <app>
+      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
+      <company>xilinx</company>
+      <display>Design Comparison</display>
+      <name>diff</name>
+      <revision>2.1</revision>
+    </app>
+    <app>
+      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <company>xilinx</company>
+      <display>Incisive&amp;reg; Enterprise Simulator IES</display>
+      <name>ies</name>
+      <revision>1.1</revision>
+      <visible>project.enableUnifiedSimulation</visible>
+    </app>
+    <app>
+      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
+      <company>xilinx</company>
+      <display>JUnit Utilities</display>
+      <name>junit</name>
+      <revision>1.0</revision>
+    </app>
+    <app>
+      <commit_id>503d29417f8318fb9f16e999a71d4e981ca64875</commit_id>
+      <company>xilinx</company>
+      <display>ModelSim/QuestaSim Simulator</display>
+      <name>modelsim</name>
+      <revision>1.1</revision>
+      <visible>project.enableUnifiedSimulation</visible>
+    </app>
+    <app>
+      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
+      <company>xilinx</company>
+      <display>Project Utilities</display>
+      <name>projutils</name>
+      <revision>2.0</revision>
+    </app>
+    <app>
+      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
+      <company>xilinx</company>
+      <display>Tk Tunnel</display>
+      <name>tk_tunnel</name>
+      <revision>1.2</revision>
+    </app>
+    <app>
+      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
+      <company>xilinx</company>
+      <display>UltraFast Design Methodology</display>
+      <name>ultrafast</name>
+      <revision>1.2</revision>
+    </app>
+    <app>
+      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <company>xilinx</company>
+      <display>Verilog Compiler Simulator VCS&amp;reg;</display>
+      <name>vcs</name>
+      <revision>1.1</revision>
+      <visible>project.enableUnifiedSimulation</visible>
+    </app>
+    <app>
+      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <company>xilinx</company>
+      <display>Vivado Simulator</display>
+      <name>xsim</name>
+      <revision>1.1</revision>
+      <visible>project.enableUnifiedSimulation</visible>
+    </app>
+  </apps>
+</catalog>
