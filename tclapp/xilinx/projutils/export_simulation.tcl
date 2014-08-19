@@ -26,7 +26,7 @@ namespace eval ::tclapp::xilinx::projutils {
 namespace eval ::tclapp::xilinx::projutils {
 proc export_simulation {args} {
   # Summary:
-  # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator. 
+  # NOTE-'export_simulation' is deprecated, please use 'launch_simulation -scripts_only' instead. Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
 
   # Argument Usage:
   # [-of_objects <arg> = None]: Export simulation script for the specified object
@@ -47,6 +47,8 @@ proc export_simulation {args} {
   variable l_valid_simulator_types
 
   reset_global_sim_vars
+
+  send_msg_id Vivado-projutils-061 "CRITICAL WARNING" "The command 'export_simulation' has been deprecated and will be removed in a future release of Vivado. Please update your scripts to use 'launch_simulation -scripts_only' instead. Please refer to Vivado Design Suite User Guide: Logic simulation for more information on this command"
 
   set options [split $args " "]
   # these options are must
@@ -406,7 +408,7 @@ proc print_source_info {} {
   set n_verilog_srcs  0
   
   foreach file $l_compile_order_files {
-    set file_type [get_property file_type [get_files -quiet -all $file]]
+    set file_type [get_property file_type [get_files -quiet -all [list "$file"]]]
     switch -- $file_type {
       {VHDL}    { incr n_vhdl_srcs    }
       {Verilog} { incr n_verilog_srcs }
@@ -671,11 +673,11 @@ proc wr_compile_order { fh } {
  
   foreach file $l_compile_order_files {
     set cmd_str [list]
-    set file_type [get_property file_type [lindex [get_files -quiet -all $file] 0]]
-    if { [lsearch -exact [list_property [lindex [get_files -quiet -all $file] 0]] {LIBRARY}] == -1} {
+    set file_type [get_property file_type [lindex [get_files -quiet -all [list "$file"]] 0]]
+    if { [lsearch -exact [list_property [lindex [get_files -quiet -all [list "$file"]] 0]] {LIBRARY}] == -1} {
       continue;
     }
-    set associated_library [get_property library [lindex [get_files -quiet -all $file] 0]]
+    set associated_library [get_property library [lindex [get_files -quiet -all [list "$file"]] 0]]
     if { $a_xport_sim_vars(b_absolute_path) } {
       set file "[resolve_file_path $file]"
     } else {
@@ -780,9 +782,9 @@ proc write_elaboration_cmds { fh } {
       if { [is_axi_bfm_ip] } {
         set simulator_lib [get_simulator_lib_for_bfm "ies"]
         if { {} != $simulator_lib } {
-          set arg_list [linsert $arg_list 0 "-loadvpi $simulator_lib:xilinx_register_systf"]
+          set arg_list [linsert $arg_list 0 "-loadvpi \"$simulator_lib:xilinx_register_systf\""]
         } else {
-          send_msg_id Vivado-projutils-059 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+          send_msg_id Vivado-projutils-059 ERROR "Failed to locate simulator library from 'XILINX_VIVADO' environment variable."
         }
       }
 
@@ -825,7 +827,7 @@ proc write_elaboration_cmds { fh } {
       if { [is_axi_bfm_ip] } {
         set simulator_lib [get_simulator_lib_for_bfm "vcs_mx"]
         if { {} != $simulator_lib } {
-          set arg_list [linsert $arg_list 0 "-load $simulator_lib:xilinx_register_systf"]
+          set arg_list [linsert $arg_list 0 "-load \"$simulator_lib:xilinx_register_systf\""]
         } else {
           send_msg_id Vivado-projutils-057 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
         }
@@ -1172,10 +1174,10 @@ proc get_compile_order_libs { } {
  
   set libs [list]
   foreach file $l_compile_order_files {
-    if { [lsearch -exact [list_property [lindex [get_files -all $file] 0]] {LIBRARY}] == -1} {
+    if { [lsearch -exact [list_property [lindex [get_files -all [list "$file"]] 0]] {LIBRARY}] == -1} {
       continue;
     }
-    foreach f [get_files -all $file] {
+    foreach f [get_files -all [list "$file"]] {
       set library [get_property library $f]
       if { [lsearch -exact $libs $library] == -1 } {
         lappend libs $library
@@ -1203,7 +1205,7 @@ proc get_top_library { } {
 
   if { [string length $top_lib] == 0 } {
     if { [llength $l_compile_order_files] > 0 } {
-      set top_lib [get_property library [lindex [get_files -all [lindex $l_compile_order_files end]] 0]]
+      set top_lib [get_property library [lindex [get_files -all [list "[lindex $l_compile_order_files end]"]] 0]]
     }
   }
 
@@ -1224,7 +1226,7 @@ proc contains_verilog {} {
   variable l_compile_order_files
 
   foreach file $l_compile_order_files {
-    set file_type [get_property file_type [get_files -quiet -all $file]]
+    set file_type [get_property file_type [get_files -quiet -all [list "$file"]]]
     if {[regexp -nocase {^verilog} $file_type] ||
         [regexp -nocase {^systemverilog} $file_type]} {
       return 1
@@ -1674,7 +1676,7 @@ proc is_axi_bfm_ip {} {
   foreach ip [get_ips -quiet] {
     set ip_def [lindex [split [get_property "IPDEF" [get_ips -quiet $ip]] {:}] 2]
     set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
-    if { [regexp -nocase {axi_bfm} $value] } {
+    if { ([regexp -nocase {axi_bfm} $value]) || ([regexp -nocase {processing_system7} $value]) } {
       return 1
     }
   }
@@ -1692,9 +1694,9 @@ proc get_platform_name {} {
   if { {windows64} == $os } { set platform "win64" }
   if { {unix} == $os } {
     if { {x86_64} == $::tcl_platform(machine) } {
-      set platform "lin64"
+      set platform "lnx64"
     } else {
-      set platform "lin32"
+      set platform "lnx32"
     }
   }
   return $platform
@@ -1706,7 +1708,7 @@ proc get_simulator_lib_for_bfm { simulator } {
   # Return Value:
 
   set simulator_lib {}
-  set xil           $::env(XILINX)
+  set xil           $::env(XILINX_VIVADO)
   set path_sep      {;}
   set lib_extn      {.dll}
   set platform      [get_platform_name]
@@ -1720,6 +1722,7 @@ proc get_simulator_lib_for_bfm { simulator } {
   }
   set lib_name $lib_name$lib_extn
   if { {} != $xil } {
+    append platform ".o"
     set lib_path {}
     foreach path [split $xil $path_sep] {
       set file [file normalize [file join $path "lib" $platform $lib_name]]
@@ -1729,7 +1732,7 @@ proc get_simulator_lib_for_bfm { simulator } {
       }
     }
   } else {
-    send_msg_id Vivado-projutils-058 ERROR "Environment variable 'XILINX' is not set!"
+    send_msg_id Vivado-projutils-058 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
   }
   return $simulator_lib
 }

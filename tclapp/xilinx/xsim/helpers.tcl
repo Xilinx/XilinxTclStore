@@ -109,9 +109,11 @@ proc usf_create_options { simulator opts } {
   # create options
   usf_create_fs_options_spec $simulator $opts
 
-  # simulation fileset objects
-  foreach fs_obj [get_filesets -filter {FILESET_TYPE == SimulationSrcs}] {
-    usf_set_fs_options $fs_obj $simulator $opts
+  if { ![get_property IS_READONLY [current_project]] } {
+    # simulation fileset objects
+    foreach fs_obj [get_filesets -filter {FILESET_TYPE == SimulationSrcs}] {
+      usf_set_fs_options $fs_obj $simulator $opts
+    }
   }
 }
 
