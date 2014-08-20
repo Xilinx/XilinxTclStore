@@ -1,6 +1,6 @@
 #######################################################################
 #
-# xsim.tcl (allow Tcl to find tclindex and provide package version 1.0)
+# xsim.tcl (allow Tcl to find tclindex and provide this package version)
 #
 #######################################################################
 namespace eval ::tclapp::xilinx::xsim {
@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::xsim {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::xsim 1.1
+package provide ::tclapp::xilinx::xsim 1.2
