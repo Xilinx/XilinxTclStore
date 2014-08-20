@@ -7,7 +7,9 @@ namespace eval ::tclapp::mycompany::myapp6 {
     
 proc ::tclapp::mycompany::myapp6::myproc1 {arg1 {optional1 ,}} {
 
-    # Summary : A one line summary of what this proc does
+    # Summary : 
+    # A one line summary of what this proc does
+    # In branch 8_19_2014
     
     # Argument Usage:
     # arg1 : A one line summary of this argument
