@@ -2,9 +2,9 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.1</revision>
-      <revision_history>Iter 3. Changed revision from 1.0 t o 1.1</revision_history>
-      <commit_id>e924f1cb60522bfe44a72bfcc51a37d4bcc4a1c7</commit_id>
+      <revision>1.2.1</revision>
+      <revision_history>Modify the summary in branch 8_19_2014.3</revision_history>
+      <commit_id>7a21576dd7b60d94fa60531df9677465703b1009</commit_id>
       <name>myapp6</name>
       <company>mycompany</company>
       <company_display>MY COMPANY</company_display>
