@@ -4,7 +4,7 @@
     <app>
       <revision>2.0</revision>
       <revision_history>Added deprecation msg for export_simulation</revision_history>
-      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
+      <commit_id>10f42e8eae1ebbe5eb683c7ac3f8d6aa15d32c7a</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

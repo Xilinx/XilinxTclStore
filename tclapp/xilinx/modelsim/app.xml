@@ -4,7 +4,7 @@
     <app>
       <revision>1.1</revision>
       <revision_history>consider system verilog files from IP</revision_history>
-      <commit_id>503d29417f8318fb9f16e999a71d4e981ca64875</commit_id>
+      <commit_id>10f42e8eae1ebbe5eb683c7ac3f8d6aa15d32c7a</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
