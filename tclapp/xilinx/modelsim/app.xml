@@ -4,7 +4,7 @@
     <app>
       <revision>1.2</revision>
       <revision_history>Applied read-only check while setting project properties</revision_history>
-      <commit_id>14b0d6eddb79a35d9b2d022ce6fcb6c3dce5ee8a</commit_id>
+      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
