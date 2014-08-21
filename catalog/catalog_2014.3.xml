@@ -48,11 +48,11 @@
       <revision>2.1</revision>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
       <company>xilinx</company>
       <display>Incisive&amp;reg; Enterprise Simulator IES</display>
       <name>ies</name>
-      <revision>1.1</revision>
+      <revision>1.2</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
@@ -63,19 +63,19 @@
       <revision>1.0</revision>
     </app>
     <app>
-      <commit_id>503d29417f8318fb9f16e999a71d4e981ca64875</commit_id>
+      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
       <company>xilinx</company>
       <display>ModelSim/QuestaSim Simulator</display>
       <name>modelsim</name>
-      <revision>1.1</revision>
+      <revision>1.2</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
+      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
       <company>xilinx</company>
       <display>Project Utilities</display>
       <name>projutils</name>
-      <revision>2.0</revision>
+      <revision>2.1</revision>
     </app>
     <app>
       <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
@@ -92,19 +92,19 @@
       <revision>1.2</revision>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
       <company>xilinx</company>
       <display>Verilog Compiler Simulator VCS&amp;reg;</display>
       <name>vcs</name>
-      <revision>1.1</revision>
+      <revision>1.2</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
       <company>xilinx</company>
       <display>Vivado Simulator</display>
       <name>xsim</name>
-      <revision>1.1</revision>
+      <revision>1.2</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
   </apps>
