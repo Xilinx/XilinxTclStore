@@ -4,7 +4,7 @@
     <app>
       <revision>1.3</revision>
       <revision_history>Set current design before writing netlist</revision_history>
-      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
+      <commit_id>5841bc37f8f46f8acdeb574e26aeb63084fe4268</commit_id>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
