@@ -433,7 +433,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
 
   usf_modelsim_write_header $fh $do_file
-  usf_add_quit_on_error $fh
+  usf_add_quit_on_error $fh "compile"
 
   puts $fh "vlib work"
   puts $fh "vlib msim\n"
@@ -533,7 +533,7 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
   }
 
   usf_modelsim_write_header $fh $do_file
-  usf_add_quit_on_error $fh
+  usf_add_quit_on_error $fh "elaborate"
 
   set cmd_str [usf_modelsim_get_elaboration_cmdline]
   puts $fh "$cmd_str"
@@ -705,7 +705,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
   usf_modelsim_create_wave_do_file $wave_do_file
   set cmd_str [usf_modelsim_get_simulation_cmdline]
-  usf_add_quit_on_error $fh
+  usf_add_quit_on_error $fh "simulate"
 
   puts $fh "$cmd_str"
   puts $fh "\ndo \{$wave_do_filename\}"
@@ -1005,7 +1005,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
   }
 }
 
-proc usf_add_quit_on_error { fh } {
+proc usf_add_quit_on_error { fh step } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1013,15 +1013,20 @@ proc usf_add_quit_on_error { fh } {
   set b_batch        $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
 
-  if { ![get_param "simulator.modelsimNoQuitOnError"] } {
+  if { ({compile} == $step) || ({elaborate} == $step) } {
     puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}\n"
-  }
+  } elseif { ({simulate} == $step) } {
+    if { ![get_param "simulator.modelsimNoQuitOnError"] } {
+      puts $fh "onbreak {quit -f}"
+      puts $fh "onerror {quit -f}\n"
+    } 
 
-  # quit on error always for batch/scripts only and when param is true
-  if { ($b_batch || $b_scripts_only) && ([get_param "simulator.modelsimNoQuitOnError"])  } {
-    puts $fh "onbreak {quit -f}"
-    puts $fh "onerror {quit -f}\n"
+    # quit on error always for batch/scripts only and when param is true
+    if { ($b_batch || $b_scripts_only) && ([get_param "simulator.modelsimNoQuitOnError"])  } {
+      puts $fh "onbreak {quit -f}"
+      puts $fh "onerror {quit -f}\n"
+    }
   }
 }
 }

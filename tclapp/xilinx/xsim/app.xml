@@ -2,8 +2,8 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.2</revision>
-      <revision_history>Applied read-only check while setting project properties</revision_history>
+      <revision>1.3</revision>
+      <revision_history>Set current design before writing netlist</revision_history>
       <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>

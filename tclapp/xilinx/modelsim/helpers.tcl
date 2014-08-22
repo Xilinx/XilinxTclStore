@@ -338,6 +338,7 @@ proc usf_write_design_netlist {} {
   set netlist_cmd_args [usf_get_netlist_writer_cmd_args $extn]
   set sdf_cmd_args     [usf_get_sdf_writer_cmd_args]
   set design_mode      [get_property DESIGN_MODE [current_fileset]]
+  set netlist          "netlist_1"
 
   # check run status
   switch -regexp -- $a_sim_vars(s_simulation_flow) {
@@ -356,11 +357,13 @@ proc usf_write_design_netlist {} {
 
       if { {RTL} == $design_mode } {
         set synth_run [current_run -synthesis]
-        if { [catch {open_run $synth_run -name netlist_1} open_error] } {
+        if { [catch {open_run $synth_run -name $netlist} open_error] } {
           #send_msg_id USF-ModelSim-028 WARNING "open_run failed:$open_err"
+        } else {
+          current_design $netlist
         }
       } elseif { {GateLvl} == $design_mode } {
-        link_design -name netlist_1
+        link_design -name $netlist
       } else {
         send_msg_id USF-ModelSim-028 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
         return 1
@@ -400,8 +403,10 @@ proc usf_write_design_netlist {} {
         }
       }
 
-      if { [catch {open_run $impl_run -name netlist_1} open_err] } {
+      if { [catch {open_run $impl_run -name $netlist} open_err] } {
         #send_msg_id USF-ModelSim-028 WARNING "open_run failed:$open_err"
+      } else {
+        current_design $impl_run
       }
       send_msg_id USF-ModelSim-032 INFO "Writing simulation netlist file..."
 
