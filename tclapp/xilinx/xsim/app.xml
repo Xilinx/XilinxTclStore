@@ -4,7 +4,7 @@
     <app>
       <revision>1.4</revision>
       <revision_history>Use current design in memory if present for writing netlist</revision_history>
-      <commit_id>bd64bf4e6e8a57dffa432b8ccd2a7a57dff287dd</commit_id>
+      <commit_id>8ac2928ee76b81820436158e465e5140d2f0a89e</commit_id>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
