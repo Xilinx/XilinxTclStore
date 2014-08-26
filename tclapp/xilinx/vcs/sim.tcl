@@ -225,6 +225,8 @@ proc usf_vcs_write_setup_files {} {
 
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
+  set sim_flow $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set filename "synopsys_sim.setup"
   set file [file normalize [file join $dir $filename]]
   set fh 0
@@ -240,6 +242,20 @@ proc usf_vcs_write_setup_files {} {
   set libs [list]
   set global_files_str {}
   set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
+
+  # unifast
+  set b_compile_unifast [get_property "VCS.ELABORATE.UNIFAST" $fs_obj]
+  if { ([::tclapp::xilinx::vcs::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
+      puts $fh "unifast : $lib_map_path/unifast"
+    }
+  }
+  if { ([::tclapp::xilinx::vcs::usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast } {
+      puts $fh "unifast_ver : $lib_map_path/unifast_ver"
+    }
+  }
+
   set design_libs [usf_vcs_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }

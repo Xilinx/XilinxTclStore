@@ -338,7 +338,6 @@ proc usf_write_design_netlist {} {
   set netlist_cmd_args [usf_get_netlist_writer_cmd_args $extn]
   set sdf_cmd_args     [usf_get_sdf_writer_cmd_args]
   set design_mode      [get_property DESIGN_MODE [current_fileset]]
-  set netlist          "netlist_1"
 
   # check run status
   switch -regexp -- $a_sim_vars(s_simulation_flow) {
@@ -357,19 +356,37 @@ proc usf_write_design_netlist {} {
 
       if { {RTL} == $design_mode } {
         set synth_run [current_run -synthesis]
-        if { [catch {open_run $synth_run -name $netlist} open_error] } {
-          #send_msg_id USF-VCS-028 WARNING "open_run failed:$open_err"
+        set netlist $synth_run 
+        # is design for the current synth run already opened in memory?
+        set synth_design [get_design -quiet $synth_run]
+        if { {} != $synth_design } {
+          # design already opened, set it current
+          current_design $synth_design
         } else {
-          current_design $netlist
+          if { [catch {open_run $synth_run -name $netlist} open_error] } {
+            #send_msg_id USF-VCS-028 WARNING "open_run failed:$open_err"
+          } else {
+            current_design $netlist
+          }
         }
       } elseif { {GateLvl} == $design_mode } {
-        link_design -name $netlist
+        set netlist "rtl_1"
+        # is design already opened in memory?
+        set synth_design [get_design -quiet $netlist]
+        if { {} != $synth_design } {
+          # design already opened, set it current
+          current_design $synth_design
+        } else {
+          # open the design
+          link_design -name $netlist
+        }
       } else {
         send_msg_id USF-VCS-028 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
         return 1
       }
 
-      send_msg_id USF-VCS-029 INFO "Writing simulation netlist file..."
+      set design_in_memory [current_design]
+      send_msg_id USF-VCS-029 INFO "Writing simulation netlist file for design '$design_in_memory'..."
       # write netlist/sdf
       set wv_args "-nolib $netlist_cmd_args -file $net_file"
       if { {functional} == $a_sim_vars(s_type) } {
@@ -394,6 +411,7 @@ proc usf_write_design_netlist {} {
     }
     {post_impl_sim} {
       set impl_run [current_run -implementation]
+      set netlist $impl_run
       if { [get_param "project.checkRunResultsForUnifiedSim"] } {
         set status [get_property "STATUS" $impl_run]
         if { ![get_property can_open_results $impl_run] } {
@@ -403,12 +421,21 @@ proc usf_write_design_netlist {} {
         }
       }
 
-      if { [catch {open_run $impl_run -name $netlist} open_error] } {
-        #send_msg_id USF-VCS-028 WARNING "open_run failed:$open_err"
+      # is design for the current impl run already opened in memory?
+      set impl_design [get_design -quiet $impl_run]
+      if { {} != $impl_design } {
+        # design already opened, set it current
+        current_design $impl_design
       } else {
-        current_design $impl_run
+        if { [catch {open_run $impl_run -name $netlist} open_error] } {
+          #send_msg_id USF-VCS-028 WARNING "open_run failed:$open_err"
+        } else {
+          current_design $impl_run
+        }
       }
-      send_msg_id USF-VCS-032 INFO "Writing simulation netlist file..."
+
+      set design_in_memory [current_design]
+      send_msg_id USF-VCS-032 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
       set wv_args "-nolib $netlist_cmd_args -file $net_file"

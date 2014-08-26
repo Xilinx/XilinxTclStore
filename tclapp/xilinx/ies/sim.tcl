@@ -489,7 +489,7 @@ proc usf_ies_write_elaborate_script {} {
   }
 
   # behavioral simulation
-  set b_compile_unifast [get_property "IES.COMPILE.UNIFAST" $fs_obj]
+  set b_compile_unifast [get_property "IES.ELABORATE.UNIFAST" $fs_obj]
 
   if { ([::tclapp::xilinx::ies::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
