@@ -1164,7 +1164,7 @@ proc usf_launch_script { simulator step } {
   set faulty_run 0
   set cwd [pwd]
   cd $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
-  send_msg_id USF-XSim-061 INFO "Executing '[string toupper $step]' step"
+  send_msg_id USF-XSim-061 INFO "Executing '[string toupper $step]' step in '$run_dir'"
   switch $step {
     {compile} -
     {elaborate} {

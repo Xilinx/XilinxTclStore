@@ -1343,7 +1343,7 @@ proc usf_launch_script { simulator step } {
   set faulty_run 0
   set cwd [pwd]
   cd $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
-  send_msg_id USF-IES-063 INFO "Executing '[string toupper $step]' step"
+  send_msg_id USF-IES-063 INFO "Executing '[string toupper $step]' step in '$run_dir'"
   switch $step {
     {compile} -
     {elaborate} {
