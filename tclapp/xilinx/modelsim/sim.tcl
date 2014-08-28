@@ -76,12 +76,25 @@ proc simulate { args } {
   # Return Value:
   # none
 
+  set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+
   send_msg_id USF-ModelSim-004 INFO "ModelSim::Simulate design"
   usf_modelsim_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::modelsim::usf_launch_script "modelsim" $step
+
+  if { $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only) } {
+    set fh 0
+    set file [file normalize [file join $dir "simulate.log"]]
+    if {[catch {open $file w} fh]} {
+      send_msg_id USF-ModelSim-016 ERROR "Failed to open file to write ($file)\n"
+    } else {
+      puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
+      close $fh
+    }
+  }
 }
 }
 

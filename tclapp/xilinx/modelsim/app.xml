@@ -2,8 +2,8 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.5</revision>
-      <revision_history>Check for sources type and do not construct PRJ if none found</revision_history>
+      <revision>1.6</revision>
+      <revision_history>Generate simulate.log file for printing script generation msg in log window</revision_history>
       <commit_id>e33403706b37d6d91e436911b087a531fb8c5523</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
