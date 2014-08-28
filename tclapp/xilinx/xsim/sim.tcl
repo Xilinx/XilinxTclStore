@@ -267,66 +267,15 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
   set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
- 
-  set vlog_filename ${top};append vlog_filename "_vlog.prj"
-  set vlog_file [file normalize [file join $dir $vlog_filename]]
-  set fh_vlog 0
-  if {[catch {open $vlog_file w} fh_vlog]} {
-    send_msg_id USF-XSim-012 ERROR "Failed to open file to write ($vlog_file)\n"
-    return 1
-  }
- 
-  set vhdl_filename ${top};append vhdl_filename "_vhdl.prj"
-  set vhdl_file [file normalize [file join $dir $vhdl_filename]]
-  set fh_vhdl 0
-  if {[catch {open $vhdl_file w} fh_vhdl]} {
-    send_msg_id USF-XSim-013 ERROR "Failed to open file to write ($vhdl_file)\n"
-    return 1
-  }
- 
+
   set global_files_str {}
   set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
-  puts $fh_vlog "# compile verilog/system verilog design source files"
-  puts $fh_vhdl "# compile vhdl design source files"
-  foreach file $design_files {
-    set type    [lindex [split $file {#}] 0]
-    set lib     [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
-    switch $type {
-      {VERILOG} { puts $fh_vlog $cmd_str }
-      {VHDL}    { puts $fh_vhdl $cmd_str }
-      default   { 
-        send_msg_id USF-XSim-014 ERROR "Unknown filetype '$type':$file\n"
-      }
-    }
-  }
- 
-  # compile glbl file
-  set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $design_files] } {
-    set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
-    ::tclapp::xilinx::xsim::usf_copy_glbl_file
-    set file_str "$top_lib \"glbl.v\""
-    puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
-  }
+  set b_contain_verilog_srcs [::tclapp::xilinx::xsim::usf_contains_verilog $design_files]
+  set b_contain_vhdl_srcs    [::tclapp::xilinx::xsim::usf_contains_vhdl $design_files]
 
   # set param to force nosort (default is false)
   set nosort_param [get_param "simulation.donotRecalculateCompileOrderForXSim"] 
-
-  # nosort? (verilog)
-  set b_no_sort [get_property "XSIM.COMPILE.XVLOG.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-  if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
-    puts $fh_vlog "\n# Do not sort compile order\nnosort"
-  }
-
-  # nosort? (vhdl)
-  set b_no_sort [get_property "XSIM.COMPILE.XVHDL.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-  if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
-    puts $fh_vhdl "\n# Do not sort compile order\nnosort"
-  }
-    
-  close $fh_vlog
-  close $fh_vhdl
+  set log_filename "compile.log"
 
   # write compile.sh/.bat
   set scr_filename "compile";append scr_filename [::tclapp::xilinx::xsim::usf_get_script_extn]
@@ -348,33 +297,115 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     set s_dbg_sw {-dbg}
   }
 
-  set xvlog_arg_list [list "$s_plat_sw" "-prj" "$vlog_filename"]
-  set more_xvlog_options [string trim [get_property "XSIM.COMPILE.XVLOG.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_xvlog_options } {
-    set xvlog_arg_list [linsert $xvlog_arg_list end "$more_xvlog_options"]
-  }
-  set xvlog_cmd_str [join $xvlog_arg_list " "]
-
-  set xvhdl_arg_list [list "$s_plat_sw" "-prj" "$vhdl_filename"]
-  set more_xvhdl_options [string trim [get_property "XSIM.COMPILE.XVHDL.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_xvhdl_options } {
-    set xvhdl_arg_list [linsert $xvhdl_arg_list end "$more_xvhdl_options"]
-  }
-  set xvhdl_cmd_str [join $xvhdl_arg_list " "]
- 
   if {$::tcl_platform(platform) == "unix"} {
-    set redirect_cmd_str "2>&1 | tee -a compile.log"
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
-    puts $fh_scr "ExecStep \$xv_path/bin/xvlog $xvlog_cmd_str $redirect_cmd_str" 
-    puts $fh_scr "ExecStep \$xv_path/bin/xvhdl $xvhdl_cmd_str $redirect_cmd_str" 
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
-    puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw $xvlog_cmd_str -log compile.log"
-    puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
-    puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw $xvhdl_cmd_str"
+  }
+
+  # write verilog prj if design contains verilog sources 
+  if { $b_contain_verilog_srcs } {
+    set vlog_filename ${top};append vlog_filename "_vlog.prj"
+    set vlog_file [file normalize [file join $dir $vlog_filename]]
+    set fh_vlog 0
+    if {[catch {open $vlog_file w} fh_vlog]} {
+      send_msg_id USF-XSim-012 ERROR "Failed to open file to write ($vlog_file)\n"
+      return 1
+    }
+    puts $fh_vlog "# compile verilog/system verilog design source files"
+    foreach file $design_files {
+      set type    [lindex [split $file {#}] 0]
+      set lib     [lindex [split $file {#}] 1]
+      set cmd_str [lindex [split $file {#}] 2]
+      switch $type {
+        {VERILOG} { puts $fh_vlog $cmd_str }
+      }
+    }
+    # compile glbl file
+    set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
+    if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $design_files] } {
+      set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
+      ::tclapp::xilinx::xsim::usf_copy_glbl_file
+      set file_str "$top_lib \"glbl.v\""
+      puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
+    }
+
+    # nosort? (verilog)
+    set b_no_sort [get_property "XSIM.COMPILE.XVLOG.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
+    if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
+      puts $fh_vlog "\n# Do not sort compile order\nnosort"
+    }
+    close $fh_vlog
+
+    set xvlog_arg_list [list "$s_plat_sw" "-prj" "$vlog_filename"]
+    set more_xvlog_options [string trim [get_property "XSIM.COMPILE.XVLOG.MORE_OPTIONS" $fs_obj]]
+    if { {} != $more_xvlog_options } {
+      set xvlog_arg_list [linsert $xvlog_arg_list end "$more_xvlog_options"]
+    }
+    set xvlog_cmd_str [join $xvlog_arg_list " "]
+
+    set cmd "xvlog $xvlog_cmd_str"
+    puts $fh_scr "echo \"$cmd\""
+
+    if {$::tcl_platform(platform) == "unix"} {
+      set log_cmd_str $log_filename
+      set full_cmd "\$xv_path/bin/xvlog $xvlog_cmd_str 2>&1 | tee $log_cmd_str"
+      puts $fh_scr "ExecStep $full_cmd"
+    } else {
+      set log_cmd_str " -log $log_filename"
+      puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw $xvlog_cmd_str$log_cmd_str"
+    }
+  }
+  
+  # write vhdl prj if design contains vhdl sources 
+  if { $b_contain_vhdl_srcs } {
+    set vhdl_filename ${top};append vhdl_filename "_vhdl.prj"
+    set vhdl_file [file normalize [file join $dir $vhdl_filename]]
+    set fh_vhdl 0
+    if {[catch {open $vhdl_file w} fh_vhdl]} {
+      send_msg_id USF-XSim-013 ERROR "Failed to open file to write ($vhdl_file)\n"
+      return 1
+    }
+    puts $fh_vhdl "# compile vhdl design source files"
+    foreach file $design_files {
+      set type    [lindex [split $file {#}] 0]
+      set lib     [lindex [split $file {#}] 1]
+      set cmd_str [lindex [split $file {#}] 2]
+      switch $type {
+        {VHDL}    { puts $fh_vhdl $cmd_str }
+      }
+    }
+    # nosort? (vhdl)
+    set b_no_sort [get_property "XSIM.COMPILE.XVHDL.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
+    if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
+      puts $fh_vhdl "\n# Do not sort compile order\nnosort"
+    }
+    close $fh_vhdl
+
+    set xvhdl_arg_list [list "$s_plat_sw" "-prj" "$vhdl_filename"]
+    set more_xvhdl_options [string trim [get_property "XSIM.COMPILE.XVHDL.MORE_OPTIONS" $fs_obj]]
+    if { {} != $more_xvhdl_options } {
+      set xvhdl_arg_list [linsert $xvhdl_arg_list end "$more_xvhdl_options"]
+    }
+    set xvhdl_cmd_str [join $xvhdl_arg_list " "]
+
+    set cmd "xvhdl $xvhdl_cmd_str"
+    puts $fh_scr "echo \"$cmd\""
+
+    if {$::tcl_platform(platform) == "unix"} {
+      set log_cmd_str $log_filename
+      set full_cmd "\$xv_path/bin/xvhdl $xvhdl_cmd_str 2>&1 | tee $log_cmd_str"
+      puts $fh_scr "ExecStep $full_cmd"
+    } else {
+      set log_cmd_str " -log $log_filename"
+      puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw $xvhdl_cmd_str$log_cmd_str"
+    }
+  }
+
+  if {$::tcl_platform(platform) != "unix"} {
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
@@ -523,6 +554,8 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
     # scripts only
   } else {
+    set step "simulate"
+    send_msg_id USF-XSim-061 INFO "Executing '[string toupper $step]' step in '$dir'"
     send_msg_id USF-XSim-098 INFO   "*** Running xsim\n"
     send_msg_id USF-XSim-099 STATUS "   with args \"$cmd_args\"\n"
   }
