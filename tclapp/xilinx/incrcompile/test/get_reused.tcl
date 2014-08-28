@@ -1,7 +1,6 @@
 # Set the File Directory to the current directory location of the script
 set file_dir [file normalize [file dirname [info script]]]
 set unit_test [file rootname [file tail [info script]]]
-device_enable -enable xc7v285tffg1761-1
 
 # Set the Xilinx Tcl App Store Repository to the current repository location
 puts "== Unit Test directory: $file_dir"
