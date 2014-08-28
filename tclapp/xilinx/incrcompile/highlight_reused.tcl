@@ -4,29 +4,72 @@ namespace eval ::tclapp::xilinx::incrcompile {
     namespace export highlight_reused
 }
 
-proc ::tclapp::xilinx::incrcompile::highlight_reused { object {reuse_category ""}} {
+proc ::tclapp::xilinx::incrcompile::highlight_reused { args } {
   # Summary : highlight reused objects
 
   # Argument Usage:
-  #  object : The object type. The valid values are : -cells -nets -pins -ports -sites
-  #  reuse_category : The valid values are : -fully -partially. This argument is allowed only with object type of -nets or -sites
+  # [-cells]: Highlight reused cells
+  # [-ports]: Highlight reused ports
+  # [-sites]: Highlight reused sites
+  # [-nets] : Highlight reused nets
+  # [-pins] : Highlight reused pins
+  # [-color <arg> = green]: Specify color for reused objects
+  # [-reuse_category <arg> = all]: Type of template to create: all, fully or partially
+  # [-usage]: Usage information
 
   # Return Value:
-  # none, objects are highlighted with different colors on GUI
+  # none, objects are highlighted with specified color on GUI
 
   # Categories: xilinxtclstore, incrcompile
 
-  if { $object ne "-cells" && $object ne "-nets" && $object ne "-pins" && $object ne "-ports" && $object ne "-sites" } {
-    puts "Error: Illegal value for argument object, valid values are : -cells -nets -pins -ports -sites"
-    return
+  #-------------------------------------------------------
+  # Process command line arguments
+  #-------------------------------------------------------
+  set object {}
+  set type {}
+  set help 0
+  set color {green}
+  set myargs $args
+
+  while {[llength $args]} {
+    set name [lshift args]
+    switch -regexp -- $name {
+      -color -
+      {^-co(l(or?)?)?$} {
+         set color [string tolower [lshift args]]
+      }
+      -usage -
+      {^-u(s(a(ge?)?)?)?$} {
+         set help 1
+      }
+      default {
+      }
+    }
   }
-  if { $reuse_category ne "" && ($object ne "-nets" && $object ne "-sites") } {
-    puts "Error: Illegal use of argument reuse_category, reuse_category is allowed only with either -sites or -nets"
-    return
+  if {$help} {
+    puts [format {
+  Usage: highlight_reused
+              [-cells]             - Highlight reused cells
+              [-sites]             - Highlight reused sites
+              [-ports]             - Highlight reused ports
+              [-nets]              - Highlight reused nets
+              [-pins]              - Highlight reused pins
+              [-reuse_category]    - Specify reuse category. Valid values are all, fully or partially.
+              [-color <arg>=green] - Specify color for reused objects
+              [-usage|-u]          - This help message
+
+  Description: Highlight reused objects
+  Example:
+     highlight_reused -cells
+     highlight_reused -nets
+     highlight_reused -sites -reuse_category fully
+} ]
+    # HELP -->
+    return {}
   }
-  if { $reuse_category ne "" && $reuse_category ne "-fully" && $reuse_category ne "-partially"} {
-    puts "Error: Illegal value for argument reuse_category, valid values are : -fully -partially"
-    return
-  }
-  highlight_objects -color green [get_reused $object $reuse_category]
+
+  #-------------------------------------------------------
+  # Highlight reused objects
+  #-------------------------------------------------------
+  highlight_objects -color $color [uplevel ::tclapp::xilinx::incrcompile::get_reused $myargs]
 }
