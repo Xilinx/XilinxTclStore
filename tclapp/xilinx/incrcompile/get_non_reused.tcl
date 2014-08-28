@@ -38,7 +38,7 @@ proc ::tclapp::xilinx::incrcompile::get_non_reused { args } {
       -cells -
       {^-c(e(l(ls?)?)?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -cells cannot be used together."
+             puts "-E- -$object and -cells cannot be used together."
              incr error
            }
            set object {cells}
@@ -46,7 +46,7 @@ proc ::tclapp::xilinx::incrcompile::get_non_reused { args } {
       -pins -
       {^-pi(ns?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -pins cannot be used together."
+             puts "-E- -$object and -pins cannot be used together."
              incr error
            }
            set object {pins}
@@ -54,7 +54,7 @@ proc ::tclapp::xilinx::incrcompile::get_non_reused { args } {
       -nets -
       {^-n(e(ts?)?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -nets cannot be used together."
+             puts "-E- -$object and -nets cannot be used together."
              incr error
            }
            set object {nets}
@@ -62,7 +62,7 @@ proc ::tclapp::xilinx::incrcompile::get_non_reused { args } {
       -sites -
       {^-s(i(t(es?)?)?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -sites cannot be used together."
+             puts "-E- -$object and -sites cannot be used together."
              incr error
            }
            set object {sites}
@@ -70,7 +70,7 @@ proc ::tclapp::xilinx::incrcompile::get_non_reused { args } {
       -ports -
       {^-po(r(ts?)?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -ports cannot be used together."
+             puts "-E- -$object and -ports cannot be used together."
              incr error
            }
            set object {ports}
@@ -87,7 +87,7 @@ proc ::tclapp::xilinx::incrcompile::get_non_reused { args } {
     }
   }
   if { $object eq "" } {
-    puts "Error: Please specify object type."
+    puts "-E- Please specify object type."
     incr error
   }
   if {$help} {

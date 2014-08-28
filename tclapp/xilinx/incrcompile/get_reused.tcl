@@ -13,7 +13,7 @@ proc ::tclapp::xilinx::incrcompile::get_reused { args } {
   # [-sites]: Get reused sites
   # [-nets]: Get reused nets
   # [-pins]: Get reused pins
-  # [-reuse_category <arg> = all]: Type of template to create: all, fully or partially
+  # [-reuse_category <arg> = all]: Specify reuse category, valid values are all, fully or partially
   # [-usage]: Usage information
 
   # Return Value:
@@ -51,7 +51,7 @@ proc ::tclapp::xilinx::incrcompile::get_reused { args } {
       -cells -
       {^-c(e(l(ls?)?)?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -cells cannot be used together."
+             puts "-E- -$object and -cells cannot be used together."
              incr error
            }
            set object {cells}
@@ -59,7 +59,7 @@ proc ::tclapp::xilinx::incrcompile::get_reused { args } {
       -pins -
       {^-pi(ns?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -pins cannot be used together."
+             puts "-E- -$object and -pins cannot be used together."
              incr error
            }
            set object {pins}
@@ -67,7 +67,7 @@ proc ::tclapp::xilinx::incrcompile::get_reused { args } {
       -nets -
       {^-n(e(ts?)?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -nets cannot be used together."
+             puts "-E- -$object and -nets cannot be used together."
              incr error
            }
            set object {nets}
@@ -75,7 +75,7 @@ proc ::tclapp::xilinx::incrcompile::get_reused { args } {
       -sites -
       {^-s(i(t(es?)?)?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -sites cannot be used together."
+             puts "-E- -$object and -sites cannot be used together."
              incr error
            }
            set object {sites}
@@ -83,7 +83,7 @@ proc ::tclapp::xilinx::incrcompile::get_reused { args } {
       -ports -
       {^-po(r(ts?)?)?$} {
            if { $object ne "" } {
-             puts "Error: -$object and -ports cannot be used together."
+             puts "-E- -$object and -ports cannot be used together."
              incr error
            }
            set object {ports}
@@ -100,14 +100,14 @@ proc ::tclapp::xilinx::incrcompile::get_reused { args } {
     }
   }
   if { $type ne "" && ($object ne "nets" && $object ne "sites") } {
-    puts "Error: Illegal use of argument reuse_category, reuse_category is allowed only with either -sites or -nets."
+    puts "-E- Illegal use of argument reuse_category, reuse_category is allowed only with either -sites or -nets."
     incr error
   }
   if { $type eq "" && ($object eq "nets" || $object eq "sites") } {
     set type "all"
   }
   if { $object eq "" } {
-    puts "Error: Please specify object type."
+    puts "-E- Please specify object type."
     incr error
   }
   if {$help} {

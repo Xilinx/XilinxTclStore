@@ -14,7 +14,7 @@ proc ::tclapp::xilinx::incrcompile::highlight_reused { args } {
   # [-nets] : Highlight reused nets
   # [-pins] : Highlight reused pins
   # [-color <arg> = green]: Specify color for reused objects
-  # [-reuse_category <arg> = all]: Type of template to create: all, fully or partially
+  # [-reuse_category <arg> = all]: Specify reuse category, valid values are all, fully or partially
   # [-usage]: Usage information
 
   # Return Value:
