@@ -14,14 +14,14 @@
     </app>
     <app>
       <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>mycomapny</company>
+      <company>mycompany</company>
       <display>My App #4</display>
       <name>myapp4</name>
       <revision>1.0</revision>
     </app>
     <app>
       <commit_id></commit_id>
-      <company>mycomapny</company>
+      <company>mycompany</company>
       <display>My App #5</display>
       <name>myapp5</name>
       <revision>1.0</revision>
