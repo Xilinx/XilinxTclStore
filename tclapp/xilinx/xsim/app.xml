@@ -4,7 +4,7 @@
     <app>
       <revision>1.5</revision>
       <revision_history>Check for sources type and do not construct PRJ if none found</revision_history>
-      <commit_id>6286e7c3ce81425a8284367fb40a109d54575c86</commit_id>
+      <commit_id>e33403706b37d6d91e436911b087a531fb8c5523</commit_id>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
