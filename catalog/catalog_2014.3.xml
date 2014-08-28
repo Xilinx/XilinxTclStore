@@ -14,14 +14,14 @@
     </app>
     <app>
       <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
-      <company>mycompany</company>
+      <company>mycomapny</company>
       <display>My App #4</display>
       <name>myapp4</name>
       <revision>1.0</revision>
     </app>
     <app>
       <commit_id></commit_id>
-      <company>mycompany</company>
+      <company>mycomapny</company>
       <display>My App #5</display>
       <name>myapp5</name>
       <revision>1.0</revision>
@@ -48,11 +48,11 @@
       <revision>2.1</revision>
     </app>
     <app>
-      <commit_id>8ac2928ee76b81820436158e465e5140d2f0a89e</commit_id>
+      <commit_id>e33403706b37d6d91e436911b087a531fb8c5523</commit_id>
       <company>xilinx</company>
       <display>Incisive&amp;reg; Enterprise Simulator IES</display>
       <name>ies</name>
-      <revision>1.4</revision>
+      <revision>1.5</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
@@ -70,11 +70,11 @@
       <revision>1.0</revision>
     </app>
     <app>
-      <commit_id>8ac2928ee76b81820436158e465e5140d2f0a89e</commit_id>
+      <commit_id>e33403706b37d6d91e436911b087a531fb8c5523</commit_id>
       <company>xilinx</company>
       <display>ModelSim/QuestaSim Simulator</display>
       <name>modelsim</name>
-      <revision>1.4</revision>
+      <revision>1.5</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
@@ -99,19 +99,19 @@
       <revision>1.2</revision>
     </app>
     <app>
-      <commit_id>8ac2928ee76b81820436158e465e5140d2f0a89e</commit_id>
+      <commit_id>e33403706b37d6d91e436911b087a531fb8c5523</commit_id>
       <company>xilinx</company>
       <display>Verilog Compiler Simulator VCS&amp;reg;</display>
       <name>vcs</name>
-      <revision>1.4</revision>
+      <revision>1.5</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>8ac2928ee76b81820436158e465e5140d2f0a89e</commit_id>
+      <commit_id>e33403706b37d6d91e436911b087a531fb8c5523</commit_id>
       <company>xilinx</company>
       <display>Vivado Simulator</display>
       <name>xsim</name>
-      <revision>1.4</revision>
+      <revision>1.5</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
   </apps>
