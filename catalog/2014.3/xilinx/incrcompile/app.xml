@@ -2,9 +2,9 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.0</revision>
-      <revision_history>Creating incrcompile app.</revision_history>
-      <commit_id>95d14f9054e9571e5200d786efd862047550be78</commit_id>
+      <revision>1.1</revision>
+      <revision_history>Fixing issues with arguments of procs</revision_history>
+      <commit_id>9c9d7bb1e1b92d87a648624f516fb8993b344f60</commit_id>
       <name>incrcompile</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

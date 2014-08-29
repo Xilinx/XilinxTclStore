@@ -2,9 +2,9 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.5</revision>
-      <revision_history>Check for sources type and do not construct PRJ if none found</revision_history>
-      <commit_id>e33403706b37d6d91e436911b087a531fb8c5523</commit_id>
+      <revision>1.6</revision>
+      <revision_history>Generate simulate.log file for printing script generation msg in log window</revision_history>
+      <commit_id>9c9d7bb1e1b92d87a648624f516fb8993b344f60</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
