@@ -15,7 +15,7 @@
         <proc>
           <name>analyze_critical_path</name>
           <summary>highlight reused pins of given timing paths given by &apos;get_timing_paths&apos; command 
-Example: 'analyze_critical_path [get_timing_paths -max_paths 5] result1'</summary>
+Example: &apos;analyze_critical_path [get_timing_paths -max_paths 5] result1&apos;</summary>
         </proc>
         <proc>
           <name>get_non_reused</name>
