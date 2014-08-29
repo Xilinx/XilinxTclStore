@@ -2,8 +2,9 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.0</revision>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <revision>1.6</revision>
+      <revision_history>Generate simulate.log file for printing script generation msg in log window</revision_history>
+      <commit_id>9c9d7bb1e1b92d87a648624f516fb8993b344f60</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

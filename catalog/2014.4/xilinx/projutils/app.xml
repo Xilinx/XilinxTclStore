@@ -2,8 +2,9 @@
 <catalog>
   <apps>
     <app>
-      <revision>2.0</revision>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <revision>2.1</revision>
+      <revision_history>Print critical warning deprecation msg for export_simulation</revision_history>
+      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -13,7 +14,7 @@
       <procs>
         <proc>
           <name>export_simulation</name>
-          <summary>Generate design filelist for the specified simulator for standalone simulation</summary>
+          <summary>NOTE-&apos;export_simulation&apos; is deprecated, please use &apos;launch_simulation -scripts_only&apos; instead. Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
         </proc>
         <proc>
           <name>write_project_tcl</name>

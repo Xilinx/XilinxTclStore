@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision>1.1</revision>
+      <revision_history>Iter 3. Changed revision from 1.0 t o 1.1</revision_history>
+      <commit_id>e924f1cb60522bfe44a72bfcc51a37d4bcc4a1c7</commit_id>
+      <name>myapp6</name>
+      <company>mycompany</company>
+      <company_display>MY COMPANY</company_display>
+      <display>MY APP6</display>
+      <procs>
+        <proc>
+          <name>myproc1</name>
+          <summary>A one line summary of what this proc does</summary>
+        </proc>
+        <proc>
+          <name>myproc2</name>
+          <summary>A one line summary of what this proc does</summary>
+        </proc>
+        <proc>
+          <name>myproc3</name>
+          <summary>3_10_2014</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

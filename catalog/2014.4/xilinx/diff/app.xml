@@ -4,7 +4,7 @@
     <app>
       <revision>2.1</revision>
       <revision_history>Various Updates</revision_history>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
       <name>diff</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
@@ -13,7 +13,9 @@
       <procs>
         <proc>
           <name>activate_design</name>
-          <summary>Activates (makes active) the project and design of the number specified, options are 1 or 2.  The project and design are set via set_compare_objects (or open_checkpoints).</summary>
+          <summary>Activates (makes active) the project and design of the number specified, 
+options are 1 or 2.  The project and design are set via set_compare_objects 
+(or open_checkpoints).</summary>
         </proc>
         <proc>
           <name>assert_fail</name>
@@ -53,7 +55,14 @@
         </proc>
         <proc>
           <name>compare_designs</name>
-          <summary>References the design/project combinations set with set_compare_objects. Then a &apos;design_command&apos; is executed with each design being made active and the outputs of those commands are captured. Those outputs are then compared using the specified &apos;difference_command&apos;. The design/project values must have been set with set_compare_objects (or open_checkpoints) before executing this command.  e.g. open_checkpoints design1.dcp design2.dcp; # calls set_compare_objects for us and opens the DCPs compare_designs compare_lines { report_timing -return_string -max_paths 1000 }</summary>
+          <summary>References the design/project combinations set with set_compare_objects. Then a &apos;design_command&apos; 
+is executed with each design being made active and the outputs of those commands are captured. 
+Those outputs are then compared using the specified &apos;difference_command&apos;. The design/project 
+values must have been set with set_compare_objects (or open_checkpoints) before executing this command. 
+ 
+e.g. 
+open_checkpoints design1.dcp design2.dcp; # calls set_compare_objects for us and opens the DCPs 
+compare_designs compare_lines { report_timing -return_string -max_paths 1000 }</summary>
         </proc>
         <proc>
           <name>compare_dirs</name>
@@ -61,7 +70,9 @@
         </proc>
         <proc>
           <name>compare_files</name>
-          <summary>Compares file contents. Similar to the linux diff command. This algorithm is designed to be fast and does not find the best matches between files. For best matching use linux diff or the compare_lines_lcs command, but be aware: the compare_lines_lcs has a long runtime.</summary>
+          <summary>Compares file contents. Similar to the linux diff command. This algorithm is designed to be fast and 
+does not find the best matches between files. For best matching use linux diff or the compare_lines_lcs 
+command, but be aware: the compare_lines_lcs has a long runtime.</summary>
         </proc>
         <proc>
           <name>compare_lines</name>
@@ -77,7 +88,8 @@
         </proc>
         <proc>
           <name>compare_serialized_objects</name>
-          <summary>Compare serialized object properties. To serialize objects use the command serialize_objects. To read in objects that have been serialized to disk use serialize_from_file.</summary>
+          <summary>Compare serialized object properties. To serialize objects use the command serialize_objects. 
+To read in objects that have been serialized to disk use serialize_from_file.</summary>
         </proc>
         <proc>
           <name>compare_unordered_lists</name>
@@ -93,7 +105,8 @@
         </proc>
         <proc>
           <name>get_global_report</name>
-          <summary>Gets global report value. The output of this command is what resource will be used to output data if unique resources are not provided to the print_* commands.  Use set_global_report to change.</summary>
+          <summary>Gets global report value. The output of this command is what resource will be used to output data 
+if unique resources are not provided to the print_* commands.  Use set_global_report to change.</summary>
         </proc>
         <proc>
           <name>get_verbose</name>
@@ -101,11 +114,18 @@
         </proc>
         <proc>
           <name>html_escape</name>
-          <summary>Escapes all XML characters. &amp; = &amp;amp; &quot; = &amp;quot; &apos; = &amp;apos; &lt; = &amp;lt; &gt; = &amp;gt;</summary>
+          <summary>Escapes all XML characters. 
+&amp; = &amp;amp; 
+&quot; = &amp;quot; 
+&apos; = &amp;apos; 
+&lt; = &amp;lt; 
+&gt; = &amp;gt;</summary>
         </proc>
         <proc>
           <name>open_checkpoints</name>
-          <summary>Opens checkpoints while capturing the corresponding design and project objects. Channel is not specified here, and cannot be used with the design comparison flow. Use the set_global_report for controlling the outputs channel with design comparisons.</summary>
+          <summary>Opens checkpoints while capturing the corresponding design and project objects. 
+Channel is not specified here, and cannot be used with the design comparison flow. 
+Use the set_global_report for controlling the outputs channel with design comparisons.</summary>
         </proc>
         <proc>
           <name>print_alert</name>
@@ -193,7 +213,9 @@
         </proc>
         <proc>
           <name>set_global_report</name>
-          <summary>Sets global report file name and can be set to stdout or stderr. If not specified, then each print_* command requires a file name be provided to the channel argument. If the file name has the extension &apos;htm&apos; or &apos;html&apos;, then an HTML report will be generated.</summary>
+          <summary>Sets global report file name and can be set to stdout or stderr. If not specified, then each 
+print_* command requires a file name be provided to the channel argument. If the file name 
+has the extension &apos;htm&apos; or &apos;html&apos;, then an HTML report will be generated.</summary>
         </proc>
         <proc>
           <name>set_verbose</name>
@@ -201,7 +223,8 @@
         </proc>
         <proc>
           <name>unique_in_both_sets</name>
-          <summary>Find the unique items in set1 and in set2. Also known as the &apos;Symmetric Difference&apos; or (A\B) U (B\A) [ ( $set1 \ $set2 ) U ( $set2 \ $set1 ) ].</summary>
+          <summary>Find the unique items in set1 and in set2. Also known as the &apos;Symmetric Difference&apos; or 
+(A\B) U (B\A) [ ( $set1 \ $set2 ) U ( $set2 \ $set1 ) ].</summary>
         </proc>
         <proc>
           <name>unique_in_first_set</name>
