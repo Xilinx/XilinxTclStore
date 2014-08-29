@@ -4,7 +4,7 @@
     <app>
       <revision>1.7</revision>
       <revision_history>call get_files with the new used_in flag to pull source set files for post* simulation</revision_history>
-      <commit_id>9c9d7bb1e1b92d87a648624f516fb8993b344f60</commit_id>
+      <commit_id>d80587639ede7c0d7eccbea1c3a56dea4b4767cb</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
