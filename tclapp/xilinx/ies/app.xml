@@ -4,7 +4,7 @@
     <app>
       <revision>1.6</revision>
       <revision_history>Generate simulate.log file for printing script generation msg in log window</revision_history>
-      <commit_id>a41843c0d34f79d6a894ee1e3e51515bde5c0630</commit_id>
+      <commit_id>9c9d7bb1e1b92d87a648624f516fb8993b344f60</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
