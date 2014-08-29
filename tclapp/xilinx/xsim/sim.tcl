@@ -85,6 +85,14 @@ proc simulate { args } {
   ::tclapp::xilinx::xsim::usf_launch_script "xsim" $step
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
+    set fh 0
+    set file [file normalize [file join $dir "simulate.log"]]
+    if {[catch {open $file w} fh]} {
+      send_msg_id USF-XSim-016 ERROR "Failed to open file to write ($file)\n"
+    } else {
+      puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
+      close $fh
+    }
     return
   }
 
@@ -111,20 +119,30 @@ proc simulate { args } {
 
   set cwd [pwd]
   cd $dir
-  eval "xsim $cmd_args"
-  cd $cwd
-
-  send_msg_id USF-XSim-096 INFO "XSim completed. Design snapshot '$snapshot' loaded."
-
-  set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
-  if { {} != $rt } {
-    send_msg_id USF-XSim-097 INFO "XSim simulation ran for $rt"
-  }
-
-  # close for batch flow
-  if { $::tclapp::xilinx::xsim::a_sim_vars(b_batch) } {
-    send_msg_id USF-XSim-009 INFO "Closing simulation..."
-    close_sim
+  if {[catch {eval "xsim $cmd_args"} err_msg]} {
+    puts $err_msg
+    set step "simulate"
+    [catch {send_msg_id USF-XSim-062 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"}]
+    cd $cwd
+    # IMPORTANT - *** DONOT MODIFY THIS ***
+    error "_SIM_STEP_RUN_EXEC_ERROR_"
+    # IMPORTANT - *** DONOT MODIFY THIS ***
+    return 1
+  } else {
+    cd $cwd
+  
+    send_msg_id USF-XSim-096 INFO "XSim completed. Design snapshot '$snapshot' loaded."
+  
+    set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
+    if { {} != $rt } {
+      send_msg_id USF-XSim-097 INFO "XSim simulation ran for $rt"
+    }
+  
+    # close for batch flow
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_batch) } {
+      send_msg_id USF-XSim-009 INFO "Closing simulation..."
+      close_sim
+    }
   }
 }
 }

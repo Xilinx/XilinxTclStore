@@ -68,12 +68,25 @@ proc simulate { args } {
   # Return Value:
   # none
 
+  set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+
   send_msg_id USF-IES-004 INFO "IES::Simulate design"
   usf_ies_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::ies::usf_launch_script "ies" $step
+
+  if { $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only) } {
+    set fh 0
+    set file [file normalize [file join $dir "simulate.log"]]
+    if {[catch {open $file w} fh]} {
+      send_msg_id USF-IES-016 ERROR "Failed to open file to write ($file)\n"
+    } else {
+      puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
+      close $fh
+    }
+  }
 }
 }
 
