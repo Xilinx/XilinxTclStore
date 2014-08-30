@@ -2,8 +2,8 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.7</revision>
-      <revision_history>call get_files with the new used_in flag to pull source set files for post* simulation</revision_history>
+      <revision>1.8</revision>
+      <revision_history>check for design mode while fetching files for post* simulation</revision_history>
       <commit_id>d80587639ede7c0d7eccbea1c3a56dea4b4767cb</commit_id>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
