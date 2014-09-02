@@ -41,11 +41,11 @@
       <revision>2.1</revision>
     </app>
     <app>
-      <commit_id>d80587639ede7c0d7eccbea1c3a56dea4b4767cb</commit_id>
+      <commit_id>2146ee9333ed1d07c6301c166c4b6601dec7f61e</commit_id>
       <company>xilinx</company>
       <display>Incisive&amp;reg; Enterprise Simulator IES</display>
       <name>ies</name>
-      <revision>1.7</revision>
+      <revision>1.8</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
@@ -63,11 +63,11 @@
       <revision>1.0</revision>
     </app>
     <app>
-      <commit_id>d80587639ede7c0d7eccbea1c3a56dea4b4767cb</commit_id>
+      <commit_id>2146ee9333ed1d07c6301c166c4b6601dec7f61e</commit_id>
       <company>xilinx</company>
       <display>ModelSim/QuestaSim Simulator</display>
       <name>modelsim</name>
-      <revision>1.7</revision>
+      <revision>1.8</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
@@ -92,19 +92,19 @@
       <revision>1.2</revision>
     </app>
     <app>
-      <commit_id>d80587639ede7c0d7eccbea1c3a56dea4b4767cb</commit_id>
+      <commit_id>2146ee9333ed1d07c6301c166c4b6601dec7f61e</commit_id>
       <company>xilinx</company>
       <display>Verilog Compiler Simulator VCS&amp;reg;</display>
       <name>vcs</name>
-      <revision>1.7</revision>
+      <revision>1.8</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>d80587639ede7c0d7eccbea1c3a56dea4b4767cb</commit_id>
+      <commit_id>2146ee9333ed1d07c6301c166c4b6601dec7f61e</commit_id>
       <company>xilinx</company>
       <display>Vivado Simulator</display>
       <name>xsim</name>
-      <revision>1.7</revision>
+      <revision>1.8</revision>
       <visible>project.enableUnifiedSimulation</visible>
     </app>
   </apps>
