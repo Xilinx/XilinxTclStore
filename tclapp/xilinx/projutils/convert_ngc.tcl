@@ -93,11 +93,11 @@ proc convert_ngc args {
   # end of business logic 
 
   # perform conversion
-  send_msg_id Vivado-projutils-300 INFO "Starting conversion of all provided files..."
+  send_msg_id Vivado-projutils-300 INFO "Converting all provided files..."
   if { $m_options(bFormat) } {
     send_msg_id Vivado-projutils-307 ERROR "The convert_ngc command does not currently support conversion to Verilog"
   } else {
-    convert_ngcs_to_edif_ $m_options(files) $m_options(sOutputDir) $m_options(bAddToProject) $m_options(bForce)
+    convert_ngcs_to_edif_ $m_options(files) $m_options(sOutputDir) $m_options(bAddToProject) $m_options(bForce) $m_options(bVerbose)
   }
 
 }
@@ -118,7 +118,7 @@ proc init_vars_ {} {
 }
 
 
-proc convert_ngcs_to_edif_ { _ngcFiles _sOutputDir _bAddToProject _bForce } {
+proc convert_ngcs_to_edif_ { _ngcFiles _sOutputDir _bAddToProject _bForce _bVerbose } {
 
   # track success and failures, but continue on failures
   set ngcsFailed {}
@@ -152,7 +152,7 @@ proc convert_ngcs_to_edif_ { _ngcFiles _sOutputDir _bAddToProject _bForce } {
   }
 
   # report results
-  if { $m_options(bVerbose) && ( [ llength $ngcsSucceeded ] > 0 ) } {
+  if { $_bVerbose && ( [ llength $ngcsSucceeded ] > 0 ) } {
     send_msg_id Vivado-projutils-309 INFO "Successfully converted NGC files:\n  [ join $ngcsSucceeded \n\ \  ]"
   }
   if { [ llength $ngcsFailed ] > 0 } {
