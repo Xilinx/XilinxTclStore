@@ -18,7 +18,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
 proc convert_ngc args {
   # Summary: 
-  # Convert all provided NGC files to 
+  # Convert all provided NGC files to a supported format
 
   # Argument Usage: 
   # [-output_dir <arg> = Script output directory path]: Directory to place all output, else the output is placed at location of NGC file
@@ -141,7 +141,7 @@ proc convert_ngcs_to_edif_ { _ngcFiles _sOutputDir _bAddToProject _bForce _bVerb
       send_msg_id Vivado-projutils-316 {CRITICAL WARNING} "Could not add converted files to project because a project is not open.\n"
     } else {
       if { $_bForce } {
-        remove_files -quiet $ngcsSucceeded
+        catch { remove_files -quiet $ngcsSucceeded } _removeError
       }
       if { [ catch { add_files $ngcsSucceeded } _addError ] } {
         send_msg_id Vivado-projutils-314 {CRITICAL WARNING} "Failed to add converted files to project:\n[ string trim ${_addError} ]\n"
