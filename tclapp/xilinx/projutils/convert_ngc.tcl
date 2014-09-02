@@ -28,7 +28,7 @@ proc convert_ngc args {
   # files: A list of NGC files to convert
 
   # Return Value:
-  # true (0) if success, false (1) otherwise
+  # None
 
   # Categories: xilinxtclstore, projutils
 
@@ -104,6 +104,14 @@ proc convert_ngc args {
 
 
 proc init_vars_ {} {
+  # Summary: 
+  # Initialize all member variables
+
+  # Argument Usage: 
+  # None
+
+  # Return Value:
+  # None
   
   # member variables
   variable m_options
@@ -119,6 +127,18 @@ proc init_vars_ {} {
 
 
 proc convert_ngcs_to_edif_ { _ngcFiles _sOutputDir _bAddToProject _bForce _bVerbose } {
+  # Summary: 
+  # Convert all provided NGC files to EDIF format
+
+  # Argument Usage: 
+  # _ngcFiles: A list of NGC files to convert
+  # _sOutputDir: Directory to place all output, else the output is placed at location of NGC file
+  # _bAddToProject: Adds the output files to the current project, if no project is open, then this option does nothing
+  # _bForce: Force overwriting of files that already exist on disk, replaces files in project if add_to_project switch was specified
+  # _bVerbose: Print verbose messages
+
+  # Return Value:
+  # None
 
   # track success and failures, but continue on failures
   set ngcsFailed {}
@@ -172,6 +192,16 @@ proc convert_ngcs_to_edif_ { _ngcFiles _sOutputDir _bAddToProject _bForce _bVerb
 
 
 proc convert_ngc_to_edif_ { _sNgcFile _sOutputDir _bForce } {
+  # Summary: 
+  # Convert a provided NGC file to EDIF format
+
+  # Argument Usage: 
+  # _ngcFile: A NGC file to convert
+  # _sOutputDir: Directory to place all output, else the output is placed at location of NGC file
+  # _bForce: Force overwriting of files that already exist on disk, replaces files in project if add_to_project switch was specified
+
+  # Return Value:
+  # None
 
   # calculate output file name
   set sOutputFile [ calculate_output_file_ $_sNgcFile $_sOutputDir "edn" ]
@@ -211,6 +241,17 @@ proc convert_ngc_to_edif_ { _sNgcFile _sOutputDir _bForce } {
 
 
 proc calculate_output_file_ { _sNgcFile _sOutputDir _sExtension } {
+  # Summary: 
+  # Determines the output file. If a directory is provided, then the output file points to that 
+  # directory, else the output file points to the same directory location as the source.
+
+  # Argument Usage: 
+  # _sNgcFile: A NGC file to calculate the output file name for
+  # _sOutputDir: Directory to place output, else the output is placed at location of NGC file
+  # _sExtension: The output file extension
+
+  # Return Value:
+  # The calculated output file path
 
   set sRootName [ file rootname $_sNgcFile ]
   
