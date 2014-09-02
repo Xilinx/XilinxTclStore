@@ -93,7 +93,7 @@ proc convert_ngc args {
   # end of business logic 
 
   # perform conversion
-  send_msg_id Vivado-projutils-300 INFO "Converting all provided files..."
+  send_msg_id Vivado-projutils-300 INFO "Converting NGC files..."
   if { $m_options(bFormat) } {
     send_msg_id Vivado-projutils-307 ERROR "The convert_ngc command does not currently support conversion to Verilog"
   } else {
