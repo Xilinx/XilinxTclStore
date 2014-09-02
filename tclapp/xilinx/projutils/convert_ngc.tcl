@@ -176,14 +176,14 @@ proc convert_ngcs_to_edif_ { _ngcFiles _sOutputDir _bAddToProject _bForce _bVerb
     send_msg_id Vivado-projutils-309 INFO "Successfully converted NGC files:\n  [ join $ngcsSucceeded \n\ \  ]"
   }
   if { [ llength $ngcsFailed ] > 0 } {
-    send_msg_id Vivado-projutils-310 INFO "Failed to convert NGC files:\n  [ join $ngcsFailed \n\ \  ]"
+    send_msg_id Vivado-projutils-310 INFO "Failed to convert [ llength $ngcsFailed ] NGC file(s):\n  [ join $ngcsFailed \n\ \  ]"
   }
   if { [ llength $ngcsSucceeded ] > 0 } {
     send_msg_id Vivado-projutils-311 INFO "Successfully converted [ llength $ngcsSucceeded ] NGC file(s)."
   }
-  if { [ llength $ngcsFailed ] > 0 } {
-    send_msg_id Vivado-projutils-312 INFO "Failed to convert [ llength $ngcsFailed ] NGC file(s)."
-  }
+  #if { [ llength $ngcsFailed ] > 0 } {
+  #  send_msg_id Vivado-projutils-312 INFO "Failed to convert [ llength $ngcsFailed ] NGC file(s)."
+  #}
   if { [ llength $ngcsFailed ] > 0 } {
     send_msg_id Vivado-projutils-313 ERROR "Failed to convert one or more NGC files, see previous messages for details"
   }
