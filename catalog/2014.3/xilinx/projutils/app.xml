@@ -2,9 +2,9 @@
 <catalog>
   <apps>
     <app>
-      <revision>2.1</revision>
-      <revision_history>Print critical warning deprecation msg for export_simulation</revision_history>
-      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
+      <revision>2.2</revision>
+      <revision_history>Support for NGC to EDIF conversion</revision_history>
+      <commit_id>7eaf6fcb3f97e10e9d9ae6290faf84ec0539a61e</commit_id>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -12,6 +12,10 @@
       <summary>This is a collection of scripts and utility application that are grouped by relevance to manipulation of projects.</summary>
       <display>Project Utilities</display>
       <procs>
+        <proc>
+          <name>convert_ngc</name>
+          <summary>Convert all provided NGC files to a supported format</summary>
+        </proc>
         <proc>
           <name>export_simulation</name>
           <summary>NOTE-&apos;export_simulation&apos; is deprecated, please use &apos;launch_simulation -scripts_only&apos; instead. Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>

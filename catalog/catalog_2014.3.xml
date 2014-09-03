@@ -71,11 +71,11 @@
       <visible>project.enableUnifiedSimulation</visible>
     </app>
     <app>
-      <commit_id>ca5ab04f1a25db0684f3d5c277641190e618055b</commit_id>
+      <commit_id>7eaf6fcb3f97e10e9d9ae6290faf84ec0539a61e</commit_id>
       <company>xilinx</company>
       <display>Project Utilities</display>
       <name>projutils</name>
-      <revision>2.1</revision>
+      <revision>2.2</revision>
     </app>
     <app>
       <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
