@@ -12,4 +12,5 @@ The wiki contains documentation on how to use and contribute to the Tcl Store:
 
 # Table of contents
 [Design Utilities](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/designutils)
+
 [Topic Dyplo Integration](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/topic/dyplo)
