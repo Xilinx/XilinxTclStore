@@ -12,14 +12,25 @@ The wiki contains documentation on how to use and contribute to the Tcl Store:
 
 # Table of contents
 [UltraFast Design Methodology](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/ultrafast)
+
 [Design Utilities](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/designutils)
+
 [Project Utilities](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/projutils)
+
 [Incremental Compilation](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/incrcompile)
+
 [Diff](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/diff)
+
 [TK Tunnel](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/tk_tunnel)
+
 [Vivado Simulator Integration](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/xsim)
+
 [ModelSim Integration](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/modelsim)
+
 [IES Integration](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/ies)
+
 [VCS Integration](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/vcs)
+
 [Junit Integration](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/xilinx/junit)
+
 [Topic Dyplo Integration](https://github.com/Xilinx/XilinxTclStore/tree/master/tclapp/topic/dyplo)
