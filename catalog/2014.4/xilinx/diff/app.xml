@@ -2,9 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision>2.1</revision>
       <revision_history>Various Updates</revision_history>
-      <commit_id>b6d319c5a27feb01b4d90f160c48ac16d47b022d</commit_id>
       <name>diff</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>

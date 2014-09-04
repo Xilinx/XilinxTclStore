@@ -2,9 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.8</revision>
       <revision_history>check for design mode while fetching files for post* simulation</revision_history>
-      <commit_id>2146ee9333ed1d07c6301c166c4b6601dec7f61e</commit_id>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

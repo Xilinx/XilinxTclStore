@@ -56,8 +56,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>7eaf6fcb3f97e10e9d9ae6290faf84ec0539a61e</commit_id>
-      <revision>2.2</revision>
+      <commit_id>ff4f28e3becbf2f1407c8e9db703bab602f7cdba</commit_id>
+      <revision>2.1</revision>
     </app>
     <app>
       <name>tk_tunnel</name>
