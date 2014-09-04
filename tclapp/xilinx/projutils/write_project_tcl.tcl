@@ -396,12 +396,17 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
 
     set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
 
-    lappend l_script_data "# Create '$tcl_obj' fileset (if not found)"
-    lappend l_script_data "if \{\[string equal \[get_filesets -quiet $tcl_obj\] \"\"\]\} \{"
+    # is this a IP block fileset? if yes, do not create block fileset, but create for a pure HDL based fileset (no IP's)
+    if { [is_ip_fileset $tcl_obj] } {
+      # do not create block fileset
+    } else {
+      lappend l_script_data "# Create '$tcl_obj' fileset (if not found)"
+      lappend l_script_data "if \{\[string equal \[get_filesets -quiet $tcl_obj\] \"\"\]\} \{"
 
-    set fs_sw_type [get_fileset_type_switch $fs_type]
-    lappend l_script_data "  create_fileset $fs_sw_type $tcl_obj"
-    lappend l_script_data "\}\n"
+      set fs_sw_type [get_fileset_type_switch $fs_type]
+      lappend l_script_data "  create_fileset $fs_sw_type $tcl_obj"
+      lappend l_script_data "\}\n"  
+    }
 
     set get_what_fs "get_filesets"
 
@@ -429,8 +434,15 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
       }
     }
 
-    lappend l_script_data "# Set '$tcl_obj' fileset object"
-    lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
+    # is this a IP block fileset? if yes, then set the current srcset object (IP's will be added to current source fileset)
+    if { [is_ip_fileset $tcl_obj] } {
+      set srcset [current_fileset -srcset]
+      lappend l_script_data "# Set '$srcset' fileset object"
+      lappend l_script_data "set obj \[$get_what_fs $srcset\]"
+    } else {
+      lappend l_script_data "# Set '$tcl_obj' fileset object"
+      lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
+    }
     if { {Constrs} == $fs_type } {
       lappend l_script_data ""
       write_constrs $proj_dir $proj_name $tcl_obj $type
@@ -438,9 +450,14 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
       write_files $proj_dir $proj_name $tcl_obj $type
     }
   
-    lappend l_script_data "# Set '$tcl_obj' fileset properties"
-    lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
-    write_props $proj_dir $proj_name $get_what_fs $tcl_obj "fileset"
+    # is this a IP block fileset? if yes, do not write block fileset properties (block fileset doesnot exist in new project)
+    if { [is_ip_fileset $tcl_obj] } {
+      # do not write ip fileset properties
+    } else {
+      lappend l_script_data "# Set '$tcl_obj' fileset properties"
+      lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
+      write_props $proj_dir $proj_name $get_what_fs $tcl_obj "fileset"
+    }
   }
 }
 
@@ -998,7 +1015,12 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         lappend l_script_data " $ifile\\"
       }
       lappend l_script_data "\]"
-      lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
+      # is this a IP block fileset? if yes, import files into current source fileset
+      if { [is_ip_fileset $tcl_obj] } {
+        lappend l_script_data "set imported_files \[import_files -fileset [current_fileset -srcset] \$files\]"
+      } else {
+        lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
+      }
       lappend l_script_data ""
     }
   }
@@ -1267,6 +1289,10 @@ proc write_specified_run { proj_dir proj_name runs } {
 
   set get_what "get_runs"
   foreach tcl_obj $runs {
+    # is block fileset based run that contains IP? donot create OOC run
+    if { [is_ip_run $tcl_obj] } {
+      continue
+    }
     # fetch run attributes
     set part         [get_property part [$get_what $tcl_obj]]
     set parent_run   [get_property parent [$get_what $tcl_obj]]
@@ -1349,8 +1375,13 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
   variable l_script_data
   variable l_local_files
   variable l_remote_files
-
-  lappend l_script_data "# Set '$tcl_obj' fileset file properties for $file_category files"
+  
+  # is this a IP block fileset? if yes, set current source fileset
+  if { [is_ip_fileset $tcl_obj] } {
+    lappend l_script_data "# Set '[current_fileset -srcset]' fileset file properties for $file_category files"
+  } else {
+    lappend l_script_data "# Set '$tcl_obj' fileset file properties for $file_category files"
+  }
   set file_prop_count 0
 
   # collect local/remote files
@@ -1438,7 +1469,12 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
       } else {
         lappend l_script_data "set file \"$file\""
       }
-      lappend l_script_data "set file_obj \[get_files -of_objects \[get_filesets $tcl_obj\] \[list \"*\$file\"\]\]"
+      # is this a IP block fileset? if yes, get files from current source fileset
+      if { [is_ip_fileset $tcl_obj] } {
+        lappend l_script_data "set file_obj \[get_files -of_objects \[get_filesets [current_fileset -srcset]\] \[list \"*\$file\"\]\]"
+      } else {
+        lappend l_script_data "set file_obj \[get_files -of_objects \[get_filesets $tcl_obj\] \[list \"*\$file\"\]\]"
+      }
       set get_what "get_files"
       write_properties $prop_info_list $get_what $tcl_obj
       incr file_prop_count
@@ -1543,5 +1579,44 @@ proc get_relative_file_path_for_source { file_path_to_convert relative_to } {
 
   # no common dirs found, just return the normalized path
   return $file_path
+}
+
+proc is_ip_fileset { fileset } {
+  # Summary: Find IP's if any from the specified fileset and return true if 'generate_synth_checkpoint' is set to 1
+  # Argument Usage:
+  # fileset: fileset name
+  # Return Value:
+  # true (1) if success, false (0) otherwise
+
+  # make sure fileset is block fileset type
+  if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
+    return false
+  }
+
+  set ip_filter "FILE_TYPE == \"IP\""
+  set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
+  set b_found false
+  foreach ip $ips {
+    if { [get_property generate_synth_checkpoint [get_files $ip]] } {
+      set b_found true
+      break
+    }
+  }
+
+  if { $b_found } {
+    return true
+  }
+  return false
+}
+
+proc is_ip_run { run } {
+  # Summary: Find IP's if any from the fileset linked with the block fileset run
+  # Argument Usage:
+  # run: run name
+  # Return Value:
+  # true (1) if success, false (0) otherwise
+  
+  set fileset [get_property srcset [get_runs $run]]
+  return [is_ip_fileset $fileset]
 }
 }
