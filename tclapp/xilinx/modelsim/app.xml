@@ -2,9 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.8</revision>
       <revision_history>check for design mode while fetching files for post* simulation</revision_history>
-      <commit_id>2146ee9333ed1d07c6301c166c4b6601dec7f61e</commit_id>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -12,6 +10,12 @@
       <summary>This is a Mentor Graphics ModelSim/QuestaSim Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;ModelSim/QuestaSim Simulator&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
       <display>ModelSim/QuestaSim Simulator</display>
       <visible>project.enableUnifiedSimulation</visible>
+      <procs>
+        <proc>
+          <name>register_options</name>
+          <summary>define simulation fileset options</summary>
+        </proc>
+      </procs>
     </app>
   </apps>
 </catalog>
