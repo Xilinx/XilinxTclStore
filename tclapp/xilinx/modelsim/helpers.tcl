@@ -1268,17 +1268,15 @@ proc usf_launch_script { simulator step } {
   set cwd [pwd]
   cd $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   send_msg_id USF-ModelSim-069 INFO "Executing '[string toupper $step]' step in '$run_dir'"
+  set results_log {}
   switch $step {
     {compile} -
     {elaborate} {
       if {[catch {rdi::run_program $scr_file} error_log]} {
-        send_msg_id USF-ModelSim-070 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"
         set faulty_run 1
       }
-    
-      # program may return 0, check for error in log file
-      if { [usf_error_in_log $step] } {
-        send_msg_id USF-ModelSim-071 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"
+      # check errors
+      if { [usf_check_errors $step results_log] } {
         set faulty_run 1
       }
     }
@@ -1298,6 +1296,7 @@ proc usf_launch_script { simulator step } {
   }
   cd $cwd
   if { $faulty_run } {
+    [catch {send_msg_id USF-ModelSim-070 ERROR "'$step' step failed with error(s). Please check the Tcl console output or '$results_log' file for more information.\n"}]
     # IMPORTANT - *** DONOT MODIFY THIS ***
     error "_SIM_STEP_RUN_EXEC_ERROR_"
     # IMPORTANT - *** DONOT MODIFY THIS ***
@@ -2339,17 +2338,21 @@ proc usf_get_sdf_writer_cmd_args { } {
   return $cmd_args
 }
 
-proc usf_error_in_log { step } {
+proc usf_check_errors { step results_log_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  upvar $results_log_arg results_log
   
   variable a_sim_vars
-  set error_val 0
-  set log_file [file join $a_sim_vars(s_launch_dir) ${step}.log]
+  set run_dir $a_sim_vars(s_launch_dir)
+
+  set retval 0
+  set log [file normalize [file join $run_dir ${step}.log]]
   set fh 0
-  if {[catch {open $log_file r} fh]} {
-    send_msg_id USF-ModelSim-099 WARNING "Failed to open file to read ($log_file)\n"
+  if {[catch {open $log r} fh]} {
+    send_msg_id USF-ModelSim-099 WARNING "Failed to open file to read ($log)\n"
     close $fh
   } else {
     set log_data [read $fh]
@@ -2357,12 +2360,17 @@ proc usf_error_in_log { step } {
     set log_data [split $log_data "\n"]
     foreach line $log_data {
       if {[regexp -nocase {ONERROR} $line]} {
-        set error_val 1
+        set results_log $log
+        set retval 1
         break
       }
     }
   }
-  return $error_val
+  if { $retval } {
+    [catch {send_msg_id USF-ModelSim-099 INFO "Step results log file:'$log'\n"}]
+    return 1
+  }
+  return 0
 }
 
 proc usf_resolve_incl_dir_property_value { incl_dirs } {

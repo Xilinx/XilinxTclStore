@@ -1168,11 +1168,15 @@ proc usf_launch_script { simulator step } {
   set cwd [pwd]
   cd $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
   send_msg_id USF-XSim-061 INFO "Executing '[string toupper $step]' step in '$run_dir'"
+  set results_log {}
   switch $step {
     {compile} -
     {elaborate} {
-      if {[catch {rdi::run_program $scr_file} error_log] || [usf_check_errors $step]} {
-        [catch {send_msg_id USF-XSim-062 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"}]
+      if {[catch {rdi::run_program $scr_file} error_log]} {
+        set faulty_run 1
+      }
+      # check errors
+      if { [usf_check_errors $step results_log]} {
         set faulty_run 1
       }
     }
@@ -1192,6 +1196,7 @@ proc usf_launch_script { simulator step } {
   }
   cd $cwd
   if { $faulty_run } {
+    [catch {send_msg_id USF-XSim-062 ERROR "'$step' step failed with error(s). Please check the Tcl console output or '$results_log' file for more information.\n"}]
     # IMPORTANT - *** DONOT MODIFY THIS ***
     error "_SIM_STEP_RUN_EXEC_ERROR_"
     # IMPORTANT - *** DONOT MODIFY THIS ***
@@ -1200,24 +1205,38 @@ proc usf_launch_script { simulator step } {
   return 0
 }
 
-proc usf_check_errors { step } {
+proc usf_check_errors { step results_log_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  upvar $results_log_arg results_log
+
+  variable a_sim_vars
+  set run_dir $a_sim_vars(s_launch_dir)
 
   switch $step {
     {compile} {
       # errors in xvlog?
       set token "xvlog"
-      if { [usf_found_errors_in_file $token] } { return 1 }
+      if { [usf_found_errors_in_file $token] } {
+        set results_log [file normalize [file join $run_dir "${token}.log"]]
+        return 1
+      }
       # errors in xvhdl?
       set token "xvhdl"
-      if { [usf_found_errors_in_file $token] } { return 1 }
+      if { [usf_found_errors_in_file $token] } {
+        set results_log [file normalize [file join $run_dir "${token}.log"]]
+        return 1
+      }
     }
     {elaborate} {
       # errors in xelab?
       set token "xelab"
-      if { [usf_found_errors_in_file $token] } { return 1 }
+      if { [usf_found_errors_in_file $token] } {
+        set results_log [file normalize [file join $run_dir "${token}.log"]]
+        return 1
+      }
     }
   }
   return 0
@@ -1227,6 +1246,9 @@ proc usf_found_errors_in_file { token } {
   # Summary:
   # Argument Usage:
   # Return Value:
+  
+  variable a_sim_vars
+  set run_dir $a_sim_vars(s_launch_dir)
 
   set fh 0
   set file ${token}.log
@@ -1240,15 +1262,21 @@ proc usf_found_errors_in_file { token } {
   }
   set data [read $fh]
   close $fh
-
+  set retval 0
   set log_data [split $data "\n"]
   foreach line $log_data {
     set line_str [string trim $line]
     switch $token {
-      {xvlog} { if { [regexp {^ERROR} $line_str] } { return 1 } }
-      {xvhdl} { if { [regexp {^ERROR} $line_str] } { return 1 } }
-      {xelab} { if { [regexp {^ERROR} $line_str] } { return 1 } }
+      {xvlog} { if { [regexp {^ERROR} $line_str] } { set retval 1;break } }
+      {xvhdl} { if { [regexp {^ERROR} $line_str] } { set retval 1;break } }
+      {xelab} { if { [regexp {^ERROR} $line_str] } { set retval 1;break } }
     }
+  }
+
+  if { $retval } {
+    set results_log [file normalize [file join $run_dir "${token}.log"]]
+    [catch {send_msg_id USF-XSim-099 INFO "Step results log file:'$results_log'\n"}]
+    return 1
   }
   return 0
 }
