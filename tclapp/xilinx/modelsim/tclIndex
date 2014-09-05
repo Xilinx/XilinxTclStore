@@ -104,7 +104,7 @@ set auto_index(::tclapp::xilinx::modelsim::usf_get_file_cmd_str) [list source [f
 set auto_index(::tclapp::xilinx::modelsim::usf_get_file_type_category) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_get_netlist_writer_cmd_args) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_get_sdf_writer_cmd_args) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::modelsim::usf_error_in_log) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::xilinx::modelsim::usf_check_errors) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_resolve_incl_dir_property_value) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_find_files) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_get_top) [list source [file join $dir helpers.tcl]]
