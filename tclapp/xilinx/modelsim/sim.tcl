@@ -140,6 +140,11 @@ proc usf_modelsim_setup_simulation { args } {
   # fetch the compile order for the specified object
   ::tclapp::xilinx::modelsim::usf_get_compile_order_for_obj
 
+  # fetch design files
+  set global_files_str {}
+  set ::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) \
+     [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+
   # create setup file
   usf_modelsim_write_setup_files
 
@@ -420,9 +425,7 @@ proc usf_modelsim_create_wave_do_file { file } {
   usf_modelsim_write_header $fh $file
   puts $fh "add wave *"
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
     puts $fh "add wave /glbl/GSR"
   }
   close $fh
@@ -451,9 +454,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   puts $fh "vlib work"
   puts $fh "vlib msim\n"
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-  set design_libs [usf_modelsim_get_design_libs $design_files]
+  set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -509,7 +510,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   puts $fh ""
 
-  foreach file $design_files {
+  foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
@@ -518,7 +519,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   # compile glbl file
   set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
+  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
     ::tclapp::xilinx::modelsim::usf_copy_glbl_file
     set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
     set file_str "-work $top_lib \"glbl.v\""
@@ -592,8 +593,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set t_opts [join $arg_list " "]
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+  set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
 
   # add simulation libraries
   set arg_list [list]
@@ -629,8 +629,6 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
   # add design libraries
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
   set design_libs [usf_modelsim_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -961,9 +959,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     puts $fh_scr "\$bin_path/vlib work $redirect_cmd_str"
     puts $fh_scr "\$bin_path/vlib msim $redirect_cmd_str\n"
   
-    set global_files_str {}
-    set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-    set design_libs [usf_modelsim_get_design_libs $design_files]
+    set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
   
     # TODO:
     # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW

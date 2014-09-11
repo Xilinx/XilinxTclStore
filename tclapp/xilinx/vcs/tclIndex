@@ -57,7 +57,6 @@ set auto_index(::tclapp::xilinx::vcs::usf_get_sim_files_for_ip) [list source [fi
 set auto_index(::tclapp::xilinx::vcs::usf_get_files_from_block_filesets) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_remove_duplicate_files) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_get_include_dirs) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::vcs::usf_get_verilog_header_paths) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_get_header_include_paths) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_add_unique_incl_paths) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::xilinx::vcs::usf_get_global_include_files) [list source [file join $dir helpers.tcl]]
