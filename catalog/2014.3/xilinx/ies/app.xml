@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Print log file information on error</revision_history>
+      <revision_history>re-factored include dir processing code to improve runtime</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
