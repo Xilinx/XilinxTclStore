@@ -130,6 +130,11 @@ proc usf_vcs_setup_simulation { args } {
   # fetch the compile order for the specified object
   ::tclapp::xilinx::vcs::usf_get_compile_order_for_obj
 
+  # fetch design files
+  set global_files_str {}
+  set ::tclapp::xilinx::vcs::a_sim_vars(l_design_files) \
+     [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
+
   # create setup file
   usf_vcs_write_setup_files
 
@@ -253,23 +258,21 @@ proc usf_vcs_write_setup_files {} {
   }
   puts $fh "OTHERS=$lib_map_path/$filename"
   set libs [list]
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
 
   # unifast
   set b_compile_unifast [get_property "VCS.ELABORATE.UNIFAST" $fs_obj]
-  if { ([::tclapp::xilinx::vcs::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+  if { ([::tclapp::xilinx::vcs::usf_contains_vhdl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
       puts $fh "unifast : $lib_map_path/unifast"
     }
   }
-  if { ([::tclapp::xilinx::vcs::usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
+  if { ([::tclapp::xilinx::vcs::usf_contains_verilog $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       puts $fh "unifast_ver : $lib_map_path/unifast_ver"
     }
   }
 
-  set design_libs [usf_vcs_get_design_libs $design_files]
+  set design_libs [usf_vcs_get_design_libs $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { ({work} == $lib) } { continue; }
@@ -364,11 +367,9 @@ proc usf_vcs_write_compile_script {} {
   } else {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
   puts $fh_scr "# compile design source files"
   set log "unknown.log"
-  foreach file $design_files {
+  foreach file $::tclapp::xilinx::vcs::a_sim_vars(l_design_files) {
     set type    [lindex [split $file {#}] 0]
     set lib     [lindex [split $file {#}] 1]
     set cmd_str [lindex [split $file {#}] 2]
@@ -384,7 +385,7 @@ proc usf_vcs_write_compile_script {} {
   # compile glbl file
   set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
   set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
-  if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl $design_files] } {
+  if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] } {
     set work_lib_sw {}
     if { {work} != $top_lib } {
       set work_lib_sw "-work $top_lib "
@@ -455,9 +456,6 @@ proc usf_vcs_write_elaborate_script {} {
     }
   }
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
-
   puts $fh_scr "# set ${tool} command line args"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
@@ -466,7 +464,7 @@ proc usf_vcs_write_elaborate_script {} {
   }
   set tool_path "\$bin_path/$tool"
   set arg_list [list "${tool_path}" "\$${tool}_opts" "${top_lib}.$top"]
-  if { [::tclapp::xilinx::vcs::usf_contains_verilog $design_files] } {
+  if { [::tclapp::xilinx::vcs::usf_contains_verilog $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] } {
     set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
     lappend arg_list "${top_lib}.glbl"
   }
@@ -595,9 +593,7 @@ proc usf_vcs_create_setup_script {} {
     puts $fh_scr "\{"
     set simulator "vcs"
     set libs [list]
-    set global_files_str {}
-    set design_files [::tclapp::xilinx::vcs::usf_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
-    set design_libs [usf_vcs_get_design_libs $design_files]
+    set design_libs [usf_vcs_get_design_libs $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]
     foreach lib $design_libs {
       if { {} == $lib } {
         continue;
