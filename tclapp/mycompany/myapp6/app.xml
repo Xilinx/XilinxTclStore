@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>testing for fork and submission</revision_history>
+      <revision_history>Updated a proc</revision_history>
       <name>myapp6</name>
       <company>mycompany</company>
       <company_display>MY COMPANY</company_display>
@@ -18,7 +18,7 @@
         </proc>
         <proc>
           <name>myproc3</name>
-          <summary>3_10_2014</summary>
+          <summary>Testing revision @ 9_15_2014</summary>
         </proc>
       </procs>
     </app>

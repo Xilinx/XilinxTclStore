@@ -9,7 +9,7 @@ namespace eval ::tclapp::mycompany::myapp6 {
     }
 
 }
-package provide ::tclapp::mycompany::myapp6 2.10
+package provide ::tclapp::mycompany::myapp6 2.11
 # this is a comment
 # this is another comment
 # this is a 3rd comment line

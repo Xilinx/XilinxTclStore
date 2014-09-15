@@ -50,8 +50,8 @@
     <app>
       <name>myapp6</name>
       <company>mycompany</company>
-      <commit_id>90723cc959bf8f3ea22bd2be1cebd25762076103</commit_id>
-      <revision>2.10</revision>
+      <commit_id/>
+      <revision/>
     </app>
     <app>
       <name>projutils</name>
