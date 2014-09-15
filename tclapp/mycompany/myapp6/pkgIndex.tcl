@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::mycompany::myapp6 2.09 [list source [file join $dir myapp6.tcl]]
+package ifneeded ::tclapp::mycompany::myapp6 2.10 [list source [file join $dir myapp6.tcl]]
