@@ -988,7 +988,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     }
   
     puts $fh_scr "\n# compile design source files"
-    foreach file $design_files {
+    foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
       set type    [lindex [split $file {#}] 0]
       set lib     [lindex [split $file {#}] 1]
       set cmd_str [lindex [split $file {#}] 2]
@@ -997,7 +997,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
   
     # compile glbl file
     set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-    if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
+    if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
       ::tclapp::xilinx::modelsim::usf_copy_glbl_file
       set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
       set file_str "-work $top_lib \"glbl.v\""
