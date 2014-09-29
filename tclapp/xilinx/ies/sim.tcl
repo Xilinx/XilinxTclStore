@@ -211,10 +211,11 @@ proc usf_ies_verify_compiled_lib {} {
   # Return Value:
 
   variable a_sim_vars
+  set b_scripts_only $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)
 
   set cds_filename "cds.lib"
   set compiled_lib_dir {}
-  send_msg_id USF-ies-006 INFO "Finding pre-compiled libraries...\n"
+  send_msg_id USF-IES-006 INFO "Finding pre-compiled libraries...\n"
   # check property value
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
   set cds_file [file normalize [file join $dir $cds_filename]]
@@ -232,11 +233,15 @@ proc usf_ies_verify_compiled_lib {} {
   # return if found, else warning
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::ies::a_ies_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
-   send_msg_id USF-ies-007 INFO "Using cds.lib from '$compiled_lib_dir/cds.lib'\n"
+   send_msg_id USF-IES-007 INFO "Using cds.lib from '$compiled_lib_dir/cds.lib'\n"
    return
   }
-  send_msg_id USF-ies-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
-  send_msg_id USF-ies-009 INFO \
+  if { $b_scripts_only } {
+    send_msg_id USF-IES-018 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+  } else {
+    send_msg_id USF-IES-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+  }
+  send_msg_id USF-IES-009 INFO \
      "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for IES.\n"
 }
 

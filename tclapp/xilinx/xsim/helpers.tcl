@@ -362,7 +362,7 @@ proc usf_write_design_netlist {} {
         set synth_run [current_run -synthesis]
         set netlist $synth_run 
         # is design for the current synth run already opened in memory?
-        set synth_design [get_design -quiet $synth_run]
+        set synth_design [get_designs -quiet $synth_run]
         if { {} != $synth_design } {
           # design already opened, set it current
           current_design $synth_design
@@ -376,7 +376,7 @@ proc usf_write_design_netlist {} {
       } elseif { {GateLvl} == $design_mode } {
         set netlist "netlist_1"
         # is design already opened in memory?
-        set synth_design [get_design -quiet $netlist]
+        set synth_design [get_designs -quiet $netlist]
         if { {} != $synth_design } {
           # design already opened, set it current
           current_design $synth_design
@@ -425,7 +425,7 @@ proc usf_write_design_netlist {} {
       }
 
       # is design for the current impl run already opened in memory?
-      set impl_design [get_design -quiet $impl_run]
+      set impl_design [get_designs -quiet $impl_run]
       if { {} != $impl_design } {
         # design already opened, set it current
         current_design $impl_design
@@ -938,12 +938,14 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
   upvar $global_files_str_arg global_files_str
 
   set sim_flow $a_sim_vars(s_simulation_flow)
- 
+
+  set design_files [list] 
   if { ({behav_sim} == $sim_flow) } {
-    usf_get_files_for_compilation_behav_sim $global_files_str
+    set design_files [usf_get_files_for_compilation_behav_sim $global_files_str]
   } elseif { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    usf_get_files_for_compilation_post_sim $global_files_str
+    set design_files [usf_get_files_for_compilation_post_sim $global_files_str]
   }
+  return $design_files
 }
 
 proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
@@ -1709,9 +1711,16 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
   foreach fs_obj $filesets {
     set vh_files [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach file $vh_files {
+      # skip if not marked as global include
       if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet $file] 0]] } {
         continue
       }
+
+      # skip if marked user disabled
+      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet $file] 0]] } {
+        continue
+      }
+
       set file [file normalize [string map {\\ /} $file]]
       if { [lsearch -exact $incl_files_set $file] == -1 } {
         lappend incl_files_set $file
@@ -2047,7 +2056,7 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
     set_property "TOP" $comp_file_top [get_filesets $ip_basename]
     # move sub-design to block-fileset
     send_msg_id USF-XSim-086 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
-    move_files -fileset [get_fileset $ip_basename] [get_files -of_objects [get_filesets $comp_file_fs] $src_file] 
+    move_files -fileset [get_filesets $ip_basename] [get_files -of_objects [get_filesets $comp_file_fs] $src_file] 
   }
   if { {BlockSrcs} != [get_property "FILESET_TYPE" $block_fs_obj] } {
     send_msg_id USF-XSim-087 ERROR "Given source file is not associated with a design source fileset.\n"

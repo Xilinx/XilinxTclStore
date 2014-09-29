@@ -208,6 +208,9 @@ proc usf_vcs_verify_compiled_lib {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+  set b_scripts_only $::tclapp::xilinx::vcs::a_sim_vars(b_scripts_only)
+
   set syn_filename "synopsys_sim.setup"
   set compiled_lib_dir {}
   send_msg_id USF-VCS-006 INFO "Finding pre-compiled libraries...\n"
@@ -231,7 +234,11 @@ proc usf_vcs_verify_compiled_lib {} {
    send_msg_id USF-VCS-007 INFO "Using synopsys_sim.setup from '$compiled_lib_dir/synopsys_sim.setup'\n"
    return
   }
-  send_msg_id USF-VCS-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+  if { $b_scripts_only } {
+    send_msg_id USF-VCS-018 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+  } else {
+    send_msg_id USF-VCS-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+  }
   send_msg_id USF-VCS-009 INFO \
      "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for VCS.\n"
 }

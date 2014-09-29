@@ -218,6 +218,7 @@ proc usf_modelsim_verify_compiled_lib {} {
   # Return Value:
 
   variable a_sim_vars
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
 
   set ini_file "modelsim.ini"
   set compiled_lib_dir {}
@@ -260,7 +261,11 @@ proc usf_modelsim_verify_compiled_lib {} {
   if { {} == $compiled_lib_dir } {
     set file [file normalize [file join $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
-      send_msg_id USF-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+      if { $b_scripts_only } {
+        send_msg_id USF-modelsim-024 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+      } else {
+        send_msg_id USF-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+      }
       send_msg_id USF-modelsim-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
                                              - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim/QuestaSim, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
