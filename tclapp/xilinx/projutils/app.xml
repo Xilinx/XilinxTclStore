@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Do not create OOC runs for generated IP&apos;s</revision_history>
+      <revision_history>Check for read-only IP status before setting properties</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

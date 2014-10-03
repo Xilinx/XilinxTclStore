@@ -661,6 +661,22 @@ proc is_local_to_project { file } {
   return $is_local
 }
 
+proc is_ip_readonly_prop { name } {
+  # Summary: Return true if dealing with following IP properties that are not settable for an IP in read-only state
+  # Argument Usage:
+  # name: property name
+  # Return Value:
+  # true if success, false otherwise
+
+  if { [regexp -nocase {synth_checkpoint_mode}     $name] ||
+       [regexp -nocase {is_locked}                 $name] ||
+       [regexp -nocase {generate_synth_checkpoint} $name] } {
+    return true
+  }
+
+  return false
+}
+
 proc write_properties { prop_info_list get_what tcl_obj } {
   # Summary: write object properties
   # This helper command is used to script help.
@@ -672,17 +688,27 @@ proc write_properties { prop_info_list get_what tcl_obj } {
   variable l_script_data
 
   if {[llength $prop_info_list] > 0} {
+    set b_add_closing_brace 0
     foreach x $prop_info_list {
       set elem [split $x "#"]
       set name [lindex $elem 0]
       set value [lindex $elem 1]
       if { [regexp "more options" $name] } {
         set cmd_str "set_property -name {$name} -value {$value} -objects"
+      } elseif { ([is_ip_readonly_prop $name]) && ([string equal $get_what "get_files"]) } {
+        set cmd_str "if \{ !\[get_property \"is_locked\" \$file_obj\] \} \{"
+        lappend l_script_data "$cmd_str"
+        set cmd_str "  set_property \"$name\" \"$value\""
+        set b_add_closing_brace 1
       } else {
         set cmd_str "set_property \"$name\" \"$value\""
       }
       if { [string equal $get_what "get_files"] } {
         lappend l_script_data "$cmd_str \$file_obj"
+        if { $b_add_closing_brace } {
+          lappend l_script_data "\}"
+          set b_add_closing_brace 0
+        }
       } else {
         # comment "is_readonly" project property
         if { [string equal $get_what "get_projects"] && [string equal "$name" "is_readonly"] } {
