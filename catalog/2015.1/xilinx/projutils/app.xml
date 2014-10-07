@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Check for read-only IP status before setting properties</revision_history>
+      <name>projutils</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to manipulation of projects.</summary>
+      <display>Project Utilities</display>
+      <procs>
+        <proc>
+          <name>convert_ngc</name>
+          <summary>Convert all provided NGC files to a supported format</summary>
+        </proc>
+        <proc>
+          <name>export_simulation</name>
+          <summary>NOTE-&apos;export_simulation&apos; is deprecated, please use &apos;launch_simulation -scripts_only&apos; instead. Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
+        </proc>
+        <proc>
+          <name>write_project_tcl</name>
+          <summary>Export Tcl script for re-creating the current project</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
