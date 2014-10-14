@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Print warning if install path not found</revision_history>
+      <revision_history>Wrap source file in quoted list object for get_files to handle file path with spaces</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
