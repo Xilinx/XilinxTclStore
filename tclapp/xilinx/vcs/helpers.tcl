@@ -737,11 +737,31 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
     set key_val_pair [split $element "="]
     set name [lindex $key_val_pair 0]
     set val  [lindex $key_val_pair 1]
+    set str "$name="
     if { [string length $val] > 0 } {
-      switch -regexp -- $tool {
-        "vlogan" { lappend opts "+define+$name=\"$val\"+"  }
-      }
+      set str "$str\"$val\""
+    } 
+    switch -regexp -- $tool {
+      "vlogan" { lappend opts "+define+$str+" }
     }
+  }
+}
+
+proc usf_append_generics { generic_list opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+  foreach element $generic_list {
+    set key_val_pair [split $element "="]
+    set name [lindex $key_val_pair 0]
+    set val  [lindex $key_val_pair 1]
+    set str "$name="
+    if { [string length $val] > 0 } {
+      set str "$str\"$val\""
+    } 
+    lappend opts "-gv $str"
   }
 }
 
@@ -2414,9 +2434,9 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
     lappend arg_list $compiler
     usf_append_compiler_options $compiler $file_type arg_list
     if { [string equal -nocase $associated_library "work"] } {
-      set arg_list [linsert $arg_list end "$global_files_str" "\"$file\""]
+      set arg_list [linsert $arg_list end "$global_files_str"]
     } else {
-      set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str" "\"$file\""]
+      set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str"]
     }
   }
 
@@ -2429,7 +2449,8 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
 
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
-  set cmd_str "$type#$associated_library#$file_str"
+
+  set cmd_str "$type#$associated_library#$file_str#\"$file\""
   return $cmd_str
 }
 
