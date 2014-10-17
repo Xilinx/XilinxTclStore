@@ -966,13 +966,10 @@ proc usf_set_simulator_path { simulator } {
   if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
   set install_path $a_sim_vars(s_install_path)
   send_msg_id USF-ModelSim-047 INFO "Finding simulator installation...\n"
-  switch -regexp -- $simulator {
-    {modelsim} {
-      set tool_name "vsim";append tool_name ${tool_extn}
-      if { {} == $install_path } {
-        set install_path [get_param "simulator.modelsimInstallPath"]
-      }
-    }
+
+  set tool_name "vsim";append tool_name ${tool_extn}
+  if { {} == $install_path } {
+    set install_path [get_param "simulator.${simulator}InstallPath"]
   }
  
   if { {} == $install_path } {
@@ -1403,25 +1400,6 @@ proc usf_resolve_uut_name { uut_arg } {
   return $uut
 }
 
-proc usf_print_args {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  puts "*******************************"
-  puts "-simset         = $::tclapp::aldec::riviera::a_sim_vars(s_simset)"
-  puts "-mode           = $::tclapp::aldec::riviera::a_sim_vars(s_mode)"
-  puts "-type           = $::tclapp::aldec::riviera::a_sim_vars(s_type)"
-  puts "-scripts_only   = $::tclapp::aldec::riviera::a_sim_vars(b_scripts_only)"
-  puts "-of_objects     = $::tclapp::aldec::riviera::a_sim_vars(s_comp_file)"
-  puts "-absolute_path  = $::tclapp::aldec::riviera::a_sim_vars(b_absolute_path)"
-  puts "-install_path   = $::tclapp::aldec::riviera::a_sim_vars(s_install_path)"
-  puts "-batch          = $::tclapp::aldec::riviera::a_sim_vars(b_batch)"
-  puts "-int_os_type    = $::tclapp::aldec::riviera::a_sim_vars(s_int_os_type)"
-  puts "-int_debug_mode = $::tclapp::aldec::riviera::a_sim_vars(s_int_debug_mode)"
-  puts "*******************************"
-}
-
 proc usf_get_script_extn {} {
   # Summary:
   # Argument Usage:
@@ -1516,10 +1494,11 @@ proc usf_get_netlist_extn { warning } {
   if { {VHDL} == $target_lang } {
     set extn {.vhd}
   }
-
+  
   if { (({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type))) } {
     set extn {.v}
     if { $warning } {
+      #[BS] do we have the same constraint?
       send_msg_id USF-ModelSim-074 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
     }
   }

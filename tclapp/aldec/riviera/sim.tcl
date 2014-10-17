@@ -1,11 +1,6 @@
 ######################################################################
 #
-# sim.tcl (simulation script for the 'ModelSim/Questa Simulator')
-#
-# Script created on 01/06/2014 by Raj Klair (Xilinx, Inc.)
-#
-# 2014.1 - v1.0 (rev 1)
-#  * initial version
+# sim.tcl (simulation script for the 'Aldec Riviera Simulator')
 #
 ######################################################################
 package require Vivado 1.2014.1
@@ -47,7 +42,7 @@ proc compile { args } {
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
-  ::tclapp::aldec::riviera::usf_launch_script "modelsim" $step
+  ::tclapp::aldec::riviera::usf_launch_script "riviera" $step
 }
 
 proc elaborate { args } {
@@ -66,7 +61,7 @@ proc elaborate { args } {
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
-  ::tclapp::aldec::riviera::usf_launch_script "modelsim" $step
+  ::tclapp::aldec::riviera::usf_launch_script "riviera" $step
 }
 
 proc simulate { args } {
@@ -83,7 +78,7 @@ proc simulate { args } {
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
-  ::tclapp::aldec::riviera::usf_launch_script "modelsim" $step
+  ::tclapp::aldec::riviera::usf_launch_script "riviera" $step
 
   if { $::tclapp::aldec::riviera::a_sim_vars(b_scripts_only) } {
     set fh 0
@@ -109,7 +104,7 @@ proc usf_modelsim_setup_simulation { args } {
 
   variable a_sim_vars
 
-  ::tclapp::aldec::riviera::usf_set_simulator_path "modelsim"
+  ::tclapp::aldec::riviera::usf_set_simulator_path "riviera"
 
   # set the simulation flow
   ::tclapp::aldec::riviera::usf_set_simulation_flow
@@ -118,12 +113,6 @@ proc usf_modelsim_setup_simulation { args } {
   if { [::tclapp::aldec::riviera::usf_set_sim_tcl_obj] } {
     return 1
   }
-
-  # initialize ModelSim simulator variables
-  usf_modelsim_init_simulation_vars
-
-  # print launch_simulation arg values
-  #::tclapp::aldec::riviera::usf_print_args
 
   # write functional/timing netlist for post-* simulation
   ::tclapp::aldec::riviera::usf_write_design_netlist
@@ -149,17 +138,6 @@ proc usf_modelsim_setup_simulation { args } {
   usf_modelsim_write_setup_files
 
   return 0
-}
-
-proc usf_modelsim_init_simulation_vars {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_modelsim_sim_vars
-
-  set a_modelsim_sim_vars(b_32bit)            0
-  set a_modelsim_sim_vars(s_compiled_lib_dir) {}
 }
 
 proc usf_modelsim_setup_args { args } {
@@ -528,7 +506,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   # compile glbl file
   set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]]
-  if { [::tclapp::aldec::riviera::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::aldec::riviera::a_sim_vars(l_design_files)] } {
+  if { [::tclapp::aldec::riviera::usf_compile_glbl_file "riviera" $b_load_glbl $::tclapp::aldec::riviera::a_sim_vars(l_design_files)] } {
     ::tclapp::aldec::riviera::usf_copy_glbl_file
     set top_lib [::tclapp::aldec::riviera::usf_get_top_library]
     set file_str "-work $top_lib \"glbl.v\""
@@ -1061,7 +1039,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
   
     # compile glbl file
     set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]]
-    if { [::tclapp::aldec::riviera::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::aldec::riviera::a_sim_vars(l_design_files)] } {
+    if { [::tclapp::aldec::riviera::usf_compile_glbl_file "riviera" $b_load_glbl $::tclapp::aldec::riviera::a_sim_vars(l_design_files)] } {
       ::tclapp::aldec::riviera::usf_copy_glbl_file
       set top_lib [::tclapp::aldec::riviera::usf_get_top_library]
       set file_str "-work $top_lib \"glbl.v\""
@@ -1090,13 +1068,13 @@ proc usf_add_quit_on_error { fh step } {
     puts $fh "onbreak {quit -f}"
     puts $fh "onerror {quit -f}\n"
   } elseif { ({simulate} == $step) } {
-    if { ![get_param "simulator.modelsimNoQuitOnError"] } {
+    if { ![get_param "simulator.rivieraNoQuitOnError"] } {
       puts $fh "onbreak {quit -f}"
       puts $fh "onerror {quit -f}\n"
     } 
 
     # quit on error always for batch/scripts only and when param is true
-    if { ($b_batch || $b_scripts_only) && ([get_param "simulator.modelsimNoQuitOnError"])  } {
+    if { ($b_batch || $b_scripts_only) && ([get_param "simulator.rivieraNoQuitOnError"])  } {
       puts $fh "onbreak {quit -f}"
       puts $fh "onerror {quit -f}\n"
     }

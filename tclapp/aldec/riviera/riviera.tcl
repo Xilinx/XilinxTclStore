@@ -1,6 +1,6 @@
 ###########################################################################
 #
-# modelsim.tcl (allow Tcl to find tclindex and provide package version 1.0)
+# riviera.tcl (allow Tcl to find tclindex and provide package version 1.0)
 #
 ###########################################################################
 namespace eval ::tclapp::aldec::riviera {
