@@ -15,6 +15,7 @@ namespace eval ::tclapp::aldec::riviera {
   namespace export register_options
 }
 
+
 namespace eval ::tclapp::aldec::riviera {
 proc register_options { simulator } {
   # Summary: define simulation fileset options
@@ -25,40 +26,33 @@ proc register_options { simulator } {
 
   variable options
   if { {} == $simulator } {
-    send_msg_id Vivado-ModelSim-001 ERROR "Simulator not specified.\n"
+    send_msg_id USF-ModelSim-001 ERROR "Simulator not specified.\n"
   }
   # is simulator registered?
   if { {-1} == [lsearch [get_simulators] $simulator] } {
-    send_msg_id Vivado-ModelSim-002 ERROR "Simulator '$simulator' is not registered\n"
+    send_msg_id USF-ModelSim-002 ERROR "Simulator '$simulator' is not registered\n"
     return 1
   }
-#  set options {
-#    {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008}}}   {Specify VHDL syntax}}
-#    {{compile.use_explicit_decl}   {bool}   {1}                                     {Log all signals}}
-#    {{compile.log_all_signals}     {bool}   {0}                                     {Log all signals}}
-#    {{compile.incremental}         {bool}   {0}                                     {Perform incremental compilation}}
-#    {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
-#    {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
-#    {{elaborate.vsim.more_options} {string} {}                                      {More VSIM elaboration options}}
-#    {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
-#    {{simulate.uut}                {string} {}                                      {Specify instance name for design under test (default:/uut)}}
-#    {{simulate.custom_do}          {string} {}                                      {Specify name of the custom do file}}
-#    {{simulate.custom_udo}         {string} {}                                      {Specify name of the custom user do file}}
-#    {{simulate.sdf_delay}          {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}
-#    {{simulate.saif}               {string} {}                                      {Specify SAIF file}}
-#    {{simulate.64bit}              {bool}   {0}                                     {Call 64bit VSIM compiler}}
-#    {{simulate.vsim.more_options}  {string} {}                                      {More VSIM simulation options}}
-#  }
-  
   set options {
-    {{compile.unifast}             {bool}   {0}                                     {Enable fast simulation models}}
-    {{compile.load_glbl}           {bool}   {1}                                     {Load GLBL module}}  
+    {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008}}}   {Specify VHDL syntax}}
+    {{compile.use_explicit_decl}   {bool}   {1}                                     {Log all signals}}
+    {{compile.load_glbl}           {bool}   {1}                                     {Load GLBL module}}
+    {{compile.incremental}         {bool}   {0}                                     {Perform incremental compilation}}
     {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
+    {{elaborate.acc}               {bool}   {1}                                     {Enable access to certain objects which might otherwise be optimized away}}
+    {{elaborate.unifast}           {bool}   {0}                                     {Enable fast simulation models}}
+    {{elaborate.vopt.more_options} {string} {}                                      {More VOPT elaboration options}}
     {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
+    {{simulate.log_all_signals}    {bool}   {0}                                     {Log all signals}}
     {{simulate.uut}                {string} {}                                      {Specify instance name for design under test (default:/uut)}}
+    {{simulate.custom_do}          {string} {}                                      {Specify name of the custom do file}}
+    {{simulate.custom_udo}         {string} {}                                      {Specify name of the custom user do file}}
+    {{simulate.sdf_delay}          {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}
+    {{simulate.saif}               {string} {}                                      {Specify SAIF file}}
+    {{simulate.64bit}              {bool}   {0}                                     {Call 64bit VSIM compiler}}
     {{simulate.vsim.more_options}  {string} {}                                      {More VSIM simulation options}}
-  }  
+  }
   # create options
   ::tclapp::aldec::riviera::usf_create_options $simulator $options
   return 0
