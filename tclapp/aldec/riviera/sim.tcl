@@ -33,7 +33,7 @@ proc compile { args } {
   # Return Value:
   # none
 
-  send_msg_id USF-ModelSim-002 INFO "ModelSim::Compile design"
+  send_msg_id USF-Riviera-2 INFO "ModelSim::Compile design"
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
     usf_modelsim_write_compile_script_native
   } else {
@@ -52,7 +52,7 @@ proc elaborate { args } {
   # Return Value:
   # none
 
-  send_msg_id USF-ModelSim-003 INFO "ModelSim::Elaborate design"
+  send_msg_id USF-Riviera-3 INFO "ModelSim::Elaborate design"
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
     usf_modelsim_write_elaborate_script_native
   } else {
@@ -73,7 +73,7 @@ proc simulate { args } {
 
   set dir $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)
 
-  send_msg_id USF-ModelSim-004 INFO "ModelSim::Simulate design"
+  send_msg_id USF-Riviera-4 INFO "ModelSim::Simulate design"
   usf_modelsim_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -84,7 +84,7 @@ proc simulate { args } {
     set fh 0
     set file [file normalize [file join $dir "simulate.log"]]
     if {[catch {open $file w} fh]} {
-      send_msg_id USF-ModelSim-016 ERROR "Failed to open file to write ($file)\n"
+      send_msg_id USF-Riviera-16 ERROR "Failed to open file to write ($file)\n"
     } else {
       puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
       close $fh
@@ -118,13 +118,13 @@ proc usf_modelsim_setup_simulation { args } {
   ::tclapp::aldec::riviera::usf_write_design_netlist
 
   # prepare IP's for simulation
-  #::tclapp::aldec::riviera::usf_prepare_ip_for_simulation
+  ::tclapp::aldec::riviera::usf_prepare_ip_for_simulation
 
   # generate mem files
-  ::tclapp::aldec::riviera::usf_generate_mem_files_for_simulation
+  #::tclapp::aldec::riviera::usf_generate_mem_files_for_simulation
 
   # find/copy modelsim.ini file into run dir
-  usf_modelsim_verify_compiled_lib
+  #usf_modelsim_verify_compiled_lib
 
   # fetch the compile order for the specified object
   ::tclapp::aldec::riviera::usf_get_compile_order_for_obj
@@ -163,6 +163,8 @@ proc usf_modelsim_setup_args { args } {
   # Categories: xilinxtclstore, modelsim
 
   set args [string trim $args "\}\{"]
+  
+  set_param "simulator.rivieraInstallPath" {e:\sources\bonanza\branch69\Release\bin} ;#[BS] remove it
 
   # process options
   for {set i 0} {$i < [llength $args]} {incr i} {
@@ -182,7 +184,7 @@ proc usf_modelsim_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id USF-ModelSim-006 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
+          send_msg_id USF-Riviera-6 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }
@@ -274,13 +276,13 @@ proc usf_modelsim_write_setup_files {} {
   set lib_dir [file normalize [file join $dir "msim"]]
   if { [file exists $lib_dir] } {
     if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id USF-ModelSim-012 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
+      send_msg_id USF-Riviera-12 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
       return 1
     }
   }
 
   #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id USF-ModelSim-013 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
+  #  send_msg_id USF-Riviera-13 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
   #  return 1
   #}
 }
@@ -296,15 +298,15 @@ proc usf_modelsim_write_compile_script {} {
 
   set do_filename {}
   # is custom do file specified?
-  set custom_do_file [get_property "MODELSIM.SIMULATE.CUSTOM_DO" $fs_obj]
+  set custom_do_file [get_property "RIVIERA.SIMULATE.CUSTOM_DO" $fs_obj]
   if { {} != $custom_do_file } {
-    send_msg_id USF-ModelSim-014 INFO "Using custom 'do' file '$custom_do_file'...\n"
+    send_msg_id USF-Riviera-14 INFO "Using custom 'do' file '$custom_do_file'...\n"
     set do_filename $custom_do_file
   } else {
     set do_filename $top;append do_filename "_compile.do"
     set do_file [file normalize [file join $dir $do_filename]]
 
-    send_msg_id USF-ModelSim-015 INFO "Creating automatic 'do' files...\n"
+    send_msg_id USF-Riviera-15 INFO "Creating automatic 'do' files...\n"
 
     usf_modelsim_create_do_file_for_compilation $do_file
   }
@@ -384,7 +386,7 @@ proc usf_modelsim_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id USF-ModelSim-016 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-Riviera-16 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $file
@@ -402,7 +404,7 @@ proc usf_modelsim_create_wave_do_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id USF-ModelSim-017 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-Riviera-17 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $file
@@ -418,6 +420,8 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
+  
+  send_msg_id BS-1 INFO "$do_file\n"
 
   set top $::tclapp::aldec::riviera::a_sim_vars(s_sim_top)
   set dir $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)
@@ -427,15 +431,14 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-ModelSim-018 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-Riviera-18 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
   usf_modelsim_write_header $fh $do_file
   usf_add_quit_on_error $fh "compile"
 
-  puts $fh "vlib work"
-  puts $fh "vlib msim\n"
+  puts $fh "vlib work\n"
 
   set design_libs [usf_modelsim_get_design_libs $::tclapp::aldec::riviera::a_sim_vars(l_design_files)]
 
@@ -447,23 +450,25 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    puts $fh "vlib msim/$lib"
+    puts $fh "vlib aldec_$lib"
+    puts $fh "vdel -lib aldec_$lib -all"
     if { $default_lib == $lib } {
       set b_default_lib true
     }
   }
   if { !$b_default_lib } {
-    puts $fh "vlib msim/$default_lib"
+    puts $fh "vlib aldec_$default_lib"
+    puts $fh "vdel -lib aldec_$default_lib -all"
   }
    
   puts $fh ""
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    puts $fh "vmap $lib msim/$lib"
+    puts $fh "vmap $lib aldec_$lib"
   }
   if { !$b_default_lib } {
-    puts $fh "vmap $default_lib msim/$default_lib"
+    puts $fh "vmap $default_lib aldec_$default_lib"
   }
   puts $fh ""
 
@@ -474,7 +479,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
 
   set vlog_arg_list [list "-incr"]
-  set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
+  set more_vlog_options [string trim [get_property "RIVIERA.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vlog_options } {
     set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
   }
@@ -482,9 +487,9 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   puts $fh "set vlog_opts \{$vlog_cmd_str\}"
 
   set vcom_arg_list [list]
-  set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
+  set vhdl_syntax [get_property "RIVIERA.COMPILE.VHDL_SYNTAX" $fs_obj]
   lappend vcom_arg_list "-$vhdl_syntax"
-  set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
+  set more_vcom_options [string trim [get_property "RIVIERA.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vcom_options } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
   }
@@ -505,7 +510,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
 
   # compile glbl file
-  set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]]
+  set b_load_glbl [get_property "RIVIERA.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]]
   if { [::tclapp::aldec::riviera::usf_compile_glbl_file "riviera" $b_load_glbl $::tclapp::aldec::riviera::a_sim_vars(l_design_files)] } {
     ::tclapp::aldec::riviera::usf_copy_glbl_file
     set top_lib [::tclapp::aldec::riviera::usf_get_top_library]
@@ -529,7 +534,7 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-ModelSim-019 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-Riviera-19 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
@@ -547,7 +552,11 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   # Summary:
   # Argument Usage:
   # Return Value:
-
+  
+  #[BS]
+  send_msg_id BS-1 WARNING "usf_modelsim_get_elaboration_cmdline: not implemented"
+  return ""  
+  
   set top $::tclapp::aldec::riviera::a_sim_vars(s_sim_top)
   set dir $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::aldec::riviera::a_sim_vars(s_simulation_flow)
@@ -569,7 +578,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     lappend arg_list $s_64bit
   }
 
-  if { [get_property "MODELSIM.ELABORATE.ACC" $fs_obj] } {
+  if { [get_property "RIVIERA.ELABORATE.ACC" $fs_obj] } {
     lappend arg_list "+acc"
   }
 
@@ -579,7 +588,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     ::tclapp::aldec::riviera::usf_append_generics $vhdl_generics arg_list  
   }
 
-  set more_vopt_options [string trim [get_property "MODELSIM.ELABORATE.VOPT.MORE_OPTIONS" $fs_obj]]
+  set more_vopt_options [string trim [get_property "RIVIERA.ELABORATE.VOPT.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vopt_options } {
     set arg_list [linsert $arg_list end "$more_vopt_options"]
   }
@@ -602,7 +611,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   }
 
   # behavioral simulation
-  set b_compile_unifast [get_property "MODELSIM.ELABORATE.UNIFAST" $fs_obj]
+  set b_compile_unifast [get_property "RIVIERA.ELABORATE.UNIFAST" $fs_obj]
 
   if { ([::tclapp::aldec::riviera::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
@@ -643,7 +652,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     lappend arg_list "${top_lib}.glbl"
   }
   lappend arg_list "-o"
-  lappend arg_list "${top}_opt"
+  lappend arg_list "${top}"
   set cmd_str [join $arg_list " "]
   return $cmd_str
 }
@@ -664,7 +673,7 @@ proc usf_modelsim_get_simulation_cmdline {} {
   set tool "vsim"
   set arg_list [list "$tool" "-t 1ps"]
 
-  set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  set more_sim_options [string trim [get_property "RIVIERA.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
@@ -675,14 +684,14 @@ proc usf_modelsim_get_simulation_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      send_msg_id USF-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id USF-Riviera-20 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
     }
   }
 
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   lappend arg_list "-lib"
   lappend arg_list $default_lib
-  lappend arg_list "${top}_opt"
+  lappend arg_list "${top}"
 
   set cmd_str [join $arg_list " "]
   return $cmd_str
@@ -700,7 +709,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set fs_obj [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-ModelSim-021 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-Riviera-21 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
@@ -712,20 +721,22 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   usf_add_quit_on_error $fh "simulate"
 
   puts $fh "$cmd_str"
-  puts $fh "\ndo \{$wave_do_filename\}"
-  puts $fh "\nview wave"
+  puts $fh "do \{$wave_do_filename\}"
+  puts $fh ""
+  puts $fh "view wave"
   puts $fh "view structure"
-  puts $fh "view signals\n"
+  #puts $fh "view signals"; #[BS]
+  puts $fh ""
 
-  set b_log_all_signals [get_property "MODELSIM.SIMULATE.LOG_ALL_SIGNALS" $fs_obj]
+  set b_log_all_signals [get_property "RIVIERA.SIMULATE.LOG_ALL_SIGNALS" $fs_obj]
   if { $b_log_all_signals } {
     puts $fh "log -r /*\n"
   }
  
   # generate saif file for power estimation
-  set saif [get_property "MODELSIM.SIMULATE.SAIF" $fs_obj] 
+  set saif [get_property "RIVIERA.SIMULATE.SAIF" $fs_obj] 
   if { {} != $saif } {
-    set uut [get_property "MODELSIM.SIMULATE.UUT" $fs_obj] 
+    set uut [get_property "RIVIERA.SIMULATE.UUT" $fs_obj] 
     if { {} == $uut } {
       set uut "/$top/uut/*"
     }
@@ -737,7 +748,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     }
   }
   # create custom UDO file
-  set udo_file [get_property "MODELSIM.SIMULATE.CUSTOM_UDO" $fs_obj]
+  set udo_file [get_property "RIVIERA.SIMULATE.CUSTOM_UDO" $fs_obj]
   if { {} == $udo_file } {
     set udo_filename $top;append udo_filename ".udo"
     set udo_file [file normalize [file join $dir $udo_filename]]
@@ -747,7 +758,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     puts $fh "do \{$udo_file\}"
   }
 
-  set rt [string trim [get_property "MODELSIM.SIMULATE.RUNTIME" $fs_obj]]
+  set rt [string trim [get_property "RIVIERA.SIMULATE.RUNTIME" $fs_obj]]
   if { {} == $rt } {
     # no runtime specified
     puts $fh "\nrun"
@@ -822,7 +833,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-ModelSim-022 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-Riviera-22 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
@@ -847,7 +858,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set bin_path=$::tclapp::aldec::riviera::a_sim_vars(s_tool_bin_path)"
-    puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    puts $fh_scr "call \"%bin_path%/vsim\" $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
@@ -871,7 +882,7 @@ proc usf_modelsim_write_driver_shell_script_native { step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-ModelSim-023 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-Riviera-23 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
@@ -941,7 +952,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     }
   
     set vlog_arg_list [list "-incr"]
-    set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
+    set more_vlog_options [string trim [get_property "RIVIERA.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
     if { {} != $more_vlog_options } {
       set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
     }
@@ -950,9 +961,9 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     puts $fh_scr "vlog_opts=\"$vlog_cmd_str\""
   
     set vcom_arg_list [list]
-    set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
+    set vhdl_syntax [get_property "RIVIERA.COMPILE.VHDL_SYNTAX" $fs_obj]
     lappend vcom_arg_list "-$vhdl_syntax"
-    set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
+    set more_vcom_options [string trim [get_property "RIVIERA.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
     if { {} != $more_vcom_options } {
       set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
     }
@@ -1038,7 +1049,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     }
   
     # compile glbl file
-    set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]]
+    set b_load_glbl [get_property "RIVIERA.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]]
     if { [::tclapp::aldec::riviera::usf_compile_glbl_file "riviera" $b_load_glbl $::tclapp::aldec::riviera::a_sim_vars(l_design_files)] } {
       ::tclapp::aldec::riviera::usf_copy_glbl_file
       set top_lib [::tclapp::aldec::riviera::usf_get_top_library]
@@ -1063,20 +1074,24 @@ proc usf_add_quit_on_error { fh step } {
 
   set b_batch        $::tclapp::aldec::riviera::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::aldec::riviera::a_sim_vars(b_scripts_only)
+  
+  #hide 'onerror' command from called 'onerror' handler if error occurred: used as error detection in log files
+  puts $fh "transcript off"
+  #
 
   if { ({compile} == $step) || ({elaborate} == $step) } {
-    puts $fh "onbreak {quit -f}"
-    puts $fh "onerror {quit -f}\n"
+    puts $fh "onbreak {quit -force}"
+    puts $fh "onerror {quit -force}\n"
   } elseif { ({simulate} == $step) } {
     if { ![get_param "simulator.rivieraNoQuitOnError"] } {
-      puts $fh "onbreak {quit -f}"
-      puts $fh "onerror {quit -f}\n"
+      puts $fh "onbreak {quit -force}"
+      puts $fh "onerror {quit -force}\n"
     } 
 
     # quit on error always for batch/scripts only and when param is true
     if { ($b_batch || $b_scripts_only) && ([get_param "simulator.rivieraNoQuitOnError"])  } {
-      puts $fh "onbreak {quit -f}"
-      puts $fh "onerror {quit -f}\n"
+      puts $fh "onbreak {quit -force}"
+      puts $fh "onerror {quit -force}\n"
     }
   }
 }

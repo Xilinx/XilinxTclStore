@@ -221,7 +221,7 @@ proc usf_set_simulation_flow {} {
   set type_dir {timing}
   if { {behavioral} == $a_sim_vars(s_mode) } {
     if { ({functional} == $a_sim_vars(s_type)) || ({timing} == $a_sim_vars(s_type)) } {
-      send_msg_id USF-ModelSim-026 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
+      send_msg_id USF-Riviera-26 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
       return 1
     }
     set simulation_flow "behav_sim"
@@ -232,7 +232,7 @@ proc usf_set_simulation_flow {} {
 
   } elseif { {post-synthesis} == $a_sim_vars(s_mode) } {
     if { ({functional} != $a_sim_vars(s_type)) && ({timing} != $a_sim_vars(s_type)) } {
-      send_msg_id USF-ModelSim-027 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
+      send_msg_id USF-Riviera-27 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
       return 1
     }
     set simulation_flow "post_synth_sim"
@@ -251,7 +251,7 @@ proc usf_set_simulation_flow {} {
     }
   } elseif { ({post-implementation} == $a_sim_vars(s_mode)) || ({timing} == $a_sim_vars(s_mode)) } {
     if { ({functional} != $a_sim_vars(s_type)) && ({timing} != $a_sim_vars(s_type)) } {
-      send_msg_id USF-ModelSim-028 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
+      send_msg_id USF-Riviera-28 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
       return 1
     }
     set simulation_flow "post_impl_sim"
@@ -265,7 +265,7 @@ proc usf_set_simulation_flow {} {
     if { {functional} == $a_sim_vars(s_type) } { set_property "NL.MODE" "funcsim" $fs_obj }
     if { {timing} == $a_sim_vars(s_type) } { set_property "NL.MODE" "timesim" $fs_obj }
   } else {
-    send_msg_id USF-ModelSim-029 ERROR "Invalid simulation mode '$a_sim_vars(s_mode)' specified. Please see 'simulate -help' for more details.\n"
+    send_msg_id USF-Riviera-29 ERROR "Invalid simulation mode '$a_sim_vars(s_mode)' specified. Please see 'simulate -help' for more details.\n"
     return 1
   }
   set a_sim_vars(s_simulation_flow) $simulation_flow
@@ -291,7 +291,7 @@ proc usf_set_sim_tcl_obj {} {
     }
     set a_sim_vars(s_sim_top) [get_property TOP [get_filesets $a_sim_vars(sp_tcl_obj)]]
   }
-  send_msg_id USF-ModelSim-030 INFO "Simulation object is '$a_sim_vars(sp_tcl_obj)'...\n"
+  send_msg_id USF-Riviera-30 INFO "Simulation object is '$a_sim_vars(sp_tcl_obj)'...\n"
   return 0
 }
 
@@ -348,7 +348,7 @@ proc usf_write_design_netlist {} {
           set synth_run [current_run -synthesis]
           set status [get_property "STATUS" $synth_run]
           if { ([regexp -nocase {^synth_design complete} $status] != 1) } {
-            send_msg_id USF-ModelSim-028 ERROR \
+            send_msg_id USF-Riviera-28 ERROR \
                "Synthesis results not available! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console and retry this operation.\n"
             return 1
           }
@@ -365,7 +365,7 @@ proc usf_write_design_netlist {} {
           current_design $synth_design
         } else {
           if { [catch {open_run $synth_run -name $netlist} open_error] } {
-            #send_msg_id USF-ModelSim-028 WARNING "open_run failed:$open_err"
+            #send_msg_id USF-Riviera-28 WARNING "open_run failed:$open_err"
           } else {
             current_design $netlist
           }
@@ -382,12 +382,12 @@ proc usf_write_design_netlist {} {
           link_design -name $netlist
         }
       } else {
-        send_msg_id USF-ModelSim-028 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
+        send_msg_id USF-Riviera-28 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
         return 1
       }
 
       set design_in_memory [current_design]
-      send_msg_id USF-ModelSim-029 INFO "Writing simulation netlist file for design '$design_in_memory'..."
+      send_msg_id USF-Riviera-29 INFO "Writing simulation netlist file for design '$design_in_memory'..."
       # write netlist/sdf
       set wv_args "-nolib $netlist_cmd_args -file $net_file"
       if { {functional} == $a_sim_vars(s_type) } {
@@ -396,16 +396,16 @@ proc usf_write_design_netlist {} {
         set wv_args "-mode timesim $wv_args"
       }
       if { {.v} == $extn } {
-        send_msg_id USF-ModelSim-101 INFO "write_verilog $wv_args"
+        send_msg_id USF-Riviera-101 INFO "write_verilog $wv_args"
         eval "write_verilog $wv_args"
       } else {
-        send_msg_id USF-ModelSim-101 INFO "write_vhdl $wv_args"
+        send_msg_id USF-Riviera-101 INFO "write_vhdl $wv_args"
         eval "write_vhdl $wv_args"
       }
       if { {timing} == $a_sim_vars(s_type) } {
-        send_msg_id USF-ModelSim-030 INFO "Writing SDF file..."
+        send_msg_id USF-Riviera-30 INFO "Writing SDF file..."
         set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
-        send_msg_id USF-ModelSim-102 INFO "write_sdf $ws_args"
+        send_msg_id USF-Riviera-102 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
       set a_sim_vars(s_netlist_file) $net_file
@@ -416,7 +416,7 @@ proc usf_write_design_netlist {} {
       if { [get_param "project.checkRunResultsForUnifiedSim"] } {
         set status [get_property "STATUS" $impl_run]
         if { ![get_property can_open_results $impl_run] } {
-          send_msg_id USF-ModelSim-031 ERROR \
+          send_msg_id USF-Riviera-31 ERROR \
              "Implementation results not available! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console and retry this operation.\n"
           return 1
         }
@@ -429,14 +429,14 @@ proc usf_write_design_netlist {} {
         current_design $impl_design
       } else {
         if { [catch {open_run $impl_run -name $netlist} open_err] } {
-          #send_msg_id USF-ModelSim-028 WARNING "open_run failed:$open_err"
+          #send_msg_id USF-Riviera-28 WARNING "open_run failed:$open_err"
         } else {
           current_design $impl_run
         }
       }
       
       set design_in_memory [current_design]
-      send_msg_id USF-ModelSim-032 INFO "Writing simulation netlist file for design '$design_in_memory'..."
+      send_msg_id USF-Riviera-32 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
       set wv_args "-nolib $netlist_cmd_args -file $net_file"
@@ -446,24 +446,24 @@ proc usf_write_design_netlist {} {
         set wv_args "-mode timesim $wv_args"
       }
       if { {.v} == $extn } {
-        send_msg_id USF-ModelSim-103 INFO "write_verilog $wv_args"
+        send_msg_id USF-Riviera-103 INFO "write_verilog $wv_args"
         eval "write_verilog $wv_args"
       } else {
-        send_msg_id USF-ModelSim-103 INFO "write_vhdl $wv_args"
+        send_msg_id USF-Riviera-103 INFO "write_vhdl $wv_args"
         eval "write_vhdl $wv_args"
       }
       if { {timing} == $a_sim_vars(s_type) } {
-        send_msg_id USF-ModelSim-033 INFO "Writing SDF file..."
+        send_msg_id USF-Riviera-33 INFO "Writing SDF file..."
         set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
-        send_msg_id USF-ModelSim-104 INFO "write_sdf $ws_args"
+        send_msg_id USF-Riviera-104 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
 
       set a_sim_vars(s_netlist_file) $net_file
     }
   }
-  if { [file exist $net_file] } { send_msg_id USF-ModelSim-034 INFO "Netlist generated:$net_file" }
-  if { [file exist $sdf_file] } { send_msg_id USF-ModelSim-035 INFO "SDF generated:$sdf_file" }
+  if { [file exist $net_file] } { send_msg_id USF-Riviera-34 INFO "Netlist generated:$net_file" }
+  if { [file exist $sdf_file] } { send_msg_id USF-Riviera-35 INFO "SDF generated:$sdf_file" }
 }
 
 proc usf_get_compile_order_for_obj { } {
@@ -476,7 +476,7 @@ proc usf_get_compile_order_for_obj { } {
   variable s_non_hdl_data_files_filter
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   if { [usf_is_ip $tcl_obj] } {
-    send_msg_id USF-ModelSim-039 INFO "Inspecting IP design source files for '$a_sim_vars(s_sim_top)'...\n"
+    send_msg_id USF-Riviera-39 INFO "Inspecting IP design source files for '$a_sim_vars(s_sim_top)'...\n"
     usf_get_sim_files_for_ip $tcl_obj
 
     # export ip data files to run dir
@@ -497,7 +497,7 @@ proc usf_get_compile_order_for_obj { } {
       usf_export_data_files $data_files
     }
   } elseif { [usf_is_fileset $tcl_obj] } {
-    send_msg_id USF-ModelSim-040 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
+    send_msg_id USF-Riviera-40 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
     if {[usf_get_sim_files_for_fs $tcl_obj]} {
       return 1
     }
@@ -508,7 +508,7 @@ proc usf_get_compile_order_for_obj { } {
     # export non-hdl data files to run dir
     usf_export_fs_non_hdl_data_files
   } else {
-    send_msg_id USF-ModelSim-041 INFO "Unsupported object source: $tcl_obj\n"
+    send_msg_id USF-Riviera-41 INFO "Unsupported object source: $tcl_obj\n"
     return 1
   }
 }
@@ -813,7 +813,7 @@ proc usf_copy_glbl_file {} {
   set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
 
   if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
-    send_msg_id USF-ModelSim-105 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+    send_msg_id USF-Riviera-105 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
   }
 }
 
@@ -828,7 +828,7 @@ proc usf_create_do_file { simulator do_filename } {
   set do_file [file join $a_sim_vars(s_launch_dir) $do_filename]
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
-    send_msg_id USF-ModelSim-042 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-Riviera-42 ERROR "Failed to open file to write ($do_file)\n"
   } else {
     set time [get_property "RUNTIME" $fs_obj]
     puts $fh_do "run $time"
@@ -870,7 +870,7 @@ proc usf_prepare_ip_for_simulation { } {
     set ip_filter "FILE_TYPE == \"IP\""
     foreach fs_obj $fs_objs {
       set fs_name [get_property "NAME" [get_filesets $fs_obj]]
-      send_msg_id USF-ModelSim-043 INFO "Inspecting fileset '$fs_name' for IP generation...\n"
+      send_msg_id USF-Riviera-43 INFO "Inspecting fileset '$fs_name' for IP generation...\n"
       # get ip composite files
       foreach comp_file [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $ip_filter] {
         usf_generate_comp_file_for_simulation $comp_file runs_to_launch
@@ -878,18 +878,18 @@ proc usf_prepare_ip_for_simulation { } {
     }
     # fileset contains embedded sources? generate mem files
     if { [usf_is_embedded_flow] } {
-      send_msg_id USF-ModelSim-044 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
+      send_msg_id USF-Riviera-44 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
       generate_mem_files $a_sim_vars(s_launch_dir)
     }
   } elseif { [usf_is_ip $target_obj] } {
     set comp_file $target_obj
     usf_generate_comp_file_for_simulation $comp_file runs_to_launch
   } else {
-    send_msg_id USF-ModelSim-045 ERROR "Unknown target '$target_obj'!\n"
+    send_msg_id USF-Riviera-45 ERROR "Unknown target '$target_obj'!\n"
   }
   # generate functional netlist  
   if { [llength $runs_to_launch] > 0 } {
-    send_msg_id USF-ModelSim-046 INFO "Launching block-fileset run '$runs_to_launch'...\n"
+    send_msg_id USF-Riviera-46 INFO "Launching block-fileset run '$runs_to_launch'...\n"
     launch_runs $runs_to_launch
 
     foreach run $runs_to_launch {
@@ -916,7 +916,7 @@ proc usf_generate_mem_files_for_simulation { } {
   if { [usf_is_fileset $a_sim_vars(sp_tcl_obj)] } {
     # fileset contains embedded sources? generate mem files
     if { [usf_is_embedded_flow] } {
-      send_msg_id USF-ModelSim-106 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
+      send_msg_id USF-Riviera-106 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
       generate_mem_files $a_sim_vars(s_launch_dir)
     }
   }
@@ -965,7 +965,7 @@ proc usf_set_simulator_path { simulator } {
   if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
   if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
   set install_path $a_sim_vars(s_install_path)
-  send_msg_id USF-ModelSim-047 INFO "Finding simulator installation...\n"
+  send_msg_id USF-Riviera-47 INFO "Finding simulator installation...\n"
 
   set tool_name "vsim";append tool_name ${tool_extn}
   if { {} == $install_path } {
@@ -977,10 +977,10 @@ proc usf_set_simulator_path { simulator } {
     if { {} == $bin_path } {
       if { $a_sim_vars(b_scripts_only) } {
         set bin_path {<specify-simulator-tool-path>}
-        send_msg_id USF-ModelSim-114 WARNING \
+        send_msg_id USF-Riviera-114 WARNING \
           "Simulator executable path could not be located. Please make sure to set the path in the generated scripts manually before executing these scripts.\n"
       } else {
-        send_msg_id USF-ModelSim-048 ERROR \
+        send_msg_id USF-Riviera-48 ERROR \
           "Failed to locate '$tool_name' executable in the shell environment 'PATH' variable. Please source the settings script included with the installation and retry this operation again.\n"
         # IMPORTANT - *** DONOT MODIFY THIS ***
         error "_SIM_STEP_RUN_EXEC_ERROR_"
@@ -988,7 +988,7 @@ proc usf_set_simulator_path { simulator } {
         return 1
       }
     } else {
-      send_msg_id USF-ModelSim-049 INFO "Using simulator executables from '$bin_path'\n"
+      send_msg_id USF-Riviera-49 INFO "Using simulator executables from '$bin_path'\n"
     }
   } else {
     set install_path [file normalize [string map {\\ /} $install_path]]
@@ -1008,9 +1008,9 @@ proc usf_set_simulator_path { simulator } {
       }
     }
     if { [file exists $tool_path] && ![file isdirectory $tool_path] } {
-      send_msg_id USF-ModelSim-050 INFO "Using simulator executables from '$tool_path'\n"
+      send_msg_id USF-Riviera-50 INFO "Using simulator executables from '$tool_path'\n"
     } else {
-      send_msg_id USF-ModelSim-051 ERROR "Path to custom '$tool_name' executable program does not exist:$tool_path'\n"
+      send_msg_id USF-Riviera-51 ERROR "Path to custom '$tool_name' executable program does not exist:$tool_path'\n"
     }
   }
 
@@ -1057,14 +1057,14 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   # get global include file paths
   set incl_file_paths [list]
   set incl_files      [list]
-  send_msg_id USF-ModelSim-107 INFO "Finding global include files..."
+  send_msg_id USF-Riviera-107 INFO "Finding global include files..."
   usf_get_global_include_files incl_file_paths incl_files
 
   set global_incl_files $incl_files
   set global_files_str [usf_get_global_include_file_cmdstr incl_files]
 
   # verilog incl dir's and verilog headers directory path if any
-  send_msg_id USF-ModelSim-108 INFO "Finding include directories and verilog header directory paths..."
+  send_msg_id USF-Riviera-108 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
   foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths]] {
     lappend l_incl_dirs_opts "+incdir+$dir"
@@ -1079,7 +1079,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
     # add files from simulation compile order
     if { {All} == $src_mgmt_mode } {
-      send_msg_id USF-ModelSim-109 INFO "Fetching design files from '$target_obj'..."
+      send_msg_id USF-Riviera-109 INFO "Fetching design files from '$target_obj'..."
       foreach file $::tclapp::aldec::riviera::l_compile_order_files {
         if { [usf_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -1098,7 +1098,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         set srcset_obj [get_filesets $linked_src_set]
         if { {} != $srcset_obj } {
           set used_in_val "simulation"
-          send_msg_id USF-ModelSim-110 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
+          send_msg_id USF-Riviera-110 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
           set ::tclapp::aldec::riviera::l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
           foreach file $::tclapp::aldec::riviera::l_compile_order_files {
             set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -1116,7 +1116,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 
     if { $b_add_sim_files } {
       # add additional files from simulation fileset
-      send_msg_id USF-ModelSim-111 INFO "Fetching design files from '$a_sim_vars(s_simset)'..."
+      send_msg_id USF-Riviera-111 INFO "Fetching design files from '$a_sim_vars(s_simset)'..."
       foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1131,7 +1131,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
   } elseif { [usf_is_ip $target_obj] } {
     # prepare command line args for fileset ip files
-    send_msg_id USF-ModelSim-112 INFO "Fetching design files from IP '$target_obj'..."
+    send_msg_id USF-Riviera-112 INFO "Fetching design files from IP '$target_obj'..."
     foreach file $::tclapp::aldec::riviera::l_compile_order_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1313,7 +1313,7 @@ proc usf_launch_script { simulator step } {
   usf_make_file_executable $shell_script_file
 
   if { $a_sim_vars(b_scripts_only) } {
-    send_msg_id USF-ModelSim-068 INFO "Script generated:[file normalize [file join $run_dir $scr_file]]"
+    send_msg_id USF-Riviera-68 INFO "Script generated:[file normalize [file join $run_dir $scr_file]]"
     return 0
   }
 
@@ -1324,7 +1324,7 @@ proc usf_launch_script { simulator step } {
   set faulty_run 0
   set cwd [pwd]
   cd $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)
-  send_msg_id USF-ModelSim-069 INFO "Executing '[string toupper $step]' step in '$run_dir'"
+  send_msg_id USF-Riviera-69 INFO "Executing '[string toupper $step]' step in '$run_dir'"
   set results_log {}
   switch $step {
     {compile} -
@@ -1346,14 +1346,15 @@ proc usf_launch_script { simulator step } {
         set retval [catch {rdi::run_program -no_wait $scr_file} error_log]
       }
       if { $retval } {
-        send_msg_id USF-ModelSim-072 ERROR "Failed to launch $scr_file:$error_log\n"
+        send_msg_id USF-Riviera-72 ERROR "Failed to launch $scr_file:$error_log\n"
         set faulty_run 1
       }
     }
   }
   cd $cwd
+
   if { $faulty_run } {
-    [catch {send_msg_id USF-ModelSim-070 ERROR "'$step' step failed with error(s). Please check the Tcl console output or '$results_log' file for more information.\n"}]
+    [catch {send_msg_id USF-Riviera-70 ERROR "'$step' step failed with error(s). Please check the Tcl console output or '$results_log' file for more information.\n"}]
     # IMPORTANT - *** DONOT MODIFY THIS ***
     error "_SIM_STEP_RUN_EXEC_ERROR_"
     # IMPORTANT - *** DONOT MODIFY THIS ***
@@ -1472,7 +1473,7 @@ proc usf_get_simulator_lib_for_bfm {} {
       }
     }
   } else {
-    send_msg_id USF-ModelSim-073 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
+    send_msg_id USF-Riviera-73 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
   }
   return $simulator_lib
 }
@@ -1499,7 +1500,7 @@ proc usf_get_netlist_extn { warning } {
     set extn {.v}
     if { $warning } {
       #[BS] do we have the same constraint?
-      send_msg_id USF-ModelSim-074 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
+      send_msg_id USF-Riviera-74 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
     }
   }
   return $extn
@@ -1541,9 +1542,9 @@ proc usf_export_data_files { data_files } {
     # export now
     foreach file $data_files {
       if {[catch {file copy -force $file $export_dir} error_msg] } {
-        send_msg_id USF-ModelSim-075 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
+        send_msg_id USF-Riviera-75 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
       } else {
-        send_msg_id USF-ModelSim-076 INFO "Exported '$file'\n"
+        send_msg_id USF-Riviera-76 INFO "Exported '$file'\n"
       }
     }
   }
@@ -1669,14 +1670,14 @@ proc usf_get_files_from_block_filesets { filter_type } {
   set used_in_val "simulation"
   set fs_objs [get_filesets -filter $filter]
   if { [llength $fs_objs] > 0 } {
-    send_msg_id USF-ModelSim-113 INFO "Finding block fileset files..."
+    send_msg_id USF-Riviera-113 INFO "Finding block fileset files..."
     foreach fs_obj $fs_objs {
       set fs_name [get_property "NAME" $fs_obj]
-      send_msg_id USF-ModelSim-077 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
+      send_msg_id USF-Riviera-77 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
       #set files [usf_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]]
       set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]
       if { [llength $files] == 0 } {
-        send_msg_id USF-ModelSim-078 INFO "No files found in '$fs_name'\n"
+        send_msg_id USF-Riviera-78 INFO "No files found in '$fs_name'\n"
         continue
       } else {
         foreach file $files {
@@ -2104,11 +2105,11 @@ proc usf_make_file_executable { file } {
 
   if {$::tcl_platform(platform) == "unix"} {
     if {[catch {exec chmod a+x $file} error_msg] } {
-      send_msg_id USF-ModelSim-079 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-Riviera-79 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   } else {
     if {[catch {exec attrib /D -R $file} error_msg] } {
-      send_msg_id USF-ModelSim-080 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-Riviera-80 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   }
 }
@@ -2131,22 +2132,22 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
   if { [get_property "IS_IP_BEHAV_LANG_SUPPORTED" $comp_file] } {
     # does ip generated simulation products? if not, generate them
     if { ![get_property "IS_IP_GENERATED_SIM" $comp_file] } {
-      send_msg_id USF-ModelSim-071 INFO "Generating simulation products for IP '$ip_name'...\n"
+      send_msg_id USF-Riviera-71 INFO "Generating simulation products for IP '$ip_name'...\n"
       set delivered_targets [get_property delivered_targets [get_ips -quiet ${ip_name}]]
       if { [regexp -nocase {simulation} $delivered_targets] } {
         generate_target {simulation} [get_files [list "$comp_file"]] -force
       }
     } else {
-      send_msg_id USF-ModelSim-074 INFO "IP '$ip_name' is upto date for simulation\n"
+      send_msg_id USF-Riviera-74 INFO "IP '$ip_name' is upto date for simulation\n"
     }
   } elseif { [get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file] } {
     # make sure ip is up-to-date
     if { ![get_property "IS_IP_GENERATED" $comp_file] } {
       generate_target {all} [get_files [list "$comp_file"]] -force
-      send_msg_id USF-ModelSim-077 INFO "Generating functional netlist for IP '$ip_name'...\n"
+      send_msg_id USF-Riviera-77 INFO "Generating functional netlist for IP '$ip_name'...\n"
       usf_generate_ip_netlist $comp_file runs_to_launch
     } else {
-      send_msg_id USF-ModelSim-078 INFO "IP '$ip_name' is upto date for all products\n"
+      send_msg_id USF-Riviera-78 INFO "IP '$ip_name' is upto date for all products\n"
     }
   } else {
     # at this point, ip doesnot support behavioral language and synth check point is false, so advise
@@ -2161,7 +2162,7 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
     } else {
       # no synthesis, so no recommendation to do a synth checkpoint.
     }
-    send_msg_id USF-ModelSim-079 WARNING "$error_msg\n"
+    send_msg_id USF-Riviera-79 WARNING "$error_msg\n"
     #return 1
   }
 }
@@ -2175,17 +2176,17 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
   set comp_file_obj [get_files [list "$comp_file"]]
   set comp_file_fs  [get_property "FILESET_NAME" $comp_file_obj]
   if { ![get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file_obj] } {
-    send_msg_id USF-ModelSim-091 INFO "Generate synth checkpoint is 'false':$comp_file\n"
+    send_msg_id USF-Riviera-91 INFO "Generate synth checkpoint is 'false':$comp_file\n"
     # if synth checkpoint read-only, return
     if { [get_property "IS_IP_SYNTH_CHECKPOINT_READONLY" $comp_file_obj] } {
-      send_msg_id USF-ModelSim-092 WARNING "Synth checkpoint property is 'readonly' ... skipping:$comp_file\n"
+      send_msg_id USF-Riviera-92 WARNING "Synth checkpoint property is 'readonly' ... skipping:$comp_file\n"
       return
     }
     # set property to create a DCP/structural simulation file
-    send_msg_id USF-ModelSim-093 INFO "Setting synth checkpoint for generating simulation netlist:$comp_file\n"
+    send_msg_id USF-Riviera-93 INFO "Setting synth checkpoint for generating simulation netlist:$comp_file\n"
     set_property "GENERATE_SYNTH_CHECKPOINT" true $comp_file_obj
   } else {
-    send_msg_id USF-ModelSim-094 INFO "Generate synth checkpoint is set:$comp_file\n"
+    send_msg_id USF-Riviera-94 INFO "Generate synth checkpoint is set:$comp_file\n"
   }
   # block fileset name is based on the basename of the IP
   set src_file [file normalize $comp_file]
@@ -2196,16 +2197,16 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
   if { {} == $block_fs_obj } {
     create_fileset -blockset "$ip_basename"
     set block_fs_obj [get_filesets $ip_basename]
-    send_msg_id USF-ModelSim-095 INFO "Block-fileset created:$block_fs_obj"
+    send_msg_id USF-Riviera-95 INFO "Block-fileset created:$block_fs_obj"
     # set fileset top
     set comp_file_top [get_property "IP_TOP" $comp_file_obj]
     set_property "TOP" $comp_file_top [get_filesets $ip_basename]
     # move sub-design to block-fileset
-    send_msg_id USF-ModelSim-096 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
+    send_msg_id USF-Riviera-96 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
     move_files -fileset [get_filesets $ip_basename] [get_files -of_objects [get_filesets $comp_file_fs] $src_file] 
   }
   if { {BlockSrcs} != [get_property "FILESET_TYPE" $block_fs_obj] } {
-    send_msg_id USF-ModelSim-097 ERROR "Given source file is not associated with a design source fileset.\n"
+    send_msg_id USF-Riviera-97 ERROR "Given source file is not associated with a design source fileset.\n"
     return 1
   }
   # construct block-fileset run for the netlist
@@ -2214,7 +2215,7 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
     reset_run $run_name
   }
   lappend runs_to_launch $run_name
-  send_msg_id USF-ModelSim-098 INFO "Run scheduled for '$ip_basename':$run_name\n"
+  send_msg_id USF-Riviera-98 INFO "Run scheduled for '$ip_basename':$run_name\n"
 }
 
 proc usf_get_testbench_files_from_ip { file_type_filter } {
@@ -2409,7 +2410,7 @@ proc usf_check_errors { step results_log_arg } {
   set log [file normalize [file join $run_dir ${step}.log]]
   set fh 0
   if {[catch {open $log r} fh]} {
-    send_msg_id USF-ModelSim-099 WARNING "Failed to open file to read ($log)\n"
+    send_msg_id USF-Riviera-99 WARNING "Failed to open file to read ($log)\n"
     close $fh
   } else {
     set log_data [read $fh]
@@ -2424,7 +2425,7 @@ proc usf_check_errors { step results_log_arg } {
     }
   }
   if { $retval } {
-    [catch {send_msg_id USF-ModelSim-099 INFO "Step results log file:'$log'\n"}]
+    [catch {send_msg_id USF-Riviera-99 INFO "Step results log file:'$log'\n"}]
     return 1
   }
   return 0
@@ -2534,7 +2535,7 @@ proc usf_get_top { top_arg } {
   set fs_name [get_property "NAME" $fs_obj]
   set top [get_property "TOP" $fs_obj]
   if { {} == $top } {
-    send_msg_id USF-ModelSim-100 ERROR "Top module not set for fileset '$fs_name'. Please ensure that a valid \
+    send_msg_id USF-Riviera-100 ERROR "Top module not set for fileset '$fs_name'. Please ensure that a valid \
        value is provided for 'top'. The value for 'top' can be set/changed using the 'Top Module Name' field under\
        'Project Settings', or using the 'set_property top' Tcl command (e.g. set_property top <name> \[current_fileset\])."
     return 1
