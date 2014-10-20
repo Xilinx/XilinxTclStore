@@ -18,7 +18,7 @@
 #     % rexec { tk::toplevel .w; wm title .w "New Window"; }
 #
 
-package require Vivado 1.2014.1
+catch { package require Vivado 1.2014.1 }
 
 namespace eval ::tclapp::xilinx::tk_tunnel {
 
