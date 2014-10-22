@@ -389,7 +389,7 @@ proc usf_write_design_netlist {} {
       set design_in_memory [current_design]
       send_msg_id USF-ModelSim-029 INFO "Writing simulation netlist file for design '$design_in_memory'..."
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -404,7 +404,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-ModelSim-030 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-ModelSim-102 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
@@ -439,7 +439,7 @@ proc usf_write_design_netlist {} {
       send_msg_id USF-ModelSim-032 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -454,7 +454,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-ModelSim-033 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-ModelSim-104 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
