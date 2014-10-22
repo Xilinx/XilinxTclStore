@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Group design source files by library in script file to improve compile time</revision_history>
+      <revision_history>Wrap netlist/sdf file in double quotes while passing this file to netlist/sdf writers to fix issue for directory containing spaces</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
