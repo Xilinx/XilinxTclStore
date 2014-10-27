@@ -30,37 +30,66 @@
 
 # This file is executed by the server to start the Tk listner
 
-puts "Starting server..."
+proc start_tcl_server {} {
 
-if { [ info tclversion ] != "8.5" } {
-  puts "The tk_tunnel package was designed to run with Tcl/Tk 8.5\n\
-    \tDetected tcl version: '[info tclversion]'\n\
-    \tYou can point to a Tcl/Tk 8.5 installation with:\n\
-    \tlaunch_server '/usr/bin/tclsh8.5'\n\
-    (press return to continue, and cancel the client)" 
-  gets stdin
-  exit
+  # Validate Tcl Version
+  if { [ info tclversion ] != "8.5" } {
+    error "The tk_tunnel package was designed to run with Tcl/Tk 8.5\n\
+      \tDetected tcl version: '[info tclversion]'\n\
+      \tYou can point to a Tcl/Tk 8.5 installation with:\n\
+      \tlaunch_server '/usr/bin/tclsh8.5'\n" 
+  }
+
+  # Add this package to the regular Tcl shell
+  set file_dir [ file dirname [ info script ] ]
+  set app_dir [ file normalize [ file join $file_dir .. ] ]
+  if { ! [ info exists ::env(XILINX_TCLAPP_REPO) ] } {
+    set ::env(XILINX_TCLAPP_REPO) [ file normalize [ file join $app_dir .. .. .. ] ]
+  }
+
+  # Add the Xilinx Tcl libraries to the regular Tcl shell
+  lappend auto_path [ file normalize [ file join $::env(XILINX_VIVADO) tps tcl tcllib1.11.1 ] ]
+  # Add the paths to auto_path
+  lappend auto_path [ file normalize $::env(XILINX_TCLAPP_REPO) ]
+
+  puts "== This Launch Script:\n  [ info script ]"
+  puts "== Repository directory:\n  $::env(XILINX_TCLAPP_REPO)"
+  #puts "== Tk Tunnel Directory:\n  $app_dir"
+  #puts "== Vivado:\n  $::env(XILINX_VIVADO)"
+  #puts "== Working Dir:\n  [ pwd ]"
+  #puts "== Auto path:\n\ \ [ join $auto_path \n\ \ ]\n"
+
+  # Not sure why, but the package require needs to be done at the top-level
+  # This used to work fine at this level, something changed in regular Tcl
+  uplevel #0 { 
+    lappend auto_path $::env(XILINX_TCLAPP_REPO)
+    package require ::tclapp::xilinx::tk_tunnel
+  }
+
+  ::tclapp::xilinx::tk_tunnel::start_server
+  # ::tclapp::xilinx::tk_tunnel::hide_server_start
+
+  vwait ::tclapp::xilinx::tk_tunnel::local_wait_on
+
 }
 
-# Add the Xilinx Tcl libraries to the regular Tcl shell
-lappend auto_path [file normalize [file join $::env(XILINX) .. PlanAhead tps tcl tcllib1.11.1]]
+puts "Starting server..."
+catch { start_tcl_server } _output
+puts $_output
 
-# Add this package to the regular Tcl shell
-set file_dir [file dirname [info script]]
-set ::env(XILINX_TCLAPP_REPO) [file normalize [file join $file_dir .. ..]]
-puts "== Tk Tunnel Directory: $file_dir"
-puts "== Application directory: $::env(XILINX_TCLAPP_REPO)"
+set bAutoClose 1
 
-lappend auto_path $::env(XILINX_TCLAPP_REPO)
-
-package require ::tclapp::xilinx::tk_tunnel
-namespace import ::tclapp::xilinx::tk_tunnel::*
-
-start_server
-# hide_server_start
-
-vwait ::tclapp::xilinx::tk_tunnel::local_wait_on
-
-puts "server finished."
+if { $bAutoClose } {
+  # Wait for 10 seconds before close
+  puts "Server terminated, shell will close in 10 seconds."
+  set wait_on {}
+  after 10000 { set wait_on "next" }
+  vwait wait_on
+} else {
+  # Else wait forever
+  puts "Server terminated, press 'Enter' to exit."
+  gets stdin
+}
 
 exit
+
