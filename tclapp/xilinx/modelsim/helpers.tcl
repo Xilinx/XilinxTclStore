@@ -389,7 +389,7 @@ proc usf_write_design_netlist {} {
       set design_in_memory [current_design]
       send_msg_id USF-ModelSim-029 INFO "Writing simulation netlist file for design '$design_in_memory'..."
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -404,7 +404,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-ModelSim-030 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-ModelSim-102 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
@@ -439,7 +439,7 @@ proc usf_write_design_netlist {} {
       send_msg_id USF-ModelSim-032 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -454,7 +454,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-ModelSim-033 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-ModelSim-104 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
@@ -734,15 +734,46 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
   # Return Value:
 
   upvar $opts_arg opts
+  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
+
   foreach element $def_gen_list {
     set key_val_pair [split $element "="]
     set name [lindex $key_val_pair 0]
     set val  [lindex $key_val_pair 1]
-    if { [string length $val] > 0 } {
-      switch -regexp -- $tool {
-        "vlog" { lappend opts "+define+$name=\"$val\""  }
+    set str "+define+$name=" 
+    if { $b_group_files } {    
+      # escape '
+      if { [regexp {'} $val] } {
+        regsub -all {'} $val {\\'} val
       }
     }
+
+    if { [string length $val] > 0 } {
+      set str "$str\"$val\""
+    }
+
+    switch -regexp -- $tool {
+      "vlog" { lappend opts "$str"  }
+    }
+  }
+}
+
+proc usf_append_generics { generic_list opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+
+  foreach element $generic_list {
+    set key_val_pair [split $element "="]
+    set name [lindex $key_val_pair 0]
+    set val  [lindex $key_val_pair 1]
+    set str "-g$name="
+    if { [string length $val] > 0 } {
+      set str $str$val
+    }
+    lappend opts $str
   }
 }
 
@@ -2291,7 +2322,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
     usf_append_compiler_options $compiler $file_type arg_list
-    set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str" "\"$file\""]
+    set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str"]
   }
   usf_append_other_options $compiler $file_type $global_files_str arg_list
 
@@ -2302,7 +2333,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
 
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
-  set cmd_str "$type#$associated_library#$file_str"
+  set cmd_str "$type#$associated_library#$file_str#\"$file\""
   return $cmd_str
 }
 

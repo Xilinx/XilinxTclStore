@@ -659,24 +659,26 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       set key_val_pair [split $element "="]
       set name [lindex $key_val_pair 0]
       set val  [lindex $key_val_pair 1]
+      set str "$name="
       if { [string length $val] > 0 } {
-        set str "\"$name=$val\""
-        lappend args_list "-d $str"
+        set str "$str$val"
       }
+      lappend args_list "-d \"$str\""
     }
   }
 
   # -generic_top (verilog macros)
-  set v_generics [get_property "VHDL_GENERIC" $fs_obj]
+  set v_generics [get_property "GENERIC" $fs_obj]
   if { [llength $v_generics] > 0 } {
     foreach element $v_generics {
       set key_val_pair [split $element "="]
       set name [lindex $key_val_pair 0]
       set val  [lindex $key_val_pair 1]
+      set str "$name="
       if { [string length $val] > 0 } {
-        set str "\"$name=$val\""
-        lappend args_list "-generic_top $str"
+        set str "$str$val"
       }
+      lappend args_list "-generic_top \"$str\""
     }
   }
 

@@ -322,6 +322,22 @@ proc usf_ies_write_setup_files {} {
 
 }
 
+proc usf_ies_set_initial_cmd { fh_scr cmd_str src_file type lib prev_type_arg prev_lib_arg } {
+  # Summary: Print compiler command line and store previous file type and library information
+  # Argument Usage:
+  # Return Value:
+  # None
+
+  upvar $prev_type_arg prev_type
+  upvar $prev_lib_arg  prev_lib
+
+  puts $fh_scr "\$bin_path/$cmd_str \\"
+  puts $fh_scr "$src_file \\"
+
+  set prev_type $type
+  set prev_lib  $lib
+}
+
 proc usf_ies_write_compile_script {} {
   # Summary:
   # Argument Usage:
@@ -402,11 +418,35 @@ proc usf_ies_write_compile_script {} {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
   puts $fh_scr "# compile design source files"
+
+  set b_first true
+  set prev_lib  {}
+  set prev_type {}
+  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
+
   foreach file $::tclapp::xilinx::ies::a_sim_vars(l_design_files) {
-    set type    [lindex [split $file {#}] 0]
-    set lib     [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
-    puts $fh_scr "\$bin_path/$cmd_str"
+    set fargs    [split $file {#}]
+
+    set type     [lindex $fargs 0]
+    set lib      [lindex $fargs 1]
+    set cmd_str  [lindex $fargs 2]
+    set src_file [lindex $fargs 3]
+
+    if { $b_group_files } {
+      if { $b_first } {
+        set b_first false
+        usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+      } else {
+        if { ($type == $prev_type) && ($lib == $prev_lib) } {
+          puts $fh_scr "$src_file \\"
+        } else {
+          puts $fh_scr ""
+          usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+        }
+      }
+    } else {
+      puts $fh_scr "\$bin_path/$cmd_str $src_file"
+    }
   }
 
   # compile glbl file
@@ -547,9 +587,9 @@ proc usf_ies_write_elaborate_script {} {
   set obj $::tclapp::xilinx::ies::a_sim_vars(sp_tcl_obj)
   if { [::tclapp::xilinx::ies::usf_is_fileset $obj] } {
     set vhdl_generics [list]
-    set vhdl_generics [get_property "VHDL_GENERIC" [get_filesets $obj]]
+    set vhdl_generics [get_property "GENERIC" [get_filesets $obj]]
     if { [llength $vhdl_generics] > 0 } {
-       ::tclapp::xilinx::ies::usf_append_define_generics $vhdl_generics $tool arg_list
+      ::tclapp::xilinx::ies::usf_append_generics $vhdl_generics arg_list
     }
   }
 

@@ -389,7 +389,7 @@ proc usf_write_design_netlist {} {
       set design_in_memory [current_design]
       send_msg_id USF-IES-029 INFO "Writing simulation netlist file for design '$design_in_memory'..."
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -404,7 +404,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-IES-030 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-IES-094 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
@@ -438,7 +438,7 @@ proc usf_write_design_netlist {} {
       send_msg_id USF-IES-032 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -453,7 +453,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-IES-033 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-IES-096 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
@@ -734,11 +734,31 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
     set key_val_pair [split $element "="]
     set name [lindex $key_val_pair 0]
     set val  [lindex $key_val_pair 1]
+    set str "$name="
     if { [string length $val] > 0 } {
-      switch -regexp -- $tool {
-        "ncvlog" { lappend opts "-define"  ; lappend opts "\"$name=$val\""  }
-      }
+      set str "$str$val"
     }
+    switch -regexp -- $tool {
+      "ncvlog" { lappend opts "-define"  ; lappend opts "\"$str\""  }
+    }
+  }
+}
+
+proc usf_append_generics { generic_list opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+  foreach element $generic_list {
+    set key_val_pair [split $element "="]
+    set name [lindex $key_val_pair 0]
+    set val  [lindex $key_val_pair 1]
+    set str "$name=>"
+    if { [string length $val] > 0 } {
+      set str "$str$val"
+    }
+    lappend opts "-generic"  ; lappend opts "\"$str\""
   }
 }
 
@@ -819,7 +839,7 @@ proc usf_create_do_file { simulator do_filename } {
     }
     puts $fh_do "database -open waves -into waves.shm -default"
 
-    set db "probe -create -shm -all -variables -depth all"
+    set db "probe -create -shm -all -variables -depth 1"
     if { $a_sim_vars(b_batch) || $b_scripts_only } {
       puts $fh_do $db
     } else {
@@ -2412,7 +2432,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
     usf_append_compiler_options $compiler $file_type arg_list
-    set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str" "\"$file\""]
+    set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str"]
   }
  
   # append include dirs for verilog sources
@@ -2424,7 +2444,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
 
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
-  set cmd_str "$type#$associated_library#$file_str"
+  set cmd_str "$type#$associated_library#$file_str#\"$file\""
   return $cmd_str
 }
 

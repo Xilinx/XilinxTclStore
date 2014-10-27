@@ -392,7 +392,7 @@ proc usf_write_design_netlist {} {
       set design_in_memory [current_design]
       send_msg_id USF-XSim-029 INFO "Writing simulation netlist file for design '$design_in_memory'..."
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -407,7 +407,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-XSim-030 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-XSim-091 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
@@ -441,7 +441,7 @@ proc usf_write_design_netlist {} {
       send_msg_id USF-XSim-032 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -456,7 +456,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-XSim-033 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-XSim-093 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
@@ -921,10 +921,11 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
       set key_val_pair [split $element "="]
       set name [lindex $key_val_pair 0]
       set val  [lindex $key_val_pair 1]
+      set str "$name="
       if { [string length $val] > 0 } {
-        set str "\"$name=$val\""
-        lappend opts "-d $str"
+        set str "$str$val"
       }
+      lappend opts "-d \"$str\""
     }
   }
 }

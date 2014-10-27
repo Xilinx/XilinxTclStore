@@ -516,10 +516,14 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   puts $fh ""
 
   foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
-    set type    [lindex [split $file {#}] 0]
-    set lib     [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
-    puts $fh "eval $cmd_str"
+    set fargs    [split $file {#}]
+    
+    set type     [lindex $fargs 0]
+    set lib      [lindex $fargs 1]
+    set cmd_str  [lindex $fargs 2]
+    set src_file [lindex $fargs 3]
+    
+    puts $fh "eval $cmd_str $src_file"
   }
 
   # compile glbl file
@@ -589,6 +593,12 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   if { [get_property "MODELSIM.ELABORATE.ACC" $fs_obj] } {
     lappend arg_list "+acc"
+  }
+
+  set vhdl_generics [list]
+  set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
+  if { [llength $vhdl_generics] > 0 } {
+    ::tclapp::xilinx::modelsim::usf_append_generics $vhdl_generics arg_list  
   }
 
   set more_vopt_options [string trim [get_property "MODELSIM.ELABORATE.VOPT.MORE_OPTIONS" $fs_obj]]
@@ -907,7 +917,6 @@ proc usf_modelsim_get_design_libs { files } {
   foreach file $files {
     set type    [lindex [split $file {#}] 0]
     set library [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
     if { {} == $library } {
       continue;
     }
@@ -916,6 +925,22 @@ proc usf_modelsim_get_design_libs { files } {
     }
   }
   return $libs
+}
+
+proc usf_modelsim_set_initial_cmd { fh_scr cmd_str src_file type lib prev_type_arg prev_lib_arg } {
+  # Summary: Print compiler command line and store previous file type and library information
+  # Argument Usage:
+  # Return Value:
+  # None
+
+  upvar $prev_type_arg prev_type
+  upvar $prev_lib_arg  prev_lib
+
+  puts $fh_scr "eval $cmd_str \\"
+  puts $fh_scr "$src_file \\"
+
+  set prev_type $type
+  set prev_lib  $lib
 }
 
 proc usf_write_shell_step_fn_native { step fh_scr } {
@@ -993,11 +1018,45 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     }
   
     puts $fh_scr "\n# compile design source files"
+
+    set b_first true
+    set prev_lib  {}
+    set prev_type {}
+    set b_redirect false
+    set b_appended false
+    set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
+
     foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
-      set type    [lindex [split $file {#}] 0]
-      set lib     [lindex [split $file {#}] 1]
-      set cmd_str [lindex [split $file {#}] 2]
-      puts $fh_scr "\$bin_path/$cmd_str $redirect_cmd_str"
+      set fargs    [split $file {#}]
+      
+      set type     [lindex $fargs 0]
+      set lib      [lindex $fargs 1]
+      set cmd_str  [lindex $fargs 2]
+      set src_file [lindex $fargs 3]
+
+      if { $b_group_files } {
+        if { $b_first } {
+          set b_first false
+          usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+        } else {
+          if { ($type == $prev_type) && ($lib == $prev_lib) } {
+            puts $fh_scr "$src_file \\"
+            set b_redirect true
+          } else {
+            puts $fh_scr "$redirect_cmd_str\n"
+            usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+            set b_appended true
+          }
+        }
+      } else {
+        puts $fh_scr "\$bin_path/$cmd_str $src_file $redirect_cmd_str"
+      }
+    }
+
+    if { $b_group_files } {
+      if { (!$b_redirect) || (!$b_appended) } {
+        puts $fh_scr "$redirect_cmd_str\n"
+      }
     }
   
     # compile glbl file

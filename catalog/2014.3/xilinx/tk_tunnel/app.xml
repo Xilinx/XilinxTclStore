@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Various updates</revision_history>
+      <revision_history>Added catch around package require 1.2014.1 so package can be loaded in regular (remote) Tcl shell</revision_history>
       <name>tk_tunnel</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
