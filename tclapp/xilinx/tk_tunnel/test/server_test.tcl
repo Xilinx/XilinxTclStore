@@ -1,7 +1,3 @@
-#set_param tclapp.enableDebugGit 1
-#set_param tclapp.enableDebugRepo 1
-#set_param tclapp.enableDebugTcl 1
-
 set appName {xilinx::tk_tunnel}
   
 set listInstalledApps [::tclapp::list_apps]
