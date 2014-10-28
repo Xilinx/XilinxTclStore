@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Check for read-only IP status before setting properties</revision_history>
+      <revision_history>Print info msg for the origin_dir variable usage</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
