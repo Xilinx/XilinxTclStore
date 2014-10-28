@@ -518,10 +518,11 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
     set fargs    [split $file {#}]
     
-    set type     [lindex $fargs 0]
-    set lib      [lindex $fargs 1]
-    set cmd_str  [lindex $fargs 2]
-    set src_file [lindex $fargs 3]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set lib       [lindex $fargs 2]
+    set cmd_str   [lindex $fargs 3]
+    set src_file  [lindex $fargs 4]
     
     puts $fh "eval $cmd_str $src_file"
   }
@@ -915,8 +916,9 @@ proc usf_modelsim_get_design_libs { files } {
 
   set libs [list]
   foreach file $files {
-    set type    [lindex [split $file {#}] 0]
-    set library [lindex [split $file {#}] 1]
+    set type      [lindex [split $file {#}] 0]
+    set file_type [lindex [split $file {#}] 1]
+    set library   [lindex [split $file {#}] 2]
     if { {} == $library } {
       continue;
     }
@@ -927,19 +929,19 @@ proc usf_modelsim_get_design_libs { files } {
   return $libs
 }
 
-proc usf_modelsim_set_initial_cmd { fh_scr cmd_str src_file type lib prev_type_arg prev_lib_arg } {
+proc usf_modelsim_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg } {
   # Summary: Print compiler command line and store previous file type and library information
   # Argument Usage:
   # Return Value:
   # None
 
-  upvar $prev_type_arg prev_type
+  upvar $prev_file_type_arg prev_file_type
   upvar $prev_lib_arg  prev_lib
 
   puts $fh_scr "eval $cmd_str \\"
   puts $fh_scr "$src_file \\"
 
-  set prev_type $type
+  set prev_file_type $file_type
   set prev_lib  $lib
 }
 
@@ -1021,7 +1023,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
 
     set b_first true
     set prev_lib  {}
-    set prev_type {}
+    set prev_file_type {}
     set b_redirect false
     set b_appended false
     set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
@@ -1029,22 +1031,23 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
       set fargs    [split $file {#}]
       
-      set type     [lindex $fargs 0]
-      set lib      [lindex $fargs 1]
-      set cmd_str  [lindex $fargs 2]
-      set src_file [lindex $fargs 3]
+      set type      [lindex $fargs 0]
+      set file_type [lindex $fargs 1]
+      set lib       [lindex $fargs 2]
+      set cmd_str   [lindex $fargs 3]
+      set src_file  [lindex $fargs 4]
 
       if { $b_group_files } {
         if { $b_first } {
           set b_first false
-          usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+          usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
         } else {
-          if { ($type == $prev_type) && ($lib == $prev_lib) } {
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
             puts $fh_scr "$src_file \\"
             set b_redirect true
           } else {
             puts $fh_scr "$redirect_cmd_str\n"
-            usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+            usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
             set b_appended true
           }
         }

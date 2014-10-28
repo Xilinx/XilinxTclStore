@@ -338,9 +338,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     puts $fh_vlog "# compile verilog/system verilog design source files"
     foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
-      set type    [lindex [split $file {#}] 0]
-      set lib     [lindex [split $file {#}] 1]
-      set cmd_str [lindex [split $file {#}] 2]
+      set type      [lindex [split $file {#}] 0]
+      set file_type [lindex [split $file {#}] 1]
+      set lib       [lindex [split $file {#}] 2]
+      set cmd_str   [lindex [split $file {#}] 3]
       switch $type {
         {VERILOG} { puts $fh_vlog $cmd_str }
       }
@@ -392,9 +393,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     puts $fh_vhdl "# compile vhdl design source files"
     foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
-      set type    [lindex [split $file {#}] 0]
-      set lib     [lindex [split $file {#}] 1]
-      set cmd_str [lindex [split $file {#}] 2]
+      set type      [lindex [split $file {#}] 0]
+      set file_type [lindex [split $file {#}] 1]
+      set lib       [lindex [split $file {#}] 2]
+      set cmd_str   [lindex [split $file {#}] 3]
       switch $type {
         {VHDL}    { puts $fh_vhdl $cmd_str }
       }
@@ -1024,16 +1026,17 @@ proc usf_xsim_get_sim_mode_as_pretty_str { mode } {
   return $ms
 }
 
-proc usf_xsim_get_design_libs { files } {
+proc usf_xsim_get_design_libs { design_files } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set libs [list]
-  foreach file $files {
-    set type    [lindex [split $file {#}] 0]
-    set library [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
+  foreach file $design_files {
+    set type      [lindex [split $file {#}] 0]
+    set file_type [lindex [split $file {#}] 1]
+    set library   [lindex [split $file {#}] 2]
+    set cmd_str   [lindex [split $file {#}] 3]
     if { {} == $library } {
       continue;
     }

@@ -322,19 +322,19 @@ proc usf_ies_write_setup_files {} {
 
 }
 
-proc usf_ies_set_initial_cmd { fh_scr cmd_str src_file type lib prev_type_arg prev_lib_arg } {
+proc usf_ies_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg } {
   # Summary: Print compiler command line and store previous file type and library information
   # Argument Usage:
   # Return Value:
   # None
 
-  upvar $prev_type_arg prev_type
+  upvar $prev_file_type_arg prev_file_type
   upvar $prev_lib_arg  prev_lib
 
   puts $fh_scr "\$bin_path/$cmd_str \\"
   puts $fh_scr "$src_file \\"
 
-  set prev_type $type
+  set prev_file_type $file_type
   set prev_lib  $lib
 }
 
@@ -421,27 +421,28 @@ proc usf_ies_write_compile_script {} {
 
   set b_first true
   set prev_lib  {}
-  set prev_type {}
+  set prev_file_type {}
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach file $::tclapp::xilinx::ies::a_sim_vars(l_design_files) {
     set fargs    [split $file {#}]
 
-    set type     [lindex $fargs 0]
-    set lib      [lindex $fargs 1]
-    set cmd_str  [lindex $fargs 2]
-    set src_file [lindex $fargs 3]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set lib       [lindex $fargs 2]
+    set cmd_str   [lindex $fargs 3]
+    set src_file  [lindex $fargs 4]
 
     if { $b_group_files } {
       if { $b_first } {
         set b_first false
-        usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+        usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
       } else {
-        if { ($type == $prev_type) && ($lib == $prev_lib) } {
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
           puts $fh_scr "$src_file \\"
         } else {
           puts $fh_scr ""
-          usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+          usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
         }
       }
     } else {
@@ -687,9 +688,10 @@ proc usf_ies_get_design_libs { files } {
 
   set libs [list]
   foreach file $files {
-    set type    [lindex [split $file {#}] 0]
-    set library [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
+    set type      [lindex [split $file {#}] 0]
+    set file_type [lindex [split $file {#}] 1]
+    set library   [lindex [split $file {#}] 2]
+    set cmd_str   [lindex [split $file {#}] 3]
     if { {} == $library } {
       continue;
     }

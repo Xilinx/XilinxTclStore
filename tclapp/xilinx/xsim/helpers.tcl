@@ -2162,7 +2162,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str other_ver_opts_arg} 
 
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
-  set cmd_str "$type#$associated_library#$file_str"
+  set cmd_str "$type#$file_type#$associated_library#$file_str"
   return $cmd_str
 }
 
