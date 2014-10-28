@@ -260,8 +260,22 @@ proc write_project_tcl_script {} {
     close $a_global_vars(dp_fh)
   }
 
-  set file [file normalize $file]
-  send_msg_id Vivado-projutils-008 INFO "Tcl script generated ($file)\n"
+  set script_filename [file tail $file]
+  set out_dir [file dirname [file normalize $file]]
+  send_msg_id Vivado-projutils-008 INFO "Tcl script '$script_filename' generated in output directory '$out_dir'\n\n"
+
+  if { $a_global_vars(b_absolute_path) } {
+    # do we need any msg here?
+  } else {
+    if { "." != $a_global_vars(s_relative_to) } {
+      # do we need any msg here?
+    } else {
+      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wrt the 'origin_dir' variable in the\n\
+      generated script. When this script is executed from the output directory, these source files will be referenced wrt this 'origin_dir' path value.\n\
+      In case this script was later physically moved to a different directory, the 'origin_dir' value MUST be set manually with the path relative to the\n\
+      new output directory to make sure that the source files are referenced correctly from the original project.\n"
+    }
+  }
 
   if { $a_global_vars(b_local_sources) } {
     print_local_file_msg "warning"
@@ -567,12 +581,12 @@ proc print_local_file_msg { msg_type } {
 
   puts ""
   if { [string equal $msg_type "warning"] } {
-    send_msg_id Vivado-projutils-010 WARNING "Found source(s) that were local or imported into the project. If this project is being source controlled, then
-                  please ensure that the project source(s) are also part of this source controlled data. The list of these local
-                  source(s) can be found in the generated script under the header section."
+    send_msg_id Vivado-projutils-010 WARNING "Found source(s) that were local or imported into the project. If this project is being source controlled, then\n\
+    please ensure that the project source(s) are also part of this source controlled data. The list of these local source(s) can be found in the generated script\n\
+    under the header section."
   } else {
-    send_msg_id Vivado-projutils-011 INFO "If this project is being source controlled, then please ensure that the project source(s) are also part of this source
-                  controlled data. The list of these local source(s) can be found in the generated script under the header section."
+    send_msg_id Vivado-projutils-011 INFO "If this project is being source controlled, then please ensure that the project source(s) are also part of this source\n\
+    controlled data. The list of these local source(s) can be found in the generated script under the header section."
   }
   puts ""
 }

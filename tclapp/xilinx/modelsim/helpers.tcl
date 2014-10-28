@@ -950,6 +950,40 @@ proc usf_fs_contains_hdl_source { fs } {
   return $b_contains_hdl
 }
 
+proc usf_is_tool_installed {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set path_sep  {;}
+  set tool_extn {.exe}
+
+  if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
+  if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
+
+  set tool_name "vsim";append tool_name ${tool_extn}
+  
+  # user specified install path? if not, use the param value if set
+  set install_path $a_sim_vars(s_install_path)
+  if { {} == $install_path } {
+    set install_path [get_param "simulator.modelsimInstallPath"]
+  }
+ 
+  # install path found and exist
+  if { ({} != $install_path) && ([file exists $install_path]) } {
+    return 1
+  }
+
+  # bin path found from PATH and exist
+  if { {} != [usf_get_bin_path $tool_name $path_sep] } {
+    return 1
+  }
+
+  return 0  
+}
+
 proc usf_set_simulator_path { simulator } {
   # Summary:
   # Argument Usage:
@@ -2333,7 +2367,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
 
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
-  set cmd_str "$type#$associated_library#$file_str#\"$file\""
+  set cmd_str "$type#$file_type#$associated_library#$file_str#\"$file\""
   return $cmd_str
 }
 
