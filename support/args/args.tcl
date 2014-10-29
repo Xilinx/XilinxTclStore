@@ -4,7 +4,7 @@
 # Tightly integrated with Vivado Tcl.
 
 package require Tcl 8.5
-package require rdi::commontasks 1.2014.4
+package require Vivado 1.2014.1
 
 namespace eval ::tclapp::support::args {}
 
