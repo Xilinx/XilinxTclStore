@@ -132,6 +132,11 @@ proc usf_ies_setup_simulation { args } {
   # fetch the compile order for the specified object
   ::tclapp::xilinx::ies::usf_get_compile_order_for_obj
 
+  # fetch design files
+  set global_files_str {}
+  set ::tclapp::xilinx::ies::a_sim_vars(l_design_files) \
+     [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
+
   # create setup file
   usf_ies_write_setup_files
 
@@ -206,10 +211,11 @@ proc usf_ies_verify_compiled_lib {} {
   # Return Value:
 
   variable a_sim_vars
+  set b_scripts_only $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)
 
   set cds_filename "cds.lib"
   set compiled_lib_dir {}
-  send_msg_id USF-ies-006 INFO "Finding pre-compiled libraries...\n"
+  send_msg_id USF-IES-006 INFO "Finding pre-compiled libraries...\n"
   # check property value
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
   set cds_file [file normalize [file join $dir $cds_filename]]
@@ -227,11 +233,15 @@ proc usf_ies_verify_compiled_lib {} {
   # return if found, else warning
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::ies::a_ies_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
-   send_msg_id USF-ies-007 INFO "Using cds.lib from '$compiled_lib_dir/cds.lib'\n"
+   send_msg_id USF-IES-007 INFO "Using cds.lib from '$compiled_lib_dir/cds.lib'\n"
    return
   }
-  send_msg_id USF-ies-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
-  send_msg_id USF-ies-009 INFO \
+  if { $b_scripts_only } {
+    send_msg_id USF-IES-018 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+  } else {
+    send_msg_id USF-IES-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+  }
+  send_msg_id USF-IES-009 INFO \
      "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for IES.\n"
 }
 
@@ -258,10 +268,8 @@ proc usf_ies_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
-  set global_files_str {}
   set libs [list]
-  set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
-  set design_libs [usf_ies_get_design_libs $design_files]
+  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
@@ -312,6 +320,22 @@ proc usf_ies_write_setup_files {} {
   # create setup file
   usf_ies_create_setup_script
 
+}
+
+proc usf_ies_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg } {
+  # Summary: Print compiler command line and store previous file type and library information
+  # Argument Usage:
+  # Return Value:
+  # None
+
+  upvar $prev_file_type_arg prev_file_type
+  upvar $prev_lib_arg  prev_lib
+
+  puts $fh_scr "\$bin_path/$cmd_str \\"
+  puts $fh_scr "$src_file \\"
+
+  set prev_file_type $file_type
+  set prev_lib  $lib
 }
 
 proc usf_ies_write_compile_script {} {
@@ -393,19 +417,42 @@ proc usf_ies_write_compile_script {} {
   } else {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
   puts $fh_scr "# compile design source files"
-  foreach file $design_files {
-    set type    [lindex [split $file {#}] 0]
-    set lib     [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
-    puts $fh_scr "\$bin_path/$cmd_str"
+
+  set b_first true
+  set prev_lib  {}
+  set prev_file_type {}
+  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
+
+  foreach file $::tclapp::xilinx::ies::a_sim_vars(l_design_files) {
+    set fargs    [split $file {#}]
+
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set lib       [lindex $fargs 2]
+    set cmd_str   [lindex $fargs 3]
+    set src_file  [lindex $fargs 4]
+
+    if { $b_group_files } {
+      if { $b_first } {
+        set b_first false
+        usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+      } else {
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+          puts $fh_scr "$src_file \\"
+        } else {
+          puts $fh_scr ""
+          usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+        }
+      }
+    } else {
+      puts $fh_scr "\$bin_path/$cmd_str $src_file"
+    }
   }
 
   # compile glbl file
   set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl $design_files] } {
+  if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)] } {
     ::tclapp::xilinx::ies::usf_copy_glbl_file
     set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
     set file_str "-work $top_lib \"glbl.v\""
@@ -487,12 +534,9 @@ proc usf_ies_write_elaborate_script {} {
   set arg_list [list]
   # add simulation libraries
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
-
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    if { [usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
+    if { [usf_contains_verilog $::tclapp::xilinx::ies::a_sim_vars(l_design_files)] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-libname" "simprims_ver"]
       } else {
@@ -504,13 +548,13 @@ proc usf_ies_write_elaborate_script {} {
   # behavioral simulation
   set b_compile_unifast [get_property "IES.ELABORATE.UNIFAST" $fs_obj]
 
-  if { ([::tclapp::xilinx::ies::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+  if { ([::tclapp::xilinx::ies::usf_contains_vhdl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
       set arg_list [linsert $arg_list end "-libname" "unifast"]
     }
   }
 
-  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
+  if { ([usf_contains_verilog $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-libname" "unifast_ver"]
     }
@@ -522,9 +566,7 @@ proc usf_ies_write_elaborate_script {} {
   set arg_list [linsert $arg_list end "-libname" "secureip"]
 
   # add design libraries
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
-  set design_libs [usf_ies_get_design_libs $design_files]
+  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} {
       continue;
@@ -546,15 +588,15 @@ proc usf_ies_write_elaborate_script {} {
   set obj $::tclapp::xilinx::ies::a_sim_vars(sp_tcl_obj)
   if { [::tclapp::xilinx::ies::usf_is_fileset $obj] } {
     set vhdl_generics [list]
-    set vhdl_generics [get_property "VHDL_GENERIC" [get_filesets $obj]]
+    set vhdl_generics [get_property "GENERIC" [get_filesets $obj]]
     if { [llength $vhdl_generics] > 0 } {
-       ::tclapp::xilinx::ies::usf_append_define_generics $vhdl_generics $tool arg_list
+      ::tclapp::xilinx::ies::usf_append_generics $vhdl_generics arg_list
     }
   }
 
   lappend arg_list "\$design_libs_elab"
   lappend arg_list "${top_lib}.$top"
-  if { [::tclapp::xilinx::ies::usf_contains_verilog $design_files] } {
+  if { [::tclapp::xilinx::ies::usf_contains_verilog $::tclapp::xilinx::ies::a_sim_vars(l_design_files)] } {
     set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
     lappend arg_list "${top_lib}.glbl"
   }
@@ -646,9 +688,10 @@ proc usf_ies_get_design_libs { files } {
 
   set libs [list]
   foreach file $files {
-    set type    [lindex [split $file {#}] 0]
-    set library [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
+    set type      [lindex [split $file {#}] 0]
+    set file_type [lindex [split $file {#}] 1]
+    set library   [lindex [split $file {#}] 2]
+    set cmd_str   [lindex [split $file {#}] 3]
     if { {} == $library } {
       continue;
     }
@@ -695,9 +738,7 @@ proc usf_ies_create_setup_script {} {
     puts $fh_scr "\{"
     set simulator "ies"
     set libs [list]
-    set global_files_str {}
-    set design_files [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
-    set design_libs [usf_ies_get_design_libs $design_files]
+    set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
     foreach lib $design_libs {
       if { {} == $lib } {
         continue;

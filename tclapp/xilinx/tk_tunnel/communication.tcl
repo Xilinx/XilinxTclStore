@@ -12,13 +12,12 @@
 #
 # Getting Started:
 #     % package require ::tclapp::xilinx::tk_tunnel
-#     % namespace import ::tclapp::xilinx::tk_tunnel::*
-#     % launch_server "/usr/bin/tclsh8.5"
-#     % start_client
-#     % rexec { tk::toplevel .w; wm title .w "New Window"; }
+#     % ::tclapp::xilinx::tk_tunnel::launch_server "/usr/bin/tclsh8.5"
+#     % ::tclapp::xilinx::tk_tunnel::start_client
+#     % ::tclapp::xilinx::tk_tunnel::rexec { tk::toplevel .w; wm title .w "New Window"; }
 #
 
-package require Vivado 1.2014.1
+catch { package require Vivado 1.2014.1 } _packageRequireOutput
 
 namespace eval ::tclapp::xilinx::tk_tunnel {
 
@@ -80,8 +79,8 @@ proc rexec_wait {cmd} {
 
   variable sock
   set ::tclapp::xilinx::tk_tunnel::client_return {}
-  puts $sock "exec_push_return {$cmd}"
-  return [wait_for_response]
+  puts $sock "::tclapp::xilinx::tk_tunnel::exec_push_return {$cmd}"
+  return [::tclapp::xilinx::tk_tunnel::wait_for_response]
 }
 
 proc exec_push_return {cmd} {
@@ -99,7 +98,7 @@ proc exec_push_return {cmd} {
 
   set ::tclapp::xilinx::tk_tunnel::server_return {}
   catch {eval $cmd} ::tclapp::xilinx::tk_tunnel::server_return
-  broadcast "set ::tclapp::xilinx::tk_tunnel::client_return {$::tclapp::xilinx::tk_tunnel::server_return}"
+  ::tclapp::xilinx::tk_tunnel::broadcast "set ::tclapp::xilinx::tk_tunnel::client_return {$::tclapp::xilinx::tk_tunnel::server_return}"
   return $::tclapp::xilinx::tk_tunnel::server_return
 }
 
@@ -136,8 +135,8 @@ proc start_client {{host "127.0.0.1"} {port 8001}} {
   # Categories: xilinxtclstore, tk_tunnel
 
   variable sock
-  set sock [connect_to_server $host $port]
-  fileevent $sock readable [list socket_event $sock]
+  set sock [::tclapp::xilinx::tk_tunnel::connect_to_server $host $port]
+  fileevent $sock readable [list ::tclapp::xilinx::tk_tunnel::socket_event $sock]
   fconfigure $sock -buffering line
   puts "client listeners are now running"
 }
@@ -189,7 +188,8 @@ proc launch_server {{tclsh "tclsh"} {server_file {}}} {
     #return [exec $shellCmdPath /c start cmd /k $tclsh_path $server_file &]
     return [exec $shellCmdPath /k $tclsh_path $server_file &]
   } else {
-    return [exec $shellCmdPath -iconic -e $tclsh_path $server_file &]
+    #return [exec $shellCmdPath -iconic -e $tclsh_path $server_file &]
+    return [exec $shellCmdPath -e $tclsh_path $server_file &]
   }
 }
 
@@ -249,7 +249,7 @@ proc stdin_event {sock} {
     close $sock
     set local_wait_on "done" 
   }
-  broadcast $input
+  ::tclapp::xilinx::tk_tunnel::broadcast $input
   return $input
 }
 
@@ -298,7 +298,7 @@ proc accept_connection {sock addr port} {
   # Categories: xilinxtclstore, tk_tunnel
 
   variable connected_clients
-  fileevent $sock readable [list socket_event $sock]
+  fileevent $sock readable [list ::tclapp::xilinx::tk_tunnel::socket_event $sock]
   lappend connected_clients $sock
   fconfigure $sock -buffering line
   set connect_time [clock format [clock seconds]]
@@ -321,11 +321,11 @@ proc start_server {{port 8001}} {
   # Categories: xilinxtclstore, tk_tunnel
 
   set hostname   [info hostname]
-  set server     [socket -server accept_connection $port]
+  set server     [socket -server ::tclapp::xilinx::tk_tunnel::accept_connection $port]
   set ip       [lindex [fconfigure $server -sockname] 0]
   puts "server starting - host: $hostname - ip: $ip - socket: $server"
 
-  fileevent stdin readable [list stdin_event $server]
+  fileevent stdin readable [list ::tclapp::xilinx::tk_tunnel::stdin_event $server]
   puts "server listeners are now running"
   hide_server_start
 

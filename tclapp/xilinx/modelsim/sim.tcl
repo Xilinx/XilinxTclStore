@@ -140,6 +140,11 @@ proc usf_modelsim_setup_simulation { args } {
   # fetch the compile order for the specified object
   ::tclapp::xilinx::modelsim::usf_get_compile_order_for_obj
 
+  # fetch design files
+  set global_files_str {}
+  set ::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) \
+     [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+
   # create setup file
   usf_modelsim_write_setup_files
 
@@ -213,6 +218,7 @@ proc usf_modelsim_verify_compiled_lib {} {
   # Return Value:
 
   variable a_sim_vars
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
 
   set ini_file "modelsim.ini"
   set compiled_lib_dir {}
@@ -255,7 +261,11 @@ proc usf_modelsim_verify_compiled_lib {} {
   if { {} == $compiled_lib_dir } {
     set file [file normalize [file join $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
-      send_msg_id USF-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+      if { $b_scripts_only } {
+        send_msg_id USF-modelsim-024 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+      } else {
+        send_msg_id USF-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+      }
       send_msg_id USF-modelsim-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
                                              - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim/QuestaSim, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
@@ -420,9 +430,7 @@ proc usf_modelsim_create_wave_do_file { file } {
   usf_modelsim_write_header $fh $file
   puts $fh "add wave *"
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
     puts $fh "add wave /glbl/GSR"
   }
   close $fh
@@ -451,9 +459,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   puts $fh "vlib work"
   puts $fh "vlib msim\n"
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-  set design_libs [usf_modelsim_get_design_libs $design_files]
+  set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -509,16 +515,21 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   puts $fh ""
 
-  foreach file $design_files {
-    set type    [lindex [split $file {#}] 0]
-    set lib     [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
-    puts $fh "eval $cmd_str"
+  foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
+    set fargs    [split $file {#}]
+    
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set lib       [lindex $fargs 2]
+    set cmd_str   [lindex $fargs 3]
+    set src_file  [lindex $fargs 4]
+    
+    puts $fh "eval $cmd_str $src_file"
   }
 
   # compile glbl file
   set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
+  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
     ::tclapp::xilinx::modelsim::usf_copy_glbl_file
     set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
     set file_str "-work $top_lib \"glbl.v\""
@@ -585,6 +596,12 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     lappend arg_list "+acc"
   }
 
+  set vhdl_generics [list]
+  set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
+  if { [llength $vhdl_generics] > 0 } {
+    ::tclapp::xilinx::modelsim::usf_append_generics $vhdl_generics arg_list  
+  }
+
   set more_vopt_options [string trim [get_property "MODELSIM.ELABORATE.VOPT.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vopt_options } {
     set arg_list [linsert $arg_list end "$more_vopt_options"]
@@ -592,8 +609,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set t_opts [join $arg_list " "]
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+  set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
 
   # add simulation libraries
   set arg_list [list]
@@ -629,8 +645,6 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
   # add design libraries
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
   set design_libs [usf_modelsim_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -902,9 +916,9 @@ proc usf_modelsim_get_design_libs { files } {
 
   set libs [list]
   foreach file $files {
-    set type    [lindex [split $file {#}] 0]
-    set library [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
+    set type      [lindex [split $file {#}] 0]
+    set file_type [lindex [split $file {#}] 1]
+    set library   [lindex [split $file {#}] 2]
     if { {} == $library } {
       continue;
     }
@@ -913,6 +927,22 @@ proc usf_modelsim_get_design_libs { files } {
     }
   }
   return $libs
+}
+
+proc usf_modelsim_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg } {
+  # Summary: Print compiler command line and store previous file type and library information
+  # Argument Usage:
+  # Return Value:
+  # None
+
+  upvar $prev_file_type_arg prev_file_type
+  upvar $prev_lib_arg  prev_lib
+
+  puts $fh_scr "eval $cmd_str \\"
+  puts $fh_scr "$src_file \\"
+
+  set prev_file_type $file_type
+  set prev_lib  $lib
 }
 
 proc usf_write_shell_step_fn_native { step fh_scr } {
@@ -961,9 +991,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     puts $fh_scr "\$bin_path/vlib work $redirect_cmd_str"
     puts $fh_scr "\$bin_path/vlib msim $redirect_cmd_str\n"
   
-    set global_files_str {}
-    set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-    set design_libs [usf_modelsim_get_design_libs $design_files]
+    set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
   
     # TODO:
     # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -992,16 +1020,51 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     }
   
     puts $fh_scr "\n# compile design source files"
-    foreach file $design_files {
-      set type    [lindex [split $file {#}] 0]
-      set lib     [lindex [split $file {#}] 1]
-      set cmd_str [lindex [split $file {#}] 2]
-      puts $fh_scr "\$bin_path/$cmd_str $redirect_cmd_str"
+
+    set b_first true
+    set prev_lib  {}
+    set prev_file_type {}
+    set b_redirect false
+    set b_appended false
+    set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
+
+    foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
+      set fargs    [split $file {#}]
+      
+      set type      [lindex $fargs 0]
+      set file_type [lindex $fargs 1]
+      set lib       [lindex $fargs 2]
+      set cmd_str   [lindex $fargs 3]
+      set src_file  [lindex $fargs 4]
+
+      if { $b_group_files } {
+        if { $b_first } {
+          set b_first false
+          usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+        } else {
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+            puts $fh_scr "$src_file \\"
+            set b_redirect true
+          } else {
+            puts $fh_scr "$redirect_cmd_str\n"
+            usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+            set b_appended true
+          }
+        }
+      } else {
+        puts $fh_scr "\$bin_path/$cmd_str $src_file $redirect_cmd_str"
+      }
+    }
+
+    if { $b_group_files } {
+      if { (!$b_redirect) || (!$b_appended) } {
+        puts $fh_scr "$redirect_cmd_str\n"
+      }
     }
   
     # compile glbl file
     set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-    if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
+    if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
       ::tclapp::xilinx::modelsim::usf_copy_glbl_file
       set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
       set file_str "-work $top_lib \"glbl.v\""

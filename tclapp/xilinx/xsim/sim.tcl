@@ -183,6 +183,13 @@ proc usf_xsim_setup_simulation { args } {
   # fetch the compile order for the specified object
   ::tclapp::xilinx::xsim::usf_get_compile_order_for_obj
 
+  # fetch design files
+  set global_files_str {}
+  set ::tclapp::xilinx::xsim::a_sim_vars(l_design_files) \
+     [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
+
+  set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
+
   # create setup file
   #usf_xsim_write_setup_files
 
@@ -263,9 +270,7 @@ proc usf_xsim_write_setup_files {} {
     return 1
   }
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
-  set design_libs [usf_xsim_get_design_libs $design_files]
+  set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     puts $fh "$lib=xsim.dir/$lib"
@@ -286,10 +291,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
   set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
-  set b_contain_verilog_srcs [::tclapp::xilinx::xsim::usf_contains_verilog $design_files]
-  set b_contain_vhdl_srcs    [::tclapp::xilinx::xsim::usf_contains_vhdl $design_files]
+  set b_contain_verilog_srcs [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
+  set b_contain_vhdl_srcs    [::tclapp::xilinx::xsim::usf_contains_vhdl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
 
   # set param to force nosort (default is false)
   set nosort_param [get_param "simulation.donotRecalculateCompileOrderForXSim"] 
@@ -334,17 +337,18 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       return 1
     }
     puts $fh_vlog "# compile verilog/system verilog design source files"
-    foreach file $design_files {
-      set type    [lindex [split $file {#}] 0]
-      set lib     [lindex [split $file {#}] 1]
-      set cmd_str [lindex [split $file {#}] 2]
+    foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
+      set type      [lindex [split $file {#}] 0]
+      set file_type [lindex [split $file {#}] 1]
+      set lib       [lindex [split $file {#}] 2]
+      set cmd_str   [lindex [split $file {#}] 3]
       switch $type {
         {VERILOG} { puts $fh_vlog $cmd_str }
       }
     }
     # compile glbl file
     set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-    if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $design_files] } {
+    if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] } {
       set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
       ::tclapp::xilinx::xsim::usf_copy_glbl_file
       set file_str "$top_lib \"glbl.v\""
@@ -388,10 +392,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       return 1
     }
     puts $fh_vhdl "# compile vhdl design source files"
-    foreach file $design_files {
-      set type    [lindex [split $file {#}] 0]
-      set lib     [lindex [split $file {#}] 1]
-      set cmd_str [lindex [split $file {#}] 2]
+    foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
+      set type      [lindex [split $file {#}] 0]
+      set file_type [lindex [split $file {#}] 1]
+      set lib       [lindex [split $file {#}] 2]
+      set cmd_str   [lindex [split $file {#}] 3]
       switch $type {
         {VHDL}    { puts $fh_vhdl $cmd_str }
       }
@@ -591,9 +596,6 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set sim_flow $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
-
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
@@ -638,7 +640,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
  
   # --include
   set prefix_ref_dir "false"
-  foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $global_files_str $prefix_ref_dir] {
+  foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $prefix_ref_dir] {
     set dir [string map {\\ /} $incl_dir]
     lappend args_list "--include \"$dir\""
   }
@@ -659,29 +661,31 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       set key_val_pair [split $element "="]
       set name [lindex $key_val_pair 0]
       set val  [lindex $key_val_pair 1]
+      set str "$name="
       if { [string length $val] > 0 } {
-        set str "\"$name=$val\""
-        lappend args_list "-d $str"
+        set str "$str$val"
       }
+      lappend args_list "-d \"$str\""
     }
   }
 
   # -generic_top (verilog macros)
-  set v_generics [get_property "VHDL_GENERIC" $fs_obj]
+  set v_generics [get_property "GENERIC" $fs_obj]
   if { [llength $v_generics] > 0 } {
     foreach element $v_generics {
       set key_val_pair [split $element "="]
       set name [lindex $key_val_pair 0]
       set val  [lindex $key_val_pair 1]
+      set str "$name="
       if { [string length $val] > 0 } {
-        set str "\"$name=$val\""
-        lappend args_list "-generic_top $str"
+        set str "$str$val"
       }
+      lappend args_list "-generic_top \"$str\""
     }
   }
 
   # design source libs
-  set design_libs [usf_xsim_get_design_libs $design_files]
+  set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
@@ -690,7 +694,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   # add simulation libraries
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    if { [::tclapp::xilinx::xsim::usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
+    if { [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         lappend args_list "-L simprims_ver"
       } else {
@@ -702,13 +706,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   # behavioral simulation
   set b_compile_unifast [get_property "XSIM.ELABORATE.UNIFAST" $fs_obj]
 
-  if { ([::tclapp::xilinx::xsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+  if { ([::tclapp::xilinx::xsim::usf_contains_vhdl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
       lappend args_list "-L unifast"
     }
   }
 
-  if { ([::tclapp::xilinx::xsim::usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
+  if { ([::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       lappend args_list "-L unifast_ver"
     }
@@ -743,7 +747,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       set b_verilog_sim_netlist 1
     }
   }
-  if { [::tclapp::xilinx::xsim::usf_contains_verilog $design_files] || $b_verilog_sim_netlist } {
+  if { [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] || $b_verilog_sim_netlist } {
     set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" $fs_obj]
     if { ([lsearch ${top_level_inst_names} {glbl}] == -1) && $b_load_glbl } {
       set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
@@ -1022,16 +1026,17 @@ proc usf_xsim_get_sim_mode_as_pretty_str { mode } {
   return $ms
 }
 
-proc usf_xsim_get_design_libs { files } {
+proc usf_xsim_get_design_libs { design_files } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set libs [list]
-  foreach file $files {
-    set type    [lindex [split $file {#}] 0]
-    set library [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
+  foreach file $design_files {
+    set type      [lindex [split $file {#}] 0]
+    set file_type [lindex [split $file {#}] 1]
+    set library   [lindex [split $file {#}] 2]
+    set cmd_str   [lindex [split $file {#}] 3]
     if { {} == $library } {
       continue;
     }
