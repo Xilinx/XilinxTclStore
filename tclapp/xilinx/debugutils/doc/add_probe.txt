@@ -1,0 +1,15 @@
+Readme about add_probe.tcl
+
+to test add_probe function, please use Vivado 2014.4 
+
+follow the steps below,
+
+vivado% source ../test/test.tcl
+
+it will open an fully routed checkpoint test.dcp first; then drag an internal signal inst_1/tmp_q[0] to port loc H10 as probe named myprobe1 and finish routing; after that, will replace signal inst_1/tmp_q[0] with another signal inst_1/tmp_q[1] and attach to the same probe port.
+
+last, we need to verify if all the error/warning works well, 
+
+please open ../test/test.tcl and execute last three line (commented out at .tcl) one by one at Vivado, Suppose all three will return Critical Warning message.
+
+allyz@xilinx.com
