@@ -11,7 +11,7 @@
       <procs>
         <proc>
           <name>add_probe</name>
-          <summary>Add net signal to port as a probe</summary>
+          <summary>Connect net signal to port as a probe</summary>
         </proc>
       </procs>
     </app>
