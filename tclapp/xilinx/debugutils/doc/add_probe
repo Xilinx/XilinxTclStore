@@ -1,15 +1,10 @@
-Readme about add_probe.tcl
 
-to test add_probe function, please use Vivado 2014.4 
 
-follow the steps below,
+  Description: Add probe to the design and connect the probe to an output port
 
-vivado% source ../test/test.tcl
+     Only add one probe at each time. The probe port can be existed or not, but 
+     if port alreay exist, please use exactly same pin loc & iostandard.
+     When any error happened, will report critical warnings.
 
-it will open an fully routed checkpoint test.dcp first; then drag an internal signal inst_1/tmp_q[0] to port loc H10 as probe named myprobe1 and finish routing; after that, will replace signal inst_1/tmp_q[0] with another signal inst_1/tmp_q[1] and attach to the same probe port.
-
-last, we need to verify if all the error/warning works well, 
-
-please open ../test/test.tcl and execute last three line (commented out at .tcl) one by one at Vivado, Suppose all three will return Critical Warning message.
-
-allyz@xilinx.com
+  Example:
+     ::xilinx::debugutils::add_probe -net cpuEngine/or1200_cpu/p_0_in[10] -port myprobe -iostandard HSTL -loc W26

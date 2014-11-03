@@ -1,7 +1,30 @@
-open_checkpoint ./test.dcp
-xilinx::debugutils::add_probe -net inst_1/tmp_q[0] -loc H10 -port myprobe1 -iostandard LVCMOS18
-xilinx::debugutils::add_probe -net inst_1/tmp_q[1] -loc H10 -port myprobe1
-#xilinx::debugutils::add_probe -net inst_1/tmp_q[0] -loc E12 -port rst_n
-#xilinx::debugutils::add_probe -net inst_1/tmp_q[1] -loc H10 -port myprobe
-#xilinx::debugutils::add_probe -net inst_1/tmp_q[1] -loc H9 -port myprobe1
+set appName {xilinx::debugutils}
+  
+set listInstalledApps [::tclapp::list_apps]
 
+set test_dir [file normalize [file dirname [info script]]]
+puts "== Test directory: $test_dir"
+
+set tclapp_repo [file normalize [file join $test_dir .. .. ..]]
+puts "== Application directory: $tclapp_repo"
+
+if {[lsearch -exact $listInstalledApps $appName] != -1} {
+  # Uninstall the app if it is already installed
+  ::tclapp::unload_app $appName
+}
+
+# Install the app and require the package
+catch "package forget ::tclapp::${appName}"
+::tclapp::load_app $appName
+package require ::tclapp::${appName}
+  
+# Start the unit tests
+puts "script is invoked from $test_dir"
+source -notrace [file join $test_dir add_probe_0001.tcl]
+
+# Uninstall the app if it was not already installed when starting the script
+if {[lsearch -exact $listInstalledApps $appName] == -1} {
+  ::tclapp::unload_app $appName
+}
+
+return 0

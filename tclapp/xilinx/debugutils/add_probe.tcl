@@ -32,7 +32,7 @@ proc ::tclapp::xilinx::debugutils::lshift {inputlist} {
 
 proc ::tclapp::xilinx::debugutils::add_probe {args} {
 
-  # Summary : Add net signal to port as a probe
+  # Summary : Connect net signal to port as a probe
 	
   # Argument Usage:
   # -net <netName> : The internal net you want to add to probe
