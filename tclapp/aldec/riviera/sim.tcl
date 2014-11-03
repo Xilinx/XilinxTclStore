@@ -672,13 +672,13 @@ proc usf_modelsim_get_simulation_cmdline {} {
   set tool "asim"
   set arg_list [list "$tool" "-t 1ps"]
   
-  if { [string trim [get_property "RIVIERA.SIMULATE.VERILOG_ACCELERATION" $fs_obj]] } {
+  if { [get_property "RIVIERA.SIMULATE.VERILOG_ACCELERATION" $fs_obj] } {
     lappend arg_list "-O5"
   } else {
     lappend arg_list "-O2"
   }
   
-  if { [string trim [get_property "RIVIERA.SIMULATE.DEBUG" $fs_obj]] } {
+  if { [get_property "RIVIERA.SIMULATE.DEBUG" $fs_obj] } {
     lappend arg_list "-dbg"
   }  
 
