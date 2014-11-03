@@ -164,7 +164,7 @@ proc usf_modelsim_setup_args { args } {
 
   set args [string trim $args "\}\{"]
   
-  set_param "simulator.rivieraInstallPath" {e:\sources\bonanza\branch69\Release\bin} ;#[BS] remove it
+  set_param "simulator.rivieraInstallPath" {e:\sources\bonanza\branch79\ReleaseNoOpt\bin} ;#[BS] remove it
 
   # process options
   for {set i 0} {$i < [llength $args]} {incr i} {
@@ -297,19 +297,13 @@ proc usf_modelsim_write_compile_script {} {
   set fs_obj [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]
 
   set do_filename {}
-  # is custom do file specified?
-  set custom_do_file [get_property "RIVIERA.SIMULATE.CUSTOM_DO" $fs_obj]
-  if { {} != $custom_do_file } {
-    send_msg_id USF-Riviera-14 INFO "Using custom 'do' file '$custom_do_file'...\n"
-    set do_filename $custom_do_file
-  } else {
-    set do_filename $top;append do_filename "_compile.do"
-    set do_file [file normalize [file join $dir $do_filename]]
 
-    send_msg_id USF-Riviera-15 INFO "Creating automatic 'do' files...\n"
+  set do_filename $top;append do_filename "_compile.do"
+  set do_file [file normalize [file join $dir $do_filename]]
 
-    usf_modelsim_create_do_file_for_compilation $do_file
-  }
+  send_msg_id USF-Riviera-15 INFO "Creating automatic 'do' files...\n"
+
+  usf_modelsim_create_do_file_for_compilation $do_file
 
   # write compile.sh/.bat
   usf_modelsim_write_driver_shell_script $do_filename "compile"
@@ -408,11 +402,15 @@ proc usf_modelsim_create_wave_do_file { file } {
     return 1
   }
   usf_modelsim_write_header $fh $file
-  puts $fh "add wave *"
-
-  if { [::tclapp::aldec::riviera::usf_contains_verilog $::tclapp::aldec::riviera::a_sim_vars(l_design_files)] } {
-    puts $fh "add wave /glbl/GSR"
+  
+  set fs_obj [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]
+  if { [get_property "RIVIERA.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {  
+    puts $fh "log -rec *"
+    if { [::tclapp::aldec::riviera::usf_contains_verilog $::tclapp::aldec::riviera::a_sim_vars(l_design_files)] } {
+      puts $fh "log /glbl/GSR"
+    }
   }
+
   close $fh
 }
 
@@ -478,7 +476,16 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     puts $fh "set origin_dir \".\""
   }
 
-  set vlog_arg_list [list "-incr"]
+  set vlog_arg_list [list]
+  if { [get_property "RIVIERA.COMPILE.VERILOG_STRICT" $fs_obj] } {
+    lappend vlog_arg_list "-j"
+  }
+  if { [get_property "RIVIERA.COMPILE.DEBUG" $fs_obj] } {
+    lappend vlog_arg_list "-dbg"
+  }
+  if { [get_property "RIVIERA.COMPILE.INCREMENTAL" $fs_obj] } {
+    lappend vlog_arg_list "-incr"
+  }
   set more_vlog_options [string trim [get_property "RIVIERA.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vlog_options } {
     set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
@@ -489,6 +496,18 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set vcom_arg_list [list]
   set vhdl_syntax [get_property "RIVIERA.COMPILE.VHDL_SYNTAX" $fs_obj]
   lappend vcom_arg_list "-$vhdl_syntax"
+  if { [get_property "RIVIERA.COMPILE.VHDL_RELAX" $fs_obj] } {
+    lappend vcom_arg_list "-relax"
+  }
+  if { [get_property "RIVIERA.COMPILE.REORDER" $fs_obj] } {
+    lappend vcom_arg_list "-reorder"
+  }
+  if { [get_property "RIVIERA.COMPILE.DEBUG" $fs_obj] } {
+    lappend vcom_arg_list "-dbg"
+  }
+  if { [get_property "RIVIERA.COMPILE.INCREMENTAL" $fs_obj] } {
+    lappend vcom_arg_list "-incr"
+  }
   set more_vcom_options [string trim [get_property "RIVIERA.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vcom_options } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
@@ -553,10 +572,6 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   # Argument Usage:
   # Return Value:
   
-  #[BS]
-  send_msg_id BS-1 WARNING "usf_modelsim_get_elaboration_cmdline: not implemented"
-  return ""  
-  
   set top $::tclapp::aldec::riviera::a_sim_vars(s_sim_top)
   set dir $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::aldec::riviera::a_sim_vars(s_simulation_flow)
@@ -565,32 +580,16 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
-  set tool "vopt"
   set arg_list [list]
 
-  if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    set s_64bit {}
-    if {$::tcl_platform(platform) == "unix"} {
-      if { {64} == $::tclapp::aldec::riviera::a_sim_vars(s_int_os_type) } {
-        set s_64bit {-64}
-      }
-    }
-    lappend arg_list $s_64bit
-  }
-
-  if { [get_property "RIVIERA.ELABORATE.ACC" $fs_obj] } {
-    lappend arg_list "+acc"
+  if { [get_property "RIVIERA.ELABORATE.ACCESS" $fs_obj] } {
+    lappend arg_list "+access +r"
   }
 
   set vhdl_generics [list]
   set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
   if { [llength $vhdl_generics] > 0 } {
     ::tclapp::aldec::riviera::usf_append_generics $vhdl_generics arg_list  
-  }
-
-  set more_vopt_options [string trim [get_property "RIVIERA.ELABORATE.VOPT.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_vopt_options } {
-    set arg_list [linsert $arg_list end "$more_vopt_options"]
   }
 
   set t_opts [join $arg_list " "]
@@ -670,10 +669,20 @@ proc usf_modelsim_get_simulation_cmdline {} {
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
-  set tool "vsim"
+  set tool "asim"
   set arg_list [list "$tool" "-t 1ps"]
+  
+  if { [string trim [get_property "RIVIERA.SIMULATE.VERILOG_ACCELERATION" $fs_obj]] } {
+    lappend arg_list "-O5"
+  } else {
+    lappend arg_list "-O2"
+  }
+  
+  if { [string trim [get_property "RIVIERA.SIMULATE.DEBUG" $fs_obj]] } {
+    lappend arg_list "-dbg"
+  }  
 
-  set more_sim_options [string trim [get_property "RIVIERA.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  set more_sim_options [string trim [get_property "RIVIERA.SIMULATE.ASIM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
@@ -714,23 +723,26 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   }
 
   usf_modelsim_write_header $fh $do_file
-  set wave_do_filename $top;append wave_do_filename "_wave.do"
-  set wave_do_file [file normalize [file join $dir $wave_do_filename]]
-  usf_modelsim_create_wave_do_file $wave_do_file
+  #set wave_do_filename $top;append wave_do_filename "_wave.do" ;#[BS]
+  #set wave_do_file [file normalize [file join $dir $wave_do_filename]] ;#[BS]
+  #usf_modelsim_create_wave_do_file $wave_do_file ;#[BS]
   set cmd_str [usf_modelsim_get_simulation_cmdline]
   usf_add_quit_on_error $fh "simulate"
 
   puts $fh "$cmd_str"
-  puts $fh "do \{$wave_do_filename\}"
+  #puts $fh "do \{$wave_do_filename\}" ;#[BS]
   puts $fh ""
-  puts $fh "view wave"
-  puts $fh "view structure"
+  #puts $fh "view wave" ;#[BS]
+  #puts $fh "view structure" ;#[BS]
   #puts $fh "view signals"; #[BS]
   puts $fh ""
 
   set b_log_all_signals [get_property "RIVIERA.SIMULATE.LOG_ALL_SIGNALS" $fs_obj]
   if { $b_log_all_signals } {
-    puts $fh "log -r /*\n"
+    puts $fh "log -rec *"
+    if { [::tclapp::aldec::riviera::usf_contains_verilog $::tclapp::aldec::riviera::a_sim_vars(l_design_files)] } {
+      puts $fh "log /glbl/GSR"
+    }
   }
  
   # generate saif file for power estimation
@@ -746,16 +758,6 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     } else {
       puts $fh "power add -in -inout -out -internal [::tclapp::aldec::riviera::usf_resolve_uut_name uut]\n"
     }
-  }
-  # create custom UDO file
-  set udo_file [get_property "RIVIERA.SIMULATE.CUSTOM_UDO" $fs_obj]
-  if { {} == $udo_file } {
-    set udo_filename $top;append udo_filename ".udo"
-    set udo_file [file normalize [file join $dir $udo_filename]]
-    usf_modelsim_create_udo_file $udo_file
-    puts $fh "do \{$top.udo\}"
-  } else {
-    puts $fh "do \{$udo_file\}"
   }
 
   set rt [string trim [get_property "RIVIERA.SIMULATE.RUNTIME" $fs_obj]]
@@ -842,23 +844,16 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     set batch_sw {}
   }
 
-  set s_64bit {}
-  if {$::tcl_platform(platform) == "unix"} {
-    if { {64} == $::tclapp::aldec::riviera::a_sim_vars(s_int_os_type) } {
-      set s_64bit {-64}
-    }
-  }
-
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "bin_path=\"$::tclapp::aldec::riviera::a_sim_vars(s_tool_bin_path)\""
     ::tclapp::aldec::riviera::usf_write_shell_step_fn $fh_scr
-    puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    puts $fh_scr "ExecStep \$bin_path/vsim $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set bin_path=$::tclapp::aldec::riviera::a_sim_vars(s_tool_bin_path)"
-    puts $fh_scr "call \"%bin_path%/vsim\" $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    puts $fh_scr "call \"%bin_path%/vsim\" $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
@@ -951,7 +946,16 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
       puts $fh_scr "origin_dir=\".\""
     }
   
-    set vlog_arg_list [list "-incr"]
+    set vlog_arg_list [list]
+    if { [get_property "RIVIERA.COMPILE.VERILOG_STRICT" $fs_obj] } {
+      lappend vlog_arg_list "-j"
+    }
+    if { [get_property "RIVIERA.COMPILE.DEBUG" $fs_obj] } {
+      lappend vlog_arg_list "-dbg"
+    }
+    if { [get_property "RIVIERA.COMPILE.INCREMENTAL" $fs_obj] } {
+      lappend vlog_arg_list "-incr"
+    }
     set more_vlog_options [string trim [get_property "RIVIERA.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
     if { {} != $more_vlog_options } {
       set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
@@ -963,6 +967,18 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     set vcom_arg_list [list]
     set vhdl_syntax [get_property "RIVIERA.COMPILE.VHDL_SYNTAX" $fs_obj]
     lappend vcom_arg_list "-$vhdl_syntax"
+    if { [get_property "RIVIERA.COMPILE.VHDL_RELAX" $fs_obj] } {
+      lappend vcom_arg_list "-relax"
+    }
+    if { [get_property "RIVIERA.COMPILE.REORDER" $fs_obj] } {
+      lappend vcom_arg_list "-reorder"
+    }
+    if { [get_property "RIVIERA.COMPILE.DEBUG" $fs_obj] } {
+      lappend vcom_arg_list "-dbg"
+    }
+    if { [get_property "RIVIERA.COMPILE.INCREMENTAL" $fs_obj] } {
+      lappend vcom_arg_list "-incr"
+    }
     set more_vcom_options [string trim [get_property "RIVIERA.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
     if { {} != $more_vcom_options } {
       set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
