@@ -51,6 +51,8 @@ proc elaborate { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
+  
+  return ;#[BS] we don't have elaborate step
 
   send_msg_id USF-Riviera-3 INFO "ModelSim::Elaborate design"
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
@@ -477,6 +479,8 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
 
   set vlog_arg_list [list]
+  set vlog_syntax [get_property "RIVIERA.COMPILE.VLOG_SYNTAX" $fs_obj]
+  lappend vlog_arg_list "-$vlog_syntax"
   if { [get_property "RIVIERA.COMPILE.VERILOG_STRICT" $fs_obj] } {
     lappend vlog_arg_list "-j"
   }
@@ -644,7 +648,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   
   set d_libs [join $arg_list " "]
   set top_lib [::tclapp::aldec::riviera::usf_get_top_library]
-  set arg_list [list $tool $t_opts]
+  set arg_list [list $t_opts]
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
   if { [::tclapp::aldec::riviera::usf_contains_verilog $design_files] } {    
@@ -671,6 +675,8 @@ proc usf_modelsim_get_simulation_cmdline {} {
 
   set tool "asim"
   set arg_list [list "$tool" "-t 1ps"]
+  
+  lappend arg_list [usf_modelsim_get_elaboration_cmdline]
   
   if { [get_property "RIVIERA.SIMULATE.VERILOG_ACCELERATION" $fs_obj] } {
     lappend arg_list "-O5"
@@ -701,6 +707,11 @@ proc usf_modelsim_get_simulation_cmdline {} {
   lappend arg_list "-lib"
   lappend arg_list $default_lib
   lappend arg_list "${top}"
+
+  set uut [get_property "RIVIERA.SIMULATE.UUT" $fs_obj]
+  if { $uut != "" } {  
+    lappend arg_list $uut
+  }
 
   set cmd_str [join $arg_list " "]
   return $cmd_str
@@ -744,20 +755,16 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
       puts $fh "log /glbl/GSR"
     }
   }
+  
+  set uut [get_property "RIVIERA.SIMULATE.UUT" $fs_obj]
+  if { {} == $uut } {
+    set uut "/$top/uut"
+  }  
  
   # generate saif file for power estimation
   set saif [get_property "RIVIERA.SIMULATE.SAIF" $fs_obj] 
   if { {} != $saif } {
-    set uut [get_property "RIVIERA.SIMULATE.UUT" $fs_obj] 
-    if { {} == $uut } {
-      set uut "/$top/uut/*"
-    }
-    if { ({functional} == $::tclapp::aldec::riviera::a_sim_vars(s_type)) || \
-         ({timing} == $::tclapp::aldec::riviera::a_sim_vars(s_type)) } {
-      puts $fh "power add -r -in -inout -out -internal [::tclapp::aldec::riviera::usf_resolve_uut_name uut]\n"
-    } else {
-      puts $fh "power add -in -inout -out -internal [::tclapp::aldec::riviera::usf_resolve_uut_name uut]\n"
-    }
+    puts $fh "wave -ports ${uut}/*"
   }
 
   set rt [string trim [get_property "RIVIERA.SIMULATE.RUNTIME" $fs_obj]]
@@ -773,12 +780,13 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     }
   }
 
+  # generate saif file for power estimation
   if { {} != $saif } {
     set extn [string tolower [file extension $saif]]
     if { {.saif} != $extn } {
       append saif ".saif"
     }
-    puts $fh "\npower report -all -bsaif $saif"
+    puts $fh "asdb2saif -internal -scope ${uut}/* wave.asdb \{$saif\}"
   }
 
   # add TCL sources
@@ -947,6 +955,8 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     }
   
     set vlog_arg_list [list]
+    set vlog_syntax [get_property "RIVIERA.COMPILE.VLOG_SYNTAX" $fs_obj]
+    lappend vlog_arg_list "-$vlog_syntax"
     if { [get_property "RIVIERA.COMPILE.VERILOG_STRICT" $fs_obj] } {
       lappend vlog_arg_list "-j"
     }
