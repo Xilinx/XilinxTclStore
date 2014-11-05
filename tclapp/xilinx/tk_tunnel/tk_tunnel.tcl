@@ -18,4 +18,4 @@ namespace eval ::tclapp::xilinx::tk_tunnel {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::tk_tunnel 1.4
+package provide ::tclapp::xilinx::tk_tunnel 1.5
