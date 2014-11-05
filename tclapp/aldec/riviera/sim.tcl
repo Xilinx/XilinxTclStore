@@ -35,7 +35,7 @@ proc compile { args } {
   # Return Value:
   # none
 
-  send_msg_id USF-Riviera-2 INFO "[getSimulatorName]::Compile design"
+  send_msg_id USF-[getSimulatorName]-2 INFO "[getSimulatorName]::Compile design"
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
     usf_write_compile_script_native
   } else {
@@ -56,7 +56,7 @@ proc elaborate { args } {
   
   return ;#[BS] we don't have elaborate step
 
-  send_msg_id USF-Riviera-3 INFO "[getSimulatorName]::Elaborate design"
+  send_msg_id USF-[getSimulatorName]-3 INFO "[getSimulatorName]::Elaborate design"
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
     usf_write_elaborate_script_native
   } else {
@@ -203,7 +203,7 @@ proc usf_verify_compiled_lib {} {
   set ini_file "modelsim.ini"
   set compiled_lib_dir {}
 
-  send_msg_id USF-modelsim-007 INFO "Finding pre-compiled libraries...\n"
+  send_msg_id USF-[getSimulatorName]-007 INFO "Finding pre-compiled libraries...\n"
 
   # 1. find in project default dir (<project>/<project>.cache/compile_simlib
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
@@ -242,11 +242,11 @@ proc usf_verify_compiled_lib {} {
     set file [file normalize [file join $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
       if { $b_scripts_only } {
-        send_msg_id USF-modelsim-024 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+        send_msg_id USF-[getSimulatorName]-024 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
       } else {
-        send_msg_id USF-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+        send_msg_id USF-[getSimulatorName]-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
       }
-      send_msg_id USF-modelsim-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
+      send_msg_id USF-[getSimulatorName]-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
                                              - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim/QuestaSim, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
                                              - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
@@ -256,9 +256,9 @@ proc usf_verify_compiled_lib {} {
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
     if { [file exists $ini_file_path] } {
       if {[catch {file copy -force $ini_file_path $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)} error_msg] } {
-        send_msg_id USF-modelsim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
+        send_msg_id USF-[getSimulatorName]-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
       } else {
-        send_msg_id USF-modelsim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)'\n"
+        send_msg_id USF-[getSimulatorName]-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)'\n"
       }
     }
   }
