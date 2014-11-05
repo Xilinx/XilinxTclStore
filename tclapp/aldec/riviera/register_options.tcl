@@ -21,11 +21,11 @@ proc register_options { simulator } {
 
   variable options
   if { {} == $simulator } {
-    send_msg_id USF-[getSimulatorName]-1 ERROR "Simulator not specified.\n"
+    send_msg_id USF-[getSimulatorName]-74 ERROR "Simulator not specified.\n"
   }
   # is simulator registered?
   if { {-1} == [lsearch [get_simulators] $simulator] } {
-    send_msg_id USF-[getSimulatorName]-2 ERROR "Simulator '$simulator' is not registered\n"
+    send_msg_id USF-[getSimulatorName]-75 ERROR "Simulator '$simulator' is not registered\n"
     return 1
   }
 
