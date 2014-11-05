@@ -1,11 +1,13 @@
 ######################################################################
 #
-# sim.tcl (simulation script for the 'Aldec Riviera Simulator')
+# sim.tcl
 #
 ######################################################################
+
 package require Vivado 1.2014.1
 
 namespace eval ::tclapp::aldec::riviera {
+
 proc setup { args } {
   # Summary: initialize global vars and prepare for simulation
   # Argument Usage:
@@ -17,10 +19,10 @@ proc setup { args } {
   ::tclapp::aldec::riviera::usf_init_vars
 
   # read simulation command line args and set global variables
-  usf_modelsim_setup_args $args
+  usf_setup_args $args
 
   # perform initial simulation tasks
-  if { [usf_modelsim_setup_simulation] } {
+  if { [usf_setup_simulation] } {
     return 1
   }
   return 0
@@ -33,11 +35,11 @@ proc compile { args } {
   # Return Value:
   # none
 
-  send_msg_id USF-Riviera-2 INFO "ModelSim::Compile design"
+  send_msg_id USF-Riviera-2 INFO "[getSimulatorName]::Compile design"
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    usf_modelsim_write_compile_script_native
+    usf_write_compile_script_native
   } else {
-    usf_modelsim_write_compile_script
+    usf_write_compile_script
   }
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -54,11 +56,11 @@ proc elaborate { args } {
   
   return ;#[BS] we don't have elaborate step
 
-  send_msg_id USF-Riviera-3 INFO "ModelSim::Elaborate design"
+  send_msg_id USF-Riviera-3 INFO "[getSimulatorName]::Elaborate design"
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    usf_modelsim_write_elaborate_script_native
+    usf_write_elaborate_script_native
   } else {
-    usf_modelsim_write_elaborate_script
+    usf_write_elaborate_script
   }
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -75,8 +77,8 @@ proc simulate { args } {
 
   set dir $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)
 
-  send_msg_id USF-Riviera-4 INFO "ModelSim::Simulate design"
-  usf_modelsim_write_simulate_script
+  send_msg_id USF-[getSimulatorName]-4 INFO "[getSimulatorName]::Simulate design"
+  usf_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -86,7 +88,7 @@ proc simulate { args } {
     set fh 0
     set file [file normalize [file join $dir "simulate.log"]]
     if {[catch {open $file w} fh]} {
-      send_msg_id USF-Riviera-16 ERROR "Failed to open file to write ($file)\n"
+      send_msg_id USF-[getSimulatorName]-16 ERROR "Failed to open file to write ($file)\n"
     } else {
       puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
       close $fh
@@ -95,11 +97,8 @@ proc simulate { args } {
 }
 }
 
-#
-# ModelSim/Questa simulation flow
-#
 namespace eval ::tclapp::aldec::riviera {
-proc usf_modelsim_setup_simulation { args } {
+proc usf_setup_simulation { args } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -126,7 +125,7 @@ proc usf_modelsim_setup_simulation { args } {
   #::tclapp::aldec::riviera::usf_generate_mem_files_for_simulation
 
   # find/copy modelsim.ini file into run dir
-  #usf_modelsim_verify_compiled_lib
+  #usf_verify_compiled_lib ;#[BS] do we need this?
 
   # fetch the compile order for the specified object
   ::tclapp::aldec::riviera::usf_get_compile_order_for_obj
@@ -137,12 +136,12 @@ proc usf_modelsim_setup_simulation { args } {
      [::tclapp::aldec::riviera::usf_uniquify_cmd_str [::tclapp::aldec::riviera::usf_get_files_for_compilation global_files_str]]
 
   # create setup file
-  usf_modelsim_write_setup_files
+  usf_write_setup_files
 
   return 0
 }
 
-proc usf_modelsim_setup_args { args } {
+proc usf_setup_args { args } {
   # Summary:
   # 
 
@@ -162,12 +161,11 @@ proc usf_modelsim_setup_args { args } {
   # Return Value:
   # true (0) if success, false (1) otherwise
 
-  # Categories: xilinxtclstore, modelsim
+  # Categories: xilinxtclstore
 
   set args [string trim $args "\}\{"]
-  
-  set_param "simulator.rivieraInstallPath" {e:\sources\bonanza\branch79\ReleaseNoOpt\bin} ;#[BS] remove it
 
+  #[BS] do we need care about these switches? which can be removed?
   # process options
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
@@ -186,7 +184,7 @@ proc usf_modelsim_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id USF-Riviera-6 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
+          send_msg_id USF-[getSimulatorName]-6 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }
@@ -194,7 +192,7 @@ proc usf_modelsim_setup_args { args } {
   }
 }
 
-proc usf_modelsim_verify_compiled_lib {} {
+proc usf_verify_compiled_lib {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -266,7 +264,7 @@ proc usf_modelsim_verify_compiled_lib {} {
   }
 }
 
-proc usf_modelsim_write_setup_files {} {
+proc usf_write_setup_files {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -278,18 +276,18 @@ proc usf_modelsim_write_setup_files {} {
   set lib_dir [file normalize [file join $dir "msim"]]
   if { [file exists $lib_dir] } {
     if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id USF-Riviera-12 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
+      send_msg_id USF-[getSimulatorName]-12 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
       return 1
     }
   }
 
   #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id USF-Riviera-13 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
+  #  send_msg_id USF-[getSimulatorName]-13 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
   #  return 1
   #}
 }
 
-proc usf_modelsim_write_compile_script {} {
+proc usf_write_compile_script {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -303,15 +301,15 @@ proc usf_modelsim_write_compile_script {} {
   set do_filename $top;append do_filename "_compile.do"
   set do_file [file normalize [file join $dir $do_filename]]
 
-  send_msg_id USF-Riviera-15 INFO "Creating automatic 'do' files...\n"
+  send_msg_id USF-[getSimulatorName]-15 INFO "Creating automatic 'do' files...\n"
 
-  usf_modelsim_create_do_file_for_compilation $do_file
+  usf_create_do_file_for_compilation $do_file
 
   # write compile.sh/.bat
-  usf_modelsim_write_driver_shell_script $do_filename "compile"
+  usf_write_driver_shell_script $do_filename "compile"
 }
 
-proc usf_modelsim_write_compile_script_native {} {
+proc usf_write_compile_script_native {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -321,10 +319,10 @@ proc usf_modelsim_write_compile_script_native {} {
   ##############################################
 
   # write native compile.sh/.bat
-  usf_modelsim_write_driver_shell_script_native "compile"
+  usf_write_driver_shell_script_native "compile"
 }
 
-proc usf_modelsim_write_elaborate_script {} {
+proc usf_write_elaborate_script {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -335,13 +333,13 @@ proc usf_modelsim_write_elaborate_script {} {
   set do_filename {}
   set do_filename $top;append do_filename "_elaborate.do"
   set do_file [file normalize [file join $dir $do_filename]]
-  usf_modelsim_create_do_file_for_elaboration $do_file
+  usf_create_do_file_for_elaboration $do_file
 
   # write elaborate.sh/.bat
-  usf_modelsim_write_driver_shell_script $do_filename "elaborate"
+  usf_write_driver_shell_script $do_filename "elaborate"
 }
 
-proc usf_modelsim_write_elaborate_script_native {} {
+proc usf_write_elaborate_script_native {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -351,10 +349,10 @@ proc usf_modelsim_write_elaborate_script_native {} {
   ##############################################
 
   # write elaborate.sh/.bat
-  usf_modelsim_write_driver_shell_script_native "elaborate"
+  usf_write_driver_shell_script_native "elaborate"
 }
 
-proc usf_modelsim_write_simulate_script {} {
+proc usf_write_simulate_script {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -365,13 +363,13 @@ proc usf_modelsim_write_simulate_script {} {
   set do_filename {}
   set do_filename $top;append do_filename "_simulate.do"
   set do_file [file normalize [file join $dir $do_filename]]
-  usf_modelsim_create_do_file_for_simulation $do_file
+  usf_create_do_file_for_simulation $do_file
 
   # write elaborate.sh/.bat
-  usf_modelsim_write_driver_shell_script $do_filename "simulate"
+  usf_write_driver_shell_script $do_filename "simulate"
 }
 
-proc usf_modelsim_create_udo_file { file } {
+proc usf_create_udo_file { file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -382,14 +380,14 @@ proc usf_modelsim_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id USF-Riviera-16 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-[getSimulatorName]-16 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
-  usf_modelsim_write_header $fh $file
+  usf_write_header $fh $file
   close $fh
 }
 
-proc usf_modelsim_create_wave_do_file { file } {
+proc usf_create_wave_do_file { file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -400,10 +398,10 @@ proc usf_modelsim_create_wave_do_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id USF-Riviera-17 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-[getSimulatorName]-17 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
-  usf_modelsim_write_header $fh $file
+  usf_write_header $fh $file
   
   set fs_obj [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]
   if { [get_property "RIVIERA.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {  
@@ -416,7 +414,7 @@ proc usf_modelsim_create_wave_do_file { file } {
   close $fh
 }
 
-proc usf_modelsim_create_do_file_for_compilation { do_file } {
+proc usf_create_do_file_for_compilation { do_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -431,16 +429,16 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-Riviera-18 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-[getSimulatorName]-18 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
-  usf_modelsim_write_header $fh $do_file
+  usf_write_header $fh $do_file
   usf_add_quit_on_error $fh "compile"
 
   puts $fh "vlib work\n"
 
-  set design_libs [usf_modelsim_get_design_libs $::tclapp::aldec::riviera::a_sim_vars(l_design_files)]
+  set design_libs [usf_get_design_libs $::tclapp::aldec::riviera::a_sim_vars(l_design_files)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -545,7 +543,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   close $fh
 }
 
-proc usf_modelsim_create_do_file_for_elaboration { do_file } {
+proc usf_create_do_file_for_elaboration { do_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -557,21 +555,21 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-Riviera-19 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-[getSimulatorName]-19 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
-  usf_modelsim_write_header $fh $do_file
+  usf_write_header $fh $do_file
   usf_add_quit_on_error $fh "elaborate"
 
-  set cmd_str [usf_modelsim_get_elaboration_cmdline]
+  set cmd_str [usf_get_elaboration_cmdline]
   puts $fh "$cmd_str"
   puts $fh "\nquit -force"
 
   close $fh
 }
 
-proc usf_modelsim_get_elaboration_cmdline {} {
+proc usf_get_elaboration_cmdline {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -634,7 +632,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
   # add design libraries
-  set design_libs [usf_modelsim_get_design_libs $design_files]
+  set design_libs [usf_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend arg_list "-L"
@@ -660,7 +658,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   return $cmd_str
 }
 
-proc usf_modelsim_get_simulation_cmdline {} {
+proc usf_get_simulation_cmdline {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -676,7 +674,7 @@ proc usf_modelsim_get_simulation_cmdline {} {
   set tool "asim"
   set arg_list [list "$tool" "-t 1ps"]
   
-  lappend arg_list [usf_modelsim_get_elaboration_cmdline]
+  lappend arg_list [usf_get_elaboration_cmdline]
   
   if { [get_property "RIVIERA.SIMULATE.VERILOG_ACCELERATION" $fs_obj] } {
     lappend arg_list "-O5"
@@ -699,7 +697,7 @@ proc usf_modelsim_get_simulation_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      send_msg_id USF-Riviera-20 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id USF-[getSimulatorName]-20 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
     }
   }
 
@@ -717,7 +715,7 @@ proc usf_modelsim_get_simulation_cmdline {} {
   return $cmd_str
 }
 
-proc usf_modelsim_create_do_file_for_simulation { do_file } {
+proc usf_create_do_file_for_simulation { do_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -729,15 +727,15 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set fs_obj [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-Riviera-21 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-[getSimulatorName]-21 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
-  usf_modelsim_write_header $fh $do_file
+  usf_write_header $fh $do_file
   #set wave_do_filename $top;append wave_do_filename "_wave.do" ;#[BS]
   #set wave_do_file [file normalize [file join $dir $wave_do_filename]] ;#[BS]
-  #usf_modelsim_create_wave_do_file $wave_do_file ;#[BS]
-  set cmd_str [usf_modelsim_get_simulation_cmdline]
+  #usf_create_wave_do_file $wave_do_file ;#[BS]
+  set cmd_str [usf_get_simulation_cmdline]
   usf_add_quit_on_error $fh "simulate"
 
   puts $fh "$cmd_str"
@@ -807,7 +805,7 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   close $fh
 }
 
-proc usf_modelsim_write_header { fh filename } {
+proc usf_write_header { fh filename } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -830,7 +828,7 @@ proc usf_modelsim_write_header { fh filename } {
   puts $fh "######################################################################"
 }
 
-proc usf_modelsim_write_driver_shell_script { do_filename step } {
+proc usf_write_driver_shell_script { do_filename step } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -843,7 +841,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-Riviera-22 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-[getSimulatorName]-22 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
@@ -872,7 +870,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   close $fh_scr
 }
 
-proc usf_modelsim_write_driver_shell_script_native { step } {
+proc usf_write_driver_shell_script_native { step } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -885,14 +883,14 @@ proc usf_modelsim_write_driver_shell_script_native { step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-Riviera-23 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-[getSimulatorName]-23 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
-    usf_modelsim_write_header $fh_scr $scr_file
+    usf_write_header $fh_scr $scr_file
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$::tclapp::aldec::riviera::a_sim_vars(s_tool_bin_path)\""
     usf_write_shell_step_fn_native $step $fh_scr
@@ -900,7 +898,7 @@ proc usf_modelsim_write_driver_shell_script_native { step } {
   close $fh_scr
 }
 
-proc usf_modelsim_get_design_libs { files } {
+proc usf_get_design_libs { files } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -919,7 +917,7 @@ proc usf_modelsim_get_design_libs { files } {
   return $libs
 }
 
-proc usf_modelsim_set_initial_cmd { fh_scr cmd_str src_file type lib prev_type_arg prev_lib_arg } {
+proc usf_set_initial_cmd { fh_scr cmd_str src_file type lib prev_type_arg prev_lib_arg } {
   # Summary: Print compiler command line and store previous file type and library information
   # Argument Usage:
   # Return Value:
@@ -1004,7 +1002,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     puts $fh_scr "\$bin_path/vlib work $redirect_cmd_str"
     puts $fh_scr "\$bin_path/vlib msim $redirect_cmd_str\n"
   
-    set design_libs [usf_modelsim_get_design_libs $::tclapp::aldec::riviera::a_sim_vars(l_design_files)]
+    set design_libs [usf_get_design_libs $::tclapp::aldec::riviera::a_sim_vars(l_design_files)]
   
     # TODO:
     # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -1052,14 +1050,14 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
       if { $b_group_files } {
         if { $b_first } {
           set b_first false
-          usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+          usf_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
         } else {
           if { ($type == $prev_type) && ($lib == $prev_lib) } {
             puts $fh_scr "$src_file \\"
             set b_redirect true
           } else {
             puts $fh_scr "$redirect_cmd_str\n"
-            usf_modelsim_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
+            usf_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
             set b_appended true
           }
         }
@@ -1083,7 +1081,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
       puts $fh_scr "\n# compile glbl module\n\$bin_path/vlog $file_str $redirect_cmd_str"
     }
   } elseif { {elaborate} == $step } {
-    set cmd_str [usf_modelsim_get_elaboration_cmdline]
+    set cmd_str [usf_get_elaboration_cmdline]
     puts $fh_scr ""
 
     set log "${step}.log"
