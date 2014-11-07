@@ -157,8 +157,9 @@ proc usf_modelsim_init_simulation_vars {} {
   # Return Value:
 
   variable a_modelsim_sim_vars
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
 
-  set a_modelsim_sim_vars(b_32bit)            0
+  set a_modelsim_sim_vars(b_32bit)            [get_property "MODELSIM.COMPILE.32BIT" $fs_obj]
   set a_modelsim_sim_vars(s_compiled_lib_dir) {}
 }
 
@@ -573,6 +574,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
   set sim_flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
 
@@ -583,13 +585,13 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [list]
 
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    set s_64bit {}
     if {$::tcl_platform(platform) == "unix"} {
-      if { {64} == $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) } {
-        set s_64bit {-64}
+      if { ($::tclapp::xilinx::modelsim::a_modelsim_sim_vars(b_32bit)) || ({32} == $os_type) } {
+        # donot pass os type
+      } else {
+        lappend arg_list {-64}
       }
     }
-    lappend arg_list $s_64bit
   }
 
   if { [get_property "MODELSIM.ELABORATE.ACC" $fs_obj] } {
@@ -838,6 +840,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   # Return Value:
 
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
   set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
 
@@ -856,7 +859,9 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
 
   set s_64bit {}
   if {$::tcl_platform(platform) == "unix"} {
-    if { {64} == $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) } {
+    if { ($::tclapp::xilinx::modelsim::a_modelsim_sim_vars(b_32bit)) || ({32} == $os_type) } {
+      # donot pass os type
+    } else {
       set s_64bit {-64}
     }
   }

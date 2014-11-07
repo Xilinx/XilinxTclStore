@@ -1,12 +1,56 @@
 Description:
 
-  Create a Tcl script to recreate the current project. The generated script
+  Create a Tcl script to re-create the current project. The generated script
   will contain the Tcl commands for creating the project, setting the project
-  type, creating filesets, adding/importing source files, defining runs and
-  run properties. 
+  type, creating filesets, adding/importing source files, and defining runs and
+  run properties. The re-created project will be functionally equivalent to
+  the original project.
 
-  This Tcl project script and the various design sources can be stored in a
-  version control system for source file management and project archival.
+  This generated Tcl project script and the various design sources can be stored
+  in a version control system for source file management and project archival.
+
+  To re-create the project, you should source the generated Tcl script in a 
+  Vivado Tcl shell from the same directory where the script was generated. If the
+  original project already exists in the same project directory, the script may
+  fail with an error message that the project already exists. In this case you may
+  want to run the script from a different directory path or update the generated
+  script by adding a "-force" switch to the "create_project" command. 
+
+  In the generated Tcl script, the project source files are referenced relative to
+  the "origin_dir" variable. By default, the source files are referenced relative
+  to the directory where the tcl script is generated. The "origin_dir" is set to "."
+  (the current tcl script directory). When the script is executed from this directory,
+  any source files will be referenced relative to this 'origin_dir' path value.
+
+  In the case where the script is sourced from a different directory or physically
+  moved to a different directory, then the "origin_dir" variable MUST be manually set
+  relative to the new directory. Manually set the "origin_dir" to make sure that the
+  source files are correctly referenced relative to the original location.
+
+  You can have the "origin_dir" automatically set to a directory of your choice by 
+  using the -paths_relative_to option. All the source file paths will be defined
+  relative to the directory specified with this option.
+ 
+  If -absolute_path is specified, the project source files will be referenced
+  using absolute paths only. In this case, the script can be executed from any
+  directory provided these absolute paths are accessible in the same filesystem. 
+
+  If the original project contains IP cores, the following rules apply in the generated
+  script while re-creating the project:-
+
+  1. The IP will not be regenerated, if it was generated in the original project.
+
+    In this case, the script will "add" the IP from the original project with
+    generated synthesis/simulation products.
+ 
+  2. The IP will be generated, if it was not generated in the original project.
+  
+    In this case, the script will "add" the IP from the original project and 
+    create OOC synthesis runs for generating the synthesis/simulation products.
+
+  If the original project had completed runs, those runs will be re-created with
+  the same settings in the generated project; however those runs will not be
+  automatically launched in order to save runtime.
 
 Arguments:
 
