@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Handle empty verilog define variable value and pass to xelab</revision_history>
+      <revision_history>Check file_type while grouping files by library</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -392,7 +392,7 @@ proc usf_write_design_netlist {} {
       set design_in_memory [current_design]
       send_msg_id USF-XSim-029 INFO "Writing simulation netlist file for design '$design_in_memory'..."
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -407,7 +407,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-XSim-030 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-XSim-091 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
@@ -441,7 +441,7 @@ proc usf_write_design_netlist {} {
       send_msg_id USF-XSim-032 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file $net_file"
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $a_sim_vars(s_type) } {
         set wv_args "-mode funcsim $wv_args"
       } elseif { {timing} == $a_sim_vars(s_type) } {
@@ -456,7 +456,7 @@ proc usf_write_design_netlist {} {
       }
       if { {timing} == $a_sim_vars(s_type) } {
         send_msg_id USF-XSim-033 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
         send_msg_id USF-XSim-093 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
@@ -2162,7 +2162,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str other_ver_opts_arg} 
 
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
-  set cmd_str "$type#$associated_library#$file_str"
+  set cmd_str "$type#$file_type#$associated_library#$file_str"
   return $cmd_str
 }
 

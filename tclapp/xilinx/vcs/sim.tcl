@@ -308,25 +308,25 @@ proc usf_vcs_write_setup_files {} {
 
 }
 
-proc usf_vcs_set_initial_cmd { fh_scr cmd_str src_file type lib prev_type_arg prev_lib_arg log_arg } {
+proc usf_vcs_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg log_arg } {
   # Summary: Print compiler command line and store previous file type and library information
   # Argument Usage:
   # Return Value:
   # None
 
-  upvar $prev_type_arg prev_type
+  upvar $prev_file_type_arg prev_file_type
   upvar $prev_lib_arg  prev_lib
   upvar $log_arg log
 
   puts $fh_scr "\$bin_path/$cmd_str \\"
   puts $fh_scr "$src_file \\"
 
-  set prev_type $type
+  set prev_file_type $file_type
   set prev_lib  $lib
 
-  if { [regexp -nocase {vhdl} $type] } {
+  if { [regexp -nocase {vhdl} $file_type] } {
     set log "vhdlan.log"
-  } elseif { [regexp -nocase {verilog} $type] } {
+  } elseif { [regexp -nocase {verilog} $file_type] } {
     set log "vlogan.log"
   }
 }
@@ -402,7 +402,7 @@ proc usf_vcs_write_compile_script {} {
   
   set b_first true
   set prev_lib  {}
-  set prev_type {}
+  set prev_file_type {}
   set redirect_cmd_str "2>&1 | tee -a"
   set log {}
   set b_redirect false
@@ -412,10 +412,11 @@ proc usf_vcs_write_compile_script {} {
   foreach file $::tclapp::xilinx::vcs::a_sim_vars(l_design_files) {
     set fargs    [split $file {#}]
 
-    set type     [lindex $fargs 0]
-    set lib      [lindex $fargs 1]
-    set cmd_str  [lindex $fargs 2]
-    set src_file [lindex $fargs 3]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set lib       [lindex $fargs 2]
+    set cmd_str   [lindex $fargs 3]
+    set src_file  [lindex $fargs 4]
 
     # vlogan expects double back slash
     if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
@@ -429,21 +430,21 @@ proc usf_vcs_write_compile_script {} {
     if { $b_group_files } {
       if { $b_first } {
         set b_first false
-        usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib log
+        usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
       } else {
-        if { ($type == $prev_type) && ($lib == $prev_lib) } { 
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
           puts $fh_scr "$src_file \\"
           set b_redirect true
         } else {
           puts $fh_scr "$redirect_cmd_str $log\n"
-          usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib log
+          usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
           set b_appended true
         }
       }
     } else {
-      if { [regexp -nocase {vhdl} $type] } {
+      if { [regexp -nocase {vhdl} $file_type] } {
         set log "vhdlan.log"
-      } elseif { [regexp -nocase {verilog} $type] } {
+      } elseif { [regexp -nocase {verilog} $file_type] } {
         set log "vlogan.log"
       }
       set redirect_cmd_str "2>&1 | tee -a $log"
@@ -631,9 +632,10 @@ proc usf_vcs_get_design_libs { files } {
 
   set libs [list]
   foreach file $files {
-    set type    [lindex [split $file {#}] 0]
-    set library [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
+    set type      [lindex [split $file {#}] 0]
+    set file_type [lindex [split $file {#}] 1]
+    set library   [lindex [split $file {#}] 2]
+    set cmd_str   [lindex [split $file {#}] 3]
     if { {} == $library } {
       continue;
     }

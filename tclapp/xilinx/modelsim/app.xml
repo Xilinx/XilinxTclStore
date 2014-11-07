@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Group design source files by library in script file to improve compile time</revision_history>
+      <revision_history>Check file_type while grouping files by library</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
