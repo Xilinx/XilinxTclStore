@@ -640,20 +640,9 @@ proc usf_get_elaboration_cmdline {} {
     #lappend arg_list "[string tolower $lib]"
   }
 
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
-  lappend arg_list "-work"
-  lappend arg_list $default_lib
-  
-  set d_libs [join $arg_list " "]
-  set top_lib [::tclapp::aldec::riviera::usf_get_top_library]
+  set d_libs [join $arg_list " "]  
   set arg_list [list $t_opts]
   lappend arg_list "$d_libs"
-  lappend arg_list "${top_lib}.$top"
-  if { [::tclapp::aldec::riviera::usf_contains_verilog $design_files] } {    
-    lappend arg_list "${top_lib}.glbl"
-  }
-  lappend arg_list "-o"
-  lappend arg_list "${top}"
   set cmd_str [join $arg_list " "]
   return $cmd_str
 }
