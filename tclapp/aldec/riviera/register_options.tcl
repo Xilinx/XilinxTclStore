@@ -2,6 +2,8 @@
 #
 # register_options.tcl
 #
+# based on XilinxTclStore\tclapp\xilinx\modelsim\register_options.tcl
+#
 #########################################################################
 
 package require Vivado 1.2014.1

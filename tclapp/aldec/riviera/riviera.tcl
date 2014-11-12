@@ -2,6 +2,8 @@
 #
 # riviera.tcl
 #
+# based on XilinxTclStore\tclapp\xilinx\modelsim\modelsim.tcl
+#
 ###########################################################################
 
 namespace eval ::tclapp::aldec::riviera {

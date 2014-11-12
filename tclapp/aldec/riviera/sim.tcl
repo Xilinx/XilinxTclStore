@@ -2,6 +2,8 @@
 #
 # sim.tcl
 #
+# based on XilinxTclStore\tclapp\xilinx\modelsim\sim.tcl
+#
 ######################################################################
 
 package require Vivado 1.2014.1
