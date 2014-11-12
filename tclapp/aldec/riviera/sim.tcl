@@ -700,6 +700,11 @@ proc usf_get_simulation_cmdline {} {
     lappend arg_list $uut
   }
 
+  set design_files $::tclapp::aldec::riviera::a_sim_vars(l_design_files)
+  if { [::tclapp::aldec::riviera::usf_contains_verilog $design_files] } {
+    lappend arg_list "glbl"
+  }
+
   set cmd_str [join $arg_list " "]
   return $cmd_str
 }
