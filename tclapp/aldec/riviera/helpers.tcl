@@ -16,11 +16,20 @@ namespace eval ::tclapp::aldec::riviera {
 
 proc getSimulatorName {} {
   switch -- [get_property target_simulator [current_project]] {
-    Riviera { return Rivier-PRO }
+    Riviera { return Riviera-PRO }
     ActiveHDL { return Active-HDL }
     default { error "Unknown target simulator" }
   }
 }
+
+proc getLibraryPrefix {} {
+  switch -- [get_property target_simulator [current_project]] {
+    Riviera { return riviera_ }
+    ActiveHDL { return activehdl_ }
+    default { error "Unknown target simulator" }
+  }
+}
+
 proc usf_init_vars {} {
   # Summary: initializes global namespace vars
   # Argument Usage:

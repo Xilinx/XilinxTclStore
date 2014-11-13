@@ -446,29 +446,31 @@ proc usf_create_do_file_for_compilation { do_file } {
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
   # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
 
+  set libraryPrefix [getLibraryPrefix]
+  
   set b_default_lib false
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    puts $fh "vlib aldec_$lib"
-    puts $fh "vdel -lib aldec_$lib -all"
+    puts $fh "vlib ${libraryPrefix}$lib"
+    puts $fh "vdel -lib ${libraryPrefix}$lib -all"
     if { $default_lib == $lib } {
       set b_default_lib true
     }
   }
   if { !$b_default_lib } {
-    puts $fh "vlib aldec_$default_lib"
-    puts $fh "vdel -lib aldec_$default_lib -all"
+    puts $fh "vlib ${libraryPrefix}$default_lib"
+    puts $fh "vdel -lib ${libraryPrefix}$default_lib -all"
   }
    
   puts $fh ""
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    puts $fh "vmap $lib aldec_$lib"
+    puts $fh "vmap $lib ${libraryPrefix}$lib"
   }
   if { !$b_default_lib } {
-    puts $fh "vmap $default_lib aldec_$default_lib"
+    puts $fh "vmap $default_lib ${libraryPrefix}$default_lib"
   }
   puts $fh ""
 

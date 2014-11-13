@@ -49,7 +49,7 @@ proc register_options { simulator } {
     {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.log_all_signals}    {bool}   {0}                                     {Log all signals in simulation database}}
     {{simulate.debug}    {bool}   {0}                                     {Enable debugging features}}
-    {{simulate.verilog_acceleration}    {bool}   {0}                                     {Enable verilog acceleration}}
+    {{simulate.verilog_acceleration}    {bool}   {1}                                     {Enable verilog acceleration}}
     {{simulate.uut}                {string} {}                                      {Specify hierarchical path of unit under test instance}}
     {{simulate.saif}               {string} {}                                      {Generate SAIF file for power analysis}}
     {{simulate.asim.more_options}  {string} {}                                      {More simulation options}}
