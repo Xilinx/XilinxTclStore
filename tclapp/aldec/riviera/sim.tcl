@@ -425,7 +425,6 @@ proc usf_create_do_file_for_compilation { do_file } {
 
   set top $::tclapp::aldec::riviera::a_sim_vars(s_sim_top)
   set dir $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set fs_obj [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::aldec::riviera::a_sim_vars(b_absolute_path)
 
@@ -475,9 +474,9 @@ proc usf_create_do_file_for_compilation { do_file } {
   puts $fh ""
 
   if { $b_absolute_path } {
-    puts $fh "set origin_dir \"$dir\""
+    puts $fh "null \[set origin_dir \"$dir\"\]"
   } else {
-    puts $fh "set origin_dir \".\""
+    puts $fh "null \[set origin_dir \".\"\]"
   }
 
   set vlog_arg_list [list]
@@ -497,7 +496,7 @@ proc usf_create_do_file_for_compilation { do_file } {
     set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
   }
   set vlog_cmd_str [join $vlog_arg_list " "]
-  puts $fh "set vlog_opts \{$vlog_cmd_str\}"
+  puts $fh "null \[set vlog_opts \{$vlog_cmd_str\}\]"
 
   set vcom_arg_list [list]
   set vhdl_syntax [get_property "RIVIERA.COMPILE.VHDL_SYNTAX" $fs_obj]
@@ -519,7 +518,7 @@ proc usf_create_do_file_for_compilation { do_file } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
   }
   set vcom_cmd_str [join $vcom_arg_list " "]
-  puts $fh "set vcom_opts \{$vcom_cmd_str\}"
+  puts $fh "null \[set vcom_opts \{$vcom_cmd_str\}\]"
 
   puts $fh ""
 
@@ -641,7 +640,6 @@ proc usf_get_elaboration_cmdline {} {
     if {[string length $lib] == 0} { continue; }
     lappend arg_list "-L"
     lappend arg_list "$lib"
-    #lappend arg_list "[string tolower $lib]"
   }
 
   set d_libs [join $arg_list " "]  
@@ -694,10 +692,8 @@ proc usf_get_simulation_cmdline {} {
     }
   }
 
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
-  lappend arg_list "-lib"
-  lappend arg_list $default_lib
-  lappend arg_list "${top}"
+  set top_lib [::tclapp::aldec::riviera::usf_get_top_library]
+  lappend arg_list "${top_lib}.${top}"
 
   set uut [get_property "RIVIERA.SIMULATE.UUT" $fs_obj]
   if { $uut != "" } {  
@@ -706,7 +702,7 @@ proc usf_get_simulation_cmdline {} {
 
   set design_files $::tclapp::aldec::riviera::a_sim_vars(l_design_files)
   if { [::tclapp::aldec::riviera::usf_contains_verilog $design_files] } {
-    lappend arg_list "glbl"
+    lappend arg_list "${top_lib}.glbl"
   }
 
   set cmd_str [join $arg_list " "]
@@ -938,7 +934,6 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
 
   set top $::tclapp::aldec::riviera::a_sim_vars(s_sim_top)
   set dir $::tclapp::aldec::riviera::a_sim_vars(s_launch_dir)
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set fs_obj [get_filesets $::tclapp::aldec::riviera::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::aldec::riviera::a_sim_vars(b_absolute_path)
 

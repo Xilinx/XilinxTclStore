@@ -15,6 +15,10 @@ namespace eval ::tclapp::aldec::riviera {
 namespace eval ::tclapp::aldec::riviera {
 
 proc getSimulatorName {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
   switch -- [get_property target_simulator [current_project]] {
     Riviera { return Riviera-PRO }
     ActiveHDL { return Active-HDL }
@@ -23,6 +27,10 @@ proc getSimulatorName {} {
 }
 
 proc getLibraryPrefix {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
   switch -- [get_property target_simulator [current_project]] {
     Riviera { return riviera_ }
     ActiveHDL { return activehdl_ }
@@ -608,7 +616,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   return $dir_names
 }
 
-proc usf_get_top_library { } {
+proc usf_get_top_library {} {
   # Summary:
   # Argument Usage:
   # Return Value:
