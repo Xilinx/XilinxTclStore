@@ -426,6 +426,19 @@ proc usf_create_wave_do_file { file } {
   close $fh
 }
 
+proc usf_createDesignIfNeeded { out } {
+
+  if { [get_property target_simulator [current_project]] != "ActiveHDL" } {
+    return
+  }
+  
+  set designName [current_project]
+  set targetDir $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)
+  
+  puts $out "createdesign \{$designName\} \{$targetDir\}"
+  puts $out "opendesign \{${targetDir}/${designName}/${designName}.adf\}"
+}
+
 proc usf_create_do_file_for_compilation { do_file } {
   # Summary:
   # Argument Usage:
@@ -446,6 +459,8 @@ proc usf_create_do_file_for_compilation { do_file } {
 
   usf_write_header $fh $do_file
   usf_add_quit_on_error $fh "compile"
+
+  usf_createDesignIfNeeded $fh
 
   puts $fh "vlib work\n"
 
