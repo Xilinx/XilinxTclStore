@@ -1,8 +1,11 @@
 ###########################################################################
 #
-# modelsim.tcl (allow Tcl to find tclindex and provide package version 1.0)
+# activehdl.tcl
+#
+# based on XilinxTclStore\tclapp\xilinx\modelsim\modelsim.tcl
 #
 ###########################################################################
+
 namespace eval ::tclapp::aldec::activehdl {
   variable home [file join [pwd] [file dirname [info script]]]
   if {[lsearch -exact $::auto_path $home] == -1} {

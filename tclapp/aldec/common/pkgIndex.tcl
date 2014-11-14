@@ -8,7 +8,8 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::aldec::activehdl 1.0 [list source [file join $dir activehdl.tcl]]
+package ifneeded ::tclapp::aldec::common_sim 1.0 [list source [file join $dir common_sim.tcl]]
+package ifneeded ::tclapp::aldec::common_helpers 1.0 [list source [file join $dir common_helpers.tcl]]
 
 
 
