@@ -2452,7 +2452,12 @@ proc usf_check_errors { step results_log_arg } {
     close $fh
     set log_data [split $log_data "\n"]
     foreach line $log_data {
-      if {[regexp -nocase {ONERROR} $line]} {
+      if { [regexp -nocase {ONERROR} $line]} {
+        set results_log $log
+        set retval 1
+        break
+      }
+      if { [regexp -nocase {([0-9]+)\s+Errors} $line tmp errorsCount] && $errorsCount } {
         set results_log $log
         set retval 1
         break

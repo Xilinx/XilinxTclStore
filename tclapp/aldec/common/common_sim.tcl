@@ -427,7 +427,10 @@ proc usf_create_wave_do_file { file } {
 }
 
 proc usf_createDesignIfNeeded { out } {
-
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
   if { [get_property target_simulator [current_project]] != "ActiveHDL" } {
     return
   }
@@ -440,6 +443,10 @@ proc usf_createDesignIfNeeded { out } {
 }
 
 proc usf_getQuitCmd {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
   if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
     return "quit"
   } else {
@@ -448,6 +455,10 @@ proc usf_getQuitCmd {} {
 }
 
 proc usf_getGlblPath {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
   if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
     return $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)/glbl.v
   } else {
@@ -754,6 +765,10 @@ proc usf_get_simulation_cmdline {} {
 }
 
 proc usf_openDesignIfNeeded { out } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
   if { [get_property target_simulator [current_project]] != "ActiveHDL" } {
     return
   }
