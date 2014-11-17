@@ -439,6 +439,22 @@ proc usf_createDesignIfNeeded { out } {
   puts $out "opendesign \{${targetDir}/${designName}/${designName}.adf\}"
 }
 
+proc usf_getQuitCmd {} {
+  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+    return "quit"
+  } else {
+    return "quit -force"
+  }  
+}
+
+proc usf_getGlblPath {} {
+  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+    return $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)/glbl.v
+  } else {
+    return glbl.v
+  }
+}
+
 proc usf_create_do_file_for_compilation { do_file } {
   # Summary:
   # Argument Usage:
@@ -450,6 +466,9 @@ proc usf_create_do_file_for_compilation { do_file } {
   set dir $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::aldec::common_helpers::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::aldec::common_helpers::a_sim_vars(b_absolute_path)
+  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+    set b_absolute_path 1
+  }  
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
@@ -563,11 +582,11 @@ proc usf_create_do_file_for_compilation { do_file } {
   if { [::tclapp::aldec::common_helpers::usf_compile_glbl_file $b_load_glbl $::tclapp::aldec::common_helpers::a_sim_vars(l_design_files)] } {
     ::tclapp::aldec::common_helpers::usf_copy_glbl_file
     set top_lib [::tclapp::aldec::common_helpers::usf_get_top_library]
-    set file_str "-work $top_lib \"glbl.v\""
+    set file_str "-work $top_lib \"[usf_getGlblPath]\""
     puts $fh "\n# compile glbl module\nvlog $file_str"
   }
 
-  puts $fh "\nquit -force"
+  puts $fh "\n[usf_getQuitCmd]"
   close $fh
 }
 
@@ -592,7 +611,7 @@ proc usf_create_do_file_for_elaboration { do_file } {
 
   set cmd_str [usf_get_elaboration_cmdline]
   puts $fh "$cmd_str"
-  puts $fh "\nquit -force"
+  puts $fh "\n[usf_getQuitCmd]"
 
   close $fh
 }
@@ -734,6 +753,17 @@ proc usf_get_simulation_cmdline {} {
   return $cmd_str
 }
 
+proc usf_openDesignIfNeeded { out } {
+  if { [get_property target_simulator [current_project]] != "ActiveHDL" } {
+    return
+  }
+  
+  set designName [current_project]
+  set targetDir $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)
+
+  puts $out "opendesign ${targetDir}/${designName}/${designName}.adf"
+}
+
 proc usf_create_do_file_for_simulation { do_file } {
   # Summary:
   # Argument Usage:
@@ -756,6 +786,8 @@ proc usf_create_do_file_for_simulation { do_file } {
   #usf_create_wave_do_file $wave_do_file ;#[BS]
   set cmd_str [usf_get_simulation_cmdline]
   usf_add_quit_on_error $fh "simulate"
+  
+  usf_openDesignIfNeeded $fh
 
   puts $fh "$cmd_str"
   #puts $fh "do \{$wave_do_filename\}" ;#[BS]
@@ -819,7 +851,7 @@ proc usf_create_do_file_for_simulation { do_file } {
   }
 
   if { $b_batch || $b_scripts_only } {
-    puts $fh "\nquit -force"
+    puts $fh "\n[usf_getQuitCmd]"
   }
   close $fh
 }
@@ -847,6 +879,26 @@ proc usf_write_header { fh filename } {
   puts $fh "######################################################################"
 }
 
+proc usf_writeExecutableCmdLine { out batch_sw do_filename log_filename } {
+  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+  
+    puts $out "call \"%bin_path%/avhdl\" -do \"do -tcl \{$do_filename\}\""
+    puts $out "set error=%errorlevel%"
+    
+    # copy log file
+    set designName [current_project]
+    set targetDir $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)
+    set logFile [file nativename "${targetDir}/${designName}/log/console.log"]
+    puts $out "copy /Y \"$logFile\" \"$log_filename\""  
+    #
+    
+    puts $out "set errorlevel=%error%"
+    
+  } else {
+    puts $out "call \"%bin_path%/vsim\" $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+  }
+}
+
 proc usf_write_driver_shell_script { do_filename step } {
   # Summary:
   # Argument Usage:
@@ -868,7 +920,7 @@ proc usf_write_driver_shell_script { do_filename step } {
   if { ({simulate} == $step) && (!$b_batch) && (!$b_scripts_only) } {
     set batch_sw {}
   }
-
+  
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
@@ -878,7 +930,7 @@ proc usf_write_driver_shell_script { do_filename step } {
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set bin_path=$::tclapp::aldec::common_helpers::a_sim_vars(s_tool_bin_path)"
-    puts $fh_scr "call \"%bin_path%/vsim\" $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    usf_writeExecutableCmdLine $fh_scr $batch_sw $do_filename $log_filename
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
@@ -961,13 +1013,16 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
   set dir $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::aldec::common_helpers::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::aldec::common_helpers::a_sim_vars(b_absolute_path)
+  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+    set b_absolute_path 1
+  }
 
   if { {compile} == $step } {
     puts $fh_scr "\n# directory path for design sources and include directories (if any) wrt this path"
     if { $b_absolute_path } {
       puts $fh_scr "origin_dir=\"$dir\""
     } else {
-      puts $fh_scr "origin_dir=\".\""
+        puts $fh_scr "origin_dir=\".\""
     }
   
     set vlog_arg_list [list]
@@ -1095,7 +1150,7 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     if { [::tclapp::aldec::common_helpers::usf_compile_glbl_file $b_load_glbl $::tclapp::aldec::common_helpers::a_sim_vars(l_design_files)] } {
       ::tclapp::aldec::common_helpers::usf_copy_glbl_file
       set top_lib [::tclapp::aldec::common_helpers::usf_get_top_library]
-      set file_str "-work $top_lib \"glbl.v\""
+      set file_str "-work $top_lib \"[usf_getGlblPath]\""
       puts $fh_scr "\n# compile glbl module\n\$bin_path/vlog $file_str $redirect_cmd_str"
     }
   } elseif { {elaborate} == $step } {
@@ -1127,18 +1182,18 @@ proc usf_add_quit_on_error { fh step } {
   }  
 
   if { ({compile} == $step) || ({elaborate} == $step) } {
-    puts $fh "onbreak {quit -force}"
-    puts $fh "onerror {quit -force}\n"
+    puts $fh "onbreak \{[usf_getQuitCmd]\}"
+    puts $fh "onerror \{[usf_getQuitCmd]\}\n"
   } elseif { ({simulate} == $step) } {
     if { !$noQuitOnError } {
-      puts $fh "onbreak {quit -force}"
-      puts $fh "onerror {quit -force}\n"
+      puts $fh "onbreak \{[usf_getQuitCmd]\}"
+      puts $fh "onerror \{[usf_getQuitCmd]\}\n"
     } 
 
     # quit on error always for batch/scripts only and when param is true
     if { ($b_batch || $b_scripts_only) && $noQuitOnError } {
-      puts $fh "onbreak {quit -force}"
-      puts $fh "onerror {quit -force}\n"
+      puts $fh "onbreak \{[usf_getQuitCmd]\}"
+      puts $fh "onerror \{[usf_getQuitCmd]\}\n"
     }
   }
 }

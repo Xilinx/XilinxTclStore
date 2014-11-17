@@ -992,11 +992,18 @@ proc usf_set_simulator_path {} {
   set install_path $a_sim_vars(s_install_path)
   send_msg_id USF-[usf_getSimulatorName]-33 INFO "Finding simulator installation...\n"
 
-  set tool_name "vsim";append tool_name ${tool_extn}
-  if { {} == $install_path } {
-    switch -- [get_property target_simulator [current_project]] {
-      Riviera { set install_path [get_param "simulator.rivieraInstallPath"] }
-      ActiveHDL { set install_path [get_param "simulator.activehdlInstallPath"] }
+  switch -- [get_property target_simulator [current_project]] {
+    Riviera { 
+      set tool_name "vsim";append tool_name ${tool_extn}
+      if { $install_path == "" } {
+        set install_path [get_param "simulator.rivieraInstallPath"] 
+      }
+    }
+    ActiveHDL { 
+      set tool_name "avhdl";append tool_name ${tool_extn}
+      if { $install_path == "" } {
+        set install_path [get_param "simulator.activehdlInstallPath"] 
+      }
     }
   }
  
