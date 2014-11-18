@@ -537,9 +537,6 @@ proc usf_create_do_file_for_compilation { do_file } {
   set vlog_arg_list [list]
   set vlog_syntax [get_property [usf_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj]
   lappend vlog_arg_list "-$vlog_syntax"
-  if { [get_property [usf_getPropertyName COMPILE.VERILOG_STRICT] $fs_obj] } {
-    lappend vlog_arg_list "-j"
-  }
   if { [get_property [usf_getPropertyName COMPILE.DEBUG] $fs_obj] } {
     lappend vlog_arg_list "-dbg"
   }
@@ -558,9 +555,6 @@ proc usf_create_do_file_for_compilation { do_file } {
   lappend vcom_arg_list "-$vhdl_syntax"
   if { [get_property [usf_getPropertyName COMPILE.VHDL_RELAX] $fs_obj] } {
     lappend vcom_arg_list "-relax"
-  }
-  if { [get_property [usf_getPropertyName COMPILE.REORDER] $fs_obj] } {
-    lappend vcom_arg_list "-reorder"
   }
   if { [get_property [usf_getPropertyName COMPILE.DEBUG] $fs_obj] } {
     lappend vcom_arg_list "-dbg"
@@ -750,11 +744,6 @@ proc usf_get_simulation_cmdline {} {
   set top_lib [::tclapp::aldec::common_helpers::usf_get_top_library]
   lappend arg_list "${top_lib}.${top}"
 
-  set uut [get_property [usf_getPropertyName SIMULATE.UUT] $fs_obj]
-  if { $uut != "" } {  
-    lappend arg_list $uut
-  }
-
   set design_files $::tclapp::aldec::common_helpers::a_sim_vars(l_design_files)
   if { [::tclapp::aldec::common_helpers::usf_contains_verilog $design_files] } {
     lappend arg_list "${top_lib}.glbl"
@@ -777,6 +766,18 @@ proc usf_openDesignIfNeeded { out } {
   set targetDir $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)
 
   puts $out "opendesign ${targetDir}/${designName}/${designName}.adf"
+  puts $out "set SIM_WORKING_FOLDER \$dsn/.."  
+}
+
+proc usf_getDefaultDatasetName {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  switch -- [get_property target_simulator [current_project]] {
+    Riviera { return "dataset.asdb" }
+    ActiveHDL { return "wave.asdb" }
+  }  
 }
 
 proc usf_create_do_file_for_simulation { do_file } {
@@ -823,12 +824,14 @@ proc usf_create_do_file_for_simulation { do_file } {
   set uut [get_property [usf_getPropertyName SIMULATE.UUT] $fs_obj]
   if { {} == $uut } {
     set uut "/$top/uut"
-  }  
+  }
  
   # generate saif file for power estimation
-  set saif [get_property [usf_getPropertyName SIMULATE.SAIF] $fs_obj] 
-  if { {} != $saif } {
-    puts $fh "wave -ports ${uut}/*"
+  set saif [get_property [usf_getPropertyName SIMULATE.SAIF] $fs_obj]
+  if { ![get_property [usf_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj] } {
+    if { {} != $saif } {
+      puts $fh "log -ports ${uut}/*"
+    }
   }
 
   set rt [string trim [get_property [usf_getPropertyName SIMULATE.RUNTIME] $fs_obj]]
@@ -850,7 +853,7 @@ proc usf_create_do_file_for_simulation { do_file } {
     if { {.saif} != $extn } {
       append saif ".saif"
     }
-    puts $fh "asdb2saif -internal -scope ${uut}/* wave.asdb \{$saif\}"
+    puts $fh "asdb2saif -internal -scope ${uut}/* [usf_getDefaultDatasetName] \{$saif\}"
   }
 
   # add TCL sources
@@ -1043,9 +1046,6 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     set vlog_arg_list [list]
     set vlog_syntax [get_property [usf_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj]
     lappend vlog_arg_list "-$vlog_syntax"
-    if { [get_property [usf_getPropertyName COMPILE.VERILOG_STRICT] $fs_obj] } {
-      lappend vlog_arg_list "-j"
-    }
     if { [get_property [usf_getPropertyName COMPILE.DEBUG] $fs_obj] } {
       lappend vlog_arg_list "-dbg"
     }
@@ -1065,9 +1065,6 @@ proc usf_write_shell_step_fn_native { step fh_scr } {
     lappend vcom_arg_list "-$vhdl_syntax"
     if { [get_property [usf_getPropertyName COMPILE.VHDL_RELAX] $fs_obj] } {
       lappend vcom_arg_list "-relax"
-    }
-    if { [get_property [usf_getPropertyName COMPILE.REORDER] $fs_obj] } {
-      lappend vcom_arg_list "-reorder"
     }
     if { [get_property [usf_getPropertyName COMPILE.DEBUG] $fs_obj] } {
       lappend vcom_arg_list "-dbg"

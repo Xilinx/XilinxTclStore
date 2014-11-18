@@ -37,9 +37,7 @@ proc register_options { simulator } {
     {{compile.vhdl_syntax}         {enum}   {93 93 {93 2002 2008}}   {Specify VHDL standard}}
     {{compile.vlog_syntax}         {enum}   {v2k5 v2k5 {v95 v2k v2k5 sv2k5 sv2k9}}   {Specify Verilog standard}}
     {{compile.vhdl_relax}   {bool}   {0}                                     {Relax strict VHDL LRM requirements}}
-    {{compile.verilog_strict}   {bool}   {0}                                     {Force strict Verilog LRM mode}}    
     {{compile.incremental}   {bool}   {0}                                     {Perform incremental compilation}}
-    {{compile.reorder}           {bool}   {0}                                     {Enable automatic VHDL file ordering}}    
     {{compile.debug}         {bool}   {0}                                     {Generate debugging information}}
     {{compile.load_glbl}         {bool}   {0}                                     {Load GLBL module}}    
     {{compile.vlog.more_options}   {string} {}                                      {More Verilog compilation options}}

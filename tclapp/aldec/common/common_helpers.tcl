@@ -994,7 +994,7 @@ proc usf_set_simulator_path {} {
 
   switch -- [get_property target_simulator [current_project]] {
     Riviera { 
-      set tool_name "vsim";append tool_name ${tool_extn}
+      set tool_name "riviera";append tool_name ${tool_extn}
       if { $install_path == "" } {
         set install_path [get_param "simulator.rivieraInstallPath"] 
       }
