@@ -2462,6 +2462,11 @@ proc usf_check_errors { step results_log_arg } {
         set retval 1
         break
       }
+      if { [regexp -nocase {^Error:.+$} $line] } {
+        set results_log $log
+        set retval 1
+        break
+      }      
     }
   }
   if { $retval } {
