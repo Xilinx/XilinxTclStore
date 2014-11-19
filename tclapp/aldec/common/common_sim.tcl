@@ -753,7 +753,7 @@ proc usf_get_simulation_cmdline {} {
   return $cmd_str
 }
 
-proc usf_openDesignIfNeeded { out } {
+proc usf_setSimulationPrerequisites { out } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -767,6 +767,7 @@ proc usf_openDesignIfNeeded { out } {
 
   puts $out "opendesign ${targetDir}/${designName}/${designName}.adf"
   puts $out "set SIM_WORKING_FOLDER \$dsn/.."  
+  puts $out "waveformmode asdb"
 }
 
 proc usf_getDefaultDatasetName {} {
@@ -776,7 +777,7 @@ proc usf_getDefaultDatasetName {} {
   
   switch -- [get_property target_simulator [current_project]] {
     Riviera { return "dataset.asdb" }
-    ActiveHDL { return "wave.asdb" }
+    ActiveHDL { return "\$waveformoutput" }
   }  
 }
 
@@ -797,20 +798,11 @@ proc usf_create_do_file_for_simulation { do_file } {
   }
 
   usf_write_header $fh $do_file
-  #set wave_do_filename $top;append wave_do_filename "_wave.do" ;#[BS]
-  #set wave_do_file [file normalize [file join $dir $wave_do_filename]] ;#[BS]
-  #usf_create_wave_do_file $wave_do_file ;#[BS]
-  set cmd_str [usf_get_simulation_cmdline]
   usf_add_quit_on_error $fh "simulate"
-  
-  usf_openDesignIfNeeded $fh
 
-  puts $fh "$cmd_str"
-  #puts $fh "do \{$wave_do_filename\}" ;#[BS]
-  puts $fh ""
-  #puts $fh "view wave" ;#[BS]
-  #puts $fh "view structure" ;#[BS]
-  #puts $fh "view signals"; #[BS]
+  usf_setSimulationPrerequisites $fh
+
+  puts $fh [usf_get_simulation_cmdline]
   puts $fh ""
 
   set b_log_all_signals [get_property [usf_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
@@ -852,6 +844,9 @@ proc usf_create_do_file_for_simulation { do_file } {
     set extn [string tolower [file extension $saif]]
     if { {.saif} != $extn } {
       append saif ".saif"
+    }
+    if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+      puts $fh "asdbdump -flush"
     }
     puts $fh "asdb2saif -internal -scope ${uut}/* [usf_getDefaultDatasetName] \{$saif\}"
   }
