@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common_helpers 1.0
+package require ::tclapp::aldec::common::helpers 1.0
 
 namespace eval ::tclapp::aldec::activehdl {
   namespace export register_options
@@ -25,11 +25,11 @@ proc register_options { simulator } {
 
   variable options
   if { {} == $simulator } {
-    send_msg_id USF-[::tclapp::aldec::common_helpers::usf_getSimulatorName]-1 ERROR "Simulator not specified.\n"
+    send_msg_id USF-[::tclapp::aldec::common::helpers::usf_getSimulatorName]-1 ERROR "Simulator not specified.\n"
   }
   # is simulator registered?
   if { {-1} == [lsearch [get_simulators] $simulator] } {
-    send_msg_id USF-[::tclapp::aldec::common_helpers::usf_getSimulatorName]-2 ERROR "Simulator '$simulator' is not registered\n"
+    send_msg_id USF-[::tclapp::aldec::common::helpers::usf_getSimulatorName]-2 ERROR "Simulator '$simulator' is not registered\n"
     return 1
   }
 
@@ -55,7 +55,7 @@ proc register_options { simulator } {
     {{simulate.asim.more_options}  {string} {}                                      {More simulation options}}
   }
   # create options
-  ::tclapp::aldec::common_helpers::usf_create_options $simulator $options
+  ::tclapp::aldec::common::helpers::usf_create_options $simulator $options
   return 0
 }
 }

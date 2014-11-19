@@ -8,8 +8,8 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common_sim 1.0
-package require ::tclapp::aldec::common_helpers 1.0
+package require ::tclapp::aldec::common::sim 1.0
+package require ::tclapp::aldec::common::helpers 1.0
 
 namespace eval ::tclapp::aldec::activehdl {
 
@@ -20,7 +20,7 @@ proc setup { args } {
   # Return Value:
   # true (0) if success, false (1) otherwise
   
-  return [eval ::tclapp::aldec::common_sim::setup $args]
+  return [eval ::tclapp::aldec::common::sim::setup $args]
 }
 
 proc compile { args } {
@@ -30,7 +30,7 @@ proc compile { args } {
   # Return Value:
   # none
   
-  return [eval ::tclapp::aldec::common_sim::compile $args]
+  return [eval ::tclapp::aldec::common::sim::compile $args]
 }
 
 proc elaborate { args } {
@@ -40,7 +40,7 @@ proc elaborate { args } {
   # Return Value:
   # none
   
-  return [eval ::tclapp::aldec::common_sim::elaborate $args]
+  return [eval ::tclapp::aldec::common::sim::elaborate $args]
 }
 
 proc simulate { args } {
@@ -50,6 +50,6 @@ proc simulate { args } {
   # Return Value:
   # none
   
-  return [eval ::tclapp::aldec::common_sim::simulate $args]
+  return [eval ::tclapp::aldec::common::sim::simulate $args]
 }
 }

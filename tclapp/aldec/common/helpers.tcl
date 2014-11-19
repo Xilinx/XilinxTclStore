@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# common_helpers.tcl
+# helpers.tcl
 #
 # based on XilinxTclStore\tclapp\xilinx\modelsim\helpers.tcl
 #
@@ -8,13 +8,11 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common_helpers 1.0
+package provide ::tclapp::aldec::common::helpers 1.0
 
-namespace eval ::tclapp::aldec::common_helpers {
-  # do not export procs from this file
-}
+namespace eval ::tclapp::aldec::common {
 
-namespace eval ::tclapp::aldec::common_helpers {
+namespace eval helpers {
 
 proc usf_getSimulatorName {} {
   # Summary:
@@ -309,7 +307,7 @@ proc usf_set_sim_tcl_obj {} {
     set a_sim_vars(sp_tcl_obj) [get_files -all -quiet [list "$comp_file"]]
     set a_sim_vars(s_sim_top) [file root [file tail $a_sim_vars(sp_tcl_obj)]]
   } else {
-    set a_sim_vars(sp_tcl_obj) [get_filesets $::tclapp::aldec::common_helpers::a_sim_vars(s_simset)]
+    set a_sim_vars(sp_tcl_obj) [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
     # set current simset
     if { {} == $a_sim_vars(sp_tcl_obj) } {
       set a_sim_vars(sp_tcl_obj) [current_fileset -simset]
@@ -849,7 +847,7 @@ proc usf_create_do_file { simulator do_filename } {
 
   variable a_sim_vars
   set fs_obj [current_fileset -simset]
-  set top $::tclapp::aldec::common_helpers::a_sim_vars(s_sim_top)
+  set top $::tclapp::aldec::common::helpers::a_sim_vars(s_sim_top)
   set do_file [file join $a_sim_vars(s_launch_dir) $do_filename]
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
@@ -1084,7 +1082,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 
   set files          [list]
   set target_obj     $a_sim_vars(sp_tcl_obj)
-  set simset_obj     [get_filesets $::tclapp::aldec::common_helpers::a_sim_vars(s_simset)]
+  set simset_obj     [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
   set linked_src_set [get_property "SOURCE_SET" $simset_obj]
   set target_lang    [get_property "TARGET_LANGUAGE" [current_project]]
   set src_mgmt_mode  [get_property "SOURCE_MGMT_MODE" [current_project]]
@@ -1115,7 +1113,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # add files from simulation compile order
     if { {All} == $src_mgmt_mode } {
       send_msg_id USF-[usf_getSimulatorName]-43 INFO "Fetching design files from '$target_obj'..."
-      foreach file $::tclapp::aldec::common_helpers::l_compile_order_files {
+      foreach file $::tclapp::aldec::common::helpers::l_compile_order_files {
         if { [usf_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1134,8 +1132,8 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { {} != $srcset_obj } {
           set used_in_val "simulation"
           send_msg_id USF-[usf_getSimulatorName]-44 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
-          set ::tclapp::aldec::common_helpers::l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
-          foreach file $::tclapp::aldec::common_helpers::l_compile_order_files {
+          set ::tclapp::aldec::common::helpers::l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
+          foreach file $::tclapp::aldec::common::helpers::l_compile_order_files {
             set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
             if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
             set g_files $global_files_str
@@ -1167,7 +1165,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   } elseif { [usf_is_ip $target_obj] } {
     # prepare command line args for fileset ip files
     send_msg_id USF-[usf_getSimulatorName]-46 INFO "Fetching design files from IP '$target_obj'..."
-    foreach file $::tclapp::aldec::common_helpers::l_compile_order_files {
+    foreach file $::tclapp::aldec::common::helpers::l_compile_order_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
@@ -1280,7 +1278,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     }
   } elseif { [usf_is_ip $target_obj] } {
     # prepare command line args for fileset ip files
-    foreach file $::tclapp::aldec::common_helpers::l_compile_order_files {
+    foreach file $::tclapp::aldec::common::helpers::l_compile_order_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
@@ -1358,7 +1356,7 @@ proc usf_launch_script { step } {
   }
   set faulty_run 0
   set cwd [pwd]
-  cd $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)
+  cd $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
   send_msg_id USF-[usf_getSimulatorName]-48 INFO "Executing '[string toupper $step]' step in '$run_dir'"
   set results_log {}
   switch $step {
@@ -1491,7 +1489,7 @@ proc usf_get_simulator_lib_for_bfm {} {
   set xil           $::env(XILINX_VIVADO)
   set path_sep      {;}
   set lib_extn      {.dll}
-  set platform      [::tclapp::aldec::common_helpers::usf_get_platform]
+  set platform      [::tclapp::aldec::common::helpers::usf_get_platform]
 
   if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
   if {$::tcl_platform(platform) == "unix"} { set lib_extn {.so} }
@@ -1517,7 +1515,7 @@ proc usf_get_simulator_lib_for_bfm {} {
 #
 # Low level helper procs
 # 
-namespace eval ::tclapp::aldec::common_helpers {
+namespace eval ::tclapp::aldec::common::helpers {
 proc usf_get_netlist_extn { warning } {
   # Summary:
   # Argument Usage:
@@ -1628,7 +1626,7 @@ proc usf_export_fs_data_files { filter } {
   # Return Value:
 
   variable a_sim_vars
-  set fs_obj [get_filesets $::tclapp::aldec::common_helpers::a_sim_vars(s_simset)]
+  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
   set data_files [list]
   # ip data files
   set ips [get_files -all -quiet -filter "FILE_TYPE == \"IP\""]
@@ -1666,7 +1664,7 @@ proc usf_export_fs_non_hdl_data_files {} {
   variable a_sim_vars
   variable s_non_hdl_data_files_filter
 
-  set fs_obj [get_filesets $::tclapp::aldec::common_helpers::a_sim_vars(s_simset)]
+  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
   set data_files [list]
   foreach file [get_files -all -quiet -of_objects [get_filesets $fs_obj] -filter $s_non_hdl_data_files_filter] {
     # skip user disabled (if the file supports is_user_disabled property
@@ -2569,7 +2567,7 @@ proc usf_find_files { src_files_arg filter } {
 #
 # not used currently
 #
-namespace eval ::tclapp::aldec::common_helpers {
+namespace eval ::tclapp::aldec::common::helpers {
 proc usf_get_top { top_arg } {
   # Summary:
   # Argument Usage:
@@ -2587,4 +2585,7 @@ proc usf_get_top { top_arg } {
   }
   return 0
 }
+
+}
+
 }
