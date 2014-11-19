@@ -714,6 +714,10 @@ proc usf_get_simulation_cmdline {} {
   set tool "asim"
   set arg_list [list "$tool" "-t 1ps"]
   
+  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+    lappend arg_list "-asdb"
+  }
+
   lappend arg_list [usf_get_elaboration_cmdline]
   
   if { [get_property [usf_getPropertyName SIMULATE.VERILOG_ACCELERATION] $fs_obj] } {
@@ -766,8 +770,7 @@ proc usf_setSimulationPrerequisites { out } {
   set targetDir $::tclapp::aldec::common_helpers::a_sim_vars(s_launch_dir)
 
   puts $out "opendesign ${targetDir}/${designName}/${designName}.adf"
-  puts $out "set SIM_WORKING_FOLDER \$dsn/.."  
-  puts $out "waveformmode asdb"
+  puts $out "set SIM_WORKING_FOLDER \$dsn/.."
 }
 
 proc usf_getDefaultDatasetName {} {
@@ -864,6 +867,7 @@ proc usf_create_do_file_for_simulation { do_file } {
   }
 
   if { $b_batch || $b_scripts_only } {
+    puts $fh "\nendsim"
     puts $fh "\n[usf_getQuitCmd]"
   }
   close $fh
