@@ -1,9 +1,7 @@
-#  icl::protoip
-#  Suardi Andrea [a.suardi@imperial.ac.uk]
-#  November - 2014
 
-
-package require Vivado 1.2014.2
+########################################################################################
+## 20/11/2014 - First release 1.0
+########################################################################################
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
@@ -16,8 +14,8 @@ proc ::tclapp::icl::protoip::ip_design_test_debug {args} {
 	  # Summary: Open the project named 'project_name' in the Vivado HLS GUI to run a C/RTL simulation.
 
 	  # Argument Usage:
-	  # [-project_name <arg>]	- Project name
-	  # [-usage]: 				Usage information
+	  # -project_name <arg>: Project name
+	  # [-usage]: Usage information
 
 	  # Return Value:
 	  # Return the Vivado HLS GUI to debug the C/RTL simulation. If any error occur TCL_ERROR is returned
@@ -25,6 +23,28 @@ proc ::tclapp::icl::protoip::ip_design_test_debug {args} {
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
+ uplevel [concat ::tclapp::icl::protoip::ip_design_test_debug::ip_design_test_debug $args]
+}
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::icl::protoip::ip_design_test_debug::ip_design_test_debug {
+  variable version {20/11/2014}
+} ]	  
+
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                         M A I N   P R O G R A M                              # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
+
+proc ::tclapp::icl::protoip::ip_design_test_debug::ip_design_test_debug { args } {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, ultrafast
+
 
 	proc lshift {inputlist} {
       # Summary :
@@ -67,9 +87,15 @@ proc ::tclapp::icl::protoip::ip_design_test_debug {args} {
              } 
 	     }
         -usage -
-        {^-u(s(a(ge?)?)?)?$} {
-             set help 1
-        }
+		  {^-u(s(a(ge?)?)?)?$} -
+		  -help -
+		  {^-h(e(lp?)?)?$} {
+			   set help 1
+		  }
+		  ^--version$ {
+			   variable version
+			   return $version
+		  }
         default {
               if {[string match "-*" $name]} {
                 puts " -E- option '$name' is not a valid option. Use the -usage option for more details"
@@ -82,7 +108,32 @@ proc ::tclapp::icl::protoip::ip_design_test_debug {args} {
       }
     }
     
+	
+  if {$help} {
+      puts [format {
+ Usage: ip_design_test_debug
+  -project_name <arg>   - Project name
+                          It's a mandatory field
+  [-usage|-u]           - This help message
 
+ Description: 
+  Open the project named 'project_name' in the Vivado HLS GUI to run a 
+  C/RTL simulation.
+  
+  This command must be run only after 'ip_design_test' command.
+
+ Example:
+  ip_design_test_debug -project_name my_project0
+
+
+} ]
+      # HELP -->
+      return {}
+    }
+	
+	if {$error} {
+    error " -E- some error(s) happened. Cannot continue. Use the -usage option for more details"
+  }
    
 
 if {$error==0} {  
@@ -91,19 +142,17 @@ if {$error==0} {
 	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
 	
 	if {$project_name == {}} {
-			set tmp_str ""
-			append tmp_str " -E- NO project name specified."
-			puts $tmp_str
-			incr error
+	
+			error " -E- NO project name specified. Use the -usage option for more details."
 			
 		} else {
 	
 		if {[file exists $file_name] == 0} { 
 
-			set tmp_str ""
-			append tmp_str "-E- " $project_name " does NOT exist."
-			puts $tmp_str
-			incr error
+			set tmp_error ""
+			append tmp_error "-E- " $project_name " does NOT exist. Use the -usage option for more details."
+			error $tmp_error
+			
 		} else {
 		
 		
@@ -140,25 +189,6 @@ if {$error==0} {
 }
 
 
-	
-	
-  if {$help} {
-      puts [format {
-  Usage: ip_design_test_debug
-  [-project_name <arg>]- Project name
-						It's a mandatory field
-  [-usage|-u]           - This help message
-
-  Description: Open the project named 'project_name' in the Vivado HLS GUI to run a C/RTL simulation.
-
-  Example:
-  tclapp::icl::protoip::ip_design_test_debug -project_name my_project0
-
-
-} ]
-      # HELP -->
-      return {}
-    }
 
     if {$error} {
 		puts "Vivado_HLS GUI error. Please check Vivado_HLS log file at <WORKING_DIRECTORY>/vivado_hls.log  for error(s) info."

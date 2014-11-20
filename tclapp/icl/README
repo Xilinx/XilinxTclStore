@@ -1,19 +1,13 @@
-# ICL TCL Apps
+# ICL Tcl Apps
 
-This directory is the top-level directory for TCL Apps provided
-by Imperial College London (ICL).
-
+This directory is the top-level directory for Tcl Apps provided
+by Imperial College London.
 
 
 ## icl::protoip (IP prototyping in FPGA hardware)
 
-
-	Copyright (c) 2014, Imperial College London
-	All rights reserved.
-	Author: Suardi Andrea <a.suardi@imperial.ac.uk>
+	Author: asuardi <https://github.com/asuardi>
 	Date: November - 2014
-
-
 
 
 **Protoip** is a utility for quickly prototyping C-based IP in FPGA hardware.

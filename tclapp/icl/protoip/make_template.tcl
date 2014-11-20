@@ -1,10 +1,7 @@
-#  icl::protoip
-#  Suardi Andrea [a.suardi@imperial.ac.uk]
-#  November - 2014
 
-
-package require Vivado 1.2014.2
-
+########################################################################################
+## 20/11/2014 - First release 1.0
+########################################################################################
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
@@ -21,10 +18,10 @@ proc ::tclapp::icl::protoip::make_template {args} {
 	# Summary: Build the IP prototype project template in the current working directory
 
 	# Argument Usage:
-	# [-project_name <arg>]:Project name
-	# [-input <arg>]: 		Input vector name,size and type separated by ':' symbol
-	# [-output <arg>]: 		Output vector name,size and type separated by ':' symbol
-	# [-usage]: 			Usage information
+	# -project_name <arg>: Project name
+	# -input <arg>: Input vector name,size and type separated by ':' symbol
+	# -output <arg>: Output vector name,size and type separated by ':' symbol
+	# [-usage]: Usage information
 
 	# Return Value:
 	# Return the IP prototype project template according to the specified input and outputs vectors in the current working directory. If any error occur TCL_ERROR is returned
@@ -32,7 +29,29 @@ proc ::tclapp::icl::protoip::make_template {args} {
 	# Categories: 
 	# xilinxtclstore, protoip
   
-  
+  uplevel [concat ::tclapp::icl::protoip::make_template::make_template $args]
+}
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::icl::protoip::make_template::make_template {
+  variable version {20/11/2014}
+} ]	  
+
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                         M A I N   P R O G R A M                              # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
+
+proc ::tclapp::icl::protoip::make_template::make_template { args } {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, ultrafast
+
+ 
     proc lshift {inputlist} {
       # Summary :
       # Argument Usage:
@@ -253,9 +272,15 @@ proc ::tclapp::icl::protoip::make_template {args} {
              } 
 	     }
         -usage -
-        {^-u(s(a(ge?)?)?)?$} {
-             set help 1
-        }
+		  {^-u(s(a(ge?)?)?)?$} -
+		  -help -
+		  {^-h(e(lp?)?)?$} {
+			   set help 1
+		  }
+		  ^--version$ {
+			   variable version
+			   return $version
+		  }
         default {
               if {[string match "-*" $name]} {
                 puts " -E- option '$name' is not a valid option. Use the -usage option for more details"
@@ -269,9 +294,62 @@ proc ::tclapp::icl::protoip::make_template {args} {
     }
     
 
+ if {$help} {
+      puts [format {
+  Usage: make_template
+ -project_name <arg>  - Project name
+                        It's a mandatory field
+ -input <arg>         - Input vector name,size and type separated by : symbol
+                        Type can be: float or fix:xx:yy. 
+                        Where 'xx' is the integer length and 'yy' the 
+                        fraction length
+                        Repeat the command for every input vectors
+                        All inputs and outputs must be of the same type: 
+                        float or fix
+ -output <arg>        - Output vector name,size and type separated by : symbol
+                        Type can be: float or fix:xx:yy. 
+                        Where 'xx' is the integer length and 'yy' the 
+                        fraction length
+                        Repeat the command for every output vectors
+                        All inputs and outputs must be of the same type: 
+                        float or fix
+  [-usage|-u]         - This help message
+
+ Description: 
+  Build the IP prototype project template in the current working directory 
+  according to the specified input and outputs vectors.
+ 
+ 
+
+ Example 1:
+  IP prototype with 2 inputs vectors: 
+  x0[10] fixed point (integer length 4 and fraction length 2)
+  x1[2] fixed point (integer length 6 and fraction length 2)
+  
+  1 output vector: 
+  y0[3] fixed point (integer length 3 and fraction length 2)
+  
+  make_template -project_name my_project0 -input x0:1:fix:4:2 -input x1:2:fix:6:4 -output y0:3:fix:3:2
+  
+ Example 2:
+  IP prototype with 2 inputs vectors: 
+  x0[1] floating point
+  x1[2] floating point
+  
+  1 output vector: 
+  y0[4] floating point
+  
+  make_template -project_name my_project0 -input x0:1:float -input x1:2:float -output y0:4:float
+
+
+} ]
+      # HELP -->
+      return {}
+    }    
     
-    
-    
+ if {$error} {
+    error " -E- some error(s) happened. Cannot continue. Use the -usage option for more details"
+  }   
     
     
     
@@ -403,7 +481,9 @@ if {$help==0} {
     
 }
 
-
+ if {$error} {
+    error " -E- some error(s) happened. Cannot continue. Use the -usage option for more details"
+  }  
  
    
 
@@ -442,9 +522,9 @@ if {$error==0} {
 	
 
 	#make project configuration parameters file
-	[::tclapp::icl::protoip::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+	[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
 	##make configuration parameters readme
-	[::tclapp::icl::protoip::make_ip_configuration_parameters_readme_txt $project_name]
+	[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 	
 	
 	#load configuration parameters
@@ -479,34 +559,34 @@ if {$error==0} {
 
 
 		#make ip_design template source files
-		[::tclapp::icl::protoip::make_foo_user_cpp $project_name]
-		[::tclapp::icl::protoip::make_foo_cpp $project_name]
-		[::tclapp::icl::protoip::make_foo_data_h $project_name]
-		[::tclapp::icl::protoip::make_directives $project_name]
-		[::tclapp::icl::protoip::make_ip_design_build_tcl $project_name]
+		[::tclapp::icl::protoip::make_template::make_foo_user_cpp $project_name]
+		[::tclapp::icl::protoip::make_template::make_foo_cpp $project_name]
+		[::tclapp::icl::protoip::make_template::make_foo_data_h $project_name]
+		[::tclapp::icl::protoip::make_template::make_directives $project_name]
+		[::tclapp::icl::protoip::make_template::make_ip_design_build_tcl $project_name]
 		
 		##make ip_design test templates source files
-		[::tclapp::icl::protoip::make_foo_test_cpp $project_name]
-		[::tclapp::icl::protoip::make_foo_user_m $project_name]
-		[::tclapp::icl::protoip::make_load_configuration_parameters_m]
-		[::tclapp::icl::protoip::make_ip_design_test_tcl $project_name] 
-		[::tclapp::icl::protoip::FPGAclientMATLAB_m]
-		[::tclapp::icl::protoip::FPGAclientMATLAB_c]
-		[::tclapp::icl::protoip::make_FPGAclientAPI_h $project_name]
+		[::tclapp::icl::protoip::make_template::make_foo_test_cpp $project_name]
+		[::tclapp::icl::protoip::make_template::make_foo_user_m $project_name]
+		[::tclapp::icl::protoip::make_template::make_load_configuration_parameters_m]
+		[::tclapp::icl::protoip::make_template::make_ip_design_test_tcl $project_name] 
+		[::tclapp::icl::protoip::make_template::FPGAclientMATLAB_m]
+		[::tclapp::icl::protoip::make_template::FPGAclientMATLAB_c]
+		[::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h $project_name]
 
 		##make ip_prototype template source files
 
-		[::tclapp::icl::protoip::make_FPGAserver_h $project_name]
-		[::tclapp::icl::protoip::make_test_HIL_m $project_name]
-		[::tclapp::icl::protoip::make_echo_c $project_name]
-		[::tclapp::icl::protoip::make_main_c]
-		[::tclapp::icl::protoip::MicroZed_PS_properties_v02_tcl]
+		[::tclapp::icl::protoip::make_template::make_FPGAserver_h $project_name]
+		[::tclapp::icl::protoip::make_template::make_test_HIL_m $project_name]
+		[::tclapp::icl::protoip::make_template::make_echo_c $project_name]
+		[::tclapp::icl::protoip::make_template::make_main_c]
+		[::tclapp::icl::protoip::make_template::MicroZed_PS_properties_v02_tcl]
 		
 
 		
 		##make ip_prototype_make_sdk_prj_tcl
-		[::tclapp::icl::protoip::make_build_sdk_project_tcl]
-		[::tclapp::icl::protoip::make_run_fpga_prototype_tcl]
+		[::tclapp::icl::protoip::make_template::make_build_sdk_project_tcl]
+		[::tclapp::icl::protoip::make_template::make_run_fpga_prototype_tcl]
 		
 	} else {			
 		
@@ -522,32 +602,7 @@ if {$error==0} {
 
 	
 	
-  if {$help} {
-      puts [format {
-  Usage: make_template
-  [-project_name <arg>]- Project name
-						It's a mandatory field
-  [-input <arg>]      - Input vector name,size and type separated by : symbol
-						Type can be: float or fix:xx:yy. Where 'xx' is the integer length and 'yy' the fraction length
-                        Repeat the command for every input vector
-                        It's mandatory field
-  [-output <arg>]     - Output vector name,size and type separated by : symbol
-						Type can be: float or fix:xx:yy. Where 'xx' is the integer length and 'yy' the fraction length
-                        repeat the command for every output vector
-						It's a mandatory field
-  [-usage|-u]         - This help message
-
-  Description: Build the IP prototype project template in the current working directory according to the specified input and outputs vectors.
-
-  Example:
-  IP prototype with 2 inputs vectors: x0[10] fixed point (integer length 4 and fraction length 2), x1[2] fixed point (integer length 6 and fraction length 2) and 1 output vector: y0[3] fixed point (integer length 3 and fraction length 2)
-  tclapp::icl::protoip::make_template -input x0:1:fix:4:2 -input x1:2:fix:6:4 -output y0:3:fix:3:2
-
-
-} ]
-      # HELP -->
-      return {}
-    }
+ 
 
     if {$error} {
 	puts ""
@@ -558,17 +613,18 @@ if {$error==0} {
     return -code ok "Template built in [pwd] folder"
 }
 
-# ####################################################################################################################
-# #################################################################################################################### 
-#  MAKE FRAMEWORK PROCEDURES
-# #################################################################################################################### 
-# #################################################################################################################### 
-
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                         MAKE TEMPLATE PROCEDURES                             # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
 
 # ########################################################################################
 # license header tcl format
 
-proc ::tclapp::icl::protoip::license_tcl {args} {
+proc ::tclapp::icl::protoip::make_template::license_tcl {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -576,19 +632,24 @@ proc ::tclapp::icl::protoip::license_tcl {args} {
 
 set file  [lindex $args 0]
 
+# puts $file "# ##############################################################################################"
+# puts $file "# Copyright (c) 2014, Imperial College London"
+# puts $file "# All rights reserved."
+# puts $file "#"
+# puts $file "# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:"
+# puts $file "#"
+# puts $file "# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer."
+# puts $file "#"
+# puts $file "# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution."
+# puts $file "#"
+# puts $file "# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+# puts $file "# ##############################################################################################"
+# puts $file ""
 puts $file "# ##############################################################################################"
-puts $file "# Copyright (c) 2014, Imperial College London"
-puts $file "# All rights reserved."
-puts $file "#"
-puts $file "# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:"
-puts $file "#"
-puts $file "# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer."
-puts $file "#"
-puts $file "# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution."
-puts $file "#"
-puts $file "# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+puts $file "# icl::protoip"
+puts $file "# Author: asuardi <https://github.com/asuardi>"
+puts $file "# Date: November - 2014"
 puts $file "# ##############################################################################################"
-puts $file ""
 puts $file ""
 puts $file ""
 return -code ok
@@ -600,7 +661,7 @@ return -code ok
 # ########################################################################################
 # license header C/C++ format
 
-proc ::tclapp::icl::protoip::license_c {args} {
+proc ::tclapp::icl::protoip::make_template::license_c {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -608,17 +669,22 @@ proc ::tclapp::icl::protoip::license_c {args} {
 
 set file  [lindex $args 0]
 
+# puts $file "/* "
+# puts $file "* Copyright (c) 2014, Imperial College London"
+# puts $file "* All rights reserved."
+# puts $file "* "
+# puts $file "* Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:"
+# puts $file "* "
+# puts $file "* 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer."
+# puts $file "* "
+# puts $file "* 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution."
+# puts $file "* "
+# puts $file "* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+# puts $file "*/"
 puts $file "/* "
-puts $file "* Copyright (c) 2014, Imperial College London"
-puts $file "* All rights reserved."
-puts $file "* "
-puts $file "* Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:"
-puts $file "* "
-puts $file "* 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer."
-puts $file "* "
-puts $file "* 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution."
-puts $file "* "
-puts $file "* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+puts $file "* icl::protoip"
+puts $file "* Author: asuardi <https://github.com/asuardi>"
+puts $file "* Date: November - 2014"
 puts $file "*/"
 puts $file ""
 puts $file ""
@@ -630,7 +696,7 @@ return -code ok
 # ########################################################################################
 # license header Matlab format
 
-proc ::tclapp::icl::protoip::license_m {args} {
+proc ::tclapp::icl::protoip::make_template::license_m {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -638,19 +704,24 @@ proc ::tclapp::icl::protoip::license_m {args} {
 
 set file  [lindex $args 0]
 
+# puts $file "%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+# puts $file "% Copyright (c) 2014, Imperial College London"
+# puts $file "% All rights reserved."
+# puts $file "%"
+# puts $file "% Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:"
+# puts $file "%"
+# puts $file "% 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer."
+# puts $file "%"
+# puts $file "% 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution."
+# puts $file "%"
+# puts $file "% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+# puts $file "%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+# puts $file ""
 puts $file "%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-puts $file "% Copyright (c) 2014, Imperial College London"
-puts $file "% All rights reserved."
-puts $file "%"
-puts $file "% Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:"
-puts $file "%"
-puts $file "% 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer."
-puts $file "%"
-puts $file "% 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution."
-puts $file "%"
-puts $file "% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+puts $file "% icl::protoip"
+puts $file "% Author: asuardi <https://github.com/asuardi>"
+puts $file "% Date: November - 2014"
 puts $file "%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-puts $file ""
 puts $file ""
 puts $file ""
 return -code ok
@@ -661,7 +732,7 @@ return -code ok
 # ########################################################################################
 # make configuration_parameters.tcl  file
 
-proc ::tclapp::icl::protoip::make_project_configuration_parameters_dat {args} {
+proc ::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -812,7 +883,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/foo_user.cpp  file
 
-proc ::tclapp::icl::protoip::make_foo_user_cpp {args} {
+proc ::tclapp::icl::protoip::make_template::make_foo_user_cpp {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -868,7 +939,7 @@ set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vector
 set file [open  ip_design/src/foo_user.cpp w]
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 
 puts $file "#include \"foo_data.h\""
 puts $file ""
@@ -947,7 +1018,7 @@ return -code ok
 # make ip_design/src/foo.cpp  file
 
 
-proc ::tclapp::icl::protoip::make_foo_cpp {args} {
+proc ::tclapp::icl::protoip::make_template::make_foo_cpp {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1004,7 +1075,7 @@ set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vector
 set file [open ip_design/src/foo.cpp w]
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 
 puts $file "#include \"foo_data.h\""
 puts $file ""
@@ -1271,7 +1342,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/foo_data.h  file
 
-proc ::tclapp::icl::protoip::make_foo_data_h {args} {
+proc ::tclapp::icl::protoip::make_template::make_foo_data_h {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1329,7 +1400,7 @@ set file [open "ip_design/src/foo_data.h" w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 
 puts $file "#include <vector>"
 puts $file "#include <iostream>"
@@ -1547,7 +1618,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/directives.tcl  file
 
-proc ::tclapp::icl::protoip::make_directives {args} {
+proc ::tclapp::icl::protoip::make_template::make_directives {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1671,7 +1742,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/directives.tcl  file
 
-proc ::tclapp::icl::protoip::update_directives {args} {
+proc ::tclapp::icl::protoip::make_template::update_directives {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1755,7 +1826,7 @@ return -code ok
 # ########################################################################################
 # make .metadata/project_name_ip_design_build.tcl file
 
-proc ::tclapp::icl::protoip::make_ip_design_build_tcl {args} {
+proc ::tclapp::icl::protoip::make_template::make_ip_design_build_tcl {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -1878,7 +1949,7 @@ return -code ok
 # ########################################################################################
 # make .metadata/project_name_ip_design_test.tcl file
 
-proc ::tclapp::icl::protoip::make_ip_design_test_tcl {args} {
+proc ::tclapp::icl::protoip::make_template::make_ip_design_test_tcl {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -2046,7 +2117,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/foo_test.cpp  file
 
-proc ::tclapp::icl::protoip::make_foo_test_cpp {args} {
+proc ::tclapp::icl::protoip::make_template::make_foo_test_cpp {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -2102,7 +2173,7 @@ set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vector
 set file [open  ip_design/src/foo_test.cpp w]
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 
 
 
@@ -2384,7 +2455,7 @@ return -code ok
 # make ip_design/src/write_stimulus.m  file
 
 
-proc ::tclapp::icl::protoip::make_write_stimulus_m {args} {
+proc ::tclapp::icl::protoip::make_template::make_write_stimulus_m {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -2398,7 +2469,7 @@ set output_vectors_length [lindex $args 3]
 set file [open  ip_design/src/write_stimulus.m w]
 
 #add license_m header
-[::tclapp::icl::protoip::license_m $file]
+[::tclapp::icl::protoip::make_template::license_m $file]
 
 
 puts $file "function write_testbench(num_simulation,sim_type)"
@@ -2522,7 +2593,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/read_results.m  file
 
-proc ::tclapp::icl::protoip::read_results_m {args} {
+proc ::tclapp::icl::protoip::make_template::read_results_m {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -2536,7 +2607,7 @@ set output_vectors_length [lindex $args 3]
 set file [open  ip_design/src/read_results.m w]
 
 #add license_m header
-[::tclapp::icl::protoip::license_m $file]
+[::tclapp::icl::protoip::make_template::license_m $file]
 
 
 
@@ -2702,11 +2773,12 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/foo_user.m  file
 
-proc ::tclapp::icl::protoip::make_foo_user_m {args} {
+proc ::tclapp::icl::protoip::make_template::make_foo_user_m {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
   # Categories:
+  
   set project_name [lindex $args 0]
 
 #load configuration parameters
@@ -2755,7 +2827,7 @@ set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vector
 set file [open  ip_design/src/foo_user.m w]
 
 #add license_m header
-[::tclapp::icl::protoip::license_m $file]
+[::tclapp::icl::protoip::make_template::license_m $file]
 
 
 
@@ -2877,7 +2949,7 @@ return -code ok
 # ########################################################################################
 # make ip_prototype/src/interface_library.h file
 
-proc ::tclapp::icl::protoip::make_interface_library_h {args} {
+proc ::tclapp::icl::protoip::make_template::make_interface_library_h {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -2898,7 +2970,7 @@ set file [open ip_prototype/src/interface_library.h w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 
 puts $file ""
 puts $file "////////////////////////////////////////////////////////////"
@@ -3014,7 +3086,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/test_HIL.m file
 
-proc ::tclapp::icl::protoip::make_test_HIL_m {args} {
+proc ::tclapp::icl::protoip::make_template::make_test_HIL_m {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -3073,7 +3145,7 @@ set file [open ip_design/src/test_HIL.m w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::license_m $file]
+[::tclapp::icl::protoip::make_template::license_m $file]
 
 
 
@@ -3386,7 +3458,7 @@ return -code ok
 
 # ########################################################################################
 # make ip_prototype/src/echo.c file
-proc ::tclapp::icl::protoip::make_echo_c {args} {
+proc ::tclapp::icl::protoip::make_template::make_echo_c {args} {
 
   # Summary :
   # Argument Usage:
@@ -3446,7 +3518,7 @@ set file [open ip_prototype/src/echo.c w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 
 
 puts $file "#include <stdio.h>"
@@ -4376,7 +4448,7 @@ return -code ok
 # ########################################################################################
 # make ip_prototype/src/main.c file
 
-proc ::tclapp::icl::protoip::make_main_c {} {
+proc ::tclapp::icl::protoip::make_template::make_main_c {} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -4387,7 +4459,7 @@ set file [open ip_prototype/src/main.c w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 
 puts $file ""
 puts $file "#include <stdio.h>"
@@ -4589,7 +4661,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/FPGAclientMATLAB.m file
 
-proc ::tclapp::icl::protoip::FPGAclientMATLAB_m {} {
+proc ::tclapp::icl::protoip::make_template::FPGAclientMATLAB_m {} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -4600,7 +4672,7 @@ set file [open ip_design/src/FPGAclientMATLAB.m w]
 
 
 #add license_m header
-[::tclapp::icl::protoip::license_m $file]
+[::tclapp::icl::protoip::make_template::license_m $file]
 
 
 puts $file ""
@@ -4618,7 +4690,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/FPGAclientMATLAB.c file
 
-proc ::tclapp::icl::protoip::FPGAclientMATLAB_c {} {
+proc ::tclapp::icl::protoip::make_template::FPGAclientMATLAB_c {} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -4629,7 +4701,7 @@ set file [open ip_design/src/FPGAclientMATLAB.c w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 puts $file ""
 
 puts $file "#include \"mex.h\""
@@ -4785,7 +4857,7 @@ return -code ok
 # ########################################################################################
 # make ip_prototype/src/FPGAclientMATLAB.m file
 
-proc ::tclapp::icl::protoip::MicroZed_PS_properties_v02_tcl {} {
+proc ::tclapp::icl::protoip::make_template::MicroZed_PS_properties_v02_tcl {} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -5072,7 +5144,7 @@ return -code ok
 # ########################################################################################
 # make doc/project_name/make_ip_configuration_parameters_readme.txt file
 
-proc ::tclapp::icl::protoip::make_ip_configuration_parameters_readme_txt {args} {
+proc ::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -5282,7 +5354,7 @@ set tmp_line ""
 append tmp_line $FPGA_name
 puts $file $tmp_line
 puts $file ""
-puts $file "NOTE: Any Xilinx 7 Series and Zynq®-7000 are supported, but only a some of them if the purpose is to prototype the designed IP."
+puts $file "NOTE: Any Xilinx 7 Series and Zynq®-7000 are supported, but only a some of them are supported if the purpose is to prototype the designed IP."
 puts $file ""
 puts $file ""
 puts $file "---------------------------------------------------------"
@@ -5495,7 +5567,7 @@ return -code ok
 # ########################################################################################
 # make ip_prototype/src/build_sdk_project.tcl file
 
-proc ::tclapp::icl::protoip::make_build_sdk_project_tcl {args} {
+proc ::tclapp::icl::protoip::make_template::make_build_sdk_project_tcl {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -5505,7 +5577,7 @@ set file [open  .metadata/build_sdk_project.tcl w]
 
 
 #add license_tcl header
-[::tclapp::icl::protoip::license_tcl $file]
+[::tclapp::icl::protoip::make_template::license_tcl $file]
 
 
 puts $file ""
@@ -5530,7 +5602,7 @@ return -code ok
 # ########################################################################################
 # make ip_prototype/src/run_fpga_prototype.tcl file
 
-proc ::tclapp::icl::protoip::make_run_fpga_prototype_tcl {args} {
+proc ::tclapp::icl::protoip::make_template::make_run_fpga_prototype_tcl {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -5540,7 +5612,7 @@ set file [open  .metadata/run_fpga_prototype.tcl w]
 
 
 #add license_tcl header
-[::tclapp::icl::protoip::license_tcl $file]
+[::tclapp::icl::protoip::make_template::license_tcl $file]
 
 
 puts $file ""
@@ -5565,7 +5637,7 @@ return -code ok
 # ########################################################################################
 # make .metadata/load_configuration_parameters.m file
 
-proc ::tclapp::icl::protoip::make_load_configuration_parameters_m {args} {
+proc ::tclapp::icl::protoip::make_template::make_load_configuration_parameters_m {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -5575,7 +5647,7 @@ set file [open  .metadata/load_configuration_parameters.m w]
 
 
 #add license_m header
-[::tclapp::icl::protoip::license_m $file]
+[::tclapp::icl::protoip::make_template::license_m $file]
 
 puts $file "function load_configuration_parameters(project_name)"
 puts $file ""
@@ -5647,7 +5719,7 @@ return -code ok
 # ########################################################################################
 # make ip_design/src/FPGAclientAPI.h file
 
-proc ::tclapp::icl::protoip::make_FPGAclientAPI_h {args} {
+proc ::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -5708,7 +5780,7 @@ set file [open ip_design/src/FPGAclientAPI.h w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 
 puts $file ""
 puts $file "#include<stdio.h>"
@@ -6463,7 +6535,7 @@ return -code ok
 # ########################################################################################
 # make ip_prototype/src/FPGAserver.h file
 
-proc ::tclapp::icl::protoip::make_FPGAserver_h {args} {
+proc ::tclapp::icl::protoip::make_template::make_FPGAserver_h {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -6524,7 +6596,7 @@ set file [open ip_prototype/src/FPGAserver.h w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c $file]
 
 
 

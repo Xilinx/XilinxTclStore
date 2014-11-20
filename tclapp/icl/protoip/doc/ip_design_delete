@@ -1,0 +1,5 @@
+ Description: 
+  Delete a project
+
+ Example:
+  ip_design_delete -project_name my_project0

@@ -1,9 +1,7 @@
-#  icl::protoip
-#  Suardi Andrea [a.suardi@imperial.ac.uk]
-#  November - 2014
 
-
-package require Vivado 1.2014.2
+########################################################################################
+## 20/11/2014 - First release 1.0
+########################################################################################
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
@@ -16,9 +14,10 @@ proc ::tclapp::icl::protoip::ip_prototype_test {args} {
 	  # Summary: Run a test of the IP prototype named 'project_name' according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt. A connected evaluation board is required.
 
 	  # Argument Usage:
-	  # [-project_name <arg>]	- Project name
-	  # [-num_test <arg>]  		- Number of test(s)
-	  # [-usage]: 				Usage information
+	  # -project_name <arg>: Project name
+	  # -board_name <arg>: Evaluation board name
+	  # -num_test <arg>: Number of test(s)
+	  # [-usage]: Usage information
 
 	  # Return Value:
 	  # Return the test results in <WORKING DIRECTORY>/ip_prototype/test/results/project_name. If any error occur TCL_ERROR is returned.
@@ -26,6 +25,28 @@ proc ::tclapp::icl::protoip::ip_prototype_test {args} {
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
+uplevel [concat ::tclapp::icl::protoip::ip_prototype_test::ip_prototype_test $args]
+}
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::icl::protoip::ip_prototype_test::ip_prototype_test {
+  variable version {20/11/2014}
+} ]	  
+
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                         M A I N   P R O G R A M                              # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
+
+proc ::tclapp::icl::protoip::ip_prototype_test::ip_prototype_test { args } {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, ultrafast
+
 
 	proc lshift {inputlist} {
       # Summary :
@@ -62,6 +83,14 @@ proc ::tclapp::icl::protoip::ip_prototype_test {args} {
 				incr error
              } 
 	     }
+		  -board_name -
+        {^-o(u(t(p(ut?)?)?)?)?$} {
+             set board_name [lshift args]
+             if {$board_name == {}} {
+				puts " -E- NO board name specified."
+				incr error
+             } 
+	     }
 	   -num_test -
         {^-o(u(t(p(ut?)?)?)?)?$} {
              set num_test [lshift args]
@@ -76,9 +105,15 @@ proc ::tclapp::icl::protoip::ip_prototype_test {args} {
 			}
 	     }
         -usage -
-        {^-u(s(a(ge?)?)?)?$} {
-             set help 1
-        }
+		  {^-u(s(a(ge?)?)?)?$} -
+		  -help -
+		  {^-h(e(lp?)?)?$} {
+			   set help 1
+		  }
+		  ^--version$ {
+			   variable version
+			   return $version
+		  }
         default {
               if {[string match "-*" $name]} {
                 puts " -E- option '$name' is not a valid option. Use the -usage option for more details"
@@ -91,7 +126,39 @@ proc ::tclapp::icl::protoip::ip_prototype_test {args} {
       }
     }
     
+  if {$help} {
+      puts [format {
+ Usage: ip_prototype_test
+  -project_name <arg>       - Project name
+                              It's a mandatory field
+  -board_name <arg>         - Evaluation board name
+                              It's a mandatory field
+  -num_test <arg>           - Number of test(s)
+                              It's a mandatory field
+  [-usage|-u]               - This help message
 
+ Description: 
+  Run a HIL test of the IP prototype named 'project_name'
+  according to the project configuration parameters
+ (doc/project_name/ip_configuration_parameters.txt).
+   
+ An evaluation board connected to an host computer through an Ethernet cable is required.
+ 
+ This command must be run only after 'ip_prototype_load' command.
+  
+  
+ Example:
+  ip_prototype_test -project_name my_project0 -board_name zedboard -num_test 1
+
+
+} ]
+      # HELP -->
+      return {}
+    }
+
+		if {$error} {
+    error " -E- some error(s) happened. Cannot continue. Use the -usage option for more details"
+  }
    
 
 if {$error==0} {  
@@ -100,19 +167,24 @@ if {$error==0} {
 	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
 	
 	if {$project_name == {}} {
-			set tmp_str ""
-			append tmp_str " -E- NO project name specified."
-			puts $tmp_str
-			incr error
+	
+			error " -E- NO project name specified. Use the -usage option for more details."
 			
 		} else {
 	
 		if {[file exists $file_name] == 0} { 
 
-			set tmp_str ""
-			append tmp_str "-E- " $project_name " does NOT exist."
-			puts $tmp_str
-			incr error
+				set tmp_error ""
+				append tmp_error "-E- " $project_name " does NOT exist. Use the -usage option for more details."
+				error $tmp_error
+
+			
+		} else {
+		
+		if {$board_name == {}} {
+	
+			error " -E- NO board name specified. Use the -usage option for more details."
+			
 		} else {
 
 		
@@ -154,18 +226,14 @@ if {$error==0} {
 
 			set fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
 			set FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
-			set board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
+			set old_board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
 			set type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
 			set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 			set old_num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
 
 			
-			# update configuration parameters
-			
-			if {$num_test == {}} {
-				set num_test $old_num_test
-			} 
+
 		
 			# update configuration parameters
 			set m 0
@@ -195,16 +263,25 @@ if {$error==0} {
 
 			set type_test "none"
 			
+
 			
+			set source_file ""
+			append source_file "../../../build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
 			
+			if {[file exists $source_file] == 0} { 
+
+				set tmp_error ""
+				append tmp_error "-E- " $project_name " associated to " $board_name " has not been built. Use the -usage option for more details."
+				error $tmp_error
+
 			
+			} else {
 			
-			[::tclapp::icl::protoip::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
 
 			# update ip_design/src/FPGAclientAPI.h file
-			[::tclapp::icl::protoip::make_FPGAclientAPI_h  $project_name]
+			[::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h  $project_name]
 			
-
 	
 			puts ""
 			puts "Calling Matlab to test the IP running on the FPGA evaluation board..."
@@ -281,7 +358,8 @@ if {$error==0} {
 	
 
 		
-
+}
+}
 	
 	}
 	}
@@ -290,24 +368,6 @@ if {$error==0} {
 
 
 	
-  if {$help} {
-      puts [format {
-	Usage: ip_prototype_test
-	[-project_name <arg>]- Project name
-							It's a mandatory field
-	[-num_test <arg>]  - Number of test(s)
-							It's a mandatory field
-
-  Description: Run a test of the IP prototype named 'project_name' according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt.
-
-  Example:
-  tclapp::icl::protoip::ip_prototype_test -project_name my_project0 -num_test 1
-
-
-} ]
-      # HELP -->
-      return {}
-    }
 
 	puts ""
     if {$error} {

@@ -20,11 +20,8 @@ package require ::tclapp::${appName}
   
 # Start the unit tests
 puts "script is invoked from $test_dir"
-#~ source -notrace [file join $test_dir test_fix_0001.tcl] 
-#~ source -notrace [file join $test_dir test_float_0001.tcl]
-#~ source -notrace [file join $test_dir test_fix_0002.tcl] 
-#~ source -notrace [file join $test_dir test_fix_0003.tcl] 
-source -notrace [file join $test_dir test_fix_0004.tcl] 
+source -notrace [file join $test_dir test_fix_0001.tcl] 
+
 
 
 # Uninstall the app if it was not already installed when starting the script

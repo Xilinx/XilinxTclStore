@@ -1,9 +1,7 @@
-#  icl::protoip
-#  Suardi Andrea [a.suardi@imperial.ac.uk]
-#  November - 2014
 
-
-package require Vivado 1.2014.2
+########################################################################################
+## 20/11/2014 - First release 1.0
+########################################################################################
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
@@ -16,9 +14,10 @@ proc ::tclapp::icl::protoip::ip_prototype_load {args} {
 	  # Summary: Build the FPGA Ethernet server application using SDK according to the specification in <WORKING DIRECTORY>/design_parameters.tcl and program the FPGA. A connected evaluation board is required.
 
 	  # Argument Usage:
-	  # [-project_name <arg>]	- Project name
-	  # [-type_eth <arg>]  		- Ethernet connection protocol (UDP-IP or TCP-IP)
-	  # [-mem_base_address <arg>]  - DDR3 memory base address
+	  # -project_name <arg>: Project name
+	  # -board_name <arg>: Evaluation board name
+	  # -type_eth <arg>: Ethernet connection protocol (UDP-IP or TCP-IP)
+	  # [-mem_base_address <arg>]: DDR3 memory base address
 	  # [-usage]: Usage information
 
 	  # Return Value:
@@ -27,6 +26,28 @@ proc ::tclapp::icl::protoip::ip_prototype_load {args} {
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
+ uplevel [concat ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load $args]
+}
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load {
+  variable version {20/11/2014}
+} ]	  
+
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                         M A I N   P R O G R A M                              # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
+
+proc ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load { args } {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, ultrafast
+
 
 	proc lshift {inputlist} {
       # Summary :
@@ -63,6 +84,14 @@ proc ::tclapp::icl::protoip::ip_prototype_load {args} {
 				incr error
              } 
 	     }
+		  -board_name -
+        {^-o(u(t(p(ut?)?)?)?)?$} {
+             set board_name [lshift args]
+             if {$board_name == {}} {
+				puts " -E- NO board name specified."
+				incr error
+             } 
+	     }
 		 -type_eth -
         {^-o(u(t(p(ut?)?)?)?)?$} {
              set type_eth [lshift args]
@@ -80,9 +109,15 @@ proc ::tclapp::icl::protoip::ip_prototype_load {args} {
              } 
 	     }
         -usage -
-        {^-u(s(a(ge?)?)?)?$} {
-             set help 1
-        }
+		  {^-u(s(a(ge?)?)?)?$} -
+		  -help -
+		  {^-h(e(lp?)?)?$} {
+			   set help 1
+		  }
+		  ^--version$ {
+			   variable version
+			   return $version
+		  }
         default {
               if {[string match "-*" $name]} {
                 puts " -E- option '$name' is not a valid option. Use the -usage option for more details"
@@ -95,7 +130,42 @@ proc ::tclapp::icl::protoip::ip_prototype_load {args} {
       }
     }
     
+ if {$help} {
+      puts [format {
+ Usage: ip_prototype_load
+  -project_name <arg>       - Project name
+                              It's a mandatory field
+  -board_name <arg>         - Evaluation board name
+                              It's a mandatory field
+  -type_eth <arg>           - Ethernet connection protocol 
+                              ('udp' for UDP-IP connection or 'tcp' for TCP-IP connection)
+                              It's a mandatory field
+  [-mem_base_address <arg>] - DDR3 memory base address
+  [-usage|-u]               - This help message
 
+ Description: 
+  Build the FPGA Ethernet server application using SDK according 
+  to the project configuration parameters
+ (doc/project_name/ip_configuration_parameters.txt)
+  and program the FPGA.
+  
+ An evaluation board connected to an host computer through an Ethernet and USB JTAG cable is required.
+ 
+ This command must be run only after 'ip_prototype_build' command.
+
+ Example:
+  ip_prototype_load -project_name my_project0  -board_name zedboard -type_eth udp
+  ip_prototype_load -project_name my_project0  -board_name zedboard -type_eth udp -mem_base_address 33554432
+
+
+} ]
+      # HELP -->
+      return {}
+    }
+	
+		if {$error} {
+    error " -E- some error(s) happened. Cannot continue. Use the -usage option for more details"
+  }
    
 
 if {$error==0} {  
@@ -104,19 +174,21 @@ if {$error==0} {
 	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
 	
 	if {$project_name == {}} {
-			set tmp_str ""
-			append tmp_str " -E- NO project name specified."
-			puts $tmp_str
-			incr error
+			error " -E- NO project name specified. Use the -usage option for more details."
 			
 		} else {
 	
 		if {[file exists $file_name] == 0} { 
 
-			set tmp_str ""
-			append tmp_str "-E- " $project_name " does NOT exist."
-			puts $tmp_str
-			incr error
+			set tmp_error ""
+			append tmp_error "-E- " $project_name " does NOT exist. Use the -usage option for more details."
+			error $tmp_error
+			
+		} else {
+		
+		if {$board_name == {}} {
+	
+			error " -E- NO board name specified. Use the -usage option for more details."
 			
 		} else {
 		
@@ -158,7 +230,7 @@ if {$error==0} {
 
 			set fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
 			set FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
-			set board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
+			set old_board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
 			set old_type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
 			set old_mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
@@ -170,9 +242,6 @@ if {$error==0} {
 			
 			# update configuration parameters
 			
-			if {$board_name == {}} {
-				set board_name $old_board_name
-			}
 			if {$mem_base_address == {}} {
 				set mem_base_address $old_mem_base_address
 			}
@@ -190,9 +259,12 @@ if {$error==0} {
 				set flag_compile 1
 			} else {
 				set flag_compile 0
-				set tmp_str ""
-				append tmp_str " -E- Ethernet type not supported. Use the -usage option for more details."
-				puts $tmp_str
+				
+
+				set tmp_error ""
+				append tmp_error " -E- Ethernet type" $type_eth " is not supported. Use the -usage option for more details."
+				error $tmp_error
+
 				incr error
 			}
 			
@@ -223,17 +295,27 @@ if {$error==0} {
 
 			set type_test "none"
 			
-			[::tclapp::icl::protoip::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
-			[::tclapp::icl::protoip::make_ip_configuration_parameters_readme_txt $project_name]
 			
-			# update ip_design/src/FPGAclientAPI.h file
-			[::tclapp::icl::protoip::make_FPGAclientAPI_h  $project_name]
-			# update directives
-			[::tclapp::icl::protoip::make_echo_c $project_name]
-			[::tclapp::icl::protoip::make_FPGAserver_h $project_name]
 
 			set source_file ""
 			append source_file "../../../build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
+			
+			if {[file exists $source_file] == 0} { 
+
+				set tmp_error ""
+				append tmp_error "-E- " $project_name " associated to " $board_name " has not been built. Use the -usage option for more details."
+				error $tmp_error
+			
+			} else {
+			
+			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+			[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
+			
+			# update ip_design/src/FPGAclientAPI.h file
+			[::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h  $project_name]
+			# update directives
+			[::tclapp::icl::protoip::make_template::make_echo_c $project_name]
+			[::tclapp::icl::protoip::make_template::make_FPGAserver_h $project_name]
 		
 			set target_dir ""
 			append target_dir "ip_prototype/test/prj/" $project_name "." $board_name
@@ -282,6 +364,10 @@ if {$error==0} {
 
 			
 		}
+		
+		}
+		
+		}
 
 	
 	}
@@ -290,25 +376,6 @@ if {$error==0} {
 }
 
 
-	
-  if {$help} {
-      puts [format {
-	Usage: ip_prototype_load
-	[-project_name <arg>]	- Project name
-							It's a mandatory field
-	[-type_eth <arg>]  		- Ethernet connection protocol (udp for UDP-IP connection or tcp for TCP-IP connection)
-	[-mem_base_address <arg>]  - DDR3 memory base address
-
-  Description: Build the FPGA Ethernet server application using SDK according to the specification in <WORKING DIRECTORY>/design_parameters.tcl and program the FPGA. A connected evaluation board is required.
-
-  Example:
-  tclapp::icl::protoip::ip_prototype_load -project_name my_project0 -type_eth udp -mem_base_address 0
-
-
-} ]
-      # HELP -->
-      return {}
-    }
 
 	puts ""
     if {$error} {
