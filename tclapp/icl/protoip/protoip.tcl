@@ -10,4 +10,4 @@ namespace eval ::tclapp::icl::protoip {
     }
 
 }
-package provide ::tclapp::icl::protoip 0.1
+package provide ::tclapp::icl::protoip 1.0

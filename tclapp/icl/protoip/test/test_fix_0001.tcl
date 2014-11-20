@@ -24,14 +24,14 @@ tclapp::icl::protoip::ip_design_test -project_name my_project1 -num_test 1 -type
 #build the Vivado HLS project of the IP project  template 
 tclapp::icl::protoip::ip_design_build -project_name my_project1  -fclk 150 
 #build the Vivado project of the IP prototype
-tclapp::icl::protoip::ip_prototype_build -project_name my_project1
+tclapp::icl::protoip::ip_prototype_build -project_name my_project1 -board_name zedboard
 
 # ##############################
 # copy test results
 
 # copy C/RTL simulation resultas
 set target_dir ""
-append target_dir $file_dir "/src/test_fix_0001/test_CRTL"
+append target_dir $file_dir "/results/test_fix_0001/test_CRTL"
 file mkdir $target_dir
 
 set source_dir ""
@@ -44,7 +44,7 @@ foreach i $file_list {
 
 # copy reports
 set target_dir ""
-append target_dir $file_dir "/src/test_fix_0001"
+append target_dir $file_dir "/results/test_fix_0001"
 file mkdir $target_dir
 
 set source_dir ""
@@ -62,9 +62,9 @@ foreach i $file_list {
  # # uncomment the TCL scripts here below ONLY if a Zedboard is connected
  # 
  # #build the FPGA server project with SDK and program the FPGA (zedboard)
- # tclapp::icl::protoip::ip_prototype_load -project_name my_project1
+ # tclapp::icl::protoip::ip_prototype_load -project_name my_project1  -board_name zedboard
  # #test the prototype IP with the built HIL setup
- # tclapp::icl::protoip::ip_prototype_test -project_name my_project1 -num_test 10
+ # tclapp::icl::protoip::ip_prototype_test -project_name my_project1  -board_name zedboard -num_test 10
  ##
 
 return 0

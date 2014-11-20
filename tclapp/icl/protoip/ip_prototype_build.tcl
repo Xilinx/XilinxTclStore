@@ -1,9 +1,8 @@
-#  icl::protoip
-#  Suardi Andrea [a.suardi@imperial.ac.uk]
-#  November - 2014
 
+########################################################################################
+## 20/11/2014 - First release 1.0
+########################################################################################
 
-package require Vivado 1.2014.2
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
@@ -16,8 +15,8 @@ proc ::tclapp::icl::protoip::ip_prototype_build {args} {
 	  # Summary: Build the IP prototype of the project according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt using Vivado.
 
 	  # Argument Usage:
-	  # [-project_name <arg>]- Project name
-	  # [-board_name <arg>]  - Evaluation board name
+	  # -project_name <arg>: Project name
+	  # -board_name <arg>: Evaluation board name
 	  # [-usage]: Usage information
 
 	  # Return Value:
@@ -26,6 +25,28 @@ proc ::tclapp::icl::protoip::ip_prototype_build {args} {
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
+uplevel [concat ::tclapp::icl::protoip::ip_prototype_build::ip_prototype_build $args]
+}
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::icl::protoip::ip_prototype_build::ip_prototype_build {
+  variable version {20/11/2014}
+} ]	  
+
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                         M A I N   P R O G R A M                              # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
+
+proc ::tclapp::icl::protoip::ip_prototype_build::ip_prototype_build { args } {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, ultrafast
+
 
 	proc lshift {inputlist} {
       # Summary :
@@ -70,10 +91,16 @@ proc ::tclapp::icl::protoip::ip_prototype_build {args} {
 				incr error
              } 
 	     }
-        -usage -
-        {^-u(s(a(ge?)?)?)?$} {
-             set help 1
-        }
+         -usage -
+		  {^-u(s(a(ge?)?)?)?$} -
+		  -help -
+		  {^-h(e(lp?)?)?$} {
+			   set help 1
+		  }
+		  ^--version$ {
+			   variable version
+			   return $version
+		  }
         default {
               if {[string match "-*" $name]} {
                 puts " -E- option '$name' is not a valid option. Use the -usage option for more details"
@@ -86,7 +113,45 @@ proc ::tclapp::icl::protoip::ip_prototype_build {args} {
       }
     }
     
+	
+  if {$help} {
+      puts [format {
+ Usage: ip_prototype_build
+  -project_name <arg>   - Project name
+                          It's a mandatory field
+  -board_name <arg>     - Evaluation board name
+                          It's a mandatory field
+  [-usage|-u]           - This help message
 
+
+ Description: 
+  Build the IP prototype of the project named 'project_name' 
+  associated to the evaluation board name 'board_name'
+  according to the project configuration parameters
+  (doc/project_name/ip_configuration_parameters.txt).
+
+  The specified inputs parameters overwrite the one specified into 
+  configuration parameters (doc/project_name/ip_configuration_parameters.txt).
+ 
+  The board name must match the FPGA model. Please refer to 
+  doc/project_name/ip_configuration_parameters.txt
+  for a detailed description.
+  
+  This command must be run only after 'ip_design_build' command.
+
+ 
+ Example:
+  ip_prototype_build -project_name my_project0 -board_name zedboard
+
+
+} ]
+      # HELP -->
+      return {}
+    }
+	
+	if {$error} {
+    error " -E- some error(s) happened. Cannot continue. Use the -usage option for more details"
+  }
    
 
 if {$error==0} {  
@@ -95,19 +160,23 @@ if {$error==0} {
 	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
 	
 	if {$project_name == {}} {
-			set tmp_str ""
-			append tmp_str " -E- NO project name specified."
-			puts $tmp_str
-			incr error
+	
+			error " -E- NO project name specified. Use the -usage option for more details."
 			
 		} else {
 	
 		if {[file exists $file_name] == 0} { 
 
-			set tmp_str ""
-			append tmp_str "-E- " $project_name " does NOT exist."
-			puts $tmp_str
-			incr error
+			set tmp_error ""
+			append tmp_error "-E- " $project_name " does NOT exist. Use the -usage option for more details."
+			error $tmp_error
+			
+		} else {
+		
+		if {$board_name == {}} {
+	
+			error " -E- NO board name specified. Use the -usage option for more details."
+			
 		} else {
 
 		
@@ -158,9 +227,6 @@ if {$error==0} {
 			
 			# update configuration parameters
 			
-			if {$board_name == {}} {
-				set board_name $old_board_name
-			}
 				
 			if {$type_eth==0} {
 				set type_eth "udp"
@@ -195,10 +261,9 @@ if {$error==0} {
 				set flag_compile 1
 			} else {
 				set flag_compile 0
-				set tmp_str ""
-				append tmp_str " -E- FPGA name not supported on the selected evaluation board."
-				puts $tmp_str
-				incr error
+
+				error " -E- FPGA name not supported on the selected evaluation board. Use the -usage option for more details."
+	
 			}
 			
 			
@@ -206,9 +271,9 @@ if {$error==0} {
 			
 			
 			
-			[::tclapp::icl::protoip::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
 			##make configuration parameters readme
-			[::tclapp::icl::protoip::make_ip_configuration_parameters_readme_txt $project_name]
+			[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 
 
 		puts ""
@@ -544,10 +609,11 @@ if {$error==0} {
 		
 
 		# Make Report
-		[::tclapp::icl::protoip::make_ip_prototype_readme_txt $project_name]
+		[::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt $project_name]
 
 		
 		
+	}
 	}
 	}
 	}
@@ -555,25 +621,7 @@ if {$error==0} {
 }
 
 
-	
-  if {$help} {
-      puts [format {
-	Usage: ip_prototype_build
-	[-project_name <arg>]	- Project name
-							It's a mandatory field
-	[-board_name <arg>]  	- Evaluation board name
 
-
-  Description: Build the IP prototype of the project according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt using Vivado. NOTE: the specified inputs parameters overwrite the one specified into configuration paramenters (doc/project_name/ip_configuration_parameters.txt).
-
-  Example:
-  tclapp::icl::protoip::ip_prototype_build -project_name my_project0 -board_name zedboard
-
-
-} ]
-      # HELP -->
-      return {}
-    }
 
 	puts ""
     if {$error} {
@@ -588,12 +636,18 @@ if {$error==0} {
 
 }
 
-
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                      IP PROTOTYPE BUILD PROCEDURES                           # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
   
 # ########################################################################################
 # make doc/project_name/ip_prototype.txt file
 
-proc ::tclapp::icl::protoip::make_ip_prototype_readme_txt {args} {
+proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {args} {
   # Summary :
   # Argument Usage:
   # Return Value:

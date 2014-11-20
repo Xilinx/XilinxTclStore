@@ -1,9 +1,7 @@
-#  icl::protoip
-#  Suardi Andrea [a.suardi@imperial.ac.uk]
-#  November - 2014
 
-
-package require Vivado 1.2014.2
+########################################################################################
+## 20/11/2014 - First release 1.0
+########################################################################################
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
@@ -16,13 +14,13 @@ proc ::tclapp::icl::protoip::ip_design_test {args} {
 	  # Summary: Run a C/RTL simulation of the project named 'project_name' according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.
 
 	  # Argument Usage:
-	  # [-project_name <arg>]- Project name
-	  # [-num_test <arg>]  - Number of test(s)
-	  # [-type_test <arg>]  - Test(s) type
-      # [-input <arg>]      - Input vector name,size and type separated by : symbol
-      # [-output <arg>]     - Output vector name,size and type separated by : symbol
-      # [-fclk <arg>]		  - Circuit clock frequency
-      # [-FPGA_name <arg>]  - FPGA device name
+	  # -project_name <arg>: Project name
+	  # -num_test <arg>: Number of test(s)
+	  # -type_test <arg>: Test(s) type
+      # [-input <arg>]: Input vector name,size and type separated by : symbol
+      # [-output <arg>]: Output vector name,size and type separated by : symbol
+      # [-fclk <arg>]: Circuit clock frequency
+      # [-FPGA_name <arg>]: FPGA device name
 	  # [-usage]: Usage information
 
 	  # Return Value:
@@ -31,6 +29,28 @@ proc ::tclapp::icl::protoip::ip_design_test {args} {
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
+ uplevel [concat ::tclapp::icl::protoip::ip_design_test::ip_design_test $args]
+}
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::icl::protoip::ip_design_test::ip_design_test {
+  variable version {20/11/2014}
+} ]	  
+
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                         M A I N   P R O G R A M                              # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
+
+proc ::tclapp::icl::protoip::ip_design_test::ip_design_test { args } {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, ultrafast
+
 
 	proc lshift {inputlist} {
       # Summary :
@@ -291,9 +311,15 @@ proc ::tclapp::icl::protoip::ip_design_test {args} {
 			 }
 	     }
         -usage -
-        {^-u(s(a(ge?)?)?)?$} {
-             set help 1
-        }
+		  {^-u(s(a(ge?)?)?)?$} -
+		  -help -
+		  {^-h(e(lp?)?)?$} {
+			   set help 1
+		  }
+		  ^--version$ {
+			   variable version
+			   return $version
+		  }
         default {
               if {[string match "-*" $name]} {
                 puts " -E- option '$name' is not a valid option. Use the -usage option for more details"
@@ -306,7 +332,60 @@ proc ::tclapp::icl::protoip::ip_design_test {args} {
       }
     }
     
+ if {$help} {
+      puts [format {
+ Usage: ip_design_test
+  -project_name <arg>  - Project name
+                         It's a mandatory field
+  -num_test <arg>      - Number of test(s)
+                         It's a mandatory field
+  -type_test <arg>     - Test(s) type: 
+                         'c' for C-simulation, 
+                         'xsim' for RTL-simulation via Xilinx Xsim, 
+                         'modelsim' for RTL-simulation via Menthor Graphics Modelsim
+                         It's a mandatory field
+ [-input <arg>]        - Input vector name,size and type separated by : symbol
+                         Type can be: float or fix:xx:yy. 
+                         Where 'xx' is the integer length and 'yy' the 
+                         fraction length
+                         Repeat the command for every input vector to update
+                         All inputs and outputs must be of the same type: 
+                         float or fix
+ [-output <arg>]       - Output vector name,size and type separated by : symbol
+                         Type can be: float or fix:xx:yy. 
+                         Where 'xx' is the integer length and 'yy' the 
+                         fraction length
+                         Repeat the command for every output to update
+                         All inputs and outputs must be of the same type: 
+                         float or fix
+ [-fclk <arg>          - Circuit clock frequency
+ [-FPGA_name <arg>]    - FPGA device name
+ [-usage|-u]           - This help message
 
+  Description: 
+   Run a C/RTL simulation of the project named 'project_name' according to the 
+   specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt 
+   using Vivado HLS. 
+   
+   The specified inputs parameters overwrite the one specified into 
+   configuration parameters (doc/project_name/ip_configuration_parameters.txt).
+
+  This command must be run only after 'make_template' command.
+
+
+  Example:
+   ip_design_test -project_name my_project0 -num_test 1 -type_test c
+   ip_design_test -project_name my_project0 -num_test 1 -type_test c -input x1:2:fix:4:6 -output y0:3:fix:2:4 -fclk 150 -FPGA_name xc7z020clg484-1 
+
+
+} ]
+      # HELP -->
+      return {}
+    }
+	
+	if {$error} {
+    error " -E- some error(s) happened. Cannot continue. Use the -usage option for more details"
+  }
    
 
 if {$error==0} {  
@@ -315,35 +394,29 @@ if {$error==0} {
 	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
 	
 	if {$project_name == {}} {
-			set tmp_str ""
-			append tmp_str " -E- NO project name specified."
-			puts $tmp_str
-			incr error
+	
+			error " -E- NO project name specified. Use the -usage option for more details."
 			
 		} else {
 	
 		if {[file exists $file_name] == 0} { 
 
-			set tmp_str ""
-			append tmp_str "-E- " $project_name " does NOT exist."
-			puts $tmp_str
-			incr error
+			set tmp_error ""
+			append tmp_error "-E- " $project_name " does NOT exist. Use the -usage option for more details."
+			error $tmp_error
+			
 		} else {
 		
 		if {$num_test == {}} { 
 
-			set tmp_str ""
-			append tmp_str "-E- NO number of test(s) specified."
-			puts $tmp_str
-			incr error
+			error "-E- NO number of test(s) specified. Use the -usage option for more details."
+
 		} else {
 		
 		if {$type_test == {}} { 
 
-			set tmp_str ""
-			append tmp_str "-E- NO test(s) type specified."
-			puts $tmp_str
-			incr error
+			error "-E- NO test(s) type specified. Use the -usage option for more details."
+			
 		} else {
 		
 		
@@ -444,9 +517,10 @@ if {$error==0} {
 					set old_input_vectors_integer_length [lreplace $old_input_vectors_integer_length $position $position [lindex $input_vectors_integer_length $m]]
 					set old_input_vectors_fraction_length [lreplace $old_input_vectors_fraction_length $position $position [lindex $input_vectors_fraction_length $m]]	
 				} else {
-					set tmp_str ""
-					append tmp_str " -E- NO input vector " $i " found."
-					incr error
+				
+					set tmp_error ""
+					append tmp_error " -E- NO input vector " $i " found. Use the -usage option for more details."
+					error $tmp_error
 				}
 				
 				incr m
@@ -461,10 +535,10 @@ if {$error==0} {
 					set old_output_vectors_integer_length [lreplace $old_output_vectors_integer_length $position $position [lindex $output_vectors_integer_length $m]]
 					set old_output_vectors_fraction_length [lreplace $old_output_vectors_fraction_length $position $position [lindex $output_vectors_fraction_length $m]]	
 				} else {
-					set tmp_str ""
-					append tmp_str " -E- NO output vector " $i " found."
-					puts $tmp_str
-					incr error
+				
+					set tmp_error ""
+					append tmp_error " -E- NO output vector " $i " found. Use the -usage option for more details."
+					error $tmp_error
 				}
 				incr m
 			}
@@ -482,16 +556,16 @@ if {$error==0} {
 
 			
 			
-			[::tclapp::icl::protoip::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
 
-			[::tclapp::icl::protoip::make_ip_configuration_parameters_readme_txt $project_name]
+			[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 			
 			# update ip_design/src/foo_data.h file
-			[::tclapp::icl::protoip::make_foo_data_h $project_name]
+			[::tclapp::icl::protoip::make_template::make_foo_data_h $project_name]
 			# update ip_design/src/FPGAclientAPI.h file
-			[::tclapp::icl::protoip::make_FPGAclientAPI_h  $project_name]
+			[::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h  $project_name]
 			# update directives
-			[::tclapp::icl::protoip::update_directives  $project_name] 
+			[::tclapp::icl::protoip::make_template::update_directives  $project_name] 
 			
 			# #############################  
 			# Calling Matlab and Vivado_HLS to test the IP ...
@@ -584,37 +658,7 @@ if {$error==0} {
 
 
 	
-	
-  if {$help} {
-      puts [format {
-  Usage: ip_design_test
-  [-project_name <arg>]- Project name
-						It's a mandatory field
-  [-num_test <arg>]  - Number of test(s)
-						It's a mandatory field
-  [-type_test <arg>]  - Test(s) type: 'c' for C-simulation, 'xsim' for RTL-simulation via Xilinx Xsim, 'modelsim' for RTL-simulation via Menthor Graphics Modelsim
-						It's a mandatory field
-  [-input <arg>]      - Input vector name,size and type separated by : symbol
-						Type can be: float or fix:xx:yy. Where 'xx' is the integer length and 'yy' the fraction length
-                        Repeat the command for every input vector
-  [-output <arg>]     - Output vector name,size and type separated by : symbol
-						Type can be: float or fix:xx:yy. Where 'xx' is the integer length and 'yy' the fraction length
-                        repeat the command for every output vector
-  [-fclk <arg>]		  - Circuit clock frequency
-  [-FPGA_name <arg>]  - FPGA device name
-  [-usage|-u]         - This help message
 
-  Description: Run a C/RTL simulation of the project named 'project_name' according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt using Vivado HLS. NOTE: the specified inputs parameters overwrite the one specified into configuration paramenters (doc/project_name/ip_configuration_parameters.txt).
-
-
-  Example:
-  tclapp::icl::protoip::ip_design_test -project_name my_project0 -num_test 1 -type_test c -input x1:2:fix:4:6 -output y0:3:fix:2:4 -fclk 150 -FPGA_name xc7z020clg484-1 
-
-
-} ]
-      # HELP -->
-      return {}
-    }
 
     if {$error} {
 		puts "Vivado_HLS: IP test ERROR. Please check Vivado_HLS log file at <WORKING_DIRECTORY>/vivado_hls.log  for error(s) info."
