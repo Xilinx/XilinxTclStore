@@ -6,6 +6,12 @@
   <revision>2.1</revision>
   <apps>
     <app>
+      <name>activehdl</name>
+      <company>aldec</company>
+      <commit_id/>
+      <revision>1.0</revision>
+    </app>
+    <app>
       <name>debugutils</name>
       <company>xilinx</company>
       <commit_id>cabd842f6ad8edbf3fc5e19f2a67e97499b4e081</commit_id>
@@ -64,6 +70,12 @@
       <company>xilinx</company>
       <commit_id>1ddfdbda670541442ff95c003582955f82427f6f</commit_id>
       <revision>2.4</revision>
+    </app>
+    <app>
+      <name>riviera</name>
+      <company>aldec</company>
+      <commit_id/>
+      <revision>1.0</revision>
     </app>
     <app>
       <name>tk_tunnel</name>
