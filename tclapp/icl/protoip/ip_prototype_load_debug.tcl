@@ -1,9 +1,7 @@
-#  icl::protoip
-#  Suardi Andrea [a.suardi@imperial.ac.uk]
-#  November - 2014
 
-
-package require Vivado 1.2014.2
+########################################################################################
+## 20/11/2014 - First release 1.0
+########################################################################################
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
@@ -16,7 +14,8 @@ proc ::tclapp::icl::protoip::ip_prototype_load_debug {args} {
 	  # Summary: Compile the Vivado project according to the specification in <WORKING DIRECTORY>/design_parameters.tcl
 
 	  # Argument Usage:
-	  # [-project_name <arg>]- Project name
+	  # -project_name <arg>: Project name
+	  # -board_name <arg>: Evaluation board name
 	  # [-usage]: Usage information
 
 	  # Return Value:
@@ -25,6 +24,28 @@ proc ::tclapp::icl::protoip::ip_prototype_load_debug {args} {
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
+uplevel [concat ::tclapp::icl::protoip::ip_prototype_load_debug::ip_prototype_load_debug $args]
+}
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::icl::protoip::ip_prototype_load_debug::ip_prototype_load_debug {
+  variable version {20/11/2014}
+} ]	  
+
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                         M A I N   P R O G R A M                              # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
+
+proc ::tclapp::icl::protoip::ip_prototype_load_debug::ip_prototype_load_debug { args } {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, ultrafast
+
 
 	proc lshift {inputlist} {
       # Summary :
@@ -61,10 +82,24 @@ proc ::tclapp::icl::protoip::ip_prototype_load_debug {args} {
 				incr error
              } 
 	     }
+		 -board_name -
+        {^-o(u(t(p(ut?)?)?)?)?$} {
+             set board_name [lshift args]
+             if {$board_name == {}} {
+				puts " -E- NO board name specified."
+				incr error
+             } 
+	     }
         -usage -
-        {^-u(s(a(ge?)?)?)?$} {
-             set help 1
-        }
+		  {^-u(s(a(ge?)?)?)?$} -
+		  -help -
+		  {^-h(e(lp?)?)?$} {
+			   set help 1
+		  }
+		  ^--version$ {
+			   variable version
+			   return $version
+		  }
         default {
               if {[string match "-*" $name]} {
                 puts " -E- option '$name' is not a valid option. Use the -usage option for more details"
@@ -77,7 +112,32 @@ proc ::tclapp::icl::protoip::ip_prototype_load_debug {args} {
       }
     }
     
+if {$help} {
+      puts [format {
+ Usage: ip_prototype_load_debug
+  -project_name <arg>       - Project name
+                              It's a mandatory field
+  -board_name <arg>         - Evaluation board name
+                              It's a mandatory field
+  [-usage|-u]               - This help message
 
+ Description: 
+  Open SDK to debug the the FPGA Ethernet server running on the FPGA ARM processor.
+  
+  This command must be run only after 'ip_prototype_load' command.
+
+ Example:
+  ip_prototype_load_debug -project_name my_project0 -board_name zedboard
+
+
+} ]
+      # HELP -->
+      return {}
+    }
+	
+		if {$error} {
+    error " -E- some error(s) happened. Cannot continue. Use the -usage option for more details"
+  }
    
 
 if {$error==0} {  
@@ -86,70 +146,39 @@ if {$error==0} {
 	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
 	
 	if {$project_name == {}} {
-			set tmp_str ""
-			append tmp_str " -E- NO project name specified."
-			puts $tmp_str
-			incr error
+	
+			error " -E- NO project name specified. Use the -usage option for more details."
 			
 		} else {
 	
 		if {[file exists $file_name] == 0} { 
 
-			set tmp_str ""
-			append tmp_str "-E- " $project_name " does NOT exist."
-			puts $tmp_str
-			incr error
+			set tmp_error ""
+			append tmp_error "-E- " $project_name " does NOT exist. Use the -usage option for more details."
+			error $tmp_error
+
+			
 		} else {
 		
-			#load configuration parameters
-			set  file_name ""
-			append file_name ".metadata/" $project_name "_configuration_parameters.dat"
-			set fp [open $file_name r]
-			set file_data [read $fp]
-			close $fp
-			set data [split $file_data "\n"]
-
-			set num_input_vectors [lindex $data 3]
-			set num_output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 1]]
-			set input_vectors {}
-			set input_vectors_length {}
-			set input_vectors_type {}
-			set input_vectors_integer_length {}
-			set input_vectors_fraction_length {}
-			set output_vectors {}
-			set output_vectors_length {}
-			set output_vectors_type {}
-			set output_vectors_integer_length {}
-			set output_vectors_fraction_length {}
-
-			for {set i 0} {$i < $num_input_vectors} {incr i} {
-				lappend input_vectors [lindex $data [expr 4 + ($i * 5)]]
-				lappend input_vectors_length [lindex $data [expr 5 + ($i * 5)]]
-				lappend input_vectors_type [lindex $data [expr 6 + ($i * 5)]]
-				lappend input_vectors_integer_length [lindex $data [expr 7 + ($i * 5)]]
-				lappend input_vectors_fraction_length [lindex $data [expr 8 + ($i * 5)]]
-			}
-			for {set i 0} {$i < $num_output_vectors} {incr i} {
-				lappend output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 2 + ($i * 5)]]
-				lappend output_vectors_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 3 + ($i * 5)]]
-				lappend output_vectors_type [lindex $data [expr ($num_input_vectors * 5) + 4 + 4 + ($i * 5)]]
-				lappend output_vectors_integer_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 5 + ($i * 5)]]
-				lappend output_vectors_fraction_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 6 + ($i * 5)]]
-			}
-
-			set fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
-			set FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
-			set board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
-			set type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
-			set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
-			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
-			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+		if {$board_name == {}} {
+	
+			error " -E- NO board name specified. Use the -usage option for more details."
 			
+		} else {
+		
 			
 		
 
 			set source_file ""
 			append source_file "../../../build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
+			
+			if {[file exists $source_file] == 0} { 
+
+				set tmp_error ""
+				append tmp_error "-E- " $project_name " associated to " $board_name " has not been built. Use the -usage option for more details."
+				error $tmp_error
+			
+			} else {
 		
 			set target_dir ""
 			append target_dir "ip_prototype/test/prj/" $project_name "." $board_name
@@ -172,7 +201,8 @@ if {$error==0} {
 
 			set sdk_p [open $command_name r]
 			
-			
+			}
+		}
 
 	
 	}
@@ -182,22 +212,7 @@ if {$error==0} {
 
 
 	
-  if {$help} {
-      puts [format {
-	Usage: ip_prototype_load_debug
-	[-project_name <arg>]	- Project name
-							It's a mandatory field
-
-  Description: Build and start the FPGA Ethernet server running on the FPGA ARM processor and load the designed IP on the FPGA.
-
-  Example:
-  tclapp::icl::protoip::ip_prototype_load_debug -project_name my_project0
-
-
-} ]
-      # HELP -->
-      return {}
-    }
+  
 
 	puts ""
     if {$error} {

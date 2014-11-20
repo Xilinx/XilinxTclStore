@@ -1,9 +1,7 @@
-#  icl::protoip
-#  Suardi Andrea [a.suardi@imperial.ac.uk]
-#  November - 2014
 
-
-package require Vivado 1.2014.2
+########################################################################################
+## 20/11/2014 - First release 1.0
+########################################################################################
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
@@ -16,9 +14,9 @@ proc ::tclapp::icl::protoip::ip_design_duplicate {args} {
 	  # Summary: Duplicate a project
 
 	  # Argument Usage:
-	  # [-from <arg>]:  Original project name to copy
-	  # [-to <arg>]: 	New project name
-	  # [-usage]: 		Usage information
+	  # -from <arg>: Original project name to copy
+	  # -to <arg>: New project name
+	  # [-usage]: Usage information
 
 	  # Return Value:
 	  # Duplicated project. If any error(s) occur TCL_ERROR is returned.
@@ -26,6 +24,28 @@ proc ::tclapp::icl::protoip::ip_design_duplicate {args} {
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
+	 uplevel [concat ::tclapp::icl::protoip::ip_design_duplicate::ip_design_duplicate $args]
+}
+
+# Trick to silence the linter
+eval [list namespace eval ::tclapp::icl::protoip::ip_design_duplicate::ip_design_duplicate {
+  variable version {20/11/2014}
+} ]	  
+
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                         M A I N   P R O G R A M                              # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
+
+proc ::tclapp::icl::protoip::ip_design_duplicate::ip_design_duplicate { args } {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, ultrafast
+
 
 	proc lshift {inputlist} {
       # Summary :
@@ -66,10 +86,16 @@ proc ::tclapp::icl::protoip::ip_design_duplicate {args} {
 				incr error
              } 
 	     }
-        -usage -
-        {^-u(s(a(ge?)?)?)?$} {
-             set help 1
-        }
+       -usage -
+		  {^-u(s(a(ge?)?)?)?$} -
+		  -help -
+		  {^-h(e(lp?)?)?$} {
+			   set help 1
+		  }
+		  ^--version$ {
+			   variable version
+			   return $version
+		  }
         default {
               if {[string match "-*" $name]} {
                 puts " -E- option '$name' is not a valid option. Use the -usage option for more details"
@@ -82,33 +108,65 @@ proc ::tclapp::icl::protoip::ip_design_duplicate {args} {
       }
     }
     
+ if {$help} {
+      puts [format {
+ Usage: ip_design_duplicate
+  -from <arg>:  - Original project name to copy
+                  It's a mandatory field
+  -to <arg>:    - New project name
+                  It's a mandatory field
+  [-usage|-u]:  - This help message
 
+ Description: Make a copy of a project
+
+ Example:
+  ip_design_duplicate -from project_name_original -to project_name_new
+
+
+	} ]
+      # HELP -->
+      return {}
+    }
    
 
 if {$error==0} {  
 
-	 if {$project_name_oiginal != {} && $project_name_new != {}} {
+	if {$project_name_oiginal == {}} {
+
+			error " -E- NO original project name to copy specified. Use the -usage option for more details."
+			
+		} else {
 		
+	if {$project_name_new == {}} {
+
+			error " -E- NO new project name specified. Use the -usage option for more details."
+			
+		} else {	
+	
 		set  file_name_from ""
 		append file_name_from ".metadata/" $project_name_oiginal "_configuration_parameters.dat"
 		set  file_name_to ""
 		append file_name_to ".metadata/" $project_name_new "_configuration_parameters.dat"
 		
 		if {[file exists $file_name_from]==0} {
-			set tmp_line ""
-			append tmp_line "-E- NO project " $project_name_oiginal " exists."
-			puts $tmp_line
-			incr error
+
+			set tmp_error ""
+			append tmp_error "-E- " $project_name_oiginal " does NOT exist. Use the -usage option for more details."
+			error $tmp_error
+
+
 		} else {
 			if {[file exists $file_name_to]==1} {
-				set tmp_line ""
-				append tmp_line "-E- project " $project_name_new " already exists. Provide an new project name."
-				puts $tmp_line
-				incr error
+
+				set tmp_error ""
+				append tmp_error "-E- project " $project_name_new " already exists. Provide an new project name. Use the -usage option for more details."
+				error $tmp_error
+
+
 			} else {
 				#configuration_parameters
 				file copy -force $file_name_from $file_name_to
-				[::tclapp::icl::protoip::make_ip_configuration_parameters_readme_txt $project_name_new]
+				[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name_new]
 				#directives
 				set  file_name_from ""
 				append file_name_from "ip_design/src/" $project_name_oiginal "_directives.tcl"
@@ -129,7 +187,7 @@ if {$error==0} {
 				set tmp_line ""
 				append tmp_line "set project_name \"$project_name_new\""
 				lappend new_lines $tmp_line
-				[::tclapp::icl::protoip::addlines $file_read $file_write $insert_key $new_lines]
+				[::tclapp::icl::protoip::ip_design_duplicate::addlines $file_read $file_write $insert_key $new_lines]
 				#ip_design_test
 				set  file_name_from ""
 				append file_name_from ".metadata/" $project_name_oiginal "_ip_design_test.tcl"
@@ -146,41 +204,17 @@ if {$error==0} {
 				set tmp_line ""
 				append tmp_line "set project_name \"$project_name_new\""
 				lappend new_lines $tmp_line
-				[::tclapp::icl::protoip::addlines $file_read $file_write $insert_key $new_lines]
+				[::tclapp::icl::protoip::ip_design_duplicate::addlines $file_read $file_write $insert_key $new_lines]
 				
 			}
 		}
 	
-	 } else {
-		puts " -E- Boths original and new project names have to be specified."
-		incr error
+	 } 
 	 }
 }
 	
 	
 
-
-
-	
-	
-	
-  if {$help} {
-      puts [format {
-		Usage: ip_design_duplicate
-		[-from <arg>]: 	Original project name to copy
-		[-to <arg>]: 	New project name
-		[-usage|-u]: 	This help message
-
-		Description: Make a copy of a project
-
-		Example:
-		tclapp::icl::protoip::ip_design_duplicate -from project_name_original -to project_name_new
-
-
-	} ]
-      # HELP -->
-      return {}
-    }
 
     if {$error} {
 		puts ""
@@ -195,8 +229,15 @@ if {$error==0} {
 }
 
 
+#**********************************************************************************#
+# #******************************************************************************# #
+# #                                                                              # #
+# #                    IP DESIGN DUPLICATE PROCEDURES                            # #
+# #                                                                              # #
+# #******************************************************************************# #
+#**********************************************************************************#
 
-proc ::tclapp::icl::protoip::addlines {file_read file_write insert_key new_lines} {
+proc ::tclapp::icl::protoip::ip_design_duplicate::addlines {file_read file_write insert_key new_lines} {
   # Summary :
   # Argument Usage:
   # Return Value:
