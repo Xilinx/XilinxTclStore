@@ -828,7 +828,11 @@ proc usf_create_do_file_for_simulation { do_file } {
   set saif [get_property [usf_getPropertyName SIMULATE.SAIF] $fs_obj]
   if { ![get_property [usf_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj] } {
     if { {} != $saif } {
-      puts $fh "log -ports ${uut}/*"
+      set rec ""
+      if { $::tclapp::aldec::common::helpers::a_sim_vars(s_mode) != {behavioral} } {
+        set rec "-rec"
+      }
+      puts $fh "log $rec ${uut}/*"
     }
   }
 
@@ -854,7 +858,12 @@ proc usf_create_do_file_for_simulation { do_file } {
     if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
       puts $fh "asdbdump -flush"
     }
-    puts $fh "asdb2saif -internal -scope ${uut}/* [usf_getDefaultDatasetName] \{$saif\}"
+
+    set rec ""
+    if { $::tclapp::aldec::common::helpers::a_sim_vars(s_mode) != {behavioral} } {
+      set rec "-rec"
+    }
+    puts $fh "asdb2saif -internal -scope $rec ${uut}/* [usf_getDefaultDatasetName] \{$saif\}"
   }
 
   # add TCL sources
