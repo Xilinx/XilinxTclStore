@@ -66,6 +66,12 @@
       <revision>2.7</revision>
     </app>
     <app>
+      <name>protoip</name>
+      <company>icl</company>
+      <commit_id>1504094ddee4ae2d998a0f148e4402ac22b8e092</commit_id>
+      <revision>1.0</revision>
+    </app>
+    <app>
       <name>tk_tunnel</name>
       <company>xilinx</company>
       <commit_id>6adae80e34bb24a5254ad63a78373fdb50cd2c44</commit_id>
