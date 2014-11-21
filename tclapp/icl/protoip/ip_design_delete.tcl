@@ -208,6 +208,9 @@ if {$error==0} {
 			append filename "ip_design/test/prj/" $project_name
 			file delete -force $filename
 			set filename ""
+			append filename "ip_design/test/stimuli/" $project_name
+			file delete -force $filename
+			set filename ""
 			append filename "ip_design/test/results/" $project_name
 			file delete -force $filename
 			set filename ""

@@ -41,7 +41,12 @@ y0[3]=x0[0]+x0[1]+x0[2]+x1[0]+x1[1]+x1[2]+x1[3]+x1[4]+x1[5]+x1[6];
 
 		tclapp::icl::protoip::ip_design_delete -project_name my_project0
 
+- make stimuls vectors with random data
+
+		tclapp::icl::protoip::make_rand_stimuli -project_name my_project1
+
 - run a C simulation of the IP project template named "m\y_project1" using Vivado HLS and Matlab to generate the stimuli and check the results
+
 
 		tclapp::icl::protoip::ip_design_test -project_name my_project1 -num_test 1 -type_test c 
 - run a RTL simulation of the IP project  template named "my\_project1" using Vivado HLS and Matlab to generate the stimuli and check the results
@@ -54,10 +59,17 @@ y0[3]=x0[0]+x0[1]+x0[2]+x1[0]+x1[1]+x1[2]+x1[3]+x1[4]+x1[5]+x1[6];
 
 		tclapp::icl::protoip::ip_prototype_build -project_name my_project1
 	
-### Returns the following files in icl/protoip/test/results/test\_fix\_0001:
+### Returns the following text on the screen if the test is successfully:
 
-- ip\_configuration\_parameters.txt
-- ip\_design.txt (Vivado HLS report. It is generated only after having successfully generated the IP-XACT)
-- ip\_prototype.txt (Vivado report. It is generated only after having successfully generated the bitstream)
-- test\_CRTL/*dat (C and RTL simulation results)
+
+	Test test_fix_0001 report (date - time)
+	------------------------------------------------	
+	== make_template test -> SECCESSFULLY
+	== ip_design_duplicate test -> SECCESSFULLY
+	== ip_design_delete test -> SECCESSFULLY
+	== make_rand_stimuli test -> SECCESSFULLY
+	== ip_design_test C test -> SECCESSFULLY
+	== ip_design_test XSIM test -> SECCESSFULLY
+	== ip_design_build test -> SECCESSFULLY
+	== ip_prototype_build test -> SECCESSFULLY
 

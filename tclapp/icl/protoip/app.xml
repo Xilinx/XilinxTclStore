@@ -5,7 +5,7 @@
       <revision_history>20/11/2014 - Rel. 1.0</revision_history>
       <name>protoip</name>
       <pkg_require>Vivado 2014.3</pkg_require>
-      <author>Andrea Suardi a.suardi@imperial.ac.uk</author>
+      <author>asuardi</author>
       <company>icl</company>
       <company_display>Imperial College London</company_display>
       <summary>Protoip is a utility for quickly prototyping C-based IP in FPGA hardware</summary>
@@ -53,6 +53,10 @@
         </proc>
         <proc>
           <name>ip_prototype_test</name>
+          <summary/>
+        </proc>
+        <proc>
+          <name>make_rand_stimuli</name>
           <summary/>
         </proc>
         <proc>

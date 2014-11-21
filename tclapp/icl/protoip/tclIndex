@@ -31,6 +31,8 @@ set auto_index(::tclapp::icl::protoip::ip_prototype_load_debug) [list source [fi
 set auto_index(::tclapp::icl::protoip::ip_prototype_load_debug::ip_prototype_load_debug) [list source [file join $dir ip_prototype_load_debug.tcl]]
 set auto_index(::tclapp::icl::protoip::ip_prototype_test) [list source [file join $dir ip_prototype_test.tcl]]
 set auto_index(::tclapp::icl::protoip::ip_prototype_test::ip_prototype_test) [list source [file join $dir ip_prototype_test.tcl]]
+set auto_index(::tclapp::icl::protoip::make_rand_stimuli) [list source [file join $dir make_rand_stimuli.tcl]]
+set auto_index(::tclapp::icl::protoip::make_rand_stimuli::make_rand_stimuli) [list source [file join $dir make_rand_stimuli.tcl]]
 set auto_index(::tclapp::icl::protoip::make_template) [list source [file join $dir make_template.tcl]]
 set auto_index(::tclapp::icl::protoip::make_template::make_template) [list source [file join $dir make_template.tcl]]
 set auto_index(::tclapp::icl::protoip::make_template::license_tcl) [list source [file join $dir make_template.tcl]]

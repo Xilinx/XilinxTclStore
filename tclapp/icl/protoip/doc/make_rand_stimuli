@@ -1,0 +1,12 @@
+  Description: 
+   Create input vectors with random data (-5,5) to be used as stimuli 
+   by ip_design_test. 
+
+  This command must be run only after 'make_template' command.
+
+
+  Example:
+   ip_design_make_rand_stimuli -project_name my_project0
+   ip_design_make_rand_stimuli -project_name my_project0 -input x1:2:fix:4:6 -output y0:3:fix:2:4
+
+

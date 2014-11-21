@@ -164,6 +164,8 @@ if {$error==0} {
 
 
 			} else {
+				file mkdir ip_design/test/stimuli/$project_name_new
+				file mkdir ip_design/test/results/$project_name_new
 				#configuration_parameters
 				file copy -force $file_name_from $file_name_to
 				[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name_new]
