@@ -266,7 +266,7 @@ if {$error==0} {
 
 			
 			set source_file ""
-			append source_file "../../../build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
+			append source_file "ip_prototype/build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
 			
 			if {[file exists $source_file] == 0} { 
 

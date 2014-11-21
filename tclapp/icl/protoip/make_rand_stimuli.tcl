@@ -5,34 +5,31 @@
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
-    namespace export ip_design_test
+    namespace export make_rand_stimuli
 }
 
 
-proc ::tclapp::icl::protoip::ip_design_test {args} {
+proc ::tclapp::icl::protoip::make_rand_stimuli {args} {
 
-	  # Summary: Run a C/RTL simulation of the project named 'project_name' according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.
+	  # Summary: Create input vectors with random data (-5,5) to be used as stimuli by ip_design_test.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
-	  # -type_test <arg>: Test(s) type
       # [-input <arg>]: Input vector name,size and type separated by : symbol
       # [-output <arg>]: Output vector name,size and type separated by : symbol
-      # [-fclk <arg>]: Circuit clock frequency
-      # [-FPGA_name <arg>]: FPGA device name
 	  # [-usage]: Usage information
 
 	  # Return Value:
-	  # Return the simulaton results in <WORKING DIRECTORY>/ip_design/test/results/project_name. If any error occur TCL_ERROR is returned
+	  # Return stimuli vectors in ip_design/test/stimuli/project_name. If any error occur TCL_ERROR is returned
 
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
- uplevel [concat ::tclapp::icl::protoip::ip_design_test::ip_design_test $args]
+ uplevel [concat ::tclapp::icl::protoip::make_rand_stimuli::make_rand_stimuli $args]
 }
 
 # Trick to silence the linter
-eval [list namespace eval ::tclapp::icl::protoip::ip_design_test::ip_design_test {
+eval [list namespace eval ::tclapp::icl::protoip::make_rand_stimuli::make_rand_stimuli {
   variable version {20/11/2014}
 } ]	  
 
@@ -44,7 +41,7 @@ eval [list namespace eval ::tclapp::icl::protoip::ip_design_test::ip_design_test
 # #******************************************************************************# #
 #**********************************************************************************#
 
-proc ::tclapp::icl::protoip::ip_design_test::ip_design_test { args } {
+proc ::tclapp::icl::protoip::make_rand_stimuli::make_rand_stimuli { args } {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -267,35 +264,6 @@ proc ::tclapp::icl::protoip::ip_design_test::ip_design_test { args } {
 				incr error
              } 
 	     }
-		 -fclk -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
-             set fclk [lshift args]
-             if {$fclk == {}} {
-				puts " -E- NO clock frequency name specified."
-				incr error
-             } 
-	     }
-		 -FPGA_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
-             set FPGA_name [lshift args]
-             if {$FPGA_name == {}} {
-				puts " -E- NO FPGA name specified."
-				incr error
-             } 
-	     }
-		  -type_test -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
-             set type_test [lshift args]
-             if {$type_test == {}} {
-				puts " -E- NO test(s) type specified."
-				incr error
-             } else {
-				if {$type_test != $str_c && $type_test != $str_xsim && $type_test != $str_modelsim} {
-					puts " -E- test(s) type specified is not supported. Use the -usage option for more details"
-					incr error
-				 }
-			 }
-	     }
         -usage -
 		  {^-u(s(a(ge?)?)?)?$} -
 		  -help -
@@ -323,11 +291,6 @@ proc ::tclapp::icl::protoip::ip_design_test::ip_design_test { args } {
  Usage: ip_design_test
   -project_name <arg>  - Project name
                          It's a mandatory field
-  -type_test <arg>     - Test(s) type: 
-                         'c' for C-simulation, 
-                         'xsim' for RTL-simulation via Xilinx Xsim, 
-                         'modelsim' for RTL-simulation via Menthor Graphics Modelsim
-                         It's a mandatory field
  [-input <arg>]        - Input vector name,size and type separated by : symbol
                          Type can be: float or fix:xx:yy. 
                          Where 'xx' is the integer length and 'yy' the 
@@ -342,24 +305,18 @@ proc ::tclapp::icl::protoip::ip_design_test::ip_design_test { args } {
                          Repeat the command for every output to update
                          All inputs and outputs must be of the same type: 
                          float or fix
- [-fclk <arg>          - Circuit clock frequency
- [-FPGA_name <arg>]    - FPGA device name
  [-usage|-u]           - This help message
 
   Description: 
-   Run a C/RTL simulation of the project named 'project_name' according to the 
-   specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt 
-   using Vivado HLS. 
-   
-   The specified inputs parameters overwrite the one specified into 
-   configuration parameters (doc/project_name/ip_configuration_parameters.txt).
+   Create input vectors with random data (-5,5) to be used as stimuli 
+   by ip_design_test. 
 
   This command must be run only after 'make_template' command.
 
 
   Example:
-   ip_design_test -project_name my_project0 -type_test c
-   ip_design_test -project_name my_project0 -type_test c -input x1:2:fix:4:6 -output y0:3:fix:2:4 -fclk 150 -FPGA_name xc7z020clg484-1 
+   ip_design_make_rand_stimuli -project_name my_project0
+   ip_design_make_rand_stimuli -project_name my_project0 -input x1:2:fix:4:6 -output y0:3:fix:2:4
 
 
 } ]
@@ -392,12 +349,6 @@ if {$error==0} {
 		} else {
 		
 		
-		if {$type_test == {}} { 
-
-			error "-E- NO test(s) type specified. Use the -usage option for more details."
-			
-		} else {
-		
 		
 		
 			#load configuration parameters
@@ -427,13 +378,13 @@ if {$error==0} {
 				lappend old_output_vectors_fraction_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 6 + ($i * 5)]]
 			}
 
-			set old_fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
-			set old_FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
+			set fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
+			set FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
 			set board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
 			set type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
 			set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
-			set old_type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
 
 			
 			# update configuration parameters
@@ -455,25 +406,7 @@ if {$error==0} {
 				}
 				incr m
 			}
-			if {$FPGA_name == {}} {
-				set FPGA_name $old_FPGA_name
-			} 
-			if {$fclk == {}} {
-				set fclk $old_fclk
-			} 
-
-			if {$type_test == {}} {
-				set type_test $old_type_test
-			} 
-			if {$type_test==0} {
-				set type_test "none"
-			} elseif {$type_test==1} {
-				set type_test "c"
-			} elseif {$type_test==2} {
-				set type_test "xsim"
-			} elseif {$type_test==3} {
-				set type_test "modelsim"
-			} 
+		
 			
 			if {$type_eth==0} {
 				set type_eth "udp"
@@ -530,7 +463,8 @@ if {$error==0} {
 			set output_vectors_type $old_output_vectors_type 
 			set output_vectors_integer_length $old_output_vectors_integer_length 
 			set output_vectors_fraction_length $old_output_vectors_fraction_length 
-
+			
+			
 			set count_is_float 0
 			set count_is_fix 0
 			foreach i $input_vectors_type {
@@ -547,141 +481,39 @@ if {$error==0} {
 					incr count_is_float
 				}
 			}
-		
+
 			if {$count_is_fix==[expr $num_input_vectors+$num_output_vectors] || $count_is_float==[expr $num_input_vectors+$num_output_vectors]} {
-			
 			
 				[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
 
 				[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 				
-				# update ip_design/src/foo_data.h file
-				[::tclapp::icl::protoip::make_template::make_foo_data_h $project_name]
-				# update ip_design/src/FPGAclientAPI.h file
-				[::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h  $project_name]
-				# update directives
-				[::tclapp::icl::protoip::make_template::update_directives  $project_name] 
-				
-				
-		
-				#stimuli health check
-				
 				set m 0
 				foreach i $input_vectors {
-				
 					set  file_name ""
 					append file_name "ip_design/test/stimuli/" $project_name "/" $i "_in.dat"
-		
-					if {[file exists $file_name] == 0} { 
 
-						set tmp_error ""
-						append tmp_error "-E- input vector " $i "_in stimulus does NOT exist. Please run make_rand_stimuli to generate random stimuli."
-						error $tmp_error
-						
-					}
+					set file [open $file_name w]
 					
-					set f [open $file_name]
-					set file_data [read $f]
-					close $f
-					
-					set data [split $file_data "\n"]
-					
-					set count 0
-					foreach j $data {
-						if {$j!={}} {
-							incr count
-						}
+					for {set j 0} {$j < [lindex $input_vectors_length $m]} {incr j} {
+						puts $file [expr (rand()-0.5)*10]
 					}
-					if {$count != [lindex $input_vectors_length $m]} {
-						set tmp_error ""
-						append tmp_error "-E- input vector " $i "_in stimulus does NOT contain " [lindex $input_vectors_length $m] " data. Please run make_rand_stimuli to generate random stimuli correctly."
-						error $tmp_error
-					}
-
 					incr m
-					
+					close $file
+
 				}
 				
-				
-				# #############################  
-				# Calling Matlab and Vivado_HLS to test the IP ...
-				
-				puts ""
-				puts "Calling Vivado_HLS to test the IP ..."
-				
-				# set tmp_dir ".metadata/"
-				# append tmp_dir $project_name
-				# file mkdir $tmp_dir
-				
-				# set tmp_dir "ip_design/test/results/"
-				# append tmp_dir $project_name
-				# file mkdir $tmp_dir
-				# cd $tmp_dir
-				
-				# set time_stamp [clock format [clock seconds] -format "%Y-%m-%d_T-%H-%M"]
-				
-				# foreach i $input_vectors {
-					# set file_name ""
-					# append file_name $i "_in.dat"
-					# if {[file exists $file_name] == 1} { 
-						# set file_name_new ""
-						# append file_name_new $time_stamp "_backup_" $i "_in.dat"
-						# file copy -force $file_name $file_name_new
-						# file delete -force $file_name
-					# }
-				# }
-				
-				# foreach i $output_vectors {
-					# set file_name ""
-					# append file_name "fpga_" $i "_out.dat"
-					# if {[file exists $file_name] == 1} { 
-						# set file_name_new ""
-						# append file_name_new $time_stamp "_backup_fpga_" $i "_out_log.dat"
-						# file copy -force $file_name $file_name_new
-						# file delete -force $file_name
-					# }
-					# set file_name ""
-					# append file_name "matlab_" $i "_out_log.dat"
-					# if {[file exists $file_name] == 1} { 
-						# set file_name_new ""
-						# append file_name_new $time_stamp "_backup_matlab_" $i "_out_log.dat"
-						# file copy -force $file_name $file_name_new
-						# file delete -force $file_name
-					# }
-				# }
-				
-				# set file_name ""
-				# append file_name "fpga_time_log.dat"
-				# if {[file exists $file_name] == 1} { 
-					# set file_name_new ""
-					# append file_name_new $time_stamp "_backup_fpga_time_log.dat"
-					# file copy -force $file_name $file_name_new
-					# file delete -force $file_name
-				# }
-				
-				# cd ../../../../
-				
-				
-				# run Vivado HLS to test the IP. Vivado HLS expects that the stimuli are available 
-				set  file_name ""
-				append file_name ".metadata/" $project_name "_ip_design_test.tcl"
-					
-				set vivado_hls_p [open "|vivado_hls -f $file_name" r]
-				while {![eof $vivado_hls_p]} { gets $vivado_hls_p line ; puts $line }
-				close $vivado_hls_p
-
 			} else {			
 				
 
-				error " -E- Inputs and Outputs must be either fixed-point or floating-point. Use the -usage option for more details."
+				error  " -E- Inputs and Outputs must be either fixed-point or floating-point. Use the -usage option for more details."
 
 
 			}	
-	
 		
+		}
 	}
-	}
-	}
+
 	
 
 }
@@ -691,11 +523,10 @@ if {$error==0} {
 
 
     if {$error} {
-		puts "Vivado_HLS: IP test ERROR. Please check Vivado_HLS log file at <WORKING_DIRECTORY>/vivado_hls.log  for error(s) info."
 		puts ""
 		return -code error
 	} else {
-		puts "Vivado_HLS: IP tested successfully"
+		puts "Stimulus vector with random data created succesfully"
 		puts ""
 		return -code ok
 	}
