@@ -559,10 +559,9 @@ if {$error==0} {
 			
 			} else {			
 				
-				set tmp_str ""
-				append tmp_str " -E- Inputs and Outputs must be either fixed-point or floating-point. Use the -usage option for more details."
-				puts $tmp_str
-				incr error
+			
+				error " -E- Inputs and Outputs must be either fixed-point or floating-point. Use the -usage option for more details."
+
 
 			}
 		
