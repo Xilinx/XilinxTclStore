@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>20/11/2014 - Rel. 1.0</revision_history>
+      <revision_history>Initial release</revision_history>
       <name>protoip</name>
       <pkg_require>Vivado 2014.3</pkg_require>
       <author>asuardi</author>
@@ -13,55 +13,55 @@
       <procs>
         <proc>
           <name>ip_design_build</name>
-          <summary/>
+          <summary>Build the IP XACT of the project according to the specification in &lt;WORKING DIRECTORY&gt;/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.</summary>
         </proc>
         <proc>
           <name>ip_design_build_debug</name>
-          <summary/>
+          <summary>Open the project named &apos;project_name&apos; in the Vivado HLS GUI.</summary>
         </proc>
         <proc>
           <name>ip_design_delete</name>
-          <summary/>
+          <summary>Delete a project from the &lt;WORKING DIRECTORY&gt;</summary>
         </proc>
         <proc>
           <name>ip_design_duplicate</name>
-          <summary/>
+          <summary>Duplicate a project</summary>
         </proc>
         <proc>
           <name>ip_design_test</name>
-          <summary/>
+          <summary>Run a C/RTL simulation of the project named &apos;project_name&apos; according to the specification in &lt;WORKING DIRECTORY&gt;/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.</summary>
         </proc>
         <proc>
           <name>ip_design_test_debug</name>
-          <summary/>
+          <summary>Open the project named &apos;project_name&apos; in the Vivado HLS GUI to run a C/RTL simulation.</summary>
         </proc>
         <proc>
           <name>ip_prototype_build</name>
-          <summary/>
+          <summary>Build the IP prototype of the project according to the specification in &lt;WORKING DIRECTORY&gt;/doc/project_name/ip_configuration_parameters.txt using Vivado.</summary>
         </proc>
         <proc>
           <name>ip_prototype_build_debug</name>
-          <summary/>
+          <summary>Open Vivado GUI to debug the project named &apos;project_name&apos; according to the project configuration paramenters (doc/project_name/ip_configuration_parameters.txt).</summary>
         </proc>
         <proc>
           <name>ip_prototype_load</name>
-          <summary/>
+          <summary>Build the FPGA Ethernet server application using SDK according to the specification in &lt;WORKING DIRECTORY&gt;/design_parameters.tcl and program the FPGA. A connected evaluation board is required.</summary>
         </proc>
         <proc>
           <name>ip_prototype_load_debug</name>
-          <summary/>
+          <summary>Compile the Vivado project according to the specification in &lt;WORKING DIRECTORY&gt;/design_parameters.tcl</summary>
         </proc>
         <proc>
           <name>ip_prototype_test</name>
-          <summary/>
+          <summary>Run a test of the IP prototype named &apos;project_name&apos; according to the specification in &lt;WORKING DIRECTORY&gt;/doc/project_name/ip_configuration_parameters.txt. A connected evaluation board is required.</summary>
         </proc>
         <proc>
           <name>make_rand_stimuli</name>
-          <summary/>
+          <summary>Create input vectors with random data (-5,5) to be used as stimuli by ip_design_test.</summary>
         </proc>
         <proc>
           <name>make_template</name>
-          <summary/>
+          <summary>Build the IP prototype project template in the current working directory</summary>
         </proc>
       </procs>
     </app>
