@@ -224,8 +224,9 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
     set module [get_property -quiet REF_NAME $cell]
     set isTop 0
   } else {
-    if {$current_instance == [get_property -quiet TOP [current_design]]} {
-      set module $current_instance
+    # If top-level, then $current_instance is empty
+    if {$current_instance == {}} {
+      set module [get_property -quiet TOP [current_design]]
       set isTop 1
     } else {
       # We need to change to the top-level so that the list of pins can be extracted from
@@ -314,7 +315,7 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
   close $tfh
 
   # Go back to the instance level we were in before calling this command
-  if {$current_instance != [get_property -quiet TOP [current_design]]} {
+  if {$current_instance != {}} {
     current_instance
     current_instance $current_instance
   } else {
