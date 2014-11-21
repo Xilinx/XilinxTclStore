@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Support for loading 32-bit executables</revision_history>
+      <revision_history>Fixed top library computation for post* simulation flow</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
