@@ -11,7 +11,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_prototype_load_debug {args} {
 
-	  # Summary: Compile the Vivado project according to the specification in <WORKING DIRECTORY>/design_parameters.tcl
+	  # Summary: Compile the Vivado project according to the specification in [WORKING DIRECTORY]/design_parameters.tcl
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name

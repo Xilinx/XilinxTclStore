@@ -18,7 +18,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_design_delete {args} {
 
-	  # Summary: Delete a project from the <WORKING DIRECTORY>
+	  # Summary: Delete a project from the [WORKING DIRECTORY]
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name to delete

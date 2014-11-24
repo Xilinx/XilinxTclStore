@@ -12,7 +12,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_prototype_build {args} {
 
-	  # Summary: Build the IP prototype of the project according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt using Vivado.
+	  # Summary: Build the IP prototype of the project according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt using Vivado.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
@@ -20,7 +20,7 @@ proc ::tclapp::icl::protoip::ip_prototype_build {args} {
 	  # [-usage]: Usage information
 
 	  # Return Value:
-	  # return the built IP prototype with Vivado and the IP prototype report in <WORKING DIRECTORY>/doc/project_name/ip_prototype.txt. If any error occur TCL_ERROR is returned
+	  # return the built IP prototype with Vivado and the IP prototype report in [WORKING DIRECTORY]/doc/project_name/ip_prototype.txt. If any error occur TCL_ERROR is returned
 
 	  # Categories: 
 	  # xilinxtclstore, protoip
