@@ -11,7 +11,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_prototype_test {args} {
 
-	  # Summary: Run a test of the IP prototype named 'project_name' according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt. A connected evaluation board is required.
+	  # Summary: Run a test of the IP prototype named 'project_name' according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt. A connected evaluation board is required.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
@@ -20,7 +20,7 @@ proc ::tclapp::icl::protoip::ip_prototype_test {args} {
 	  # [-usage]: Usage information
 
 	  # Return Value:
-	  # Return the test results in <WORKING DIRECTORY>/ip_prototype/test/results/project_name. If any error occur TCL_ERROR is returned.
+	  # Return the test results in [WORKING DIRECTORY]/ip_prototype/test/results/project_name. If any error occur TCL_ERROR is returned.
 
 	  # Categories: 
 	  # xilinxtclstore, protoip

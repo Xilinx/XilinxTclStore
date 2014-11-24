@@ -11,7 +11,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_prototype_load {args} {
 
-	  # Summary: Build the FPGA Ethernet server application using SDK according to the specification in <WORKING DIRECTORY>/design_parameters.tcl and program the FPGA. A connected evaluation board is required.
+	  # Summary: Build the FPGA Ethernet server application using SDK according to the specification in [WORKING DIRECTORY]/design_parameters.tcl and program the FPGA. A connected evaluation board is required.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name

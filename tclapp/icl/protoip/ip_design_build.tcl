@@ -13,7 +13,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_design_build {args} {
 
-	  # Summary: Build the IP XACT of the project according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.
+	  # Summary: Build the IP XACT of the project according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
@@ -24,7 +24,7 @@ proc ::tclapp::icl::protoip::ip_design_build {args} {
 	  # [-usage]: Usage information
 
 	  # Return Value:
-	  # return the built IP XACT and the IP design report in <WORKING DIRECTORY>/doc/project_name/ip_design.txt. If any error occur TCL_ERROR is returned
+	  # return the built IP XACT and the IP design report in [WORKING DIRECTORY]/doc/project_name/ip_design.txt. If any error occur TCL_ERROR is returned
 
 	  # Categories: 
 	  # xilinxtclstore, protoip

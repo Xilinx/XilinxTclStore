@@ -13,7 +13,7 @@
       <procs>
         <proc>
           <name>ip_design_build</name>
-          <summary>Build the IP XACT of the project according to the specification in &lt;WORKING DIRECTORY&gt;/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.</summary>
+          <summary>Build the IP XACT of the project according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.</summary>
         </proc>
         <proc>
           <name>ip_design_build_debug</name>
@@ -21,7 +21,7 @@
         </proc>
         <proc>
           <name>ip_design_delete</name>
-          <summary>Delete a project from the &lt;WORKING DIRECTORY&gt;</summary>
+          <summary>Delete a project from the [WORKING DIRECTORY]</summary>
         </proc>
         <proc>
           <name>ip_design_duplicate</name>
@@ -29,7 +29,7 @@
         </proc>
         <proc>
           <name>ip_design_test</name>
-          <summary>Run a C/RTL simulation of the project named &apos;project_name&apos; according to the specification in &lt;WORKING DIRECTORY&gt;/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.</summary>
+          <summary>Run a C/RTL simulation of the project named &apos;project_name&apos; according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.</summary>
         </proc>
         <proc>
           <name>ip_design_test_debug</name>
@@ -37,7 +37,7 @@
         </proc>
         <proc>
           <name>ip_prototype_build</name>
-          <summary>Build the IP prototype of the project according to the specification in &lt;WORKING DIRECTORY&gt;/doc/project_name/ip_configuration_parameters.txt using Vivado.</summary>
+          <summary>Build the IP prototype of the project according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt using Vivado.</summary>
         </proc>
         <proc>
           <name>ip_prototype_build_debug</name>
@@ -45,15 +45,15 @@
         </proc>
         <proc>
           <name>ip_prototype_load</name>
-          <summary>Build the FPGA Ethernet server application using SDK according to the specification in &lt;WORKING DIRECTORY&gt;/design_parameters.tcl and program the FPGA. A connected evaluation board is required.</summary>
+          <summary>Build the FPGA Ethernet server application using SDK according to the specification in [WORKING DIRECTORY]/design_parameters.tcl and program the FPGA. A connected evaluation board is required.</summary>
         </proc>
         <proc>
           <name>ip_prototype_load_debug</name>
-          <summary>Compile the Vivado project according to the specification in &lt;WORKING DIRECTORY&gt;/design_parameters.tcl</summary>
+          <summary>Compile the Vivado project according to the specification in [WORKING DIRECTORY]/design_parameters.tcl</summary>
         </proc>
         <proc>
           <name>ip_prototype_test</name>
-          <summary>Run a test of the IP prototype named &apos;project_name&apos; according to the specification in &lt;WORKING DIRECTORY&gt;/doc/project_name/ip_configuration_parameters.txt. A connected evaluation board is required.</summary>
+          <summary>Run a test of the IP prototype named &apos;project_name&apos; according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt. A connected evaluation board is required.</summary>
         </proc>
         <proc>
           <name>make_rand_stimuli</name>

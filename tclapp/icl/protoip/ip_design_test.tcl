@@ -11,7 +11,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_design_test {args} {
 
-	  # Summary: Run a C/RTL simulation of the project named 'project_name' according to the specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.
+	  # Summary: Run a C/RTL simulation of the project named 'project_name' according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
@@ -23,7 +23,7 @@ proc ::tclapp::icl::protoip::ip_design_test {args} {
 	  # [-usage]: Usage information
 
 	  # Return Value:
-	  # Return the simulaton results in <WORKING DIRECTORY>/ip_design/test/results/project_name. If any error occur TCL_ERROR is returned
+	  # Return the simulaton results in [WORKING DIRECTORY]/ip_design/test/results/project_name. If any error occur TCL_ERROR is returned
 
 	  # Categories: 
 	  # xilinxtclstore, protoip
