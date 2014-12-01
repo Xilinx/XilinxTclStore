@@ -4,7 +4,7 @@
   <support_commit_id>250e258de96f8ad71f6a3893fd494c638ef0dd92</support_commit_id>
   <release>2015.1</release>
   <revision>2.1</revision>
-  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,ies,modelsim,vcs,xsim,protoip,diff,junit,tk_tunnel</app_display_order>
+  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,ies,modelsim,questa,vcs,xsim,protoip,diff,junit,tk_tunnel</app_display_order>
   <apps>
     <app>
       <name>debugutils</name>
