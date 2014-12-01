@@ -1,12 +1,12 @@
 ###########################################################################
 #
-# modelsim.tcl (allow Tcl to find tclindex and provide package this version)
+# questa.tcl (allow Tcl to find tclindex and provide package this version)
 #
 ###########################################################################
-namespace eval ::tclapp::xilinx::modelsim {
+namespace eval ::tclapp::xilinx::questa {
   variable home [file join [pwd] [file dirname [info script]]]
   if {[lsearch -exact $::auto_path $home] == -1} {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::modelsim 2.08
+package provide ::tclapp::xilinx::questa 1.0

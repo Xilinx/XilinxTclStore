@@ -295,30 +295,6 @@ proc usf_set_sim_tcl_obj {} {
   return 0
 }
 
-proc usf_set_ref_dir { fh } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  # setup source dir var
-  puts $fh "# Directory path for design sources and include directories (if any) wrt this path"
-  if { $a_sim_vars(b_absolute_path) } {
-    if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "origin_dir=\"$a_sim_vars(s_launch_dir)\""
-    } else {
-      puts $fh "set origin_dir=\"$a_sim_vars(s_launch_dir)\""
-    }
-  } else {
-    if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "origin_dir=\".\""
-    } else {
-      puts $fh "set origin_dir=\".\""
-    }
-  }
-  puts $fh ""
-} 
-
 proc usf_write_design_netlist {} {
   # Summary:
   # Argument Usage:
@@ -580,9 +556,13 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
-     } else {
-       if { $ref_dir } {
-        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+    } else {
+      if { $ref_dir } {
+        if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+          set dir "./[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        } else {
+          set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        }
       }
     }
     lappend dir_names $dir
@@ -751,7 +731,11 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
     }
 
     if { [string length $val] > 0 } {
-      set str "$str\"$val\""
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set str "$str$val"
+      } else {
+        set str "$str\"$val\""
+      }
     }
 
     switch -regexp -- $tool {
@@ -1787,7 +1771,11 @@ proc usf_get_include_dirs { } {
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
     } else {
-      set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set dir "./[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      } else {
+        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      }
     }
     lappend dir_names $dir
   }
@@ -1867,7 +1855,11 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
       if { $a_sim_vars(b_absolute_path) } {
         set incl_file_path "[usf_resolve_file_path $file_path]"
       } else {
-        set incl_file_path "\$origin_dir/[usf_get_relative_file_path $file_path $dir]"
+        if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+          set incl_file_path "./[usf_get_relative_file_path $file_path $dir]"
+        } else {
+          set incl_file_path "\$origin_dir/[usf_get_relative_file_path $file_path $dir]"
+        }
       }
       lappend incl_header_paths $incl_file_path
       lappend unique_paths      $file_path
@@ -1916,7 +1908,11 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
           if { $ref_dir } {
-           set incl_file_path "\$origin_dir/[usf_get_relative_file_path $incl_file_path $dir]"
+            if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+              set incl_file_path "./[usf_get_relative_file_path $incl_file_path $dir]"
+            } else {
+              set incl_file_path "\$origin_dir/[usf_get_relative_file_path $incl_file_path $dir]"
+            }
           }
         }
         lappend incl_file_paths $incl_file_path
@@ -1939,7 +1935,11 @@ proc usf_get_incl_files_from_ip { tcl_obj } {
     if { $a_sim_vars(b_absolute_path) } {
       set file "[usf_resolve_file_path $file]"
     } else {
-      set file "\$origin_dir/[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set file "./[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+      } else {
+        set file "\$origin_dir/[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+      }
     }
     lappend incl_files $file
   }
@@ -1961,7 +1961,11 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
     } else {
-      set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set dir "./[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      } else {
+        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      }
     }
     lappend incl_dirs $dir
   }
@@ -2122,13 +2126,42 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
 
   upvar $opts_arg opts
   variable a_sim_vars
+
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
+  set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
+  set s_64bit {-64}
+  if { ($::tclapp::xilinx::modelsim::a_modelsim_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    set s_64bit {-32}
+  }
+
   switch $tool {
     "vcom" {
-      lappend opts "\$${tool}_opts"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set arg_list [list $s_64bit]
+        set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
+        lappend arg_list "-$vhdl_syntax"
+        set more_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
+        if { {} != $more_options } {
+          set arg_list [linsert $arg_list end "$more_options"]
+        }
+        set cmd_str [join $arg_list " "]
+        lappend opts $cmd_str
+      } else {
+        lappend opts "\$${tool}_opts"
+      }
     }
     "vlog" {
-      lappend opts "\$${tool}_opts"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set arg_list [list $s_64bit "-incr"]
+        set more_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
+        if { {} != $more_options } {
+          set arg_list [linsert $arg_list end "$more_options"]
+        }
+        set cmd_str [join $arg_list " "]
+        lappend opts $cmd_str
+      } else {
+        lappend opts "\$${tool}_opts"
+      }
       if { [string equal -nocase $file_type "systemverilog"] } {
         lappend opts "-sv"
       }
@@ -2351,11 +2384,19 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
   if { $a_sim_vars(b_absolute_path) } {
     set file "[usf_resolve_file_path $file]"
   } else {
-    set file "\$origin_dir/[usf_get_relative_file_path $file $dir]"
+    if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+      set file "./[usf_get_relative_file_path $file $dir]"
+    } else {
+      set file "\$origin_dir/[usf_get_relative_file_path $file $dir]"
+    }
   }
-  
-  # any spaces in file path, escape it?
-  regsub -all { } $file {\\\\ } file
+
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+    # no op
+  } else {
+    # any spaces in file path, escape it?
+    regsub -all { } $file {\\\\ } file
+  }
 
   set compiler [usf_get_compiler_name $file_type]
   set arg_list [list]
