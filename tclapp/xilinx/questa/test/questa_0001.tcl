@@ -6,7 +6,7 @@ puts "== Unit Test directory: $file_dir"
 #puts "== Application directory: $::env(XILINX_TCLAPP_REPO)"
 #lappend auto_path $::env(XILINX_TCLAPP_REPO)
 
-set name "modelsim_0001"
+set name "questa_0001"
 
 create_project $name ./$name
 add_files -fileset sources_1 "$file_dir/src/top.v"
