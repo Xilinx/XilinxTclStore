@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <remote>master</remote>
+  <remote>2014.4</remote>
   <support_commit_id>250e258de96f8ad71f6a3893fd494c638ef0dd92</support_commit_id>
   <release>2014.4</release>
   <revision>2.1</revision>
@@ -68,8 +68,8 @@
     <app>
       <name>tk_tunnel</name>
       <company>xilinx</company>
-      <commit_id>687c74e92f120e7dc3ca66a17605d358e9dea588</commit_id>
-      <revision>1.4</revision>
+      <commit_id>6adae80e34bb24a5254ad63a78373fdb50cd2c44</commit_id>
+      <revision>1.5</revision>
     </app>
     <app>
       <name>ultrafast</name>

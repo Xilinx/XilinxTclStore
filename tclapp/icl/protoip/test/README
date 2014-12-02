@@ -1,0 +1,75 @@
+icl/protoip/test description
+
+## test\_fix\_0001.tcl
+
+The goal of this test is to validate and build an IP prototype named "my\_project1" starting from the template project using **fixed-point arithmetic** targeting a **zedboard**.
+
+### Template specification:
+
+*Name			| Direction		| Number of data 			| Data representation*
+
+x0			 	| Input         | X0\_IN\_LENGTH=3 			|data type "data\_t\_x0\_in" is fixed-point: X0\_IN\_INTEGERLENGTH=10  bits integer length, X0\_IN\_FRACTIONLENGTH=6  bits fraction length
+
+x1			 	| Input         | X1\_IN\_LENGTH=7 			|data type "data\_t\_x1\_in" is fixed-point: X1\_IN\_INTEGERLENGTH=10  bits integer length, X1\_IN\_FRACTIONLENGTH=6  bits fraction length
+
+y0			 	| Output        | Y0\_OUT\_LENGTH=4 			|data type "data\_t\_y0\_in" is fixed-point: Y0\_OUT\_INTEGERLENGTH=10  bits integer length, Y0\_OUT\_FRACTIONLENGTH=6  bits fraction length
+
+
+FPGA circuit clock frequency:* 	150 MHz
+
+*FPGA name:*						xc7z020clg484-1
+
+*Evaluation Broad name:*			zedboard
+
+*Algorithm:*
+
+y0[0]=x0[0]+x0[1]+x0[2]+x1[0]+x1[1]+x1[2]+x1[3]+x1[4]+x1[5]+x1[6];
+y0[1]=x0[0]+x0[1]+x0[2]+x1[0]+x1[1]+x1[2]+x1[3]+x1[4]+x1[5]+x1[6];
+y0[2]=x0[0]+x0[1]+x0[2]+x1[0]+x1[1]+x1[2]+x1[3]+x1[4]+x1[5]+x1[6];
+y0[3]=x0[0]+x0[1]+x0[2]+x1[0]+x1[1]+x1[2]+x1[3]+x1[4]+x1[5]+x1[6];
+
+
+### The following TCL scripts will be called: 
+ 
+- create a new IP project template named "my\_project0"
+
+		tclapp::icl::protoip::make_template -project_name my_project0 -input x0:3:fix:10:6 -input x1:7:fix:10:6 -output y0:4:fix:10:6
+- copy "my\_project0" into "my\_project1" 
+
+		tclapp::icl::protoip::ip_design_duplicate -from my_project0 -to my_project1
+- delete "my\_project0"
+
+		tclapp::icl::protoip::ip_design_delete -project_name my_project0
+
+- make stimuls vectors with random data
+
+		tclapp::icl::protoip::make_rand_stimuli -project_name my_project1
+
+- run a C simulation of the IP project template named "m\y_project1" using Vivado HLS and Matlab to generate the stimuli and check the results
+
+
+		tclapp::icl::protoip::ip_design_test -project_name my_project1 -num_test 1 -type_test c 
+- run a RTL simulation of the IP project  template named "my\_project1" using Vivado HLS and Matlab to generate the stimuli and check the results
+
+		tclapp::icl::protoip::ip_design_test -project_name my_project1 -num_test 1 -type_test xsim 
+- built the IP XACT of the IP project template using Vivado HLS
+
+		tclapp::icl::protoip::ip_design_build -project_name my_project1  -fclk 150 
+- build the IP prototype using Vivado and targeting a Zedboaerd
+
+		tclapp::icl::protoip::ip_prototype_build -project_name my_project1
+	
+### Returns the following text on the screen if the test is successfully:
+
+
+	Test test_fix_0001 report (date - time)
+	------------------------------------------------	
+	== make_template test -> SECCESSFULLY
+	== ip_design_duplicate test -> SECCESSFULLY
+	== ip_design_delete test -> SECCESSFULLY
+	== make_rand_stimuli test -> SECCESSFULLY
+	== ip_design_test C test -> SECCESSFULLY
+	== ip_design_test XSIM test -> SECCESSFULLY
+	== ip_design_build test -> SECCESSFULLY
+	== ip_prototype_build test -> SECCESSFULLY
+

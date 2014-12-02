@@ -295,30 +295,6 @@ proc usf_set_sim_tcl_obj {} {
   return 0
 }
 
-proc usf_set_ref_dir { fh } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  # setup source dir var
-  puts $fh "# Directory path for design sources and include directories (if any) wrt this path"
-  if { $a_sim_vars(b_absolute_path) } {
-    if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "origin_dir=\"$a_sim_vars(s_launch_dir)\""
-    } else {
-      puts $fh "set origin_dir=\"$a_sim_vars(s_launch_dir)\""
-    }
-  } else {
-    if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "origin_dir=\".\""
-    } else {
-      puts $fh "set origin_dir=\".\""
-    }
-  }
-  puts $fh ""
-} 
-
 proc usf_write_design_netlist {} {
   # Summary:
   # Argument Usage:
@@ -580,9 +556,13 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
-     } else {
-       if { $ref_dir } {
-        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+    } else {
+      if { $ref_dir } {
+        if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+          set dir "./[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        } else {
+          set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        }
       }
     }
     lappend dir_names $dir
@@ -609,50 +589,55 @@ proc usf_get_top_library { } {
     set tcl_obj [get_filesets $a_sim_vars(s_simset)]
   }
 
-  # get the default top library set for the project
+  # 1. get the default top library set for the project
   set default_top_library [get_property "DEFAULT_LIB" [current_project]]
 
-  # get the library associated with the top file from the 'top_lib' property on the fileset
+  # 2. get the library associated with the top file from the 'top_lib' property on the fileset
   set fs_top_library [get_property "TOP_LIB" [get_filesets $tcl_obj]]
 
-  # post* simulation flow
-  if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-    # It isn't clear this is always appropriate, but it is at least consistent. Prior
-    # to this there were cases where the post- netlist was being designated with the
-    # default library, but the top_lib was being obtained from the _pSimSet, and these
-    # didnt match. A better fix might be forcing the netlist into the _pSimSet top library.
-    if { {} != $default_top_library } {
-      return $default_top_library
-    } elseif { {} != $fs_top_library } {
-      return $fs_top_library
-    } else {
-      return "xil_defaultlib"
+  # 3. get the library associated with the last file in compile order
+  set co_top_library {}
+  if { ({behav_sim} == $flow) } {
+    if { [llength $l_compile_order_files] > 0 } {
+      set co_top_library [get_property "LIBRARY" [lindex [get_files -all [list "[lindex $l_compile_order_files end]"]] 0]]
+    }
+  } elseif { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+    set file_list [get_files -quiet -compile_order sources -used_in synthesis_post -of_objects [get_filesets $tcl_obj]]
+    if { [llength $file_list] > 0 } {
+      set co_top_library [get_property "LIBRARY" [lindex $file_list end]]
     }
   }
 
-  # behavioral simulation
-
-  # fetch top library from compile order
-  set co_top_library {}
-  if { [llength $l_compile_order_files] > 0 } {
-    set co_top_library [get_property "LIBRARY" [lindex [get_files -all [list "[lindex $l_compile_order_files end]"]] 0]]
-  }
-
-  # make sure default or fileset top library matches with the library from compile order, if not, then return the compile order library
-  if { {} != $default_top_library } { 
+  # 4. if default top library is set and the compile order file library is different
+  #    than this default, return the compile order file library
+  if { {} != $default_top_library } {
+    # compile order library is set and is different then the default
     if { ({} != $co_top_library) && ($default_top_library != $co_top_library) } {
       return $co_top_library
     } else {
+      # worst case (default is set but compile order file library is empty or we failed to get the library for some reason)
       return $default_top_library
     }
-  } elseif { {} != $fs_top_library } { 
+  }
+
+  # 5. default top library is empty at this point
+  #    if fileset top library is set and the compile order file library is different
+  #    than this default, return the compile order file library
+  if { {} != $fs_top_library } {
+    # compile order library is set and is different then the fileset
     if { ({} != $co_top_library) && ($fs_top_library != $co_top_library) } {
       return $co_top_library
     } else {
+      # worst case (fileset library is set but compile order file library is empty or we failed to get the library for some reason)
       return $fs_top_library
     }
   }
-    
+
+  # 6. Both the default and fileset library are empty, return compile order library else xilinx default
+  if { {} != $co_top_library } {
+    return $co_top_library
+  }
+
   return "xil_defaultlib"
 }
 
@@ -749,7 +734,11 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
     }
 
     if { [string length $val] > 0 } {
-      set str "$str\"$val\""
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set str "$str$val"
+      } else {
+        set str "$str\"$val\""
+      }
     }
 
     switch -regexp -- $tool {
@@ -1390,7 +1379,11 @@ proc usf_launch_script { simulator step } {
   }
   cd $cwd
   if { $faulty_run } {
-    [catch {send_msg_id USF-ModelSim-070 ERROR "'$step' step failed with error(s). Please check the Tcl console output or '$results_log' file for more information.\n"}]
+    if { {} == $results_log} {
+      [catch {send_msg_id USF-ModelSim-070 ERROR "'$step' step failed with error(s). Please check the Tcl console output for more information.\n"}]
+    } else {
+      [catch {send_msg_id USF-ModelSim-070 ERROR "'$step' step failed with error(s). Please check the Tcl console output or '$results_log' file for more information.\n"}]
+    }
     # IMPORTANT - *** DONOT MODIFY THIS ***
     error "_SIM_STEP_RUN_EXEC_ERROR_"
     # IMPORTANT - *** DONOT MODIFY THIS ***
@@ -1781,7 +1774,11 @@ proc usf_get_include_dirs { } {
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
     } else {
-      set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set dir "./[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      } else {
+        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      }
     }
     lappend dir_names $dir
   }
@@ -1861,7 +1858,11 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
       if { $a_sim_vars(b_absolute_path) } {
         set incl_file_path "[usf_resolve_file_path $file_path]"
       } else {
-        set incl_file_path "\$origin_dir/[usf_get_relative_file_path $file_path $dir]"
+        if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+          set incl_file_path "./[usf_get_relative_file_path $file_path $dir]"
+        } else {
+          set incl_file_path "\$origin_dir/[usf_get_relative_file_path $file_path $dir]"
+        }
       }
       lappend incl_header_paths $incl_file_path
       lappend unique_paths      $file_path
@@ -1910,7 +1911,11 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
           if { $ref_dir } {
-           set incl_file_path "\$origin_dir/[usf_get_relative_file_path $incl_file_path $dir]"
+            if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+              set incl_file_path "./[usf_get_relative_file_path $incl_file_path $dir]"
+            } else {
+              set incl_file_path "\$origin_dir/[usf_get_relative_file_path $incl_file_path $dir]"
+            }
           }
         }
         lappend incl_file_paths $incl_file_path
@@ -1933,7 +1938,11 @@ proc usf_get_incl_files_from_ip { tcl_obj } {
     if { $a_sim_vars(b_absolute_path) } {
       set file "[usf_resolve_file_path $file]"
     } else {
-      set file "\$origin_dir/[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set file "./[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+      } else {
+        set file "\$origin_dir/[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+      }
     }
     lappend incl_files $file
   }
@@ -1955,7 +1964,11 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
     } else {
-      set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set dir "./[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      } else {
+        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      }
     }
     lappend incl_dirs $dir
   }
@@ -2116,13 +2129,42 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
 
   upvar $opts_arg opts
   variable a_sim_vars
+
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
+  set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
+  set s_64bit {-64}
+  if { ($::tclapp::xilinx::modelsim::a_modelsim_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    set s_64bit {-32}
+  }
+
   switch $tool {
     "vcom" {
-      lappend opts "\$${tool}_opts"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set arg_list [list $s_64bit]
+        set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
+        lappend arg_list "-$vhdl_syntax"
+        set more_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
+        if { {} != $more_options } {
+          set arg_list [linsert $arg_list end "$more_options"]
+        }
+        set cmd_str [join $arg_list " "]
+        lappend opts $cmd_str
+      } else {
+        lappend opts "\$${tool}_opts"
+      }
     }
     "vlog" {
-      lappend opts "\$${tool}_opts"
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set arg_list [list $s_64bit "-incr"]
+        set more_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
+        if { {} != $more_options } {
+          set arg_list [linsert $arg_list end "$more_options"]
+        }
+        set cmd_str [join $arg_list " "]
+        lappend opts $cmd_str
+      } else {
+        lappend opts "\$${tool}_opts"
+      }
       if { [string equal -nocase $file_type "systemverilog"] } {
         lappend opts "-sv"
       }
@@ -2345,11 +2387,19 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
   if { $a_sim_vars(b_absolute_path) } {
     set file "[usf_resolve_file_path $file]"
   } else {
-    set file "\$origin_dir/[usf_get_relative_file_path $file $dir]"
+    if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+      set file "./[usf_get_relative_file_path $file $dir]"
+    } else {
+      set file "\$origin_dir/[usf_get_relative_file_path $file $dir]"
+    }
   }
-  
-  # any spaces in file path, escape it?
-  regsub -all { } $file {\\\\ } file
+
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+    # no op
+  } else {
+    # any spaces in file path, escape it?
+    regsub -all { } $file {\\\\ } file
+  }
 
   set compiler [usf_get_compiler_name $file_type]
   set arg_list [list]
@@ -2462,19 +2512,20 @@ proc usf_check_errors { step results_log_arg } {
 
   set retval 0
   set log [file normalize [file join $run_dir ${step}.log]]
-  set fh 0
-  if {[catch {open $log r} fh]} {
-    send_msg_id USF-ModelSim-099 WARNING "Failed to open file to read ($log)\n"
-    close $fh
-  } else {
-    set log_data [read $fh]
-    close $fh
-    set log_data [split $log_data "\n"]
-    foreach line $log_data {
-      if {[regexp -nocase {ONERROR} $line]} {
-        set results_log $log
-        set retval 1
-        break
+  if { [file exists $log] } {
+    set fh 0
+    if {[catch {open $log r} fh]} {
+      send_msg_id USF-ModelSim-099 WARNING "Failed to open file to read ($log)\n"
+    } else {
+      set log_data [read $fh]
+      close $fh
+      set log_data [split $log_data "\n"]
+      foreach line $log_data {
+        if {[regexp -nocase {ONERROR} $line]} {
+          set results_log $log
+          set retval 1
+          break
+        }
       }
     }
   }
