@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Initial version of Questa Advanced Simulator integration</revision_history>
+      <revision_history>Check for synthesis/implementation compile order file length before fetching library</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
