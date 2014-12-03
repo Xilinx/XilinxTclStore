@@ -20,8 +20,8 @@
     <app>
       <name>diff</name>
       <company>xilinx</company>
-      <commit_id>d4830afc5a2e2cc691b6af02e6d7736166cee8d1</commit_id>
-      <revision>2.1</revision>
+      <commit_id>6f4012ad87dd7266f5c00d46d2ef1a91f9f5e0e1</commit_id>
+      <revision>2.2</revision>
     </app>
     <app>
       <name>ies</name>
@@ -74,8 +74,8 @@
     <app>
       <name>tk_tunnel</name>
       <company>xilinx</company>
-      <commit_id>6adae80e34bb24a5254ad63a78373fdb50cd2c44</commit_id>
-      <revision>1.5</revision>
+      <commit_id>5df27ec3c1e5cd4d8af99fe3203fab40e6efb956</commit_id>
+      <revision>1.6</revision>
     </app>
     <app>
       <name>ultrafast</name>
