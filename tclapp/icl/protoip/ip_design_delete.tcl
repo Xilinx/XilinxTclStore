@@ -18,7 +18,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_design_delete {args} {
 
-	  # Summary: Delete a project from the [WORKING DIRECTORY]
+	  # Summary: Delete a project from [WORKING DIRECTORY]
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name to delete
@@ -76,8 +76,8 @@ proc ::tclapp::icl::protoip::ip_design_delete::ip_design_delete { args } {
     while {[llength $args]} {
       set name [lshift args]
       switch -regexp -- $name {
-		-project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+		 -project_name -
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
@@ -112,10 +112,10 @@ proc ::tclapp::icl::protoip::ip_design_delete::ip_design_delete { args } {
  Usage: ip_design_delete
   -project_name <arg> - Project name
                         It's a mandatory field
- [-usage|-u]:        - This help message
+ [-usage|-u]:         - This help message
 
  Description: 
-  Delete a project
+  Delete a project from [WORKING DIRECTORY]
 
  Example:
   ip_design_delete -project_name my_project0
@@ -193,6 +193,8 @@ if {$error==0} {
 			set old_mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+			set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]] 
+			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
 				
 				
 
@@ -246,7 +248,9 @@ if {$error==0} {
 		puts ""
 		return -code error
 	} else {
-		puts "Project deleted succesfully."
+		set tmp_str ""
+		append tmp_str "Project " $project_name " deleted succesfully."
+		puts $tmp_str
 		puts ""
 		return -code ok
 	}

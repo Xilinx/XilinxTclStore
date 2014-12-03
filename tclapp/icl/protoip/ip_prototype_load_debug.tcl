@@ -74,16 +74,16 @@ proc ::tclapp::icl::protoip::ip_prototype_load_debug::ip_prototype_load_debug { 
     while {[llength $args]} {
       set name [lshift args]
       switch -regexp -- $name {
-	  -project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+		-project_name -
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
 				incr error
              } 
 	     }
-		 -board_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+		  -board_name -
+        {^-b(o(a(r(d(_(n(a(me?)?)?)?)?)?)?)?)?$} {
              set board_name [lshift args]
              if {$board_name == {}} {
 				puts " -E- NO board name specified."
@@ -124,7 +124,7 @@ if {$help} {
  Description: 
   Open SDK to debug the the FPGA Ethernet server running on the FPGA ARM processor.
   
-  This command must be run only after 'ip_prototype_load' command.
+  This command must be run after 'ip_prototype_load' command only.
 
  Example:
   ip_prototype_load_debug -project_name my_project0 -board_name zedboard
@@ -182,6 +182,10 @@ if {$error==0} {
 		
 			set target_dir ""
 			append target_dir "ip_prototype/test/prj/" $project_name "." $board_name
+			
+			set source_file ""
+			append source_file "../../../build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
+		
 			
 		
 			#export to SDK

@@ -15,6 +15,7 @@ proc ::tclapp::icl::protoip::ip_design_test_debug {args} {
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
+	  # -type_test <arg>: Test(s) type
 	  # [-usage]: Usage information
 
 	  # Return Value:
@@ -72,19 +73,36 @@ proc ::tclapp::icl::protoip::ip_design_test_debug::ip_design_test_debug { args }
 	set project_name {}
 	set fclk {}
 	set FPGA_name {}
+	set type_test {}
     set returnString 0
-		set str_fix "fix"
+	set str_fix "fix"
 	set str_float "float"
+	set str_c "c"
+	set str_xsim "xsim"
+	set str_modelsim "modelsim"
     while {[llength $args]} {
       set name [lshift args]
       switch -regexp -- $name {
 		 -project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
 				incr error
              } 
+	     }
+		  -type_test -
+        {^-t(y(p(e(_(t(e(st?)?)?)?)?)?)?)?$} {
+             set type_test [lshift args]
+             if {$type_test == {}} {
+				puts " -E- NO test(s) type specified."
+				incr error
+             } else {
+				if {$type_test != $str_c && $type_test != $str_xsim && $type_test != $str_modelsim} {
+					puts " -E- test(s) type specified is not supported. Use the -usage option for more details"
+					incr error
+				 }
+			 }
 	     }
         -usage -
 		  {^-u(s(a(ge?)?)?)?$} -
@@ -114,16 +132,21 @@ proc ::tclapp::icl::protoip::ip_design_test_debug::ip_design_test_debug { args }
  Usage: ip_design_test_debug
   -project_name <arg>   - Project name
                           It's a mandatory field
+  -type_test <arg>     - Test(s) type: 
+                         'c' for C-simulation, 
+                         'xsim' for RTL-simulation via Xilinx Xsim, 
+                         'modelsim' for RTL-simulation via Menthor Graphics Modelsim
+                         It's a mandatory field
   [-usage|-u]           - This help message
 
  Description: 
-  Open the project named 'project_name' in the Vivado HLS GUI to run a 
+  Open the project named 'project_name' in the Vivado HLS GUI to debug a 
   C/RTL simulation.
   
-  This command must be run only after 'ip_design_test' command.
+  This command can be run after 'ip_design_test' command only.
 
  Example:
-  ip_design_test_debug -project_name my_project0
+  ip_design_test_debug -project_name my_project0 -type_test c
 
 
 } ]
@@ -155,8 +178,69 @@ if {$error==0} {
 			
 		} else {
 		
-		
+			#load configuration parameters
+			set  file_name ""
+			append file_name ".metadata/" $project_name "_configuration_parameters.dat"
+			set fp [open $file_name r]
+			set file_data [read $fp]
+			close $fp
+			set data [split $file_data "\n"]
+
+
+			set num_input_vectors [lindex $data 3]
+			set num_output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 1]]
+			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
 			
+			if {$type_test == {}} { 
+				if {$type_design_flow=="matlab"} {
+					set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]]
+					if {$type_test==0} {
+						set type_test "none"
+					} elseif {$type_test==1} {
+						set type_test "c"
+					} elseif {$type_test==2} {
+						set type_test "xsim"
+					} elseif {$type_test==3} {
+						set type_test "modelsim"
+					}					
+				}
+			}
+		
+		if {$type_test == {}} { 
+
+			error "-E- NO test(s) type specified. Use the -usage option for more details."
+			
+		} else {
+		
+		if {$type_test==$str_xsim || $type_test==$str_modelsim} {
+		
+			set  file_name ""
+			append file_name "ip_design/test/prj/" $project_name "/solution1/sim"
+			
+			if {[file exists $file_name] == 0} { 
+
+
+				set tmp_error ""
+				append tmp_error "-E- " $project_name " has NOT been built. Please run icl::ip_design_test -project_name " $project_name " -type_test " $type_test " first. Use the -usage option for more details."
+				error $tmp_error
+			}
+			
+		} elseif {$type_test==$str_c} {
+		
+			set  file_name ""
+			append file_name "ip_design/test/prj/" $project_name "/solution1"
+			
+			if {[file exists $file_name] == 0} { 
+
+
+				set tmp_error ""
+				append tmp_error "-E- " $project_name " has NOT been built. Please run icl::ip_design_test -project_name " $project_name " -type_test " $type_test " first. Use the -usage option for more details."
+				error $tmp_error
+			}
+		
+		}
+
+
 
 			puts ""
 			puts "Calling Vivado_HLS GUI ..."
@@ -171,16 +255,20 @@ if {$error==0} {
 			while {![eof $vivado_hls_p]} { gets $vivado_hls_p line ; puts $line }
 			close $vivado_hls_p
 
-			set directives_from ""
-			append directives_from $project_name "/solution1/directives.tcl"
-			set directives_to ""
-			append directives_to "../../src/" $project_name "_directives.tcl"
-			file copy -force  $directives_from $directives_to
+			if {$type_test==$str_xsim || $type_test==$str_modelsim} {
+			
+				set directives_from ""
+				append directives_from $project_name "/solution1/directives.tcl"
+				set directives_to ""
+				append directives_to "../../src/" $project_name "_directives.tcl"
+				file copy -force  $directives_from $directives_to
+			
+			}
 
 			
 			cd ../../../
 			
-			
+		}	
 		
 		}
 	}

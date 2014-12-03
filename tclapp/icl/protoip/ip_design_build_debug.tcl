@@ -119,7 +119,7 @@ if {$help} {
    Open the project named 'project_name' in the Vivado HLS GUI 
    to debug the IP hardware design.
   
-   This command must be run only after 'ip_design_build' command.
+   This command can be run after 'ip_design_build' command only.
 
 
   Example:
@@ -156,33 +156,43 @@ if {$error==0} {
 
 		} else {
 		
+			set  file_name ""
+			append file_name "ip_design/build/prj/" $project_name "/solution1/solution1.directive"
 		
-			
+		
+			if {[file exists $file_name] == 0} { 
 
-			puts ""
-			puts "Calling Vivado_HLS GUI ..."
-			
 
-			cd ip_design/build/prj
+			set tmp_error ""
+			append tmp_error "-E- " $project_name " has NOT been built. Please run icl::ip_design_build -project_name " $project_name "first. Use the -usage option for more details."
+			error $tmp_error
 
-			
-			# run Vivado HLS IP test
+			} else {
+
+				puts ""
+				puts "Calling Vivado_HLS GUI ..."
 				
-			set vivado_hls_p [open "|vivado_hls -p $project_name" r]
-			while {![eof $vivado_hls_p]} { gets $vivado_hls_p line ; puts $line }
-			close $vivado_hls_p
 
-			set directives_from ""
-			append directives_from $project_name "/solution1/directives.tcl"
-			set directives_to ""
-			append directives_to "../../src/" $project_name "_directives.tcl"
-			file copy -force  $directives_from $directives_to
+				cd ip_design/build/prj
 
-			
-			cd ../../../
-			
-			
-		
+				
+				# run Vivado HLS IP test
+					
+				set vivado_hls_p [open "|vivado_hls -p $project_name" r]
+				while {![eof $vivado_hls_p]} { gets $vivado_hls_p line ; puts $line }
+				close $vivado_hls_p
+
+				set directives_from ""
+				append directives_from $project_name "/solution1/directives.tcl"
+				set directives_to ""
+				append directives_to "../../src/" $project_name "_directives.tcl"
+				file copy -force  $directives_from $directives_to
+
+				
+				cd ../../../
+				
+
+			}
 		}
 	}
 	

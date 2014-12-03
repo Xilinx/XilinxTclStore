@@ -258,15 +258,15 @@ proc ::tclapp::icl::protoip::ip_design_build::ip_design_build { args } {
 			}
 	     }
 		 -project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
 				incr error
              } 
 	     }
-		 -fclk -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+		-fclk -
+        {^-f(c(lk?)?)?$} {
              set fclk [lshift args]
              if {$fclk == {}} {
 				puts " -E- NO clock frequency name specified."
@@ -274,7 +274,7 @@ proc ::tclapp::icl::protoip::ip_design_build::ip_design_build { args } {
              } 
 	     }
 		 -FPGA_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-F(P(G(A(_(n(a(me?)?)?)?)?)?)?)?$} {
              set FPGA_name [lshift args]
              if {$FPGA_name == {}} {
 				puts " -E- NO FPGA name specified."
@@ -329,14 +329,14 @@ proc ::tclapp::icl::protoip::ip_design_build::ip_design_build { args } {
 
   Description: 
    Build the IP XACT of the project named 'project_name' according to the 
-   specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt
+   specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
    using Vivado HLS. 
    
    The new specified inputs parameters overwrite 
    the one specified into configuration parameters
-   (doc/project_name/ip_configuration_parameters.txt).
+   [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt.
   
-   This command must be run only after 'make_template' command.
+   This command should be run after 'make_template' command only.
 
   Example:
    ip_design_build -project_name my_project0
@@ -416,6 +416,8 @@ if {$error==0} {
 			set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+			set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]]
+			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
 
 			
 			# update configuration parameters
@@ -523,7 +525,7 @@ if {$error==0} {
 		
 			if {$count_is_fix==[expr $num_input_vectors+$num_output_vectors] || $count_is_float==[expr $num_input_vectors+$num_output_vectors]} {
 
-				[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+				[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow]
 				[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 				
 				# update ip_design/src/foo_data.h file
