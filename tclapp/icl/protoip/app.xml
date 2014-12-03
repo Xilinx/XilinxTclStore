@@ -2,10 +2,10 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Initial release</revision_history>
+      <revision_history>3/12/2014 - Rel. 1.1</revision_history>
       <name>protoip</name>
-      <pkg_require>Vivado 2014.3</pkg_require>
-      <author>asuardi</author>
+      <pkg_require>Vivado 2014.4</pkg_require>
+      <author>asuardi &lt;&gt;</author>
       <company>icl</company>
       <company_display>Imperial College London</company_display>
       <summary>Protoip is a utility for quickly prototyping C-based IP in FPGA hardware</summary>
@@ -21,11 +21,11 @@
         </proc>
         <proc>
           <name>ip_design_delete</name>
-          <summary>Delete a project from the [WORKING DIRECTORY]</summary>
+          <summary>Delete a project from [WORKING DIRECTORY]</summary>
         </proc>
         <proc>
           <name>ip_design_duplicate</name>
-          <summary>Duplicate a project</summary>
+          <summary>Duplicate a project in [WORKING DIRECTORY]</summary>
         </proc>
         <proc>
           <name>ip_design_test</name>
@@ -41,7 +41,7 @@
         </proc>
         <proc>
           <name>ip_prototype_build_debug</name>
-          <summary>Open Vivado GUI to debug the project named &apos;project_name&apos; according to the project configuration paramenters (doc/project_name/ip_configuration_parameters.txt).</summary>
+          <summary>Open Vivado GUI to debug the project named &apos;project_name&apos; according to the project configuration parameters [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt</summary>
         </proc>
         <proc>
           <name>ip_prototype_load</name>

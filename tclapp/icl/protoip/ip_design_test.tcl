@@ -260,15 +260,15 @@ proc ::tclapp::icl::protoip::ip_design_test::ip_design_test { args } {
 			}
 	     }
 		 -project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
 				incr error
              } 
 	     }
-		 -fclk -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+		-fclk -
+        {^-f(c(lk?)?)?$} {
              set fclk [lshift args]
              if {$fclk == {}} {
 				puts " -E- NO clock frequency name specified."
@@ -276,7 +276,7 @@ proc ::tclapp::icl::protoip::ip_design_test::ip_design_test { args } {
              } 
 	     }
 		 -FPGA_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-F(P(G(A(_(n(a(me?)?)?)?)?)?)?)?$} {
              set FPGA_name [lshift args]
              if {$FPGA_name == {}} {
 				puts " -E- NO FPGA name specified."
@@ -284,7 +284,7 @@ proc ::tclapp::icl::protoip::ip_design_test::ip_design_test { args } {
              } 
 	     }
 		  -type_test -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-t(y(p(e(_(t(e(st?)?)?)?)?)?)?)?$} {
              set type_test [lshift args]
              if {$type_test == {}} {
 				puts " -E- NO test(s) type specified."
@@ -348,13 +348,13 @@ proc ::tclapp::icl::protoip::ip_design_test::ip_design_test { args } {
 
   Description: 
    Run a C/RTL simulation of the project named 'project_name' according to the 
-   specification in <WORKING DIRECTORY>/doc/project_name/ip_configuration_parameters.txt 
+   specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt 
    using Vivado HLS. 
    
    The specified inputs parameters overwrite the one specified into 
-   configuration parameters (doc/project_name/ip_configuration_parameters.txt).
+   configuration parameters [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt.
 
-  This command must be run only after 'make_template' command.
+  This command should be run after 'make_template' command only.
 
 
   Example:
@@ -390,6 +390,25 @@ if {$error==0} {
 			error $tmp_error
 			
 		} else {
+		
+			#load configuration parameters
+			set  file_name ""
+			append file_name ".metadata/" $project_name "_configuration_parameters.dat"
+			set fp [open $file_name r]
+			set file_data [read $fp]
+			close $fp
+			set data [split $file_data "\n"]
+
+
+			set num_input_vectors [lindex $data 3]
+			set num_output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 1]]
+			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
+			
+			if {$type_test == {}} { 
+				if {$type_design_flow=="matlab"} {
+					set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+				}
+			}
 		
 		
 		if {$type_test == {}} { 
@@ -434,7 +453,10 @@ if {$error==0} {
 			set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 			set old_type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
-
+			set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]] 
+			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
+			
+			
 			
 			# update configuration parameters
 			set m 0
@@ -551,7 +573,7 @@ if {$error==0} {
 			if {$count_is_fix==[expr $num_input_vectors+$num_output_vectors] || $count_is_float==[expr $num_input_vectors+$num_output_vectors]} {
 			
 			
-				[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+				[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow]
 
 				[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 				
@@ -609,66 +631,72 @@ if {$error==0} {
 				puts ""
 				puts "Calling Vivado_HLS to test the IP ..."
 				
-				# set tmp_dir ".metadata/"
-				# append tmp_dir $project_name
-				# file mkdir $tmp_dir
 				
-				# set tmp_dir "ip_design/test/results/"
-				# append tmp_dir $project_name
-				# file mkdir $tmp_dir
-				# cd $tmp_dir
+				set tmp_dir "ip_design/test/results/"
+				append tmp_dir $project_name
+				cd $tmp_dir
 				
-				# set time_stamp [clock format [clock seconds] -format "%Y-%m-%d_T-%H-%M"]
+				set time_stamp [clock format [clock seconds] -format "%Y-%m-%d_T%H-%M"]
 				
-				# foreach i $input_vectors {
-					# set file_name ""
-					# append file_name $i "_in.dat"
-					# if {[file exists $file_name] == 1} { 
-						# set file_name_new ""
-						# append file_name_new $time_stamp "_backup_" $i "_in.dat"
-						# file copy -force $file_name $file_name_new
-						# file delete -force $file_name
-					# }
-				# }
+				foreach i $input_vectors {
+					set file_name ""
+					append file_name $i "_in.dat"
+					if {[file exists $file_name] == 1} { 
+						set file_name_new ""
+						append file_name_new $time_stamp "_backup_" $i "_in.dat"
+						file copy -force $file_name $file_name_new
+					}
+				}
+
+				foreach i $output_vectors {
+					set file_name ""
+					append file_name $i "_out.dat"
+					if {[file exists $file_name] == 1} { 
+						set file_name_new ""
+						append file_name_new $time_stamp "_backup_" $i "_out.dat"
+						file copy -force $file_name $file_name_new
+					}
+					set file_name ""
+					append file_name $i "_out_project_template_expected_result.dat"
+					if {[file exists $file_name] == 1} { 
+						set file_name_new ""
+						append file_name_new $time_stamp "_backup_" $i "_out_project_template_expected_result.dat"
+						file copy -force $file_name $file_name_new
+					}
+				}
 				
-				# foreach i $output_vectors {
-					# set file_name ""
-					# append file_name "fpga_" $i "_out.dat"
-					# if {[file exists $file_name] == 1} { 
-						# set file_name_new ""
-						# append file_name_new $time_stamp "_backup_fpga_" $i "_out_log.dat"
-						# file copy -force $file_name $file_name_new
-						# file delete -force $file_name
-					# }
-					# set file_name ""
-					# append file_name "matlab_" $i "_out_log.dat"
-					# if {[file exists $file_name] == 1} { 
-						# set file_name_new ""
-						# append file_name_new $time_stamp "_backup_matlab_" $i "_out_log.dat"
-						# file copy -force $file_name $file_name_new
-						# file delete -force $file_name
-					# }
-				# }
+
 				
-				# set file_name ""
-				# append file_name "fpga_time_log.dat"
-				# if {[file exists $file_name] == 1} { 
-					# set file_name_new ""
-					# append file_name_new $time_stamp "_backup_fpga_time_log.dat"
-					# file copy -force $file_name $file_name_new
-					# file delete -force $file_name
-				# }
+				cd ../../../../
 				
-				# cd ../../../../
-				
+
 				
 				# run Vivado HLS to test the IP. Vivado HLS expects that the stimuli are available 
+				cd ip_design/src
 				set  file_name ""
-				append file_name ".metadata/" $project_name "_ip_design_test.tcl"
+				append file_name "../../.metadata/" $project_name "_ip_design_test.tcl"
 					
 				set vivado_hls_p [open "|vivado_hls -f $file_name" r]
 				while {![eof $vivado_hls_p]} { gets $vivado_hls_p line ; puts $line }
 				close $vivado_hls_p
+				
+				cd ../..
+				
+				set tmp_dir "ip_design/test/results/"
+				append tmp_dir $project_name
+				cd $tmp_dir
+				
+				foreach i $input_vectors {
+					set file_name ""
+					append file_name "../../stimuli/" $project_name "/" $i "_in.dat"
+					if {[file exists $file_name] == 1} { 
+						set file_name_new ""
+						append file_name_new $i "_in.dat"
+						file copy -force $file_name $file_name_new
+					}
+				}
+				
+				cd ../../../../
 
 			} else {			
 				

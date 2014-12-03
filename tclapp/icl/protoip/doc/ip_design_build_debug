@@ -2,10 +2,11 @@
    Open the project named 'project_name' in the Vivado HLS GUI 
    to debug the IP hardware design.
   
-   This command must be run only after 'ip_design_build' command.
+   This command can be run after 'ip_design_build' command only.
 
 
   Example:
    ip_design_build_debug -project_name my_project0
+
 
 
