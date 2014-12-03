@@ -76,7 +76,7 @@ proc ::tclapp::icl::protoip::ip_prototype_build::ip_prototype_build { args } {
       set name [lshift args]
       switch -regexp -- $name {
 		  -board_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-b(o(a(r(d(_(n(a(me?)?)?)?)?)?)?)?)?$} {
              set board_name [lshift args]
              if {$board_name == {}} {
 				puts " -E- NO board name specified."
@@ -84,7 +84,7 @@ proc ::tclapp::icl::protoip::ip_prototype_build::ip_prototype_build { args } {
              } 
 	     }
 		 -project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
@@ -128,16 +128,20 @@ proc ::tclapp::icl::protoip::ip_prototype_build::ip_prototype_build { args } {
   Build the IP prototype of the project named 'project_name' 
   associated to the evaluation board name 'board_name'
   according to the project configuration parameters
-  (doc/project_name/ip_configuration_parameters.txt).
+  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
 
   The specified inputs parameters overwrite the one specified into 
-  configuration parameters (doc/project_name/ip_configuration_parameters.txt).
+  configuration parameters 
+  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
  
   The board name must match the FPGA model. Please refer to 
-  doc/project_name/ip_configuration_parameters.txt
+  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
   for a detailed description.
   
-  This command must be run only after 'ip_design_build' command.
+  IP prototype implementation report with resources utilization and power consumption 
+  is available in [WORKING DIRECTORY]/doc/project_name/ip_prototype.txt
+  
+  This command should be run after 'ip_design_build' command only.
 
  
  Example:
@@ -223,7 +227,9 @@ if {$error==0} {
 			set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
-
+			set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]]
+			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
+			
 			
 			# update configuration parameters
 			
@@ -271,7 +277,7 @@ if {$error==0} {
 			
 			
 			
-			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow]
 			##make configuration parameters readme
 			[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 

@@ -1,5 +1,6 @@
 package require Tcl 8.5
-package require Vivado 1.2014.2
+#~ package require Vivado 1.2014.2
+package require Vivado 1.2014.4
 
 namespace eval ::tclapp::icl::protoip {
 
@@ -10,4 +11,4 @@ namespace eval ::tclapp::icl::protoip {
     }
 
 }
-package provide ::tclapp::icl::protoip 1.0
+package provide ::tclapp::icl::protoip 1.1

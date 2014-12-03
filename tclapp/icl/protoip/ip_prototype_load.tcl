@@ -76,8 +76,8 @@ proc ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load { args } {
     while {[llength $args]} {
       set name [lshift args]
       switch -regexp -- $name {
-		-project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+		 -project_name -
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
@@ -85,7 +85,7 @@ proc ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load { args } {
              } 
 	     }
 		  -board_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-b(o(a(r(d(_(n(a(me?)?)?)?)?)?)?)?)?$} {
              set board_name [lshift args]
              if {$board_name == {}} {
 				puts " -E- NO board name specified."
@@ -93,7 +93,7 @@ proc ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load { args } {
              } 
 	     }
 		 -type_eth -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-t(y(p(e(_(e(th?)?)?)?)?)?)?$} {
              set type_eth [lshift args]
              if {$type_eth == {}} {
 				puts " -E- NO ethernet connection type name specified."
@@ -101,7 +101,7 @@ proc ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load { args } {
              } 
 	     }
 		  -mem_base_address -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-m(e(m(_(b(a(s(e(_(a(d(r(e(s?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
              set mem_base_address [lshift args]
              if {$mem_base_address == {}} {
 				puts " -E- NO DDR3 memory base address specified."
@@ -146,12 +146,12 @@ proc ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load { args } {
  Description: 
   Build the FPGA Ethernet server application using SDK according 
   to the project configuration parameters
- (doc/project_name/ip_configuration_parameters.txt)
+ [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
   and program the FPGA.
   
  An evaluation board connected to an host computer through an Ethernet and USB JTAG cable is required.
  
- This command must be run only after 'ip_prototype_build' command.
+ This command can be run after 'ip_prototype_build' command only.
 
  Example:
   ip_prototype_load -project_name my_project0  -board_name zedboard -type_eth udp
@@ -235,7 +235,8 @@ if {$error==0} {
 			set old_mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
-			
+			set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]]
+			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
 			
 		
 
@@ -308,7 +309,7 @@ if {$error==0} {
 			
 			} else {
 			
-			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow]
 			[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 			
 			# update ip_design/src/FPGAclientAPI.h file
@@ -328,6 +329,7 @@ if {$error==0} {
 			file mkdir $target_dir
 			cd $target_dir
 			file copy -force $source_file design_1_wrapper.hdf
+			
 			file copy -force ../../../../.metadata/build_sdk_project.tcl build_sdk_project.tcl
 			file copy -force ../../../../.metadata/run_fpga_prototype.tcl run_fpga_prototype.tcl
 			
@@ -342,7 +344,6 @@ if {$error==0} {
 			# set sdk_exit_flag=0 if error, sdk_exit_flag=1 if NOT error
 			set sdk_exit_flag [file exists test_fpga/Release/test_fpga.elf]
 
-			
 
 			set error 0
 			if {$sdk_exit_flag==1}  {

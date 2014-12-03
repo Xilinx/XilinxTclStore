@@ -18,13 +18,14 @@ proc ::tclapp::icl::protoip::make_template {args} {
 	# Summary: Build the IP prototype project template in the current working directory
 
 	# Argument Usage:
+	# -type <arg>: Template type
 	# -project_name <arg>: Project name
 	# -input <arg>: Input vector name,size and type separated by ':' symbol
 	# -output <arg>: Output vector name,size and type separated by ':' symbol
 	# [-usage]: Usage information
 
 	# Return Value:
-	# Return the IP prototype project template according to the specified input and outputs vectors in the current working directory. If any error occur TCL_ERROR is returned
+	# Return the IP prototype project template according to the specified input and outputs vectors in the [WORKING DIRECTORY]. The project configuration parameters report is available in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt. If any error occur TCL_ERROR is returned
 
 	# Categories: 
 	# xilinxtclstore, protoip
@@ -85,6 +86,8 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
 	set output_vectors_integer_length {}
 	set output_vectors_fraction_length {}
 	set project_name {}
+	set type_template {}
+	set type_design_flow {}
     set returnString 0
 	set str_fix "fix"
 	set str_float "float"
@@ -264,10 +267,19 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
 			}
 	     }
 		 -project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
+				incr error
+             } 
+	     }
+		 -type -
+        {^-t(y(pe?)?)?$} {
+             set type_template [lshift args]
+			 set type_design_flow "vivado"
+             if {$type_template == {}} {
+				puts " -E- NO template type specified."
 				incr error
              } 
 	     }
@@ -297,6 +309,10 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
  if {$help} {
       puts [format {
   Usage: make_template
+ -type <arg>          - Template project type. 
+                        Now only a template with the algorithm running inside 
+                        the FPGA programmable logic is supported ('PL').
+                        It's a mandatory field
  -project_name <arg>  - Project name
                         It's a mandatory field
  -input <arg>         - Input vector name,size and type separated by : symbol
@@ -316,8 +332,10 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
   [-usage|-u]         - This help message
 
  Description: 
-  Build the IP prototype project template in the current working directory 
+  Build the IP prototype project template in the [WORKING DIRECTORY] 
   according to the specified input and outputs vectors.
+  The project configuration parameters report is available in 
+  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
  
  
 
@@ -329,7 +347,7 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
   1 output vector: 
   y0[3] fixed point (integer length 3 and fraction length 2)
   
-  make_template -project_name my_project0 -input x0:1:fix:4:2 -input x1:2:fix:6:4 -output y0:3:fix:3:2
+  make_template -type PL -project_name my_project0 -input x0:1:fix:4:2 -input x1:2:fix:6:4 -output y0:3:fix:3:2
   
  Example 2:
   IP prototype with 2 inputs vectors: 
@@ -339,7 +357,7 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
   1 output vector: 
   y0[4] floating point
   
-  make_template -project_name my_project0 -input x0:1:float -input x1:2:float -output y0:4:float
+  make_template -type PL -project_name my_project0 -input x0:1:float -input x1:2:float -output y0:4:float
 
 
 } ]
@@ -355,128 +373,228 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
     
 if {$help==0} {  
 
-	#-------------------------------------------------------
-    # integer and fraction length correctness checks
-    #-------------------------------------------------------
-	set count 0
-	set str_fix "fix"
-	foreach i $input_vectors {
-		if {[lindex $input_vectors_type $count]==$str_fix} {
-			if {[expr [lindex $input_vectors_integer_length $count] + [lindex $input_vectors_fraction_length $count]]>=32} {
-				puts " -E- input vector $i: word length (integer_length + fraction_length) must be smaller or equal to 32 bits."
-				incr error
-			}
-		} 
-		incr count
-	}
-	set count 0
-	set str_fix "fix"
-	foreach i $output_vectors {
-		if {[lindex $output_vectors_type $count]==$str_fix} {
-			if {[expr [lindex $output_vectors_integer_length $count] + [lindex $output_vectors_fraction_length $count]]>=32} {
-				puts " -E- output vector $i: word length (integer_length + fraction_length) must be smaller or equal to 32 bits."
-				incr error
-			}
-		} 
-		incr count
-	}
+
+	set  file_name ""
+	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
+	
+	if {$project_name == {}} {
+	
+		error " -E- NO project name specified. Use the -usage option for more details."
+		
+	} else {
 	
 
-	#-------------------------------------------------------
-    # Input and outputs correctness checks
-    # Print to screen input and outputs vectors if any, 
-    #------------------------------------------------------- 
-
-	#checks if there are input vector with the same name
-	set error_i 0
-	set count_i 0
-	foreach i $input_vectors {
-		set count_j 0
-		foreach j $input_vectors {
-			if {$count_j > $count_i} { 
-				if {$i == $j} {
-					incr error_i
-				}
-			}
-			incr count_j
-		}
-		incr count_i
-	}
-	if {$error_i>0} {
-		puts " -E- there are inputs vector with the same name"
-		incr error
-	}
-	
-	#checks if there are output vector with the same name
-	set error_o 0
-	set count_i 0
-	foreach i $output_vectors {
-		set count_j 0
-		foreach j $output_vectors {
-			if {$count_j > $count_i} { 
-				if {$i == $j} {
-					incr error_o
-				}
-			}
-			incr count_j
-		}
-		incr count_i
-	}
-	if {$error_o>0} {
-		puts " -E- there are outputs vector with the same name"
-		incr error
-	}
 	
 
-	#checks if there is at least one input vector 
-	   if {[lindex $input_vectors 0] == {}} {
-		puts " -E- there are NO input vectors."
-		incr error
-	   }
-	   #checks if there is at least one output vector 
-	   if {[lindex $output_vectors 0] == {}} {
-	    puts " -E- there are NO outputs vectors."
-		incr error
-	   }
-	   
-	   if {$error==0} {
-		    puts ""
-		    puts "input vectors list:"
-		    puts "---------------------------"
-		    set m 0
-		    foreach i $input_vectors {
-				if {[lindex $input_vectors_length $m] != {}}  {
-					if {[lindex $input_vectors_type $m]==$str_fix} {
-						puts "input vector  $m: '$i' is [lindex $input_vectors_length $m] element(s) of [lindex $input_vectors_type $m](s) (integer length = [lindex $input_vectors_integer_length $m] bits, fraction length = [lindex $input_vectors_fraction_length $m] bits)"
-					} else {
-						puts "input vector  $m: '$i' is [lindex $input_vectors_length $m] element(s) of [lindex $input_vectors_type $m](s) "
+		if {[file exists $file_name] != 0} { 
+		# if exists aready, check the design flow type. If it is "matlab", then load data from "configuration_parameters.dat" 
+			set  file_name ""
+			append file_name ".metadata/configuration_parameters_matlab_interface.dat"
+			set fp [open $file_name r]
+			set file_data [read $fp]
+			close $fp
+			set data [split $file_data "\n"]
+
+			set r_project_name [lindex $data 1]
+
+			set new_num_input_vectors [lindex $data 3]
+			set new_num_output_vectors [lindex $data [expr ($new_num_input_vectors * 5) + 4 + 1]]
+			set new_input_vectors {}
+			set new_input_vectors_length {}
+			set new_input_vectors_type {}
+			set new_input_vectors_integer_length {}
+			set new_input_vectors_fraction_length {}
+			set new_output_vectors {}
+			set new_output_vectors_length {}
+			set new_output_vectors_type {}
+			set new_output_vectors_integer_length {}
+			set new_output_vectors_fraction_length {}
+
+			for {set i 0} {$i < $new_num_input_vectors} {incr i} {
+				lappend new_input_vectors [lindex $data [expr 4 + ($i * 5)]]
+				lappend new_input_vectors_length [lindex $data [expr 5 + ($i * 5)]]
+				lappend new_input_vectors_type [lindex $data [expr 6 + ($i * 5)]]
+				lappend new_input_vectors_integer_length [lindex $data [expr 7 + ($i * 5)]]
+				lappend new_input_vectors_fraction_length [lindex $data [expr 8 + ($i * 5)]]
+			}
+			for {set i 0} {$i < $new_num_output_vectors} {incr i} {
+				lappend new_output_vectors [lindex $data [expr ($new_num_input_vectors * 5) + 4 + 2 + ($i * 5)]]
+				lappend new_output_vectors_length [lindex $data [expr ($new_num_input_vectors * 5) + 4 + 3 + ($i * 5)]]
+				lappend new_output_vectors_type [lindex $data [expr ($new_num_input_vectors * 5) + 4 + 4 + ($i * 5)]]
+				lappend new_output_vectors_integer_length [lindex $data [expr ($new_num_input_vectors * 5) + 4 + 5 + ($i * 5)]]
+				lappend new_output_vectors_fraction_length [lindex $data [expr ($new_num_input_vectors * 5) + 4 + 6 + ($i * 5)]]
+			}		
+			set new_type_template [lindex $data [expr ($new_num_input_vectors * 5) + ($new_num_output_vectors * 5) + 5 + 16]]
+			set new_type_design_flow [lindex $data [expr ($new_num_input_vectors * 5) + ($new_num_output_vectors * 5) + 5 + 18]] 
+
+			if {$type_design_flow=={}} {
+			
+				if {$new_type_design_flow=="matlab"} {
+				
+					# update configuration parameters
+					set m 0
+					foreach i $new_input_vectors_type {
+						if {$i==1} {
+							set new_input_vectors_type [lreplace $new_input_vectors_type $m $m "fix"]
+						} else {
+							set new_input_vectors_type [lreplace $new_input_vectors_type $m $m "float"]
+						}
+						incr m
 					}
-				}
-				incr m
-			    }
-
-		puts ""    
-	    
-	    
-		    puts ""
-		    puts "output vectors list:"
-		    puts "---------------------------"
-		    set m 0
-		    foreach i $output_vectors {
-			    if {[lindex $output_vectors_length $m] != {}}  {
-					if {[lindex $output_vectors_type $m]==$str_fix} {
-						puts "output vector  $m: '$i' is [lindex $output_vectors_length $m] element(s) of [lindex $output_vectors_type $m](s) (integer length = [lindex $output_vectors_integer_length $m] bits, fraction length = [lindex $output_vectors_fraction_length $m] bits)"
-					} else {
-						puts "output vector  $m: '$i' is [lindex $output_vectors_length $m] element(s) of [lindex $output_vectors_type $m](s) "
+					set m 0
+					foreach i $new_output_vectors_type {
+						if {$i==1} {
+							set new_output_vectors_type [lreplace $new_output_vectors_type $m $m "fix"]
+						} else {
+							set new_output_vectors_type [lreplace $new_output_vectors_type $m $m "float"]
+						}
+						incr m
 					}
+				
+				
+					set num_input_vectors $new_num_input_vectors
+					set num_output_vectors $new_num_output_vectors
+					set input_vectors $new_input_vectors 
+					set input_vectors_length $new_input_vectors_length 
+					set input_vectors_type $new_input_vectors_type 
+					set input_vectors_integer_length $new_input_vectors_integer_length 
+					set input_vectors_fraction_length $new_input_vectors_fraction_length 
+					set output_vectors $new_output_vectors
+					set output_vectors_length $new_output_vectors_length 
+					set output_vectors_type $new_output_vectors_type 
+					set output_vectors_integer_length $new_output_vectors_integer_length 
+					set output_vectors_fraction_length $new_output_vectors_fraction_length 
+					set type_template $new_type_template
+					set type_design_flow $new_type_design_flow
+					
 				}
-				incr m
-			    }
-		    puts ""
-	    }
+			}				
+
+			
+		}
+		
+	}
 
 		
+	#-------------------------------------------------------
+		# integer and fraction length correctness checks
+		#-------------------------------------------------------
+		set count 0
+		set str_fix "fix"
+		foreach i $input_vectors {
+			if {[lindex $input_vectors_type $count]==$str_fix} {
+				if {[expr [lindex $input_vectors_integer_length $count] + [lindex $input_vectors_fraction_length $count]]>=32} {
+					puts " -E- input vector $i: word length (integer_length + fraction_length) must be smaller or equal to 32 bits."
+					incr error
+				}
+			} 
+			incr count
+		}
+		set count 0
+		set str_fix "fix"
+		foreach i $output_vectors {
+			if {[lindex $output_vectors_type $count]==$str_fix} {
+				if {[expr [lindex $output_vectors_integer_length $count] + [lindex $output_vectors_fraction_length $count]]>=32} {
+					puts " -E- output vector $i: word length (integer_length + fraction_length) must be smaller or equal to 32 bits."
+					incr error
+				}
+			} 
+			incr count
+		}
 		
+
+		#-------------------------------------------------------
+		# Input and outputs correctness checks
+		# Print to screen input and outputs vectors if any, 
+		#------------------------------------------------------- 
+
+		#checks if there are input vector with the same name
+		set error_i 0
+		set count_i 0
+		foreach i $input_vectors {
+			set count_j 0
+			foreach j $input_vectors {
+				if {$count_j > $count_i} { 
+					if {$i == $j} {
+						incr error_i
+					}
+				}
+				incr count_j
+			}
+			incr count_i
+		}
+		if {$error_i>0} {
+			puts " -E- there are inputs vector with the same name"
+			incr error
+		}
+		
+		#checks if there are output vector with the same name
+		set error_o 0
+		set count_i 0
+		foreach i $output_vectors {
+			set count_j 0
+			foreach j $output_vectors {
+				if {$count_j > $count_i} { 
+					if {$i == $j} {
+						incr error_o
+					}
+				}
+				incr count_j
+			}
+			incr count_i
+		}
+		if {$error_o>0} {
+			puts " -E- there are outputs vector with the same name"
+			incr error
+		}
+		
+
+		#checks if there is at least one input vector 
+		   if {[lindex $input_vectors 0] == {}} {
+			puts " -E- there are NO input vectors."
+			incr error
+		   }
+		   #checks if there is at least one output vector 
+		   if {[lindex $output_vectors 0] == {}} {
+			puts " -E- there are NO outputs vectors."
+			incr error
+		   }
+		   
+		   if {$error==0} {
+				puts ""
+				puts "Input vectors list:"
+				puts "---------------------------"
+				set m 0
+				foreach i $input_vectors {
+					if {[lindex $input_vectors_length $m] != {}}  {
+						if {[lindex $input_vectors_type $m]==$str_fix} {
+							puts "input vector  $m: '$i' is [lindex $input_vectors_length $m] element(s) of [lindex $input_vectors_type $m](s) (integer length = [lindex $input_vectors_integer_length $m] bits, fraction length = [lindex $input_vectors_fraction_length $m] bits)"
+						} else {
+							puts "input vector  $m: '$i' is [lindex $input_vectors_length $m] element(s) of [lindex $input_vectors_type $m](s) "
+						}
+					}
+					incr m
+					}
+
+			puts ""    
+			
+			
+				puts ""
+				puts "Output vectors list:"
+				puts "---------------------------"
+				set m 0
+				foreach i $output_vectors {
+					if {[lindex $output_vectors_length $m] != {}}  {
+						if {[lindex $output_vectors_type $m]==$str_fix} {
+							puts "output vector  $m: '$i' is [lindex $output_vectors_length $m] element(s) of [lindex $output_vectors_type $m](s) (integer length = [lindex $output_vectors_integer_length $m] bits, fraction length = [lindex $output_vectors_fraction_length $m] bits)"
+						} else {
+							puts "output vector  $m: '$i' is [lindex $output_vectors_length $m] element(s) of [lindex $output_vectors_type $m](s) "
+						}
+					}
+					incr m
+					}
+				puts ""
+			}	
 
     
 }
@@ -505,7 +623,7 @@ if {$error==0} {
 
 	file mkdir ip_prototype/src
 	file mkdir ip_prototype/test/prj
-	file mkdir ip_prototype/test/results
+	file mkdir ip_prototype/test/results/$project_name
 	file mkdir ip_prototype/build/prj
 
 	
@@ -523,7 +641,7 @@ if {$error==0} {
 	
 
 	#make project configuration parameters file
-	[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+	[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow]
 	##make configuration parameters readme
 	[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 	
@@ -556,9 +674,13 @@ if {$error==0} {
 		}
 	}
 	
+
+
+	if {$type_template == "PL"} {
+	
+	
 	if {$count_is_fix==[expr $num_input_vectors+$num_output_vectors] || $count_is_float==[expr $num_input_vectors+$num_output_vectors]} {
-
-
+	
 		#make ip_design template source files
 		[::tclapp::icl::protoip::make_template::make_foo_user_cpp $project_name]
 		[::tclapp::icl::protoip::make_template::make_foo_cpp $project_name]
@@ -589,10 +711,18 @@ if {$error==0} {
 		[::tclapp::icl::protoip::make_template::make_build_sdk_project_tcl]
 		[::tclapp::icl::protoip::make_template::make_run_fpga_prototype_tcl]
 		
+		} else {
+
+			set tmp_str ""
+			append tmp_str " -E- Inputs and Outputs must be either fixed-point or floating-point."
+			puts $tmp_str
+			incr error
+		}
+		
 	} else {			
 		
 		set tmp_str ""
-		append tmp_str " -E- Inputs and Outputs must be either fixed-point or floating-point."
+		append tmp_str " -E- Template project type " $type_template "is not supported. Please type 'icl::protoip::make_template -usage' for usage info"
 		puts $tmp_str
 		incr error
 
@@ -611,7 +741,9 @@ if {$error==0} {
     }
 
     puts ""
-    return -code ok "Template built in [pwd] folder"
+	set tmp_str ""
+	append tmp_str "Template project type " $type_template " built in [pwd] folder successfully"
+    return -code ok $tmp_str
 }
 
 #**********************************************************************************#
@@ -757,6 +889,8 @@ set type_eth [lindex $args 14]
 set mem_base_address [lindex $args 15]
 set num_test [lindex $args 16]
 set type_test [lindex $args 17]
+set type_template [lindex $args 18]
+set type_design_flow [lindex $args 19]
 
 
 
@@ -872,6 +1006,15 @@ if {$type_test==$str_c} {
 } else {
 	puts $file 0
 }
+
+#type_template:
+puts $file "#type_template"
+puts $file $type_template
+
+#type_design_flow:
+puts $file "#type_design_flow"
+puts $file $type_design_flow
+
 
 
 close $file
@@ -2006,7 +2149,7 @@ puts $file ""
 puts $file ""
 puts $file "#load configuration parameters"
 puts $file "set  file_name \"\""
-puts $file "append file_name \".metadata/\" \$project_name \"_configuration_parameters.dat\""
+puts $file "append file_name \"../../.metadata/\" \$project_name \"_configuration_parameters.dat\""
 puts $file "set fp \[open \$file_name r\]"
 puts $file "set file_data \[read \$fp\]"
 puts $file "close \$fp"
@@ -2025,6 +2168,8 @@ puts $file "set output_vectors \{\}"
 puts $file "for \{set i 0\} \{\$i < \$num_output_vectors\} \{incr i\} \{"
 puts $file "    lappend output_vectors \[lindex \$data \[expr (\$num_input_vectors * 5) + 4 + 2 + (\$i * 5)\]\]"
 puts $file "\}"
+puts $file ""
+puts $file "cd ../.."
 puts $file ""
 puts $file "# ############################# "
 puts $file "# ############################# "
@@ -2293,6 +2438,7 @@ if {$m ==[expr [llength $output_vectors] -1]} {
 } else {
 	append malloc_length "+"
 }
+incr m
 }
 
 
@@ -3445,7 +3591,9 @@ puts $file "fid = fopen(filename, 'w');"
 puts $file "fprintf(fid, 'locked write\\n');"
 puts $file "fclose(fid);"
 puts $file ""
-puts $file "quit;"
+puts $file "if strcmp(TYPE_DESIGN_FLOW,'vivado')"
+puts $file "	quit;"
+puts $file "end"
 puts $file ""
 puts $file "end"
 
@@ -5197,6 +5345,7 @@ set type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors
 set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]] 
 
 
 set dir_name ""
@@ -5208,8 +5357,11 @@ append file_name "doc/" $project_name "/ip_configuration_parameters.txt"
 
 set file [open $file_name w]
 
-
-
+set tmp_line ""
+append tmp_line "Template type: " $type_template
+puts $file $tmp_line
+puts $file ""
+puts $file ""
 puts $file "---------------------------------------------------------"
 puts $file "Input and output vectors:"
 puts $file "---------------------------------------------------------"
@@ -5707,6 +5859,9 @@ puts $file "    assignin('caller', 'NUM_TEST', num_test_value);"
 puts $file "    "
 puts $file "    type_test_value=str2double(configuration_parameters\{20+num_inputs_value*5+num_outputs_value*5,1\});"
 puts $file "    assignin('caller', 'TYPE_TEST', type_test_value);"
+puts $file ""
+puts $file "    type_design_flow=(configuration_parameters\{24+num_inputs_value*5+num_outputs_value*5,1\});"
+puts $file "    assignin('caller', 'TYPE_DESIGN_FLOW', type_design_flow);"
 puts $file ""
 puts $file "end"
 
@@ -6436,10 +6591,10 @@ foreach i $input_vectors {
 	puts $file $tmp_line
 	
 	set tmp_line ""
-	append tmp_line "		// store " $i "_in into ../../.metadata/" $project_name "/" $i "_in.dat"
+	append tmp_line "		// store " $i "_in into ../../ip_design/test/stimuli/" $project_name "/" $i "_in.dat"
 	puts $file $tmp_line
 	set tmp_line ""
-	append tmp_line "		pFile = fopen (\"../../.metadata/" $project_name "/" $i "_in.dat\",\"w+\");"
+	append tmp_line "		pFile = fopen (\"../../ip_design/test/stimuli/" $project_name "/" $i "_in.dat\",\"w+\");"
 	puts $file $tmp_line
 	puts $file ""
 	puts $file "		for (i = 0; i < [string toupper $i]_IN_LENGTH; i++)"
@@ -6495,10 +6650,10 @@ foreach i $output_vectors {
 	puts $file $tmp_line
 	
 	set tmp_line ""
-	append tmp_line "		// load ../../.metadata/" $project_name "/" $i "_out.dat"
+	append tmp_line "		// load ../../ip_design/test/results/" $project_name "/" $i "_out.dat"
 	puts $file $tmp_line
 	set tmp_line ""
-	append tmp_line "		pFile = fopen (\"../../.metadata/" $project_name "/" $i "_out.dat\",\"r\");"
+	append tmp_line "		pFile = fopen (\"../../ip_design/test/results/" $project_name "/" $i "_out.dat\",\"r\");"
 	puts $file $tmp_line
 	puts $file ""
 	puts $file "		for (i = 0; i < packet_output_size; i++)"
