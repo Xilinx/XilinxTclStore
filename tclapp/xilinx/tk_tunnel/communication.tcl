@@ -185,8 +185,8 @@ proc launch_server {{tclsh "tclsh"} {server_file {}}} {
   puts "Attempting to launch server...\n  Server Launch Script:\n    '${server_file}'\n  Tcl Shell Path:\n    '${tclsh_path}'"
   if { $::tcl_platform(platform) == "windows" } {
     #exec {*}[auto_execok start] {} "cmd /k $tclsh_path $server_file" &
-    #return [exec $shellCmdPath /c start cmd /k $tclsh_path $server_file &]
-    return [exec $shellCmdPath /k $tclsh_path $server_file &]
+    return [exec $shellCmdPath /c start cmd /k $tclsh_path $server_file &]
+    #return [exec $shellCmdPath /k $tclsh_path $server_file &]
   } else {
     #return [exec $shellCmdPath -iconic -e $tclsh_path $server_file &]
     return [exec $shellCmdPath -e $tclsh_path $server_file &]
