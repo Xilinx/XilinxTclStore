@@ -68,8 +68,8 @@
     <app>
       <name>protoip</name>
       <company>icl</company>
-      <commit_id>a5376054bfd8ca6f4e0ef56dc070b6093af6ec85</commit_id>
-      <revision>1.0</revision>
+      <commit_id>a0ef7d293e3b6582aad97c4117e0736dd6ec820e</commit_id>
+      <revision>1.1</revision>
     </app>
     <app>
       <name>tk_tunnel</name>
