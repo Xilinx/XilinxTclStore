@@ -20,7 +20,7 @@ proc ::tclapp::icl::protoip::make_rand_stimuli {args} {
 	  # [-usage]: Usage information
 
 	  # Return Value:
-	  # Return stimuli vectors in ip_design/test/stimuli/project_name. If any error occur TCL_ERROR is returned
+	  # Return stimuli vectors in [WORKING DIRECTORY]/ip_design/test/stimuli/project_name and the expected results (using floating point double precision) in [WORKING DIRECTORY]/ip_design/test/results/project_name for the template project. If any error occur TCL_ERROR is returned
 
 	  # Categories: 
 	  # xilinxtclstore, protoip
@@ -257,7 +257,7 @@ proc ::tclapp::icl::protoip::make_rand_stimuli::make_rand_stimuli { args } {
 			}
 	     }
 		 -project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
@@ -309,9 +309,12 @@ proc ::tclapp::icl::protoip::make_rand_stimuli::make_rand_stimuli { args } {
 
   Description: 
    Create input vectors with random data (-5,5) to be used as stimuli 
-   by ip_design_test. 
+   by ip_design_test and store them in  [WORKING DIRECTORY]/ip_design/test/stimuli/project_name.
+   Expected results (using floating point double precision) 
+   for the template project are stored in 
+   [WORKING DIRECTORY]/ip_design/test/results/project_name.
 
-  This command must be run only after 'make_template' command.
+  This command should be run before 'ip_design_test' command.
 
 
   Example:
@@ -385,6 +388,8 @@ if {$error==0} {
 			set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
 			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+			set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]] 
+			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
 
 			
 			# update configuration parameters
@@ -484,9 +489,11 @@ if {$error==0} {
 
 			if {$count_is_fix==[expr $num_input_vectors+$num_output_vectors] || $count_is_float==[expr $num_input_vectors+$num_output_vectors]} {
 			
-				[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test]
+				[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow]
 
 				[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
+				
+				set template_project_result 0
 				
 				set m 0
 				foreach i $input_vectors {
@@ -496,11 +503,26 @@ if {$error==0} {
 					set file [open $file_name w]
 					
 					for {set j 0} {$j < [lindex $input_vectors_length $m]} {incr j} {
-						puts $file [expr (rand()-0.5)*10]
+						set new_data [expr (rand()-0.5)*10]
+						puts $file $new_data
+						set template_project_result [expr $template_project_result + $new_data]
 					}
 					incr m
 					close $file
+				}
+				
+				set m 0
+				foreach i $output_vectors {
+					set  file_name ""
+					append file_name "ip_design/test/results/" $project_name "/" $i "_out_project_template_expected_result.dat"
 
+					set file [open $file_name w]
+					
+					for {set j 0} {$j < [lindex $output_vectors_length $m]} {incr j} {
+						puts $file $template_project_result
+					}
+					incr m
+					close $file
 				}
 				
 			} else {			
@@ -526,7 +548,7 @@ if {$error==0} {
 		puts ""
 		return -code error
 	} else {
-		puts "Stimulus vector with random data created succesfully"
+		puts "Stimulus vectors with random data and template project expected results created succesfully"
 		puts ""
 		return -code ok
 	}

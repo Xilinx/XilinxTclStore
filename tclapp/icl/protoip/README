@@ -8,6 +8,7 @@ All documentation for **protoip** is available in the Wiki at https://github.com
 ### protoip commands list (add -usage argument for usage instructions):
 
 	::tclapp::icl::protoip::make_template
+	::tclapp::icl::protoip::make_rand_stimuli
 	::tclapp::icl::protoip::ip_design_duplicate
 	::tclapp::icl::protoip::ip_design_delete
 	::tclapp::icl::protoip::ip_design_build

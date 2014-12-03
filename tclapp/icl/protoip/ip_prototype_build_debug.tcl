@@ -11,7 +11,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_prototype_build_debug {args} {
 
-	  # Summary: Open Vivado GUI to debug the project named 'project_name' according to the project configuration paramenters (doc/project_name/ip_configuration_parameters.txt).
+	  # Summary: Open Vivado GUI to debug the project named 'project_name' according to the project configuration parameters [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
@@ -75,7 +75,7 @@ proc ::tclapp::icl::protoip::ip_prototype_build_debug::ip_prototype_build_debug 
       set name [lshift args]
       switch -regexp -- $name {
 		  -board_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-b(o(a(r(d(_(n(a(me?)?)?)?)?)?)?)?)?$} {
              set board_name [lshift args]
              if {$board_name == {}} {
 				puts " -E- NO board name specified."
@@ -83,7 +83,7 @@ proc ::tclapp::icl::protoip::ip_prototype_build_debug::ip_prototype_build_debug 
              } 
 	     }
 		 -project_name -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
 				puts " -E- NO project name specified."
@@ -126,9 +126,9 @@ proc ::tclapp::icl::protoip::ip_prototype_build_debug::ip_prototype_build_debug 
   Open Vivado GUI to debug the project named 'project_name' 
   associated to the evaluation board name 'board_name'
   according to the project configuration parameters
-  (doc/project_name/ip_configuration_parameters.txt).
+  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
   
-  This command must be run only after 'ip_prototype_build' command.
+  This command should be run after 'ip_prototype_build' command only.
 
  Example:
   ip_prototype_build_debug -project_name my_project0 -board_name zedboard

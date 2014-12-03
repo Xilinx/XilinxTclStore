@@ -29,7 +29,7 @@ puts $file ""
 close $file
 
 # create a new IP project  template named my_project0
-tclapp::icl::protoip::make_template -project_name my_project0 -input x0:3:fix:10:6 -input x1:7:fix:10:6 -output y0:4:fix:10:6
+tclapp::icl::protoip::make_template -type PL -project_name my_project0 -input x0:3:fix:10:6 -input x1:7:fix:10:6 -output y0:4:fix:10:6
 set file [open $target_file a+]
 puts $file "== make_template test -> SECCESSFULLY"
 close $file

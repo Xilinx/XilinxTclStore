@@ -11,7 +11,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::ip_design_duplicate {args} {
 
-	  # Summary: Duplicate a project
+	  # Summary: Duplicate a project in [WORKING DIRECTORY]
 
 	  # Argument Usage:
 	  # -from <arg>: Original project name to copy
@@ -71,7 +71,7 @@ proc ::tclapp::icl::protoip::ip_design_duplicate::ip_design_duplicate { args } {
       set name [lshift args]
       switch -regexp -- $name {
 		-from -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-f(r(om?)?)?$} {
              set project_name_oiginal [lshift args]
              if {$project_name_oiginal == {}} {
 				puts " -E- NO orinal project name specified."
@@ -79,7 +79,7 @@ proc ::tclapp::icl::protoip::ip_design_duplicate::ip_design_duplicate { args } {
              } 
 	     }
 		-to -
-        {^-o(u(t(p(ut?)?)?)?)?$} {
+        {^-to$} {
              set project_name_new [lshift args]
              if {$project_name_new == {}} {
 				puts " -E- NO new project name specified."
@@ -117,7 +117,7 @@ proc ::tclapp::icl::protoip::ip_design_duplicate::ip_design_duplicate { args } {
                   It's a mandatory field
   [-usage|-u]:  - This help message
 
- Description: Make a copy of a project
+ Description: Make a copy of a project in [WORKING DIRECTORY]
 
  Example:
   ip_design_duplicate -from project_name_original -to project_name_new
@@ -222,7 +222,9 @@ if {$error==0} {
 		puts ""
 		return -code error
 	} else {
-		puts "Project duplicated succesfully."
+		set tmp_line ""
+		append tmp_line "Project " $project_name_oiginal " succesfully duplicated as " $project_name_new
+		puts $tmp_line
 		puts ""
 		return -code ok
 	}
