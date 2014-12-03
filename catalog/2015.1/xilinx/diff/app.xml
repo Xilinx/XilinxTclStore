@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Various Updates</revision_history>
+      <revision_history>Fixed bug with line compare</revision_history>
       <name>diff</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
