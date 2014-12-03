@@ -520,7 +520,7 @@ proc compare_ordered_ { d1_in_results d2_in_results { d1_name "data_set_1" } { d
   if { $d1_results == $d2_results } {
     ::tclapp::xilinx::diff::print_success "They are equivalent" $channel
   }
-  while { ( $d1_pointer < $d1_length ) && ( $d2_pointer < $d2_length ) } {
+  while { ( $d1_pointer <= $d1_length ) && ( $d2_pointer <= $d2_length ) } {
     set d1_string [ lindex $d1_results $d1_pointer ]
     set d2_string [ lindex $d2_results $d2_pointer ]
     if { $d1_string == $d2_string } {
