@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>3/12/2014 - Rel. 1.1</revision_history>
+      <revision_history>Adds support to Matlab interface. Enables ip_design_test and ip_prototype_test function to backup previous test results</revision_history>
       <name>protoip</name>
       <pkg_require>Vivado 2014.4</pkg_require>
       <author>asuardi &lt;&gt;</author>
