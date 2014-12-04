@@ -331,7 +331,13 @@ proc usf_ies_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_t
   upvar $prev_file_type_arg prev_file_type
   upvar $prev_lib_arg  prev_lib
 
-  puts $fh_scr "\$bin_path/$cmd_str \\"
+  set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
+
+  if { {} != $tool_path } {
+    puts $fh_scr "\$bin_path/$cmd_str \\"
+  } else {
+    puts $fh_scr "$cmd_str \\"
+  }
   puts $fh_scr "$src_file \\"
 
   set prev_file_type $file_type
@@ -347,6 +353,7 @@ proc usf_ies_write_compile_script {} {
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
+  set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
 
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
 
@@ -362,11 +369,15 @@ proc usf_ies_write_compile_script {} {
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "#!/bin/sh -f"
     ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
-    puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\"\n"
+    if { {} != $tool_path } {
+      puts $fh_scr "\n# installation path setting"
+      puts $fh_scr "bin_path=\"$tool_path\"\n"
+    }
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
+    if { {} != $tool_path } {
+      puts $fh_scr "set bin_path=\"$tool_path\""
+    }
   }
   ::tclapp::xilinx::ies::usf_set_ref_dir $fh_scr
 
@@ -446,7 +457,11 @@ proc usf_ies_write_compile_script {} {
         }
       }
     } else {
-      puts $fh_scr "\$bin_path/$cmd_str $src_file"
+      if { {} != $tool_path } {
+        puts $fh_scr "\$bin_path/$cmd_str $src_file"
+      } else {
+        puts $fh_scr "$cmd_str $src_file"
+      }
     }
   }
 
@@ -456,7 +471,12 @@ proc usf_ies_write_compile_script {} {
     ::tclapp::xilinx::ies::usf_copy_glbl_file
     set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
     set file_str "-work $top_lib \"glbl.v\""
-    puts $fh_scr "\n# compile glbl module\n\$bin_path/ncvlog \$ncvlog_opts $file_str"
+    puts $fh_scr "\n# compile glbl module"
+    if { {} != $tool_path } {
+      puts $fh_scr "\$bin_path/ncvlog \$ncvlog_opts $file_str"
+    } else {
+      puts $fh_scr "ncvlog \$ncvlog_opts $file_str"
+    }
   }
 
   close $fh_scr
@@ -472,6 +492,7 @@ proc usf_ies_write_elaborate_script {} {
   set sim_flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
   set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
+  set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
 
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
@@ -488,11 +509,15 @@ proc usf_ies_write_elaborate_script {} {
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "#!/bin/sh -f"
     ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
-    puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\"\n"
+    if { {} != $tool_path } {
+      puts $fh_scr "\n# installation path setting"
+      puts $fh_scr "bin_path=\"$tool_path\"\n"
+    }
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
+    if { {} != $tool_path } {
+      puts $fh_scr "set bin_path=\"$tool_path\""
+    }
   }
 
   set tool "ncelab"
@@ -520,7 +545,7 @@ proc usf_ies_write_elaborate_script {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list 0 "-loadvpi \"$simulator_lib:xilinx_register_systf\""]
     } else {
-      send_msg_id USF-IES-015 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      [catch {send_msg_id USF-IES-015 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
     }
   }
 
@@ -582,8 +607,11 @@ proc usf_ies_write_elaborate_script {} {
     puts $fh_scr "set design_libs_elab=\"[join $arg_list " "]\"\n"
   }
 
-  set tool_path "\$bin_path/$tool"
-  set arg_list [list ${tool_path} "\$${tool}_opts"]
+  set tool_path_val "\$bin_path/$tool"
+  if { {} == $tool_path } {
+    set tool_path_val "$tool"
+  }
+  set arg_list [list ${tool_path_val} "\$${tool}_opts"]
 
   set obj $::tclapp::xilinx::ies::a_sim_vars(sp_tcl_obj)
   if { [::tclapp::xilinx::ies::usf_is_fileset $obj] } {
@@ -617,6 +645,8 @@ proc usf_ies_write_simulate_script {} {
   set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set b_scripts_only $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)
+  set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
+
   set filename "simulate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
@@ -629,11 +659,15 @@ proc usf_ies_write_simulate_script {} {
   if {$::tcl_platform(platform) == "unix"} { 
     puts $fh_scr "#!/bin/sh -f"
     ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
-    puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\"\n"
+    if { {} != $tool_path } {
+      puts $fh_scr "\n# installation path setting"
+      puts $fh_scr "bin_path=\"$tool_path\"\n"
+    }
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set bin_path=\"$::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)\""
+    if { {} != $tool_path } {
+      puts $fh_scr "set bin_path=\"$tool_path\""
+    }
   }
 
   set do_filename "${top}_simulate.do"
@@ -672,8 +706,11 @@ proc usf_ies_write_simulate_script {} {
   }
   puts $fh_scr ""
 
-  set tool_path "\$bin_path/$tool"
-  set arg_list [list "${tool_path}" "\$${tool}_opts" "${top_lib}.$top" "-input" "$do_filename"]
+  set tool_path_val "\$bin_path/$tool"
+  if { {} == $tool_path } {
+    set tool_path_val "$tool"
+  }
+  set arg_list [list "${tool_path_val}" "\$${tool}_opts" "${top_lib}.$top" "-input" "$do_filename"]
   set cmd_str [join $arg_list " "]
 
   puts $fh_scr "# run simulation"

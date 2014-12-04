@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Support for the system library file type</revision_history>
+      <revision_history>Support for core container</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

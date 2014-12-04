@@ -318,7 +318,13 @@ proc usf_vcs_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_t
   upvar $prev_lib_arg  prev_lib
   upvar $log_arg log
 
-  puts $fh_scr "\$bin_path/$cmd_str \\"
+  set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
+
+  if { {} != $tool_path } {
+    puts $fh_scr "\$bin_path/$cmd_str \\"
+  } else {
+    puts $fh_scr "$cmd_str \\"
+  }
   puts $fh_scr "$src_file \\"
 
   set prev_file_type $file_type
@@ -340,6 +346,8 @@ proc usf_vcs_write_compile_script {} {
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set os_type $::tclapp::xilinx::vcs::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
+  set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
+
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set scr_filename "compile";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -351,11 +359,15 @@ proc usf_vcs_write_compile_script {} {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
     ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
-    puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)\"\n"
+    if { {} != $tool_path } {
+      puts $fh_scr "\n# installation path setting"
+      puts $fh_scr "bin_path=\"$tool_path\"\n"
+    }
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set bin_path=\"$::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)\""
+    if { {} != $tool_path } {
+      puts $fh_scr "set bin_path=\"$tool_path\""
+    }
   }
 
   ::tclapp::xilinx::vcs::usf_set_ref_dir $fh_scr
@@ -448,7 +460,11 @@ proc usf_vcs_write_compile_script {} {
         set log "vlogan.log"
       }
       set redirect_cmd_str "2>&1 | tee -a $log"
-      puts $fh_scr "\$bin_path/$cmd_str $src_file $redirect_cmd_str"
+      if { {} != $tool_path } {
+        puts $fh_scr "\$bin_path/$cmd_str $src_file $redirect_cmd_str"
+      } else {
+        puts $fh_scr "$cmd_str $src_file $redirect_cmd_str"
+      }
     }
   }
 
@@ -468,7 +484,12 @@ proc usf_vcs_write_compile_script {} {
     }
     ::tclapp::xilinx::vcs::usf_copy_glbl_file
     set file_str "${work_lib_sw}\"glbl.v\""
-    puts $fh_scr "\n# compile glbl module\n\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+    puts $fh_scr "\n# compile glbl module"
+    if { {} != $tool_path } {
+      puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+    } else {
+      puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+    }
   }
   close $fh_scr
 }
@@ -482,6 +503,7 @@ proc usf_vcs_write_elaborate_script {} {
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set os_type $::tclapp::xilinx::vcs::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
+  set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
   set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
@@ -492,10 +514,14 @@ proc usf_vcs_write_elaborate_script {} {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
     ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
-    puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)\"\n"
+    if { {} != $tool_path } {
+      puts $fh_scr "\n# installation path setting"
+      puts $fh_scr "bin_path=\"$tool_path\"\n"
+    }
   } else {
-    puts $fh_scr "set bin_path=\"$::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)\""
+    if { {} != $tool_path } {
+      puts $fh_scr "set bin_path=\"$tool_path\""
+    }
   }
   set tool "vcs"
   set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
@@ -538,8 +564,11 @@ proc usf_vcs_write_elaborate_script {} {
   } else {
     puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
   }
-  set tool_path "\$bin_path/$tool"
-  set arg_list [list "${tool_path}" "\$${tool}_opts"]
+  set tool_path_val "\$bin_path/$tool"
+  if { {} == $tool_path } {
+    set tool_path_val "$tool"
+  }
+  set arg_list [list "${tool_path_val}" "\$${tool}_opts"]
 
   set obj $::tclapp::xilinx::vcs::a_sim_vars(sp_tcl_obj)
   if { [::tclapp::xilinx::vcs::usf_is_fileset $obj] } {
@@ -573,6 +602,7 @@ proc usf_vcs_write_simulate_script {} {
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set b_scripts_only $::tclapp::xilinx::vcs::a_sim_vars(b_scripts_only)
+  set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
   set filename "simulate";append filename ".sh"
   set file [file normalize [file join $dir $filename]]
   set fh_scr 0
@@ -583,8 +613,10 @@ proc usf_vcs_write_simulate_script {} {
  
   puts $fh_scr "#!/bin/sh -f"
   ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $file
-  puts $fh_scr "\n# installation path setting"
-  puts $fh_scr "bin_path=\"$::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)\"\n"
+  if { {} != $tool_path } {
+    puts $fh_scr "\n# installation path setting"
+    puts $fh_scr "bin_path=\"$tool_path\"\n"
+  }
 
   # update ld_library_path for AXI-BFM
   if { [::tclapp::xilinx::vcs::usf_is_axi_bfm_ip] } {
@@ -597,7 +629,7 @@ proc usf_vcs_write_simulate_script {} {
     }
   }
 
-  set do_filename "${top}.do"
+  set do_filename "${top}_simulate.do"
   ::tclapp::xilinx::vcs::usf_create_do_file "vcs" $do_filename
   set tool "${top}_simv"
   set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]

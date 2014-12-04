@@ -740,7 +740,7 @@ proc usf_questa_get_simulation_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      send_msg_id USF-Questa-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      [catch {send_msg_id USF-Questa-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
     }
   }
 
@@ -883,6 +883,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   set os_type $::tclapp::xilinx::questa::a_sim_vars(s_int_os_type)
   set b_batch $::tclapp::xilinx::questa::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
+  set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
 
   set scr_filename $step;append scr_filename [::tclapp::xilinx::questa::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -909,17 +910,27 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)\""
+    if { {} != $tool_path } {
+      puts $fh_scr "bin_path=\"$tool_path\""
+    }
     ::tclapp::xilinx::questa::usf_write_shell_step_fn $fh_scr
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
       puts $fh_scr "ExecStep source $do_filename 2>&1 | tee -a $log_filename"
     } else {
-      puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+      if { {} != $tool_path } {
+        puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+      } else {
+        puts $fh_scr "ExecStep vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+      }
     }
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set bin_path=$::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)"
-    puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    if { {} != $tool_path } {
+      puts $fh_scr "set bin_path=$tool_path"
+      puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    } else {
+      puts $fh_scr "call vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    }
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"

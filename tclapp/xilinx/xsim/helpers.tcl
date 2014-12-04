@@ -559,6 +559,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   # Return Value:
 
   variable a_sim_vars
+  set launch_dir $a_sim_vars(s_launch_dir)
   set dir_names [list]
   set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
@@ -579,6 +580,9 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   }
 
   foreach vh_file $vh_files {
+    if { [get_param "project.enableCoreContainer"] } {
+      set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
+    }
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -1122,27 +1126,11 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   # prepare command line args for fileset files
   if { [usf_is_fileset $target_obj] } {
     # add additional files from simulation fileset
-    set b_ignore_auto_disable 0
-    set simset_files [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]]
-    if { [llength $simset_files] == 0 } {
-      # no files in simulation fileset (check compile order and ignore auto disabled files)
-      set b_ignore_auto_disable 1
-      set mode [get_property design_mode [current_fileset -srcset]]
-      if { {RTL} == $mode } {
-        set simset_files [get_files -compile_order sources -used_in synthesis_post -of_objects [get_filesets $a_sim_vars(s_simset)]]
-      } else {
-        # TODO
-      }
-    }
+    set simset_files [get_files -compile_order sources -used_in synthesis_post -of_objects [get_filesets $a_sim_vars(s_simset)]]
     foreach file $simset_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-      # is this source file coming from source fileset? (they will be auto_disabled by default)
-      if { $b_ignore_auto_disable } {
-        # ignore auto_disabled file checking since this is coming from source fileset (design graph manager sets this flag for post* simulation)
-      } else {
-        if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]]} { continue }
-      }
+      #if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]]} { continue }
       set g_files $global_files_str
       if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files other_ver_opts]
@@ -1678,6 +1666,8 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
 
   upvar $unique_paths_arg      unique_paths
   upvar $incl_header_paths_arg incl_header_paths
+  variable a_sim_vars
+  set dir $a_sim_vars(s_launch_dir)
 
   # setup the filter to include only header types enabled for simulation
   set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
@@ -1685,6 +1675,9 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
   foreach file $vh_files {
     if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$file"]] 0]] } {
       continue
+    }
+    if { [get_param "project.enableCoreContainer"] } {
+      set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
     }
     set file_path [file normalize [string map {\\ /} [file dirname $file]]]
     if { [lsearch -exact $unique_paths $file_path] == -1 } {
@@ -1771,11 +1764,15 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   # Return Value:
 
   variable a_sim_vars
+  set launch_dir $a_sim_vars(s_launch_dir)
   set ip_name [file tail $tcl_obj]
   set incl_dirs [list]
   set filter "FILE_TYPE == \"Verilog Header\""
   set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
+    if { [get_param "project.enableCoreContainer"] } {
+      set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
+    }
     set dir [file dirname $file]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -2123,7 +2120,12 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   upvar $incl_files_arg incl_files
   variable a_sim_vars
   set file_str [list]
+  set launch_dir $a_sim_vars(s_launch_dir)
+
   foreach file $incl_files {
+    if { [get_param "project.enableCoreContainer"] } {
+      set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
+    }
     lappend file_str "\"$file\""
   }
   return [join $file_str " "]
@@ -2144,6 +2146,10 @@ proc usf_get_file_cmd_str { file file_type global_files_str other_ver_opts_arg} 
   if { {} != $file_obj } {
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set associated_library [get_property "LIBRARY" $file_obj]
+    }
+    if { [get_param "project.enableCoreContainer"] } {
+      # extract only if the file is an object
+      set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
     }
   }
   if { $a_sim_vars(b_absolute_path) } {
