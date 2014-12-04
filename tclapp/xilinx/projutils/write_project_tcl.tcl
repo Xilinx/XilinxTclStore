@@ -446,6 +446,9 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
           set repo_path_str [join $path_list " "]
           lappend l_script_data "set_property \"ip_repo_paths\" \"${repo_path_str}\" \$obj" 
           lappend l_script_data "" 
+          lappend l_script_data "# Rebuild user ip_repo's index before adding any source files"
+          lappend l_script_data "update_ip_catalog -rebuild"
+          lappend l_script_data ""
         }
       }
     }
