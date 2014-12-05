@@ -1024,7 +1024,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     }
     ::tclapp::xilinx::modelsim::usf_write_shell_step_fn $fh_scr
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      puts $fh_scr "ExecStep source $do_filename 2>&1 | tee -a $log_filename"
+      puts $fh_scr "ExecStep source ./$do_filename 2>&1 | tee -a $log_filename"
     } else {
       if { {} != $tool_path } {
         puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
