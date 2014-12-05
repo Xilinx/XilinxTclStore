@@ -45,7 +45,7 @@ proc compile { args } {
   
   set simulatorName [::tclapp::aldec::common::helpers::usf_getSimulatorName]
 
-  send_msg_id USF-${simulatorName}-76 INFO "${simulatorName}::Compile design"
+  send_msg_id USF-${simulatorName}-74 INFO "${simulatorName}::Compile design"
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
     usf_write_compile_script_native
   } else {
@@ -76,7 +76,7 @@ proc simulate { args } {
   
   set simulatorName [::tclapp::aldec::common::helpers::usf_getSimulatorName]
 
-  send_msg_id USF-${simulatorName}-77 INFO "${simulatorName}::Simulate design"
+  send_msg_id USF-${simulatorName}-75 INFO "${simulatorName}::Simulate design"
   usf_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -87,7 +87,7 @@ proc simulate { args } {
     set fh 0
     set file [file normalize [file join $dir "simulate.log"]]
     if {[catch {open $file w} fh]} {
-      send_msg_id USF-${simulatorName}-78 ERROR "Failed to open file to write ($file)\n"
+      send_msg_id USF-${simulatorName}-76 ERROR "Failed to open file to write ($file)\n"
     } else {
       puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
       close $fh
@@ -199,7 +199,7 @@ proc usf_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id USF-[usf_getSimulatorName]-79 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
+          send_msg_id USF-[usf_getSimulatorName]-77 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }
@@ -218,7 +218,7 @@ proc usf_verify_compiled_lib {} {
   set ini_file "modelsim.ini"
   set compiled_lib_dir {}
 
-  send_msg_id USF-[usf_getSimulatorName]-80 INFO "Finding pre-compiled libraries...\n"
+  send_msg_id USF-[usf_getSimulatorName]-78 INFO "Finding pre-compiled libraries...\n"
 
   # 1. find in project default dir (<project>/<project>.cache/compile_simlib
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
@@ -257,11 +257,11 @@ proc usf_verify_compiled_lib {} {
     set file [file normalize [file join $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
       if { $b_scripts_only } {
-        send_msg_id USF-[usf_getSimulatorName]-81 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+        send_msg_id USF-[usf_getSimulatorName]-79 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
       } else {
-        send_msg_id USF-[usf_getSimulatorName]-82 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+        send_msg_id USF-[usf_getSimulatorName]-80 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
       }
-      send_msg_id USF-[usf_getSimulatorName]-83 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
+      send_msg_id USF-[usf_getSimulatorName]-81 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
                                              - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim/QuestaSim, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
                                              - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
@@ -271,9 +271,9 @@ proc usf_verify_compiled_lib {} {
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
     if { [file exists $ini_file_path] } {
       if {[catch {file copy -force $ini_file_path $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)} error_msg] } {
-        send_msg_id USF-[usf_getSimulatorName]-84 ERROR "Failed to copy file ($ini_file): $error_msg\n"
+        send_msg_id USF-[usf_getSimulatorName]-82 ERROR "Failed to copy file ($ini_file): $error_msg\n"
       } else {
-        send_msg_id USF-[usf_getSimulatorName]-85 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)'\n"
+        send_msg_id USF-[usf_getSimulatorName]-83 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)'\n"
       }
     }
   }
@@ -291,13 +291,13 @@ proc usf_write_setup_files {} {
   set lib_dir [file normalize [file join $dir "msim"]]
   if { [file exists $lib_dir] } {
     if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id USF-[usf_getSimulatorName]-86 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
+      send_msg_id USF-[usf_getSimulatorName]-84 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
       return 1
     }
   }
 
   #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id USF-[usf_getSimulatorName]-87 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
+  #  send_msg_id USF-[usf_getSimulatorName]-85 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
   #  return 1
   #}
 }
@@ -316,7 +316,7 @@ proc usf_write_compile_script {} {
   set do_filename $top;append do_filename "_compile.do"
   set do_file [file normalize [file join $dir $do_filename]]
 
-  send_msg_id USF-[usf_getSimulatorName]-88 INFO "Creating automatic 'do' files...\n"
+  send_msg_id USF-[usf_getSimulatorName]-86 INFO "Creating automatic 'do' files...\n"
 
   usf_create_do_file_for_compilation $do_file
 
@@ -395,7 +395,7 @@ proc usf_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id USF-[usf_getSimulatorName]-89 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-[usf_getSimulatorName]-87 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   usf_write_header $fh $file
@@ -447,7 +447,7 @@ proc usf_create_do_file_for_compilation { do_file } {
   # Argument Usage:
   # Return Value:
   
-  send_msg_id USF-[usf_getSimulatorName]-91 INFO "$do_file\n"
+  send_msg_id USF-[usf_getSimulatorName]-88 INFO "$do_file\n"
 
   set top $::tclapp::aldec::common::helpers::a_sim_vars(s_sim_top)
   set dir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
@@ -459,7 +459,7 @@ proc usf_create_do_file_for_compilation { do_file } {
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-[usf_getSimulatorName]-92 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-[usf_getSimulatorName]-89 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
@@ -583,7 +583,7 @@ proc usf_create_do_file_for_elaboration { do_file } {
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-[usf_getSimulatorName]-93 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-[usf_getSimulatorName]-90 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
@@ -717,7 +717,7 @@ proc usf_get_simulation_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      send_msg_id USF-[usf_getSimulatorName]-94 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id USF-[usf_getSimulatorName]-91 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
     }
   }
 
@@ -772,7 +772,7 @@ proc usf_create_do_file_for_simulation { do_file } {
   set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-[usf_getSimulatorName]-95 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-[usf_getSimulatorName]-92 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
@@ -920,7 +920,7 @@ proc usf_write_driver_shell_script { do_filename step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-[usf_getSimulatorName]-96 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-[usf_getSimulatorName]-93 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
@@ -966,7 +966,7 @@ proc usf_write_driver_shell_script_native { step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-[usf_getSimulatorName]-97 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-[usf_getSimulatorName]-94 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
