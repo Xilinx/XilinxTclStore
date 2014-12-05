@@ -1,23 +1,83 @@
 # Xilinx Tk Tunnel App
 
-This app can be used to launch a Tcl/Tk 8.5 server using a standalone Tcl shell, and pass commands
-from Vivado to the Tk shell.
+This app can be used to launch a Tcl/Tk 8.5 server in a remote shell, and pass commands
+from Vivado to the Tk shell.  This enables Tk like behavior from Vivado.
 
-## Architecture
-
-The Tk Tunnel App is designed to launch a Tcl/Tk 8.5 shell with a server running.
-
-The client, in this case Vivado, can then pass commands to the server to be executed.
+_Notice_: Version 1.6 or later should be used due to known issues.
 
 ## Getting Started
 
-Require the package:
+### Require the package:
 
-    package require ::tclapp::xilinx::tk_tunnel
-
-Import the namespace, not needed, but will be used here for brevity:
+    Vivado% package require ::tclapp::xilinx::tk_tunnel
     
-    namespace import ::tclapp::xilinx::tk_tunnel::*
+    1.6
+
+### Start the server:
+
+_Note_: This command launches a remote shell with Tcl running in it, and it returns the PID of that remote shell
+
+    Vivado% ::tclapp::xilinx::tk_tunnel::launch_server "/opt/tcl/bin/tclsh8.5"
+    
+    Attempting to launch server...
+      Server Launch Script:
+        '/home/ncimino/XilinxTclStore/tclapp/xilinx/tk_tunnel/server/start.tcl'
+      Tcl Shell Path:
+        '/opt/tcl/bin/tclsh8.5'
+    2865
+    
+### Connect Vivado to the remote Tcl shell:
+
+    Vivado% ::tclapp::xilinx::tk_tunnel::start_client
+    
+    connecting to server on port: '8001'
+            waiting on server...connected
+    client listeners are now running
+
+### Send a Tk command to the remote Tcl shell:
+
+    Vivado% set response [ ::tclapp::xilinx::tk_tunnel::rexec_wait {::tclapp::xilinx::tk_tunnel::ask "Are you having fun?"} ]
+    
+    waiting for response...
+    yes
+    executed: puts stdout {yes}
+            returned: ''
+    executed: set ::tclapp::xilinx::tk_tunnel::client_return {yes}
+            returned: 'yes'
+    yes
+
+### Programtically access responses:
+
+    Vivado% puts "The user said: '${response}'"
+    
+    The user said: 'yes'
+
+### Native Tk
+
+Use the 'rexec' and 'rexec_wait' commands to send commands to the remote Tcl shell.  In the above case, the 'ask' command was used from the Tk Tunnel app, but the same behavior is observed using the native Tk commands:
+
+    Vivado% set response [ ::tclapp::xilinx::tk_tunnel::rexec_wait {tk_messageBox -type "yesno" -message "Are you having fun?" -icon question -title "Custom Question"} ]
+
+### Here are some more helper examples:
+
+    Vivado% set response [ ::tclapp::xilinx::tk_tunnel::rexec_wait {::tclapp::xilinx::tk_tunnel::choose_color} ]
+    
+    #ff0000
+    executed: puts stdout {#ff0000}
+            returned: ''
+    executed: set ::tclapp::xilinx::tk_tunnel::client_return {#ff0000}
+            returned: '#ff0000'
+    #ff0000
+
+
+    Vivado% set response [ ::tclapp::xilinx::tk_tunnel::rexec_wait {::tclapp::xilinx::tk_tunnel::choose_dir} ]
+    ...
+
+    Vivado% set response [ ::tclapp::xilinx::tk_tunnel::rexec_wait {::tclapp::xilinx::tk_tunnel::open_file} ]
+    ...
+    
+
+## Details
 
 ### Launching the Server
 
