@@ -592,8 +592,13 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
     usf_add_quit_on_error $fh "elaborate"
   }
 
-  set cmd_str [usf_modelsim_get_elaboration_cmdline]
-  puts $fh "$cmd_str"
+  
+  if { [get_param "project.enable2StepFlowForModelSim"] } {
+    # call vopt args in simulation
+  } else {
+    set cmd_str [usf_modelsim_get_elaboration_cmdline]
+    puts $fh "$cmd_str"
+  }
 
   set b_is_unix false
   if {$::tcl_platform(platform) == "unix"} {
@@ -753,6 +758,107 @@ proc usf_modelsim_get_simulation_cmdline {} {
   return $cmd_str
 }
 
+proc usf_modelsim_get_simulation_cmdline_2step {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
+  set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set sim_flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+
+  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
+
+  set tool "vsim"
+  set arg_list [list "-voptargs=\"+acc\"" "-t 1ps"]
+
+  set vhdl_generics [list]
+  set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
+  if { [llength $vhdl_generics] > 0 } {
+    ::tclapp::xilinx::modelsim::usf_append_generics $vhdl_generics arg_list  
+  }
+
+  set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_sim_options } {
+    set arg_list [linsert $arg_list end "$more_sim_options"]
+  }
+
+  # design contains ax-bfm ip? insert bfm library
+  if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {
+    set simulator_lib [usf_get_simulator_lib_for_bfm]
+    if { {} != $simulator_lib } {
+      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
+    } else {
+      [catch {send_msg_id USF-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
+    }
+  }
+
+  set t_opts [join $arg_list " "]
+
+  set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
+
+  # add simulation libraries
+  set arg_list [list]
+  # post* simulation
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { [usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
+      if { {timesim} == $netlist_mode } {
+        set arg_list [linsert $arg_list end "-L" "simprims_ver"]
+      } else {
+        set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+      }
+    }
+  }
+
+  # behavioral simulation
+  set b_compile_unifast [get_property "MODELSIM.ELABORATE.UNIFAST" $fs_obj]
+
+  if { ([::tclapp::xilinx::modelsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
+      set arg_list [linsert $arg_list end "-L" "unifast"]
+    }
+  }
+
+  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast } {
+      set arg_list [linsert $arg_list end "-L" "unifast_ver"]
+    }
+    set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+    set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
+  }
+
+  # add secureip
+  set arg_list [linsert $arg_list end "-L" "secureip"]
+
+  # add design libraries
+  set design_libs [usf_modelsim_get_design_libs $design_files]
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    lappend arg_list "-L"
+    lappend arg_list "$lib"
+    #lappend arg_list "[string tolower $lib]"
+  }
+
+  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  lappend arg_list "-lib"
+  lappend arg_list $default_lib
+  
+  set d_libs [join $arg_list " "]
+  set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
+  set arg_list [list $tool $t_opts]
+  lappend arg_list "$d_libs"
+  lappend arg_list "${top_lib}.$top"
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {    
+    lappend arg_list "${top_lib}.glbl"
+  }
+
+  set cmd_str [join $arg_list " "]
+  return $cmd_str
+}
+
+
 proc usf_modelsim_create_do_file_for_simulation { do_file } {
   # Summary:
   # Argument Usage:
@@ -774,6 +880,9 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
   usf_modelsim_create_wave_do_file $wave_do_file
   set cmd_str [usf_modelsim_get_simulation_cmdline]
+  if { [get_param "project.enable2StepFlowForModelSim"] } {
+    set cmd_str [usf_modelsim_get_simulation_cmdline_2step]
+  }
   usf_add_quit_on_error $fh "simulate"
 
   puts $fh "$cmd_str"

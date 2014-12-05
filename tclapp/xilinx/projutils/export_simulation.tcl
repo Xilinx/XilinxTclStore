@@ -26,8 +26,7 @@ namespace eval ::tclapp::xilinx::projutils {
 namespace eval ::tclapp::xilinx::projutils {
 proc export_simulation {args} {
   # Summary:
-  # NOTE-'export_simulation' is deprecated, please use 'launch_simulation -scripts_only' instead. Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
-
+  # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
   # Argument Usage:
   # [-of_objects <arg> = None]: Export simulation script for the specified object
   # [-lib_map_path <arg> = Empty]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
@@ -48,8 +47,6 @@ proc export_simulation {args} {
 
   reset_global_sim_vars
 
-  send_msg_id Vivado-projutils-061 "CRITICAL WARNING" "The command 'export_simulation' has been deprecated and will be removed in a future release of Vivado. Please update your scripts to use 'launch_simulation -scripts_only' instead. Please refer to Vivado Design Suite User Guide: Logic simulation for more information on this command"
-
   set options [split $args " "]
   # these options are must
   if {[lsearch $options {-simulator}] == -1} {
@@ -68,6 +65,9 @@ proc export_simulation {args} {
       "-of_objects"               { incr i;set a_xport_sim_vars(sp_tcl_obj) [lindex $args $i] }
       "-32bit"                    { set a_xport_sim_vars(b_32bit) 1 }
       "-absolute_path"            { set a_xport_sim_vars(b_absolute_path) 1 }
+      "-single_step"              { set a_xport_sim_vars(b_single_step) 1 }
+      "-ip_netlist"               { incr i;set a_xport_sim_vars(s_ip_netlist) [lindex $args $i] }
+      "-export_source_files"      { set a_xport_sim_vars(b_xport_src_files) 1 }
       "-lib_map_path"             { incr i;set a_xport_sim_vars(s_lib_map_path) [lindex $args $i] }
       "-script_name"              { incr i;set a_xport_sim_vars(s_script_filename) [lindex $args $i] }
       "-force"                    { set a_xport_sim_vars(b_overwrite) 1 }
@@ -140,7 +140,7 @@ variable a_xport_sim_vars
 variable l_compile_order_files [list]
 
 variable l_valid_simulator_types [list]
-set l_valid_simulator_types [list ies vcs_mx]
+set l_valid_simulator_types [list xsim modelsim questa ies vcs_mx]
 
 variable l_valid_ip_extns [list]
 set l_valid_ip_extns [list ".xci" ".bd" ".slx"]
@@ -168,8 +168,11 @@ proc reset_global_sim_vars {} {
   set a_xport_sim_vars(s_script_filename)   ""
   set a_xport_sim_vars(s_script_extn)       "sh"
   set a_xport_sim_vars(s_out_dir)           ""
+  set a_xport_sim_vars(s_ip_netlist)        ""
   set a_xport_sim_vars(b_32bit)             0
   set a_xport_sim_vars(b_absolute_path)     0             
+  set a_xport_sim_vars(b_single_step)       0             
+  set a_xport_sim_vars(b_xport_src_files)   0             
   set a_xport_sim_vars(b_overwrite)         0
   set a_xport_sim_vars(sp_tcl_obj)          ""
   set a_xport_sim_vars(s_sim_top)           ""

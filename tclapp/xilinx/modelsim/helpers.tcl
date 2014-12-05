@@ -765,6 +765,10 @@ proc usf_append_generics { generic_list opts_arg } {
     set str "-g$name="
     if { [string length $val] > 0 } {
       set str $str$val
+    } else {
+      if { [get_param "project.enable2StepFlowForModelSim"] } {
+        set str $str\"\"
+      }
     }
     lappend opts $str
   }
