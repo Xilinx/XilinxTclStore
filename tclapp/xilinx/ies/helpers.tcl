@@ -575,9 +575,9 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     }
   }
   foreach vh_file $vh_files {
-    if { [get_param "project.enableCoreContainer"] } {
+    #if { [get_param "project.enableCoreContainer"] } {
       set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
-    }
+    #}
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -1965,9 +1965,9 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
     if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$file"]] 0]] } {
       continue
     }
-    if { [get_param "project.enableCoreContainer"] } {
+    #if { [get_param "project.enableCoreContainer"] } {
       set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
-    }
+    #}
     set file_path [file normalize [string map {\\ /} [file dirname $file]]]
     if { [lsearch -exact $unique_paths $file_path] == -1 } {
       lappend incl_header_paths $file_path
@@ -2059,9 +2059,9 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   set filter "FILE_TYPE == \"Verilog Header\""
   set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
-    if { [get_param "project.enableCoreContainer"] } {
+    #if { [get_param "project.enableCoreContainer"] } {
       set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
-    }
+    #}
     set dir [file dirname $file]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -2435,9 +2435,9 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   set launch_dir $a_sim_vars(s_launch_dir)
 
   foreach file $incl_files {
-    if { [get_param "project.enableCoreContainer"] } {
+    #if { [get_param "project.enableCoreContainer"] } {
       set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
-    }
+    #}
     lappend file_str "\"$file\""
   }
   return [join $file_str " "]
@@ -2459,10 +2459,10 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set associated_library [get_property "LIBRARY" $file_obj]
     }
-    if { [get_param "project.enableCoreContainer"] } {
+    #if { [get_param "project.enableCoreContainer"] } {
       # extract only if the file is an object
       set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
-    }
+    #}
   }
   if { $a_sim_vars(b_absolute_path) } {
     set file "[usf_resolve_file_path $file]"

@@ -16,7 +16,7 @@
         </proc>
         <proc>
           <name>export_simulation</name>
-          <summary>NOTE-&apos;export_simulation&apos; is deprecated, please use &apos;launch_simulation -scripts_only&apos; instead. Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
+          <summary>Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
         </proc>
         <proc>
           <name>write_project_tcl</name>
