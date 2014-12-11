@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Removed core-container check</revision_history>
+      <revision_history>Check for file length before inspecting library property</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

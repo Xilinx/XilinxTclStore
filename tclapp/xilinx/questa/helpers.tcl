@@ -603,7 +603,10 @@ proc usf_get_top_library { } {
   set co_top_library {}
   if { ({behav_sim} == $flow) } {
     if { [llength $l_compile_order_files] > 0 } {
-      set co_top_library [get_property "LIBRARY" [lindex [get_files -all [list "[lindex $l_compile_order_files end]"]] 0]]
+      set file_list [get_files -all [list "[lindex $l_compile_order_files end]"]]
+      if { [llength $file_list] > 0 } {
+        set co_top_library [get_property "LIBRARY" [lindex $file_list 0]]
+      }
     }
   } elseif { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
     set file_list [get_files -quiet -compile_order sources -used_in synthesis_post -of_objects [get_filesets $tcl_obj]]
