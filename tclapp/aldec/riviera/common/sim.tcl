@@ -612,8 +612,12 @@ proc usf_get_elaboration_cmdline {} {
 
   set arg_list [list]
 
-  if { [get_property [usf_getPropertyName ELABORATE.ACCESS] $fs_obj] } {
+  if { [get_property [usf_getPropertyName ELABORATE.ACCESS] $fs_obj]
+    || [get_property [usf_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
+    || [get_property [usf_getPropertyName SIMULATE.SAIF] $fs_obj] != {} } {
     lappend arg_list "+access +r"
+  } else {
+    lappend arg_list "+access +r +m+$top"
   }
 
   set vhdl_generics [list]
@@ -799,7 +803,7 @@ proc usf_create_do_file_for_simulation { do_file } {
  
   # generate saif file for power estimation
   set saif [get_property [usf_getPropertyName SIMULATE.SAIF] $fs_obj]
-  if { ![get_property [usf_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj] } {
+  if { !$b_log_all_signals } {
     if { {} != $saif } {
       set rec ""
       if { $::tclapp::aldec::common::helpers::a_sim_vars(s_mode) != {behavioral} } {
