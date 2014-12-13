@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated write_project_tcl help to clarify the purpose of origin_dir variable</revision_history>
+      <revision_history>Added a user ip_repo refresh when importing a project</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
