@@ -939,9 +939,9 @@ proc usf_write_driver_shell_script { do_filename step } {
     puts $fh_scr "bin_path=\"$::tclapp::aldec::common::helpers::a_sim_vars(s_tool_bin_path)\""
     ::tclapp::aldec::common::helpers::usf_write_shell_step_fn $fh_scr
     if { $batch_sw != "" } {
-      puts $out "ExecStep \$bin_path/runvsimsa -l $log_filename -do \"do \{$do_filename\}\""
+      puts $fh_scr "ExecStep \$bin_path/runvsimsa -l $log_filename -do \"do \{$do_filename\}\""
     } else {
-      puts $out "ExecStep \$bin_path/rungui -l $log_filename -do \"do \{$do_filename\}\""
+      puts $fh_scr "ExecStep \$bin_path/rungui -l $log_filename -do \"do \{$do_filename\}\""
     }
   } else {
     puts $fh_scr "@echo off"
