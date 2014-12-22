@@ -9,6 +9,3 @@
 # full path name of this file's directory.
 
 package ifneeded ::tclapp::aldec::activehdl 1.0 [list source [file join $dir activehdl.tcl]]
-
-
-

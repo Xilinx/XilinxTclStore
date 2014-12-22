@@ -46,11 +46,7 @@ proc compile { args } {
   set simulatorName [::tclapp::aldec::common::helpers::usf_getSimulatorName]
 
   send_msg_id USF-${simulatorName}-74 INFO "${simulatorName}::Compile design"
-  if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    usf_write_compile_script_native
-  } else {
-    usf_write_compile_script
-  }
+  usf_write_compile_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -324,19 +320,6 @@ proc usf_write_compile_script {} {
   usf_write_driver_shell_script $do_filename "compile"
 }
 
-proc usf_write_compile_script_native {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  ##############################################
-  # No do file generation for native script mode
-  ##############################################
-
-  # write native compile.sh/.bat
-  usf_write_driver_shell_script_native "compile"
-}
-
 proc usf_write_elaborate_script {} {
   # Summary:
   # Argument Usage:
@@ -352,19 +335,6 @@ proc usf_write_elaborate_script {} {
 
   # write elaborate.sh/.bat
   usf_write_driver_shell_script $do_filename "elaborate"
-}
-
-proc usf_write_elaborate_script_native {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  ##############################################
-  # No do file generation for native script mode
-  ##############################################
-
-  # write elaborate.sh/.bat
-  usf_write_driver_shell_script_native "elaborate"
 }
 
 proc usf_write_simulate_script {} {
@@ -957,34 +927,6 @@ proc usf_write_driver_shell_script { do_filename step } {
   close $fh_scr
 }
 
-proc usf_write_driver_shell_script_native { step } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set dir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
-  set b_batch $::tclapp::aldec::common::helpers::a_sim_vars(b_batch)
-  set b_scripts_only $::tclapp::aldec::common::helpers::a_sim_vars(b_scripts_only)
-
-  set scr_filename $step;append scr_filename [::tclapp::aldec::common::helpers::usf_get_script_extn]
-  set scr_file [file normalize [file join $dir $scr_filename]]
-  set fh_scr 0
-  if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-[usf_getSimulatorName]-94 ERROR "Failed to open file to write ($scr_file)\n"
-    return 1
-  }
-
-  set log_filename "${step}.log"
-  if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/sh -f"
-    usf_write_header $fh_scr $scr_file
-    puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$::tclapp::aldec::common::helpers::a_sim_vars(s_tool_bin_path)\""
-    usf_write_shell_step_fn_native $step $fh_scr
-  } 
-  close $fh_scr
-}
-
 proc usf_get_design_libs { files } {
   # Summary:
   # Argument Usage:
@@ -1018,160 +960,6 @@ proc usf_set_initial_cmd { fh_scr cmd_str src_file type lib prev_type_arg prev_l
 
   set prev_type $type
   set prev_lib  $lib
-}
-
-proc usf_write_shell_step_fn_native { step fh_scr } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set top $::tclapp::aldec::common::helpers::a_sim_vars(s_sim_top)
-  set dir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
-  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
-  set b_absolute_path $::tclapp::aldec::common::helpers::a_sim_vars(b_absolute_path)
-  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
-    set b_absolute_path 1
-  }
-
-  if { {compile} == $step } {
-    puts $fh_scr "\n# directory path for design sources and include directories (if any) wrt this path"
-    if { $b_absolute_path } {
-      puts $fh_scr "origin_dir=\"$dir\""
-    } else {
-        puts $fh_scr "origin_dir=\".\""
-    }
-  
-    set vlog_arg_list [list]
-    set vlog_syntax [get_property [usf_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj]
-    lappend vlog_arg_list "-$vlog_syntax"
-    if { [get_property [usf_getPropertyName COMPILE.DEBUG] $fs_obj] } {
-      lappend vlog_arg_list "-dbg"
-    }
-    if { [get_property [usf_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
-      lappend vlog_arg_list "-incr"
-    }
-    set more_vlog_options [string trim [get_property [usf_getPropertyName COMPILE.VLOG.MORE_OPTIONS] $fs_obj]]
-    if { {} != $more_vlog_options } {
-      set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
-    }
-    set vlog_cmd_str [join $vlog_arg_list " "]
-    puts $fh_scr "\n# set vlog command line args"
-    puts $fh_scr "vlog_opts=\"$vlog_cmd_str\""
-  
-    set vcom_arg_list [list]
-    set vhdl_syntax [get_property [usf_getPropertyName COMPILE.VHDL_SYNTAX] $fs_obj]
-    lappend vcom_arg_list "-$vhdl_syntax"
-    if { [get_property [usf_getPropertyName COMPILE.VHDL_RELAX] $fs_obj] } {
-      lappend vcom_arg_list "-relax"
-    }
-    if { [get_property [usf_getPropertyName COMPILE.DEBUG] $fs_obj] } {
-      lappend vcom_arg_list "-dbg"
-    }
-    if { [get_property [usf_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
-      lappend vcom_arg_list "-incr"
-    }
-    set more_vcom_options [string trim [get_property [usf_getPropertyName COMPILE.VCOM.MORE_OPTIONS] $fs_obj]]
-    if { {} != $more_vcom_options } {
-      set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
-    }
-    set vcom_cmd_str [join $vcom_arg_list " "]
-    puts $fh_scr "\n# set vcom command line args"
-    puts $fh_scr "vcom_opts=\"$vcom_cmd_str\""
-  
-    set log "${step}.log"
-    set redirect_cmd_str "2>&1 | tee -a $log"
-  
-    puts $fh_scr "\n# create libraries"
-    puts $fh_scr "\$bin_path/vlib work $redirect_cmd_str"
-    puts $fh_scr "\$bin_path/vlib msim $redirect_cmd_str\n"
-  
-    set design_libs [usf_get_design_libs $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)]
-  
-    # TODO:
-    # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
-    # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
-  
-    set b_default_lib false
-    set default_lib [get_property "DEFAULT_LIB" [current_project]]
-    foreach lib $design_libs {
-      if {[string length $lib] == 0} { continue; }
-      puts $fh_scr "\$bin_path/vlib msim/$lib $redirect_cmd_str"
-      if { $default_lib == $lib } {
-        set b_default_lib true
-      }
-    }
-    if { !$b_default_lib } {
-      puts $fh_scr "\$bin_path/vlib msim/$default_lib $redirect_cmd_str"
-    }
-     
-    puts $fh_scr "\n# map libraries"
-    foreach lib $design_libs {
-      if {[string length $lib] == 0} { continue; }
-      puts $fh_scr "\$bin_path/vmap $lib msim/$lib $redirect_cmd_str"
-    }
-    if { !$b_default_lib } {
-      puts $fh_scr "\$bin_path/vmap $default_lib msim/$default_lib $redirect_cmd_str"
-    }
-  
-    puts $fh_scr "\n# compile design source files"
-
-    set b_first true
-    set prev_lib  {}
-    set prev_type {}
-    set b_redirect false
-    set b_appended false
-    set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
-
-    foreach file $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files) {
-      set fargs    [split $file {#}]
-      
-      set type     [lindex $fargs 0]
-      set lib      [lindex $fargs 1]
-      set cmd_str  [lindex $fargs 2]
-      set src_file [lindex $fargs 3]
-
-      if { $b_group_files } {
-        if { $b_first } {
-          set b_first false
-          usf_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
-        } else {
-          if { ($type == $prev_type) && ($lib == $prev_lib) } {
-            puts $fh_scr "$src_file \\"
-            set b_redirect true
-          } else {
-            puts $fh_scr "$redirect_cmd_str\n"
-            usf_set_initial_cmd $fh_scr $cmd_str $src_file $type $lib prev_type prev_lib
-            set b_appended true
-          }
-        }
-      } else {
-        puts $fh_scr "\$bin_path/$cmd_str $src_file $redirect_cmd_str"
-      }
-    }
-
-    if { $b_group_files } {
-      if { (!$b_redirect) || (!$b_appended) } {
-        puts $fh_scr "$redirect_cmd_str\n"
-      }
-    }
-  
-    # compile glbl file
-    set b_load_glbl [get_property [usf_getPropertyName COMPILE.LOAD_GLBL] [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]]
-    if { [::tclapp::aldec::common::helpers::usf_compile_glbl_file $b_load_glbl $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)] } {
-      ::tclapp::aldec::common::helpers::usf_copy_glbl_file
-      set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
-      set file_str "-work $top_lib \"[usf_getGlblPath]\""
-      puts $fh_scr "\n# compile glbl module\n\$bin_path/vlog $file_str $redirect_cmd_str"
-    }
-  } elseif { {elaborate} == $step } {
-    set cmd_str [usf_get_elaboration_cmdline]
-    puts $fh_scr ""
-
-    set log "${step}.log"
-    set redirect_cmd_str "2>&1 | tee -a $log"
-
-    puts $fh_scr "\$bin_path/$cmd_str $redirect_cmd_str"
-  }
 }
 
 proc usf_add_quit_on_error { fh step } {
