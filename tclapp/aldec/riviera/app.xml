@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>1.0</revision_history>
+      <revision_history>Initial revision</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
