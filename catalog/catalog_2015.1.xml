@@ -4,6 +4,7 @@
   <support_commit_id>250e258de96f8ad71f6a3893fd494c638ef0dd92</support_commit_id>
   <release>2015.1</release>
   <revision>2.1</revision>
+  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,ies,modelsim,questa,vcs,xsim,protoip,diff,junit,tk_tunnel</app_display_order>
   <apps>
     <app>
       <name>debugutils</name>
@@ -14,20 +15,20 @@
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>d4830afc5a2e2cc691b6af02e6d7736166cee8d1</commit_id>
-      <revision>1.7</revision>
+      <commit_id>405570d888e4769068b3ea7e1a05e3a0a1781a53</commit_id>
+      <revision>1.8</revision>
     </app>
     <app>
       <name>diff</name>
       <company>xilinx</company>
-      <commit_id>d4830afc5a2e2cc691b6af02e6d7736166cee8d1</commit_id>
-      <revision>2.1</revision>
+      <commit_id>42d7a658b8bb643233ff4ab0ecef416cf2fabe27</commit_id>
+      <revision>2.2</revision>
     </app>
     <app>
       <name>ies</name>
       <company>xilinx</company>
-      <commit_id>99be6f1776f58012bd36be25331ecf2f25574540</commit_id>
-      <revision>2.05</revision>
+      <commit_id>569417d818fdeff8fc3bc0d430bd80b593e0fe21</commit_id>
+      <revision>2.06</revision>
     </app>
     <app>
       <name>incrcompile</name>
@@ -44,8 +45,8 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>876f00d7d25c95227b15faa5bea874d657f71182</commit_id>
-      <revision>2.06</revision>
+      <commit_id>1b493c4329db65fa8f07e33a1ec63fb6d22d0d10</commit_id>
+      <revision>2.09</revision>
     </app>
     <app>
       <name>myapp</name>
@@ -66,10 +67,22 @@
       <revision>2.6</revision>
     </app>
     <app>
+      <name>protoip</name>
+      <company>icl</company>
+      <commit_id>7106498fdc53907051028bba2a63b656a8d02acd</commit_id>
+      <revision>1.1</revision>
+    </app>
+    <app>
+      <name>questa</name>
+      <company>xilinx</company>
+      <commit_id>1b493c4329db65fa8f07e33a1ec63fb6d22d0d10</commit_id>
+      <revision>1.1</revision>
+    </app>
+    <app>
       <name>tk_tunnel</name>
       <company>xilinx</company>
-      <commit_id>6adae80e34bb24a5254ad63a78373fdb50cd2c44</commit_id>
-      <revision>1.5</revision>
+      <commit_id>42d7a658b8bb643233ff4ab0ecef416cf2fabe27</commit_id>
+      <revision>1.6</revision>
     </app>
     <app>
       <name>ultrafast</name>
@@ -80,14 +93,14 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>99be6f1776f58012bd36be25331ecf2f25574540</commit_id>
-      <revision>2.05</revision>
+      <commit_id>569417d818fdeff8fc3bc0d430bd80b593e0fe21</commit_id>
+      <revision>2.06</revision>
     </app>
     <app>
       <name>xsim</name>
       <company>xilinx</company>
-      <commit_id>99be6f1776f58012bd36be25331ecf2f25574540</commit_id>
-      <revision>2.05</revision>
+      <commit_id>b26b155feca960da41ff385fcab007d86de5afb2</commit_id>
+      <revision>2.07</revision>
     </app>
   </apps>
 </catalog>

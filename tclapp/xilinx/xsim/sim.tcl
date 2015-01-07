@@ -427,7 +427,36 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw $xvhdl_cmd_str$log_cmd_str"
     }
   }
+  
+ ########################################################################
+ # CREATING MASTER .SO USING MULTIPLE .so's
+ ########################################################################
+ 
+  set software_lib 0
+  if { [get_param ips.enableSVCosim] } {
+    if {$::tcl_platform(platform) == "unix"} {
+      set default_software_libs 0
+      foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
+        set file_type [get_property FILE_TYPE $file]
+        set file_dir [file dirname $file] 
+        set file_name [file tail $file] 
+        if { $file_type == "Shared Library" } {
+          if { $default_software_libs == 0 } {
+            append args_list "\ng++ -shared -o libsls.so -L$::env(RDI_LIBDIR)\/ -lxaxi_tlm -Wl,-rpath -Wl,$::env(RDI_LIBDIR)\/ -L$::env(RDI_LIBDIR)\/ -lsystemc -Wl,-rpath -Wl,$::env(RDI_LIBDIR)\/ -L$file_dir\/ $file_dir\/$file_name -Wl,-rpath -Wl,$file_dir "
+            incr default_software_libs 1
+            incr software_lib 1
+          } else {
+            append args_list "-L$file_dir\/ $file_dir\/$file_name -Wl,-rpath -Wl,$file_dir "
+          }
+        }
+      }
+    }
+  }	
 
+  if { $software_lib == 1} {
+    puts $fh_scr $args_list
+  }
+  
   if {$::tcl_platform(platform) != "unix"} {
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
@@ -644,6 +673,27 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     set dir [string map {\\ /} $incl_dir]
     lappend args_list "--include \"$dir\""
   }
+  
+  ##############################################   
+  #Passing all the master .so to the elaboration
+  ##############################################
+  
+  if { [get_param ips.enableSVCosim] } {
+    if {$::tcl_platform(platform) == "unix"} {
+      set master_lib 0
+      foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
+        set file_type [get_property FILE_TYPE $file]
+        set file_dir [file dirname $file] 
+        set file_name [file tail $file] 
+        if { $file_type == "Shared Library" } {
+          if { $master_lib == 0 } {
+            lappend args_list "--sv_root \".\/\" -sv_lib libsls"
+            incr master_lib 1
+          }
+        }
+      }
+    }
+  }	
 
   # -i
   set unique_incl_dirs [list]

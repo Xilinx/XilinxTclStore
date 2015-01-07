@@ -609,47 +609,50 @@ proc usf_get_top_library { } {
     set tcl_obj [get_filesets $a_sim_vars(s_simset)]
   }
 
-  # get the default top library set for the project
+  # 1. get the default top library set for the project
   set default_top_library [get_property "DEFAULT_LIB" [current_project]]
 
-  # get the library associated with the top file from the 'top_lib' property on the fileset
+  # 2. get the library associated with the top file from the 'top_lib' property on the fileset
   set fs_top_library [get_property "TOP_LIB" [get_filesets $tcl_obj]]
 
-  # post* simulation flow
-  if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-    # It isn't clear this is always appropriate, but it is at least consistent. Prior
-    # to this there were cases where the post- netlist was being designated with the
-    # default library, but the top_lib was being obtained from the _pSimSet, and these
-    # didnt match. A better fix might be forcing the netlist into the _pSimSet top library.
-    if { {} != $default_top_library } {
-      return $default_top_library
-    } elseif { {} != $fs_top_library } {
-      return $fs_top_library
-    } else {
-      return "xil_defaultlib"
-    }
-  }
-
-  # behavioral simulation
-
-  # fetch top library from compile order
+  # 3. get the library associated with the last file in compile order
   set co_top_library {}
-  if { [llength $l_compile_order_files] > 0 } {
-    set co_top_library [get_property "LIBRARY" [lindex [get_files -all [list "[lindex $l_compile_order_files end]"]] 0]]
+  if { ({behav_sim} == $flow) } {
+    if { [llength $l_compile_order_files] > 0 } {
+      set co_top_library [get_property "LIBRARY" [lindex [get_files -all [list "[lindex $l_compile_order_files end]"]] 0]]
+    }
+  } elseif { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+    set co_top_library [get_property "LIBRARY" [lindex [get_files -compile_order sources -used_in synthesis_post -of_objects [get_filesets $tcl_obj]] end]]
   }
-  # make sure default or fileset top library matches with the library from compile order, if not, then return the compile order library
+
+  # 4. if default top library is set and the compile order file library is different
+  #    than this default, return the compile order file library
   if { {} != $default_top_library } {
+    # compile order library is set and is different then the default
     if { ({} != $co_top_library) && ($default_top_library != $co_top_library) } {
       return $co_top_library
     } else {
+      # worst case (default is set but compile order file library is empty or we failed to get the library for some reason)
       return $default_top_library
     }
-  } elseif { {} != $fs_top_library } {
+  }
+
+  # 5. default top library is empty at this point
+  #    if fileset top library is set and the compile order file library is different
+  #    than this default, return the compile order file library
+  if { {} != $fs_top_library } {
+    # compile order library is set and is different then the fileset
     if { ({} != $co_top_library) && ($fs_top_library != $co_top_library) } {
       return $co_top_library
     } else {
+      # worst case (fileset library is set but compile order file library is empty or we failed to get the library for some reason)
       return $fs_top_library
     }
+  }
+
+  # 6. Both the default and fileset library are empty, return compile order library else xilinx default
+  if { {} != $co_top_library } {
+    return $co_top_library
   }
 
   return "xil_defaultlib"
