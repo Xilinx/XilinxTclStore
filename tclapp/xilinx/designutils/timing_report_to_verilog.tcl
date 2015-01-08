@@ -41,7 +41,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
     # Categories: xilinctclstore, designutils
 	
 	## Set Default option values
-	array set opts {-help 0 -filename xlnx_strip_model -obfuscation 0 -debug 0}
+	array set opts {-help 0 -filename xlnx_strip_model -obfuscation 0 -debug 0 -keep_lut_equations 0}
     
     ## Parse arguments from option command line
 	while {[llength $args]} {
@@ -1060,7 +1060,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 			## Check if Cell already exists in Path Dictionary
 			if {[path_cell_name_exists? -dict $opts(-dict) -value $cellObj]} {
 				dbg "DEBUG: $opts(-name)$pathIndex: Found Existing Cell $cellObj."
-					
+				
 				## Get the previous path instance from the Path Dictionary
 				set previousPathDict [get_path_dict_by_cell_name -dict $opts(-dict) -value $cellObj]
 			
@@ -1464,6 +1464,10 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 				} elseif {[get_property DIRECTION $cellPinObj] eq "OUT"} {
 					## Check if output pins dictionary is empty
 					if {[llength $outputPinsDict]==0} {
+						## Dump debug information for cell endpoint output pin
+						dbgVar outputPinsDict
+						dbgVar cellPinObj
+						
 						## Check if the pin object is a scalar or vector
 						if {[dict get $cellPinDict type] eq "scalar"} {
 							## Set the scalar pin as bit 0 in the dictionary to input pin
@@ -1472,6 +1476,9 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 							## Set the vector bit based on the bit value to the dictionary to an input pin
 							dict set cellPinDict bus_index $busBit value "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"
 						}
+						
+						## Set the cell pin dictionary to the cell object pins dictionary
+						dict set cellObjectPinsDict "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"  $cellPinDict
 									
 						## Add the newly created port the generated port dictionary
 						dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" name "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"
@@ -1610,7 +1617,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 						## Set the new output pin name based on the associated timing path
 						set newOutputFullPinName "[dict get $opts(-dict_object) instance]/$outputPinName"
 					} else {
-						return -code error "ERROR: \[path_to_verilog\] Unable to parse pin $outputFullPinName to create assocaited timing constraint.."
+						return -code error "ERROR: \[path_to_verilog\] Unable to parse pin $outputFullPinName to create associated timing constraint.."
 					}
 					
 					## Add a create_clock constraint to the timing constraints list
