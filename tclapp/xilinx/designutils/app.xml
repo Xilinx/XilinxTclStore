@@ -168,7 +168,7 @@
         </proc>
         <proc>
           <name>write_template</name>
-          <summary>generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)</summary>
+          <summary>generates a Verilog/VHDL stub or instanciation template for the current design in memory (current_instance)</summary>
         </proc>
       </procs>
     </app>

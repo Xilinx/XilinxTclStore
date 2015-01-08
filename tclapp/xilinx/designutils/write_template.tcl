@@ -5,13 +5,12 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::write_template {args} {
-  # Summary : generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)
+  # Summary : generates a Verilog/VHDL stub or instanciation template for the current design in memory (current_instance)
 
   # Argument Usage:
-  # [-type <arg> = stub]: Type of template to create: stub, template or testbench
+  # [-type <arg> = stub]: Type of template to create: stub or template
   # [-stub]: Generate a stub (same as -type stub)
   # [-template]: Generate a template (same as -type template)
-  # [-testbench]: Generate a testbench (same as -type testbench)
   # [-language <arg> = verilog]: Output language of the template: verilog or vhdl
   # [-verilog]: Verilog language (same as -language verilog)
   # [-vhdl]: VHDL language (same as -language vhdl)
@@ -91,9 +90,9 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
       -type -
       {^-ty(pe?)?$} {
            set type [string tolower [lshift args]]
-           if {![regexp {^(stub|template|testbench)$} $type]} {
+           if {![regexp {^(stub|template)$} $type]} {
              incr error
-             puts " -E- the supported values for -type are stub, template, or testbench"
+             puts " -E- the supported values for -type are stub or template"
            }
       }
       -stub -
@@ -103,10 +102,6 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
       -template -
       {^-tem(p(l(a(te?)?)?)?)?$} {
            set type {template}
-      }
-      -testbench -
-      {^-tes(t(b(e(n(ch?)?)?)?)?)?$} {
-           set type {testbench}
       }
       -language -
       {^-l(a(n(g(u(a(ge?)?)?)?)?)?)?$} {
@@ -174,10 +169,9 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
     puts [format {
   Usage: write_template
               [-type <arg>]        - Type of template to create
-                                     Options are: stub,template, or testbench
+                                     Options are: stub or template
               [-stub]              - Generate a stub (same as -type stub)
               [-template]          - Generate a template (same as -type template)
-              [-testbench]         - Generate a testbench (same as -type testbench)
               [-language <arg>]    - Output language of the template
                                      Options are: verilog or vhdl
               [-verilog]           - Verilog language (same as -language verilog)
@@ -195,7 +189,6 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
      This command generates Verilog or VHDL templates for:
        template: -template or -type template
        blackbox stub definition: -stub or -type stub
-       testbench: -testbench or -type testbench
 
   Example:
      write_template
@@ -299,12 +292,6 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
       set content [vlogTemplate]
     } elseif {[string match $language "vhdl"]} {
       set content [vhdlTemplate]
-    }
-  } elseif {[string match $type "testbench"]} {
-    if {[string match $language "verilog"]} {
-      set content [vlogTestBench]
-    } elseif {[string match $language "vhdl"]} {
-      set content [vhdlTestBench]
     }
   }
 
