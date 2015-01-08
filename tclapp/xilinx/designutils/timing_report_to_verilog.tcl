@@ -41,7 +41,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
     # Categories: xilinctclstore, designutils
 	
 	## Set Default option values
-	array set opts {-help 0 -filename xlnx_strip_model -obfuscation 0 -debug 0 -keep_lut_equations 0}
+	array set opts {-help 0 -filename xlnx_strip_model -obfuscation 0 -debug 0}
     
     ## Parse arguments from option command line
 	while {[llength $args]} {
