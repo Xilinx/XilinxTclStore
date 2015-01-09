@@ -144,7 +144,7 @@ proc xps_init_vars {} {
   variable l_design_files             [list]
   
   variable l_valid_simulator_types    [list]
-  set l_valid_simulator_types         [list xsim modelsim questa ies vcs]
+  set l_valid_simulator_types         [list xsim modelsim questa ies vcs vcs_mx]
 
   variable l_valid_ip_netlist_types   [list]
   set l_valid_ip_netlist_types        [list verilog vhdl]

@@ -8,7 +8,7 @@ puts "== Unit Test directory: $file_dir"
 
 set name "esf_test_0001"
 
-create_project $name ./$name
+create_project $name ./$name -force
 add_files -fileset sources_1 "$file_dir/src/top.v"
 add_files -fileset sim_1 "$file_dir/src/tb.v"
 update_compile_order -fileset sources_1
