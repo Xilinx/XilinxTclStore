@@ -213,7 +213,8 @@ proc xps_invalid_options { options } {
     "vcs" {
       if { $a_sim_vars(b_ip_netlist) } {
         if { ($a_sim_vars(b_single_step)) && ({vhdl} == $a_sim_vars(s_ip_netlist)) } {
-          send_msg_id XPS-Tcl-007 ERROR "Single step flow is not applicable for IP's with VHDL netlist. Please select Verilog netlist for this simulator.\n"
+          send_msg_id XPS-Tcl-007 ERROR \
+            "Single step simulation flow is not applicable for IP's containing VHDL netlist. Please select Verilog netlist for this simulator.\n"
           return 1
         }
       }
@@ -234,7 +235,8 @@ proc xps_invalid_flow_options { options } {
     "questa" -
     "vcs" {
       if { ($a_sim_vars(b_single_step)) && ([xps_contains_vhdl]) } {
-        [catch {send_msg_id XPS-Tcl-008 ERROR "Single step flow is not applicable for designs with VHDL netlist.\n"}]
+        [catch {send_msg_id XPS-Tcl-008 ERROR \
+          "Design contains VHDL sources. The single step simulation flow is not applicable for this simulator. Please remove the '-single_step' switch and try again.\n"}]
         return 1
       }
     }
@@ -696,7 +698,15 @@ proc xps_get_cmdstr { file file_type compiler global_files_str l_other_compiler_
           set file "./srcs/[file tail $src_file]"
         }
       }
-      "ies" -
+      "ies" {
+        set file "\$ref_dir/[xps_get_relative_file_path $file $dir]"
+        if { $a_sim_vars(b_single_step) } {
+          set file "[xps_get_relative_file_path $file $dir]"
+        }
+        if { $a_sim_vars(b_xport_src_files) } {
+          set file "\$ref_dir/incl"
+        }
+      }
       "vcs" {
         set file "\$ref_dir/[xps_get_relative_file_path $file $dir]"
         if { $a_sim_vars(b_xport_src_files) } {
@@ -736,9 +746,9 @@ proc xps_get_ip_name { src_file } {
   # Return Value:
   
   set ip {}
-  set file_obj [get_files -all -quiet $src_file]
+  set file_obj [lindex [get_files -all -quiet $src_file] 0]
   if { {} == $file_obj } {
-    set file_obj [get_files -all -quiet [file tail $src_file]]
+    set file_obj [lindex [get_files -all -quiet [file tail $src_file]] 0]
   }
 
   set props [list_property $file_obj]
@@ -996,10 +1006,19 @@ proc xps_write_filelist {} {
 
     set filename [file tail $proj_src_file]
     set ipname   [file rootname [file tail $ip_file]]
-    lappend lines "$filename $lib $ipname"
+
+    set pfile "[xps_get_relative_file_path $proj_src_file $a_sim_vars(s_launch_dir)]"
+    if { $a_sim_vars(b_absolute_path) } {
+      set pfile "[xps_resolve_file_path $proj_src_file]"
+    }
+    if { {} != $ipname } {
+      lappend lines "$filename, $ipname, $lib, $pfile"
+    } else {
+      lappend lines "$filename, *, $lib, $pfile"
+    }
   }
   struct::matrix file_matrix;
-  file_matrix add columns 3;
+  file_matrix add columns 4;
   foreach line $lines {
     file_matrix add row $line;
   }
@@ -1244,10 +1263,13 @@ proc xps_write_driver_script { fh } {
                            "-y \$xil_lib/verilog/src/unisims/" \
                            "+libext+.v" \
                            "-lca +v2k" \
-                           "-sverilog" \
-                           "-l run.log" \
                      ]
 
+        if { [xps_contains_system_verilog] } {
+          lappend args_list "-sverilog"
+        }
+
+        lappend arg_list "-l run.log"
                           # "-f \$xil_lib/secureip/secureip_cell.list.f"
         foreach dir [concat [xps_get_verilog_incl_dirs] [xps_get_verilog_incl_file_dirs {} true]] {
           lappend arg_list "+incdir+\"$dir\""
@@ -1309,7 +1331,7 @@ proc xps_write_driver_script { fh } {
         set arg_list [list]
         if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-m64"] }
         if { [xps_contains_verilog] } {
-          puts $fh "  opts_ver=\"[join $arg_list " "]\""
+          puts $fh "  opts_ver=\"[join $arg_list " "]\"\n"
         }
 
         set arg_list [list]
@@ -1370,7 +1392,7 @@ proc xps_write_driver_script { fh } {
           if { {work} != $a_sim_vars(default_lib) } {
             set sw "-work $a_sim_vars(default_lib)"
           }
-          puts $fh "  vlogan \$opts_ver +v2k $sw \"glbl.v\""
+          puts $fh "  vlogan $sw \$opts_ver +v2k \\\n    ./glbl.v \\\n  2>&1 | tee -a vlogan.log"
         }
       }
     }
@@ -1438,7 +1460,23 @@ proc xps_set_initial_cmd { fh cmd_str src_file file_type lib prev_file_type_arg 
       puts $fh "$cmd_str \\"
       puts $fh "$src_file \\"
     }
-    "ies" -
+    "ies" {
+      if { $a_sim_vars(b_single_step) } {
+        puts $fh "-makelib ies/$lib \\"
+        if { $a_sim_vars(b_xport_src_files) } {
+          puts $fh "  ./srcs/$src_file \\"
+        } else {
+          puts $fh "  $src_file \\"
+        }
+      } else {
+        puts $fh "  $cmd_str \\"
+        if { $a_sim_vars(b_xport_src_files) } {
+          puts $fh "    \$ref_dir/$src_file \\"
+        } else {
+          puts $fh "    $src_file \\"
+        }
+      }
+    }
     "vcs" {
       puts $fh "  $cmd_str \\"
       if { $a_sim_vars(b_xport_src_files) } {
@@ -1476,7 +1514,7 @@ proc xps_write_compile_order { fh } {
   set prev_lib  {}
   set prev_file_type {}
   set log {}
-  set redirect_cmd_str "    2>&1 | tee -a"
+  set redirect_cmd_str "  2>&1 | tee -a"
   set b_redirect false
   set b_appended false
 
@@ -1496,8 +1534,8 @@ proc xps_write_compile_order { fh } {
       set target_dir $a_sim_vars(s_srcs_dir)
       if { {} != $ip_file } {
         set ip_name [file rootname [file tail $ip_file]]
-        set proj_src_filename "$ip_name/$proj_src_filename"
-        set ip_dir [file join $a_sim_vars(s_srcs_dir) $ip_name] 
+        set proj_src_filename "ip/$ip_name/$proj_src_filename"
+        set ip_dir [file join $a_sim_vars(s_srcs_dir) "ip" $ip_name] 
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
             send_msg_id XPS-Tcl-040 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -1522,15 +1560,28 @@ proc xps_write_compile_order { fh } {
     }
 
     if { $a_sim_vars(b_single_step) } {
-      set file $proj_src_file
-      regsub -all {\"} $file {} file
-      puts $fh $file
-      continue
+      switch $a_sim_vars(s_simulator) {
+        "ies" { }
+        default {
+          set file $proj_src_file
+          regsub -all {\"} $file {} file
+
+          if { $a_sim_vars(b_absolute_path) } {
+            set file "[xps_resolve_file_path $file]"
+          } else {
+            set file "[xps_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+          }
+          if { $a_sim_vars(b_xport_src_files) } {
+            set file "./srcs/$proj_src_filename"
+          }
+          puts $fh $file
+          continue
+        }
+      }
     }
 
     set b_redirect false
     set b_appended false
-
     if { $b_first } {
       set b_first false
       if { $a_sim_vars(b_xport_src_files) } {
@@ -1540,15 +1591,58 @@ proc xps_write_compile_order { fh } {
       }
     } else {
       if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-        if { $a_sim_vars(b_xport_src_files) } {
-          puts $fh "    \$ref_dir/$proj_src_filename \\"
+        # single_step
+        if { $a_sim_vars(b_single_step) } {
+          if { $a_sim_vars(b_xport_src_files) } {
+            switch $a_sim_vars(s_simulator) {
+              "ies" {
+                puts $fh "  ./srcs/$proj_src_filename \\"
+              }
+              "vcs" {
+                puts $fh "    ./srcs/$proj_src_filename \\"
+              }
+            }
+          } else {
+            switch $a_sim_vars(s_simulator) {
+              "ies" {
+                puts $fh "  $src_file \\"
+              }
+              "vcs" {
+                puts $fh "    $proj_src_file \\"
+              }
+            }
+          }
         } else {
-          puts $fh "    $src_file \\"
+          if { $a_sim_vars(b_xport_src_files) } {
+            switch $a_sim_vars(s_simulator) {
+              "ies" {
+                puts $fh "    \$ref_dir/$proj_src_filename \\"
+              }
+              "vcs" {
+                puts $fh "    \$ref_dir/$proj_src_filename \\"
+              }
+            }
+          } else {
+            switch $a_sim_vars(s_simulator) {
+              "ies" {
+                puts $fh "    $src_file \\"
+              }
+              "vcs" {
+                puts $fh "    $src_file \\"
+              }
+            }
+          }
         }
         set b_redirect true
       } else {
         switch $a_sim_vars(s_simulator) {
-          "ies"    { puts $fh "" }
+          "ies" { 
+            if { $a_sim_vars(b_single_step) } {
+              puts $fh "-endlib"
+            } else {
+              puts $fh ""
+            }
+          }
           "vcs"    { puts $fh "$redirect_cmd_str $log\n" }
         }
         if { $a_sim_vars(b_xport_src_files) } {
@@ -1562,12 +1656,28 @@ proc xps_write_compile_order { fh } {
   }
 
   if { $a_sim_vars(b_single_step) } {
-    #
+    switch $a_sim_vars(s_simulator) {
+      "ies" { 
+        puts $fh "-endlib"
+      }
+    }
   } else {
     switch $a_sim_vars(s_simulator) {
       "vcs" {
         if { (!$b_redirect) || (!$b_appended) } {
           puts $fh "$redirect_cmd_str $log\n"
+        }
+      }
+    }
+  }
+
+  if { [xps_contains_verilog] } {
+    if { $a_sim_vars(b_single_step) } { 
+      switch -regexp -- $a_sim_vars(s_simulator) {
+        "ies" {
+          puts $fh "-makelib ies/xil_defaultlib \\"
+          puts $fh "  ./glbl.v"
+          puts $fh "-endlib"
         }
       }
     }
@@ -2063,6 +2173,24 @@ proc xps_contains_verilog {} {
   return $b_verilog_srcs 
 }
 
+proc xps_contains_system_verilog {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set design_files $a_sim_vars(l_design_files)
+
+  set b_sys_verilog_srcs 0
+  foreach file $design_files {
+    set type [lindex [split $file {#}] 1]
+    if { {SystemVerilog} == $type } {
+      set b_sys_verilog_srcs 1
+    }
+  }
+  return $b_sys_verilog_srcs 
+}
+
 proc xps_contains_vhdl {} {
   # Summary:
   # Argument Usage:
@@ -2386,8 +2514,8 @@ proc xps_write_prj { file ft } {
         set target_dir $a_sim_vars(s_srcs_dir)
         if { {} != $ip_file } {
           set ip_name [file rootname [file tail $ip_file]]
-          set proj_src_filename "$ip_name/$proj_src_filename"
-          set ip_dir [file join $a_sim_vars(s_srcs_dir) $ip_name] 
+          set proj_src_filename "ip/$ip_name/$proj_src_filename"
+          set ip_dir [file join $a_sim_vars(s_srcs_dir) "ip" $ip_name] 
           if { ![file exists $ip_dir] } {
             if {[catch {file mkdir $ip_dir} error_msg] } {
               send_msg_id XPS-Tcl-050 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -2444,8 +2572,8 @@ proc xps_write_prj_single_step {} {
       set target_dir $a_sim_vars(s_srcs_dir)
       if { {} != $ip_file } {
         set ip_name [file rootname [file tail $ip_file]]
-        set proj_src_filename "$ip_name/$proj_src_filename"
-        set ip_dir [file join $a_sim_vars(s_srcs_dir) $ip_name] 
+        set proj_src_filename "ip/$ip_name/$proj_src_filename"
+        set ip_dir [file join $a_sim_vars(s_srcs_dir) "ip" $ip_name] 
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
             send_msg_id XPS-Tcl-053 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -2544,8 +2672,8 @@ proc xps_write_do_file_for_compile { } {
       set target_dir $a_sim_vars(s_srcs_dir)
       if { {} != $ip_file } {
         set ip_name [file rootname [file tail $ip_file]]
-        set proj_src_filename "$ip_name/$proj_src_filename"
-        set ip_dir [file join $a_sim_vars(s_srcs_dir) $ip_name] 
+        set proj_src_filename "ip/$ip_name/$proj_src_filename"
+        set ip_dir [file join $a_sim_vars(s_srcs_dir) "ip" $ip_name] 
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
             send_msg_id XPS-Tcl-056 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -2655,7 +2783,7 @@ proc xps_write_do_file_for_elaborate { } {
       lappend arg_list "-o"
       lappend arg_list "${top}_opt"
       set cmd_str [join $arg_list " "]
-      puts $fh "  $cmd_str"
+      puts $fh "$cmd_str"
     }
   }
   close $fh
