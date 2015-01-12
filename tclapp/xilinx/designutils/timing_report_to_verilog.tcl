@@ -83,7 +83,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
         puts "  \[-filename\]         Output file name for Verilog and XDC files."
         puts "                      Default: xlnx_strip_model"
         puts "  \[-force\]            Overwrites existing file."
-		puts "  \[-obfuscation\]      Creates ambiguious naming for cells, nets, and ports."
+		puts "  \[-obfuscation\]      Creates ambiguous naming for cells, nets, and ports."
 		puts "                      (Optional)"
 		puts "  \[-of_objects\]       Get the timing report specified from the get_timing_paths"
         puts "                      objects."
@@ -94,7 +94,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
 		puts "Description:"
 		puts ""
 		puts "  Writes a Verilog Structural netlist from a timing report produced by the Vivado"
-		puts "  report_timing command. The Verilog and assocaited XDC file can be used in Vivado"
+		puts "  report_timing command. The Verilog and associated XDC file can be used in Vivado"
 		puts "  to simulate the path behavior from a larger design."
 		puts ""
         puts "Example:"
@@ -161,10 +161,27 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
 		proc dbgVar {varName} {}
 	}
 		
-	## Parse the timing report and return the verilog datastruct objects
-    set verilogObjectsDict [parse_timing_report -report_string $timingReportString -obfuscation $opts(-obfuscation)] 
+	## Parse the timing report and return the timing path cell data structure objects
+    set timingPathCellsDict [parse_timing_report -report_string $timingReportString -obfuscation $opts(-obfuscation)] 
 	
-    ## Write the verilog testcase based on the verilog objects
+	## Check to ensure at least one timing path dictionary exists before processing
+	if {[llength $timingPathCellsDict]==0} {
+		puts "ERROR: \[[get_current_proc_name]\] No timing paths found in timing report. Please check if timing report contains any timing paths or -return_string option was used.  If so, please contact script owner."
+		return -code error
+	} else {
+		## Initialize the Verilog Objects dictionary
+		set verilogObjectsDict [dict create]
+		
+		## Loop through each path object in the timing path dictionary
+		foreach cellTimingPathDictID [dict keys $timingPathCellsDict] {
+			## Set the Verilog object dictionary from the path object
+			set verilogDict [path_to_verilog_dict -dict_object [dict get $timingPathCellsDict $cellTimingPathDictID] -verilog_dict $verilogObjectsDict]
+			## Store the Verilog object in the Verilog Object dictionary
+			dict set verilogObjectsDict [dict get $verilogDict orig_name] $verilogDict
+		}
+	}
+	
+    ## Write the Verilog test case based on the Verilog objects
 	write_verilog_testcase -design_name $opts(-filename) -dict $verilogObjectsDict
 	
 	return 0
@@ -502,9 +519,8 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 	
 	## Create the dictionary for the timing path cells
 	set timingPathCellsDict [dict create]
-	
-	set verilogObjectsDict [dict create]
-	
+
+	## Loop through each timing report
 	for { set x 0 } { $x < [llength $reportPaths]} {incr x 2} {
 		set pathReport [lindex $reportPaths $x]
 		
@@ -533,22 +549,8 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 		}
 	}
 
-	## Check to ensure at least one timing path Dict exists before processing
-	if {[llength $timingPathCellsDict]==0} {
-		puts "ERROR: \[[get_current_proc_name]\] No timing paths found in timing report. Please check if timing report contains any timing paths or -return_string option was used.  If so, please contact script owner."
-		return -code error
-	} else {	
-		## Loop through each path object in the timing path dictionary
-		foreach cellTimingPathDictID [dict keys $timingPathCellsDict] {
-			## Set the Verilog object dictionary from the path object
-			set verilogDict [path_to_verilog_dict -dict_object [dict get $timingPathCellsDict $cellTimingPathDictID]]
-			## Store the Verilog object in the Verilog Object dictionary
-			dict set verilogObjectsDict [dict get $verilogDict name] $verilogDict
-		}
-	}
-	
-	## Return the Verilog Objects Dictionary
-	return $verilogObjectsDict
+	## Return the timing path cells dictionary
+	return $timingPathCellsDict
 }
 
 # #########################################################
@@ -1058,7 +1060,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 			## Check if Cell already exists in Path Dictionary
 			if {[path_cell_name_exists? -dict $opts(-dict) -value $cellObj]} {
 				dbg "DEBUG: $opts(-name)$pathIndex: Found Existing Cell $cellObj."
-					
+				
 				## Get the previous path instance from the Path Dictionary
 				set previousPathDict [get_path_dict_by_cell_name -dict $opts(-dict) -value $cellObj]
 			
@@ -1127,7 +1129,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 }
 
 # #########################################################
-# path_to_verilog
+# path_to_verilog_dict
 # #########################################################
 proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_dict {args} {
     # Summary :
@@ -1148,35 +1150,40 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
         set optionName [lshift args]
 		## Check for the option name in the regular expression
         switch -regexp -- $optionName {
-            {-d(i(c(t_(o(b(j(e(c(t)?)?)?)?)?)?)?)?)?$}    { set opts(-dict_object) [lshift args]}
-            {-h(e(l(p)?)?)?$}                             { set opts(-help)        1}
+            {-d(i(c(t_(o(b(j(e(c(t)?)?)?)?)?)?)?)?)?$}                                { set opts(-dict_object)        [lshift args]}
+			{-v(e(r(i(l(o(g(_(d(i(c(t)?)?)?)?)?)?)?)?)?)?)?$}                         { set opts(-verilog_dict)       [lshift args]}
+            {-h(e(l(p)?)?)?$}                                                         { set opts(-help)               1}
             default {
                 return -code error "ERROR: \[path_to_verilog\] Unknown option '[lindex $args 0]', please type 'path_to_verilog -help' for usage info."
             }
         }
     }
-	
+
 	## Get object type from the cell dictionary
-	set objectType	   [dict get $opts(-dict_object) type]
+	set objectType	[dict get $opts(-dict_object) type]
 	## Get tag from the cell dictionary tag
     set tagName     [dict get $opts(-dict_object) tag]
 	## Get path index from the cell dictionary index
     set pathIndex   [dict get $opts(-dict_object) index]
 
-	##
-    set generatedPortCount	0
-    ##
+    ## Initialize the cell pins dictionary
 	set cellObjectPinsDict  [dict create]
-    ##
+    ## Initialize the cell generated ports dictionary
 	set generatedPortsDict  [dict create]
-	##
+	## Initialize the cell property dictionary
 	set cellPropertyDict    [dict create]
 	
+	## Initialize the input and ports list variables
 	set inputPortsList	{}
     set outputPortsList {}	
-	##
+
+	## Initialize the count variable for the generated port list
+    set generatedPortCount	0
+	
+	## Initialize Verilog Object dictionary
 	set verilogObjDict      [dict create]
-	##
+	
+	## Initialize the timing and physical constraints list variables
 	set timingConstraintsList {}
 	set physicalConstraintsList {}
 
@@ -1201,14 +1208,9 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 		## Check to ensure the cell object exists, else check if cell retargeting is required.
 		if {[llength $cellObj]==0} {
 			return -code error "ERROR: \[path_to_verilog\] Unable to find cell object $cellObj."
-		} else {
+		} else {	
 			## Check if INTERNAL primitive and retarget to MACRO primitive
 			if {[get_property -quiet PRIMITIVE_LEVEL $cellObj] eq "INTERNAL"} {
-				##
-				set retargetInputPinDict  [dict get $retargetCellDict input_pins]
-				set retargetOutputPinDict [dict get $retargetCellDict output_pins]
-				set retargetClockPinDict  [dict get $retargetCellDict clock_pins]
-								
 				## Loop through each input pin in the dictionary to find equivalent pin on the MACRO level cell
 				foreach inputPinDictID [dict keys $inputPinsDict] {
 					## Get the dictionary pin object from the Output Pins Dictionary
@@ -1222,19 +1224,19 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 						## Loop through each pin found on the net 
 						foreach netPinObj $netPinList {
 							## Get cell from the pin object
-							set netCellObj [get_cells -quiet -of_objects $netPin]
+							set netCellObj [get_cells -quiet -of_objects $netPinObj]
 							
 							## Check if Cell object is a MACRO level primitive
 							if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "MACRO"} {
 								## Add the retargeted cell object to the retarget dictionary
 								dict set retargetCellDict name $netCellObj
 								
-								## Add Output Pin to Retarget output Dictionary
+								## Add Output Pin to retargeted output Dictionary
 								dict set retargetInputPinDict $netPinObj type "pin"
 								dict set retargetInputPinDict $netPinObj name $netPinObj
 								dict set retargetInputPinDict $netPinObj net_name [dict get $inputPinDict net_name]
 								
-								## Set the Retargeted Cell Object
+								## Set the retargeted Cell Object
 								set retargetedCellObj $netCellObj
 							}							
 						}
@@ -1256,11 +1258,11 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 						## Loop through each pin found on the net 
 						foreach netPinObj $netPinList {
 							## Get cell from the pin object
-							set netCellObj [get_cells -quiet -of_objects $netPin]
+							set netCellObj [get_cells -quiet -of_objects $netPinObj]
 							
 							## Check if Cell object is a MACRO level primitive
 							if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "MACRO"} {
-								## Add the retargeted cell object to the retarget dictionary
+								## Add the retargeted cell object to the retargeted dictionary
 								dict set retargetCellDict name $netCellObj
 								
 								## Add Output Pin to Retarget output Dictionary
@@ -1290,7 +1292,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 						## Loop through each pin found on the net 
 						foreach netPinObj $netPinList {
 							## Get cell from the pin object
-							set netCellObj [get_cells -quiet -of_objects $netPin]
+							set netCellObj [get_cells -quiet -of_objects $netPinObj]
 							
 							## Check if Cell object is a MACRO level primitive
 							if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "MACRO"} {
@@ -1311,18 +1313,33 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 					}
 				}	
 
-				puts "INFO: \[path_to_verilog\] Retargeting INTERNAL primitive [get_property LIB_CELL $cellObj] to [get_property LIB_CELL $retargetCell] primitive."
+				puts "INFO: \[path_to_verilog\] Retargeting INTERNAL primitive [get_property LIB_CELL $cellObj] to [get_property LIB_CELL $retargetedCellObj] primitive."
 				
 				## Set input pin dictionary to the retargeted cell input_pins
-				set inputPinsDict  $retargetInputPinDict
+				if {[info exists retargetInputPinDict]} {
+					set inputPinsDict  $retargetInputPinDict
+				}
+				
 				## Set output pin dictionary to the retargeted cell output_pins
-				set outputPinsDict $retargetOutputPinDict
+				if {[info exists retargetOutputPinDict]} {
+					set outputPinsDict $retargetOutputPinDict
+				}
+				
 				## Set clock pin dictionary to the retargeted cell clock_pins
-				set clockPinsDict  $retargetClockPinDict
-            
+				if {[info exists retargetClockPinDict]} {
+					set clockPinsDict  $retargetClockPinDict
+				}	
 				## Update the cell object to the retargeted cell object
 				set cellObj $retargetedCellObj
 			}
+		}
+		
+		## Check if Verilog object exists for cell object
+		if {[dict exists $opts(-verilog_dict) $cellObj]} {
+			## Set the Verilog object dictionary to the existing Verilog dictionary object
+			set verilogObjDict [dict get $opts(-verilog_dict) $cellObj]
+			## Set the cell pins dictionary from the Verilog dictionary object
+			set cellObjectPinsDict [dict get $verilogObjDict pins]
 		}
 		
 		## Get the list of pin objects on the cell object
@@ -1330,7 +1347,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 		
 		## Loop through each pin on the cell object
 		foreach cellPinObj $cellPinList {
-			## Parse pin to deterimine name and bus value
+			## Parse pin to determine name and bus value
 			if [regexp {.+/(\w+)(\[(\d+)\])?} $cellPinObj matchString pinName busString busBit] {
 				## Check if the cell pin already exists in the cell object pins dictionary
 				if {![dictionary_value_exists? -dict $cellObjectPinsDict -key "pin_name" -value $pinName]} {
@@ -1357,10 +1374,14 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 						## Check if the pin object is a scalar or vector
 						if {[dict get $cellPinDict type] eq "scalar"} {
 							## Set the scalar pin as bit 0 in the dictionary
-							dict set cellPinDict 0 [dict get $inputPinDict net_name]
+							dict set cellPinDict bus_index 0 value [dict get $inputPinDict net_name]
+							## Set the scalar pin as used
+							dict set cellPinDict bus_index 0 is_used 1
 						} else {
 							## Set the vector bit based on the bit value to the dictionary
-							dict set cellPinDict $busBit [dict get $inputPinDict net_name]
+							dict set cellPinDict bus_index $busBit value [dict get $inputPinDict net_name]
+							## Set the vector bit as used
+							dict set cellPinDict bus_index $busBit is_used 1
 						}
 					## Check if the cell pin object exists in the clock pin dictionary
 					} elseif {[dictionary_value_exists? -dict $clockPinsDict -key "name" -value $cellPinObj]} {
@@ -1370,10 +1391,14 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 						## Check if the pin object is a scalar or vector
 						if {[dict get $cellPinDict type] eq "scalar"} {
 							## Set the scalar pin as bit 0 in the dictionary
-							dict set cellPinDict 0 [dict get $clockPinDict net_name]
+							dict set cellPinDict bus_index 0 value [dict get $clockPinDict net_name]
+							## Set the scalar pin as used
+							dict set cellPinDict bus_index 0 is_used 1
 						} else {
 							## Set the vector bit based on the bit value to the dictionary
-							dict set cellPinDict $busBit [dict get $clockPinDict net_name]
+							dict set cellPinDict bus_index $busBit value [dict get $clockPinDict net_name]
+							## Set the vector bit as used
+							dict set cellPinDict bus_index $busBit is_used 1
 						}
 					## Since the pin is not found in the path dictionary, set value based on net type
 					} else {
@@ -1388,37 +1413,43 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 									## Check if the pin object is a scalar or vector
 									if {[dict get $cellPinDict type] eq "scalar"} {
 										## Set the scalar pin as bit 0 in the dictionary to VCC
-										dict set cellPinDict 0 "1'b1"
+										dict set cellPinDict bus_index 0 value "1'b1"
 									} else {
 										## Set the vector bit based on the bit value to the dictionary to VCC
-										dict set cellPinDict $busBit "1'b1"
+										dict set cellPinDict bus_index $busBit value "1'b1"
 									}
 								}
 								"Ground" {
 									## Check if the pin object is a scalar or vector
 									if {[dict get $cellPinDict type] eq "scalar"} {
 										## Set the scalar pin as bit 0 in the dictionary to GND
-										dict set cellPinDict 0 "1'b0"
+										dict set cellPinDict bus_index 0 value "1'b0"
 									} else {
 										## Set the vector bit based on the bit value to the dictionary to GND
-										dict set cellPinDict $busBit "1'b0"
+										dict set cellPinDict bus_index $busBit value "1'b0"
 									}									
 								}
 								default {
 									## Check if the pin object is a scalar or vector
 									if {[dict get $cellPinDict type] eq "scalar"} {
-										## Set the scalar pin as bit 0 in the dictionary to input pin
-										dict set cellPinDict 0 "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" 
+										## Check if the signal is already used
+										if {![dict exists $cellPinDict bus_index 0 is_used]} {
+											## Set the scalar pin as bit 0 in the dictionary to input pin
+											dict set cellPinDict bus_index 0 value "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" 
+										}
 									} else {
-										## Set the vector bit based on the bit value to the dictionary to an input pin
-										dict set cellPinDict $busBit "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
+										## Check if the signal is already used
+										if {![dict exists $cellPinDict bus_index $busBit is_used]} {
+											## Set the vector bit based on the bit value to the dictionary to an input pin
+											dict set cellPinDict bus_index $busBit value "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
+										}
 									}
-									
+										
 									## Add the newly created port the generated port dictionary
 									dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" name "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
 									dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" type "port"
 									dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" direction "IN"
-									
+										
 									## Increment the generated port count variable
 									incr generatedPortCount
 								}
@@ -1433,14 +1464,21 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 				} elseif {[get_property DIRECTION $cellPinObj] eq "OUT"} {
 					## Check if output pins dictionary is empty
 					if {[llength $outputPinsDict]==0} {
+						## Dump debug information for cell endpoint output pin
+						dbgVar outputPinsDict
+						dbgVar cellPinObj
+						
 						## Check if the pin object is a scalar or vector
 						if {[dict get $cellPinDict type] eq "scalar"} {
 							## Set the scalar pin as bit 0 in the dictionary to input pin
-							dict set cellPinDict 0 "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" 
+							dict set cellPinDict bus_index 0 value "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" 
 						} else {
 							## Set the vector bit based on the bit value to the dictionary to an input pin
-							dict set cellPinDict $busBit "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"
+							dict set cellPinDict bus_index $busBit value "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"
 						}
+						
+						## Set the cell pin dictionary to the cell object pins dictionary
+						dict set cellObjectPinsDict "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"  $cellPinDict
 									
 						## Add the newly created port the generated port dictionary
 						dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" name "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"
@@ -1459,10 +1497,10 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 							## Check if the pin object is a scalar or vector
 							if {[dict get $cellPinDict type] eq "scalar"} {
 								## Set the scalar pin as bit 0 in the dictionary to output pin
-								dict set cellPinDict 0 [dict get $outputPinDict net_name]
+								dict set cellPinDict bus_index 0 value [dict get $outputPinDict net_name]
 							} else {
 								## Set the vector bit based on the bit value to the dictionary to an output pin
-								dict set cellPinDict $busBit [dict get $outputPinDict net_name]
+								dict set cellPinDict bus_index $busBit value [dict get $outputPinDict net_name]
 							}
 							
 							## Set the cell pin dictionary to the cell object pins dictionary
@@ -1471,7 +1509,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 							## Check if the pin object is a scalar or vector
 							if {[dict get $cellPinDict type] eq "scalar"} {
 								## Set the scalar pin as bit 0 in the dictionary to output pin
-								dict set cellPinDict 0 [dict get $outputPinDict net_name]
+								dict set cellPinDict bus_index 0 value [dict get $outputPinDict net_name]
 							} else {						
 								## Get the BUS_STOP property of the pin object
 								set busStopValue  [get_property BUS_STOP [get_pins -quiet [dict get $outputPinDict name]]]
@@ -1482,10 +1520,10 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 								for { set i $busStopValue } { $i <= $busStartValue } { incr i } {
 									if {$i==$busBit} {
 										## Set the vector bit based on the bit value to the dictionary to an output pin
-										dict set cellPinDict $i [dict get $outputPinDict net_name]
+										dict set cellPinDict bus_index $i value [dict get $outputPinDict net_name]
 									} else {
 										## Set the vector bit to a dummy wire to the output dictionary
-										dict set cellPinDict $i "dummy_$tagName\_$pinName\_$i"
+										dict set cellPinDict bus_index $i value "dummy_$tagName\_$pinName\_$i"
 									}
 								}
 							}
@@ -1495,21 +1533,19 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 						}
 					}
 				}
-				
-				
 			} else {
             	return -code error "ERROR: \[path_to_verilog\] Failure to parse [get_property DIRECTION $cellPin] cell pin $cellPinObj."
             }
 		}
 		
 		## Create a list of all the properties to filter from the cell object
-		set propertyFilter [list "BEL" "IS_BEL_FIXED" "IS_LOC_FIXED" "IS_PARTITION" "LOC" "BUS_NAME" "BUS_INFO" "XILINX_LEGACY_PRIM" "BOX_TYPE" "__SRVAL" "ASYNC_REG" "IOB" "msgon" "equivalent_register_removal" "XILINX_TRANSFORM_PINMAP" "xc_map"]
+		set propertyFilter [list "BEL" "IS_BEL_FIXED" "IS_LOC_FIXED" "IS_PARTITION" "LOC" "BUS_NAME" "BUS_INFO" "XILINX_LEGACY_PRIM" "BOX_TYPE" "SOFT_HLUTNM" "__SRVAL" "ASYNC_REG" "IOB" "msgon" "equivalent_register_removal" "XILINX_TRANSFORM_PINMAP" "xc_map"]
     	## Return all the properties associated with the cell object
 		set reportProperty [report_property -return_string $cellObj]
    
    		## Loop through each attribute in the report property list
     	foreach propertyLine [split $reportProperty "\n"] {
-    		## Check to ensure the value is visable to the user, if not do not add to the list
+    		## Check to ensure the value is visible to the user, if not do not add to the list
     		if {[regexp {^\s*(\S+)\s+(\w+)\s+false\s+true\s+(\S+)} $propertyLine matchString propertyName propertyType propertyValue]} {
 				## Check to ensure the attribute is not in the property filter list
         		if {[lsearch $propertyFilter $propertyName]<0} {
@@ -1581,7 +1617,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 						## Set the new output pin name based on the associated timing path
 						set newOutputFullPinName "[dict get $opts(-dict_object) instance]/$outputPinName"
 					} else {
-						return -code error "ERROR: \[path_to_verilog\] Unable to parse pin $outputFullPinName to create assocaited timing constraint.."
+						return -code error "ERROR: \[path_to_verilog\] Unable to parse pin $outputFullPinName to create associated timing constraint.."
 					}
 					
 					## Add a create_clock constraint to the timing constraints list
@@ -1607,31 +1643,34 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 		}
 	}
 	
-	## Set the type of cell for the verilog object dictionary
+	## Set the type of cell for the Verilog object dictionary
 	dict set verilogObjDict type $objectType
 	
 	## Check if the object type is of type cell
 	if {$objectType eq "cell"} {
-		## Set the REF_NAME, instance name, and pins of the verilog object dictionary
-        dict set verilogObjDict ref_name [get_property REF_NAME $cellObj]
-		dict set verilogObjDict name     [dict get $opts(-dict_object) instance]
-        dict set verilogObjDict pins     $cellObjectPinsDict
+		## Set the REF_NAME, instance name, and pins of the Verilog object dictionary
+        dict set verilogObjDict ref_name  [get_property REF_NAME $cellObj]
+		dict set verilogObjDict orig_name $cellObj
+		dict set verilogObjDict name      [dict get $opts(-dict_object) instance]
+        dict set verilogObjDict pins      $cellObjectPinsDict
 		 
-		## Set the properties value of the verilog object dictionary
+		## Set the properties value of the Verilog object dictionary
 		dict set verilogObjDict properties $cellPropertyDict
 	} else {
-		## Set the port net name as the verilog object name
+		## Set the port net name as the Verilog object name
 		dict set verilogObjDict name     [dict get $opts(-dict_object) net_name]
+		## Set the port name as the original name for the Verilog object
+		dict set verilogObjDict orig_name [dict get $opts(-dict_object) name]
 	}
 	
-	## Set the input and output ports of the verilog module
+	## Set the input and output ports of the Verilog module
 	dict set verilogObjDict input_ports    $inputPortsList
     dict set verilogObjDict output_ports   $outputPortsList
 	
-	## Set the timing constraints value of the verilog object dictionary
+	## Set the timing constraints value of the Verilog object dictionary
 	dict set verilogObjDict timing_constraints $timingConstraintsList		
 	
-	## Set the physical constraints value of the verilog object dictionary
+	## Set the physical constraints value of the Verilog object dictionary
 	dict set verilogObjDict physical_constraints $physicalConstraintsList
 	
 	## Return Verilog object dictionary
@@ -1852,17 +1891,17 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::write_verilog_inst
 		## Check if cell pin is of type scalar
 		if {[dict get $cellPinDict type] eq "scalar"} {
 			## Append the scalar pin to the instantiation
-			append verilogInstantiationString "\t\t.[dict get $cellPinDict pin_name]\([dict get $cellPinDict 0]\),\n"
+			append verilogInstantiationString "\t\t.[dict get $cellPinDict pin_name]\([dict get $cellPinDict bus_index 0 value]\),\n"
 		} else {
 			## Initialize vector list variable for the pin
 			set pinVectorList {}
 			
 			## Loop through all keys in the dictionary to find the vector numeric keys
-			foreach cellPinDictKey [dict keys $cellPinDict] {
+			foreach cellPinDictKey [dict keys [dict get $cellPinDict bus_index]] {
 				## Check if the cell pin dictionary key is a integer value equivalent to the bit location
 				if {[regexp {\d+} $cellPinDictKey]} {
 					## Insert the net name in the cell pins dictionary for the given vector bit to the pin vector list
-					set pinVectorList [linsert $pinVectorList $cellPinDictKey [dict get $cellPinDict $cellPinDictKey]]
+					set pinVectorList [linsert $pinVectorList $cellPinDictKey [dict get $cellPinDict bus_index $cellPinDictKey value]]
 				}
 			}
 			
@@ -2160,8 +2199,6 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::get_current_proc_c
 	
 	return [lindex [info level [expr [info level]-2]] 0]
 }
-
-
 
 # #########################################################
 # 

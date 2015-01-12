@@ -145,7 +145,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		## Check to ensure that Vivado is not in GUI mode
 		if {$rdi::mode!="gui"} {
 			## Update the Progress Bar
-			progressBar $totalCount $cellCount
+			tclapp::xilinx::designutils::convert_muxfx_to_luts::progressBar $totalCount $cellCount
 		}
 		
 		## Check to ensure that the MUX is not part of a MACRO cell
@@ -320,8 +320,16 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 	
 	## Reset the current instance back to the scope prior to script execution
 	current_instance -quiet
-	current_instance -quiet $origCurrentInstanceCell
 	
+	## Check if the original current instance value is empty
+	if {[llength $origCurrentInstanceCell] == 0} {
+		## Set the current instance to the top-level design
+		current_instance -quiet [get_property TOP [current_design]]
+	} else {
+		## Set the current instance based on the original current cell instance
+		current_instance -quiet $origCurrentInstanceCell
+	}
+
 	return 0
 }
 
