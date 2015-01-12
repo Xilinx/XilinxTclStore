@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixed current_instance issue (write_template)</revision_history>
+      <revision_history>Updated timing_report_to_verilog to support Ultrascale. Updated convert_muxfx_to_luts to fix current_instance change</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -171,7 +171,7 @@ explicitly set to an IO Standard</summary>
         </proc>
         <proc>
           <name>write_template</name>
-          <summary>generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)</summary>
+          <summary>generates a Verilog/VHDL stub or instanciation template for the current design in memory (current_instance)</summary>
         </proc>
       </procs>
     </app>
