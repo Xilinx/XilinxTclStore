@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Make export_simulation switches optional and generate scripts for all simulators by default</revision_history>
+      <revision_history>Support for the windows platform</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
