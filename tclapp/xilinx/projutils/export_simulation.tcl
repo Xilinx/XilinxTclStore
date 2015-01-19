@@ -26,7 +26,7 @@ proc export_simulation {args} {
   # [-ip_netlist <arg> = verilog]: Select the IP netlist for the compile order (value=verilog|vhdl)
   # [-directory <arg> = export_sim]: Directory where the simulation script will be exported
   # [-export_source_files]: Copy design files to output directory
-  # [-reset_config_options]: Regenerate 'options.cfg' file with the default options.
+  # [-reset_config_options]: Regenerate 'expsim_options.cfg' file with the default options.
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
 
@@ -56,7 +56,7 @@ proc export_simulation {args} {
       "-directory"                { incr i;set a_sim_vars(s_xport_dir) [lindex $args $i] }
       default {
         if { [regexp {^-} $option] } {
-          send_msg_id XPS-Tcl-003 ERROR "Unknown option '$option', please type 'export_simulation -help' for usage info.\n"
+          send_msg_id exportsim-Tcl-003 ERROR "Unknown option '$option', please type 'export_simulation -help' for usage info.\n"
           return
         }
       }
@@ -69,7 +69,7 @@ proc export_simulation {args} {
   xps_readme
   xps_set_target_obj
   if { ([lsearch $options {-of_objects}] != -1) && ([llength $a_sim_vars(sp_tcl_obj)] == 0) } {
-    send_msg_id XPS-Tcl-006 ERROR "Invalid object specified. The object does not exist.\n"
+    send_msg_id exportsim-Tcl-006 ERROR "Invalid object specified. The object does not exist.\n"
     return 1
   }
   xps_gen_mem_files
@@ -79,6 +79,11 @@ proc export_simulation {args} {
   xps_set_script_filename
   xps_export_config
   if { [xps_write_sim_script] } { return }
+
+  set readme_file [file join $a_sim_vars(s_xport_dir) "README.txt"]
+  send_msg_id exportsim-Tcl-030 INFO \
+    "Please see readme file for instructions on how to use the generated script: '$readme_file'\n"
+
   return
 }
 }
@@ -108,6 +113,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_reset_config_opts) 0             
   set a_sim_vars(b_overwrite)         0
   set a_sim_vars(fs_obj)              [current_fileset -simset]
+  set a_sim_vars(ooc_fs)              ""
   set a_sim_vars(sp_tcl_obj)          ""
   set a_sim_vars(s_top)               ""
   set a_sim_vars(b_is_managed)        [get_property managed_ip [current_project]]
@@ -116,6 +122,7 @@ proc xps_init_vars {} {
   set a_sim_vars(global_files_value)  {}
   set a_sim_vars(default_lib)         [get_property default_lib [current_project]]
   set a_sim_vars(do_filename)         "simulate.do"
+  set a_sim_vars(opts_file)           "export_sim_options.cfg"
 
   variable l_compile_order_files      [list]
   variable l_design_files             [list]
@@ -193,28 +200,28 @@ proc xps_invalid_options { options } {
   if { {} != $a_sim_vars(s_script_filename) } {
     set extn [string tolower [file extension $a_sim_vars(s_script_filename)]]
     if {($::tcl_platform(platform) == "unix") && ({.sh} != $extn) } {
-      [catch {send_msg_id XPS-Tcl-004 ERROR "Invalid script file extension '$extn' specified. Please provide script filename with the '.sh' extension.\n"} err]
+      [catch {send_msg_id exportsim-Tcl-004 ERROR "Invalid script file extension '$extn' specified. Please provide script filename with the '.sh' extension.\n"} err]
       return 1
     }
     if {($::tcl_platform(platform) != "unix") && ({.bat} != $extn) } {
-      [catch {send_msg_id XPS-Tcl-004 ERROR "Invalid script file extension '$extn' specified. Please provide script filename with the '.bat' extension.\n"} err]
+      [catch {send_msg_id exportsim-Tcl-004 ERROR "Invalid script file extension '$extn' specified. Please provide script filename with the '.bat' extension.\n"} err]
       return 1
     }
   }
 
   if { [lsearch -exact $l_valid_simulator_types $a_sim_vars(s_simulator)] == -1 } {
-    send_msg_id XPS-Tcl-004 ERROR "Invalid simulator type specified. Please type 'export_simulation -help' for usage info.\n"
+    send_msg_id exportsim-Tcl-004 ERROR "Invalid simulator type specified. Please type 'export_simulation -help' for usage info.\n"
     return 1
   }
 
   if {($::tcl_platform(platform) != "unix") && ({ies} == $a_sim_vars(s_simulator) || {vcs} == $a_sim_vars(s_simulator)) } {
-    send_msg_id XPS-Tcl-004 ERROR "Export simulation is not supported for '$simulator' on this platform.\n"
+    send_msg_id exportsim-Tcl-004 ERROR "Export simulation is not supported for '$simulator' on this platform.\n"
     return 1
   }
 
   if { $a_sim_vars(b_ip_netlist) } {
     if { [lsearch -exact $l_valid_ip_netlist_types $a_sim_vars(s_ip_netlist)] == -1 } {
-      send_msg_id XPS-Tcl-005 ERROR "Invalid ip netlist type specified. Please type 'export_simulation -help' for usage info.\n"
+      send_msg_id exportsim-Tcl-005 ERROR "Invalid ip netlist type specified. Please type 'export_simulation -help' for usage info.\n"
       return 1
     }
   }
@@ -223,7 +230,7 @@ proc xps_invalid_options { options } {
     "vcs" {
       if { $a_sim_vars(b_ip_netlist) } {
         if { ($a_sim_vars(b_single_step)) && ({vhdl} == $a_sim_vars(s_ip_netlist)) } {
-          send_msg_id XPS-Tcl-007 ERROR \
+          send_msg_id exportsim-Tcl-007 ERROR \
             "Single step simulation flow is not applicable for IP's containing VHDL netlist. Please select Verilog netlist for this simulator.\n"
           return 1
         }
@@ -243,7 +250,7 @@ proc xps_invalid_flow_options { options } {
     "questa" -
     "vcs" {
       if { ($a_sim_vars(b_single_step)) && ([xps_contains_vhdl]) } {
-        [catch {send_msg_id XPS-Tcl-008 ERROR \
+        [catch {send_msg_id exportsim-Tcl-008 ERROR \
           "Design contains VHDL sources. The single step simulation flow is not applicable for this simulator. Please remove the '-single_step' switch and try again.\n"}]
         return 1
       }
@@ -259,16 +266,16 @@ proc xps_create_rundir {} {
   # Return Value:
  
   variable a_sim_vars
-  variable l_simulators
+  variable l_target_simulator
   set dir [file normalize [string map {\\ /} $a_sim_vars(s_xport_dir)]]
   if { ! [file exists $dir] } {
     if {[catch {file mkdir $dir} error_msg] } {
-      send_msg_id XPS-Tcl-009 ERROR "failed to create the directory ($dir): $error_msg\n"
+      send_msg_id exportsim-Tcl-009 ERROR "failed to create the directory ($dir): $error_msg\n"
       return 1
     }
   }
   if { {all} == $a_sim_vars(s_simulator) } {
-    foreach simulator $l_simulators {
+    foreach simulator $l_target_simulator {
       set sim_dir [file join $dir $simulator]
       if { [xps_create_dir $sim_dir] } {
         return 1
@@ -295,7 +302,7 @@ proc xps_readme {} {
   set filename "README.txt"
   set file [file join $a_sim_vars(s_xport_dir) $filename]
   if {[catch {open $file w} fh]} {
-    send_msg_id XPS-Tcl-030 ERROR "failed to open file to write ($file)\n"
+    send_msg_id exportsim-Tcl-030 ERROR "failed to open file to write ($file)\n"
     return 1
   }
   set curr_time   [clock format [clock seconds]]
@@ -307,7 +314,75 @@ proc xps_readme {} {
 
   puts $fh "# $product (TM) $version_id\n#"
   puts $fh "# $filename (generated by export_simulation on $curr_time)"
-  puts $fh "#\n# This file explains the output directory structure and usage of export_simulation\n#"
+  puts $fh "#\n# This file explains the usage of export_simulation, directory structure and exported files\n#"
+  puts $fh "1. Usage"
+  puts $fh ""
+  puts $fh "To run simulation, cd to the ./<simulator> directory and execute the generated script."
+  puts $fh "For example:-"
+  puts $fh ""
+  puts $fh "% cd questa"
+  set extn ".bat"
+  if {$::tcl_platform(platform) == "unix"} { set extn ".sh" }
+  puts $fh "% ./top$extn"
+  puts $fh ""
+  puts $fh "The export simulation flow requires the Xilinx pre-compiled simulation library components"
+  puts $fh "for the simulator. These components are referred using the -lib_map_path switch. If this"
+  puts $fh "switch is specified, export_simulation will automatically point to this library path in"
+  puts $fh "the generated script and update/copy the simulator script file in the exported directory."
+  puts $fh ""
+  puts $fh "If this switch is not specified, the pre-compiled simulation library information is not"
+  puts $fh "included in the exported scripts and this may cause simulation errors when running this"
+  puts $fh "script. Please refer to the generated script header 'Prerequisite' section for more details."
+  puts $fh ""
+  puts $fh "2. Directory Structure"
+  puts $fh ""
+  puts $fh "By default, if the -directory switch is not specified, export_simulation will create the"
+  puts $fh "following directory structure:-"
+  puts $fh ""
+  puts $fh "<current_working_directory>/export_sim/<simulator>"
+  puts $fh ""
+  puts $fh "For example, if the current working directory is /tmp/test, then the export_simulation will"
+  puts $fh "will create the following directory path:-"
+  puts $fh ""
+  puts $fh "/tmp/test/export_sim/questa"
+  puts $fh ""
+  puts $fh "If -directory switch is specified, export_simulation will create a simulator sub-directory"
+  puts $fh "under the specified directory path."
+  puts $fh ""
+  puts $fh "For example, the 'export_simulation -directory /tmp/test/my_test_area/func_sim' command will"
+  puts $fh "create the following directory:-"
+  puts $fh ""
+  puts $fh "/tmp/test/my_test_area/func_sim/questa"
+  puts $fh ""
+  puts $fh "By default, if -simulator is not specified, export_simulation will create a simulator sub-directory"
+  puts $fh "for each simulator and export the files for each simulator in this sub-directory respectively."
+  puts $fh ""
+  puts $fh "IMPORTANT: Please note that the simulation library path must be specified manually in the generated"
+  puts $fh "script for the respective simulator. Please refer to the generated script header 'Prerequisite'"
+  puts $fh "section for more details."
+  puts $fh ""
+  puts $fh "3. Exported script and files"
+  puts $fh ""
+  puts $fh "Export simulation will create the driver shell script, setup files and copy the design sources in"
+  puts $fh "the output directory path."
+  puts $fh ""
+  puts $fh "By default, when the -script_name switch is not specified, export_simulation will create the following"
+  puts $fh "script name:-"
+  puts $fh ""
+  puts $fh "<simulation_top>.sh  (Unix)"
+  puts $fh "<simulation_top>.bat (Windows)"
+  puts $fh ""
+  puts $fh "When exporting the files for an IP using the -of_objects switch, export_simulation will create the"
+  puts $fh "following script name:-"
+  puts $fh ""
+  puts $fh "<ip-name>.sh  (Unix)"
+  puts $fh "<ip-name>.bat (Windows)"
+  puts $fh ""
+  puts $fh "Export simulation will create the setup files for the target simulator specified with the -simulator switch."
+  puts $fh ""
+  puts $fh "For example, if the target simulator is \"ies\", export_simulation will create the 'cds.lib', 'hdl.var' and design"
+  puts $fh "library diectories and mappings in the 'cds.lib' file."
+
   close $fh
 }
 
@@ -321,13 +396,13 @@ proc xps_create_dir { dir } {
     #set files [glob -nocomplain -directory $dir *]
     #foreach file_path $files {
     #  if {[catch {file delete -force $file_path} error_msg] } {
-    #    send_msg_id XPS-Tcl-010 ERROR "failed to delete file ($file_path): $error_msg\n"
+    #    send_msg_id exportsim-Tcl-010 ERROR "failed to delete file ($file_path): $error_msg\n"
     #    return 1
     #  }
     #}
   } else {
     if {[catch {file mkdir $dir} error_msg] } {
-      send_msg_id XPS-Tcl-011 ERROR "failed to create the directory ($dir): $error_msg\n"
+      send_msg_id exportsim-Tcl-011 ERROR "failed to create the directory ($dir): $error_msg\n"
       return 1
     }
   }
@@ -345,12 +420,12 @@ proc xps_create_srcs_dir { dir } {
   if { $a_sim_vars(b_xport_src_files) } {
     set srcs_dir [file normalize [file join $dir "srcs"]]
     if {[catch {file mkdir $srcs_dir} error_msg] } {
-      send_msg_id XPS-Tcl-012 ERROR "failed to create the directory ($srcs_dir): $error_msg\n"
+      send_msg_id exportsim-Tcl-012 ERROR "failed to create the directory ($srcs_dir): $error_msg\n"
       return 1
     }
     set incl_dir [file normalize [file join $srcs_dir "incl"]]
     if {[catch {file mkdir $incl_dir} error_msg] } {
-      send_msg_id XPS-Tcl-013 ERROR "failed to create the directory ($incl_dir): $error_msg\n"
+      send_msg_id exportsim-Tcl-013 ERROR "failed to create the directory ($incl_dir): $error_msg\n"
       return 1
     }
   }
@@ -387,15 +462,18 @@ proc xps_set_target_obj {} {
     }
     set a_sim_vars(sp_tcl_obj) [get_files -all -quiet [list "$comp_file"]]
     set a_sim_vars(s_top) [file root [file tail $a_sim_vars(sp_tcl_obj)]]
+    set a_sim_vars(ooc_fs) [get_filesets $a_sim_vars(s_top)]
+    xps_verify_ip_status
   } else {
     if { $a_sim_vars(b_is_managed) } {
       set ips [get_ips -quiet]
       if {[llength $ips] == 0} {
-        send_msg_id XPS-Tcl-014 INFO "No IP's found in the current project.\n"
+        send_msg_id exportsim-Tcl-014 INFO "No IP's found in the current project.\n"
         return 1
       }
-      send_msg_id XPS-Tcl-015 ERROR "No IP source object specified. Please type 'export_simulation -help' for usage info.\n"
+      send_msg_id exportsim-Tcl-015 ERROR "No IP source object specified. Please type 'export_simulation -help' for usage info.\n"
       return 1
+      xps_verify_ip_status
     } else {
       set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
       xps_verify_ip_status
@@ -415,7 +493,7 @@ proc xps_gen_mem_files { } {
   if { [xps_is_fileset $a_sim_vars(sp_tcl_obj)] } {
     set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
     if { [llength $embedded_files] > 0 } {
-      send_msg_id XPS-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
+      send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
       foreach simulator $l_target_simulator {
         set dir [file join $a_sim_vars(s_xport_dir) $simulator] 
         generate_mem_files $dir
@@ -471,7 +549,7 @@ proc xps_get_compile_order_files { } {
     xps_export_fs_data_files $s_data_files_filter
     xps_export_fs_non_hdl_data_files
   } else {
-    send_msg_id XPS-Tcl-017 INFO "Unsupported object source: $tcl_obj\n"
+    send_msg_id exportsim-Tcl-017 INFO "Unsupported object source: $tcl_obj\n"
     return 1
   }
 }
@@ -536,13 +614,13 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
   set incl_file_paths [list]
   set incl_files      [list]
 
-  send_msg_id XPS-Tcl-018 INFO "Finding global include files..."
+  send_msg_id exportsim-Tcl-018 INFO "Finding global include files..."
   xps_get_global_include_files $launch_dir incl_file_paths incl_files
 
   set global_incl_files $incl_files
   set global_files_str [xps_get_global_include_file_cmdstr $launch_dir incl_files]
 
-  send_msg_id XPS-Tcl-019 INFO "Finding include directories and verilog header directory paths..."
+  send_msg_id exportsim-Tcl-019 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
   foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir {}]] {
     lappend l_incl_dirs_opts "+incdir+\"$dir\""
@@ -554,7 +632,7 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
       xps_add_block_fs_files $simulator $launch_dir $global_files_str l_incl_dirs_opts files
     }
     if { {All} == $src_mgmt_mode } {
-      send_msg_id XPS-Tcl-020 INFO "Fetching design files from '$tcl_obj'..."
+      send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$tcl_obj'..."
       foreach file $l_compile_order_files {
         if { [xps_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -575,7 +653,7 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
         set srcset_obj [get_filesets $linked_src_set]
         if { {} != $srcset_obj } {
           set used_in_val "simulation"
-          send_msg_id XPS-Tcl-021 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
+          send_msg_id exportsim-Tcl-021 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
           set l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
           foreach file $l_compile_order_files {
             set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -595,7 +673,7 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
     }
 
     if { $b_add_sim_files } {
-      send_msg_id XPS-Tcl-022 INFO "Fetching design files from '$a_sim_vars(fs_obj)'..."
+      send_msg_id exportsim-Tcl-022 INFO "Fetching design files from '$a_sim_vars(fs_obj)'..."
       foreach file [get_files -quiet -all -of_objects $a_sim_vars(fs_obj)] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         set compiler [xps_get_compiler $simulator $file_type]
@@ -612,7 +690,7 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
       }
     }
   } elseif { [xps_is_ip $tcl_obj] } {
-    send_msg_id XPS-Tcl-023 INFO "Fetching design files from IP '$tcl_obj'..."
+    send_msg_id exportsim-Tcl-023 INFO "Fetching design files from IP '$tcl_obj'..."
     foreach file $l_compile_order_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       set compiler [xps_get_compiler $simulator $file_type]
@@ -681,7 +759,7 @@ proc xps_add_block_fs_files { simulator launch_dir global_files_str l_incl_dirs_
   upvar $l_incl_dirs_opts_arg l_incl_dirs_opts
   upvar $files_arg files
 
-  send_msg_id XPS-Tcl-024 INFO "Finding block fileset files..."
+  send_msg_id exportsim-Tcl-024 INFO "Finding block fileset files..."
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
   foreach file [xps_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -1009,7 +1087,7 @@ proc xps_export_data_files { data_files } {
       foreach simulator $l_target_simulator {
         set dir [file join $a_sim_vars(s_xport_dir) $simulator] 
         if {[catch {file copy -force $file $dir} error_msg] } {
-          send_msg_id XPS-Tcl-025 WARNING "Failed to copy file '$file' to '$dir' : $error_msg\n"
+          send_msg_id exportsim-Tcl-025 WARNING "Failed to copy file '$file' to '$dir' : $error_msg\n"
         }
       }
     }
@@ -1054,7 +1132,7 @@ proc xps_write_sim_script {} {
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   foreach simulator $l_target_simulator {
     set simulator_name [xps_get_simulator_pretty_name $simulator] 
-    send_msg_id XPS-Tcl-035 INFO \
+    send_msg_id exportsim-Tcl-035 INFO \
       "Generating simulation files for the '$simulator_name' simulator...\n"
     set dir [file join $a_sim_vars(s_xport_dir) $simulator] 
     xps_create_dir $dir
@@ -1065,13 +1143,13 @@ proc xps_write_sim_script {} {
     }
     if { [xps_is_ip $tcl_obj] } {
       set a_sim_vars(s_top) [file tail [file root $tcl_obj]]
-      send_msg_id XPS-Tcl-026 INFO "Inspecting IP design source files for '$a_sim_vars(s_top)'...\n"
+      send_msg_id exportsim-Tcl-026 INFO "Inspecting IP design source files for '$a_sim_vars(s_top)'...\n"
       if {[xps_export_sim_files_for_ip $tcl_obj $simulator $dir]} {
         return 1
       }
     } elseif { [xps_is_fileset $tcl_obj] } {
       set a_sim_vars(s_top) [get_property top [get_filesets $tcl_obj]]
-      send_msg_id XPS-Tcl-027 INFO "Inspecting design source files for '$a_sim_vars(s_top)' in fileset '$tcl_obj'...\n"
+      send_msg_id exportsim-Tcl-027 INFO "Inspecting design source files for '$a_sim_vars(s_top)' in fileset '$tcl_obj'...\n"
       if {[string length $a_sim_vars(s_top)] == 0} {
         set a_sim_vars(s_top) "unknown"
       }
@@ -1079,7 +1157,7 @@ proc xps_write_sim_script {} {
         return 1
       }
     } else {
-      send_msg_id XPS-Tcl-028 INFO "Unsupported object source: $tcl_obj\n"
+      send_msg_id exportsim-Tcl-028 INFO "Unsupported object source: $tcl_obj\n"
       return 1
     }
 
@@ -1101,11 +1179,11 @@ proc xps_export_config {} {
   variable a_sim_vars
 
   set fh 0
-  set file "options.cfg"
+  set file $a_sim_vars(opts_file)
   if { [file exists $file] } {
     if { $a_sim_vars(b_reset_config_opts) } {
       if {[catch {file delete -force $file} error_msg] } {
-        [catch {send_msg_id XPS-Tcl-033 ERROR "failed to delete file ($file): $error_msg\n"} err]
+        [catch {send_msg_id exportsim-Tcl-033 ERROR "failed to delete file ($file): $error_msg\n"} err]
         return
       }
     } else {
@@ -1113,7 +1191,7 @@ proc xps_export_config {} {
     }
   }
   if {[catch {open $file w} fh]} {
-    send_msg_id XPS-Tcl-066 ERROR "failed to open file to write ($file)\n"
+    send_msg_id exportsim-Tcl-066 ERROR "failed to open file to write ($file)\n"
     return 1
   }
 
@@ -1127,9 +1205,8 @@ proc xps_export_config {} {
   puts $fh "# $product (TM) $version_id\n#"
   puts $fh "# $file (generated by export_simulation on $curr_time)"
   puts $fh "#\n# Specify the switches for the simulator tools that will be added in the exported script.\n#"
-  puts $fh "# For example:-\n#"
-  puts $fh "# xsim:xvlog:-relax"
-  puts $fh "# modelsim:vcom:-explicit -fsmsingle"
+  puts $fh "# Syntax:-\n#"
+  puts $fh "# <simulator>:<tool>:<options>"
   puts $fh "#\n##########################################################################################\n#"
   puts $fh "# XSim\n#"
   puts $fh "xsim:xvlog:"
@@ -1171,7 +1248,7 @@ proc xps_write_plain_filelist { launch_dir } {
     set fh 0
     set file [file join $dir "filelist.f"]
     if {[catch {open $file w} fh]} {
-      send_msg_id XPS-Tcl-066 ERROR "failed to open file to write ($file)\n"
+      send_msg_id exportsim-Tcl-066 ERROR "failed to open file to write ($file)\n"
       return 1
     }
     foreach file $a_sim_vars(l_design_files) {
@@ -1199,7 +1276,7 @@ proc xps_write_filelist_info { launch_dir } {
     set fh 0
     set file [file join $dir "file_info.txt"]
     if {[catch {open $file w} fh]} {
-      send_msg_id XPS-Tcl-067 ERROR "failed to open file to write ($file)\n"
+      send_msg_id exportsim-Tcl-067 ERROR "failed to open file to write ($file)\n"
       return 1
     }
     set lines [list]
@@ -1274,12 +1351,12 @@ proc xps_check_script { dir filename } {
   variable a_sim_vars
   set file [file normalize [file join $dir $filename]]
   if { [file exists $file] && (!$a_sim_vars(b_overwrite)) } {
-    [catch {send_msg_id XPS-Tcl-032 ERROR "Script file exist:'$file'. Use the -force option to overwrite."} err]
+    [catch {send_msg_id exportsim-Tcl-032 ERROR "Script file exist:'$file'. Use the -force option to overwrite."} err]
     return 1
   }
   if { [file exists $file] } {
     if {[catch {file delete -force $file} error_msg] } {
-      [catch {send_msg_id XPS-Tcl-033 ERROR "failed to delete file ($file): $error_msg\n"} err]
+      [catch {send_msg_id exportsim-Tcl-033 ERROR "failed to delete file ($file): $error_msg\n"} err]
       return 1
     }
   }
@@ -1304,7 +1381,7 @@ proc xps_print_source_info {} {
       {Verilog} { incr n_verilog_srcs }
     }
   }
-  send_msg_id XPS-Tcl-031 INFO "Number of design source files found = $n_total_srcs\n"
+  send_msg_id exportsim-Tcl-031 INFO "Number of design source files found = $n_total_srcs\n"
 }
 
 proc xps_write_script { simulator dir } {
@@ -1322,7 +1399,8 @@ proc xps_write_script { simulator dir } {
   }
   xps_process_cmd_str $simulator $dir
   xps_write_simulation_script $simulator $dir
-  send_msg_id XPS-Tcl-029 INFO \
+
+  send_msg_id exportsim-Tcl-029 INFO \
     "Script file exported: '$dir/$filename'\n"
   return 0
 }
@@ -1340,14 +1418,14 @@ proc xps_write_simulation_script { simulator dir } {
     set file [file join $dir $a_sim_vars(s_script_filename)] 
     set file_unix ${file}.sh
     if {[catch {open $file_unix w} fh_unix]} {
-      send_msg_id XPS-Tcl-034 ERROR "failed to open file to write ($file_unix)\n"
+      send_msg_id exportsim-Tcl-034 ERROR "failed to open file to write ($file_unix)\n"
       return 1
     }
   } else {
     set file [file join $dir $a_sim_vars(s_script_filename)] 
     set file_win ${file}.bat
     if {[catch {open $file_win w} fh_win]} {
-      send_msg_id XPS-Tcl-034 ERROR "failed to open file to write ($file_win)\n"
+      send_msg_id exportsim-Tcl-034 ERROR "failed to open file to write ($file_win)\n"
       return 1
     }
   }
@@ -1373,7 +1451,7 @@ proc xps_set_permissions { file } {
  
   if {$::tcl_platform(platform) == "unix"} {
     if {[catch {exec chmod a+x $file} error_msg] } {
-      send_msg_id XPS-Tcl-036 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id exportsim-Tcl-036 WARNING "failed to change file permissions to executable ($file): $error_msg\n"
     }
   } else {
     if {[catch {exec attrib /D -R $file} error_msg] } {
@@ -1501,7 +1579,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
       set fh_1 0
       set file [file normalize [file join $launch_dir $filename]]
       if {[catch {open $file w} fh_1]} {
-        send_msg_id XPS-Tcl-037 ERROR "failed to open file to write ($file)\n"
+        send_msg_id exportsim-Tcl-037 ERROR "failed to open file to write ($file)\n"
         return 1
       }
       xps_write_compile_order $simulator $fh_1 $launch_dir $srcs_dir
@@ -1523,7 +1601,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
       set fh_1 0
       set file [file normalize [file join $launch_dir $filename]]
       if {[catch {open $file w} fh_1]} {
-        send_msg_id XPS-Tcl-038 ERROR "failed to open file to write ($file)\n"
+        send_msg_id exportsim-Tcl-038 ERROR "failed to open file to write ($file)\n"
         return 1
       }
       xps_write_compile_order $simulator $fh_1 $launch_dir $srcs_dir
@@ -1559,7 +1637,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
       set fh_1 0
       set file [file normalize [file join $launch_dir $filename]]
       if {[catch {open $file w} fh_1]} {
-        send_msg_id XPS-Tcl-039 ERROR "failed to open file to write ($file)\n"
+        send_msg_id exportsim-Tcl-039 ERROR "failed to open file to write ($file)\n"
         return 1
       }
       xps_write_compile_order $simulator $fh_1 $launch_dir $srcs_dir
@@ -1585,7 +1663,7 @@ proc xps_write_multi_step { simulator fh_unix fh_win launch_dir srcs_dir } {
     puts $fh_unix "\n# RUN_STEP: <compile>"
     puts $fh_unix "compile()\n\{"
   } else {
-    puts $fh_win "\nrem RUN_STEP: <compile>"
+    puts $fh_win "\nrem # RUN_STEP: <compile>"
     puts $fh_win ":compile"
   }
 
@@ -1742,13 +1820,14 @@ proc xps_append_config_opts { opts_arg simulator tool } {
   # Argument Usage:
   # Return Value:
   upvar $opts_arg opts
+  variable a_sim_vars
   set fh 0
-  set file "options.cfg"
+  set file $a_sim_vars(opts_file)
   if { ![file exists $file] } {
     return
   }
   if { [catch {open $file r} fh] } {
-    send_msg_id XPS-Tcl-044 ERROR "Failed to open file to read ($file)\n"
+    send_msg_id exportsim-Tcl-044 ERROR "Failed to open file to read ($file)\n"
     return  
   }
   set data [read $fh]
@@ -1952,14 +2031,14 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
         set ip_dir [file join $srcs_dir "ip" $ip_name] 
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
-            send_msg_id XPS-Tcl-040 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
+            send_msg_id exportsim-Tcl-040 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
             return 1
           }
         }
         set target_dir $ip_dir
       }
       if {[catch {file copy -force $proj_src_file $target_dir} error_msg] } {
-        send_msg_id XPS-Tcl-041 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
+        send_msg_id exportsim-Tcl-041 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
       }
     }
    
@@ -2182,8 +2261,8 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
     puts $fh_unix "# RUN_STEP: <elaborate>"
     puts $fh_unix "elaborate()\n\{"
   } else {
-    puts $fh_win "rem # RUN_STEP: <elaborate>"
-    puts $fh_win ":elaborate\n"
+    puts $fh_win "\nrem # RUN_STEP: <elaborate>"
+    puts $fh_win ":elaborate"
   }
 
   if {[llength $l_compile_order_files] == 0} {
@@ -2222,7 +2301,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
         if { {} != $simulator_lib } {
           set arg_list [linsert $arg_list 0 "-loadvpi \"$simulator_lib:xilinx_register_systf\""]
         } else {
-          send_msg_id XPS-Tcl-042 ERROR "Failed to locate simulator library from 'XILINX_VIVADO' environment variable."
+          send_msg_id exportsim-Tcl-042 ERROR "Failed to locate simulator library from 'XILINX_VIVADO' environment variable."
         }
       }
       puts $fh_unix "  opts=\"[join $arg_list " "]\""
@@ -2238,7 +2317,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
       set arg_list [list "ncelab" "\$opts"]
       if { [xps_is_fileset $a_sim_vars(sp_tcl_obj)] } {
         set vhdl_generics [list]
-        set vhdl_generics [get_property vhdl_generic [get_filesets $a_sim_vars(sp_tcl_obj)]]
+        set vhdl_generics [get_property vhdl_generic [get_filesets $a_sim_vars(fs_obj)]]
         if { [llength $vhdl_generics] > 0 } {
           xps_append_define_generics $vhdl_generics "ncelab" arg_list
         }
@@ -2263,7 +2342,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
         if { {} != $simulator_lib } {
           set arg_list [linsert $arg_list 0 "-load \"$simulator_lib:xilinx_register_systf\""]
         } else {
-          send_msg_id XPS-Tcl-043 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+          send_msg_id exportsim-Tcl-043 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
         }
       }
       puts $fh_unix "  opts=\"[join $arg_list " "]\"\n"
@@ -2280,7 +2359,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_unix "\}\n"
   } else {
-    puts $fh_win "goto:eof\n"
+    puts $fh_win "goto:eof"
   }
   return 0
 }
@@ -2367,7 +2446,7 @@ proc xps_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id XPS-Tcl-044 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id exportsim-Tcl-044 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   close $fh
@@ -2531,7 +2610,7 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type global_fi
       # verilog defines
       if { [xps_is_fileset $a_sim_vars(sp_tcl_obj)] } {
         set verilog_defines [list]
-        set verilog_defines [get_property verilog_define [get_filesets $a_sim_vars(sp_tcl_obj)]]
+        set verilog_defines [get_property verilog_define [get_filesets $a_sim_vars(fs_obj)]]
         if { [llength $verilog_defines] > 0 } {
           xps_append_define_generics $verilog_defines $tool opts
         }
@@ -2709,6 +2788,7 @@ proc xps_verify_ip_status {} {
 
   variable a_sim_vars
   set regen_ip [dict create] 
+  set b_single_ip 0
   if { [xps_is_ip $a_sim_vars(sp_tcl_obj)] } {
     set ip [file root [file tail $a_sim_vars(sp_tcl_obj)]]
     # is user-disabled? or auto_disabled? skip
@@ -2719,6 +2799,7 @@ proc xps_verify_ip_status {} {
     dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
     dict set regen_ip $ip generated [get_property is_ip_generated [get_ips -quiet $ip]]
     dict set regen_ip $ip stale [get_property stale_targets [get_ips -quiet $ip]]
+    set b_single_ip 1
   } else {
     foreach ip [get_ips -quiet] {
       # is user-disabled? or auto_disabled? continue
@@ -2754,11 +2835,19 @@ proc xps_verify_ip_status {} {
     foreach ip $not_generated { lappend txt "Status - (Not Generated) IP NAME = $ip" }
     foreach ip $stale_ips     { lappend txt "Status - (Out of Date)   IP NAME = $ip" }
     set msg_txt [join $txt "\n"]
-    send_msg_id XPS-Tcl-045 "CRITICAL WARNING" \
-       "The following IPs have not generated output products yet or have subsequently been updated, making the current\n\
-       output products out-of-date. It is strongly recommended that these IPs be re-generated and then this script run again to get a complete output.\n\
-       To generate the output products please see 'generate_target' Tcl command.\n\
-       $msg_txt"
+    if { $b_single_ip } {
+      send_msg_id exportsim-Tcl-045 "CRITICAL WARNING" \
+         "The '$ip' IP have not generated output products yet or have subsequently been updated, making the current\n\
+         output products out-of-date. It is strongly recommended that this IP be re-generated and then this script run again to get a complete output.\n\
+         To generate the output products please see 'generate_target' Tcl command.\n\
+         $msg_txt"
+    } else {
+      send_msg_id exportsim-Tcl-045 "CRITICAL WARNING" \
+         "The following IPs have not generated output products yet or have subsequently been updated, making the current\n\
+         output products out-of-date. It is strongly recommended that these IPs be re-generated and then this script run again to get a complete output.\n\
+         To generate the output products please see 'generate_target' Tcl command.\n\
+         $msg_txt"
+    }
   }
 }
 
@@ -2850,15 +2939,15 @@ proc xps_write_libs_unix { simulator fh_unix } {
       set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
       set compiled_lib_dir $a_sim_vars(s_lib_map_path)
       if { ![file exists $compiled_lib_dir] } {
-        [catch {send_msg_id XPS-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
+        [catch {send_msg_id exportsim-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
         puts $fh_unix "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
       } else {
         puts $fh_unix "  lib_map_path=\"$compiled_lib_dir\""
       }
     } else {
-      send_msg_id XPS-Tcl-047 WARNING \
-         "The pre-compiled simulation library directory path was not specified (-lib_map_path), which may\n\
-         cause simulation errors when running this script. Please refer to the generated script header section for more details."
+      #send_msg_id exportsim-Tcl-047 WARNING \
+      #   "The pre-compiled simulation library directory path was not specified (-lib_map_path), which may\n\
+      #   cause simulation errors when running this script. Please refer to the generated script header section for more details."
       puts $fh_unix "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
     }
   }
@@ -2937,7 +3026,7 @@ proc xps_write_libs_win { simulator fh_win } {
       set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
       set compiled_lib_dir $a_sim_vars(s_lib_map_path)
       if { ![file exists $compiled_lib_dir] } {
-        [catch {send_msg_id XPS-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
+        [catch {send_msg_id exportsim-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
         puts $fh_win "set lib_map_path=\"SPECIFY_COMPILED_LIB_PATH\""
       } else {
         set clib_dir [string map {/ \\} $compiled_lib_dir]
@@ -2945,7 +3034,7 @@ proc xps_write_libs_win { simulator fh_win } {
         set b_compiled_lib_path_specified 1
       }
     } else {
-      send_msg_id XPS-Tcl-047 WARNING \
+      send_msg_id exportsim-Tcl-047 WARNING \
          "The pre-compiled simulation library directory path was not specified (-lib_map_path), which may\n\
          cause simulation errors when running this script. Please refer to the generated script header section for more details."
       puts $fh_win "set lib_map_path=\"SPECIFY_COMPILED_LIB_PATH\""
@@ -2978,7 +3067,7 @@ proc xps_create_ies_vcs_do_file { simulator dir } {
   set do_file [file join $dir $a_sim_vars(do_filename)]
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
-    send_msg_id XPS-Tcl-048 ERROR "failed to open file to write ($do_file)\n"
+    send_msg_id exportsim-Tcl-048 ERROR "failed to open file to write ($do_file)\n"
   } else {
     switch -regexp -- $simulator {
       "ies"      {
@@ -3028,7 +3117,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
   if { {VERILOG} == $ft } {
     # include_dirs
     set unique_incl_dirs [list]
-    set incl_dir_str [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]]
+    set incl_dir_str [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $a_sim_vars(fs_obj)]]]
     foreach incl_dir [split $incl_dir_str "#"] {
       if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
         lappend unique_incl_dirs $incl_dir
@@ -3066,7 +3155,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
 
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id XPS-Tcl-049 "Failed to open file to write ($file)\n"
+    send_msg_id exportsim-Tcl-049 "Failed to open file to write ($file)\n"
     return 1
   }
 
@@ -3090,14 +3179,14 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
           set ip_dir [file join $srcs_dir "ip" $ip_name] 
           if { ![file exists $ip_dir] } {
             if {[catch {file mkdir $ip_dir} error_msg] } {
-              send_msg_id XPS-Tcl-050 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
+              send_msg_id exportsim-Tcl-050 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
               return 1
             }
           }
           set target_dir $ip_dir
         }
         if {[catch {file copy -force $proj_src_file $target_dir} error_msg] } {
-          send_msg_id XPS-Tcl-051 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
+          send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
         }
       }
       if { $a_sim_vars(b_xport_src_files) } {
@@ -3126,7 +3215,7 @@ proc xps_write_prj_single_step { dir srcs_dir} {
   set file [file normalize [file join $dir $filename]]
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id XPS-Tcl-052 "Failed to open file to write ($file)\n"
+    send_msg_id exportsim-Tcl-052 "Failed to open file to write ($file)\n"
     return 1
   }
   foreach file $a_sim_vars(l_design_files) {
@@ -3148,14 +3237,14 @@ proc xps_write_prj_single_step { dir srcs_dir} {
         set ip_dir [file join $srcs_dir "ip" $ip_name] 
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
-            send_msg_id XPS-Tcl-053 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
+            send_msg_id exportsim-Tcl-053 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
             return 1
           }
         }
         set target_dir $ip_dir
       }
       if {[catch {file copy -force $proj_src_file $target_dir} error_msg] } {
-        send_msg_id XPS-Tcl-054 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
+        send_msg_id exportsim-Tcl-054 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
       }
     }
     puts $fh "$cmd_str $src_file"
@@ -3180,7 +3269,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
   set do_file [file normalize [file join $dir $filename]]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id XPS-Tcl-055 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id exportsim-Tcl-055 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
   puts $fh "vlib work"
@@ -3233,14 +3322,14 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
         set ip_dir [file join $srcs_dir "ip" $ip_name] 
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
-            send_msg_id XPS-Tcl-056 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
+            send_msg_id exportsim-Tcl-056 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
             return 1
           }
         }
         set target_dir $ip_dir
       }
       if {[catch {file copy -force $proj_src_file $target_dir} error_msg] } {
-        send_msg_id XPS-Tcl-057 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
+        send_msg_id exportsim-Tcl-057 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
       }
     }
 
@@ -3285,7 +3374,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
   set do_file [file normalize [file join $dir $filename]]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id XPS-Tcl-058 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id exportsim-Tcl-058 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
@@ -3353,7 +3442,7 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   set do_file [file normalize [file join $dir $filename]]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id XPS-Tcl-059 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id exportsim-Tcl-059 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
   set wave_do_filename "wave.do"
@@ -3439,7 +3528,7 @@ proc xps_get_simulation_cmdline_modelsim {} {
     if { {} != $simulator_lib } {
       set args [linsert $args end "-pli \"$simulator_lib\""]
     } else {
-      [catch {send_msg_id XPS-Tcl-061 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
+      [catch {send_msg_id exportsim-Tcl-061 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
     }
   }
   set t_opts [join $args " "]
@@ -3486,7 +3575,7 @@ proc xps_get_simulation_cmdline_questa {} {
     if { {} != $simulator_lib } {
       set args [linsert $args end "-pli \"$simulator_lib\""]
     } else {
-      [catch {send_msg_id XPS-Tcl-062 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
+      [catch {send_msg_id exportsim-Tcl-062 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
     }
   }
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
@@ -3640,7 +3729,7 @@ proc xps_write_xsim_tcl_cmd_file { dir filename } {
   set file [file normalize [file join $dir $filename]]
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id XPS-Tcl-063 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id exportsim-Tcl-063 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
 
@@ -3899,7 +3988,7 @@ proc xps_write_setup { simulator fh_unix fh_win } {
     }
     puts $fh_win "))"
     puts $fh_win "\nrem Add any setup/initialization commands here:-"
-    puts $fh_win "\nrem <user specific commands>\n"
+    puts $fh_win "rem <user specific commands>"
     puts $fh_win "goto:eof"
   }
 }
@@ -4024,7 +4113,7 @@ proc xps_get_bfm_lib { simulator } {
       }
     }
   } else {
-    send_msg_id XPS-Tcl-064 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
+    send_msg_id exportsim-Tcl-064 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
   }
   return $simulator_lib
 }
@@ -4085,7 +4174,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir global_files_str { re
     if { $a_sim_vars(b_xport_src_files) } {
       set export_dir [file join $launch_dir "./srcs/incl"]
       if {[catch {file copy -force $vh_file $export_dir} error_msg] } {
-        send_msg_id XPS-Tcl-065 WARNING "Failed to copy file '$vh_file' to '$export_dir' : $error_msg\n"
+        send_msg_id exportsim-Tcl-065 WARNING "Failed to copy file '$vh_file' to '$export_dir' : $error_msg\n"
       }
     }
 
@@ -4305,7 +4394,7 @@ proc xps_get_include_file_dirs { launch_dir global_files_str { ref_dir "true" } 
   set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   if { [xps_is_ip $tcl_obj] } {
-    set vh_files [xps_get_incl_files_from_ip $tcl_obj]
+    set vh_files [xps_get_incl_files_from_ip $launch_dir $tcl_obj]
   } else {
     set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
     set vh_files [get_files -all -quiet -filter $filter]
