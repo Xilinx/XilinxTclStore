@@ -8,7 +8,7 @@ puts "== Unit Test directory: $file_dir"
 
 set name "wpt_test_0002"
 
-create_project $name ./$name
+create_project $name ./$name -force
 add_files -fileset sources_1 "$file_dir/src/top.v"
-write_project_tcl -dump_project_info $name.tcl
+write_project_tcl -dump_project_info -force wpt_2_restore.tcl
 close_project

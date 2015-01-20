@@ -4,7 +4,7 @@
   <support_commit_id>250e258de96f8ad71f6a3893fd494c638ef0dd92</support_commit_id>
   <release>2015.1</release>
   <revision>2.1</revision>
-<app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,protoip,diff,junit,tk_tunnel</app_display_order>
+  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,protoip,diff,junit,tk_tunnel</app_display_order>
   <apps>
     <app>
       <name>activehdl</name>
@@ -21,8 +21,8 @@
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>405570d888e4769068b3ea7e1a05e3a0a1781a53</commit_id>
-      <revision>1.8</revision>
+      <commit_id>900a3584a54927eb0e42fc885854381b6f551f7b</commit_id>
+      <revision>1.9</revision>
     </app>
     <app>
       <name>diff</name>
@@ -69,8 +69,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>6c9f44df1047c278c025b8529810c3656dfa65e0</commit_id>
-      <revision>2.9</revision>
+      <commit_id>d24971e292844de4fe5f4944f535f341d022609b</commit_id>
+      <revision>3.4</revision>
     </app>
     <app>
       <name>protoip</name>
