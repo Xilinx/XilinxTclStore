@@ -992,6 +992,17 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 
   # prepare command line args for fileset files
   if { [usf_is_fileset $target_obj] } {
+    set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
+    foreach library $xpm_libraries {
+      foreach file [rdi::get_xpm_files -library_name $library] {
+        set file_type "SystemVerilog"
+        set g_files $global_files_str
+        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files other_ver_opts]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+        }
+      }
+    }
     set b_add_sim_files 1
     # add files from block filesets
     if { {} != $linked_src_set } {
