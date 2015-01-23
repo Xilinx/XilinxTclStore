@@ -1,4 +1,6 @@
 ########################################################################################
+## 01/09/2015 - Replace comma by semi-colon inside cell value inside CSV to prevent
+##              confusion with CSV delimiter
 ## 07/16/2014 - Fixed wrong message being reported when a synchronizer is missing
 ##            - Added support for -all_issues to report all issues found for each
 ##              CDC path
@@ -50,7 +52,7 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports { args } {
 
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::ultrafast::create_cdc_reports { 
-  variable version {07/16/2014}
+  variable version {01/09/2015}
 } ]
 
 # -------------------------------------------------------------------------
@@ -412,9 +414,9 @@ proc ::tclapp::xilinx::ultrafast::create_cdc_reports::create_cdc_reports {args} 
       } else {
         if {$commonPrimaryClock == "Yes"} {
           if {$pathreq < 1.000} {
-            lappend cdcRpt [list {Check} {Common Primary Clock, Tight Path Requirement}]
+            lappend cdcRpt [list {Check} {Common Primary Clock; Tight Path Requirement}]
             set status "Check"
-                  set comment "Common Primary Clock, Tight Path Requirement"
+                  set comment "Common Primary Clock; Tight Path Requirement"
           } else {
             lappend cdcRpt [list {Ok} {Common Primary Clock}]
             set status "Ok"

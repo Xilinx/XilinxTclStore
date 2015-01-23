@@ -1,0 +1,171 @@
+puts "  #########################################"
+puts "  ## START [info script]"
+puts "  #########################################"
+if {![info exists ::QUIET]} { set ::QUIET 0 }
+
+# Set the File Directory to the current directory location of the script
+set file_dir [file normalize [file dirname [info script]]]
+
+# Set the Xilinx Tcl App Store Repository to the current repository location
+puts "  == Unit Test directory: $file_dir"
+
+# Set the Name to the name of the script
+set name [file rootname [file tail [info script]]]
+
+create_project $name -in_memory
+
+if {$QUIET} {
+  set_msg_config -suppress -severity ERROR
+  set_msg_config -suppress -severity {CRITICAL WARNING}
+  set_msg_config -suppress -severity WARNING
+  set_msg_config -suppress -severity INFO
+  set_msg_config -suppress -severity STATUS
+}
+
+# add_files -fileset sources_1 "$file_dir/src/bench16/bench16.v"
+# add_files -fileset sources_1 "$file_dir/src/bench16/mux2.v"
+# add_files -fileset sources_1 "$file_dir/src/bench16/mmcm0_clk_wiz.v"
+# add_files -fileset constrs_1 "$file_dir/src/bench16/bench16.xdc"
+# synth_design -top bench16 -part xc7k70tfbg484-3 -flatten rebuilt
+
+add_files -quiet -fileset sources_1 "$file_dir/src/bench16/bench16_netlist.v"
+add_files -quiet -fileset constrs_1 "$file_dir/src/bench16/bench16.xdc"
+link_design -quiet -part xc7k70tfbg484-3 -top bench16
+
+#######################################
+##
+## UNIT TESTS
+##
+#######################################
+
+# set ::tcltestNumFailed 0
+set nFailed $::tcltest::numTests(Failed)
+
+tcltest::test report_clock_topology--arguments-expected {Check supported command line arguments} -constraints {
+} -setup {
+} -body {
+  set result [::tclapp::xilinx::ultrafast::report_clock_topology -help]
+  return 0
+} -cleanup {
+} -match glob \
+-output {*} \
+-result 0 \
+-returnCodes {return}
+
+tcltest::test report_clock_topology--arguments-unexpected {Check unsupported command line arguments} -constraints {
+} -setup {
+} -body {
+  set result [::tclapp::xilinx::ultrafast::report_clock_topology -unknownCommandLine]
+  return 0
+} -cleanup {
+} -match glob \
+-output {*} \
+-result {*some error(s) happened. Cannot continue*} \
+-returnCodes {error}
+
+tcltest::test report_clock_topology--command-ok {Check command does not fail} -constraints {
+} -setup {
+} -body {
+  set result [::tclapp::xilinx::ultrafast::report_clock_topology -return_string]
+  puts $result
+  return 0
+} -cleanup {
+} -match glob \
+-output {*} \
+-result 0 \
+-returnCodes {return}
+
+tcltest::test report_clock_topology--results-ok {Check command output against expected results} -constraints {
+} -setup {
+} -body {
+  set result [::tclapp::xilinx::ultrafast::report_clock_topology -return_string]
+  puts $result
+  return 0
+} -cleanup {
+} -match glob \
+-output {*+++++++++++++++++++++
+Clock: CLK_100i_mmcm0
++++++++++++++++++++++
+Type: Generated Clock
+Net: mmcm_inst/CLK_100i_mmcm0
+Sourced by MMCME2_ADV (not LOCed) pin: mmcm_inst/mmcm_adv_inst/CLKOUT0
+  BUFG (not LOCed):    mmcm_inst/clkout1_buf
+        Drives 2 synchronous elements of type(s): FDCE
+ 
+
++++++++++++++++++++++
+Clock: CLK_166i_mmcm0
++++++++++++++++++++++
+Type: Generated Clock
+Net: mmcm_inst/CLK_166i_mmcm0
+Sourced by MMCME2_ADV (not LOCed) pin: mmcm_inst/mmcm_adv_inst/CLKOUT2
+  BUFG (not LOCed):    mmcm_inst/clkout3_buf
+ 
+
++++++++++++++++++++++
+Clock: CLK_200i_mmcm0
++++++++++++++++++++++
+Type: Generated Clock
+Net: mmcm_inst/CLK_200i_mmcm0
+Sourced by MMCME2_ADV (not LOCed) pin: mmcm_inst/mmcm_adv_inst/CLKOUT1
+  BUFG (not LOCed):    mmcm_inst/clkout2_buf
+        Drives 3 synchronous elements of type(s): FDCE
+ 
+
+++++++++++
+Clock: clk
+++++++++++
+Type: Primary Clock
+Net: clk
+Sourced by  (not LOCed) pin: 
+    Net has 0 loads (disconnected output).
+ 
+
++++++++++++++++++++++
+Clock: clkfbout_mmcm0
++++++++++++++++++++++
+Type: Generated Clock
+Net: mmcm_inst/clkfbout_mmcm0
+Sourced by MMCME2_ADV (not LOCed) pin: mmcm_inst/mmcm_adv_inst/CLKFBOUT
+  BUFG (not LOCed):    mmcm_inst/clkf_buf
+        Drives 1 synchronous elements of type(s): MMCME2_ADV
+        Connected to CLKFBIN of MMCME2_ADV: mmcm_inst/mmcm_adv_inst
+*} \
+-result 0 \
+-returnCodes {return}
+
+tcltest::cleanupTests
+
+set nFailed [expr $::tcltest::numTests(Failed) - $nFailed]
+
+if {$QUIET} {
+  reset_msg_config -suppress -severity ERROR
+  reset_msg_config -suppress -severity {CRITICAL WARNING}
+  reset_msg_config -suppress -severity WARNING
+  reset_msg_config -suppress -severity INFO
+  reset_msg_config -suppress -severity STATUS
+}
+
+close_project
+
+#######################################
+##
+## UNIT TESTS STATUS
+##
+#######################################
+
+if {$nFailed != 0} {
+#   error [format " -E- Unit test $name failed: %s" $errorstring]
+  puts [format " -E- ${name}.test : $nFailed unit test(s) failed"]
+}
+
+puts "  #########################################"
+puts "  ## END [info script]"
+puts "  #########################################"
+
+if {$nFailed != 0} {
+#   error [format " -E- Unit test $name failed: %s" $errorstring]
+  return 1
+}
+
+return 0

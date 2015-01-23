@@ -1,8 +1,9 @@
 
 ########################################################################################
-## 06/05/2014 - Fixed final message as the list of input/output ports were inverted 
-## 02/04/2014 - Renamed file and various additional updates for Tcl App Store 
-## 02/03/2014 - Updated the namespace and definition of the command line arguments 
+## 01/22/2015 - Added support for UltraScale
+## 06/05/2014 - Fixed final message as the list of input/output ports were inverted
+## 02/04/2014 - Renamed file and various additional updates for Tcl App Store
+## 02/03/2014 - Updated the namespace and definition of the command line arguments
 ##              for the Tcl App Store
 ## 09/16/2013 - Added meta-comment 'Categories' to all procs
 ## 09/10/2013 - Changed command name from checkio to report_io_reg
@@ -15,22 +16,22 @@
 
 ## ---------------------------------------------------------------------
 ## Description
-##    This proc displays information related to IO ports.  It is a 
-##    supplement to the I/O ports view in Vivado.  It shows the site, 
-##    clock region, coordinate, as well as whether IDELAY/ODELAY and 
+##    This proc displays information related to IO ports.  It is a
+##    supplement to the I/O ports view in Vivado.  It shows the site,
+##    clock region, coordinate, as well as whether IDELAY/ODELAY and
 ##    ILOGIC/OLOGIC are instantiated for the ports in use.
-##    
+##
 ##    Warnings are displayed if IDELAY/ODELAYs are not used
 ##
 ## Author: Jon Beckwith
 ## Version Number: 1.0
 ## Version Change History
 ## Version 1.0 - Initial release
-## --------------------------------------------------------------------- 
+## ---------------------------------------------------------------------
 
 namespace eval ::tclapp::xilinx::ultrafast {
   namespace export report_io_reg
-  
+
 }
 
 proc ::tclapp::xilinx::ultrafast::report_io_reg { args } {
@@ -52,8 +53,8 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg { args } {
 }
 
 # Trick to silence the linter
-eval [list namespace eval ::tclapp::xilinx::ultrafast::report_io_reg { 
-  variable version {02/04/2014}
+eval [list namespace eval ::tclapp::xilinx::ultrafast::report_io_reg {
+  variable version {01/22/2015}
 } ]
 
 proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
@@ -115,7 +116,7 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
       }
     }
   }
-  
+
   if {$help} {
     puts [format {
   Usage: report_io_reg
@@ -124,16 +125,16 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
               [-verbose]           - Verbose mode
               [-return_string]     - Return report as string
               [-usage|-u]          - This help message
-              
+
   Description: Report I/O ports information
 
-     This command displays information related to IO ports.  It is a 
-     supplement to the I/O ports view in Vivado.  It shows the site, 
-     clock region, coordinate, as well as whether IDELAY/ODELAY and 
+     This command displays information related to IO ports.  It is a
+     supplement to the I/O ports view in Vivado.  It shows the site,
+     clock region, coordinate, as well as whether IDELAY/ODELAY and
      ILOGIC/OLOGIC are instantiated for the ports in use.
-     
+
      Warnings are displayed if IDELAY/ODELAYs are not used
-  
+
   Example:
      report_io_reg
      report_io_reg -verbose -file myreport.rpt
@@ -141,7 +142,26 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
     # HELP -->
     return {}
   }
-  
+
+  # Get the current architecture
+  set architecture [::tclapp::xilinx::ultrafast::getArchitecture]
+  switch $architecture {
+    artix7 -
+    kintex7 -
+    virtex7 -
+    zynq {
+    }
+    kintexu -
+    kintexum -
+    virtexu -
+    virtexum {
+    }
+    default {
+      puts " -E- architecture $architecture is not supported."
+      incr error
+    }
+  }
+
   if {$error} {
     error " -E- some error(s) happened. Cannot continue"
   }
@@ -172,10 +192,30 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
 
       # Determine if anything has been instantiated in the IDELAY block in the same
       # tile region
-      set idelay_used [get_cells -quiet -of [get_sites -quiet "IDELAY_$coord"]]
-      set odelay_used [get_cells -quiet -of [get_sites -quiet "ODELAY_$coord"]]
-      set ilogic_used [get_cells -quiet -of [get_sites -quiet "ILOGIC_$coord"]]
-      set ologic_used [get_cells -quiet -of [get_sites -quiet "OLOGIC_$coord"]]
+      set idelay_used {}
+      set odelay_used {}
+      set ilogic_used {}
+      set ologic_used {}
+      switch $architecture {
+        artix7 -
+        kintex7 -
+        virtex7 -
+        zynq {
+          set idelay_used [get_cells -quiet -of [get_sites -quiet "IDELAY_$coord"]]
+          set odelay_used [get_cells -quiet -of [get_sites -quiet "ODELAY_$coord"]]
+          set ilogic_used [get_cells -quiet -of [get_sites -quiet "ILOGIC_$coord"]]
+          set ologic_used [get_cells -quiet -of [get_sites -quiet "OLOGIC_$coord"]]
+        }
+        kintexu -
+        kintexum -
+        virtexu -
+        virtexum {
+          set idelay_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/IDELAY"]]
+          set odelay_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/ODELAY"]]
+          set ilogic_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/IN_FF"]]
+          set ologic_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/OUT_FF"]]
+        }
+      }
 
       # Input ports should have ILOGIC, Output ports should have OLOGIC
       if {[string match -nocase $dir "OUT"]>0} {
@@ -195,7 +235,7 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
       } else {
         $table addrow [list $port $dir $coord $pp $bank $CR [llength $idelay_used] [llength $odelay_used] [llength $ilogic_used] [llength $ologic_used] $info ]
       }
-  
+
     } else {
       # Port with no site ... it is unconnected
       set pp [get_property -quiet PACKAGE_PIN $port]
@@ -230,7 +270,7 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
 
   # Destroy the object
   catch {$table destroy}
-  
+
   # Return result as string?
   if {$returnString} {
     return [join $output \n]
