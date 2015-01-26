@@ -627,6 +627,20 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
   }
 
   if { [xps_is_fileset $tcl_obj] } {
+    set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
+    foreach library $xpm_libraries {
+      foreach file [rdi::get_xpm_files -library_name $library] {
+        set file_type "SystemVerilog"
+        set compiler [xps_get_compiler $simulator $file_type]
+        set l_other_compiler_opts [list]
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type $global_files_str l_other_compiler_opts
+        set g_files $global_files_str
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler $g_files l_other_compiler_opts l_incl_dirs_opts 1]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+        }
+      }
+    }
     set b_add_sim_files 1
     if { {} != $linked_src_set } {
       xps_add_block_fs_files $simulator $launch_dir $global_files_str l_incl_dirs_opts files
@@ -807,7 +821,7 @@ proc xps_get_files_from_block_filesets { filter_type } {
   return $file_list
 }
 
-proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_str l_other_compiler_opts_arg  l_incl_dirs_opts_arg } {
+proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_str l_other_compiler_opts_arg  l_incl_dirs_opts_arg {b_skip_file_obj_access 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -818,13 +832,17 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
   set b_absolute_path $a_sim_vars(b_absolute_path)
   set cmd_str {}
   set associated_library [get_property "DEFAULT_LIB" [current_project]]
-  set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
-  if { {} != $file_obj } {
-    if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
-      set associated_library [get_property "LIBRARY" $file_obj]
+  if { $b_skip_file_obj_access } {
+    #
+  } else {
+    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    if { {} != $file_obj } {
+      if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+        set associated_library [get_property "LIBRARY" $file_obj]
+      }
+      # extract only if the file is an object
+      set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
     }
-    # extract only if the file is an object
-    set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
   }
 
   set src_file $file
@@ -883,7 +901,12 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
   }
   set file_str [join $arg_list " "]
   set type [xps_get_file_type_category $file_type]
-  set ip_file [xps_get_ip_name $src_file]
+  set ip_file {}
+  if { $b_skip_file_obj_access } {
+    #
+  } else {
+    set ip_file [xps_get_ip_name $src_file]
+  }
   set cmd_str "$type#$file_type#$associated_library#$src_file#$file_str#$ip_file#\"$file\""
   return $cmd_str
 }
@@ -1296,9 +1319,9 @@ proc xps_write_filelist_info { launch_dir } {
         set pfile "[xps_resolve_file_path $proj_src_file $launch_dir]"
       }
       if { {} != $ipname } {
-        lappend lines "$type, $filename, $ipname, $lib, $pfile"
+        lappend lines "$file_type, $filename, $ipname, $lib, $pfile"
       } else {
-        lappend lines "$type, $filename, *, $lib, $pfile"
+        lappend lines "$file_type, $filename, *, $lib, $pfile"
       }
     }
     struct::matrix file_matrix;
@@ -2547,7 +2570,12 @@ proc xps_get_compiler { simulator file_type } {
     }
   } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) } {
     switch -regexp -- $simulator {
-      "xsim"     { set compiler "verilog" }
+      "xsim"     {
+        set compiler "verilog"
+        if { {SystemVerilog} == $file_type } {
+          set compiler "sv"
+        }
+      }
       "modelsim" -
       "questa"   { set compiler "vlog" }
       "ies"      { set compiler "ncvlog" }
@@ -2580,6 +2608,9 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type global_fi
       xps_append_config_opts arg_list $simulator "vlog"
       set cmd_str [join $arg_list " "]
       lappend opts $cmd_str
+      if { [string equal -nocase $file_type "systemverilog"] } {
+        lappend opts "-sv"
+      }
     }
     "ncvhdl" { 
        lappend opts "\$opts_vhd"
