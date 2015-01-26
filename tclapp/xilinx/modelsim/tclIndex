@@ -8,4 +8,4 @@
 
 set auto_index(::tclapp::xilinx::modelsim::register_options) [list source [file join $dir register_options.tcl]]
 set auto_index(::tclapp::xilinx::modelsim::usf_create_options) [list source [file join $dir helpers.tcl]]
-set auto_index(::tclapp::xilinx::modelsim::usf_setup) [list source [file join $dir sim.tcl]]
+set auto_index(::tclapp::xilinx::modelsim::setup) [list source [file join $dir sim.tcl]]
