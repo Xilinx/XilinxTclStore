@@ -11,7 +11,7 @@
 package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::vcs {
-  namespace export usf_setup
+  namespace export setup
 }
 
 namespace eval ::tclapp::xilinx::vcs {
