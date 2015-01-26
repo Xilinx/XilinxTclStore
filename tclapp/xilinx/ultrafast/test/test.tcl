@@ -42,7 +42,7 @@ tcltest::configure -file *.test -singleproc 1 -debug 0 -verbose {skip body error
 # tcltest::configure -file create_cdc_reports_*.test -singleproc 1 -debug 0 -verbose {skip body error start}
 # tcltest::configure -file report_clock_topology_*.test -singleproc 1 -debug 0 -verbose {skip body error start}
 # tcltest::configure -file report_io_reg_*.test -singleproc 1 -debug 0 -verbose {skip body error start}
-# tcltest::configure -file report_reset_signals_*.tcl -singleproc 1 -debug 0 -verbose {skip body error start}
+# tcltest::configure -file report_reset_signals_*.test -singleproc 1 -debug 0 -verbose {skip body error start}
 
 # Hook to determine if any of the tests failed. Then we can exit with
 # proper exit code: 0=all passed, 1=one or more failed

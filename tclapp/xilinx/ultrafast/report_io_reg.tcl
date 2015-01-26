@@ -1,5 +1,6 @@
 
 ########################################################################################
+## 01/23/2015 - Added support for Native mode for UltraScale
 ## 01/22/2015 - Added support for UltraScale
 ## 06/05/2014 - Fixed final message as the list of input/output ports were inverted
 ## 02/04/2014 - Renamed file and various additional updates for Tcl App Store
@@ -54,7 +55,7 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg { args } {
 
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::ultrafast::report_io_reg {
-  variable version {01/22/2015}
+  variable version {01/23/2015}
 } ]
 
 proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
@@ -210,8 +211,16 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
         kintexum -
         virtexu -
         virtexum {
-          set idelay_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/IDELAY"]]
-          set odelay_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/ODELAY"]]
+          # Support for both Component/Native modes
+          set idelay_used [get_cells -quiet -of [concat [get_bels -quiet "BITSLICE_RX_TX_$coord/IDELAY"] \
+                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/RX_BITSLICE"] \
+                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/RXTX_BITSLICE"] ]]
+          set odelay_used [get_cells -quiet -of [concat [get_bels -quiet "BITSLICE_RX_TX_$coord/ODELAY"] \
+                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/TX_BITSLICE"] \
+                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/TX_BITSLICE_TRI"] \
+                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/RXTX_BITSLICE"] ]]
+#           set idelay_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/IDELAY"]]
+#           set odelay_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/ODELAY"]]
           set ilogic_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/IN_FF"]]
           set ologic_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/OUT_FF"]]
         }

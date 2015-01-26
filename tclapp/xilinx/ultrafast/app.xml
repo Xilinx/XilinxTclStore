@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated report_io_reg for UltraScale. Other enhancements</revision_history>
+      <revision_history>Updated report_io_reg for Native mode support for UltraScale.</revision_history>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
