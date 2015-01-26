@@ -58,21 +58,16 @@ proc ::tclapp::xilinx::ultrafast::progressBar {cur tot} {
   puts -nonewline stderr $str
 }
  
-proc ::tclapp::xilinx::ultrafast::getCurrentFamily {} {
+proc ::tclapp::xilinx::ultrafast::getArchitecture {} {
   # Summary :
   # Argument Usage:
   # Return Value:
 
-  set currentPart [get_property PART [current_project]]
-  switch -regexp -- [string tolower $currentPart] {
-    {^xc7v} { return {virtex7} }
-    {^xc7k} { return {kintex7} }
-    {^xc7z} { return {zynq7} }
-    {^xc7a} { return {artix7} }
-    default {
-      return {}
-    }
-  }
+  # Example of returned value: artix7 diabloevalarch elbertevalarch kintex7 kintexu kintexum olyevalarch v7evalarch virtex7 virtex9 virtexu virtexum zynq zynque ...
+  #    7-Serie    : artix7 kintex7 virtex7 zynq
+  #    UltraScale : kintexu kintexum virtexu virtexum
+  #    Diablo (?) : virtex9 virtexum zynque
+  return [get_property -quiet ARCHITECTURE [get_property -quiet PART [current_project]]]
 }
 
 proc ::tclapp::xilinx::ultrafast::generate_file_header {cmd} {

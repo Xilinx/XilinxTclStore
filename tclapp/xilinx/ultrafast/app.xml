@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated create_cdc_reports from ultrafast</revision_history>
+      <revision_history>Miscellaneous updates for UltraScale.</revision_history>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
