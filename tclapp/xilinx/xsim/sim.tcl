@@ -11,6 +11,10 @@
 package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::xsim {
+  namespace export usf_setup
+}
+
+namespace eval ::tclapp::xilinx::xsim {
 proc setup { args } {
   # Summary: initialize global vars and prepare for simulation
   # Argument Usage:

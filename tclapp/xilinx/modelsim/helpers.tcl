@@ -11,7 +11,7 @@
 package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::modelsim {
-  # do not export procs from this file
+  namespace export usf_create_options
 }
 
 namespace eval ::tclapp::xilinx::modelsim {
@@ -1473,11 +1473,20 @@ proc usf_get_platform {} {
 
   set platform {}
   set os $::tcl_platform(platform)
+  set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
   if { {windows}   == $os } { set platform "win32" }
-  if { {windows64} == $os } { set platform "win64" }
+  if { {windows64} == $os } {
+    set platform "win64"
+    if { {32} == $os_type } {
+      set platform "win32"
+    }
+  }
   if { {unix} == $os } {
     if { {x86_64} == $::tcl_platform(machine) } {
       set platform "lnx64"
+      if { {32} == $os_type } {
+        set platform "lnx32"
+      }
     } else {
       set platform "lnx32"
     }

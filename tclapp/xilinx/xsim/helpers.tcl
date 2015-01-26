@@ -11,7 +11,7 @@
 package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::xsim {
-  # do not export procs from this file
+  namespace export usf_create_options
 }
 
 namespace eval ::tclapp::xilinx::xsim {
