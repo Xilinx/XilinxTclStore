@@ -1,4 +1,4 @@
-Copyright (c) 2014, Xilinx
+Copyright (c) 2014, 2015 Xilinx
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -16,3 +16,4 @@ All contributors must date and digitally sign once below in order to submit to t
 <YYYYMMDD Date>::<github id>::<Full Name>
 =================================================================================================
 20140221::rajklair::Raj Klair
+20150127::emenchen::Eric Menchen

@@ -1,0 +1,37 @@
+
+Description:
+
+  Runs synthesis for a Block Design (BD), integrates the design along with any
+  needed sub-designs (e.g. OOC synthesized IP), and writes out a single design
+  checkpoint of the entire synthesized design along with HDL stub files for
+  use in other synthesis tools. The output files will be placed in the same
+  directory as the source BD file.
+
+Arguments:
+
+  -help - (Optional) Print this help.
+
+  -verbose - (Optional) Print verbose messaging.
+
+  -keep - (Optional) Keep temporary directory and project after export_bd_checkpoint has finished.
+
+  <file> - (Required) The Block Design file to write a synthesized checkpoint for
+
+Syntax:
+
+  export_bd_synth [-help] [-verbose] [-keep] <file>
+
+Returns:
+
+  0 if success, else an error will be thrown
+
+Examples:
+
+  The following command will generate a synthesis checkpoint along with stub
+  files for the block_1.bd.
+
+  % export_bd_synth [get_files block_1.bd]
+
+See Also:
+
+   *  get_files
