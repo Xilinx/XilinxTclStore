@@ -134,9 +134,7 @@ proc simulate { args } {
     return 1
   } else {
     cd $cwd
-  
     send_msg_id USF-XSim-096 INFO "XSim completed. Design snapshot '$snapshot' loaded."
-  
     set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
     if { {} != $rt } {
       send_msg_id USF-XSim-097 INFO "XSim simulation ran for $rt"
@@ -325,6 +323,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
+    if { [get_param "project.allowSharedLibraryType"] } {
+      puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+    }
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
   } else {
     puts $fh_scr "@echo off"
@@ -432,33 +433,46 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
   }
   
- ########################################################################
- # CREATING MASTER .SO USING MULTIPLE .so's
- ########################################################################
- 
-  set software_lib 0
-  if { [get_param ips.enableSVCosim] } {
+  set b_sw_lib 0
+  set args_list [list]
+  if { [get_param "project.allowSharedLibraryType"] } {
     if {$::tcl_platform(platform) == "unix"} {
-      set default_software_libs 0
+      set b_default_sw_lib 0
       foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
-        set file_type [get_property FILE_TYPE $file]
-        set file_dir [file dirname $file] 
-        set file_name [file tail $file] 
-        if { $file_type == "Shared Library" } {
-          if { $default_software_libs == 0 } {
-            append args_list "\ng++ -shared -o libsls.so -L$::env(RDI_LIBDIR)\/ -lxaxi_tlm -Wl,-rpath -Wl,$::env(RDI_LIBDIR)\/ -L$::env(RDI_LIBDIR)\/ -lsystemc -Wl,-rpath -Wl,$::env(RDI_LIBDIR)\/ -L$file_dir\/ $file_dir\/$file_name -Wl,-rpath -Wl,$file_dir "
-            incr default_software_libs 1
-            incr software_lib 1
+        set file_dir [file dirname $file]
+        set file_name [file tail $file]
+        set final_file_name $file_dir\/$file_name 
+        if [string match "lib*so" $file_name] {
+          # remove "lib" from prefix and ".so" extension 
+          set file_name [string range $file_name 3 end-3]
+          set final_file_name "-l$file_name"
+          set file_dir "[usf_get_relative_file_path $file_dir $dir]"
+        }
+        
+        if { {Shared Library} == [get_property FILE_TYPE $file] } {
+          if { $b_default_sw_lib == 0 } {
+            lappend args_list "\ng++ -shared -o libsls.so -L\$xv_lib_path/ -lxaxi_tlm -Wl,-rpath -Wl,\$xv_lib_path/ -lsystemc -L$file_dir\/ $final_file_name"
+            # file_dir already set in g++ command? donot add
+            if { [info exists a_shared_lib_dirs($file_dir) ] == 0 } {
+              lappend args_list "-Wl,-rpath -Wl,$file_dir"
+              set a_shared_lib_dirs($file_dir) $file_dir
+            }
+            incr b_default_sw_lib 1
+            incr b_sw_lib 1
           } else {
-            append args_list "-L$file_dir\/ $file_dir\/$file_name -Wl,-rpath -Wl,$file_dir "
+            lappend args_list "-L$file_dir\/ $final_file_name"
+            if { [info exists a_shared_lib_dirs($file_dir)] == 0 } {
+              lappend args_list "-Wl,-rpath -Wl,$file_dir"
+              set a_shared_lib_dirs($file_dir) $file_dir
+            }
           }
         }
       }
     }
-  }	
+  }
 
-  if { $software_lib == 1} {
-    puts $fh_scr $args_list
+  if { $b_sw_lib == 1} {
+    puts $fh_scr [join $args_list " "]
   }
   
   if {$::tcl_platform(platform) != "unix"} {
@@ -588,6 +602,24 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
     puts $fh_scr "#!/bin/sh -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
+    # TODO: once xsim picks the "so"s path at runtime , we can remove the following code
+    if { [get_param "project.allowSharedLibraryType"] } {
+      set args_list [list]
+      foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
+        set file_type [get_property FILE_TYPE $file]
+        set file_dir [file dirname $file] 
+        set file_name [file tail $file] 
+        if { $file_type == "Shared Library" } {
+          set file_dir "[usf_get_relative_file_path $file_dir $dir]"
+          if {[info exists a_shared_lib_dirs($file_dir)] == 0} {
+            set a_shared_lib_dirs($file_dir) $file_dir
+            lappend args_list "$file_dir"
+          }
+        }
+      }
+      set cmd_args [join $args_list ":"]
+      puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$LD_LIBRARY_PATH\n"
+    }
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $b_batch]
     puts $fh_scr "ExecStep \$xv_path/bin/xsim $cmd_args"
   } else {
@@ -678,22 +710,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "--include \"$dir\""
   }
   
-  ##############################################   
-  #Passing all the master .so to the elaboration
-  ##############################################
-  
-  if { [get_param ips.enableSVCosim] } {
+  if { [get_param "project.allowSharedLibraryType"] } {
     if {$::tcl_platform(platform) == "unix"} {
-      set master_lib 0
       foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
-        set file_type [get_property FILE_TYPE $file]
-        set file_dir [file dirname $file] 
-        set file_name [file tail $file] 
-        if { $file_type == "Shared Library" } {
-          if { $master_lib == 0 } {
-            lappend args_list "--sv_root \".\/\" -sv_lib libsls"
-            incr master_lib 1
-          }
+        if { {Shared Library} == [get_property FILE_TYPE $file] } {
+          lappend args_list "--sv_root \".\/\" -sv_lib libsls"
+          break
         }
       }
     }
