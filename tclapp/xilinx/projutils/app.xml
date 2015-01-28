@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixed target ip object setup</revision_history>
+      <revision_history>Added new export_bd_synth proc.</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -13,6 +13,10 @@
         <proc>
           <name>convert_ngc</name>
           <summary>Convert all provided NGC files to a supported format</summary>
+        </proc>
+        <proc>
+          <name>export_bd_synth</name>
+          <summary>Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necesssary.</summary>
         </proc>
         <proc>
           <name>export_simulation</name>
