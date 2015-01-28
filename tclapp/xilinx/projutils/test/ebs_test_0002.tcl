@@ -32,10 +32,10 @@ wait_on_run synth_1
 export_bd_synth $bd_file
 
 set check_file [file join $bd_dir "${bd_name}_stub.v"]
-::tclapp::xilinx::projutils::validate_ { file exists $check_file } "1" "ERROR: Failed to generate file $check_file."
+::tclapp::xilinx::projutils::validate { file exists $check_file } "1" "ERROR: Failed to generate file $check_file."
 append check_file "hd"
-::tclapp::xilinx::projutils::validate_ { file exists $check_file } "1" "ERROR: Failed to generate file $check_file."
+::tclapp::xilinx::projutils::validate { file exists $check_file } "1" "ERROR: Failed to generate file $check_file."
 set check_file [file join $bd_dir "${bd_name}.dcp"]
-::tclapp::xilinx::projutils::validate_ { file exists $check_file } "1" "ERROR: Failed to generate file $check_file."
+::tclapp::xilinx::projutils::validate { file exists $check_file } "1" "ERROR: Failed to generate file $check_file."
 
 close_project

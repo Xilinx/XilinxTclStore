@@ -24,7 +24,7 @@ proc export_bd_synth {args} {
   # file: The Block Design file to write a synthesized checkpoint for
 
   # Return Value:
-  # 0 if success, else an error will be thrown
+  # (none) An error will be thrown if the command is not successful
 
   # Categories: synthesis, xilinxtclstore, projutils
 
@@ -45,16 +45,16 @@ proc export_bd_synth {args} {
   }
 
   ## 0b. Validate input 
-  validate_ { llength $sIPIDesign } "1" "A single Block Design file object must be provided, received: ${sIPIDesign}"
-  validate_ { get_property CLASS $sIPIDesign } "file" "Only 'file' objects are supported"
-  validate_ { get_property FILE_TYPE $sIPIDesign } "Block Designs" "Only 'Block Design' file types are supported"
+  validate { llength $sIPIDesign } "1" "A single Block Design file object must be provided, received: ${sIPIDesign}"
+  validate { get_property CLASS $sIPIDesign } "file" "Only 'file' objects are supported"
+  validate { get_property FILE_TYPE $sIPIDesign } "Block Designs" "Only 'Block Design' file types are supported"
 
   ## Oc. Determine and validate BD directory
   set bdDir [file dirname $sIPIDesign]
-  validate_ { dirIsWritable_ $bdDir } "1" "Block Design directory '$bdDir' is not writeable"
+  validate { dirIsWritable $bdDir } "1" "Block Design directory '$bdDir' is not writeable"
 
   # 1. Get and create temporary directory
-  set sTmpDir [ mkTmpDir_ ]
+  set sTmpDir [ mkTmpDir ]
   if { $verbose } { puts "Using temporary directory: $sTmpDir" }
 
   # 2. Make sure that the IPI design is up-to-date
@@ -65,7 +65,7 @@ proc export_bd_synth {args} {
   set_property REGISTERED_WITH_MANAGER 0 [ get_files $sIPIDesign ]
 
   # 4. Run and catch export_bd_synth_ 
-  set failed [ catch { exportBdSynth_ $sIPIDesign $sTmpDir $verbose } returned ] 
+  set failed [ catch { exportBdSynth $sIPIDesign $sTmpDir $verbose } returned ] 
 
   # 5. Re-register (if needed) and clean-up
   set_property REGISTERED_WITH_MANAGER 1 [ get_files $sIPIDesign ]
@@ -81,19 +81,16 @@ proc export_bd_synth {args} {
 
   # 7. Re-throw if a failure occurred
   if { $failed } { error $returned }
-
-  return 0
-
 }
 }
 
 namespace eval ::tclapp::xilinx::projutils {
 
-# proc: validate_
+# proc: validate
 # Summary:
 #   Execute command to validate output is as expected
 # Argument Usage: 
-#:    validate_ cmd expected ?failMsg?
+#:    validate cmd expected ?failMsg?
 # Parameters:
 #     cmd            - Command to validate
 #     expected       - Expected value of command
@@ -103,20 +100,20 @@ namespace eval ::tclapp::xilinx::projutils {
 # Example:
 #:     # will validate value, in the case an error is thrown
 #:     set three 3
-#:     validate_ { eval 2 + 2 } $three "The output of the addition was expected to be '${three}'"
+#:     validate { eval 2 + 2 } $three "The output of the addition was expected to be '${three}'"
 #
-proc validate_ { cmd expected { failMsg {} } } {
+proc validate { cmd expected { failMsg {} } } {
   catch { uplevel $cmd } output
   if { $output != $expected } {
     error "\n${failMsg}\n"
   }
 }
 
-# proc: dirIsWritable_
+# proc: dirIsWritable
 # Summary:
 #   Returns true if the argument supplied is an existing directory and is writable
 # Argument Usage: 
-#:    dirIsWritable_ dir
+#:    dirIsWritable dir
 # Parameters:
 #     dir            - The directory to test
 # Return Value:
@@ -124,18 +121,18 @@ proc validate_ { cmd expected { failMsg {} } } {
 #     0              - Otherwise
 # Example:
 #:     # checks if /tmp exists and is writable
-#:     if { [ dirIsWritable_ "/tmp" ] } { ... }
+#:     if { [ dirIsWritable "/tmp" ] } { ... }
 #
-proc dirIsWritable_ dir {
+proc dirIsWritable dir {
   if { [ file exists $dir ] && [ file writable $dir ] && [ file isdirectory $dir ] } { return 1 }
   return 0
 }
 
-# proc: mkTmpDir_
+# proc: mkTmpDir
 # Summary:
 #   Determine unique name in temp location and make dir
 # Argument Usage: 
-#:    mkTmpDir_
+#:    mkTmpDir
 # Parameters:
 #     (none)         - unused
 # Return Value:
@@ -143,9 +140,9 @@ proc dirIsWritable_ dir {
 # Example:
 #:     # will attempt to identify a unique temporary directory and if 
 #:     # possible then the directory will be created
-#:     set tmpDir [ mkTmpDir_ ] 
+#:     set tmpDir [ mkTmpDir ] 
 #
-proc mkTmpDir_ {} {
+proc mkTmpDir {} {
 
   set dirPrepend    "bd_checkpoint"
   set dirPostpend   ""
@@ -154,7 +151,7 @@ proc mkTmpDir_ {} {
   # try hard coded directories
   set testTmpDirs [ list [ pwd ] ]
   foreach testTmpDir $testTmpDirs {
-    if { [ dirIsWritable_ $testTmpDir ] } { 
+    if { [ dirIsWritable $testTmpDir ] } { 
       set tmpDir [ file join $testTmpDir .Xil ]
       file mkdir $tmpDir
       break
@@ -162,7 +159,7 @@ proc mkTmpDir_ {} {
   }
   
   # if no temp was found as writable, give up and throw
-  if { ( "${tmpDir}" == "" ) || ! [ dirIsWritable_ $tmpDir ] } {
+  if { ( "${tmpDir}" == "" ) || ! [ dirIsWritable $tmpDir ] } {
     error "Failed to find a writable temporary directory!\n  Tried: '${testTmpDirs}'\n"
   }
   
@@ -176,17 +173,17 @@ proc mkTmpDir_ {} {
     error "Unable to create a unique temporary directory!\nRemove all temporary directories in: '[ file join ${tmpDir} ${dirPrepend}*${dirPostpend}']"
   }
   file mkdir $newTmpDir
-  if { ! [ dirIsWritable_ $newTmpDir ] } {
+  if { ! [ dirIsWritable $newTmpDir ] } {
     error "Failed to create a writable temporary directory!\nTried: $newTmpDir"
   }
   return $newTmpDir
 }
 
-# proc: exportBdSynth_
+# proc: exportBdSynth
 # Summary:
 #   Used to synthesize a Block Design (BD) and write out a checkpoint
 # Argument Usage: 
-#:    exportBdSynth_ sIPIDesign sTmpDir ?verbose?
+#:    exportBdSynth sIPIDesign sTmpDir ?verbose?
 # Parameters:
 #     sTmpDir        - temporary directory to create project in
 #     sIPIDesign     - Block Design object to run synthesis on
@@ -195,9 +192,9 @@ proc mkTmpDir_ {} {
 #     (none)         - unused
 # Example:
 #:     # export checkpoint with all synthesized IP along with the BD
-#:     exportBdSynth_ [ get_files block_1.bd ] /tmp/user/unique
+#:     exportBdSynth [ get_files block_1.bd ] /tmp/user/unique
 #
-proc exportBdSynth_ { sIPIDesign sTmpDir { verbose 0 } } {
+proc exportBdSynth { sIPIDesign sTmpDir { verbose 0 } } {
 
   # 1. Create a project to perform synthesis
 

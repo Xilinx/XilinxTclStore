@@ -23,7 +23,7 @@ Syntax:
 
 Returns:
 
-  0 if success, else an error will be thrown
+  (none) An error will be thrown if the command is not successful.
 
 Examples:
 
