@@ -34,12 +34,13 @@ proc register_options { simulator } {
   }
   set options {
     {{compile.xvlog.nosort}          {bool}        {0}                                                  {Donot sort Verilog files}}
-    {{compile.xvhdl.nosort}          {bool}        {0}                                                  {Donot sort VHDL files}}
+    {{compile.xvlog.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
+    {{compile.xvhdl.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
     {{compile.xvlog.more_options}    {string}      {}                                                   {More XVLOG compilation options}}
     {{compile.xvhdl.more_options}    {string}      {}                                                   {More XVHDL compilation options}}
     {{elaborate.snapshot}            {string}      {}                                                   {Specify name of the simulation snapshot}}
     {{elaborate.debug_level}         {enum}        {{typical} {typical} {{all} {typical} {off}}}        {Specify simulation debug visibility level}}
-    {{elaborate.relax}               {bool}        {1}                                                  {Relax}}
+    {{elaborate.relax}               {bool}        {1}                                                  {Relax strict HDL language checking rules}}
     {{elaborate.mt_level}            {enum}        {{auto} {auto} {{auto} {off} {2} {4} {8} {16} {32}}} {Specify number of sub-compilation jobs to run in parallel}}
     {{elaborate.load_glbl}           {bool}        {1}                                                  {Load GLBL module}}
     {{elaborate.rangecheck}          {bool}        {0}                                                  {Enable runtime value range check for VHDL}}

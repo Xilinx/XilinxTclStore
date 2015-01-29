@@ -367,7 +367,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     close $fh_vlog
 
-    set xvlog_arg_list [list "$s_plat_sw" "-prj" "$vlog_filename"]
+    set xvlog_arg_list [list "$s_plat_sw"]
+    if { [get_property "XSIM.COMPILE.XVLOG.RELAX" $fs_obj] } {
+      lappend xvlog_arg_list "--relax"
+    }
+    lappend xvlog_arg_list "-prj $vlog_filename"
     set more_xvlog_options [string trim [get_property "XSIM.COMPILE.XVLOG.MORE_OPTIONS" $fs_obj]]
     if { {} != $more_xvlog_options } {
       set xvlog_arg_list [linsert $xvlog_arg_list end "$more_xvlog_options"]
@@ -406,14 +410,13 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         {VHDL}    { puts $fh_vhdl $cmd_str }
       }
     }
-    # nosort? (vhdl)
-    set b_no_sort [get_property "XSIM.COMPILE.XVHDL.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-    if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
-      puts $fh_vhdl "\n# Do not sort compile order\nnosort"
-    }
     close $fh_vhdl
 
-    set xvhdl_arg_list [list "$s_plat_sw" "-prj" "$vhdl_filename"]
+    set xvhdl_arg_list [list "$s_plat_sw"]
+    if { [get_property "XSIM.COMPILE.XVHDL.RELAX" $fs_obj] } {
+      lappend xvhdl_arg_list "--relax"
+    }
+    lappend xvhdl_arg_list "-prj $vhdl_filename"
     set more_xvhdl_options [string trim [get_property "XSIM.COMPILE.XVHDL.MORE_OPTIONS" $fs_obj]]
     if { {} != $more_xvhdl_options } {
       set xvhdl_arg_list [linsert $xvhdl_arg_list end "$more_xvhdl_options"]
