@@ -33,7 +33,7 @@ proc register_options { simulator } {
     return 1
   }
   set options {
-    {{compile.xvlog.nosort}          {bool}        {0}                                                  {Donot sort Verilog files}}
+    {{compile.xvlog.nosort}          {bool}        {0}                                                  {Do not sort Verilog files}}
     {{compile.xvlog.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
     {{compile.xvhdl.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
     {{compile.xvlog.more_options}    {string}      {}                                                   {More XVLOG compilation options}}

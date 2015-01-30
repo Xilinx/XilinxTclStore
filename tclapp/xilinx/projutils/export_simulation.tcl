@@ -859,7 +859,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
         set associated_library [get_property "LIBRARY" $file_obj]
       }
       # extract only if the file is an object
-      set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
+      set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
     }
   }
 
@@ -1513,10 +1513,15 @@ proc xps_write_driver_script { simulator fh_unix fh_win launch_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
+  variable a_sim_vars
   xps_write_main_driver_procs $simulator $fh_unix $fh_win
 
   if { ({ies} == $simulator) || ({vcs} == $simulator) } {
-    xps_create_ies_vcs_do_file $simulator $launch_dir
+    if { $a_sim_vars(b_single_step) } {
+      # no do file required
+    } else {
+      xps_create_ies_vcs_do_file $simulator $launch_dir
+    }
   }
 
   xps_write_simulator_procs $simulator $fh_unix $fh_win $launch_dir
@@ -1580,7 +1585,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
   }
 
   if { ({ies} == $simulator) || ({vcs} == $simulator) } {
-    xps_write_ref_dir $fh_unix
+    #xps_write_ref_dir $fh_unix
   }
   switch -regexp -- $simulator {
     "xsim" {
@@ -1642,10 +1647,21 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
     "ies" {
       set filename "run.f"
       set arg_list [list]
+      puts $fh_unix "  XILINX_VIVADO=$::env(XILINX_VIVADO)"
+      puts $fh_unix "  export XILINX_VIVADO"
       xps_append_config_opts arg_list "ies" "irun"
       lappend arg_list  "-timescale 1ns/1ps" \
                          "-top $a_sim_vars(s_top)" \
                          "-f $filename" \
+                         "-f $::env(XILINX_VIVADO)/data/secureip/secureip_cell.list.f"
+      if { [xps_contains_verilog] } {
+        lappend arg_list "glbl.v"
+      }
+      lappend arg_list   "+libext+.v" \
+                         "-y $::env(XILINX_VIVADO)/data/verilog/src/retarget/" \
+                         "+libext+.v" \
+                         "-y $::env(XILINX_VIVADO)/data/verilog/src/unisims/" \
+                         "+libext+.v" \
                          "-l run.log"
       foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir {} true]] {
         lappend arg_list "+incdir+\"$dir\""
@@ -1668,9 +1684,13 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
       set arg_list [list]
       xps_append_config_opts arg_list "vcs" "vcs"
       lappend arg_list   "-V" \
+                         "-timescale=1ns/1ps" \
                          "-f $filename" \
-                         "-f $::env(XILINX_VIVADO)/data/secureip/secureip_cell.list.f" \
-                         "+libext+.v" \
+                         "-f $::env(XILINX_VIVADO)/data/secureip/secureip_cell.list.f"
+      if { [xps_contains_verilog] } {
+        lappend arg_list "glbl.v"
+      }
+      lappend arg_list   "+libext+.v" \
                          "-y $::env(XILINX_VIVADO)/data/verilog/src/retarget/" \
                          "+libext+.v" \
                          "-y $::env(XILINX_VIVADO)/verilog/src/unisims/" \
@@ -1685,6 +1705,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
       foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir {} true]] {
         lappend arg_list "+incdir+\"$dir\""
       }
+      lappend arg_list "-R"
       set cmd_str [join $arg_list " \\\n       "]
       puts $fh_unix "  vcs $cmd_str"
       #puts $fh_unix "  ./simv"
@@ -2877,6 +2898,7 @@ proc xps_verify_ip_status {} {
     }
     dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
     dict set regen_ip $ip generated [get_property is_ip_generated [get_ips -quiet $ip]]
+    dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [get_files -quiet ${ip}.xci]]
     dict set regen_ip $ip stale [get_property stale_targets [get_ips -quiet $ip]]
     set b_single_ip 1
   } else {
@@ -2888,6 +2910,7 @@ proc xps_verify_ip_status {} {
       }
       dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
       dict set regen_ip $ip generated [get_property is_ip_generated $ip]
+      dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [get_files -quiet ${ip}.xci]]
       dict set regen_ip $ip stale [get_property stale_targets $ip]
     }
   } 
@@ -2899,7 +2922,7 @@ proc xps_verify_ip_status {} {
       if { {} == $d_targets } {
         continue
       }
-      if { {0} == $generated } {
+      if { {0} == $generated_sim } {
         lappend not_generated $ip
       } else {
         if { [llength $stale] > 0 } {
@@ -3983,7 +4006,7 @@ proc xps_write_reset { simulator fh_unix fh_win } {
       set file_dir_list [list "work" "msim"]
     }
     "ies" { 
-      set file_list [list "ncsim.key" "ncvlog.log" "ncvhdl.log" "compile.log" "elaborate.log" "simulate.log" "run.log" "waves.shm"]
+      set file_list [list "ncsim.key" "irun.key" "ncvlog.log" "ncvhdl.log" "compile.log" "elaborate.log" "simulate.log" "run.log" "waves.shm"]
       set file_dir_list [list "INCA_libs"]
     }
     "vcs" {
