@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Support for the -relax switch for xvlog and xvhdl</revision_history>
+      <revision_history>Fixed the Donot typo</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
