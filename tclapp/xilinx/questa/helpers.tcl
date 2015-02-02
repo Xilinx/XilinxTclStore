@@ -44,6 +44,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_tool_bin_path)    {}
 
   set a_sim_vars(sp_tcl_obj)         {}
+  set a_sim_vars(b_extract_ip_sim_files) 0
 
   # fileset compile order
   variable l_compile_order_files     [list]
