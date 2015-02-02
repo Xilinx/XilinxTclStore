@@ -67,16 +67,18 @@ proc export_simulation {args} {
   xps_set_target_simulator
   if { [xps_create_rundir] } { return }
   xps_readme
+  xps_extract_ip_files
   xps_set_target_obj
   if { ([lsearch $a_sim_vars(options) {-of_objects}] != -1) && ([llength $a_sim_vars(sp_tcl_obj)] == 0) } {
     send_msg_id exportsim-Tcl-006 ERROR "Invalid object specified. The object does not exist.\n"
     return 1
   }
   xps_gen_mem_files
-  xps_get_compile_order_files
+  set data_files [list]
+  xps_get_compile_order_files data_files
   xps_set_script_filename
   xps_export_config
-  if { [xps_write_sim_script] } { return }
+  if { [xps_write_sim_script $data_files] } { return }
 
   set readme_file [file join $a_sim_vars(s_xport_dir) "README.txt"]
   send_msg_id exportsim-Tcl-030 INFO \
@@ -236,6 +238,27 @@ proc xps_invalid_options {} {
     }
   }
   return 0
+}
+
+proc xps_extract_ip_files {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { ![get_property enable_core_container [current_project]] } {
+    return
+  }
+  
+  if { [get_property extract_ip_sim_files [current_project]] } {
+    foreach ip [get_ips] {
+      set xci_ip_name "${ip}.xci"
+      set xcix_ip_name "${ip}.xcix"
+      set xcix_file_path [get_property core_container [get_files ${xci_ip_name}]] 
+      if { {} != $xcix_file_path } {
+        [catch {rdi::extract_ip_sim_files -of_objects [get_files ${xcix_ip_name}]} err]
+      }
+    }
+  }
 }
 
 proc xps_invalid_flow_options {} {
@@ -530,7 +553,7 @@ proc xps_gen_mem_files { } {
   }
 }
 
-proc xps_get_compile_order_files { } {
+proc xps_get_compile_order_files { data_files_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -539,13 +562,13 @@ proc xps_get_compile_order_files { } {
   variable l_compile_order_files
   variable s_data_files_filter
   variable s_non_hdl_data_files_filter
+  upvar $data_files_arg data_files
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   if { [xps_is_ip $tcl_obj] } {
     set ip_filename [file tail $tcl_obj]
     set l_compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]]
     set ip_filter "FILE_TYPE == \"IP\""
     set ip_name [file tail $tcl_obj]
-    set data_files [list]
     set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
     foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
       if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
@@ -555,7 +578,6 @@ proc xps_get_compile_order_files { } {
       }
       lappend data_files $file
     }
-    xps_export_data_files $data_files
   } elseif { [xps_is_fileset $tcl_obj] } {
     set used_in_val "simulation"
     switch [get_property "FILESET_TYPE" [get_filesets $tcl_obj]] {
@@ -564,22 +586,22 @@ proc xps_get_compile_order_files { } {
       "BlockSrcs"      { set used_in_val "synthesis" }
     }
     set l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $tcl_obj]]
-    xps_export_fs_data_files $s_data_files_filter
-    xps_export_fs_non_hdl_data_files
+    xps_export_fs_data_files $s_data_files_filter data_files
+    xps_export_fs_non_hdl_data_files data_files
   } else {
     send_msg_id exportsim-Tcl-017 INFO "Unsupported object source: $tcl_obj\n"
     return 1
   }
 }
 
-proc xps_export_fs_non_hdl_data_files {} {
+proc xps_export_fs_non_hdl_data_files { data_files_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
   variable s_non_hdl_data_files_filter
-  set data_files [list]
+  upvar $data_files_arg data_files
   foreach file [get_files -all -quiet -of_objects [get_filesets $a_sim_vars(fs_obj)] -filter $s_non_hdl_data_files_filter] {
     if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file] } {
@@ -588,7 +610,6 @@ proc xps_export_fs_non_hdl_data_files {} {
     }
     lappend data_files $file
   }
-  xps_export_data_files $data_files
 }
 
 proc xps_process_cmd_str { simulator dir } {
@@ -858,8 +879,17 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
       if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
         set associated_library [get_property "LIBRARY" $file_obj]
       }
-      # extract only if the file is an object
-      set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
+      set xcix_ip_path [get_property core_container $file_obj]
+      if { {} != $xcix_ip_path } {
+        set ip_name [file root [file tail $xcix_ip_path]]
+        set ip_ext_dir [get_property ip_extract_dir [get_ips $ip_name]]
+        set ip_file "./[xps_get_relative_file_path $file $ip_ext_dir]"
+        # remove leading "./../"
+        set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
+        set file [file join $ip_ext_dir $ip_file]
+      } else {
+        # set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
+      }
     }
   }
 
@@ -1088,13 +1118,13 @@ proc xps_resolve_file_path { file_dir_path_to_convert launch_dir } {
   return $file_dir_path_to_convert
 }
 
-proc xps_export_fs_data_files { filter } {
+proc xps_export_fs_data_files { filter data_files_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
-  set data_files [list]
+  upvar $data_files_arg data_files
   set ips [get_files -all -quiet -filter "FILE_TYPE == \"IP\""]
   foreach ip $ips {
     set ip_name [file tail $ip]
@@ -1112,10 +1142,9 @@ proc xps_export_fs_data_files { filter } {
       lappend data_files $file
     }
   }
-  xps_export_data_files $data_files
 }
 
-proc xps_export_data_files { data_files } {
+proc xps_export_data_files { data_files export_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1126,6 +1155,7 @@ proc xps_export_data_files { data_files } {
     set data_files [xps_remove_duplicate_files $data_files]
     foreach file $data_files {
       foreach simulator $l_target_simulator {
+        set file [extract_files -files [list "$file"] -base_dir $export_dir/ip_files]
         set dir [file join $a_sim_vars(s_xport_dir) $simulator] 
         if {[catch {file copy -force $file $dir} error_msg] } {
           send_msg_id exportsim-Tcl-025 WARNING "Failed to copy file '$file' to '$dir' : $error_msg\n"
@@ -1169,7 +1199,7 @@ proc xps_set_script_filename {} {
   }
 }
 
-proc xps_write_sim_script {} {
+proc xps_write_sim_script { data_files } {
   # Summary:
   # Argument Usage:
   # none
@@ -1192,6 +1222,7 @@ proc xps_write_sim_script {} {
     if { [xps_is_ip $tcl_obj] } {
       set a_sim_vars(s_top) [file tail [file root $tcl_obj]]
       send_msg_id exportsim-Tcl-026 INFO "Inspecting IP design source files for '$a_sim_vars(s_top)'...\n"
+      xps_export_data_files $data_files $dir
       if {[xps_export_sim_files_for_ip $tcl_obj $simulator $dir]} {
         return 1
       }
@@ -1201,6 +1232,7 @@ proc xps_write_sim_script {} {
       if {[string length $a_sim_vars(s_top)] == 0} {
         set a_sim_vars(s_top) "unknown"
       }
+      xps_export_data_files $data_files $dir
       if { [xps_export_sim_files_for_fs $simulator $dir] } {
         return 1
       }
@@ -4299,7 +4331,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir global_files_str { re
   }
 
   foreach vh_file $vh_files {
-    set vh_file [extract_files -files [list "[file tail $vh_file]"] -base_dir $launch_dir/ip_files]
+    # set vh_file [extract_files -files [list "[file tail $vh_file]"] -base_dir $launch_dir/ip_files]
     set dir [file normalize [file dirname $vh_file]]
 
     if { $a_sim_vars(b_xport_src_files) } {
@@ -4417,7 +4449,7 @@ proc xps_get_incl_dirs_from_ip { launch_dir tcl_obj } {
   set filter "FILE_TYPE == \"Verilog Header\""
   set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
-    set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
+    # set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
     set dir [file dirname $file]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[xps_resolve_file_path $dir $launch_dir]"
@@ -4497,7 +4529,7 @@ proc xps_get_global_include_file_cmdstr { launch_dir incl_files_arg } {
   variable a_sim_vars
   set file_str [list]
   foreach file $incl_files {
-    set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
+    # set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
     lappend file_str "\"$file\""
   }
   return [join $file_str " "]
@@ -4542,7 +4574,7 @@ proc xps_get_include_file_dirs { launch_dir global_files_str { ref_dir "true" } 
   }
 
   foreach vh_file $vh_files {
-    set vh_file [extract_files -files [list "[file tail $vh_file]"] -base_dir $launch_dir/ip_files]
+    # set vh_file [extract_files -files [list "[file tail $vh_file]"] -base_dir $launch_dir/ip_files]
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"

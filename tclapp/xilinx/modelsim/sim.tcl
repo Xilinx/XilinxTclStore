@@ -110,6 +110,9 @@ proc usf_modelsim_setup_simulation { args } {
   # set the simulation flow
   ::tclapp::xilinx::modelsim::usf_set_simulation_flow
 
+  # extract ip simulation files
+  ::tclapp::xilinx::modelsim::usf_extract_ip_files
+
   # set default object
   if { [::tclapp::xilinx::modelsim::usf_set_sim_tcl_obj] } {
     return 1

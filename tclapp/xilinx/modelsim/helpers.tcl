@@ -272,6 +272,28 @@ proc usf_set_simulation_flow {} {
   return 0
 }
 
+proc usf_extract_ip_files {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  if { ![get_property enable_core_container [current_project]] } {
+    return
+  }
+
+  if { [get_property extract_ip_sim_files [current_project]] } {
+    foreach ip [get_ips] {
+      set xci_ip_name "${ip}.xci"
+      set xcix_ip_name "${ip}.xcix"
+      set xcix_file_path [get_property core_container [get_files ${xci_ip_name}]]
+      if { {} != $xcix_file_path } {
+        [catch {rdi::extract_ip_sim_files -of_objects [get_files ${xcix_ip_name}]} err]
+      }
+    }
+  }
+}
+
 proc usf_set_sim_tcl_obj {} {
   # Summary:
   # Argument Usage:
@@ -554,9 +576,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   }
 
   foreach vh_file $vh_files {
-    #if { [get_param "project.enableCoreContainer"] } {
-      set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
-    #}
+    # set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -1602,6 +1622,7 @@ proc usf_export_data_files { data_files } {
     set data_files [usf_remove_duplicate_files $data_files]
     # export now
     foreach file $data_files {
+      set file [extract_files -files [list "$file"] -base_dir $export_dir/ip_files]
       if {[catch {file copy -force $file $export_dir} error_msg] } {
         send_msg_id USF-ModelSim-075 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
       } else {
@@ -1867,9 +1888,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
     if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$file"]] 0]] } {
       continue
     }
-    #if { [get_param "project.enableCoreContainer"] } {
-      set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
-    #}
+    # set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
     set file_path [file normalize [string map {\\ /} [file dirname $file]]]
     if { [lsearch -exact $unique_paths $file_path] == -1 } {
       if { $a_sim_vars(b_absolute_path) } {
@@ -1978,9 +1997,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   set filter "FILE_TYPE == \"Verilog Header\""
   set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
-    #if { [get_param "project.enableCoreContainer"] } {
-      set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
-    #}
+    # set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
     set dir [file dirname $file]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -2385,9 +2402,7 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   set launch_dir $a_sim_vars(s_launch_dir)
 
   foreach file $incl_files {
-    #if { [get_param "project.enableCoreContainer"] } {
-      set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
-    #}
+    # set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
     lappend file_str "\"$file\""
   }
   return [join $file_str " "]
@@ -2409,10 +2424,17 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set associated_library [get_property "LIBRARY" $file_obj]
     }
-    #if { [get_param "project.enableCoreContainer"] } {
-      # extract only if the file is an object
-      set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
-    #}
+    set xcix_ip_path [get_property core_container $file_obj]
+    if { {} != $xcix_ip_path } {
+      set ip_name [file root [file tail $xcix_ip_path]]
+      set ip_ext_dir [get_property ip_extract_dir [get_ips $ip_name]]
+      set ip_file "./[usf_get_relative_file_path $file $ip_ext_dir]"
+      # remove leading "./../"
+      set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
+      set file [file join $ip_ext_dir $ip_file]
+    } else {
+      # set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
+    }
   }
   if { $a_sim_vars(b_absolute_path) } {
     set file "[usf_resolve_file_path $file]"
