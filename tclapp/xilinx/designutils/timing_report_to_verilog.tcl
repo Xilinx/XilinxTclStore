@@ -604,7 +604,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 		dbg "Path $pathIndex: $reportLine"
 		
 		## Check if timing report line is of a Port Object or a datapath_only pin object
-		if {[regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName] || [regexp {^\s*\(.*\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString incrValue pathValue edgeValue tmpInc tmpPath tmpEdge portName]} {
+		if {[regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName] || [regexp {^\s*\(.*\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString incrValue pathValue edgeValue tmpInc tmpPath tmpEdge portName] || [regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*\((IN|OUT)\)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName tmpDirection]} {
 			## Store the Port Object
 			set portObj [get_ports -quiet $portName]
 			
