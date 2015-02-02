@@ -104,6 +104,7 @@ proc xps_init_vars {} {
   set a_sim_vars(s_ip_netlist)        "verilog"
   set a_sim_vars(b_ip_netlist)        0
   set a_sim_vars(ip_filename)         ""
+  set a_sim_vars(b_extract_ip_sim_files) 0
   set a_sim_vars(b_32bit)             0
   set a_sim_vars(sp_of_objects)       {}
   set a_sim_vars(b_is_ip_object_specified)      0
@@ -244,12 +245,14 @@ proc xps_extract_ip_files {} {
   # Summary:
   # Argument Usage:
   # Return Value:
-
+  variable a_sim_vars
   if { ![get_property enable_core_container [current_project]] } {
     return
   }
-  
-  if { [get_property extract_ip_sim_files [current_project]] } {
+ 
+  set a_sim_vars(b_extract_ip_sim_files) [get_property extract_ip_sim_files [current_project]]
+
+  if { $a_sim_vars(b_extract_ip_sim_files) } {
     foreach ip [get_ips] {
       set xci_ip_name "${ip}.xci"
       set xcix_ip_name "${ip}.xcix"
@@ -879,16 +882,18 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
       if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
         set associated_library [get_property "LIBRARY" $file_obj]
       }
-      set xcix_ip_path [get_property core_container $file_obj]
-      if { {} != $xcix_ip_path } {
-        set ip_name [file root [file tail $xcix_ip_path]]
-        set ip_ext_dir [get_property ip_extract_dir [get_ips $ip_name]]
-        set ip_file "./[xps_get_relative_file_path $file $ip_ext_dir]"
-        # remove leading "./../"
-        set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
-        set file [file join $ip_ext_dir $ip_file]
-      } else {
-        # set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
+      if { $a_sim_vars(b_extract_ip_sim_files) } {
+        set xcix_ip_path [get_property core_container $file_obj]
+        if { {} != $xcix_ip_path } {
+          set ip_name [file root [file tail $xcix_ip_path]]
+          set ip_ext_dir [get_property ip_extract_dir [get_ips $ip_name]]
+          set ip_file "./[xps_get_relative_file_path $file $ip_ext_dir]"
+          # remove leading "./../"
+          set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
+          set file [file join $ip_ext_dir $ip_file]
+        } else {
+          # set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
+        }
       }
     }
   }
