@@ -2935,7 +2935,7 @@ proc xps_verify_ip_status {} {
     }
     dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
     dict set regen_ip $ip generated [get_property is_ip_generated [get_ips -quiet $ip]]
-    dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [get_files -quiet ${ip}.xci]]
+    dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip}.xci] 0]]
     dict set regen_ip $ip stale [get_property stale_targets [get_ips -quiet $ip]]
     set b_single_ip 1
   } else {
@@ -2947,7 +2947,7 @@ proc xps_verify_ip_status {} {
       }
       dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
       dict set regen_ip $ip generated [get_property is_ip_generated $ip]
-      dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [get_files -quiet ${ip}.xci]]
+      dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip}.xci] 0]]
       dict set regen_ip $ip stale [get_property stale_targets $ip]
     }
   } 

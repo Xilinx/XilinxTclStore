@@ -2173,6 +2173,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str other_ver_opts_arg} 
   upvar $other_ver_opts_arg other_ver_opts
   set dir             $a_sim_vars(s_launch_dir)
   set b_absolute_path $a_sim_vars(b_absolute_path)
+  set b_use_container 0
   set cmd_str {}
   set associated_library [get_property "DEFAULT_LIB" [current_project]]
   set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
@@ -2180,7 +2181,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str other_ver_opts_arg} 
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set associated_library [get_property "LIBRARY" $file_obj]
     }
-    if { $a_sim_vars(b_extract_ip_sim_files) } {
+    if { $b_use_container && $a_sim_vars(b_extract_ip_sim_files) } {
       set xcix_ip_path [get_property core_container $file_obj]
       if { {} != $xcix_ip_path } {
         set ip_name [file root [file tail $xcix_ip_path]]
