@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed an issue with get_property call while checking for is_ip_generated_sim property</revision_history>
+      <revision_history>do not extract files for XSim</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
