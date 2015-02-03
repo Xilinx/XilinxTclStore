@@ -21,8 +21,8 @@
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>900a3584a54927eb0e42fc885854381b6f551f7b</commit_id>
-      <revision>1.9</revision>
+      <commit_id>a097085d7b0ce5941277ab0c262ba31137dfeb91</commit_id>
+      <revision>1.10</revision>
     </app>
     <app>
       <name>diff</name>
@@ -105,8 +105,8 @@
     <app>
       <name>ultrafast</name>
       <company>xilinx</company>
-      <commit_id>8efd7501cd9de82d5f199aa693d1b12077cbd203</commit_id>
-      <revision>1.4</revision>
+      <commit_id>a097085d7b0ce5941277ab0c262ba31137dfeb91</commit_id>
+      <revision>1.5</revision>
     </app>
     <app>
       <name>vcs</name>
