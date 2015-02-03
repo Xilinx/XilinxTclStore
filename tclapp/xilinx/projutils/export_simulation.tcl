@@ -99,6 +99,7 @@ proc xps_init_vars {} {
   set a_sim_vars(s_simulator)         "all"
   set a_sim_vars(s_xport_dir)         "export_sim"
   set a_sim_vars(s_simulator_name)    ""
+  set a_sim_vars(b_xsim_specified)    0
   set a_sim_vars(s_lib_map_path)      ""
   set a_sim_vars(s_script_filename)   ""
   set a_sim_vars(s_ip_netlist)        "verilog"
@@ -188,6 +189,10 @@ proc xps_set_target_simulator {} {
     }
     lappend l_target_simulator $a_sim_vars(s_simulator)
   }
+
+  if { ([llength $l_target_simulator] == 1) && ({xsim} == [lindex $l_target_simulator 0]) } {
+    set a_sim_vars(b_xsim_specified) 1
+  }
 }
 
 proc xps_invalid_options {} {
@@ -246,6 +251,11 @@ proc xps_extract_ip_files {} {
   # Argument Usage:
   # Return Value:
   variable a_sim_vars
+  variable l_target_simulator
+  if { $a_sim_vars(b_xsim_specified) } {
+    return
+  }
+
   if { ![get_property enable_core_container [current_project]] } {
     return
   }
@@ -867,7 +877,6 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
   # Summary:
   # Argument Usage:
   # Return Value:
-
   variable a_sim_vars
   upvar $l_other_compiler_opts_arg l_other_compiler_opts
   upvar $l_incl_dirs_opts_arg l_incl_dirs_opts
@@ -882,7 +891,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
       if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
         set associated_library [get_property "LIBRARY" $file_obj]
       }
-      if { $a_sim_vars(b_extract_ip_sim_files) } {
+      if { $a_sim_vars(b_extract_ip_sim_files) && (!$a_sim_vars(b_xsim_specified)) } {
         set xcix_ip_path [get_property core_container $file_obj]
         if { {} != $xcix_ip_path } {
           set ip_name [file root [file tail $xcix_ip_path]]
@@ -1485,7 +1494,6 @@ proc xps_write_script { simulator dir } {
   xps_process_cmd_str $simulator $dir
   if { [xps_invalid_flow_options] } { return 1 }
   xps_write_simulation_script $simulator $dir
-
   send_msg_id exportsim-Tcl-029 INFO \
     "Script file exported: '$dir/$filename'\n"
   return 0
@@ -1622,7 +1630,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
   }
 
   if { ({ies} == $simulator) || ({vcs} == $simulator) } {
-    #xps_write_ref_dir $fh_unix
+    #xps_write_ref_dir $fh_unix $launch_dir $srcs_dir
   }
   switch -regexp -- $simulator {
     "xsim" {
@@ -1781,7 +1789,7 @@ proc xps_write_multi_step { simulator fh_unix fh_win launch_dir srcs_dir } {
   }
 
   if { ({ies} == $simulator) || ({vcs} == $simulator) } {
-    xps_write_ref_dir $fh_unix
+    xps_write_ref_dir $fh_unix $launch_dir $srcs_dir
   }
 
   if {[llength $l_compile_order_files] == 0} {
@@ -1968,7 +1976,7 @@ proc xps_append_config_opts { opts_arg simulator tool } {
   }
 }
 
-proc xps_write_ref_dir { fh_unix } {
+proc xps_write_ref_dir { fh_unix launch_dir srcs_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
