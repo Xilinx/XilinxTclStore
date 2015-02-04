@@ -266,9 +266,9 @@ proc xps_extract_ip_files {} {
     foreach ip [get_ips] {
       set xci_ip_name "${ip}.xci"
       set xcix_ip_name "${ip}.xcix"
-      set xcix_file_path [get_property core_container [get_files ${xci_ip_name}]] 
+      set xcix_file_path [get_property core_container [get_files -all ${xci_ip_name}]] 
       if { {} != $xcix_file_path } {
-        [catch {rdi::extract_ip_sim_files -of_objects [get_files ${xcix_ip_name}]} err]
+        [catch {rdi::extract_ip_sim_files -of_objects [get_files -all ${xcix_ip_name}]} err]
       }
     }
   }
@@ -1173,6 +1173,8 @@ proc xps_export_data_files { data_files export_dir } {
         set dir [file join $a_sim_vars(s_xport_dir) $simulator] 
         if {[catch {file copy -force $file $dir} error_msg] } {
           send_msg_id exportsim-Tcl-025 WARNING "Failed to copy file '$file' to '$dir' : $error_msg\n"
+        } else {
+          send_msg_id exportsim-Tcl-025 INFO "Exported '$file'\n"
         }
       }
     }
@@ -1695,7 +1697,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
       puts $fh_unix "  XILINX_VIVADO=$::env(XILINX_VIVADO)"
       puts $fh_unix "  export XILINX_VIVADO"
       xps_append_config_opts arg_list "ies" "irun"
-      lappend arg_list  "-timescale 1ns/1ps" \
+      lappend arg_list  "-timescale 1ps/1ps" \
                          "-top $a_sim_vars(s_top)" \
                          "-f $filename" \
                          "-f $::env(XILINX_VIVADO)/data/secureip/secureip_cell.list.f"
@@ -1729,7 +1731,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
       set arg_list [list]
       xps_append_config_opts arg_list "vcs" "vcs"
       lappend arg_list   "-V" \
-                         "-timescale=1ns/1ps" \
+                         "-timescale=1ps/1ps" \
                          "-f $filename" \
                          "-f $::env(XILINX_VIVADO)/data/secureip/secureip_cell.list.f"
       if { [xps_contains_verilog] } {
@@ -2424,7 +2426,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
       set top_lib [xps_get_top_library]
       set arg_list [list]
       xps_append_config_opts arg_list "ies" "ncelab"
-      set arg_list [linsert $arg_list end "-logfile" "elaborate.log" "-timescale 1ns/1ps"]
+      set arg_list [linsert $arg_list end "-logfile" "elaborate.log" "-timescale 1ps/1ps"]
       if { ! $a_sim_vars(b_32bit) } {
         set arg_list [linsert $arg_list 0 "-64bit"]
       }
@@ -3344,36 +3346,33 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
         }
       }
 
-      # TODO: remove this check once xvhdl support is in
-      if { {VHDL} == $type } {
-        if { $a_sim_vars(b_xport_src_files) } {
-          puts $fh "$cmd_str ./srcs/$proj_src_filename ${opts_str}"
-        } else {
-          puts $fh "$cmd_str $src_file ${opts_str}"
-        }
+      if { $a_sim_vars(b_xport_src_files) } {
+        puts $fh "$cmd_str $proj_src_filename ${opts_str}"
       } else {
-        if { $b_first } {
-          set b_first false
-          if { $a_sim_vars(b_xport_src_files) } {
-            xps_set_initial_cmd "xsim" $fh $cmd_str $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
-          } else {
-            xps_set_initial_cmd "xsim" $fh $cmd_str $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
-          }
-        } else {
-          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-            puts $fh "$src_file \\"
-            set b_redirect true
-          } else {
-            puts $fh ""
-            if { $a_sim_vars(b_xport_src_files) } {
-              xps_set_initial_cmd "xsim" $fh $cmd_str $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
-            } else {
-              xps_set_initial_cmd "xsim" $fh $cmd_str $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
-            }
-            set b_appended true
-          }
-        }
+        puts $fh "$cmd_str $src_file ${opts_str}"
       }
+      # TODO: this does not work for verilog defines
+      #if { $b_first } {
+      #  set b_first false
+      #  if { $a_sim_vars(b_xport_src_files) } {
+      #    xps_set_initial_cmd "xsim" $fh $cmd_str $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
+      #  } else {
+      #    xps_set_initial_cmd "xsim" $fh $cmd_str $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
+      #  }
+      #} else {
+      #  if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+      #    puts $fh "$src_file \\"
+      #    set b_redirect true
+      #  } else {
+      #    puts $fh ""
+      #    if { $a_sim_vars(b_xport_src_files) } {
+      #      xps_set_initial_cmd "xsim" $fh $cmd_str $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
+      #    } else {
+      #      xps_set_initial_cmd "xsim" $fh $cmd_str $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
+      #    }
+      #    set b_appended true
+      #  }
+      #}
     }
   }
 
