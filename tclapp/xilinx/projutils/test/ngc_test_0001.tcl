@@ -7,10 +7,10 @@ puts "== Unit Test directory: $file_dir"
 #lappend auto_path $::env(XILINX_TCLAPP_REPO)
 
 set name            "ngc_test_0001"
-set result_dir      [ file normalize "ngc_results" ]
+set result_dir      [ file normalize [ file join $file_dir "ngc_results" ] ]
 set verilog_dir     [ file join $result_dir "verilog" ]
 set edif_dir        [ file join $result_dir "edif" ]
-set data_origin_dir [ file normalize "data" ]
+set data_origin_dir [ file normalize [ file join $file_dir "data" ] ]
 set data_dir        [ file join $result_dir "data" ]
 set source_ngc      [ file join $data_dir "out_ddr_flop.ngc" ]
 
