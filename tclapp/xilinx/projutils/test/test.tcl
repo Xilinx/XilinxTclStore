@@ -4,6 +4,4 @@ source [file join $path wpt_test_0001.tcl]
 source [file join $path wpt_test_0002.tcl]
 source [file join $path esf_test_0001.tcl]
 source [file join $path esf_test_0002.tcl]
-# Don't run these--they take took long.
-#source [file join $path ebs_test_0001.tcl]
-#source [file join $path ebs_test_0002.tcl]
+source [file join $path ngc_test_0001.tcl]
