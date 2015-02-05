@@ -7,7 +7,8 @@ Arguments:
   -output_dir <arg> - (Optional) Directory to place all output, else the 
   output is placed in the directory where the NGC file resides.
 
-  -format - (Optional) Format as Verilog, else EDIF is produced.
+  -format <arg> - (Optional) Accepts 'Verilog' or 'EDIF' (Default: EDIF), 
+  specifies the desired output format
 
   -add_to_project - (Optional) Adds the output files to the current project, 
   if no project is open, then this option does nothing.
