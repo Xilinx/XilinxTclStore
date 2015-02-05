@@ -561,7 +561,8 @@ proc usf_vcs_write_elaborate_script {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list 0 "-load \"$simulator_lib:xilinx_register_systf\""]
     } else {
-      send_msg_id USF-VCS-014 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id USF-VCS-020 "CRITICAL WARNING" \
+         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
     }
   }
 

@@ -1665,7 +1665,7 @@ proc is_ip_fileset { fileset } {
   set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
   set b_found false
   foreach ip $ips {
-    if { [get_property generate_synth_checkpoint [get_files $ip]] } {
+    if { [get_property generate_synth_checkpoint [lindex [get_files $ip] 0]] } {
       set b_found true
       break
     }

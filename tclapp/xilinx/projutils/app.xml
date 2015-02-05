@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added verilog support to covert_ngc</revision_history>
+      <revision_history>added verilog support to convert_ngc</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

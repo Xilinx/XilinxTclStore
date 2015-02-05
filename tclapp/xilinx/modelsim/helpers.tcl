@@ -1492,16 +1492,21 @@ proc usf_get_platform {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set platform {}
   set os $::tcl_platform(platform)
   set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
-  if { {windows}   == $os } { set platform "win32" }
-  if { {windows64} == $os } {
-    set platform "win64"
+  set 64bit [get_property MODELSIM.SIMULATE.64BIT $fs_obj]
+  if { {windows} == $os } {
     if { {32} == $os_type } {
       set platform "win32"
     }
+    if { ({64} == $os_type) || ({64} == $64bit) } {
+      set platform "win64"
+    }
   }
+
   if { {unix} == $os } {
     if { {x86_64} == $::tcl_platform(machine) } {
       set platform "lnx64"
@@ -1548,11 +1553,15 @@ proc usf_get_simulator_lib_for_bfm {} {
   if { {} != $xil } {
     append platform ".o"
     set lib_path {}
+    send_msg_id USF-ModelSim-116 INFO "Finding simulator library from 'XILINX_VIVADO'..."
     foreach path [split $xil $path_sep] {
       set file [file normalize [file join $path "lib" $platform $lib_name]]
       if { [file exists $file] } {
+        send_msg_id USF-ModelSim-117 INFO "Using library:'$file'"
         set simulator_lib $file
         break
+      } else {
+        send_msg_id USF-ModelSim-118 WARNING "Library not found:'$file'"
       }
     }
   } else {
