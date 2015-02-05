@@ -380,7 +380,7 @@ proc usf_modelsim_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id USF-ModelSim-016 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-ModelSim-023 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $file
@@ -752,7 +752,8 @@ proc usf_modelsim_get_simulation_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      [catch {send_msg_id USF-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
+      send_msg_id USF-ModelSim-005 "CRITICAL WARNING" \
+         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
     }
   }
 
@@ -798,7 +799,8 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      [catch {send_msg_id USF-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
+      send_msg_id USF-ModelSim-020 "CRITICAL WARNING" \
+         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
     }
   }
 

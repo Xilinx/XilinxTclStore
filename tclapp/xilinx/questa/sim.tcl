@@ -747,7 +747,8 @@ proc usf_questa_get_simulation_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      [catch {send_msg_id USF-Questa-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."}]
+      send_msg_id USF-Questa-020 "CRITICAL WARNING" \
+        "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
     }
   }
 
