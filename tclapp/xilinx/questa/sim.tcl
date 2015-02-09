@@ -225,13 +225,28 @@ proc usf_questa_verify_compiled_lib {} {
 
   send_msg_id USF-Questa-007 INFO "Finding pre-compiled libraries...\n"
 
-  # 1. find in project default dir (<project>/<project>.cache/compile_simlib
+  # 1. check MODELSIM
+  if { {} == $compiled_lib_dir } {
+    if { [info exists ::env(MODELSIM)] } {
+      set file [file normalize $::env(MODELSIM)]
+      if { {} != $file } {
+        if { [file exists $file] && [file isfile $file] && [file readable $file] && [file writable $file] } {
+          set compiled_lib_dir [file dirname $file]
+        } else {
+          send_msg_id USF-questa-025 ERROR \
+            "The INI file specified with the MODELSIM environment variable is not accessible. Please check the file permissions.\n"
+          return 1
+        }
+      }
+    }
+  }
+  # 2. not found? find in project default dir (<project>/<project>.cache/compile_simlib
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
   set file [file normalize [file join $dir $ini_file]]
   if { [file exists $file] } {
     set compiled_lib_dir $dir
   }
-  # 1a. find modelsim.ini from current working directory
+  # 3. not found? find modelsim.ini from current working directory
   if { {} == $compiled_lib_dir } {
     set dir [file normalize [pwd]]
     set file [file normalize [file join $dir $ini_file]]
@@ -239,16 +254,7 @@ proc usf_questa_verify_compiled_lib {} {
       set compiled_lib_dir $dir
     }
   }
-  # 2. not found? check MODELSIM
-  if { {} == $compiled_lib_dir } {
-    if { [info exists ::env(MODELSIM)] } {
-      set file [file normalize $::env(MODELSIM)]
-      if { {} != $file } {
-        set compiled_lib_dir [file dirname $file]
-      }
-    }
-  }
-  # 3. not found? check MGC_WD
+  # 4. not found? check MGC_WD
   if { {} == $compiled_lib_dir } {
     if { [info exists ::env(MGC_WD)] } {
       set file_dir [file normalize $::env(MGC_WD)]
@@ -257,7 +263,7 @@ proc usf_questa_verify_compiled_lib {} {
       }
     }
   }
-  # 4. not found? finally check in run dir
+  # 5. not found? finally check in run dir
   if { {} == $compiled_lib_dir } {
     set file [file normalize [file join $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
@@ -272,7 +278,7 @@ proc usf_questa_verify_compiled_lib {} {
                                              - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
     }
   } else {
-    # 5. copy to run dir
+    # 6. copy to run dir
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
     if { [file exists $ini_file_path] } {
       if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)} error_msg] } {
@@ -282,6 +288,7 @@ proc usf_questa_verify_compiled_lib {} {
       }
     }
   }
+  return 0
 }
 
 proc usf_questa_write_setup_files {} {
@@ -853,8 +860,12 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     puts $fh ""
   }
 
-  if { $b_batch || $b_scripts_only } {
+  if { $b_batch } {
     puts $fh "\nquit -force"
+  } elseif { $b_scripts_only } {
+    if { [get_param "simulator.quitOnSimulationComplete"] } {
+      puts $fh "\nquit -force"
+    }
   }
   close $fh
 }
@@ -993,23 +1004,17 @@ proc usf_add_quit_on_error { fh step } {
   # Summary:
   # Argument Usage:
   # Return Value:
-
-  set b_batch        $::tclapp::xilinx::questa::a_sim_vars(b_batch)
-  set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
-
-  if { ({compile} == $step) || ({elaborate} == $step) } {
-    puts $fh "onbreak {quit -f}"
-    puts $fh "onerror {quit -f}\n"
-  } elseif { ({simulate} == $step) } {
-    if { ![get_param "simulator.modelsimNoQuitOnError"] } {
-      puts $fh "onbreak {quit -f}"
-      puts $fh "onerror {quit -f}\n"
-    } 
-
-    # quit on error always for batch/scripts only and when param is true
-    if { ($b_batch || $b_scripts_only) && ([get_param "simulator.modelsimNoQuitOnError"])  } {
-      puts $fh "onbreak {quit -f}"
-      puts $fh "onerror {quit -f}\n"
+  set b_batch $::tclapp::xilinx::questa::a_sim_vars(b_batch)
+  if { ({compile} == $step) || ({elaborate} == $step) || ({simulate} == $step) } {
+    if { $b_batch } {
+      # param default is true (do not exit flow-step on error)
+      if { [get_param "simulator.modelsimNoQuitOnError"] } {
+        # no op
+      } else {
+        # exit flow-step on error
+        puts $fh "onbreak {quit -f}"
+        puts $fh "onerror {quit -f}\n"
+      }
     }
   }
 }
