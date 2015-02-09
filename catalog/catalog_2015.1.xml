@@ -51,7 +51,7 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>bd29bae195ceef2166b0d761931db48e0ea933c1</commit_id>
+      <commit_id>66ed85c1c04c54e8f0a3b96ac4a674c537a17031</commit_id>
       <revision>2.18</revision>
     </app>
     <app>
@@ -69,8 +69,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>bd29bae195ceef2166b0d761931db48e0ea933c1</commit_id>
-      <revision>3.14</revision>
+      <commit_id>66ed85c1c04c54e8f0a3b96ac4a674c537a17031</commit_id>
+      <revision>3.15</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -81,7 +81,7 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>bd29bae195ceef2166b0d761931db48e0ea933c1</commit_id>
+      <commit_id>66ed85c1c04c54e8f0a3b96ac4a674c537a17031</commit_id>
       <revision>1.9</revision>
     </app>
     <app>
