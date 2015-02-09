@@ -35,6 +35,12 @@ proc export_simulation {args} {
 
   # Categories: simulation, xilinxtclstore
 
+  if { ![get_param "project.enableExportSimulation"] } {
+    send_msg_id exportsim-Tcl-001 INFO \
+      "export_simulation has been deprecated, use 'launch_simulation -scripts_only' to generate scripts.\n"
+    return
+  }
+
   variable a_sim_vars
   xps_init_vars
   set a_sim_vars(options) [split $args " "]
