@@ -594,12 +594,21 @@ if {$error==0} {
 		}
 
 		#synthesis
+		set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs synth_1]
 		launch_runs synth_1
 		wait_on_run synth_1
+		open_run synth_1 -name synth_1
+		report_utilization -hierarchical -file synth_resources.txt
+		report_power -file synth_power.txt -hier all
+		close_design
 
 		#implementation
 		launch_runs impl_1
 		wait_on_run impl_1
+		open_run impl_1 -name impl_1
+		report_utilization -hierarchical -file pr_resources.txt
+		report_power -file pr_power.txt -hier all
+		
 
 		#bitstream
 		launch_runs impl_1 -to_step write_bitstream
@@ -706,22 +715,451 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
 
+			# #######################################  
+			# #######################################  
+			# Extract post synthesis information (resources estimation and power estimation)
+			
+
+			set target_file ""
+			append target_file "ip_prototype/build/prj/" $project_name "." $board_name "/synth_resources.txt"
+			
+			# #######################################  
+			# Extract the FPGA resources utilization
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {(top)} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_LUT_synth
+			#if the FPGA_LUT_synth is not available, set it to 0
+			if {$FPGA_LUT_synth == ""} {
+				set FPGA_LUT_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_FF_synth
+			#if the FPGA_FF_synth is not available, set it to 0
+			if {$FPGA_FF_synth == ""} {
+				set FPGA_FF_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_RAMB36_synth
+			#if the FPGA_RAMB36_synth is not available, set it to 0
+			if {$FPGA_RAMB36_synth == ""} {
+				set FPGA_RAMB36_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_RAMB18_synth
+			#if the FPGA_RAMB18_synth is not available, set it to 0
+			if {$FPGA_RAMB18_synth == ""} {
+				set FPGA_RAMB18_synth 0
+			}
+			
+			set FPGA_RAMB_synth [ expr ($FPGA_RAMB36_synth * 2) + $FPGA_RAMB18_synth]
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_DSP48_synth
+			#if the FPGA_DSP48_synth is not available, set it to 0
+			if {$FPGA_DSP48_synth == ""} {
+				set FPGA_DSP48_synth 0
+			}
+			
+			
+			# #######################################  
+			# Extract the IP resources utilization
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {foo_0} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_LUT_synth
+			#if the IP_LUT_synth is not available, set it to 0
+			if {$IP_LUT_synth == ""} {
+				set IP_LUT_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_FF_synth
+			#if the IP_FF_synth is not available, set it to 0
+			if {$IP_FF_synth == ""} {
+				set IP_FF_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_RAMB36_synth
+			#if the IP_RAMB36_synth is not available, set it to 0
+			if {$IP_RAMB36_synth == ""} {
+				set IP_RAMB36_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_RAMB18_synth
+			#if the IP_RAMB18_synth is not available, set it to 0
+			if {$IP_RAMB18_synth == ""} {
+				set IP_RAMB18_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_DSP48_synth
+			#if the IP_DSP48_synth is not available, set it to 0
+			if {$IP_DSP48_synth == ""} {
+				set IP_DSP48_synth 0
+			}
+			
+			set IP_RAMB_synth [ expr ($IP_RAMB36_synth * 2) + $IP_RAMB18_synth]
+	
+			# #######################################  
+			# Extract the user function resources utilization
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {foo_foo_user} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_LUT_synth
+			#if the USER_FUNCTION_LUT_synth is not available, set it to 0
+			if {$USER_FUNCTION_LUT_synth == ""} {
+				set USER_FUNCTION_LUT_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_FF_synth
+			#if the USER_FUNCTION_FF_synth is not available, set it to 0
+			if {$USER_FUNCTION_FF_synth == ""} {
+				set USER_FUNCTION_FF_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_RAMB36_synth
+			#if the USER_FUNCTION_RAMB36_synth is not available, set it to 0
+			if {$USER_FUNCTION_RAMB36_synth == ""} {
+				set USER_FUNCTION_RAMB36_synth 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_RAMB18_synth
+			#if the USER_FUNCTION_RAMB18_synth is not available, set it to 0
+			if {$USER_FUNCTION_RAMB18_synth == ""} {
+				set USER_FUNCTION_RAMB18_synth 0
+			}
+			
+			set USER_FUNCTION_RAMB_synth [ expr ($USER_FUNCTION_RAMB36_synth * 2) + $USER_FUNCTION_RAMB18_synth]
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_DSP48_synth
+			#if the USER_FUNCTION_DSP48_synth is not available, set it to 0
+			if {$USER_FUNCTION_DSP48_synth == ""} {
+				set USER_FUNCTION_DSP48_synth 0
+			}
+			
+			
+			# #######################################  
+			# #######################################  
+			# Extract post place & route information (resources measurement and power estimation)
+			
+
+			set target_file ""
+			append target_file "ip_prototype/build/prj/" $project_name "." $board_name "/pr_resources.txt"
+			
+			# #######################################  
+			# Extract the FPGA resources utilization
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {(top)} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_LUT_pr
+			#if the FPGA_LUT_pr is not available, set it to 0
+			if {$FPGA_LUT_pr == ""} {
+				set FPGA_LUT_pr 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_FF_pr
+			#if the FPGA_FF_pr is not available, set it to 0
+			if {$FPGA_FF_pr == ""} {
+				set FPGA_FF_pr 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_RAMB36_pr
+			#if the FPGA_RAMB36_pr is not available, set it to 0
+			if {$FPGA_RAMB36_pr == ""} {
+				set FPGA_RAMB36_pr 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_RAMB18_pr
+			#if the FPGA_RAMB18_pr is not available, set it to 0
+			if {$FPGA_RAMB18_pr == ""} {
+				set FPGA_RAMB18_pr 0
+			}
+			
+			set FPGA_RAMB_pr [ expr ($FPGA_RAMB36_pr * 2) + $FPGA_RAMB18_pr]
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_DSP48_pr
+			#if the FPGA_DSP48_pr is not available, set it to 0
+			if {$FPGA_DSP48_pr == ""} {
+				set FPGA_DSP48_pr 0
+			}
+			
+			
+			# #######################################  
+			# Extract the IP resources utilization
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {foo_0} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_LUT_pr
+			#if the IP_LUT_pr is not available, set it to 0
+			if {$IP_LUT_pr == ""} {
+				set IP_LUT_pr 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_FF_pr
+			#if the IP_FF_pr is not available, set it to 0
+			if {$IP_FF_pr == ""} {
+				set IP_FF_pr 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_RAMB36_pr
+			#if the IP_RAMB36_pr is not available, set it to 0
+			if {$IP_RAMB36_pr == ""} {
+				set IP_RAMB36_pr 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_RAMB18_pr
+			#if the IP_RAMB18_pr is not available, set it to 0
+			if {$IP_RAMB18_pr == ""} {
+				set IP_RAMB18_pr 0
+			}
+			
+			set IP_RAMB_pr [ expr ($IP_RAMB36_pr * 2) + $IP_RAMB18_pr]
+
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_DSP48_pr
+			#if the IP_DSP48_pr is not available, set it to 0
+			if {$IP_DSP48_pr == ""} {
+				set IP_DSP48_pr 0
+			}
+	
+			# #######################################  
+			# Extract the user function resources utilization
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {foo_foo_user} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_LUT_pr
+			#if the USER_FUNCTION_LUT_pr is not available, set it to 0
+			if {$USER_FUNCTION_LUT_pr == ""} {
+				set USER_FUNCTION_LUT_pr 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_FF_pr
+			#if the USER_FUNCTION_FF_pr is not available, set it to 0
+			if {$USER_FUNCTION_FF_pr == ""} {
+				set USER_FUNCTION_FF_pr 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_RAMB36_pr
+			#if the USER_FUNCTION_RAMB36_pr is not available, set it to 0
+			if {$USER_FUNCTION_RAMB36_pr == ""} {
+				set USER_FUNCTION_RAMB36_pr 0
+			}
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_RAMB18_pr
+			#if the USER_FUNCTION_RAMB18_pr is not available, set it to 0
+			if {$USER_FUNCTION_RAMB18_pr == ""} {
+				set USER_FUNCTION_RAMB18_pr 0
+			}
+			
+			set USER_FUNCTION_RAMB_pr [ expr ($USER_FUNCTION_RAMB36_pr * 2) + $USER_FUNCTION_RAMB18_pr]
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_DSP48_pr
+			#if the USER_FUNCTION_DSP48_pr is not available, set it to 0
+			if {$USER_FUNCTION_DSP48_pr == ""} {
+				set USER_FUNCTION_DSP48_pr 0
+			}
+			
 
 
-			
 			# #######################################  
 			# #######################################  
-			# Extract post implementation information (resources and power consumption)
-			
-			
-			# #######################################  
-			# Extract the resource utilization
+			# Extract available resource 
 			
 			set target_file ""
 			append target_file "ip_prototype/build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper_utilization_placed.rpt"
 			
 			# #######################################  
-			# Extract the LUT_impl utilization
+			# Extract available LUT
 			set f [open $target_file]
 			while {[gets $f line] != -1} {
 			    if {[regexp {Slice LUTs} $line all value]} {
@@ -736,13 +1174,8 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			set line [string range $line $index_pipe $line_size]
 			
 			set index_pipe [expr [string first "|" $line ] +1]
-			set tmp_str  [string range $line 0 $index_pipe]
 			set line [string range $line $index_pipe $line_size]
-			regsub -all -- {[^0-9.-]} $tmp_str "" LUT_impl
-			#if the LUT_impl is not available, set it to 0
-			if {$LUT_impl == ""} {
-				set LUT_impl 0
-			}
+
 			
 			set line_size [expr [ string length $line]-1]
 			set line [string range $line 1 $line_size]
@@ -758,8 +1191,8 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 				set LUT_available 0
 			}
 			
-				# #######################################  
-			# Extract the FF_impl utilization
+			# #######################################  
+			# Extract available FF
 			set f [open $target_file]
 			while {[gets $f line] != -1} {
 			    if {[regexp {Slice Registers} $line all value]} {
@@ -774,16 +1207,8 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			set line [string range $line $index_pipe $line_size]
 			
 			set index_pipe [expr [string first "|" $line ] +1]
-			set tmp_str  [string range $line 0 $index_pipe]
 			set line [string range $line $index_pipe $line_size]
-			regsub -all -- {[^0-9.-]} $tmp_str "" FF_impl
-			#if the FF_impl is not available, set it to 0
-			if {$FF_impl == ""} {
-				set FF_impl 0
-			}
-			
-			
-			
+		
 			set line_size [expr [ string length $line]-1]
 			set line [string range $line 1 $line_size]
 			set index_pipe [expr [string first "|" $line ] +1]
@@ -800,11 +1225,9 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 				set FF_available 0
 			}
 			
-			
-			
-			
+
 			# #######################################  
-			# Extract the BRAM_impl utilization
+			# Extract available BRAM18
 			set f [open $target_file]
 			while {[gets $f line] != -1} {
 			    if {[regexp {Block RAM Tile} $line all value]} {
@@ -819,15 +1242,7 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			set line [string range $line $index_pipe $line_size]
 			
 			set index_pipe [expr [string first "|" $line ] +1]
-			set tmp_str  [string range $line 0 $index_pipe]
 			set line [string range $line $index_pipe $line_size]
-			regsub -all -- {[^0-9.-]} $tmp_str "" BRAM_impl
-			#if the BRAM_imp is not available, set it to 0
-			if {$BRAM_impl == ""} {
-				set BRAM_impl 0
-			}
-			#convert to BRAM18k
-			set BRAM_impl [ expr $BRAM_impl * 2]
 
 			
 			set line_size [expr [ string length $line]-1]
@@ -850,7 +1265,7 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			
 			
 			# #######################################  
-			# Extract the DSP48E_impl utilization
+			# Extract available DSP48E
 			set f [open $target_file]
 			while {[gets $f line] != -1} {
 			    if {[regexp {DSPs} $line all value]} {
@@ -865,13 +1280,8 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			set line [string range $line $index_pipe $line_size]
 			
 			set index_pipe [expr [string first "|" $line ] +1]
-			set tmp_str  [string range $line 0 $index_pipe]
 			set line [string range $line $index_pipe $line_size]
-			regsub -all -- {[^0-9.-]} $tmp_str "" DSP48E_impl
-			#if the DSP48E_impl is not available, set it to 0
-			if {$DSP48E_impl == ""} {
-				set DSP48E_impl 0
-			}
+
 
 			set line_size [expr [ string length $line]-1]
 			set line [string range $line 1 $line_size]
@@ -887,7 +1297,8 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 				set DSP48E_available 0
 			}
 			
-			
+
+			# ####################################### 
 			# #######################################  
 			# Extract timing information
 			
@@ -957,23 +1368,29 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			
 			
 			set line [string range $line 15 28]
-			puts $line
+			# puts $line
 			regsub -all -- {[^0-9.-]} $line "" clk_achieved
-			puts $clk_achieved
+			# puts $clk_achieved
 			#if the clk_achieved is not available, set it to 0
 			if {$clk_achieved == ""} {
 				set clk_achieved 0
 			}
 			
-				
-			# #######################################  
-			# Extract the power utilization
 			
+			
+			
+			# #######################################  
+			# #######################################  
+			# Extract post synthesis power estimation 
+			
+
 			set target_file ""
-			append target_file "ip_prototype/build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper_power_routed.rpt"
+			append target_file "ip_prototype/build/prj/" $project_name "." $board_name "/synth_power.txt"
+			
+			set line ""
 			
 			# #######################################  
-			# Extract the PW_total
+			# Extract the FPGA power estimation
 			set f [open $target_file]
 			while {[gets $f line] != -1} {
 			    if {[regexp {Total On-Chip Power} $line all value]} {
@@ -986,20 +1403,17 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			set line [string range $line 1 $line_size]
 			set index_pipe [expr [string first "|" $line ] +1]
 			set line [string range $line $index_pipe $line_size]
-			
 			set index_pipe [expr [string first "|" $line ] +1]
 			set tmp_str  [string range $line 0 $index_pipe]
 			set line [string range $line $index_pipe $line_size]
-			regsub -all -- {[^0-9.-]} $tmp_str "" PW_total
-			#if the PW_total is not available, set it to 0
-			if {$PW_total == ""} {
-				set PW_total 0
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_pw_total_synth
+			#if the FPGA_pw_total_synth is not available, set it to 0
+			if {$FPGA_pw_total_synth == ""} {
+				set FPGA_pw_total_synth 0
 			}
-
-			
 			
 			# #######################################  
-			# Extract the PW_dyn
+			# Extract the FPGA_pw_dyn_synth
 			set f [open $target_file]
 			while {[gets $f line] != -1} {
 			    if {[regexp {Dynamic} $line all value]} {
@@ -1016,15 +1430,15 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			set index_pipe [expr [string first "|" $line ] +1]
 			set tmp_str  [string range $line 0 $index_pipe]
 			set line [string range $line $index_pipe $line_size]
-			regsub -all -- {[^0-9.-]} $tmp_str "" PW_dyn
-			#if the PW_dyn is not available, set it to 0
-			if {$PW_dyn == ""} {
-				set PW_dyn 0
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_pw_dyn_synth
+			#if the FPGA_pw_dyn_synth is not available, set it to 0
+			if {$FPGA_pw_dyn_synth == ""} {
+				set FPGA_pw_dyn_synth 0
 			}
 
 			
 			# #######################################  
-			# Extract the PW_sta
+			# Extract the FPGA_pw_sta_synth
 			set f [open $target_file]
 			while {[gets $f line] != -1} {
 			    if {[regexp {Device Static} $line all value]} {
@@ -1041,18 +1455,130 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			set index_pipe [expr [string first "|" $line ] +1]
 			set tmp_str  [string range $line 0 $index_pipe]
 			set line [string range $line $index_pipe $line_size]
-			regsub -all -- {[^0-9.-]} $tmp_str "" PW_sta
-			#if the PW_sta is not available, set it to 0
-			if {$PW_sta == ""} {
-				set PW_sta 0
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_pw_sta_synth
+			#if the FPGA_pw_sta_synth is not available, set it to 0
+			if {$FPGA_pw_sta_synth == ""} {
+				set FPGA_pw_sta_synth 0
 			}
-
+			
+			
 			
 			# #######################################  
-			# Extract the PW_PS7
+			# Extract the IP power estimation
 			set f [open $target_file]
 			while {[gets $f line] != -1} {
-			    if {[regexp {PS7} $line all value]} {
+			    if {[regexp {foo_0} $line all value]} {
+				break
+			    }
+			}
+			close $f
+
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_pw_total_synth
+			#if the IP_pw_total_synth is not available, set it to 0
+			if {$IP_pw_total_synth == ""} {
+				set IP_pw_total_synth 0
+			}
+			
+			
+	
+			# #######################################  
+			# Extract the user function power estimation
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {grp_foo_foo_user_fu_402} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_pw_total_synth
+			#if the USER_FUNCTION_pw_total_synth is not available, set it to 0
+			if {$USER_FUNCTION_pw_total_synth == ""} {
+				set USER_FUNCTION_pw_total_synth 0
+			}
+			
+			# #######################################  
+			# Extract the PS7 power estimation
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {processing_system7_0  } $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" PS7_pw_total_synth
+			#if the PS7_pw_total_synth is not available, set it to 0
+			if {$PS7_pw_total_synth == ""} {
+				set PS7_pw_total_synth 0
+			}
+			
+			
+			
+			
+			
+			
+			# #######################################  
+			# #######################################  
+			# Extract post place & route power estimation 
+			
+
+			set target_file ""
+			append target_file "ip_prototype/build/prj/" $project_name "." $board_name "/pr_power.txt"
+			
+			set line ""
+			
+			# #######################################  
+			# Extract the FPGA power estimation
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {Total On-Chip Power} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_pw_total_pr
+			#if the FPGA_pw_total_pr is not available, set it to 0
+			if {$FPGA_pw_total_pr == ""} {
+				set FPGA_pw_total_pr 0
+			}
+			
+			
+			# #######################################  
+			# Extract the FPGA_pw_dyn_pr
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {Dynamic} $line all value]} {
 				break
 			    }
 			}
@@ -1066,13 +1592,168 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			set index_pipe [expr [string first "|" $line ] +1]
 			set tmp_str  [string range $line 0 $index_pipe]
 			set line [string range $line $index_pipe $line_size]
-			regsub -all -- {[^0-9.-]} $tmp_str "" PW_PS7
-			#if the PW_PS7 is not available, set it to 0
-			if {$PW_PS7 == ""} {
-				set PW_PS7 0
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_pw_dyn_pr
+			#if the FPGA_pw_dyn_pr is not available, set it to 0
+			if {$FPGA_pw_dyn_pr == ""} {
+				set FPGA_pw_dyn_pr 0
 			}
 
-			set PW_logic [expr $PW_total - $PW_PS7]
+			
+			# #######################################  
+			# Extract the FPGA_pw_sta_pr
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {Device Static} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" FPGA_pw_sta_pr
+			#if the FPGA_pw_sta_pr is not available, set it to 0
+			if {$FPGA_pw_sta_pr == ""} {
+				set FPGA_pw_sta_pr 0
+			}
+			
+			
+			
+			# #######################################  
+			# Extract the IP power estimation
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {foo_0} $line all value]} {
+				break
+			    }
+			}
+			close $f
+
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" IP_pw_total_pr
+			#if the IP_pw_total_pr is not available, set it to 0
+			if {$IP_pw_total_pr == ""} {
+				set IP_pw_total_pr 0
+			}
+			
+			
+	
+			# #######################################  
+			# Extract the user function power estimation
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {grp_foo_foo_user_fu_402} $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" USER_FUNCTION_pw_total_pr
+			#if the USER_FUNCTION_pw_total_pr is not available, set it to 0
+			if {$USER_FUNCTION_pw_total_pr == ""} {
+				set USER_FUNCTION_pw_total_pr 0
+			}
+			
+			# #######################################  
+			# Extract the PS7 power estimation
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {processing_system7_0  } $line all value]} {
+				break
+			    }
+			}
+			close $f
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" PS7_pw_total_pr
+			#if the PS7_pw_total_pr is not available, set it to 0
+			if {$PS7_pw_total_pr == ""} {
+				set PS7_pw_total_pr 0
+			}
+			
+			
+			
+			# make ip_prototype.dat
+			set  file_name ""
+			append file_name "doc/" $project_name "/ip_prototype.dat"
+
+			set file [open $file_name w]
+
+
+			puts $file $clock_target
+			puts $file $clk_achieved
+	
+			puts $file $FPGA_pw_total_pr
+			puts $file $FPGA_pw_dyn_pr
+			puts $file $FPGA_pw_sta_pr
+			puts $file $IP_pw_total_pr
+			puts $file $USER_FUNCTION_pw_total_pr
+			puts $file $PS7_pw_total_pr
+			
+			puts $file $FPGA_LUT_pr
+			puts $file $FPGA_FF_pr
+			puts $file $FPGA_RAMB_pr
+			puts $file $FPGA_DSP48_pr
+			puts $file $IP_LUT_pr
+			puts $file $IP_FF_pr
+			puts $file $IP_RAMB_pr
+			puts $file $IP_DSP48_pr
+			puts $file $USER_FUNCTION_LUT_pr
+			puts $file $USER_FUNCTION_FF_pr
+			puts $file $USER_FUNCTION_RAMB_pr
+			puts $file $USER_FUNCTION_DSP48_pr
+			
+			puts $file $FPGA_LUT_synth
+			puts $file $FPGA_FF_synth
+			puts $file $FPGA_RAMB_synth
+			puts $file $FPGA_DSP48_synth
+			puts $file $IP_LUT_synth
+			puts $file $IP_FF_synth
+			puts $file $IP_RAMB_synth
+			puts $file $IP_DSP48_synth
+			puts $file $USER_FUNCTION_LUT_synth
+			puts $file $USER_FUNCTION_FF_synth
+			puts $file $USER_FUNCTION_RAMB_synth
+			puts $file $USER_FUNCTION_DSP48_synth
+			
+			puts $file $FPGA_pw_total_synth
+			puts $file $FPGA_pw_dyn_synth
+			puts $file $FPGA_pw_sta_synth
+			puts $file $IP_pw_total_synth
+			puts $file $USER_FUNCTION_pw_total_synth
+			puts $file $PS7_pw_total_synth
+			
+			
+			close $file
+			
+			
+			
 			
 					
 			
@@ -1222,8 +1903,16 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 			puts $file "---------------------------------------------------------"
 			puts $file ""
 			puts $file ""
+			
+			puts $file ""
+			puts $file ""
+				
+			puts $file "Timing (post Place & Route):"
+			puts $file "--------------------------"
+			puts $file ""
+			puts $file "* FPGA"
 			set tmp_line ""
-			append tmp_line "clock target (ns): " $clock_target
+			append tmp_line "target clock period (ns): " $clock_target
 			puts $file $tmp_line
 			if [expr $clk_achieved < 0] {
 				set tmp_line ""
@@ -1235,72 +1924,325 @@ proc ::tclapp::icl::protoip::ip_prototype_build::make_ip_prototype_readme_txt {a
 				
 			} else {
 				set tmp_line ""
-				append tmp_line "clock achieved (ns): " $clk_achieved
+				append tmp_line "achieved clock period (ns): " $clk_achieved
 				puts $file $tmp_line
 				
 				puts $file "Time constraints met during IP prototyping. You might reduce clock target period to build a faster design."
 			}
 			
 			
-
-
 			puts $file ""
-			if [expr $BRAM_impl <= $BRAM_available] { 
-				set tmp_line ""
-				append tmp_line "BRAM_18K: " $BRAM_impl " (" [expr $BRAM_impl * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
-				puts $file $tmp_line
-			} else {
-				set tmp_line ""
-				append tmp_line "BRAM_18K: " $BRAM_impl " (" [expr $BRAM_impl * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
-				puts $file $tmp_line
-			}
-			if [expr $DSP48E_impl <= $DSP48E_available] { 
-				set tmp_line ""
-				append tmp_line "DSP48E: " $DSP48E_impl  " (" [expr $DSP48E_impl * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
-				puts $file $tmp_line
-			} else {
-				set tmp_line ""
-				append tmp_line "DSP48E: " $DSP48E_impl  " (" [expr $DSP48E_impl * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
-				puts $file $tmp_line
-			}
-			if [expr $FF_impl <= $FF_available] { 
-				set tmp_line ""
-				append tmp_line "FF: " $FF_impl " (" [expr $FF_impl * 100 / $FF_available] "%) used out off " $FF_available " available."
-				puts $file $tmp_line
-			} else {
-				set tmp_line ""
-				append tmp_line "FF: " $FF_impl " (" [expr $FF_impl * 100 / $FF_available] "%) used out off " $FF_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
-				puts $file $tmp_line
-			}
-			if [expr $LUT_impl <= $LUT_available] { 
-				set tmp_line ""
-				append tmp_line "LUT: " $LUT_impl " (" [expr $LUT_impl * 100 / $LUT_available] "%)  used out off " $LUT_available " available."
-				puts $file $tmp_line
-			} else {
-				set tmp_line ""
-				append tmp_line "LUT: " $LUT_impl " (" [expr $LUT_impl * 100 / $LUT_available] "%)  used out off " $LUT_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
-				puts $file $tmp_line
-			}
-			set tmp_line ""
-			
-						
 			puts $file ""
-			set tmp_line ""
-			append tmp_line "Power total on-chip (W): " $PW_total
-			puts $file $tmp_line
-			set tmp_line ""
-			append tmp_line "Power dynamic (W): " $PW_dyn
-			puts $file $tmp_line
-			set tmp_line ""
-			append tmp_line "Power device static (W) " $PW_sta
-			puts $file $tmp_line
-			set tmp_line ""
-			append tmp_line "Power ARM Cortex-A9 (W): " $PW_PS7
-			puts $file $tmp_line
-			set tmp_line ""
-			append tmp_line "Power programmable logic (W): " $PW_logic
-			puts $file $tmp_line
 			
+			puts $file "Resource measurement (post Place & Route):"
+			puts $file "------------------------------------------"
+			puts $file ""
+			puts $file "* FPGA"
+			if [expr $FPGA_RAMB_pr <= $BRAM_available] { 
+				set tmp_line ""
+				append tmp_line "   BRAM_18K: " $FPGA_RAMB_pr " (" [expr $FPGA_RAMB_pr * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   BRAM_18K: " $FPGA_RAMB_pr " (" [expr $FPGA_RAMB_pr * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $FPGA_DSP48_pr <= $DSP48E_available] { 
+				set tmp_line ""
+				append tmp_line "   DSP48E: " $FPGA_DSP48_pr  " (" [expr $FPGA_DSP48_pr * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   DSP48E: " $FPGA_DSP48_pr  " (" [expr $FPGA_DSP48_pr * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $FPGA_FF_pr <= $FF_available] { 
+				set tmp_line ""
+				append tmp_line "   FF: " $FPGA_FF_pr " (" [expr $FPGA_FF_pr * 100 / $FF_available] "%) used out off " $FF_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   FF: " $FPGA_FF_pr " (" [expr $FPGA_FF_pr * 100 / $FF_available] "%) used out off " $FF_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $FPGA_LUT_pr <= $LUT_available] { 
+				set tmp_line ""
+				append tmp_line "   LUT: " $FPGA_LUT_pr " (" [expr $FPGA_LUT_pr * 100 / $LUT_available] "%)  used out off " $LUT_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   LUT: " $FPGA_LUT_pr " (" [expr $FPGA_LUT_pr * 100 / $LUT_available] "%)  used out off " $LUT_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			puts $file ""
+			puts $file "	* IP"
+			if [expr $IP_RAMB_pr <= $BRAM_available] { 
+				set tmp_line ""
+				append tmp_line "   	BRAM_18K: " $IP_RAMB_pr " (" [expr $IP_RAMB_pr * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   	BRAM_18K: " $IP_RAMB_pr " (" [expr $IP_RAMB_pr * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $IP_DSP48_pr <= $DSP48E_available] { 
+				set tmp_line ""
+				append tmp_line "   	DSP48E: " $IP_DSP48_pr  " (" [expr $IP_DSP48_pr * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   	DSP48E: " $IP_DSP48_pr  " (" [expr $IP_DSP48_pr * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $IP_FF_pr <= $FF_available] { 
+				set tmp_line ""
+				append tmp_line "   	FF: " $IP_FF_pr " (" [expr $IP_FF_pr * 100 / $FF_available] "%) used out off " $FF_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   	FF: " $IP_FF_pr " (" [expr $IP_FF_pr * 100 / $FF_available] "%) used out off " $FF_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $IP_LUT_pr <= $LUT_available] { 
+				set tmp_line ""
+				append tmp_line "   	LUT: " $IP_LUT_pr " (" [expr $IP_LUT_pr * 100 / $LUT_available] "%)  used out off " $LUT_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   	LUT: " $IP_LUT_pr " (" [expr $IP_LUT_pr * 100 / $LUT_available] "%)  used out off " $LUT_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			set tmp_line ""
+			puts $file ""
+			puts $file "		* user function"
+			if [expr $USER_FUNCTION_RAMB_pr <= $BRAM_available] { 
+				set tmp_line ""
+				append tmp_line "   		BRAM_18K: " $USER_FUNCTION_RAMB_pr " (" [expr $USER_FUNCTION_RAMB_pr * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   		BRAM_18K: " $USER_FUNCTION_RAMB_pr " (" [expr $USER_FUNCTION_RAMB_pr * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $USER_FUNCTION_DSP48_pr <= $DSP48E_available] { 
+				set tmp_line ""
+				append tmp_line "   		DSP48E: " $USER_FUNCTION_DSP48_pr  " (" [expr $USER_FUNCTION_DSP48_pr * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   		DSP48E: " $USER_FUNCTION_DSP48_pr  " (" [expr $USER_FUNCTION_DSP48_pr * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $USER_FUNCTION_FF_pr <= $FF_available] { 
+				set tmp_line ""
+				append tmp_line "   		FF: " $USER_FUNCTION_FF_pr " (" [expr $USER_FUNCTION_FF_pr * 100 / $FF_available] "%) used out off " $FF_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   		FF: " $USER_FUNCTION_FF_pr " (" [expr $USER_FUNCTION_FF_pr * 100 / $FF_available] "%) used out off " $FF_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $USER_FUNCTION_LUT_pr <= $LUT_available] { 
+				set tmp_line ""
+				append tmp_line "   		LUT: " $USER_FUNCTION_LUT_pr " (" [expr $USER_FUNCTION_LUT_pr * 100 / $LUT_available] "%)  used out off " $LUT_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   		LUT: " $USER_FUNCTION_LUT_pr " (" [expr $USER_FUNCTION_LUT_pr * 100 / $LUT_available] "%)  used out off " $LUT_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			
+			puts $file ""
+			puts $file ""
+			
+			puts $file "Power estimation with average toggle rate of 12.5/% (post Place & Route):"
+			puts $file "-------------------------------------------------------------------------"
+			puts $file ""
+			puts $file "* FPGA"
+			set tmp_line ""
+			append tmp_line "   Total power on-chip (W): " $FPGA_pw_total_pr
+			puts $file $tmp_line
+			set tmp_line ""
+			append tmp_line "   Dynamic power on-chip (W): " $FPGA_pw_dyn_pr
+			puts $file $tmp_line
+			set tmp_line ""
+			append tmp_line "   Static power on-chip (W): " $FPGA_pw_sta_pr
+			puts $file $tmp_line
+			puts $file ""
+			puts $file "	* ARM Cortex-A9"
+			set tmp_line ""
+			append tmp_line "   	   Total ARM Cortex-A9 power (W): " $PS7_pw_total_pr
+			puts $file $tmp_line
+			puts $file ""
+			puts $file "	* IP"
+			set tmp_line ""
+			append tmp_line "   	   Total IP power (W): " $IP_pw_total_pr
+			puts $file $tmp_line
+			puts $file ""
+			puts $file "		* user function"
+			set tmp_line ""
+			append tmp_line "   		   Total IP power (W): " $USER_FUNCTION_pw_total_pr
+			puts $file $tmp_line
+				
+
+			
+			
+			puts $file ""
+			puts $file ""
+			puts $file ""
+			puts $file ""
+			puts $file "Post Synthesis resource estimation:"
+			puts $file "-----------------------------------"
+			puts $file ""
+			puts $file "* FPGA"
+			if [expr $FPGA_RAMB_synth <= $BRAM_available] { 
+				set tmp_line ""
+				append tmp_line "   BRAM_18K: " $FPGA_RAMB_synth " (" [expr $FPGA_RAMB_synth * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   BRAM_18K: " $FPGA_RAMB_synth " (" [expr $FPGA_RAMB_synth * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $FPGA_DSP48_synth <= $DSP48E_available] { 
+				set tmp_line ""
+				append tmp_line "   DSP48E: " $FPGA_DSP48_synth  " (" [expr $FPGA_DSP48_synth * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   DSP48E: " $FPGA_DSP48_synth  " (" [expr $FPGA_DSP48_synth * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $FPGA_FF_synth <= $FF_available] { 
+				set tmp_line ""
+				append tmp_line "   FF: " $FPGA_FF_synth " (" [expr $FPGA_FF_synth * 100 / $FF_available] "%) used out off " $FF_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   FF: " $FPGA_FF_synth " (" [expr $FPGA_FF_synth * 100 / $FF_available] "%) used out off " $FF_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $FPGA_LUT_synth <= $LUT_available] { 
+				set tmp_line ""
+				append tmp_line "   LUT: " $FPGA_LUT_synth " (" [expr $FPGA_LUT_synth * 100 / $LUT_available] "%)  used out off " $LUT_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   LUT: " $FPGA_LUT_synth " (" [expr $FPGA_LUT_synth * 100 / $LUT_available] "%)  used out off " $LUT_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			puts $file ""
+			puts $file "	* IP"
+			if [expr $IP_RAMB_synth <= $BRAM_available] { 
+				set tmp_line ""
+				append tmp_line "   	BRAM_18K: " $IP_RAMB_synth " (" [expr $IP_RAMB_synth * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   	BRAM_18K: " $IP_RAMB_synth " (" [expr $IP_RAMB_synth * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $IP_DSP48_synth <= $DSP48E_available] { 
+				set tmp_line ""
+				append tmp_line "   	DSP48E: " $IP_DSP48_synth  " (" [expr $IP_DSP48_synth * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   	DSP48E: " $IP_DSP48_synth  " (" [expr $IP_DSP48_synth * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $IP_FF_synth <= $FF_available] { 
+				set tmp_line ""
+				append tmp_line "   	FF: " $IP_FF_synth " (" [expr $IP_FF_synth * 100 / $FF_available] "%) used out off " $FF_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   	FF: " $IP_FF_synth " (" [expr $IP_FF_synth * 100 / $FF_available] "%) used out off " $FF_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $IP_LUT_synth <= $LUT_available] { 
+				set tmp_line ""
+				append tmp_line "   	LUT: " $IP_LUT_synth " (" [expr $IP_LUT_synth * 100 / $LUT_available] "%)  used out off " $LUT_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   	LUT: " $IP_LUT_synth " (" [expr $IP_LUT_synth * 100 / $LUT_available] "%)  used out off " $LUT_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			set tmp_line ""
+			puts $file ""
+			puts $file "		* user function"
+			if [expr $USER_FUNCTION_RAMB_synth <= $BRAM_available] { 
+				set tmp_line ""
+				append tmp_line "   		BRAM_18K: " $USER_FUNCTION_RAMB_synth " (" [expr $USER_FUNCTION_RAMB_synth * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   		BRAM_18K: " $USER_FUNCTION_RAMB_synth " (" [expr $USER_FUNCTION_RAMB_synth * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $USER_FUNCTION_DSP48_synth <= $DSP48E_available] { 
+				set tmp_line ""
+				append tmp_line "   		DSP48E: " $USER_FUNCTION_DSP48_synth  " (" [expr $USER_FUNCTION_DSP48_synth * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   		DSP48E: " $USER_FUNCTION_DSP48_synth  " (" [expr $USER_FUNCTION_DSP48_synth * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $USER_FUNCTION_FF_synth <= $FF_available] { 
+				set tmp_line ""
+				append tmp_line "   		FF: " $USER_FUNCTION_FF_synth " (" [expr $USER_FUNCTION_FF_synth * 100 / $FF_available] "%) used out off " $FF_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   		FF: " $USER_FUNCTION_FF_synth " (" [expr $USER_FUNCTION_FF_synth * 100 / $FF_available] "%) used out off " $FF_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $USER_FUNCTION_LUT_synth <= $LUT_available] { 
+				set tmp_line ""
+				append tmp_line "   		LUT: " $USER_FUNCTION_LUT_synth " (" [expr $USER_FUNCTION_LUT_synth * 100 / $LUT_available] "%)  used out off " $LUT_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "   		LUT: " $USER_FUNCTION_LUT_synth " (" [expr $USER_FUNCTION_LUT_synth * 100 / $LUT_available] "%)  used out off " $LUT_available " available. The design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			
+			puts $file ""
+			puts $file ""
+			
+			puts $file "Post Synthesis power estimation (average toggle rate 12.5/%):"
+			puts $file "-------------------------------------------------------------"
+			puts $file ""
+			puts $file "* FPGA"
+			set tmp_line ""
+			append tmp_line "   Total power on-chip (W): " $FPGA_pw_total_synth
+			puts $file $tmp_line
+			set tmp_line ""
+			append tmp_line "   Dynamic power on-chip (W): " $FPGA_pw_dyn_synth
+			puts $file $tmp_line
+			set tmp_line ""
+			append tmp_line "   Static power on-chip (W): " $FPGA_pw_sta_synth
+			puts $file $tmp_line
+			puts $file ""
+			puts $file "	* ARM Cortex-A9"
+			set tmp_line ""
+			append tmp_line "   	   Total ARM Cortex-A9 power (W): " $PS7_pw_total_synth
+			puts $file $tmp_line
+			puts $file ""
+			puts $file "	* IP"
+			set tmp_line ""
+			append tmp_line "   	   Total IP power (W): " $IP_pw_total_synth
+			puts $file $tmp_line
+			puts $file ""
+			puts $file "		* user function"
+			set tmp_line ""
+			append tmp_line "   		   Total IP power (W): " $USER_FUNCTION_pw_total_synth
+			puts $file $tmp_line
+				
+			
+
 			
 			close $file  
   

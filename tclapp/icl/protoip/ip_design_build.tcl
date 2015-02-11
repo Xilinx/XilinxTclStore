@@ -613,7 +613,7 @@ set project_name [lindex $args 0]
 	
 			# #######################################  
 			# #######################################  
-			# Extract pre implementation information (resources and latency)
+			# Extract IP pre implementation information (timing, resources and latency
 			
 			set target_file ""
 			append target_file "ip_design/build/prj/"  $project_name "/solution1/syn/report/foo_csynth.rpt"
@@ -842,6 +842,174 @@ set project_name [lindex $args 0]
 			}
 			
 			
+			# #######################################  
+			# #######################################  
+			# Extract Algorithm pre implementation information (resources and latency)
+			
+			set target_file ""
+			append target_file "ip_design/build/prj/"  $project_name "/solution1/syn/report/foo_foo_user_csynth.rpt"
+			
+			# #######################################  
+			# Extract timing information
+			
+			set f [open $target_file]
+			set file_data [read $f]
+			close $f
+			
+			set data [split $file_data "\n"]
+			set count_line 0;
+			foreach line $data {
+				incr count_line
+				if {[regexp {Timing} $line all value]} {
+					set target_line [expr [incr count_line 5]]
+					break
+				}
+			}
+			
+			set count_line 0;
+			foreach line $data {
+				incr count_line
+				if {$count_line == $target_line} {
+					break
+				}
+			}
+
+			
+			set line_size [expr [ string length $line]-1]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+
+			set line_size [expr [ string length $line]-1]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]	
+			regsub -all -- {[^0-9.-]} $tmp_str "" clock_target_alg	
+			#if the clock_traget is not available, set it to 0
+			if {$clock_target_alg == ""} {
+				set clock_target_alg 0
+			}
+			
+			set line [string range $line $index_pipe $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]	
+			regsub -all -- {[^0-9.-]} $tmp_str "" clock_estimated_alg	
+			#if the clock_traget is not available, set it to 0
+			if {$clock_estimated_alg == ""} {
+				set clock_estimated_alg 0
+			}
+			
+			
+			# #######################################  
+			# Extract latency information
+			
+			set f [open $target_file]
+			set file_data [read $f]
+			close $f
+			
+			set data [split $file_data "\n"]
+			set count_line 0;
+			foreach line $data {
+				incr count_line
+				if {[regexp {Latency} $line all value]} {
+					set target_line [expr [incr count_line 6]]
+					break
+				}
+			}
+			
+			set count_line 0;
+			foreach line $data {
+				incr count_line
+				if {$count_line == $target_line} {
+					break
+				}
+			}
+
+			
+			
+			set line_size [expr [ string length $line]-1]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+
+			set line_size [expr [ string length $line]-1]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+			
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]	
+			regsub -all -- {[^0-9.-]} $tmp_str "" latency_alg	
+			#if the latency is not available, set it to 0
+			if {$latency_alg == ""} {
+				set latency_alg 0
+			}
+
+
+			# #######################################  
+			# Extract the resource utilization
+
+			set f [open $target_file]
+			while {[gets $f line] != -1} {
+			    if {[regexp {Total} $line all value]} {
+				break
+			    }
+			}
+			close $f
+
+			
+			set line_size [expr [ string length $line]-1]
+			set line [string range $line 1 $line_size]
+			set index_pipe [expr [string first "|" $line ] +1]
+			set line [string range $line $index_pipe $line_size]
+
+			
+			#extract BRAM_18K
+			set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			
+
+			
+			regsub -all -- {[^0-9.-]} $tmp_str "" BRAM_alg
+			#if the BRAM is not available, set it to 0
+			if {$BRAM_alg == ""} {
+				set BRAM_alg 0
+			}
+
+			 
+			# extract DSP48E
+			 set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			 regsub -all -- {[^0-9.-]} $tmp_str "" DSP48E_alg
+			# if the DSP48E is not available, set it to 0
+			if {$DSP48E_alg == ""} {
+				set DSP48E_alg 0
+			}
+
+			 #extract FF
+			 set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			 regsub -all -- {[^0-9.-]} $tmp_str "" FF_alg
+			 #if the FF is not available, set it to 0
+			if {$FF_alg == ""} {
+				set FF_alg 0
+			}
+
+			 
+			# extract LUT
+			 set index_pipe [expr [string first "|" $line ] +1]
+			set tmp_str  [string range $line 0 $index_pipe]
+			set line [string range $line $index_pipe $line_size]
+			regsub -all -- {[^0-9.-]} $tmp_str "" LUT_alg
+			#if the LUT is not available, set it to 0
+			if {$LUT_alg == ""} {
+				set LUT_alg 0
+			}
+			
+		
+			
 			# ####################################### 
 			# Write report file
 			# Make IP synthesis report
@@ -893,6 +1061,35 @@ set project_name [lindex $args 0]
 			set dir_name ""
 			append dir_name "doc/" $project_name
 			file mkdir $dir_name
+			
+			# make ip_design.dat
+			
+			set  file_name ""
+			append file_name "doc/" $project_name "/ip_design.dat"
+
+			set file [open $file_name w]
+
+
+			puts $file $clock_target
+			puts $file $clock_estimated
+			puts $file $clock_target_alg
+			puts $file $clock_estimated_alg
+			puts $file $latency
+			puts $file [expr $clock_target * $latency / 1000]
+			puts $file $latency_alg
+			puts $file [expr $clock_target_alg * $latency_alg / 1000]
+			puts $file $BRAM
+			puts $file $DSP48E
+			puts $file $FF
+			puts $file $LUT
+			puts $file $BRAM_alg
+			puts $file $DSP48E_alg
+			puts $file $FF_alg
+			puts $file $LUT_alg
+		
+			close $file
+			
+			# make ip_design.txt
 
 			set  file_name ""
 			append file_name "doc/" $project_name "/ip_design.txt"
@@ -991,25 +1188,36 @@ set project_name [lindex $args 0]
 
 
 			puts $file ""
-
-			
 			puts $file ""
-
 			puts $file "---------------------------------------------------------"
 			set tmp_line ""
 			append tmp_line "IP build report: " $project_name
 			puts $file $tmp_line
 			puts $file "----------------------------------------------------------"
+		
 			puts $file ""
 			puts $file ""
+			puts $file "Timing:"
+			puts $file "------------------------"
+			puts $file ""
+			puts $file "* IP"
 			set tmp_line ""
-			append tmp_line "clock target (ns): " $clock_target
+			append tmp_line "   target clock period (ns): " $clock_target
 			puts $file $tmp_line
 			set tmp_line ""
-			append tmp_line "clock estimated (ns): " $clock_estimated
+			append tmp_line "   estimated clock period (ns): " $clock_estimated
+			puts $file $tmp_line
+			
+			puts $file ""
+			puts $file "	* User function"
+			set tmp_line ""
+			append tmp_line "	   target clock period (ns): " $clock_target_alg
+			puts $file $tmp_line
+			set tmp_line ""
+			append tmp_line "	   estimated clock period (ns): " $clock_estimated_alg
 			puts $file $tmp_line
 
-			
+			puts $file ""
 			if [expr $clock_target < $clock_estimated] {
 				puts $file "WARNING: Time constraints might NOT be met during IP prototyping. You might increase clock target period to met time constraints."	
 			} else {
@@ -1018,58 +1226,118 @@ set project_name [lindex $args 0]
 			
 			
 			puts $file ""
+			puts $file ""
+			puts $file "Latency:"
+			puts $file "------------------------"
+			puts $file ""
+			puts $file "* IP"
 			set tmp_line ""
-			append tmp_line "latency (clock cycles): " $latency
+			append tmp_line "   latency (clock cycles): " $latency
 			puts $file $tmp_line
 			set tmp_line ""
-			append tmp_line "latency (us): " [expr $clock_target * $latency / 1000]
+			append tmp_line "   latency (us): " [expr $clock_target * $latency / 1000]
 			puts $file $tmp_line
 			
-		
+			puts $file ""
+			puts $file "	* User function"
+			set tmp_line ""
+			append tmp_line "	   latency (clock cycles): " $latency_alg
+			puts $file $tmp_line
+			set tmp_line ""
+			append tmp_line "	   latency (us): " [expr $clock_target_alg * $latency_alg / 1000]
+			puts $file $tmp_line
 
-				puts $file ""
-				puts $file "Resource utilization:"
+			
+			puts $file ""
+			puts $file ""
+			puts $file "Resource utilization:"
+			puts $file "------------------------"
+			puts $file ""
+			puts $file "* IP"
 			if [expr $BRAM <= $BRAM_available] { 
 				set tmp_line ""
-				append tmp_line "BRAM_18K: " $BRAM " (" [expr $BRAM * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
+				append tmp_line "   BRAM_18K: " $BRAM " (" [expr $BRAM * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
 				puts $file $tmp_line
 			} else {
 				set tmp_line ""
-				append tmp_line "BRAM_18K: " $BRAM " (" [expr $BRAM * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or to reduce the design size."
+				append tmp_line "   BRAM_18K: " $BRAM " (" [expr $BRAM * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or to reduce the design size."
 				puts $file $tmp_line
 			}
 			if [expr $DSP48E <= $DSP48E_available] { 
 				set tmp_line ""
-				append tmp_line "DSP48E: " $DSP48E  " (" [expr $DSP48E * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
+				append tmp_line "   DSP48E: " $DSP48E  " (" [expr $DSP48E * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
 				puts $file $tmp_line
 			} else {
 				set tmp_line ""
-				append tmp_line "DSP48E: " $DSP48E  " (" [expr $DSP48E * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				append tmp_line "   DSP48E: " $DSP48E  " (" [expr $DSP48E * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
 				puts $file $tmp_line
 			}
 			if [expr $FF <= $FF_available] { 
 				set tmp_line ""
-				append tmp_line "FF: " $FF " (" [expr $FF * 100 / $FF_available] "%) used out off " $FF_available " available."
+				append tmp_line "   FF: " $FF " (" [expr $FF * 100 / $FF_available] "%) used out off " $FF_available " available."
 				puts $file $tmp_line
 			} else {
 				set tmp_line ""
-				append tmp_line "FF: " $FF " (" [expr $FF * 100 / $FF_available] "%) used out off " $FF_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				append tmp_line "   FF: " $FF " (" [expr $FF * 100 / $FF_available] "%) used out off " $FF_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
 				puts $file $tmp_line
 			}
 			if [expr $LUT <= $LUT_available] { 
 				set tmp_line ""
-				append tmp_line "LUT: " $LUT " (" [expr $LUT * 100 / $LUT_available] "%) used out off " $LUT_available " available."
+				append tmp_line "   LUT: " $LUT " (" [expr $LUT * 100 / $LUT_available] "%) used out off " $LUT_available " available."
 				puts $file $tmp_line
 			} else {
 				set tmp_line ""
-				append tmp_line "LUT: " $LUT " (" [expr $LUT * 100 / $LUT_available] "%) used out off " $LUT_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				append tmp_line "   LUT: " $LUT " (" [expr $LUT * 100 / $LUT_available] "%) used out off " $LUT_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
 				puts $file $tmp_line
 			}
+			
+			puts $file ""
+			puts $file "	* User function"
+			if [expr $BRAM_alg <= $BRAM_available] { 
+				set tmp_line ""
+				append tmp_line "	   BRAM_18K: " $BRAM_alg " (" [expr $BRAM_alg * 100 / $BRAM_available] "%) used out off " $BRAM_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "	   BRAM_18K: " $BRAM_alg " (" [expr $BRAM_alg * 100 / $BRAM_available] "%) used out off " $BRAM_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or to reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $DSP48E_alg <= $DSP48E_available] { 
+				set tmp_line ""
+				append tmp_line "	   DSP48E: " $DSP48E_alg  " (" [expr $DSP48E_alg * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "	   DSP48E: " $DSP48E_alg  " (" [expr $DSP48E_alg * 100 / $DSP48E_available] "%) used out off " $DSP48E_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $FF_alg <= $FF_available] { 
+				set tmp_line ""
+				append tmp_line "	   FF: " $FF_alg " (" [expr $FF_alg * 100 / $FF_available] "%) used out off " $FF_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "	   FF: " $FF_alg " (" [expr $FF_alg * 100 / $FF_available] "%) used out off " $FF_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			if [expr $LUT_alg <= $LUT_available] { 
+				set tmp_line ""
+				append tmp_line "	   LUT: " $LUT_alg " (" [expr $LUT_alg * 100 / $LUT_available] "%) used out off " $LUT_available " available."
+				puts $file $tmp_line
+			} else {
+				set tmp_line ""
+				append tmp_line "	   LUT: " $LUT_alg " (" [expr $LUT_alg * 100 / $LUT_available] "%) used out off " $LUT_available " available. WARNING: the design does NOT fit into the selected FPGA. Consider to use a bigger FPGA or reduce the design size."
+				puts $file $tmp_line
+			}
+			
+			
 			set tmp_line ""
 			puts $file $tmp_line
 			set tmp_line ""
 			append tmp_line "NOTE: IP design performance might be enhanced by adding directives from Vivado_HLS GUI interface. Run \"tclapp::icl::protoip::ip_design_build_debug\" to open " $project_name " with Vivado_HLS GUI interface."
 			puts $file $tmp_line
+			
+			
 			
 			
 			close $file

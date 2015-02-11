@@ -382,12 +382,11 @@ if {$help==0} {
 		error " -E- NO project name specified. Use the -usage option for more details."
 		
 	} else {
-	
 
-	
-
-		if {[file exists $file_name] != 0} { 
-		# if exists aready, check the design flow type. If it is "matlab", then load data from "configuration_parameters.dat" 
+		#If $type_template is not specified, make_template.tcl has been called from Matlab, otherwise from within Vivado
+		if {$type_template == {}} { 
+			#Call from Matlab: then load data from "configuration_parameters_matlab_interface.dat" 
+		
 			set  file_name ""
 			append file_name ".metadata/configuration_parameters_matlab_interface.dat"
 			set fp [open $file_name r]
@@ -427,53 +426,47 @@ if {$help==0} {
 			set new_type_template [lindex $data [expr ($new_num_input_vectors * 5) + ($new_num_output_vectors * 5) + 5 + 16]]
 			set new_type_design_flow [lindex $data [expr ($new_num_input_vectors * 5) + ($new_num_output_vectors * 5) + 5 + 18]] 
 
-			if {$type_design_flow=={}} {
-			
-				if {$new_type_design_flow=="matlab"} {
-				
-					# update configuration parameters
-					set m 0
-					foreach i $new_input_vectors_type {
-						if {$i==1} {
-							set new_input_vectors_type [lreplace $new_input_vectors_type $m $m "fix"]
-						} else {
-							set new_input_vectors_type [lreplace $new_input_vectors_type $m $m "float"]
-						}
-						incr m
-					}
-					set m 0
-					foreach i $new_output_vectors_type {
-						if {$i==1} {
-							set new_output_vectors_type [lreplace $new_output_vectors_type $m $m "fix"]
-						} else {
-							set new_output_vectors_type [lreplace $new_output_vectors_type $m $m "float"]
-						}
-						incr m
-					}
-				
-				
-					set num_input_vectors $new_num_input_vectors
-					set num_output_vectors $new_num_output_vectors
-					set input_vectors $new_input_vectors 
-					set input_vectors_length $new_input_vectors_length 
-					set input_vectors_type $new_input_vectors_type 
-					set input_vectors_integer_length $new_input_vectors_integer_length 
-					set input_vectors_fraction_length $new_input_vectors_fraction_length 
-					set output_vectors $new_output_vectors
-					set output_vectors_length $new_output_vectors_length 
-					set output_vectors_type $new_output_vectors_type 
-					set output_vectors_integer_length $new_output_vectors_integer_length 
-					set output_vectors_fraction_length $new_output_vectors_fraction_length 
-					set type_template $new_type_template
-					set type_design_flow $new_type_design_flow
-					
-				}
-			}				
 
-			
-		}
+			# update configuration parameters
+			set m 0
+			foreach i $new_input_vectors_type {
+				if {$i==1} {
+					set new_input_vectors_type [lreplace $new_input_vectors_type $m $m "fix"]
+				} else {
+					set new_input_vectors_type [lreplace $new_input_vectors_type $m $m "float"]
+				}
+				incr m
+			}
+			set m 0
+			foreach i $new_output_vectors_type {
+				if {$i==1} {
+					set new_output_vectors_type [lreplace $new_output_vectors_type $m $m "fix"]
+				} else {
+					set new_output_vectors_type [lreplace $new_output_vectors_type $m $m "float"]
+				}
+				incr m
+			}
 		
+		
+			set num_input_vectors $new_num_input_vectors
+			set num_output_vectors $new_num_output_vectors
+			set input_vectors $new_input_vectors 
+			set input_vectors_length $new_input_vectors_length 
+			set input_vectors_type $new_input_vectors_type 
+			set input_vectors_integer_length $new_input_vectors_integer_length 
+			set input_vectors_fraction_length $new_input_vectors_fraction_length 
+			set output_vectors $new_output_vectors
+			set output_vectors_length $new_output_vectors_length 
+			set output_vectors_type $new_output_vectors_type 
+			set output_vectors_integer_length $new_output_vectors_integer_length 
+			set output_vectors_fraction_length $new_output_vectors_fraction_length 
+			set type_template $new_type_template
+			set type_design_flow $new_type_design_flow
+
+		} 	
 	}
+		
+
 
 		
 	#-------------------------------------------------------
@@ -1857,6 +1850,8 @@ foreach i $output_vectors {
 	puts $file $tmp_line
 
 }
+puts $file ""
+puts $file "set_directive_inline -off \"foo_user\""
 puts $file ""
 
 
