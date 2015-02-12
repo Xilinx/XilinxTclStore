@@ -306,6 +306,9 @@ proc usf_vcs_write_setup_files {} {
         return 1
       }
     }
+    if { $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) } {
+      set lib_dir $lib_dir_path
+    }
     puts $fh "$lib_name : $lib_dir"
   }
   close $fh
@@ -739,7 +742,12 @@ proc usf_vcs_create_setup_script {} {
 
     puts $fh_scr "  libs=([join $libs " "])"
     puts $fh_scr "  file=\"synopsys_sim.setup\""
-    puts $fh_scr "  dir=\"$simulator\"\n"
+    if { $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) } {
+      set lib_dir_path [file normalize [string map {\\ /} [file join $dir $simulator]]]
+      puts $fh_scr "  dir=\"$lib_dir_path\"\n"
+    } else {
+      puts $fh_scr "  dir=\"$simulator\"\n"
+    }
     puts $fh_scr "  if \[\[ -e \$file \]\]; then"
     puts $fh_scr "    rm -f \$file"
     puts $fh_scr "  fi"

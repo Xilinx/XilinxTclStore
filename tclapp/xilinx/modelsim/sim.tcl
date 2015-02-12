@@ -441,8 +441,14 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     usf_add_quit_on_error $fh "compile"
   }
 
-  puts $fh "vlib work"
-  puts $fh "vlib msim\n"
+  set lib_dir_path [file normalize [string map {\\ /} $dir]]
+  if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+    puts $fh "vlib $lib_dir_path/work" 
+    puts $fh "vlib $lib_dir_path/msim\n"
+  } else {
+    puts $fh "vlib work"
+    puts $fh "vlib msim\n"
+  }
 
   set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
 
@@ -454,23 +460,39 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    puts $fh "vlib msim/$lib"
+    if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+      puts $fh "vlib $lib_dir_path/msim/$lib"
+    } else {
+      puts $fh "vlib msim/$lib"
+    }
     if { $default_lib == $lib } {
       set b_default_lib true
     }
   }
   if { !$b_default_lib } {
-    puts $fh "vlib msim/$default_lib"
+    if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+      puts $fh "vlib $lib_dir_path/msim/$default_lib"
+    } else {
+      puts $fh "vlib msim/$default_lib"
+    }
   }
    
   puts $fh ""
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    puts $fh "vmap $lib msim/$lib"
+    if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+      puts $fh "vmap $lib $lib_dir_path/msim/$lib"
+    } else {
+      puts $fh "vmap $lib msim/$lib"
+    }
   }
   if { !$b_default_lib } {
-    puts $fh "vmap $default_lib msim/$default_lib"
+    if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+      puts $fh "vmap $default_lib $lib_dir_path/msim/$default_lib"
+    } else {
+      puts $fh "vmap $default_lib msim/$default_lib"
+    }
   }
 
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {

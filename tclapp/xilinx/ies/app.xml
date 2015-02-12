@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed platform detection for axi-bfm simulator library</revision_history>
+      <revision_history>fixed lib map path to absolute for -absolute_path</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

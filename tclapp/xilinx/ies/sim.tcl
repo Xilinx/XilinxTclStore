@@ -293,6 +293,9 @@ proc usf_ies_write_setup_files {} {
         return 1
       }
     }
+    if { $::tclapp::xilinx::ies::a_sim_vars(b_absolute_path) } {
+      set lib_dir $lib_dir_path
+    }
     puts $fh "DEFINE $lib_name $lib_dir"
     if { $default_lib == $lib_name } {
       set b_default_lib true
@@ -306,6 +309,9 @@ proc usf_ies_write_setup_files {} {
         send_msg_id USF-IES-011 ERROR "Failed to create the directory ($lib_dir_path): $error_msg\n"
         return 1
       }
+    }
+    if { $::tclapp::xilinx::ies::a_sim_vars(b_absolute_path) } {
+      set lib_dir $lib_dir_path
     }
     puts $fh "DEFINE $default_lib $lib_dir"
   }
@@ -798,7 +804,12 @@ proc usf_ies_create_setup_script {} {
 
     puts $fh_scr "  libs=([join $libs " "])"
     puts $fh_scr "  file=\"cds.lib\""
-    puts $fh_scr "  dir=\"$simulator\"\n"
+    if { $::tclapp::xilinx::ies::a_sim_vars(b_absolute_path) } {
+      set lib_dir_path [file normalize [string map {\\ /} [file join $dir $simulator]]]
+      puts $fh_scr "  dir=\"$lib_dir_path\"\n"
+    } else {
+      puts $fh_scr "  dir=\"$simulator\"\n"
+    }
     puts $fh_scr "  if \[\[ -e \$file \]\]; then"
     puts $fh_scr "    rm -f \$file"
     puts $fh_scr "  fi"
