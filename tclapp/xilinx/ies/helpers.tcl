@@ -1644,24 +1644,22 @@ proc usf_get_platform {} {
   # Summary:
   # Argument Usage:
   # Return Value:
-
+ 
+  variable a_sim_vars
+  set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set platform {}
   set os $::tcl_platform(platform)
-  set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
+  set b_32_bit [get_property 32bit $fs_obj]
   if { {windows} == $os } {
     set platform "win64"
-    if { {32} == $os_type } {
+    if { $b_32_bit } {
       set platform "win32"
     }
   }
 
   if { {unix} == $os } {
-    if { {x86_64} == $::tcl_platform(machine) } {
-      set platform "lnx64"
-      if { {32} == $os_type } {
-        set platform "lnx32"
-      }
-    } else {
+    set platform "lnx64"
+    if { $b_32_bit } {
       set platform "lnx32"
     }
   }

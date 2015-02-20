@@ -204,7 +204,6 @@ proc usf_xsim_init_simulation_vars {} {
   # Return Value:
 
   variable a_xsim_vars
-  set a_xsim_vars(b_32bit)    0
   set a_xsim_vars(s_snapshot) [usf_xsim_get_snapshot]
 }
 
@@ -310,7 +309,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   }
 
   set s_plat_sw "-m64"
-  if { {32} == $::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) } {
+  if { [get_property 32bit $fs_obj] } {
     set s_plat_sw "-m32"
   }
 
@@ -360,11 +359,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
     }
 
-    # nosort? (verilog)
-    set b_no_sort [get_property "XSIM.COMPILE.XVLOG.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-    if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
-      puts $fh_vlog "\n# Do not sort compile order\nnosort"
-    }
+    puts $fh_vlog "\n# Do not sort compile order\nnosort"
     close $fh_vlog
 
     set xvlog_arg_list [list "$s_plat_sw"]
@@ -409,6 +404,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       switch $type {
         {VHDL}    { puts $fh_vhdl $cmd_str }
       }
+    }
+    # nosort? (vhdl)
+    set b_no_sort [get_property "XSIM.COMPILE.XVHDL.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
+    if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
+      puts $fh_vhdl "\n# Do not sort compile order\nnosort"
     }
     close $fh_vhdl
 
@@ -674,9 +674,11 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-wto $id"
   }
 
-  set os $::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type)
-  if { {64} == $os } { lappend args_list "-m64" }
-  if { {32} == $os } { lappend args_list "-m32" }
+  if { [get_property 32bit $fs_obj] } {
+    lappend args_list "-m32"
+  } else {
+    lappend args_list "-m64"
+  } 
 
   # --debug
   set value [get_property "XSIM.ELABORATE.DEBUG_LEVEL" $fs_obj]

@@ -156,9 +156,6 @@ proc usf_modelsim_init_simulation_vars {} {
   # Return Value:
 
   variable a_modelsim_sim_vars
-  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
-
-  set a_modelsim_sim_vars(b_32bit)            [get_property "MODELSIM.COMPILE.32BIT" $fs_obj]
   set a_modelsim_sim_vars(s_compiled_lib_dir) {}
 }
 
@@ -196,7 +193,8 @@ proc usf_modelsim_setup_args { args } {
       "-scripts_only"   { set ::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only) 1 }
       "-of_objects"     { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) 1 }
-      "-install_path"   { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_install_path) [lindex $args $i] }
+      "-install_path"   { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_install_path) [lindex $args $i];\
+                                 set ::tclapp::xilinx::modelsim::a_sim_vars(b_install_path_specified) 1 }
       "-batch"          { set ::tclapp::xilinx::modelsim::a_sim_vars(b_batch) 1 }
       "-run_dir"        { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
@@ -427,6 +425,15 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path)
+  set tool_path $::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)
+  set DS "\\\\"
+  if {$::tcl_platform(platform) == "unix"} {
+    set DS "/"
+  }
+  set tool_path_str ""
+  if { $::tclapp::xilinx::modelsim::a_sim_vars(b_install_path_specified) } {
+    set tool_path_str "$tool_path${DS}"
+  }
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
@@ -443,11 +450,11 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   set lib_dir_path [file normalize [string map {\\ /} $dir]]
   if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
-    puts $fh "vlib $lib_dir_path/work" 
-    puts $fh "vlib $lib_dir_path/msim\n"
+    puts $fh "${tool_path_str}vlib $lib_dir_path/work" 
+    puts $fh "${tool_path_str}vlib $lib_dir_path/msim\n"
   } else {
-    puts $fh "vlib work"
-    puts $fh "vlib msim\n"
+    puts $fh "${tool_path_str}vlib work"
+    puts $fh "${tool_path_str}vlib msim\n"
   }
 
   set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
@@ -461,9 +468,9 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
-      puts $fh "vlib $lib_dir_path/msim/$lib"
+      puts $fh "${tool_path_str}vlib $lib_dir_path/msim/$lib"
     } else {
-      puts $fh "vlib msim/$lib"
+      puts $fh "${tool_path_str}vlib msim/$lib"
     }
     if { $default_lib == $lib } {
       set b_default_lib true
@@ -471,9 +478,9 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
   if { !$b_default_lib } {
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
-      puts $fh "vlib $lib_dir_path/msim/$default_lib"
+      puts $fh "${tool_path_str}vlib $lib_dir_path/msim/$default_lib"
     } else {
-      puts $fh "vlib msim/$default_lib"
+      puts $fh "${tool_path_str}vlib msim/$default_lib"
     }
   }
    
@@ -482,16 +489,16 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
-      puts $fh "vmap $lib $lib_dir_path/msim/$lib"
+      puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
     } else {
-      puts $fh "vmap $lib msim/$lib"
+      puts $fh "${tool_path_str}vmap $lib msim/$lib"
     }
   }
   if { !$b_default_lib } {
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
-      puts $fh "vmap $default_lib $lib_dir_path/msim/$default_lib"
+      puts $fh "${tool_path_str}vmap $default_lib $lib_dir_path/msim/$default_lib"
     } else {
-      puts $fh "vmap $default_lib msim/$default_lib"
+      puts $fh "${tool_path_str}vmap $default_lib msim/$default_lib"
     }
   }
 
@@ -589,7 +596,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     ::tclapp::xilinx::modelsim::usf_copy_glbl_file
     set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
     set file_str "-work $top_lib \"glbl.v\""
-    puts $fh "\n# compile glbl module\nvlog $file_str"
+    puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
   }
 
   set b_is_unix false
@@ -602,6 +609,14 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   } else {
     puts $fh "\nquit -force"
   }
+
+  # Intentional: add a blank line at the very end in do file to avoid vsim error detecting '\' at EOF
+  #              when executing the do file directly with vsim (vsim -c -do tb.do)
+  #              ** Error: <EOF> reached in ./tb_compile.do with incomplete command at line
+  #              e.g vcom test.vhd \
+  #
+  puts $fh ""
+
   close $fh
 }
 
@@ -657,7 +672,6 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
-  set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
   set sim_flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
 
@@ -668,7 +682,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [list]
 
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    if { ($::tclapp::xilinx::modelsim::a_modelsim_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    if { [get_property 32bit $fs_obj] } {
       lappend arg_list {-32}
     } else {
       lappend arg_list {-64}
@@ -1031,10 +1045,10 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   # Return Value:
 
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
-  set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
   set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
   set tool_path $::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
 
   set scr_filename $step;append scr_filename [::tclapp::xilinx::modelsim::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -1051,7 +1065,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
 
   set s_64bit {}
   if {$::tcl_platform(platform) == "unix"} {
-    if { ($::tclapp::xilinx::modelsim::a_modelsim_sim_vars(b_32bit)) || ({32} == $os_type) } {
+    if { [get_property 32bit $fs_obj] } {
       # donot pass os type
     } else {
       set s_64bit {-64}
@@ -1120,9 +1134,18 @@ proc usf_modelsim_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_f
 
   upvar $prev_file_type_arg prev_file_type
   upvar $prev_lib_arg  prev_lib
+  set tool_path $::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)
+  set DS "\\\\"
+  if {$::tcl_platform(platform) == "unix"} {
+    set DS "/"
+  }
+  set tool_path_str ""
+  if { $::tclapp::xilinx::modelsim::a_sim_vars(b_install_path_specified) } {
+    set tool_path_str "$tool_path${DS}"
+  }
 
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-    puts $fh_scr "$cmd_str \\"
+    puts $fh_scr "${tool_path_str}$cmd_str \\"
   } else {
     puts $fh_scr "eval $cmd_str \\"
   }

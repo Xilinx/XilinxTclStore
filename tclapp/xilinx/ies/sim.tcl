@@ -156,9 +156,6 @@ proc usf_ies_init_simulation_vars {} {
   # Return Value:
 
   variable a_ies_sim_vars
-  set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
-
-  set a_ies_sim_vars(b_32bit) [get_property "IES.COMPILE.32BIT" $fs_obj]
   set a_ies_sim_vars(s_compiled_lib_dir)  {}
 }
 
@@ -364,7 +361,6 @@ proc usf_ies_write_compile_script {} {
 
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
-  set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
 
@@ -396,7 +392,7 @@ proc usf_ies_write_compile_script {} {
 
   set tool "ncvhdl"
   set arg_list [list "-messages" "-V93" "-RELAX" "-logfile" "${tool}.log" "-append_log"]
-  if { ($::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit)) || ({32} == $os_type) } {
+  if { [get_property 32bit $fs_obj] } {
     # donot pass os type
   } else {
     set arg_list [linsert $arg_list 0 "-64bit"]
@@ -420,7 +416,7 @@ proc usf_ies_write_compile_script {} {
  
   set tool "ncvlog"
   set arg_list [list "-messages" "-logfile" "${tool}.log" "-append_log"]
-  if { ($::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit)) || ({32} == $os_type) } {
+  if { [get_property 32bit $fs_obj] } {
     # donot pass os type
   } else {
     set arg_list [linsert $arg_list 0 "-64bit"]
@@ -503,7 +499,6 @@ proc usf_ies_write_elaborate_script {} {
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
-  set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
 
@@ -537,7 +532,7 @@ proc usf_ies_write_elaborate_script {} {
   set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
   set arg_list [list "-relax -access +rwc -messages" "-logfile" "elaborate.log"]
 
-  if { ($::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit)) || ({32} == $os_type) } {
+  if { [get_property 32bit $fs_obj] } {
     # donot pass os type
   } else {
      set arg_list [linsert $arg_list 0 "-64bit"]
@@ -656,7 +651,6 @@ proc usf_ies_write_simulate_script {} {
 
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
-  set os_type $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set b_scripts_only $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)
   set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
@@ -691,7 +685,7 @@ proc usf_ies_write_simulate_script {} {
   set tool "ncsim"
   set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
   set arg_list [list "-logfile" "simulate.log"]
-  if { ($::tclapp::xilinx::ies::a_ies_sim_vars(b_32bit)) || ({32} == $os_type) } {
+  if { [get_property 32bit $fs_obj] } {
     # donot pass os type
   } else {
     set arg_list [linsert $arg_list 0 "-64bit"]

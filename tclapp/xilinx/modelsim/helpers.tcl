@@ -37,6 +37,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_comp_file)        {}
   set a_sim_vars(b_absolute_path)    0
   set a_sim_vars(s_install_path)     {}
+  set a_sim_vars(b_install_path_specified)    0 
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
@@ -971,40 +972,6 @@ proc usf_fs_contains_hdl_source { fs } {
   return $b_contains_hdl
 }
 
-proc usf_is_tool_installed {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-
-  set path_sep  {;}
-  set tool_extn {.exe}
-
-  if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
-  if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
-
-  set tool_name "vsim";append tool_name ${tool_extn}
-  
-  # user specified install path? if not, use the param value if set
-  set install_path $a_sim_vars(s_install_path)
-  if { {} == $install_path } {
-    set install_path [get_param "simulator.modelsimInstallPath"]
-  }
- 
-  # install path found and exist
-  if { ({} != $install_path) && ([file exists $install_path]) } {
-    return 1
-  }
-
-  # bin path found from PATH and exist
-  if { {} != [usf_get_bin_path $tool_name $path_sep] } {
-    return 1
-  }
-
-  return 0  
-}
-
 proc usf_set_simulator_path { simulator } {
   # Summary:
   # Argument Usage:
@@ -1496,24 +1463,17 @@ proc usf_get_platform {} {
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set platform {}
   set os $::tcl_platform(platform)
-  set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
-  set 64bit [get_property MODELSIM.SIMULATE.64BIT $fs_obj]
+  set b_32_bit [get_property 32bit $fs_obj]
   if { {windows} == $os } {
-    if { {32} == $os_type } {
+    set platform "win64"
+    if { $b_32_bit } {
       set platform "win32"
-    }
-    if { ({64} == $os_type) || ({64} == $64bit) } {
-      set platform "win64"
     }
   }
 
   if { {unix} == $os } {
-    if { {x86_64} == $::tcl_platform(machine) } {
-      set platform "lnx64"
-      if { {32} == $os_type } {
-        set platform "lnx32"
-      }
-    } else {
+    set platform "lnx64"
+    if { $b_32_bit } {
       set platform "lnx32"
     }
   }
@@ -2179,9 +2139,8 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
   variable a_sim_vars
 
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
-  set os_type $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type)
   set s_64bit {-64}
-  if { ($::tclapp::xilinx::modelsim::a_modelsim_sim_vars(b_32bit)) || ({32} == $os_type) } {
+  if { [get_property 32bit $fs_obj] } {
     set s_64bit {-32}
   }
 
