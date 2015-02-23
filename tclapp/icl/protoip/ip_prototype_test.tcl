@@ -278,6 +278,7 @@ if {$error==0} {
 			
 			} else {
 			
+			set type_design_flow "vivado"
 			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow]
 
 			# update ip_design/src/FPGAclientAPI.h file
@@ -342,7 +343,7 @@ if {$error==0} {
 			cd ip_design/src
 			file delete -force _locked
 			 
-			set status [ catch { exec matlab.exe --nospash -nodesktop -r test_HIL($project_name_to_Matlab)} output ]
+			set status [ catch { exec matlab.exe -nojvc -nosplash -nodesktop -r test_HIL($project_name_to_Matlab)} output ]
 
 			# Wait until the Matlab has finished
 			while {true} {
