@@ -477,7 +477,6 @@ proc usf_get_compile_order_for_obj { } {
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   if { [usf_is_ip $tcl_obj] } {
     send_msg_id USF-ModelSim-039 INFO "Inspecting IP design source files for '$a_sim_vars(s_sim_top)'...\n"
-    usf_get_sim_files_for_ip $tcl_obj
 
     # export ip data files to run dir
     if { [get_param "project.copyDataFilesForSim"] } {
@@ -498,9 +497,6 @@ proc usf_get_compile_order_for_obj { } {
     }
   } elseif { [usf_is_fileset $tcl_obj] } {
     send_msg_id USF-ModelSim-040 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
-    if {[usf_get_sim_files_for_fs $tcl_obj]} {
-      return 1
-    }
     # export all fileset data files to run dir
     if { [get_param "project.copyDataFilesForSim"] } {
       usf_export_fs_data_files $s_data_files_filter
@@ -527,28 +523,6 @@ proc usf_uniquify_cmd_str { cmd_strs } {
     }
   }
   return $uniq_cmd_strs
-}
-
-proc usf_get_compile_order_libs { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_compile_order_files
-  set libs [list]
-  foreach file $l_compile_order_files {
-    if { [lsearch -exact [list_property [lindex [get_files -all [list "$file"]] 0]] {LIBRARY}] == -1} {
-      continue;
-    }
-    foreach f [get_files -all [list "$file"]] {
-      set library [get_property "LIBRARY" $f]
-      if { [lsearch -exact $libs $library] == -1 } {
-        lappend libs $library
-      }
-    }
-  }
-  return $libs
 }
 
 proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
@@ -599,13 +573,19 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   return $dir_names
 }
 
+proc usf_get_compile_order_files { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  return [usf_uniquify_cmd_str $::tclapp::xilinx::modelsim::l_compile_order_files]
+}
+
 proc usf_get_top_library { } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
-  variable l_compile_order_files
 
   set flow    $a_sim_vars(s_simulation_flow)
   set tcl_obj $a_sim_vars(sp_tcl_obj)
@@ -624,8 +604,9 @@ proc usf_get_top_library { } {
   # 3. get the library associated with the last file in compile order
   set co_top_library {}
   if { ({behav_sim} == $flow) } {
-    if { [llength $l_compile_order_files] > 0 } {
-      set file_list [get_files -all [list "[lindex $l_compile_order_files end]"]]
+    set filelist [usf_get_compile_order_files]
+    if { [llength $filelist] > 0 } {
+      set file_list [get_files -all [list "[lindex $filelist end]"]]
       if { [llength $file_list] > 0 } {
         set co_top_library [get_property "LIBRARY" [lindex $file_list 0]]
       }     
@@ -675,7 +656,6 @@ proc usf_contains_vhdl { design_files } {
   # Argument Usage:
   # Return Value:
 
-  variable l_compile_order_files
   variable a_sim_vars
 
   set flow $a_sim_vars(s_simulation_flow)
@@ -706,7 +686,6 @@ proc usf_contains_verilog { design_files } {
   # Argument Usage:
   # Return Value:
 
-  variable l_compile_order_files
   variable a_sim_vars
 
   set flow $a_sim_vars(s_simulation_flow)
@@ -1069,9 +1048,11 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_compile_order_files
   upvar $global_files_str_arg global_files_str
 
   set files          [list]
+  set l_compile_order_files [list]
   set target_obj     $a_sim_vars(sp_tcl_obj)
   set simset_obj     [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set linked_src_set [get_property "SOURCE_SET" $simset_obj]
@@ -1096,6 +1077,12 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 
   # prepare command line args for fileset files
   if { [usf_is_fileset $target_obj] } {
+    set used_in_val "simulation"
+    switch [get_property "FILESET_TYPE" [get_filesets $target_obj]] {
+      "DesignSrcs"     { set used_in_val "synthesis" }
+      "SimulationSrcs" { set used_in_val "simulation"}
+      "BlockSrcs"      { set used_in_val "synthesis" }
+    }
     set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
     foreach library $xpm_libraries {
       foreach file [rdi::get_xpm_files -library_name $library] {
@@ -1104,18 +1091,19 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
+          lappend l_compile_order_files $file
         }
       }
     }
     set b_add_sim_files 1
     # add files from block filesets
     if { {} != $linked_src_set } {
-      usf_add_block_fs_files $global_files_str l_incl_dirs_opts files
+      usf_add_block_fs_files $global_files_str l_incl_dirs_opts files l_compile_order_files
     }
     # add files from simulation compile order
     if { {All} == $src_mgmt_mode } {
       send_msg_id USF-ModelSim-109 INFO "Fetching design files from '$target_obj'..."
-      foreach file $::tclapp::xilinx::modelsim::l_compile_order_files {
+      foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
         if { [usf_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1124,6 +1112,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
+          lappend l_compile_order_files $file
         }
       }
       set b_add_sim_files 0
@@ -1132,10 +1121,8 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       if { {} != $linked_src_set } {
         set srcset_obj [get_filesets $linked_src_set]
         if { {} != $srcset_obj } {
-          set used_in_val "simulation"
           send_msg_id USF-ModelSim-110 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
-          set ::tclapp::xilinx::modelsim::l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]]
-          foreach file $::tclapp::xilinx::modelsim::l_compile_order_files {
+          foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
             set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
             if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
             set g_files $global_files_str
@@ -1143,6 +1130,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
             set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
             if { {} != $cmd_str } {
               lappend files $cmd_str
+              lappend l_compile_order_files $file
             }
           }
         }
@@ -1161,13 +1149,15 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
+          lappend l_compile_order_files $file
         }
       }
     }
   } elseif { [usf_is_ip $target_obj] } {
     # prepare command line args for fileset ip files
     send_msg_id USF-ModelSim-112 INFO "Fetching design files from IP '$target_obj'..."
-    foreach file $::tclapp::xilinx::modelsim::l_compile_order_files {
+    set ip_filename [file tail $target_obj]
+    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
@@ -1175,6 +1165,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
+        lappend l_compile_order_files $file
       }
     }
   }
@@ -1187,9 +1178,11 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_compile_order_files
   upvar $global_files_str_arg global_files_str
 
   set files         [list]
+  set l_compile_order_files [list]
   set netlist_file  $a_sim_vars(s_netlist_file)
   set target_obj    $a_sim_vars(sp_tcl_obj)
   set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
@@ -1217,6 +1210,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     set cmd_str [usf_get_file_cmd_str $netlist_file $file_type {} l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
+      lappend l_compile_order_files $netlist_file
     }
   }
 
@@ -1231,6 +1225,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
+      lappend l_compile_order_files $file
     }
   }
   #set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\""
@@ -1244,6 +1239,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
+      lappend l_compile_order_files $file
     }
   }
 
@@ -1260,11 +1256,13 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
+        lappend l_compile_order_files $file
       }
     }
   } elseif { [usf_is_ip $target_obj] } {
     # prepare command line args for fileset ip files
-    foreach file $::tclapp::xilinx::modelsim::l_compile_order_files {
+    set ip_filename [file tail $target_obj]
+    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
@@ -1272,19 +1270,21 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
+        lappend l_compile_order_files $file
       }
     }
   }
   return $files
 }
 
-proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg } {
+proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg compile_order_files_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   upvar $l_incl_dirs_opts_arg l_incl_dirs_opts
   upvar $files_arg files
+  upvar $compile_order_files_arg compile_order_files
 
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
   foreach file [usf_get_files_from_block_filesets $vhdl_filter] {
@@ -1292,6 +1292,7 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg } 
     set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
+      lappend compile_order_files $file
     }
   }
   set verilog_filter "FILE_TYPE == \"Verilog\""
@@ -1300,6 +1301,7 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg } 
     set cmd_str [usf_get_file_cmd_str $file $file_type $global_files_str l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
+      lappend compile_order_files $file
     }
   }
 }
@@ -1602,43 +1604,6 @@ proc usf_export_data_files { data_files } {
   }
 }
 
-proc usf_get_sim_files_for_fs { tcl_obj } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_compile_order_files
-  set obj_name $tcl_obj
-  set used_in_val "simulation"
-  switch [get_property "FILESET_TYPE" [get_filesets $tcl_obj]] {
-    "DesignSrcs"     { set used_in_val "synthesis" }
-    "SimulationSrcs" { set used_in_val "simulation"}
-    "BlockSrcs"      { set used_in_val "synthesis" }
-  }
-  switch -regexp -- $a_sim_vars(s_simulation_flow) {
-    {behav_sim} {
-      set l_compile_order_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $tcl_obj]]
-      # remove duplicates?
-      #set l_compile_order_files [usf_remove_duplicate_files $l_compile_order_files]
-    }
-    {post_synth_sim} -
-    {post_impl_sim} {
-      # simulation fileset files
-      set simset_file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $tcl_obj]]
-      lappend l_compile_order_files $simset_file
-
-      # add test bench files from IP
-      # TODO
-    }
-  }
-  #puts "compile order:"
-  #puts "**************"
-  #foreach f $l_compile_order_files { puts $f }
-  #puts "**************"
-  return 0
-}
-
 proc usf_export_fs_data_files { filter } {
   # Summary: Copy fileset IP data files to output directory
   # Argument Usage:
@@ -1695,21 +1660,6 @@ proc usf_export_fs_non_hdl_data_files {} {
     lappend data_files $file
   }
   usf_export_data_files $data_files
-}
-
-proc usf_get_sim_files_for_ip { tcl_obj } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable s_data_files_filter
-  variable l_compile_order_files
-  set ip_filename [file tail $tcl_obj]
-  set l_compile_order_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]]
-  #foreach file $l_compile_order_files { puts "file=$file" }
-  # remove duplicates?
-  #set l_compile_order_files [usf_remove_duplicate_files $l_compile_order_files]
 }
 
 proc usf_get_files_from_block_filesets { filter_type } {

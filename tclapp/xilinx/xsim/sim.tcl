@@ -562,7 +562,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
 
   # get the wcfg file information
   set b_linked_wcfg_exist 0
-  set wcfg_files [split [get_property "XSIM.VIEW" $fs_obj] { }]
+  set wcfg_files [usf_get_wcfg_files $fs_obj]
   set wdb_filename [file root [file tail $wdf_file]]
   set b_wcfg_files 0
   if { [llength $wcfg_files] > 0 } {
@@ -652,6 +652,23 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   }
 
   return $cmd_args
+}
+
+proc usf_get_wcfg_files { fs_obj } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  set uniq_file_set [list]
+  set wcfg_files [split [get_property "XSIM.VIEW" $fs_obj] { }]
+  if { [llength $wcfg_files] > 0 } {
+    foreach file $wcfg_files {
+      set file [string map {\\ /} $file]
+      if { [lsearch -exact $uniq_file_set $file] == -1 } {
+        lappend uniq_file_set $file
+      }
+    }
+  }
+  return $uniq_file_set 
 }
 
 proc usf_xsim_get_xelab_cmdline_args {} {
