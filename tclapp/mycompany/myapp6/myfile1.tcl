@@ -10,7 +10,7 @@ proc ::tclapp::mycompany::myapp6::myproc1 {arg1 {optional1 ,}} {
     # Summary : 
     # A one line summary of what this proc does
     # In branch 8_19_2014
-    # Bug fixes for 9_19_2014 branch 
+    # Bug fixes for 8_19_2014 branch , fixed typo
     
     # Argument Usage:
     # arg1 : A one line summary of this argument
