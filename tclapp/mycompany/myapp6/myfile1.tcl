@@ -13,6 +13,7 @@ proc ::tclapp::mycompany::myapp6::myproc1 {arg1 {optional1 ,}} {
     # decided to keep above line and add comments
     # Merged back to 8_19_2014
     # Now branch to 2_26_2015
+    # new feature on develop (2_26_2015)
     
     # Argument Usage:
     # arg1 : A one line summary of this argument
