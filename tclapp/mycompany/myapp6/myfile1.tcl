@@ -11,6 +11,8 @@ proc ::tclapp::mycompany::myapp6::myproc1 {arg1 {optional1 ,}} {
     # A one line summary of what this proc does
     # In branch 8_19_2014, modifying the same line on 2_26_2015 branch
     # decided to keep above line and add comments
+    # Merged back to 8_19_2014
+    # Now branch to 2_26_2015
     
     # Argument Usage:
     # arg1 : A one line summary of this argument
