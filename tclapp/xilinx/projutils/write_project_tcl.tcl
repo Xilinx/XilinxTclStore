@@ -997,7 +997,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       }
 
     } else {
-      set file "\"$file\""
+      set file "$file"
 
       # is local? add to local project, add to collection and then import this collection by default unless -no_copy_sources is specified
       if { [is_local_to_project $file] } {
@@ -1134,7 +1134,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
       }
     } else {
       # constrs sources were added, so check if these are local or added from remote location
-      set file "\"$file\""
+      set file "$file"
       set constrs_file $file
 
       # is added constrs local to the project? import it in the new project and set it as local in the new project
