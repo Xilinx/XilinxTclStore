@@ -513,7 +513,10 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     }
   }
 
-  set vlog_arg_list [list "-incr"]
+  set vlog_arg_list [list]
+  if { [get_property "MODELSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+    lappend vlog_arg_list "-incr"
+  }
   set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vlog_options } {
     set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
@@ -722,14 +725,19 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   }
 
   # behavioral simulation
-  set b_compile_unifast [get_property "MODELSIM.ELABORATE.UNIFAST" $fs_obj]
+  set b_compile_unifast 0
+  set simulator_language [string tolower [get_property simulator_language [current_project]]]
+  if { ([get_param "simulation.addUnifastLibraryForVhdl"]) && ({vhdl} == $simulator_language) } {
+    set b_compile_unifast [get_property "unifast" $fs_obj]
+  }
 
   if { ([::tclapp::xilinx::modelsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
-    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
+    if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast"]
     }
   }
 
+  set b_compile_unifast [get_property "unifast" $fs_obj]
   if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast_ver"]
@@ -865,14 +873,19 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   }
 
   # behavioral simulation
-  set b_compile_unifast [get_property "MODELSIM.ELABORATE.UNIFAST" $fs_obj]
+  set b_compile_unifast 0
+  set simulator_language [string tolower [get_property simulator_language [current_project]]]
+  if { ([get_param "simulation.addUnifastLibraryForVhdl"]) && ({vhdl} == $simulator_language) } {
+    set b_compile_unifast [get_property "unifast" $fs_obj]
+  }
 
   if { ([::tclapp::xilinx::modelsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
-    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
+    if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast"]
     }
   }
 
+  set b_compile_unifast [get_property "unifast" $fs_obj]
   if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast_ver"]
@@ -1160,14 +1173,37 @@ proc usf_add_quit_on_error { fh step } {
   # Argument Usage:
   # Return Value:
 
-  set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
-  if { ({compile} == $step) || ({elaborate} == $step) || ({simulate} == $step) } {
-    if { $b_batch } {
-      # param default is true (do not exit flow-step on error)
+  set b_batch        $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
+
+  if { $b_batch } {
+    # native mode (default)
+    if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+      if { {simulate} == $step } {
+        if { [get_param "simulator.modelsimNoQuitOnError"] } {
+          # no op
+        } else {
+          puts $fh "onbreak {quit -f}"
+          puts $fh "onerror {quit -f}\n"
+        }
+      }
+    # classic mode
+    } else {
+      if { ({compile} == $step) || ({elaborate} == $step) || ({simulate} == $step) } {
+        if { [get_param "simulator.modelsimNoQuitOnError"] } {
+          # no op
+        } else {
+          puts $fh "onbreak {quit -f}"
+          puts $fh "onerror {quit -f}\n"
+        }
+      }
+    }
+  } elseif { $b_scripts_only } {
+    # for both native and classic modes
+    if { {simulate} == $step } {
       if { [get_param "simulator.modelsimNoQuitOnError"] } {
         # no op
       } else {
-        # exit flow-step on error 
         puts $fh "onbreak {quit -f}"
         puts $fh "onerror {quit -f}\n"
       }

@@ -37,7 +37,6 @@ proc register_options { simulator } {
     {{compile.vhdlan.more_options}  {string} {}        {More VHDLAN compilation options}}
     {{compile.vlogan.more_options}  {string} {}        {More VLOGAN compilation options}}
     {{elaborate.debug_pp}           {bool}   {1}       {Enable post-process debug access}}
-    {{elaborate.unifast}            {bool}   {0}       {Enable fast simulation models}}
     {{elaborate.vcs.more_options}   {string} {}        {More VCS elaboration options}}
     {{simulate.runtime}             {string} {1000ns}  {Specify simulation run time}}
     {{simulate.uut}                 {string} {}        {Specify instance name for design under test (default:/uut)}}

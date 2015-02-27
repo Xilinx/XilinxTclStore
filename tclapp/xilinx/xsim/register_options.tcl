@@ -45,7 +45,6 @@ proc register_options { simulator } {
     {{elaborate.load_glbl}           {bool}        {1}                                                  {Load GLBL module}}
     {{elaborate.rangecheck}          {bool}        {0}                                                  {Enable runtime value range check for VHDL}}
     {{elaborate.sdf_delay}           {enum}        {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
-    {{elaborate.unifast}             {bool}        {0}                                                  {Enable fast simulation models}}
     {{elaborate.xelab.more_options}  {string}      {}                                                   {More XELAB elaboration options}}
     {{simulate.runtime}              {string}      {1000ns}                                             {Specify simulation run time}}
     {{simulate.uut}                  {string}      {}                                                   {Specify instance name for design under test (default:/uut)}}

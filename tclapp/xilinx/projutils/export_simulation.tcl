@@ -38,7 +38,7 @@ proc export_simulation {args} {
 
   if { ![get_param "project.enableExportSimulation"] } {
     send_msg_id exportsim-Tcl-001 INFO \
-      "export_simulation has been deprecated, use 'launch_simulation -scripts_only' to generate scripts.\n"
+      "This command is not available in the current release of Vivado and will be enhanced for future releases of Vivado to support all simulators, please contact Xilinx (FAE, tech support or forum) for more information.\n"
     return
   }
 
@@ -116,6 +116,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_ip_netlist)        0
   set a_sim_vars(b_simulator_language) 0
   set a_sim_vars(ip_filename)         ""
+  set a_sim_vars(s_ip_file_extn)      ".xci"
   set a_sim_vars(b_extract_ip_sim_files) 0
   set a_sim_vars(b_32bit)             0
   set a_sim_vars(sp_of_objects)       {}
@@ -628,6 +629,7 @@ proc xps_set_target_obj { obj } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_valid_ip_extns
   set a_sim_vars(b_is_ip_object_specified) 0
   set a_sim_vars(b_is_fs_object_specified) 0
   if { {} != $obj } {
@@ -636,8 +638,12 @@ proc xps_set_target_obj { obj } {
   }
   if { {1} == $a_sim_vars(b_is_ip_object_specified) } {
     set comp_file $obj
-    if { {.xci} != [file extension $comp_file] } {
-      set comp_file ${comp_file}.xci
+    set file_extn [file extension $comp_file]
+    if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {
+      # valid extention not found, set default (.xci)
+      set comp_file ${comp_file}$a_sim_vars(s_ip_file_extn)
+    } else {
+      set a_sim_vars(s_ip_file_extn) $file_extn
     }
     set a_sim_vars(sp_tcl_obj) [get_files -all -quiet [list "$comp_file"]]
     set a_sim_vars(s_top) [file root [file tail $a_sim_vars(sp_tcl_obj)]]
@@ -945,8 +951,12 @@ proc xps_is_fileset { tcl_obj } {
   # Summary:
   # Argument Usage:
   # Return Value:
-  if {[regexp -nocase {^fileset_type} [rdi::get_attr_specs -quiet -object $tcl_obj -regexp .*FILESET_TYPE.*]]} {
-    return 1
+  
+  set spec_list [rdi::get_attr_specs -quiet -object $tcl_obj -regexp .*FILESET_TYPE.*]
+  if { [llength $spec_list] > 0 } {
+    if {[regexp -nocase {^fileset_type} $spec_list]} {
+      return 1
+    }
   }
   return 0
 }
@@ -3161,7 +3171,7 @@ proc xps_verify_ip_status {} {
   variable a_sim_vars
   set regen_ip [dict create] 
   set b_single_ip 0
-  if { [xps_is_ip $a_sim_vars(sp_tcl_obj)] } {
+  if { ([xps_is_ip $a_sim_vars(sp_tcl_obj)]) && ({.xci} == $a_sim_vars(s_ip_file_extn)) } {
     set ip [file root [file tail $a_sim_vars(sp_tcl_obj)]]
     # is user-disabled? or auto_disabled? skip
     if { ({0} == [get_property is_enabled [get_files -all ${ip}.xci]]) ||

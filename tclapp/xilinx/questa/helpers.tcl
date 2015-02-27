@@ -2107,7 +2107,10 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
     }
     "vlog" {
       if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-        set arg_list [list $s_64bit "-incr"]
+        set arg_list [list $s_64bit]
+        if { [get_property "QUESTA.COMPILE.INCREMENTAL" $fs_obj] } {
+          lappend arg_list "-incr"
+        }
         set more_options [string trim [get_property "QUESTA.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
         if { {} != $more_options } {
           set arg_list [linsert $arg_list end "$more_options"]

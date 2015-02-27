@@ -580,14 +580,19 @@ proc usf_ies_write_elaborate_script {} {
   }
 
   # behavioral simulation
-  set b_compile_unifast [get_property "IES.ELABORATE.UNIFAST" $fs_obj]
+  set b_compile_unifast 0
+  set simulator_language [string tolower [get_property simulator_language [current_project]]]
+  if { ([get_param "simulation.addUnifastLibraryForVhdl"]) && ({vhdl} == $simulator_language) } {
+    set b_compile_unifast [get_property "unifast" $fs_obj]
+  }
 
   if { ([::tclapp::xilinx::ies::usf_contains_vhdl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
-    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
+    if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-libname" "unifast"]
     }
   }
 
+  set b_compile_unifast [get_property "unifast" $fs_obj]
   if { ([usf_contains_verilog $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-libname" "unifast_ver"]

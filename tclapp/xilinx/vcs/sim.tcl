@@ -271,12 +271,19 @@ proc usf_vcs_write_setup_files {} {
   set libs [list]
 
   # unifast
-  set b_compile_unifast [get_property "VCS.ELABORATE.UNIFAST" $fs_obj]
+  set b_compile_unifast 0
+  set simulator_language [string tolower [get_property simulator_language [current_project]]]
+  if { ([get_param "simulation.addUnifastLibraryForVhdl"]) && ({vhdl} == $simulator_language) } {
+    set b_compile_unifast [get_property "unifast" $fs_obj]
+  }
+
   if { ([::tclapp::xilinx::vcs::usf_contains_vhdl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
-    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
+    if { $b_compile_unifast } {
       puts $fh "unifast : $lib_map_path/unifast"
     }
   }
+
+  set b_compile_unifast [get_property "unifast" $fs_obj]
   if { ([::tclapp::xilinx::vcs::usf_contains_verilog $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       puts $fh "unifast_ver : $lib_map_path/unifast_ver"

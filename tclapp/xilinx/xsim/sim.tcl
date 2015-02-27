@@ -714,8 +714,25 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { $value } { lappend args_list "--relax" }
 
   # --mt
-  set value [get_property "XSIM.ELABORATE.MT_LEVEL" $fs_obj]
-  if { {auto} != $value } { lappend args_list "--mt $value" }
+  set max_threads [get_param general.maxthreads]
+  set mt_level [get_property "XSIM.ELABORATE.MT_LEVEL" $fs_obj]
+  switch -regexp -- $mt_level {
+    {auto} {
+      if { {1} == $max_threads } {
+        # no op, keep auto ('1' is not supported by xelab)
+      } else {
+        set mt_level $max_threads
+      }
+    }
+    {off} {
+      # use 'off' (turn off multi-threading)
+    }
+    default {
+      # use 2, 4, 8, 16, 32
+    }
+  }
+  
+  lappend args_list "--mt $mt_level"
 
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
@@ -802,14 +819,18 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # behavioral simulation
-  set b_compile_unifast [get_property "XSIM.ELABORATE.UNIFAST" $fs_obj]
-
+  set b_compile_unifast 0
+  set simulator_language [string tolower [get_property simulator_language [current_project]]]
+  if { ([get_param "simulation.addUnifastLibraryForVhdl"]) && ({vhdl} == $simulator_language) } {
+    set b_compile_unifast [get_property "unifast" $fs_obj]
+  }
   if { ([::tclapp::xilinx::xsim::usf_contains_vhdl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
-    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
+    if { $b_compile_unifast } {
       lappend args_list "-L unifast"
     }
   }
 
+  set b_compile_unifast [get_property "unifast" $fs_obj]
   if { ([::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       lappend args_list "-L unifast_ver"
