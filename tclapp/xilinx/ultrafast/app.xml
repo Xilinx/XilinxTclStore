@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Miscellaneous enhancements for 2015.1</revision_history>
+      <revision_history>Removed scripts that do not belong to 2015.1 baseline</revision_history>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -17,18 +17,6 @@
         <proc>
           <name>check_pll_connectivity</name>
           <summary>Report MMCM/PLL information</summary>
-        </proc>
-        <proc>
-          <name>create_cdc_reports</name>
-          <summary>Create CDC report for each clock-pair in the design</summary>
-        </proc>
-        <proc>
-          <name>report_clock_topology</name>
-          <summary>Generates a Clock Topology Report</summary>
-        </proc>
-        <proc>
-          <name>report_io_reg</name>
-          <summary>Report I/O ports information</summary>
         </proc>
         <proc>
           <name>report_reset_signals</name>
