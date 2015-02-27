@@ -26,9 +26,6 @@ package require ::tclapp::${appName}
 # Start the regression tests
 puts "script is invoked from $test_dir"
 source -notrace [file join $test_dir check_pll_connectivity_0001.tcl]
-source -notrace [file join $test_dir create_cdc_reports_0001.tcl]
-source -notrace [file join $test_dir report_clock_topology_0001.tcl]
-source -notrace [file join $test_dir report_io_reg_0001.tcl]
 source -notrace [file join $test_dir report_reset_signals_0001.tcl]
 
 #########################################
@@ -39,9 +36,6 @@ package require tcltest
 tcltest::configure -testdir $test_dir
 tcltest::configure -file *.test -singleproc 1 -debug 0 -verbose {skip body error start}
 # tcltest::configure -file check_pll_connectivity_*.test -singleproc 1 -debug 0 -verbose {skip body error start}
-# tcltest::configure -file create_cdc_reports_*.test -singleproc 1 -debug 0 -verbose {skip body error start}
-# tcltest::configure -file report_clock_topology_*.test -singleproc 1 -debug 0 -verbose {skip body error start}
-# tcltest::configure -file report_io_reg_*.test -singleproc 1 -debug 0 -verbose {skip body error start}
 # tcltest::configure -file report_reset_signals_*.test -singleproc 1 -debug 0 -verbose {skip body error start}
 
 # Hook to determine if any of the tests failed. Then we can exit with
