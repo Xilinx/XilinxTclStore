@@ -8,4 +8,4 @@ namespace eval ::tclapp::xilinx::designutils {
 
 }
 
-package provide ::tclapp::xilinx::designutils 1.10
+package provide ::tclapp::xilinx::designutils 1.11

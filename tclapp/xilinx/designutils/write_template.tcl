@@ -204,13 +204,13 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
   }
 
   # If no design is open
-  if { [catch {current_instance .}]} {
+  if { [catch {current_instance -quiet .}]} {
     set errMsg "ERROR: No open design. A design must be open to run this command."
     error $errMsg
   }
 
   # Save the current instance we are in so that it can be restored afterward
-  set current_instance [current_instance .]
+  set current_instance [current_instance -quiet .]
 
   # Define module name and if command is being run on top or a cell
   if {$cell != {}} {
@@ -224,7 +224,7 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
     } else {
       # We need to change to the top-level so that the list of pins can be extracted from
       # the current instance
-      current_instance
+      current_instance -quiet
       set module [get_property -quiet REF_NAME [get_cells -quiet $current_instance]]
       set isTop 0
       set cell $current_instance
@@ -303,10 +303,10 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
 
   # Go back to the instance level we were in before calling this command
   if {$current_instance != {}} {
-    current_instance
-    current_instance $current_instance
+    current_instance -quiet
+    current_instance -quiet $current_instance
   } else {
-    current_instance
+    current_instance -quiet
   }
 
   # Return result as string?

@@ -51,9 +51,8 @@ proc ::tclapp::xilinx::designutils::remove_buffer {args} {
   # Summary : remove a buffer or any 2-pins cell
 
   # Argument Usage:
-  # -net <arg>: Net name to rename (full hierarchical name)
-  # -name <arg>: New local net name
-  # [-force]: Force net renaming when cells are placed
+  # -cell <arg>: Buffer to be removed
+  # [-force]: Force buffer removal when the connected cells are placed
 
   # Return Value:
   # 0 if succeeded
@@ -88,8 +87,8 @@ proc ::tclapp::xilinx::designutils::rename_net {args} {
   # Summary : rename a local net name
 
   # Argument Usage:
-  # -net <arg>: Output leaf clock pin
-  # -name <arg> : Output port name to be created
+  # -net <arg>: Net name to rename (full hierarchical name)
+  # -name <arg>: New local net name
 
   # Return Value:
   # 0 if succeeded or TCL_ERROR if an error happened

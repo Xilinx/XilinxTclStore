@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated timing_report_to_verilog to support latest changes in report_timing format.</revision_history>
+      <revision_history>Fixed some improper command line arguments</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

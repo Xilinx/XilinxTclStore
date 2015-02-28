@@ -57,7 +57,7 @@ set return_value "NOT_FOUND"
     }
 
     
-    if {[regexp {^(.*)\s+(Yes|No)\s+(.*)} $found_entry dum firstpart com inter_clock] } {
+    if {[info exists found_entry] && [regexp {^(.*)\s+(Yes|No)\s+(.*)} $found_entry dum firstpart com inter_clock] } {
 
       #DEBUG puts "Found Common Primary Clock and Inter-Clock Constraints"
       #DEBUG puts "\tDummy: $dum"
