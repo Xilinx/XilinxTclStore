@@ -47,9 +47,10 @@ proc register_options { simulator } {
     {{elaborate.sdf_delay}           {enum}        {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
     {{elaborate.xelab.more_options}  {string}      {}                                                   {More XELAB elaboration options}}
     {{simulate.runtime}              {string}      {1000ns}                                             {Specify simulation run time}}
-    {{simulate.uut}                  {string}      {}                                                   {Specify instance name for design under test (default:/uut)}}
+    {{simulate.uut}                  {string}      {}                                                   {Specify instance name for design under test (default:/<tb/top>/uut)}}
     {{simulate.wdb}                  {string}      {}                                                   {Specify waveform database file}}
     {{simulate.saif}                 {string}      {}                                                   {SAIF filename}}
+    {{simulate.saif_all_signals}     {bool}        {0}                                                  {Get all object signals for the design under test instance for SAIF file generation}}
     {{simulate.xsim.more_options}    {string}      {}                                                   {More XSIM simulation options}}
   }
   # create options

@@ -1067,10 +1067,20 @@ proc usf_add_quit_on_error { fh step } {
   # Argument Usage:
   # Return Value:
 
-  set b_batch        $::tclapp::xilinx::questa::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
 
-  if { $b_batch } {
+  if { $b_scripts_only } {
+    # for both native and classic modes
+    if { {simulate} == $step } {
+      if { [get_param "simulator.modelsimNoQuitOnError"] } {
+        # no op
+      } else {
+        puts $fh "onbreak {quit -f}"
+        puts $fh "onerror {quit -f}\n"
+      }
+    }
+  } else {
+    # GUI and batch
     # native mode (default)
     if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
       if { {simulate} == $step } {
@@ -1090,16 +1100,6 @@ proc usf_add_quit_on_error { fh step } {
           puts $fh "onbreak {quit -f}"
           puts $fh "onerror {quit -f}\n"
         }
-      }
-    }
-  } elseif { $b_scripts_only } {
-    # for both native and classic modes
-    if { {simulate} == $step } {
-      if { [get_param "simulator.modelsimNoQuitOnError"] } {
-        # no op
-      } else {
-        puts $fh "onbreak {quit -f}"
-        puts $fh "onerror {quit -f}\n"
       }
     }
   }

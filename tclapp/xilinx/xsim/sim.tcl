@@ -983,17 +983,23 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   }
   # generate saif file for power estimation
   set saif [get_property "XSIM.SIMULATE.SAIF" $fs_obj]
+  set b_all_signals [get_property "XSIM.SIMULATE.SAIF_ALL_SIGNALS" $fs_obj]
   if { {} != $saif } {
     set uut [get_property "XSIM.SIMULATE.UUT" $fs_obj]
     puts $fh_scr "open_saif \"$saif\""
     if { {} == $uut } {
       set uut "/$top/uut/*"
     }
+    set uut_name [::tclapp::xilinx::xsim::usf_resolve_uut_name uut]
     if { $b_post_sim } {
-      puts $fh_scr "log_saif \[get_objects -r [::tclapp::xilinx::xsim::usf_resolve_uut_name uut]\]"
+      puts $fh_scr "log_saif \[get_objects -r $uut_name\]"
     } else {
-      set filter "get_objects -filter \{type==in_port || type==out_port || type==inout_port\}"
-      puts $fh_scr "log_saif \[$filter [::tclapp::xilinx::xsim::usf_resolve_uut_name uut]\]"
+      if { $b_all_signals } {
+        puts $fh_scr "log_saif \[get_objects -r $uut_name\]"
+      } else {
+        set filter "-filter \{type==in_port || type==out_port || type==inout_port\}"
+        puts $fh_scr "log_saif \[get_objects $filter $uut_name\]"
+      }
     }
   }
 
