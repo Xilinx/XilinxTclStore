@@ -11,6 +11,8 @@ Arguments:
 
   -help - (Optional) Print this help.
 
+  -force - (Optional) Overwrite existing design checkpoint and stub files
+
   -verbose - (Optional) Print verbose messaging.
 
   -keep - (Optional) Keep temporary directory and project after export_bd_checkpoint has finished.
@@ -19,7 +21,7 @@ Arguments:
 
 Syntax:
 
-  export_bd_synth [-help] [-verbose] [-keep] <file>
+  export_bd_synth [-help] [-force] [-verbose] [-keep] <file>
 
 Returns:
 

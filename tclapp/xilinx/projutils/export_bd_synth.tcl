@@ -19,6 +19,7 @@ proc export_bd_synth {args} {
   # Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necesssary.
 
   # Argument Usage: 
+  # [-force]: Overwrite existing design checkpoint and stub files
   # [-keep]: Keep the temporary directory and project
   # [-verbose]: Print verbose messaging
   # file: The Block Design file to write a synthesized checkpoint for
@@ -32,12 +33,14 @@ proc export_bd_synth {args} {
   # 0. Handle command line
 
   ## 0a. Parse arguments
+  set force 0
   set verbose 0
   set clean 1
   set sIPIDesign {}
   for { set index 0 } { $index < [ llength $args ] } { incr index } {
     switch -exact -- [ lindex $args $index ] {
       {-help}      { puts $helper; return 0 }
+      {-force}     { set force 1 }
       {-verbose}   { set verbose 1 }
       {-keep}      { set clean 0 }
       default      { lappend sIPIDesign [ lindex $args $index ] }
@@ -65,7 +68,7 @@ proc export_bd_synth {args} {
   set_property REGISTERED_WITH_MANAGER 0 [ get_files $sIPIDesign ]
 
   # 4. Run and catch export_bd_synth_ 
-  set failed [ catch { exportBdSynth $sIPIDesign $sTmpDir $verbose } returned ] 
+  set failed [ catch { exportBdSynth $sIPIDesign $sTmpDir $force $verbose } returned ] 
 
   # 5. Re-register (if needed) and clean-up
   set_property REGISTERED_WITH_MANAGER 1 [ get_files $sIPIDesign ]
@@ -194,7 +197,7 @@ proc mkTmpDir {} {
 #:     # export checkpoint with all synthesized IP along with the BD
 #:     exportBdSynth [ get_files block_1.bd ] /tmp/user/unique
 #
-proc exportBdSynth { sIPIDesign sTmpDir { verbose 0 } } {
+proc exportBdSynth { sIPIDesign sTmpDir { force 0 } { verbose 0 } } {
 
   # 1. Create a project to perform synthesis
 
@@ -255,13 +258,26 @@ proc exportBdSynth { sIPIDesign sTmpDir { verbose 0 } } {
     set bdDir [file dirname $sIPIDesign]
     set stubFile [file join $bdDir "${bdName}_stub.v"]
     if { $verbose } { puts "Writing Verilog stub file $stubFile" }
-    write_verilog -mode synth_stub $stubFile
+    # Not the most elegant -force handling, but works.
+    if { $force } {
+      write_verilog -force -mode synth_stub $stubFile
+    } else {
+      write_verilog -mode synth_stub $stubFile
+    }
     append stubFile "hd"
     if { $verbose } { puts "Writing VHDL stub file $stubFile" }
-    write_vhdl -mode synth_stub $stubFile
+    if { $force } {
+      write_vhdl -force -mode synth_stub $stubFile
+    } else {
+      write_vhdl -mode synth_stub $stubFile
+    }
     set checkpointFile [file join $bdDir "${bdName}.dcp"]
     if { $verbose } { puts "Writing checkpoint file $checkpointFile" }
-    write_checkpoint $checkpointFile
+    if { $force } {
+      write_checkpoint -force $checkpointFile
+    } else {
+      write_checkpoint $checkpointFile
+    }
 
   } returned ]
 
