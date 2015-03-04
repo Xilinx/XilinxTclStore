@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>quit on error if param set to false for gui</revision_history>
+      <revision_history>add block fileset files when param is set</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

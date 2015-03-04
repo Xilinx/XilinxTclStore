@@ -1188,7 +1188,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set b_add_sim_files 1
     # add files from block filesets
     if { {} != $linked_src_set } {
-      usf_add_block_fs_files $global_files_str l_incl_dirs_opts files l_compile_order_files
+      if { [get_param project.addBlockFilesetFilesForUnifiedSim] } {
+        usf_add_block_fs_files $global_files_str l_incl_dirs_opts files l_compile_order_files
+      }
     }
     # add files from simulation compile order
     if { {All} == $src_mgmt_mode } {

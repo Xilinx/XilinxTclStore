@@ -852,7 +852,9 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
     }
     set b_add_sim_files 1
     if { {} != $linked_src_set } {
-      xps_add_block_fs_files $simulator $launch_dir $global_files_str l_incl_dirs_opts files
+      if { [get_param project.addBlockFilesetFilesForUnifiedSim] } {
+        xps_add_block_fs_files $simulator $launch_dir $global_files_str l_incl_dirs_opts files
+      }
     }
     if { {All} == $src_mgmt_mode } {
       send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$tcl_obj'..."
