@@ -32,7 +32,7 @@ if {[catch { ::tclapp::xilinx::designutils::create_combined_mig_io_design -proje
 #}
 
 # Close the project
-#close_project
+close_project
 
 # Delete the project on disk
 file delete -force "./projtest_$name"

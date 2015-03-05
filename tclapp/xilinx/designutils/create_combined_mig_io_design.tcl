@@ -8,10 +8,10 @@ proc ::tclapp::xilinx::designutils::create_combined_mig_io_design {args} {
 	# Summary : Creates a new project instantiating the given MIG IP into a single design
 
 	# Argument Usage:
-	# [-force\]: Overwrite existing project."
-    # [-project_name <arg> = combined_mig_io_design]: Name of the combined MIG IP project."
-	# [-out_dir <arg>]: Output directory of the combined MIG IP project."
-	# objects: MIG IP objects to be combined into a project."
+	# [-force]: Overwrite existing project
+    # [-project_name <arg> = combined_mig_io_design]: Name of the combined MIG IP project
+	# [-out_dir <arg>]: Output directory of the combined MIG IP project
+	# objects: MIG IP objects to be combined into a project
 	# [-usage]: Usage information
 
 	# Return Value:

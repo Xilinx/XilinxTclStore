@@ -12,6 +12,7 @@ set auto_index(::tclapp::xilinx::designutils::check_cdc_paths) [list source [fil
 set auto_index(::tclapp::xilinx::designutils::clone_cell) [list source [file join $dir replicate_high_fanout_registers.tcl]]
 set auto_index(::tclapp::xilinx::designutils::clone_net_driver) [list source [file join $dir replicate_high_fanout_registers.tcl]]
 set auto_index(::tclapp::xilinx::designutils::convert_muxfx_to_luts) [list source [file join $dir convert_muxfx_to_luts.tcl]]
+set auto_index(::tclapp::xilinx::designutils::create_combined_mig_io_design) [list source [file join $dir create_combined_mig_io_design.tcl]]
 set auto_index(::tclapp::xilinx::designutils::create_diff_ports) [list source [file join $dir create_diff_ports.tcl]]
 set auto_index(::tclapp::xilinx::designutils::generate_runs) [list source [file join $dir generate_runs.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_clock_interaction) [list source [file join $dir get_clock_interaction.tcl]]
