@@ -56,6 +56,8 @@ set data_file2 "part2.dat"
 serialize_to_file $serialized_part1 $data_file1
 serialize_to_file $serialized_part2 $data_file2
 
+# This loop retests some of the unit tests, but using different reporting methods
+# Such as: stdout, html, log, and does so using the global report property
 set reports [ list "stdout" "diff.html" "diff.log" ]
 foreach report $reports {
   set_global_report $report
@@ -63,6 +65,9 @@ foreach report $reports {
 
   print_header "Version"
   print_stamp
+  print_info "This design has the same logic, but one cell has been moved \n\
+              this leads to location property, routing, and timing differences \n\
+              (the design was rerouted)."
 
   print_header "Comparing Serialized Parts"
   compare_serialized_objects $serialized_part1 $serialized_part2
@@ -89,16 +94,22 @@ foreach report $reports {
   open_checkpoints "${test_dir}/design1.dcp" "${test_dir}/design2.dcp"
 
   # lists
-  compare_designs compare_unordered_lists { get_cells -hierarchical }
-  compare_designs compare_ordered_lists   { get_cells -hierarchical }
-  compare_designs compare_lines_lcs       { join [ get_cells -hierarchical ] \n }
-  compare_designs compare_unordered_lists { get_clocks }
-  compare_designs compare_unordered_lists { get_ports }
-  compare_designs compare_unordered_lists { get_nets -hierarchical }
+  assert_same [ list ] [ compare_designs compare_unordered_lists { get_cells -hierarchical } ] "Expect no logical differences"
+  assert_same 0        [ compare_designs compare_ordered_lists   { get_cells -hierarchical } ] "Expect no logical differences"
+  assert_same 0        [ compare_designs compare_lines_lcs       { join [ get_cells -hierarchical ] \n } ] "Expect no logical differences"
+  assert_same [ list ] [ compare_designs compare_unordered_lists { get_clocks } ] "Expect no logical differences"
+  assert_same [ list ] [ compare_designs compare_unordered_lists { get_ports } ] "Expect no logical differences"
+  assert_same [ list ] [ compare_designs compare_unordered_lists { get_nets -hierarchical } ] "Expect no logical differences"
 
   # unordered lists vs lines
-  compare_designs compare_unordered_lists { get_property LOC [lsort [ get_cells -hierarchical ] ] }
-  compare_designs compare_lines { join [ get_property LOC [ lsort [ get_cells -hierarchical ] ] ] \n }
+  set different_locs [ compare_designs compare_unordered_lists { 
+    get_property LOC [ lsort [ get_cells -hierarchical ] ] 
+  } ]
+  assert_true [ expr [ llength $different_locs ] > 0 ] "Expect LOC differences"
+  set different_loc_count [ compare_designs compare_lines { 
+    join [ get_property LOC [ lsort [ get_cells -hierarchical ] ] ] \n 
+  } ]
+  assert_true [ expr $different_loc_count > 0 ] "Expect LOC differences"
 
   # reports
   set report1 "timing1.log"
@@ -108,37 +119,67 @@ foreach report $reports {
   activate_design 2
   report_timing -file $report2 -max_paths 1000 
   print_header "Comparing Timing Files"
-  compare_files $report1 $report2
-  compare_designs compare_lines { report_timing -return_string -max_paths 1000 }
-  compare_designs compare_lines { report_route_status -return_string -list_all_nets }
-  compare_designs compare_lines { report_route_status -return_string -of_objects [get_nets] }
+  set different_timing_files [ compare_files $report1 $report2 ]
+  assert_true [ expr $different_timing_files > 0 ] "Expect timing differences"
+
+  set different_timing [ compare_designs compare_lines { 
+    report_timing -return_string -max_paths 1000 
+  } ] 
+  assert_true [ expr $different_timing > 0 ] "Expect timing differences"
+
+  set different_route_nets [ compare_designs compare_lines { 
+    report_route_status -return_string -list_all_nets 
+  } ] 
+  assert_true [ expr $different_route_nets == 0 ] "Expect nets to be the same"
+  
+  set different_route_of_nets [ compare_designs compare_lines { 
+    report_route_status -return_string -of_objects [get_nets] 
+  } ]
+  assert_true [ expr $different_route_of_nets > 0 ] "Expect of nets to be different"
 
   # objects
-  compare_designs compare_serialized_objects { serialize_objects [ lrange [ get_cells -hierarchical ] 0 9 ] }
-  compare_designs compare_objects { lrange [ get_cells -hierarchical ] 9 19 }
-  compare_designs compare_objects { get_timing_paths -max_paths 1000 }
+  set cell_serial_differences [ compare_designs compare_serialized_objects { 
+    serialize_objects [ get_cells -hierarchical ]
+  } ]
+  assert_true [ expr [ llength $cell_serial_differences ] > 0 ] "Expect cell property (LOC, FIXED, ...) differences"
+
+  set cell_differences [ compare_designs compare_objects { 
+    get_cells -hierarchical
+  } ]
+  assert_true [ expr [ llength $cell_differences ] > 0 ] "Expect cell property (LOC, FIXED, ...) differences"
+
+  set timing_differences [ compare_designs compare_objects { get_timing_paths -max_paths 1000 } ]
+  assert_true [ expr [ llength $timing_differences ] > 0 ] "Expect timing property (SLACK, SKEW, ...) differences"
+
+  set net_differences [ compare_designs compare_objects { get_nets -hierarchical } ] 
+  assert_true [ expr [ llength $net_differences ] > 0 ] "Expect cell property (ROUTE) differences"
 
   # multi-line capable
-  compare_designs compare_unordered_lists {
+  set multi_slack_differences [ compare_designs compare_unordered_lists {
   	set paths [ get_timing_paths -max_paths 1000 ]
   	return [ get_property SLACK [ lsort $paths ] ]
-  }
-  
-  compare_designs compare_unordered_lists {
+  } ]
+  assert_true [ expr [ llength $multi_slack_differences ] > 0 ] "Expect timing property (SLACK, SKEW, ...) differences"
+
+
+  set multi_loc_differences [ compare_designs compare_unordered_lists {
   	set cells [ get_cells -hierarchical ]
   	return [ get_property LOC [ lsort $cells ] ]
-  } 
+  } ]
+  assert_true [ expr [ llength $multi_loc_differences ] > 0 ] "Expect cell property (LOC) differences"
   
+  # won't compare on limited range output, could change with ordering
   compare_designs compare_lines {
   	set nets [ get_nets ]
   	set subset_nets [ lrange $nets 0 10 ]
   	return [ list [ report_route_status -return_string -of_objects [ get_nets $subset_nets ] ] ]
   } 
   
-  compare_designs compare_objects {
+  set multi_path_differences [ compare_designs compare_objects {
   	set paths [ get_timing_paths -max_paths 1000 ]
   	return $paths
-  }
+  } ]
+  assert_true [ expr [ llength $multi_path_differences ] > 0 ] "Expect timing property (SLACK, SKEW, ...) differences"
 
   # filters
   set clean { 
@@ -150,27 +191,27 @@ foreach report $reports {
 	this test is the sameas the textbelow
   }
   set special { 
-    this-test is*the#same as_the text below
-    this%test^is!the@same(as)the+text=below
+    this-test is* the# same as_the text below
+    this% test ^is !the @same (as )the +text= below
   }
 
   print_header "Comparing Clean"
-  compare_lines $clean $clean 
+  assert_same 0 [ compare_lines $clean $clean ] "Expect clean to be the same"
 
   print_header "Comparing White"
-  compare_lines $clean $white 
+  assert_true [ expr [ compare_lines $clean $white ] > 0 ] "Expect clean and white to be different"
   
   print_header "Comparing White Filtered"
-  compare_lines [ remove_whitespace $clean ] [ remove_whitespace $white ]
+  assert_true [ expr [ compare_lines [ remove_whitespace $clean ] [ remove_whitespace $white ] ] == 0 ] "Expect clean and remove_whitespace to be the same"
   
   print_header "Comparing Special"
-  compare_lines $clean $special
+  assert_true [ expr [ compare_lines $clean $special ] > 0 ] "Expect clean and special to be different"
   
   print_header "Comparing Special Filtered"
-  compare_lines $clean [ remove_special $special ]
+  assert_true [ expr [ compare_lines $clean [ remove_special $special ] ] == 0 ] "Expect clean and remove_special to be the same"
   
   set paused true
-  after 1000 { set paused false }; #ensures 1 second of timestamp difference
+  after 1000 { set paused false }; #ensures 1 second of timestamp difference, since report1 was generated
   vwait paused
   activate_design 1
 
@@ -178,7 +219,8 @@ foreach report $reports {
   set report3_data [ report_timing -return_string -max_paths 1000 ]
   
   print_header "Comparing Same Reports with Differing Commands and Timestamps"
-  compare_lines $report1_data $report3_data
+  set report_differenecs [ compare_lines $report1_data $report3_data ]
+  assert_true [ expr $report_differenecs > 0 ] "Expect report differences due to command and timestamps"
 
   # manually filter '| Command.*' to deal with:
   #| Command      : report_timing -file timing1.log -max_paths 1000
@@ -187,10 +229,12 @@ foreach report $reports {
   set report3_data [ regsub -all -line {(\|\ Command)(.*)} $report3_data {\1<removed>} ]
   
   print_header "Comparing Same Reports with Differing Timestamps"
-  compare_lines $report1_data $report3_data
+  set report_differenecs_wo_cmd [ compare_lines $report1_data $report3_data ]
+  assert_true [ expr $report_differenecs_wo_cmd > 0 ] "Expect report differences due to timestamps"
   
   print_header "Comparing Same Reports with Differing Timestamps Filtered"
-  compare_lines [ remove_datestamps $report1_data ] [ remove_datestamps $report3_data ]
+  set report_differenecs_wo_ts [ compare_lines [ remove_datestamps $report1_data ] [ remove_datestamps $report3_data ] ]
+  assert_true [ expr $report_differenecs_wo_ts == 0 ] "Expect no report differences, timestamp and cmd were cleaned"
 
   # assertions
   print_header "Assertions"
@@ -209,4 +253,6 @@ foreach report $reports {
   print_end
 
 }
+
+puts "Done."
 
