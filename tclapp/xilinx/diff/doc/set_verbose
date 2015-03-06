@@ -1,0 +1,10 @@
+
+Example:
+
+  # set verbose mode on
+  ::tclapp::xilinx::diff::set_verbose 1
+
+  # set verbose mode off
+  ::tclapp::xilinx::diff::set_verbose 0
+
+

@@ -1,0 +1,11 @@
+
+Example:
+
+  # return CSS for HTML report
+  set css [ ::tclapp::xilinx::diff::print_css ]
+
+  # This command is only needed if you want to avoid using print_start 
+  # The print_start command will automatically call and add CSS to HTML reports
+
+
+

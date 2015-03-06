@@ -1,0 +1,11 @@
+
+Example:
+
+  # return JavaScript for HTML report
+  set js [ ::tclapp::xilinx::diff::print_js ]
+
+  # This command is only needed if you want to avoid using print_start 
+  # The print_start command will automatically call and add js to HTML reports
+
+
+

@@ -1,0 +1,14 @@
+
+Example:
+
+  # get verbose mode (0/off by default)
+  ::tclapp::xilinx::diff::get_verbose 
+  0
+
+  # get verbose mode
+  ::tclapp::xilinx::diff::set_verbose 1
+  ::tclapp::xilinx::diff::get_verbose 
+  1
+
+
+
