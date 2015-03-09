@@ -302,7 +302,7 @@ proc compare_designs args {
   # compare_designs compare_lines { report_timing -return_string -max_paths 1000 }
   
   # Argument Usage: 
-  #   difference_command : A compare_* command from the diff package used to compare data
+  #   difference_command : A compare_* commandfrom the diff package used to compare data
   #   design_command : A Tcl command used to extract some data from both of the designs
    
   # Return Value:
@@ -310,12 +310,63 @@ proc compare_designs args {
     
   # Categories: xilinxtclstore, diff
 
-  set difference_command [ lindex $args 0 ] 
+  set difference_command [ compare_designs_difference_command_ [ lindex $args 0 ] ]
   set design_command [ lindex $args 1 ]
   ::tclapp::xilinx::diff::print_header "$design_command"
-  set data1 [ eval_cmd_ 1 $design_command ]
-  set data2 [ eval_cmd_ 2 $design_command ]
+  set data1 [ compare_designs_data_ [ eval_cmd_ 1 $design_command ] $difference_command ]
+  #set data1 [ eval_cmd_ 1 $design_command ] 
+  set data2 [ compare_designs_data_ [ eval_cmd_ 2 $design_command ] $difference_command ]
+  #set data2 [ eval_cmd_ 2 $design_command ] 
   return [ $difference_command $data1 $data2 ]
+}
+
+proc compare_designs_data_ { data difference_command } {
+  # Summary:
+  # If the user is trying to compare first class objects between the designs, then the objects will
+  # go invalid when the design, that the objects belong to, is no longer active (i.e. at comparison).
+  # This procedure converts the object into serialized objects to handle this use case.
+  
+  # Argument Usage: 
+  #   difference_command : A compare_* command from the diff package used to compare data
+   
+  # Return Value:
+  # The correct 'difference_command' for compare_designs 
+    
+  # Categories: xilinxtclstore, diff
+
+  # If any part (of a collection) of the passed in data is not an object, 
+  # then we can't work with objects so return the data...
+  if { [ catch { get_property CLASS $data } _error ] } {
+    return ${data}; # but first convert all objects to a string
+  }
+  if { $difference_command == "compare_serialized_objects" } {
+    return [ serialize_objects $data ]
+  } else {
+    return [ get_property NAME $data ]
+  }
+}
+
+proc compare_designs_difference_command_ { difference_command } {
+  # Summary:
+  # If the user is trying to compare first class objects between the designs, then the objects will
+  # go invalid when the design, that the objects belong to, is no longer active (i.e. at comparison).
+  # This procedure converts the object comparison algorithms into serialized comparison algorithms
+  # to handle this use case.
+  
+  # Argument Usage: 
+  #   difference_command : A compare_* command from the diff package used to compare data
+   
+  # Return Value:
+  # The correct 'difference_command' for compare_designs 
+    
+  # Categories: xilinxtclstore, diff
+
+  if { $difference_command == "compare_objects" } {
+    return "compare_serialized_objects";
+  }
+
+  return $difference_command
+
 }
 
 ####################################################################################################
@@ -428,7 +479,7 @@ proc unique_in_both_sets { set1 set2 } {
    
   # Return Value:
   # Unique objects that exist in set1 and not in set2 and vice versa
-  return [ ::strung::set symdiff $set1 $set2 ]
+  return [ ::struct::set symdiff $set1 $set2 ]
 }
 
 proc compare_dirs { dir1 dir2 { channel {} } } {
@@ -561,7 +612,7 @@ proc compare_ordered_ { d1_in_results d2_in_results { d1_name "data_set_1" } { d
       incr d2_pointer
     }
   }
-  puts ""; # STDOUT seperator for return value
+  ::tclapp::xilinx::diff::print_results "\n" $channel; # STDOUT seperator for return value
   return $diffs
 }
 
@@ -600,7 +651,7 @@ proc compare_lines_lcs { d1_in_results d2_in_results { d1_name "data_set_1" } { 
     ::tclapp::xilinx::diff::print_results "\n---\n< " $channel
     ::tclapp::xilinx::diff::print_results [join [eval "lrange \$d2_results [join [lindex $sequence 2] { }]"] "\n< "] $channel
   }
-  puts ""; # STDOUT seperator for return value
+  ::tclapp::xilinx::diff::print_results "\n" $channel; # STDOUT seperator for return value
   return [llength $ilcs]
 }
 
@@ -638,7 +689,7 @@ proc compare_unordered_lists { list1 list2 { channel {} } } {
     
   # Categories: xilinxtclstore, diff
 
-  ::tclapp::xilinx::diff::print_subheader "Comparing Unordered Lists..."
+  ::tclapp::xilinx::diff::print_subheader "Comparing Unordered Lists..." $channel
   return [ compare_unordered_ $list1 $list2 $channel ]
 }
 
@@ -661,9 +712,9 @@ proc compare_unordered_ { list1 list2 { channel {} } } {
   if { ( [ llength $list1_only ] == 0 ) && ( [ llength $list2_only ] == 0 ) } {
     ::tclapp::xilinx::diff::print_success "They are equivalent" $channel
   } else {
-    ::tclapp::xilinx::diff::print_alert "Differences found:\n List 1 has [ llength $list1_only ] unique:\n  [ join $list1_only \n\ \  ]\n List 2 has [ llength $list2_only ] unique:\n  [ join $list2_only \n\ \  ]"
+    ::tclapp::xilinx::diff::print_alert "Differences found:\n List 1 has [ llength $list1_only ] unique:\n  [ join $list1_only \n\ \  ]\n List 2 has [ llength $list2_only ] unique:\n  [ join $list2_only \n\ \  ]" $channel
   }
-  puts ""; # STDOUT seperator for return value
+  ::tclapp::xilinx::diff::print_results "\n" $channel; # STDOUT seperator for return value
   return [ concat $list1_only $list2_only ]
 }
 
@@ -712,7 +763,7 @@ proc compare_serialized_objects { serialized_objects1 serialized_objects2 { chan
   } else {
     ::tclapp::xilinx::diff::print_success "All properties for all objects are equivalent" $channel
   }
-  puts ""; # STDOUT seperator for return value
+  ::tclapp::xilinx::diff::print_results "\n" $channel; # STDOUT seperator for return value
   return $differing_properties
 }
 
@@ -761,7 +812,7 @@ proc compare_object_props_ { serialized_object1 serialized_object2 { channel {} 
       ::tclapp::xilinx::diff::print_info $comparing_info $channel
       #::tclapp::xilinx::diff::print_success "All properties are equivalent\n" $channel
     }
-    puts ""; # STDOUT seperator for return value
+    ::tclapp::xilinx::diff::print_results "\n" $channel; # STDOUT seperator for return value
     return {}
   }; # else difference detected
 
@@ -781,7 +832,7 @@ proc compare_object_props_ { serialized_object1 serialized_object2 { channel {} 
       lappend differing_properties $property
     }
   }
-  puts ""; # STDOUT seperator for return value
+  ::tclapp::xilinx::diff::print_results "\n" $channel; # STDOUT seperator for return value
   return $differing_properties
 }
 
@@ -882,7 +933,7 @@ proc print_msg { output { channel {} } { newline 1 } } {
   }
   #array set msg [ array get $output ]
   array set msg $output 
-  if { [ regexp {.*\.(htm|html)$} $channel ] } {
+  if { [ regexp -- {.*\.(htm|html)$} $channel ] } {
     set content "$msg(HTML)"
   } else { 
     set content "$msg(STD)"
@@ -1151,8 +1202,8 @@ proc remove_comments { input } {
   # Categories: xilinxtclstore, diff
  
   set output $input
-  set output [ regsub -all -line {;\s*#.*} $output {} ]
-  set output [ regsub -all -line {\s*#.*} $output {} ]
+  set output [ regsub -all -line {;\s*#.*} $output {;} ]
+  set output [ regsub -all -line {^\s*#.*} $output {} ]
   return $output
 }
 
@@ -1186,7 +1237,7 @@ proc remove_special { input } {
   # Categories: xilinxtclstore, diff
  
   set output $input
-  set output [ regsub -all {[^\sa-zA-Z0-9_-]+} $output { } ]
+  set output [ regsub -all {[^\sa-zA-Z0-9_-]+} $output {} ]
   return $output
 }
 
@@ -1204,7 +1255,7 @@ proc remove_datestamps { input { replace_with {<removed_timestamp>} } } {
  
   set output $input
   # Matches:  Mon Jun 16 10:02:33 MDT 2014 or Mon Jun 1 1:02:33 2014
-  set output [ regsub -all {[a-zA-Z]{3} [a-zA-Z]{3} [0-9]{1,2} [0-9]{1,2}:[0-9]{2}:[0-9]{2} ([A-Z]{3} ){0,1}[0-9]{4}} $output $replace_with ]
+  set output [ regsub -all {[a-zA-Z]{3}\s+[a-zA-Z]{3}\s+[0-9]{1,2}\s+[0-9]{1,2}:[0-9]{2}:[0-9]{2}\s+([A-Z]{3}\s+){0,1}[0-9]{4}} $output $replace_with ]
   # Matches:  Mon Jun 1 1:02:33 2014
   #set output [ regsub -all {[a-zA-Z]{3} [a-zA-Z]{3} [0-9]{1,2} [0-9]{1,2}:[0-9]{2}:[0-9]{2} [0-9]{4}} $output $replace_with ]
   # Matches ISO 8601:  2014-01-04T07:00:23+0400
@@ -1384,11 +1435,16 @@ proc assert_string_in_file { find_string file { msg "String In File Assertion" }
   # Categories: xilinxtclstore, diff
 
   set data [ ::tclapp::xilinx::diff::serialize_from_file $file ]
-  if { ! [ regexp $find_string $data ] } {
+  if { ! [ regexp -- $find_string $data ] } {
     ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: String Not Found\n  String: '${find_string}'\n  File: '${file}'\n" $channel
   }
   ::tclapp::xilinx::diff::print_success "OK: ${msg}: String Found: '${find_string}'\n" $channel
   return 1
+foreach property [ list_property $part1 ] {
+  if { ! [ regexp -- $property $serialized_part1 ] } { error "Serialized object property key missing: '${property}' " }
+  set prop_val = [ get_property -quiet $property $part1 ]
+  if { ! [ regexp -- $prop_val $serialized_part1 ] } { error "Serialized object property value missing: '${prop_val}' " }
+}
 }
 
 proc assert_string_not_in_file { find_string file { msg "String Not In File Assertion" } { channel {} } } {
@@ -1407,7 +1463,7 @@ proc assert_string_not_in_file { find_string file { msg "String Not In File Asse
   # Categories: xilinxtclstore, diff
 
   set data [ ::tclapp::xilinx::diff::serialize_from_file $file ]
-  if { [ regexp $find_string $data ] } {
+  if { [ regexp -- $find_string $data ] } {
     ::tclapp::xilinx::diff::throw_error "FAIL: ${msg}: String Found\n  String: '${find_string}'\n  File: '${file}'\n" $channel
   }
   ::tclapp::xilinx::diff::print_success "OK: ${msg}: String Not Found: '${find_string}'\n" $channel

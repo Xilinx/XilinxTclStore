@@ -1,0 +1,10 @@
+
+Example:
+
+  # manually set checkpoints
+  ::tclapp::xilinx::diff::set_checkpoints ./test/design1.dcp ./test/design2.dcp
+  ::tclapp::xilinx::diff::get_checkpoints 
+  ./test/design1.dcp ./test/design2.dcp
+
+
+

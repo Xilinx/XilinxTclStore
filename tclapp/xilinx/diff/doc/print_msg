@@ -1,0 +1,44 @@
+
+Example:
+
+  # The print_msg command is used as the base to all messaging (print_*) commands
+
+  # The signature is simple: print_msg <msg_obj> <channel>
+  #   The msg_obj is an array of HTML and STD which houses the format for each type of report
+  #   The channel is not a typical channel, as it can be stdout, <file>.log, <file>.html
+
+  # print msg to stdout
+  set msg(HTML) "HTML won't print here\n"
+  set msg(STD)  "STDOUT will print here\n"
+  ::tclapp::xilinx::diff::print_msg [ array get msg ] 
+  STDOUT will print here
+  ::tclapp::xilinx::diff::print_msg [ array get msg ] stdout
+  STDOUT will print here
+
+  # print msg to an ASCII log
+  set msg(HTML) "HTML won't print here\n"
+  set msg(STD)  "STD will print to log file here\n"
+  ::tclapp::xilinx::diff::print_msg [ array get msg ] report.log
+
+  # print msg to HTML file
+  set msg(HTML) "HTML will print to HTML report here\n"
+  set msg(STD)  "STD won't print here\n"
+  ::tclapp::xilinx::diff::print_msg [ array get msg ] report.html
+
+  # print msg to an HTML log using global default
+  ::tclapp::xilinx::diff::set_global_report report.html
+  set msg(HTML) "HTML will print to HTML report here\n"
+  set msg(STD)  "STD won't print here\n"
+  ::tclapp::xilinx::diff::print_msg [ array get msg ] 
+
+
+  # It is important to notice that NO HTML tags are added via this command.  This command
+  # purely determines which message to use based on file type.  It is the callers 
+  # responsibility to add any HTML tags and formatting that they with to.
+
+
+  # Note: When using HTML, it is best to call print_start, print_header, (print_*), print_end
+  #       See these other commands help for more information
+
+
+

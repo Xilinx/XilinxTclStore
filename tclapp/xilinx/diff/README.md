@@ -1,11 +1,126 @@
 # Diff App
 
 
-## Require the package:
+## Getting started:
 
+    tclapp::install diff
     package require ::tclapp::xilinx::diff
 
-## Use a command:
+## Why would I use this app?
+
+### Compare all Cell 'Names' in two GUIs (same session)...
+
+    # Select GUI 1 and run...
+    Vivado% set design1 [ get_property NAME [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] ]
+    # Select GUI 2 and run...
+    Vivado% set design2 [ get_property NAME [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] ]
+    Vivado% ::tclapp::xilinx::diff::compare_unordered_lists $design1 $design2
+
+    # Output:
+    $$ Comparing Unordered Lists...
+    == They are equivalent
+
+### Compare all Cell 'Names' with two in-memory Designs (same session)...
+
+    # Same as above with a simple command...
+    Vivado% ::tclapp::xilinx::diff::open_checkpoints design1.dcp design2.dcp
+    Vivado% ::tclapp::xilinx::diff::compare_designs compare_unordered_lists { get_property NAME [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] } 
+    
+    # Output:
+    @@   get_property NAME [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] 
+    $$ Comparing Unordered Lists...
+    == They are equivalent
+
+### Compare all Cell 'Locations' in two GUIs (same session)...
+
+    # Select GUI 1 and run...
+    Vivado% set design1 [ get_property LOC [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] ]
+    # Select GUI 2 and run...
+    Vivado% set design2 [ get_property LOC [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] ]
+    Vivado% ::tclapp::xilinx::diff::compare_unordered_lists $design1 $design2
+    
+    # Output:
+    $$ Comparing Unordered Lists...
+    !! Differences found:
+     List 1 has 1 unique:
+      SLICE_X0Y100
+     List 2 has 1 unique:
+      SLICE_X0Y101
+
+### Compare all Cell 'Locations' with two in-memory Designs (same session)...
+
+    # Same as above with a simple command...
+    Vivado% ::tclapp::xilinx::diff::open_checkpoints design1.dcp design2.dcp
+    Vivado% ::tclapp::xilinx::diff::compare_designs compare_unordered_lists { get_property LOC [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] }
+    
+    # Output:
+    @@  get_property LOC [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] 
+    $$ Comparing Unordered Lists...
+    !! Differences found:
+     List 1 has 1 unique:
+      SLICE_X0Y100
+     List 2 has 1 unique:
+      SLICE_X0Y101
+      
+### Compare all Cell Properties with two in-memory Designs (same session)...
+
+    # Compares every property of every cell... 
+    Vivado% ::tclapp::xilinx::diff::open_checkpoints design1.dcp design2.dcp
+    Vivado% ::tclapp::xilinx::diff::compare_designs compare_serialized_objects { serialize_objects [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] }
+
+    # Output:
+    @@  serialize_objects [ get_cells -hierarchical -filter { IS_PRIMITIVE == 1 } ] 
+    $$ Comparing Objects...
+    ** Comparing 234 properties on 'cell' 'ff_stage[2].ff_channel[0].ff/q_reg'...
+      Property 'BEL' differs : 'SLICEL.AFF' <=> 'SLICEL.D5FF'
+      Property 'HDPCBEL' differs : '' <=> 'D5FF'
+      Property 'HDPCLOC' differs : '' <=> 'SLICE_X0Y101'
+      Property 'IS_BEL_FIXED' differs : '0' <=> '1'
+      Property 'IS_FIXED' differs : '0' <=> '1'
+      Property 'IS_LOC_FIXED' differs : '0' <=> '1'
+      Property 'LOC' differs : 'SLICE_X0Y100' <=> 'SLICE_X0Y101'
+      Property 'SITE' differs : 'SLICE_X0Y100' <=> 'SLICE_X0Y101'
+      Property 'STATUS' differs : 'PLACED' <=> 'FIXED'
+    !! Differing properties exist, differing properties are:
+      BEL HDPCBEL HDPCLOC IS_BEL_FIXED IS_FIXED IS_LOC_FIXED LOC SITE STATUS
+
+### Compare all Net Properties with two in-memory Designs (different sessions)...
+    
+    # In Session 1 Serialize Design 1 Objects...
+    Vivado% tclapp::xilinx::diff::serialize_to_file [ tclapp::xilinx::diff::serialize_objects [ get_nets -hierarchical ] ] ./design_1_nets.dat
+    # In Session 2 Serialize Design 1 Objects...
+    Vivado% set design1 [ tclapp::xilinx::diff::serialize_from_file ./design_1_nets.dat ]
+    Vivado% set design2 [ tclapp::xilinx::diff::serialize_objects [ get_nets -hierarchical ] ]
+    Vivado% ::tclapp::xilinx::diff::compare_serialized_objects $design1 $design2
+    
+    # Output:
+    $$ Comparing Objects...
+    ** Comparing 178 properties on 'net' 'ff_stage[1].ff_channel[0].ff/O1'...
+      Property 'ROUTE' differs : ' { CLBLL_L_AQ CLBLL_LOGIC_OUTS0 WW4BEG0 ER1BEG1 BYP_ALT5 BYP_BOUNCE5 FAN_ALT5 FAN_BOUNCE5 BYP_ALT1 BYP_L1 CLBLL_LL_AX }  ' <=> ' { CLBLL_L_AQ CLBLL_LOGIC_OUTS0 NW6BEG0 SR1BEG_S0 SE2BEG0 EL1BEG_N3 BYP_ALT6 BYP_L6 CLBLL_LL_DX }  '
+    ** Comparing 178 properties on 'net' 'ff_stage[2].ff_channel[0].ff/dout[0]'...
+      Property 'ROUTE' differs : ' { CLBLL_LL_AQ CLBLL_LOGIC_OUTS4 WR1BEG1 WL1BEG_N3 SR1BEG_S0 IMUX_L34 IOI_OLOGIC0_D1 LIOI_OLOGIC0_OQ LIOI_O0 }  ' <=> ' { CLBLL_LL_DMUX CLBLL_LOGIC_OUTS23 WW2BEG1 SS2BEG1 IMUX_L34 IOI_OLOGIC0_D1 LIOI_OLOGIC0_OQ LIOI_O0 }  '
+    !! Differing properties exist, differing properties are:
+      ROUTE
+
+### Compare all Timing Paths with two in-memory Designs (same sessions)...
+
+    # Compares every property of the worst 1000 timing paths... 
+    Vivado% ::tclapp::xilinx::diff::open_checkpoints design1.dcp design2.dcp
+    Vivado% ::tclapp::xilinx::diff::compare_designs compare_serialized_objects { tclapp::xilinx::diff::serialize_objects [get_timing_paths -max_paths 1000] }
+
+    # Output:
+    @@  get_timing_paths -max_paths 1000 
+    $$ Comparing Objects...
+    ** Comparing 50 properties on 'timing_path' '{din[0] --> ff_stage[0].ff_channel[0].ff/q_reg/D}'...
+      Property 'ENDPOINT_PIN' differs : 'q_reg/D' <=> 'ff_stage[0].ff_channel[0].ff/q_reg/D'
+    ** Comparing 50 properties on 'timing_path' '{ff_stage[2].ff_channel[0].ff/q_reg/C --> dout[0]}'...
+      Property 'DATAPATH_DELAY' differs : '4.930' <=> '4.939'
+      Property 'SLACK' differs : '-11.138' <=> '-11.147'
+      Property 'STARTPOINT_PIN' differs : 'q_reg/C' <=> 'ff_stage[2].ff_channel[0].ff/q_reg/C'
+    !! Differing properties exist, differing properties are:
+      DATAPATH_DELAY ENDPOINT_PIN SLACK ENDPOINT_PIN
+
+## All Available Commands
 
 ### Comparisons - Compare data, files, lists, objects, and even previously saved (serialized) objects
 

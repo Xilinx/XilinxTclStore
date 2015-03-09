@@ -1,0 +1,23 @@
+
+Example:
+
+  # print subheader to stdout
+  ::tclapp::xilinx::diff::print_subheader "Heading for Sub-section\n"
+  $$ Heading for Sub-section
+
+  # print subheader to an ASCII log
+  ::tclapp::xilinx::diff::print_subheader "Heading for Sub-section\n" report.log
+
+  # print subheader to HTML file
+  ::tclapp::xilinx::diff::print_subheader "Heading for Sub-section\n" report.html
+
+  # print subheader to an HTML log using global default
+  ::tclapp::xilinx::diff::set_global_report report.html
+  ::tclapp::xilinx::diff::print_subheader "Heading for Sub-section\n"
+
+
+  # Note: When using HTML, it is best to call print_start, print_header, (print_*), print_end
+  #       See these other commands help for more information
+
+
+

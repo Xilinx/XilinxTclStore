@@ -1,0 +1,24 @@
+
+Example:
+
+  # print end to stdout
+  ::tclapp::xilinx::diff::print_end
+
+  # print end to an ASCII log
+  ::tclapp::xilinx::diff::print_end report.log
+
+  # print end to HTML file
+  ::tclapp::xilinx::diff::print_end report.html
+
+  # print end to an HTML log using global default
+  ::tclapp::xilinx::diff::set_global_report report.html
+  ::tclapp::xilinx::diff::print_end 
+
+  
+  # This command closes HTML tags for HTML reports (*.htm and *.html).
+
+  # Note: When using HTML, it is best to call print_start, print_header, (print_*), print_end
+  #       See these other commands help for more information
+
+
+
