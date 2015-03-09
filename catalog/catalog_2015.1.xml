@@ -27,8 +27,8 @@
     <app>
       <name>diff</name>
       <company>xilinx</company>
-      <commit_id>42d7a658b8bb643233ff4ab0ecef416cf2fabe27</commit_id>
-      <revision>2.2</revision>
+      <commit_id>c07b9130b9130254676f3f437235e1f45e43ee63</commit_id>
+      <revision>2.3</revision>
     </app>
     <app>
       <name>ies</name>
