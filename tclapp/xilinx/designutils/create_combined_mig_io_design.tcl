@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::create_combined_mig_io_design {args} {
-	# Summary : Creates a new project instantiating the given MIG IP into a single design
+	# Summary : Creates a new project instantiating the given MIG IP into a single design for IO pin planning
 
 	# Argument Usage:
 	# [-force]: Overwrite existing project
@@ -30,7 +30,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::create_combined_mig_io_
 # Name: create_combined_mig_io_design
 # Usage: create_combined_mig_io_design -project_name my_example_design [get_ips mig_0] 
 # Descr: Creates a new project instantiating the given IP into a single 
-#        design.
+#        design for IO pin planning.
 #######################################################################
 proc ::tclapp::xilinx::designutils::create_combined_mig_io_design::create_combined_mig_io_design {args} {
     # Summary :
@@ -67,7 +67,8 @@ proc ::tclapp::xilinx::designutils::create_combined_mig_io_design::create_combin
     if {$opts(-help) == 1} {
         puts "create_combined_mig_io_design\n"
         puts "Description:"
-        puts "  Creates a new project instantiating the given MIG IP into a single design."
+        puts "  Creates a new project instantiating the given MIG IP into a single design"
+        puts "  for IO pin planning."
         puts ""
         puts "Syntax:"
         puts "  create_combined_mig_io_design \[-force\] \[-project_name <arg>\]"
@@ -210,7 +211,7 @@ proc ::tclapp::xilinx::designutils::create_combined_mig_io_design::create_projec
             {-h(e(l(p)?)?)?$}                                 { set opts(-help)         1}
             {-u(s(a(g(e)?)?)?)?$}                             { set opts(-help)         1}			
             default {
-                return -code error "ERROR: \[create_mig_ip_example_design\] Unknown option '[lindex $args 0]', please type 'create_mig_ip_example_design -help' for usage info."
+                return -code error "ERROR: \[create_combined_mig_io_design\] Unknown option '[lindex $args 0]', please type 'create_combined_mig_io_design -help' for usage info."
             }
         }
     }
@@ -226,9 +227,12 @@ proc ::tclapp::xilinx::designutils::create_combined_mig_io_design::create_projec
 	set targetSimulator [get_property -quiet TARGET_SIMULATOR [current_project -quiet]]
 	set ipRepoPathList  [get_property -quiet IP_REPO_PATHS [current_project -quiet]]
 	set boardPart       [get_property -quiet BOARD_PART [current_project -quiet]]
-	
-	## Create project for the cell list
-	create_project -quiet -part $newProjectPart -force $opts(-project_name) $newProjectDirectory
+		
+	## Create the new project for the combined IP design.  REturn error if create_project fails
+	if {[catch {create_project -part $newProjectPart -force $opts(-project_name) $newProjectDirectory} catchErrorString]} {
+		puts "ERROR: \[create_combined_mig_io_design\] Unable to create new combined MIG project"
+		error [string trimright $catchErrorString]
+	}
 	
 	## Set the current_project to the new project
 	current_project -quiet $opts(-project_name)
@@ -339,7 +343,7 @@ proc ::tclapp::xilinx::designutils::create_combined_mig_io_design::create_projec
 	append verilogModuleString "endmodule\n";
 	
 	## Add the IP (XCI files) to the created project by reference
-	add_files [lsort -uniq $xciFileList]
+	import_files [lsort -uniq $xciFileList]
 	
 	## Open the empty top-level file for writing
 	set fileId [open $newProjectDirectory/$opts(-project_name)/$opts(-project_name).srcs/sources_1/new/$opts(-top).v "w"]
