@@ -1307,7 +1307,7 @@ proc usf_check_errors { step results_log_arg } {
     }
     {elaborate} {
       # errors in xelab?
-      set token "xelab"
+      set token "elaborate"
       if { [usf_found_errors_in_file $token] } {
         set results_log [file normalize [file join $run_dir "${token}.log"]]
         return 1
@@ -1342,9 +1342,9 @@ proc usf_found_errors_in_file { token } {
   foreach line $log_data {
     set line_str [string trim $line]
     switch $token {
-      {xvlog} { if { [regexp {^ERROR} $line_str] } { set retval 1;break } }
-      {xvhdl} { if { [regexp {^ERROR} $line_str] } { set retval 1;break } }
-      {xelab} { if { [regexp {^ERROR} $line_str] } { set retval 1;break } }
+      {xvlog}     -
+      {xvhdl}     -
+      {elaborate} { if { [regexp {^ERROR} $line_str] } { set retval 1;break } }
     }
   }
 
