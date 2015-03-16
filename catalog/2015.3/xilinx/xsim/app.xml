@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add block fileset files when param is set</revision_history>
+      <revision_history>fixed XSim error detection proc to look for elaborate.log</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
