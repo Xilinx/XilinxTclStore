@@ -145,7 +145,7 @@ proc usf_modelsim_setup_simulation { args } {
      [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
 
   # create setup file
-  usf_modelsim_write_setup_files
+  #usf_modelsim_write_setup_files
 
   return 0
 }

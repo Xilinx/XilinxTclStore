@@ -1188,7 +1188,7 @@ proc usf_add_block_fs_files { global_files_str other_ver_opts_arg files_arg comp
       lappend compile_order_files $file
     }
   }
-  set verilog_filter "FILE_TYPE == \"Verilog\""
+  set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\" || FILE_TYPE == \"Verilog Header\""
   foreach file [usf_get_files_from_block_filesets $verilog_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set cmd_str [usf_get_file_cmd_str $file $file_type $global_files_str other_ver_opts]
