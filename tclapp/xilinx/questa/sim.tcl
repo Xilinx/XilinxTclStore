@@ -145,7 +145,7 @@ proc usf_questa_setup_simulation { args } {
      [::tclapp::xilinx::questa::usf_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
 
   # create setup file
-  usf_questa_write_setup_files
+  #usf_questa_write_setup_files
 
   return 0
 }
