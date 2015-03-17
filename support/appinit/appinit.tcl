@@ -65,7 +65,7 @@ proc ::tclapp::support::appinit::load_app {repo app {ns ""}} {
         proc unknown {args} {}
 
         # Require the app
-        package provide $::tcl::app
+        package require $::tcl::app
 
         # What dir 
         set dir [file join $::tcl::repo {*}[regsub -all "::" $::tcl::app " "]]
@@ -89,7 +89,7 @@ proc ::tclapp::support::appinit::load_app {repo app {ns ""}} {
     interp delete $slave
 
     # Now register the exported app procs with Vivado
-    package provide $app
+    package require $app
 
     foreach p $procs {
 
@@ -242,7 +242,7 @@ proc ::tclapp::support::appinit::get_app_procs {repo app} {
     proc unknown {args} {}
 
     # Require the app
-    package provide $::tcl::app
+    package require $::tcl::app
 
     # What dir
     set dir [file join $::tcl::repo {*}[regsub -all "::" $::tcl::app " "]]
