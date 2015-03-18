@@ -51,8 +51,8 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>8425d3221058bc3d37fa1623d4cee205eb7306e7</commit_id>
-      <revision>2.26</revision>
+      <commit_id>4cc59314d811356184339f7e0d9e0dc2a4dc83da</commit_id>
+      <revision>2.27</revision>
     </app>
     <app>
       <name>myapp</name>
@@ -81,8 +81,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>8425d3221058bc3d37fa1623d4cee205eb7306e7</commit_id>
-      <revision>1.17</revision>
+      <commit_id>4cc59314d811356184339f7e0d9e0dc2a4dc83da</commit_id>
+      <revision>1.18</revision>
     </app>
     <app>
       <name>riviera</name>
