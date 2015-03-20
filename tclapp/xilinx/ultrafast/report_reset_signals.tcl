@@ -1,5 +1,9 @@
 
 ########################################################################################
+## 02/02/2015 - Added support for latest property pins (IS_SET/...)
+## 01/13/2015 - Fixed typo in command line option for -setreset 
+##            - Fixed bug where the Common Primary Clock was not properly retreived
+##              from the clock interaction report
 ## 02/04/2014 - Renamed file and various additional updates for Tcl App Store 
 ## 02/03/2014 - Updated the namespace and definition of the command line arguments 
 ##              for the Tcl App Store
@@ -29,9 +33,10 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals { args } {
   # Argument Usage:
   # [-all]: Analyze all control pins
   # [-reset]: Analyze reset control pins (default)
-  # [-preset]: Analyze preset control pins
   # [-clear]: Analyze clear control pins
-  # [-setpreset]: Analyze setpreset control pins
+  # [-set]: Analyze set control pins
+  # [-preset]: Analyze preset control pins
+  # [-setreset]: Analyze setreset control pins
   # [-verbose]: Verbose mode
   # [-file <arg>]: Report file name
   # [-append]: Append to file
@@ -48,7 +53,7 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals { args } {
 
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::ultrafast::report_reset_signals { 
-  variable version {02/04/2014}
+  variable version {02/02/2015}
 } ]
 
 ## ---------------------------------------------------------------------
@@ -131,12 +136,16 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
            set ctrlSignalType [expr $ctrlSignalType | 8]
       }
       -setreset -
-      {^-s(e(t(r(e(s(et?)?)?)?)?)?)?$} {
+      {^-setr(e(s(et?)?)?)?$} {
            set ctrlSignalType [expr $ctrlSignalType | 16]
+      }
+      -set -
+      {^-set?$} {
+           set ctrlSignalType [expr $ctrlSignalType | 32]
       }
       -all -
       {^-a(ll?)?$} {
-           set ctrlSignalType [expr $ctrlSignalType | 32]
+           set ctrlSignalType [expr $ctrlSignalType | 64]
       }
       -file -
       {^-f(i(le?)?)?$} {
@@ -186,7 +195,7 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
   if {$help} {
     puts [format {
   Usage: report_reset_signals
-              [-all|-reset|-preset|-clear|-setpreset]          
+              [-all|-reset|-set|-preset|-clear|-setreset]          
                                      - Control pins to analyze
                                        Default: reset
               [-file]                - Report file name
@@ -228,11 +237,15 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
       set ctrlName {SetReset}
     }
     32 {
-      set ctrlPins [get_pins -quiet -filter {IS_RESET || IS_PRESET || IS_CLEAR || IS_SETRESET} -of_object [get_cells -hierarchical * -filter {IS_PRIMITIVE && IS_SEQUENTIAL}]]
+      set ctrlPins [get_pins -quiet -filter {IS_SET} -of_object [get_cells -hierarchical * -filter {IS_PRIMITIVE && IS_SEQUENTIAL}]]
+      set ctrlName {Set}
+    }
+    64 {
+      set ctrlPins [get_pins -quiet -filter {IS_RESET || IS_PRESET || IS_CLEAR || IS_SETRESET || IS_SET} -of_object [get_cells -hierarchical * -filter {IS_PRIMITIVE && IS_SEQUENTIAL}]]
       set ctrlName {Resets}
     }
     default {
-      puts " -E- options -reset/-set/-clear/-setpreset/-all are mutually exclusive."
+      puts " -E- options -reset/-set/-clear/-setreset/-all are mutually exclusive."
       incr error
     }
   }
@@ -290,7 +303,7 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
       set commonPrimaryClock [lindex $row $colCommonPrimaryClock]
       set interClockConstraints [lindex $row $colInterClockConstraints]
       # CPC: Common Primary Clock
-      set clockInteraction(CPC:${fromClock}:${toClock}) $interClockConstraints
+      set clockInteraction(CPC:${fromClock}:${toClock}) $commonPrimaryClock
       # ICC: Inter clock Constraints
       set clockInteraction(ICC:${fromClock}:${toClock}) $interClockConstraints
       $tables(clockInteraction) addrow [list $fromClock $toClock $commonPrimaryClock $interClockConstraints]
@@ -676,7 +689,7 @@ Table of Contents
 
   puts "\n Total runtime: $runtime"
 
-  if {$filename !={}} {
+  if {$filename != {}} {
     set FH [open $filename $mode]
     puts $FH [::tclapp::xilinx::ultrafast::generate_file_header {report_reset_signals}]
     puts $FH [join $output \n]
@@ -684,7 +697,7 @@ Table of Contents
     close $FH
     puts "\n Report file [file normalize $filename] has been generated\n"
   } else {
-    puts [join $output \n]
+#     puts [join $output \n]
   }
 
   # Destroy the cache
@@ -708,6 +721,8 @@ Table of Contents
   # Return result as string?
   if {$returnString} {
     return [join $output \n]
+  } else {
+    puts [join $output \n]
   }
 
   return 0

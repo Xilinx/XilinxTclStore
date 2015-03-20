@@ -1,0 +1,10 @@
+ Description: 
+  Open SDK to debug the the FPGA Ethernet server running on the FPGA ARM processor.
+  
+  This command must be run after 'ip_prototype_load' command only.
+
+ Example:
+  ip_prototype_load_debug -project_name my_project0 -board_name zedboard
+
+
+

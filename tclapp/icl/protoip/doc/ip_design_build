@@ -1,0 +1,17 @@
+  Description: 
+   Build the IP XACT of the project named 'project_name' according to the 
+   specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
+   using Vivado HLS. 
+   
+   The new specified inputs parameters overwrite 
+   the one specified into configuration parameters
+   [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt.
+  
+   This command should be run after 'make_template' command only.
+
+  Example:
+   ip_design_build -project_name my_project0
+   ip_design_build -project_name my_project0 -input x1:2:fix:4:6 -output y0:3:fix:2:4 -fclk 150 -FPGA_name xc7z020clg484-1
+
+
+

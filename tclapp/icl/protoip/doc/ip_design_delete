@@ -1,0 +1,5 @@
+ Description: 
+  Delete a project from [WORKING DIRECTORY]
+
+ Example:
+  ip_design_delete -project_name my_project0

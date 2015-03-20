@@ -1,0 +1,8 @@
+ Description: 
+  Open the project named 'project_name' in the Vivado HLS GUI to debug a 
+  C/RTL simulation.
+  
+  This command can be run after 'ip_design_test' command only.
+
+ Example:
+  ip_design_test_debug -project_name my_project0 -type_test c

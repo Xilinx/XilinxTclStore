@@ -1,0 +1,33 @@
+# icl::protoip 
+
+This directory contains the **protoip** app provided by Imperial College London (ICL)
+
+All documentation for **protoip** is available in the Wiki at https://github.com/asuardi/protoip/wiki/Home
+
+
+### protoip commands list (add -usage argument for usage instructions):
+
+	icl::protoip::make_template
+	icl::protoip::make_rand_stimuli
+	icl::protoip::ip_design_duplicate
+	icl::protoip::ip_design_delete
+	icl::protoip::ip_design_build
+	icl::protoip::ip_design_build_debug
+	icl::protoip::ip_design_test
+	icl::protoip::ip_design_test_debug
+	icl::protoip::ip_prototype_build
+	icl::protoip::ip_prototype_build_debug
+	icl::protoip::ip_prototype_load
+	icl::protoip::ip_prototype_load_debug
+	icl::protoip::ip_prototype_test
+
+
+### using protoip form vivado
+
+
+	Vivado% package require icl::prototip
+	Vivado% icl::prototip::my_command1
+	Vivado% namespace import icl::prototip::my_command1
+	Vivado% my_command1
+
+

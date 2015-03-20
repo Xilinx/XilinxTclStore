@@ -1,10 +1,3 @@
-###########################################################################################
-# HEADER_BEGIN
-# COPYRIGHT NOTICE
-# Copyright 2001-2014 Xilinx Inc. All Rights Reserved.
-# http://www.xilinx.com/support
-# HEADER_END
-############################################################################
 #
 # diff.tcl (allow Tcl to find tclindex and provide package version 2.1)
 # 
@@ -17,4 +10,4 @@ namespace eval ::tclapp::xilinx::diff {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::diff 2.1
+package provide ::tclapp::xilinx::diff 2.3

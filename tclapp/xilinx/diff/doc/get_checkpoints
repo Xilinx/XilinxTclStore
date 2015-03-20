@@ -1,0 +1,16 @@
+
+Example:
+
+  # returns a list of the two checkpoints loaded with 'open_checkpoints', 
+  # or manually set with 'set_checkpoints'
+  ::tclapp::xilinx::diff::open_checkpoints ./test/design1.dcp ./test/design2.dcp
+  ::tclapp::xilinx::diff::get_checkpoints 
+  ./test/design1.dcp ./test/design2.dcp
+
+  # manually set checkpoints
+  ::tclapp::xilinx::diff::set_checkpoints ./test/design1.dcp ./test/design2.dcp
+  ::tclapp::xilinx::diff::get_checkpoints 
+  ./test/design1.dcp ./test/design2.dcp
+
+  # Note: this command returns an empty list when checkpoints have not been set
+

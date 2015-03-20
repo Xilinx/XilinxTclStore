@@ -55,7 +55,7 @@ proc write_project_tcl {args} {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-paths_relative_to"    { incr i;set a_global_vars(s_relative_to) [lindex $args $i] }
+      "-paths_relative_to"    { incr i;set a_global_vars(s_relative_to) [file normalize [lindex $args $i]] }
       "-target_proj_dir"      { incr i;set a_global_vars(s_target_proj_dir) [lindex $args $i] }
       "-force"                { set a_global_vars(b_arg_force) 1 }
       "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
@@ -260,8 +260,24 @@ proc write_project_tcl_script {} {
     close $a_global_vars(dp_fh)
   }
 
-  set file [file normalize $file]
-  send_msg_id Vivado-projutils-008 INFO "Tcl script generated ($file)\n"
+  set script_filename [file tail $file]
+  set out_dir [file dirname [file normalize $file]]
+  send_msg_id Vivado-projutils-008 INFO "Tcl script '$script_filename' generated in output directory '$out_dir'\n\n"
+
+  if { $a_global_vars(b_absolute_path) } {
+    send_msg_id Vivado-projutils-016 INFO "Please note that the -absolute_path switch was specified, hence the project source files will be referenced using\n\
+    absolute path only, in the generated script. As such, the generated script will only work in the same filesystem where those absolute paths are accessible."
+  } else {
+    if { "." != $a_global_vars(s_relative_to) } {
+      send_msg_id Vivado-projutils-017 INFO "Please note that the -paths_relative_to switch was specified, hence the project source files will be referenced\n\
+      wrt the path that was specified with this switch. The 'origin_dir' variable is set to this path in the generated script."
+    } else {
+      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wrt the 'origin_dir' variable in the\n\
+      generated script. When this script is executed from the output directory, these source files will be referenced wrt this 'origin_dir' path value.\n\
+      In case this script was later physically moved to a different directory, the 'origin_dir' value MUST be set manually with the path relative to the\n\
+      new output directory to make sure that the source files are referenced correctly from the original project.\n"
+    }
+  }
 
   if { $a_global_vars(b_local_sources) } {
     print_local_file_msg "warning"
@@ -294,7 +310,7 @@ proc wr_create_project { proj_dir name } {
   if { $a_global_vars(b_absolute_path) } {
     lappend l_script_data "set orig_proj_dir \"$proj_dir\""
   } else {
-    set rel_file_path "[get_relative_file_path_for_source $proj_dir $a_global_vars(s_path_to_script_dir)]"
+    set rel_file_path "[get_relative_file_path_for_source $proj_dir [get_script_execution_dir]]"
     set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
     lappend l_script_data "set orig_proj_dir \"$path\""
   }
@@ -396,12 +412,17 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
 
     set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
 
-    lappend l_script_data "# Create '$tcl_obj' fileset (if not found)"
-    lappend l_script_data "if \{\[string equal \[get_filesets -quiet $tcl_obj\] \"\"\]\} \{"
+    # is this a IP block fileset? if yes, do not create block fileset, but create for a pure HDL based fileset (no IP's)
+    if { [is_ip_fileset $tcl_obj] } {
+      # do not create block fileset
+    } else {
+      lappend l_script_data "# Create '$tcl_obj' fileset (if not found)"
+      lappend l_script_data "if \{\[string equal \[get_filesets -quiet $tcl_obj\] \"\"\]\} \{"
 
-    set fs_sw_type [get_fileset_type_switch $fs_type]
-    lappend l_script_data "  create_fileset $fs_sw_type $tcl_obj"
-    lappend l_script_data "\}\n"
+      set fs_sw_type [get_fileset_type_switch $fs_type]
+      lappend l_script_data "  create_fileset $fs_sw_type $tcl_obj"
+      lappend l_script_data "\}\n"  
+    }
 
     set get_what_fs "get_filesets"
 
@@ -417,7 +438,7 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
             if { $a_global_vars(b_absolute_path) } {
               lappend path_list $path
             } else {
-              set rel_file_path "[get_relative_file_path_for_source $path $a_global_vars(s_path_to_script_dir)]"
+              set rel_file_path "[get_relative_file_path_for_source $path [get_script_execution_dir]]"
               set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               lappend path_list $path
             }
@@ -425,12 +446,22 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
           set repo_path_str [join $path_list " "]
           lappend l_script_data "set_property \"ip_repo_paths\" \"${repo_path_str}\" \$obj" 
           lappend l_script_data "" 
+          lappend l_script_data "# Rebuild user ip_repo's index before adding any source files"
+          lappend l_script_data "update_ip_catalog -rebuild"
+          lappend l_script_data ""
         }
       }
     }
 
-    lappend l_script_data "# Set '$tcl_obj' fileset object"
-    lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
+    # is this a IP block fileset? if yes, then set the current srcset object (IP's will be added to current source fileset)
+    if { [is_ip_fileset $tcl_obj] } {
+      set srcset [current_fileset -srcset]
+      lappend l_script_data "# Set '$srcset' fileset object"
+      lappend l_script_data "set obj \[$get_what_fs $srcset\]"
+    } else {
+      lappend l_script_data "# Set '$tcl_obj' fileset object"
+      lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
+    }
     if { {Constrs} == $fs_type } {
       lappend l_script_data ""
       write_constrs $proj_dir $proj_name $tcl_obj $type
@@ -438,9 +469,14 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
       write_files $proj_dir $proj_name $tcl_obj $type
     }
   
-    lappend l_script_data "# Set '$tcl_obj' fileset properties"
-    lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
-    write_props $proj_dir $proj_name $get_what_fs $tcl_obj "fileset"
+    # is this a IP block fileset? if yes, do not write block fileset properties (block fileset doesnot exist in new project)
+    if { [is_ip_fileset $tcl_obj] } {
+      # do not write ip fileset properties
+    } else {
+      lappend l_script_data "# Set '$tcl_obj' fileset properties"
+      lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
+      write_props $proj_dir $proj_name $get_what_fs $tcl_obj "fileset"
+    }
   }
 }
 
@@ -550,12 +586,12 @@ proc print_local_file_msg { msg_type } {
 
   puts ""
   if { [string equal $msg_type "warning"] } {
-    send_msg_id Vivado-projutils-010 WARNING "Found source(s) that were local or imported into the project. If this project is being source controlled, then
-                  please ensure that the project source(s) are also part of this source controlled data. The list of these local
-                  source(s) can be found in the generated script under the header section."
+    send_msg_id Vivado-projutils-010 WARNING "Found source(s) that were local or imported into the project. If this project is being source controlled, then\n\
+    please ensure that the project source(s) are also part of this source controlled data. The list of these local source(s) can be found in the generated script\n\
+    under the header section."
   } else {
-    send_msg_id Vivado-projutils-011 INFO "If this project is being source controlled, then please ensure that the project source(s) are also part of this source
-                  controlled data. The list of these local source(s) can be found in the generated script under the header section."
+    send_msg_id Vivado-projutils-011 INFO "If this project is being source controlled, then please ensure that the project source(s) are also part of this source\n\
+    controlled data. The list of these local source(s) can be found in the generated script under the header section."
   }
   puts ""
 }
@@ -644,6 +680,22 @@ proc is_local_to_project { file } {
   return $is_local
 }
 
+proc is_ip_readonly_prop { name } {
+  # Summary: Return true if dealing with following IP properties that are not settable for an IP in read-only state
+  # Argument Usage:
+  # name: property name
+  # Return Value:
+  # true if success, false otherwise
+
+  if { [regexp -nocase {synth_checkpoint_mode}     $name] ||
+       [regexp -nocase {is_locked}                 $name] ||
+       [regexp -nocase {generate_synth_checkpoint} $name] } {
+    return true
+  }
+
+  return false
+}
+
 proc write_properties { prop_info_list get_what tcl_obj } {
   # Summary: write object properties
   # This helper command is used to script help.
@@ -655,17 +707,27 @@ proc write_properties { prop_info_list get_what tcl_obj } {
   variable l_script_data
 
   if {[llength $prop_info_list] > 0} {
+    set b_add_closing_brace 0
     foreach x $prop_info_list {
       set elem [split $x "#"]
       set name [lindex $elem 0]
       set value [lindex $elem 1]
       if { [regexp "more options" $name] } {
         set cmd_str "set_property -name {$name} -value {$value} -objects"
+      } elseif { ([is_ip_readonly_prop $name]) && ([string equal $get_what "get_files"]) } {
+        set cmd_str "if \{ !\[get_property \"is_locked\" \$file_obj\] \} \{"
+        lappend l_script_data "$cmd_str"
+        set cmd_str "  set_property \"$name\" \"$value\""
+        set b_add_closing_brace 1
       } else {
         set cmd_str "set_property \"$name\" \"$value\""
       }
       if { [string equal $get_what "get_files"] } {
         lappend l_script_data "$cmd_str \$file_obj"
+        if { $b_add_closing_brace } {
+          lappend l_script_data "\}"
+          set b_add_closing_brace 0
+        }
       } else {
         # comment "is_readonly" project property
         if { [string equal $get_what "get_projects"] && [string equal "$name" "is_readonly"] } {
@@ -754,7 +816,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       if { [is_local_to_project $file] } {
         set proj_file_path "\$proj_dir/$src_file"
       } else {
-        set proj_file_path "[get_relative_file_path_for_source $src_file $a_global_vars(s_path_to_script_dir)]"
+        set proj_file_path "[get_relative_file_path_for_source $src_file [get_script_execution_dir]]"
       }
       set prop_entry "[string tolower $prop]#$proj_file_path"
 
@@ -784,7 +846,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
             set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
           } else {
             set file_no_quotes [string trim $file "\""]
-            set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+            set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
             set proj_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
             #set proj_file_path "$file"
           }
@@ -793,7 +855,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
             set proj_file_path "$file"
           } else {
             set file_no_quotes [string trim $file "\""]
-            set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+            set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
             set proj_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
           }
         }
@@ -833,7 +895,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
               if { $a_global_vars(b_absolute_path) } {
                 set tcl_file_path "$file"
               } else {
-                set rel_file_path "[get_relative_file_path_for_source $src_file $a_global_vars(s_path_to_script_dir)]"
+                set rel_file_path "[get_relative_file_path_for_source $src_file [get_script_execution_dir]]"
                 set tcl_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               }
             }
@@ -911,7 +973,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
       # import files
       set imported_path [get_property "imported_from" $file]
-      set rel_file_path [get_relative_file_path_for_source $file $a_global_vars(s_path_to_script_dir)]
+      set rel_file_path [get_relative_file_path_for_source $file [get_script_execution_dir]]
       set proj_file_path "\$origin_dir/$rel_file_path"
 
       set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
@@ -945,7 +1007,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
         # add to the import collection
         set file_no_quotes [string trim $file "\""]
-        set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]"
+        set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
         lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
         lappend l_local_file_list $file
       } else {
@@ -955,7 +1017,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       # add file to collection
       if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
         set file_no_quotes [string trim $file "\""]
-        set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
         set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
         lappend add_file_coln "$file1"
       } else {
@@ -979,7 +1041,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
           lappend l_script_data " $file\\"
         } else {
           set file_no_quotes [string trim $file "\""]
-          set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+          set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
           lappend l_script_data " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
         }
       }
@@ -998,7 +1060,12 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         lappend l_script_data " $ifile\\"
       }
       lappend l_script_data "\]"
-      lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
+      # is this a IP block fileset? if yes, import files into current source fileset
+      if { [is_ip_fileset $tcl_obj] } {
+        lappend l_script_data "set imported_files \[import_files -fileset [current_fileset -srcset] \$files\]"
+      } else {
+        lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
+      }
       lappend l_script_data ""
     }
   }
@@ -1041,7 +1108,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
     # constrs sources imported? 
     if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
       set imported_path  [get_property "imported_from" $file]
-      set rel_file_path  [get_relative_file_path_for_source $file $a_global_vars(s_path_to_script_dir)]
+      set rel_file_path  [get_relative_file_path_for_source $file [get_script_execution_dir]]
       set proj_file_path "\$origin_dir/$rel_file_path"
       set file           "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
       # donot copy imported constrs in new project? set it as remote file in new project.
@@ -1079,7 +1146,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
           set src_file "\$PSRCDIR/$src_file"
         }
         set file_no_quotes [string trim $file "\""]
-        set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]"
+        set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
         set str "\"\[file normalize \"$org_file_path\"\]\""
         import_constrs_file $tcl_obj $str
       } else {
@@ -1089,7 +1156,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
         # find relative file path of the added constrs if no_copy in the new project
         if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
           set file_no_quotes [string trim $file "\""]
-          set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+          set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
           set file_1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
           add_constrs_file "$file_1"
         } else {
@@ -1123,7 +1190,7 @@ proc add_constrs_file { file_str } {
       lappend l_script_data "set file $file_str"
     } else {
       set file_no_quotes [string trim $file_str "\""]
-      set rel_file_path [get_relative_file_path_for_source $file_no_quotes $a_global_vars(s_path_to_script_dir)]
+      set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
       lappend l_script_data "set file \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
     }
   }
@@ -1237,7 +1304,7 @@ proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_
       if { $a_global_vars(b_absolute_path) } {
         lappend l_script_data "set file \"$file\""
       } else {
-        lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file $a_global_vars(s_path_to_script_dir)]\""
+        lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
         lappend l_script_data "set file \[file normalize \$file\]"
       }
     } else {
@@ -1267,6 +1334,10 @@ proc write_specified_run { proj_dir proj_name runs } {
 
   set get_what "get_runs"
   foreach tcl_obj $runs {
+    # is block fileset based run that contains IP? donot create OOC run
+    if { [is_ip_run $tcl_obj] } {
+      continue
+    }
     # fetch run attributes
     set part         [get_property part [$get_what $tcl_obj]]
     set parent_run   [get_property parent [$get_what $tcl_obj]]
@@ -1349,8 +1420,13 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
   variable l_script_data
   variable l_local_files
   variable l_remote_files
-
-  lappend l_script_data "# Set '$tcl_obj' fileset file properties for $file_category files"
+  
+  # is this a IP block fileset? if yes, set current source fileset
+  if { [is_ip_fileset $tcl_obj] } {
+    lappend l_script_data "# Set '[current_fileset -srcset]' fileset file properties for $file_category files"
+  } else {
+    lappend l_script_data "# Set '$tcl_obj' fileset file properties for $file_category files"
+  }
   set file_prop_count 0
 
   # collect local/remote files
@@ -1432,13 +1508,18 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
         if { $a_global_vars(b_absolute_path) } {
           lappend l_script_data "set file \"$file\""
         } else {
-          lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file $a_global_vars(s_path_to_script_dir)]\""
+          lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
           lappend l_script_data "set file \[file normalize \$file\]"
         }
       } else {
         lappend l_script_data "set file \"$file\""
       }
-      lappend l_script_data "set file_obj \[get_files -of_objects \[get_filesets $tcl_obj\] \[list \"*\$file\"\]\]"
+      # is this a IP block fileset? if yes, get files from current source fileset
+      if { [is_ip_fileset $tcl_obj] } {
+        lappend l_script_data "set file_obj \[get_files -of_objects \[get_filesets [current_fileset -srcset]\] \[list \"*\$file\"\]\]"
+      } else {
+        lappend l_script_data "set file_obj \[get_files -of_objects \[get_filesets $tcl_obj\] \[list \"*\$file\"\]\]"
+      }
       set get_what "get_files"
       write_properties $prop_info_list $get_what $tcl_obj
       incr file_prop_count
@@ -1449,6 +1530,29 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     lappend l_script_data "# None"
   }
   lappend l_script_data ""
+}
+
+proc get_script_execution_dir { } {
+  # Summary: Return script directory path from where the script will be executed
+  # Argument Usage: 
+  # none
+  # Return Value:
+  # Path to the script direc
+
+  variable a_global_vars
+
+  # default: return script directory path
+  set scr_exe_dir $a_global_vars(s_path_to_script_dir)
+
+  # is -path_to_relative specified and the path exists? return this dir
+  set rel_to_dir $a_global_vars(s_relative_to)
+  if { ("." != $rel_to_dir) } {
+    set rel_to_dir [file normalize $rel_to_dir]
+    if { [file exists $rel_to_dir] } {
+      set scr_exe_dir $rel_to_dir
+    }
+  }
+  return $scr_exe_dir
 }
 
 proc get_relative_file_path_for_source { file_path_to_convert relative_to } {
@@ -1543,5 +1647,44 @@ proc get_relative_file_path_for_source { file_path_to_convert relative_to } {
 
   # no common dirs found, just return the normalized path
   return $file_path
+}
+
+proc is_ip_fileset { fileset } {
+  # Summary: Find IP's if any from the specified fileset and return true if 'generate_synth_checkpoint' is set to 1
+  # Argument Usage:
+  # fileset: fileset name
+  # Return Value:
+  # true (1) if success, false (0) otherwise
+
+  # make sure fileset is block fileset type
+  if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
+    return false
+  }
+
+  set ip_filter "FILE_TYPE == \"IP\""
+  set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
+  set b_found false
+  foreach ip $ips {
+    if { [get_property generate_synth_checkpoint [lindex [get_files $ip] 0]] } {
+      set b_found true
+      break
+    }
+  }
+
+  if { $b_found } {
+    return true
+  }
+  return false
+}
+
+proc is_ip_run { run } {
+  # Summary: Find IP's if any from the fileset linked with the block fileset run
+  # Argument Usage:
+  # run: run name
+  # Return Value:
+  # true (1) if success, false (0) otherwise
+  
+  set fileset [get_property srcset [get_runs $run]]
+  return [is_ip_fileset $fileset]
 }
 }

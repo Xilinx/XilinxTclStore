@@ -1,0 +1,139 @@
+puts "  #########################################"
+puts "  ## START [info script]"
+puts "  #########################################"
+if {![info exists ::QUIET]} { set ::QUIET 0 }
+
+# Set the File Directory to the current directory location of the script
+set file_dir [file normalize [file dirname [info script]]]
+
+# Set the Xilinx Tcl App Store Repository to the current repository location
+puts "  == Unit Test directory: $file_dir"
+
+# Set the Name to the name of the script
+set name [file rootname [file tail [info script]]]
+
+create_project $name -in_memory
+
+if {$QUIET} {
+  set_msg_config -suppress -severity ERROR
+  set_msg_config -suppress -severity {CRITICAL WARNING}
+  set_msg_config -suppress -severity WARNING
+  set_msg_config -suppress -severity INFO
+  set_msg_config -suppress -severity STATUS
+}
+
+# add_files -fileset sources_1 "$file_dir/src/bench16/bench16.v"
+# add_files -fileset sources_1 "$file_dir/src/bench16/mux2.v"
+# add_files -fileset sources_1 "$file_dir/src/bench16/mmcm0_clk_wiz.v"
+# add_files -fileset constrs_1 "$file_dir/src/bench16/bench16.xdc"
+# synth_design -top bench16 -part xc7k70tfbg484-3 -flatten rebuilt
+
+add_files -quiet -fileset sources_1 "$file_dir/src/bench16/bench16_netlist.v"
+add_files -quiet -fileset constrs_1 "$file_dir/src/bench16/bench16.xdc"
+link_design -quiet -part xc7k70tfbg484-3 -top bench16
+
+#######################################
+##
+## UNIT TESTS
+##
+#######################################
+
+# set ::tcltestNumFailed 0
+set nFailed $::tcltest::numTests(Failed)
+
+tcltest::test report_reset_signals--arguments-expected {Check supported command line arguments} -constraints {
+} -setup {
+} -body {
+  set result [::tclapp::xilinx::ultrafast::report_reset_signals -help]
+  return 0
+} -cleanup {
+} -match glob \
+-output {*} \
+-result 0 \
+-returnCodes {return}
+
+tcltest::test report_reset_signals--arguments-unexpected {Check unsupported command line arguments} -constraints {
+} -setup {
+} -body {
+  set result [::tclapp::xilinx::ultrafast::report_reset_signals -unknownCommandLine]
+  return 0
+} -cleanup {
+} -match glob \
+-output {*} \
+-result {*some error(s) happened. Cannot continue*} \
+-returnCodes {error}
+
+tcltest::test report_reset_signals--command-ok {Check command does not fail} -constraints {
+} -setup {
+} -body {
+  set result [::tclapp::xilinx::ultrafast::report_reset_signals -return_string]
+  puts $result
+  return 0
+} -cleanup {
+} -match glob \
+-output {*} \
+-result 0 \
+-returnCodes {return}
+
+# The following unit test has been commented out as a workaround to some pin properties having changed over the week-end of 1/24/2015
+# tcltest::test report_reset_signals--results-ok {Check command output against expected results} -constraints {
+# } -setup {
+# } -body {
+#   set result [::tclapp::xilinx::ultrafast::report_reset_signals -clear -return_string]
+#   puts $result
+#   return 0
+# } -cleanup {
+# } -match glob \
+# -output {*List of primitives with asynchronous set or reset without a synchronous deasertion:
+# 
+# CLEAR report
+# 
+# Summary
+# -------
+#  There are 0 clear pins that are asynchronous (asynchronous)
+#  There are 0 clear pins that are synchronous (synchronous)
+#  There are 6 clear pins that are driven by primary ports (port_driven)
+#  There are 0 clear pins that are tied to power (tied_power)
+#  There are 0 cells that have a combinational driver for the clear pin (combinational_driver)
+#  There are 0 cells that have missing clock definition on the destination clock pin or sequential element driving the clear pin (missing_clock)
+#  There are 0 clear pins that are unconnected (unconnected)
+#  There are 0 clear pins that are tied to ground (tied_ground)
+# *} \
+# -result 0 \
+# -returnCodes {return}
+
+tcltest::cleanupTests
+
+set nFailed [expr $::tcltest::numTests(Failed) - $nFailed]
+
+if {$QUIET} {
+  reset_msg_config -suppress -severity ERROR
+  reset_msg_config -suppress -severity {CRITICAL WARNING}
+  reset_msg_config -suppress -severity WARNING
+  reset_msg_config -suppress -severity INFO
+  reset_msg_config -suppress -severity STATUS
+}
+
+close_project
+
+#######################################
+##
+## UNIT TESTS STATUS
+##
+#######################################
+
+if {$nFailed != 0} {
+#   error [format " -E- Unit test $name failed: %s" $errorstring]
+  puts [format " -E- ${name}.test : $nFailed unit test(s) failed"]
+}
+
+puts "  #########################################"
+puts "  ## END [info script]"
+puts "  #########################################"
+
+if {$nFailed != 0} {
+#   error [format " -E- Unit test $name failed: %s" $errorstring]
+  return 1
+}
+
+return 0

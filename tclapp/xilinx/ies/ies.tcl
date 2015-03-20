@@ -1,6 +1,6 @@
 #######################################################################
 #
-# ies.tcl (allow Tcl to find tclindex and provide package version 1.0)
+# ies.tcl (allow Tcl to find tclindex and provide package this version)
 #
 #######################################################################
 namespace eval ::tclapp::xilinx::ies {
@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::ies {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::ies 1.1
+package provide ::tclapp::xilinx::ies 2.19

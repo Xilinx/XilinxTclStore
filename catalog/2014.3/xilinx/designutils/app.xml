@@ -2,9 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision>1.7</revision>
       <revision_history>Major updates to insert_buffer.tcl script</revision_history>
-      <commit_id>c11ebe26af6c9b39d41ba4132fa2293f8aa8aa0d</commit_id>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -114,7 +112,10 @@
         </proc>
         <proc>
           <name>reapply_iostandard</name>
-          <summary>this command queries the tool-chosen defaults from implementation and &quot;apply&quot; them so it looks like the user did it from the beginning. This complies with the bit export restriction that all ios be LOCd and explicitly set to an IO Standard</summary>
+          <summary>this command queries the tool-chosen defaults from implementation 
+and &quot;apply&quot; them so it looks like the user did it from the beginning. 
+This complies with the bit export restriction that all ios be LOCd and 
+explicitly set to an IO Standard</summary>
         </proc>
         <proc>
           <name>remove_buffer</name>

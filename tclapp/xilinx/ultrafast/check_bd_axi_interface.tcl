@@ -1,5 +1,6 @@
 
 ########################################################################################
+## 01/30/2015 - Updated for 2015.1 
 ## 02/04/2014 - Renamed file and various additional updates for Tcl App Store 
 ## 02/03/2014 - Updated the namespace and definition of the command line arguments 
 ##              for the Tcl App Store
@@ -41,7 +42,7 @@ proc ::tclapp::xilinx::ultrafast::check_bd_axi_interface { args } {
 
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::ultrafast::check_bd_axi_interface {
-  variable version {02/04/2014}
+  variable version {01/30/2015}
 } ]
 
 #JEL 2013.2
@@ -137,15 +138,15 @@ proc ::tclapp::xilinx::ultrafast::check_bd_axi_interface::check_bd_axi_interface
      This command must be run on an opened block design.
 
   Example:
-     check_bd_axi_interface axi_interconnect_1 -file myreport.rpt
-     check_bd_axi_interface axi_interconnect_1 axi_interconnect_2 -block axi_interconnect_3
+     check_bd_axi_interface -block axi_interconnect_1 -file myreport.rpt
+     check_bd_axi_interface -block axi_interconnect_1 -block axi_interconnect_2 -block axi_interconnect_3
 } ]
     # HELP -->
     return {}
   }
 
   if {$blockNames == {}} {
-    puts " -E- no block name was provided."
+    puts " -E- no AXI Interconnect name was provided."
     incr error
   }
 
@@ -205,7 +206,7 @@ proc ::tclapp::xilinx::ultrafast::check_bd_axi_interface::InterInfo { Interconne
   set EMPTY_VALUE ""
   set S_AXI_NAME "/S_AXI"
   set M_AXI_NAME "/M_AXI"
-  set VAL_SUCCESS "success"
+  set VAL_SUCCESS ""
 
   set WRITE_ACCEPT "_WRITE_ACCEPTANCE"
   set READ_ACCEPT "_READ_ACCEPTANCE"
@@ -245,6 +246,9 @@ proc ::tclapp::xilinx::ultrafast::check_bd_axi_interface::InterInfo { Interconne
 
   set INTERCON_SETTINGS $INTERCONNECT_NAME_VAR
 
+  set XBAR_EXIST [get_bd_cells ${INTERCONNECT_NAME_VAR}/xbar -quiet]
+
+  if {$XBAR_EXIST != ""} {
   set INTER_DATAWIDTH [get_property {CONFIG.DATA_WIDTH} [get_bd_cells ${INTERCONNECT_NAME_VAR}/xbar]]
   lappend INTERCON_SETTINGS $INTER_DATAWIDTH
 
@@ -283,6 +287,12 @@ proc ::tclapp::xilinx::ultrafast::check_bd_axi_interface::InterInfo { Interconne
   catch {$tbl destroy}
 
   unset INTERCON_SETTINGS
+  
+  } else {
+    set NUM_SI 1
+    set NUM_MI 1
+    puts "$INTERCONNECT_NAME_VAR 1 Master x 1 Slave Mode"  
+  }
 
   lappend output " "
 
@@ -342,10 +352,18 @@ proc ::tclapp::xilinx::ultrafast::check_bd_axi_interface::InterInfo { Interconne
     #Set vars for FIFO and issuance
     set REG_VALUE [get_property $CONFIG_REG_NAME [get_bd_cells ${INTERCONNECT_NAME_VAR}]]
     set FIFO_VALUE [get_property $CONFIG_FIFO_NAME [get_bd_cells ${INTERCONNECT_NAME_VAR}]]
-
+    
+  if {$XBAR_EXIST != ""} {
     set READ_ISSUE_VALUE [get_property $CONFIG_S_READ_ACCEPT [get_bd_cells ${INTERCONNECT_NAME_VAR}/xbar]]
     set WRITE_ISSUE_VALUE [get_property $CONFIG_S_WRITE_ACCEPT [get_bd_cells ${INTERCONNECT_NAME_VAR}/xbar]]
+    } else {
+      set READ_ISSUE_VALUE "N/A"
+      set WRITE_ISSUE_VALUE "N/A"      
+    }
+    
 
+
+    
     #Check to see if sampler up or down is used, also check clock conversion as well in module or CC
 
     set CHECK_SAMP_CELL_NAME [concat "$INTERCONNECT_NAME_VAR$MASTER_SAMP_NUMBER"]
@@ -643,9 +661,14 @@ proc ::tclapp::xilinx::ultrafast::check_bd_axi_interface::InterInfo { Interconne
     set REG_VALUE [get_property $CONFIG_REG_NAME [get_bd_cells ${INTERCONNECT_NAME_VAR}]]
     set FIFO_VALUE [get_property $CONFIG_FIFO_NAME [get_bd_cells ${INTERCONNECT_NAME_VAR}]]
 
+  if {$XBAR_EXIST != ""} {
     set READ_ACCEPT_VALUE [get_property $CONFIG_M_READ_ISSUE [get_bd_cells ${INTERCONNECT_NAME_VAR}/xbar]]
     set WRITE_ACCEPT_VALUE [get_property $CONFIG_M_WRITE_ISSUE [get_bd_cells ${INTERCONNECT_NAME_VAR}/xbar]]
-
+    } else {
+      set READ_ACCEPT_VALUE "N/A"
+      set WRITE_ACCEPT_VALUE "N/A"      
+    }
+    
     #Check to see if sampler up or down is used, also check clock conversion as well in module or CC
 
     set CHECK_SAMP_CELL_NAME [concat "$INTERCONNECT_NAME_VAR$SLAVE_SAMP_NUMBER"]

@@ -2,8 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision>2.0</revision>
-      <commit_id>ac1b5493feaba25ce75a956320e6bd1fc158bf86</commit_id>
+      <revision_history>Check for read-only IP status before setting properties</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -12,8 +11,12 @@
       <display>Project Utilities</display>
       <procs>
         <proc>
+          <name>convert_ngc</name>
+          <summary>Convert all provided NGC files to a supported format</summary>
+        </proc>
+        <proc>
           <name>export_simulation</name>
-          <summary>Generate design filelist for the specified simulator for standalone simulation</summary>
+          <summary>NOTE-&apos;export_simulation&apos; is deprecated, please use &apos;launch_simulation -scripts_only&apos; instead. Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
         </proc>
         <proc>
           <name>write_project_tcl</name>

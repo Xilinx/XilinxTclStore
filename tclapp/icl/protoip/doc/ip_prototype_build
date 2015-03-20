@@ -1,0 +1,24 @@
+ Description: 
+  Build the IP prototype of the project named 'project_name' 
+  associated to the evaluation board name 'board_name'
+  according to the project configuration parameters
+  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
+
+  The specified inputs parameters overwrite the one specified into 
+  configuration parameters 
+  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
+ 
+  The board name must match the FPGA model. Please refer to 
+  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
+  for a detailed description.
+  
+  IP prototype implementation report with resources utilization and power consumption 
+  is available in [WORKING DIRECTORY]/doc/project_name/ip_prototype.txt
+  
+  This command should be run after 'ip_design_build' command only.
+
+ 
+ Example:
+  ip_prototype_build -project_name my_project0 -board_name zedboard
+
+

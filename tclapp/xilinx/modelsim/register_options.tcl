@@ -37,8 +37,7 @@ proc register_options { simulator } {
     {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008}}}   {Specify VHDL syntax}}
     {{compile.use_explicit_decl}   {bool}   {1}                                     {Log all signals}}
     {{compile.load_glbl}           {bool}   {1}                                     {Load GLBL module}}
-    {{compile.incremental}         {bool}   {0}                                     {Perform incremental compilation}}
-    {{compile.unifast}             {bool}   {0}                                     {Enable fast simulation models}}
+    {{compile.incremental}         {bool}   {1}                                     {Perform incremental compilation}}
     {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
     {{elaborate.acc}               {bool}   {1}                                     {Enable access to certain objects which might otherwise be optimized away}}
@@ -50,7 +49,6 @@ proc register_options { simulator } {
     {{simulate.custom_udo}         {string} {}                                      {Specify name of the custom user do file}}
     {{simulate.sdf_delay}          {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}
     {{simulate.saif}               {string} {}                                      {Specify SAIF file}}
-    {{simulate.64bit}              {bool}   {0}                                     {Call 64bit VSIM compiler}}
     {{simulate.vsim.more_options}  {string} {}                                      {More VSIM simulation options}}
   }
   # create options

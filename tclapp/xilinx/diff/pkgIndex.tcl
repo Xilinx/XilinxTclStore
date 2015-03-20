@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::diff 2.1 [list source [file join $dir diff.tcl]]
+package ifneeded ::tclapp::xilinx::diff 2.3 [list source [file join $dir diff.tcl]]

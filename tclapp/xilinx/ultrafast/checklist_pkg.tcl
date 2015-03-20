@@ -11,5 +11,5 @@ namespace eval ::tclapp::xilinx::ultrafast {
 
 }
 
-package provide ::tclapp::xilinx::ultrafast 1.2
+package provide ::tclapp::xilinx::ultrafast 1.6
 

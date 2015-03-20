@@ -1,0 +1,21 @@
+
+Example:
+
+  # returns {} if global report was never set, {} will print to stdout
+  ::tclapp::xilinx::diff::get_global_report 
+
+  # messages will be printed to STDOUT 
+  ::tclapp::xilinx::diff::set_global_report stdout
+  ::tclapp::xilinx::diff::get_global_report 
+  stdout
+
+  # text report 
+  ::tclapp::xilinx::diff::set_global_report "diff_report.log"
+  ::tclapp::xilinx::diff::get_global_report 
+  diff_report.log
+
+  # html report
+  ::tclapp::xilinx::diff::set_global_report "diff_report.html"
+  ::tclapp::xilinx::diff::get_global_report 
+  diff_report.html
+

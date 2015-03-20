@@ -34,11 +34,9 @@ proc register_options { simulator } {
   }
   set options {
     {{compile.v93}                   {bool}   {1}        {Enable VHDL93 features}}
-    {{compile.32bit}                 {bool}   {0}        {Invoke 32-bit executable}}
     {{compile.relax}                 {bool}   {1}        {Enable relaxed VHDL interpretation}}
-    {{compile.unifast}               {bool}   {0}        {Enable fast simulation models}}
     {{compile.load_glbl}             {bool}   {1}        {Load GLBL module}}
-    {{compile.update}                {bool}   {0}        {Check if unit is up-to-date before writing}}
+    {{compile.update}                {bool}   {1}        {Check if unit is up-to-date before writing}}
     {{compile.ncvhdl.more_options}   {string} {}         {More NCVHDL compilation options}}
     {{compile.ncvlog.more_options}   {string} {}         {More NCVLOG compilation options}}
     {{elaborate.update}              {bool}   {0}        {Check if unit is up-to-date before writing}}

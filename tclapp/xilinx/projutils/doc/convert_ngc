@@ -1,0 +1,46 @@
+Description:
+
+  Converts provided NGC files to a supported format.
+
+Arguments:
+
+  -output_dir <arg> - (Optional) Directory to place all output, else the 
+  output is placed in the directory where the NGC file resides.
+
+  -format <arg> - (Optional) Accepts 'Verilog' or 'EDIF' (Default: EDIF), 
+  specifies the desired output format
+
+  -add_to_project - (Optional) Adds the output files to the current project, 
+  if no project is open, then this option does nothing.
+
+  -force - (Optional) Force overwriting of files that already exist on disk, 
+  replaces files in project if add_to_project switch was specified
+
+  <files> - (Required) A list of NGC files to convert.
+
+Examples:
+
+  The following example will convert test.ngc to test.edn. The test.edn file
+  will be added to the open project. Verbose messaging will be printed:-
+  
+  % tclapp::xilinx::projutils::convert_ngc ./test.ngc -add_to_project -verbose
+  
+  The following example will convert test.ngc to test.edn. The test.edn file
+  will be placed in the ./output directory. If ./output/test.edn exists it 
+  will be replaced:-
+  
+  % tclapp::xilinx::projutils::convert_ngc ./test.ngc -output_dir output -force
+
+  The following example converts all NGC files in the current directory and in 
+  all sub-directories:-
+
+  % tclapp::xilinx::projutils::convert_ngc [ glob ./**/*.ngc ] [ glob ./*.ngc ]
+
+
+See Also:
+
+   *  add_files
+   *  current_project
+   *  get_files
+   *  glob
+   *  read_edif

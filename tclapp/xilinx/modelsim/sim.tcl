@@ -11,6 +11,10 @@
 package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::modelsim {
+  namespace export setup
+}
+
+namespace eval ::tclapp::xilinx::modelsim {
 proc setup { args } {
   # Summary: initialize global vars and prepare for simulation
   # Argument Usage:
@@ -39,11 +43,7 @@ proc compile { args } {
   # none
 
   send_msg_id USF-ModelSim-002 INFO "ModelSim::Compile design"
-  if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    usf_modelsim_write_compile_script_native
-  } else {
-    usf_modelsim_write_compile_script
-  }
+  usf_modelsim_write_compile_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -58,11 +58,7 @@ proc elaborate { args } {
   # none
 
   send_msg_id USF-ModelSim-003 INFO "ModelSim::Elaborate design"
-  if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    usf_modelsim_write_elaborate_script_native
-  } else {
-    usf_modelsim_write_elaborate_script
-  }
+  usf_modelsim_write_elaborate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -76,12 +72,25 @@ proc simulate { args } {
   # Return Value:
   # none
 
+  set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+
   send_msg_id USF-ModelSim-004 INFO "ModelSim::Simulate design"
   usf_modelsim_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::modelsim::usf_launch_script "modelsim" $step
+
+  if { $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only) } {
+    set fh 0
+    set file [file normalize [file join $dir "simulate.log"]]
+    if {[catch {open $file w} fh]} {
+      send_msg_id USF-ModelSim-016 ERROR "Failed to open file to write ($file)\n"
+    } else {
+      puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
+      close $fh
+    }
+  }
 }
 }
 
@@ -100,6 +109,9 @@ proc usf_modelsim_setup_simulation { args } {
 
   # set the simulation flow
   ::tclapp::xilinx::modelsim::usf_set_simulation_flow
+
+  # extract ip simulation files
+  ::tclapp::xilinx::modelsim::usf_extract_ip_files
 
   # set default object
   if { [::tclapp::xilinx::modelsim::usf_set_sim_tcl_obj] } {
@@ -122,13 +134,18 @@ proc usf_modelsim_setup_simulation { args } {
   ::tclapp::xilinx::modelsim::usf_generate_mem_files_for_simulation
 
   # find/copy modelsim.ini file into run dir
-  usf_modelsim_verify_compiled_lib
+  if {[usf_modelsim_verify_compiled_lib]} { return 1 }
 
   # fetch the compile order for the specified object
   ::tclapp::xilinx::modelsim::usf_get_compile_order_for_obj
 
+  # fetch design files
+  set global_files_str {}
+  set ::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) \
+     [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+
   # create setup file
-  usf_modelsim_write_setup_files
+  #usf_modelsim_write_setup_files
 
   return 0
 }
@@ -139,8 +156,6 @@ proc usf_modelsim_init_simulation_vars {} {
   # Return Value:
 
   variable a_modelsim_sim_vars
-
-  set a_modelsim_sim_vars(b_32bit)            0
   set a_modelsim_sim_vars(s_compiled_lib_dir) {}
 }
 
@@ -178,7 +193,8 @@ proc usf_modelsim_setup_args { args } {
       "-scripts_only"   { set ::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only) 1 }
       "-of_objects"     { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) 1 }
-      "-install_path"   { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_install_path) [lindex $args $i] }
+      "-install_path"   { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_install_path) [lindex $args $i];\
+                                 set ::tclapp::xilinx::modelsim::a_sim_vars(b_install_path_specified) 1 }
       "-batch"          { set ::tclapp::xilinx::modelsim::a_sim_vars(b_batch) 1 }
       "-run_dir"        { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
@@ -200,19 +216,35 @@ proc usf_modelsim_verify_compiled_lib {} {
   # Return Value:
 
   variable a_sim_vars
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
 
   set ini_file "modelsim.ini"
   set compiled_lib_dir {}
 
   send_msg_id USF-modelsim-007 INFO "Finding pre-compiled libraries...\n"
 
-  # 1. find in project default dir (<project>/<project>.cache/compile_simlib
+  # 1. check MODELSIM
+  if { {} == $compiled_lib_dir } {
+    if { [info exists ::env(MODELSIM)] } {
+      set file [file normalize $::env(MODELSIM)]
+      if { {} != $file } {
+        if { [file exists $file] && [file isfile $file] && [file readable $file] && [file writable $file] } {
+          set compiled_lib_dir [file dirname $file]
+        } else {
+          send_msg_id USF-modelsim-025 ERROR \
+            "The INI file specified with the MODELSIM environment variable is not accessible. Please check the file permissions.\n"
+          return 1
+        }
+      }
+    }
+  }
+  # 2. not found? find in project default dir (<project>/<project>.cache/compile_simlib
   set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
   set file [file normalize [file join $dir $ini_file]]
   if { [file exists $file] } {
     set compiled_lib_dir $dir
   }
-  # 1a. find modelsim.ini from current working directory
+  # 3. not found? find modelsim.ini from current working directory
   if { {} == $compiled_lib_dir } {
     set dir [file normalize [pwd]]
     set file [file normalize [file join $dir $ini_file]]
@@ -220,16 +252,7 @@ proc usf_modelsim_verify_compiled_lib {} {
       set compiled_lib_dir $dir
     }
   }
-  # 2. not found? check MODELSIM
-  if { {} == $compiled_lib_dir } {
-    if { [info exists ::env(MODELSIM)] } {
-      set file [file normalize $::env(MODELSIM)]
-      if { {} != $file } {
-        set compiled_lib_dir [file dirname $file]
-      }
-    }
-  }
-  # 3. not found? check MGC_WD
+  # 4. not found? check MGC_WD
   if { {} == $compiled_lib_dir } {
     if { [info exists ::env(MGC_WD)] } {
       set file_dir [file normalize $::env(MGC_WD)]
@@ -238,18 +261,22 @@ proc usf_modelsim_verify_compiled_lib {} {
       }
     }
   }
-  # 4. not found? finally check in run dir
+  # 5. not found? finally check in run dir
   if { {} == $compiled_lib_dir } {
     set file [file normalize [file join $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
-      send_msg_id USF-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+      if { $b_scripts_only } {
+        send_msg_id USF-modelsim-024 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+      } else {
+        send_msg_id USF-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+      }
       send_msg_id USF-modelsim-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
                                              - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim/QuestaSim, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
                                              - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
     }
   } else {
-    # 5. copy to run dir
+    # 6. copy to run dir
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
     if { [file exists $ini_file_path] } {
       if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)} error_msg] } {
@@ -259,6 +286,7 @@ proc usf_modelsim_verify_compiled_lib {} {
       }
     }
   }
+  return 0
 }
 
 proc usf_modelsim_write_setup_files {} {
@@ -312,19 +340,6 @@ proc usf_modelsim_write_compile_script {} {
   usf_modelsim_write_driver_shell_script $do_filename "compile"
 }
 
-proc usf_modelsim_write_compile_script_native {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  ##############################################
-  # No do file generation for native script mode
-  ##############################################
-
-  # write native compile.sh/.bat
-  usf_modelsim_write_driver_shell_script_native "compile"
-}
-
 proc usf_modelsim_write_elaborate_script {} {
   # Summary:
   # Argument Usage:
@@ -340,19 +355,6 @@ proc usf_modelsim_write_elaborate_script {} {
 
   # write elaborate.sh/.bat
   usf_modelsim_write_driver_shell_script $do_filename "elaborate"
-}
-
-proc usf_modelsim_write_elaborate_script_native {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  ##############################################
-  # No do file generation for native script mode
-  ##############################################
-
-  # write elaborate.sh/.bat
-  usf_modelsim_write_driver_shell_script_native "elaborate"
 }
 
 proc usf_modelsim_write_simulate_script {} {
@@ -383,7 +385,7 @@ proc usf_modelsim_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id USF-ModelSim-016 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-ModelSim-023 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
   usf_modelsim_write_header $fh $file
@@ -407,9 +409,7 @@ proc usf_modelsim_create_wave_do_file { file } {
   usf_modelsim_write_header $fh $file
   puts $fh "add wave *"
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
     puts $fh "add wave /glbl/GSR"
   }
   close $fh
@@ -425,6 +425,15 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path)
+  set tool_path $::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)
+  set DS "\\\\"
+  if {$::tcl_platform(platform) == "unix"} {
+    set DS "/"
+  }
+  set tool_path_str ""
+  if { $::tclapp::xilinx::modelsim::a_sim_vars(b_install_path_specified) } {
+    set tool_path_str "$tool_path${DS}"
+  }
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
@@ -433,14 +442,22 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
 
   usf_modelsim_write_header $fh $do_file
-  usf_add_quit_on_error $fh
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+    # no op
+  } else {
+    usf_add_quit_on_error $fh "compile"
+  }
 
-  puts $fh "vlib work"
-  puts $fh "vlib msim\n"
+  set lib_dir_path [file normalize [string map {\\ /} $dir]]
+  if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+    puts $fh "${tool_path_str}vlib $lib_dir_path/work" 
+    puts $fh "${tool_path_str}vlib $lib_dir_path/msim\n"
+  } else {
+    puts $fh "${tool_path_str}vlib work"
+    puts $fh "${tool_path_str}vlib msim\n"
+  }
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-  set design_libs [usf_modelsim_get_design_libs $design_files]
+  set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -450,39 +467,66 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    puts $fh "vlib msim/$lib"
+    if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+      puts $fh "${tool_path_str}vlib $lib_dir_path/msim/$lib"
+    } else {
+      puts $fh "${tool_path_str}vlib msim/$lib"
+    }
     if { $default_lib == $lib } {
       set b_default_lib true
     }
   }
   if { !$b_default_lib } {
-    puts $fh "vlib msim/$default_lib"
+    if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+      puts $fh "${tool_path_str}vlib $lib_dir_path/msim/$default_lib"
+    } else {
+      puts $fh "${tool_path_str}vlib msim/$default_lib"
+    }
   }
    
   puts $fh ""
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    puts $fh "vmap $lib msim/$lib"
+    if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+      puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
+    } else {
+      puts $fh "${tool_path_str}vmap $lib msim/$lib"
+    }
   }
   if { !$b_default_lib } {
-    puts $fh "vmap $default_lib msim/$default_lib"
+    if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+      puts $fh "${tool_path_str}vmap $default_lib $lib_dir_path/msim/$default_lib"
+    } else {
+      puts $fh "${tool_path_str}vmap $default_lib msim/$default_lib"
+    }
   }
-  puts $fh ""
 
-  if { $b_absolute_path } {
-    puts $fh "set origin_dir \"$dir\""
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+    # no op
   } else {
-    puts $fh "set origin_dir \".\""
+    puts $fh ""
+    if { $b_absolute_path } {
+      puts $fh "set origin_dir \"$dir\""
+    } else {
+      puts $fh "set origin_dir \".\""
+    }
   }
 
-  set vlog_arg_list [list "-incr"]
+  set vlog_arg_list [list]
+  if { [get_property "MODELSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+    lappend vlog_arg_list "-incr"
+  }
   set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vlog_options } {
     set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
   }
   set vlog_cmd_str [join $vlog_arg_list " "]
-  puts $fh "set vlog_opts \{$vlog_cmd_str\}"
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+    # no op
+  } else {
+    puts $fh "set vlog_opts \{$vlog_cmd_str\}"
+  }
 
   set vcom_arg_list [list]
   set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
@@ -492,27 +536,90 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
   }
   set vcom_cmd_str [join $vcom_arg_list " "]
-  puts $fh "set vcom_opts \{$vcom_cmd_str\}"
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+    # no op
+  } else {
+    puts $fh "set vcom_opts \{$vcom_cmd_str\}"
+  }
 
   puts $fh ""
 
-  foreach file $design_files {
-    set type    [lindex [split $file {#}] 0]
-    set lib     [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
-    puts $fh "eval $cmd_str"
+  set log "compile.log"
+  set redirect_cmd_str "2>&1 | tee -a $log"
+  set redirect_cmd_str ""
+
+  set b_first true
+  set prev_lib  {}
+  set prev_file_type {}
+  set b_redirect false
+  set b_appended false
+  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
+
+  foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
+    set fargs    [split $file {#}]
+    
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set lib       [lindex $fargs 2]
+    set cmd_str   [lindex $fargs 3]
+    set src_file  [lindex $fargs 4]
+
+    if { $b_group_files } {
+      if { $b_first } {
+        set b_first false
+        usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+      } else {
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+          puts $fh "$src_file \\"
+          set b_redirect true
+        } else {
+          puts $fh "$redirect_cmd_str"
+          usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+          set b_appended true
+        }
+      }
+    } else {
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        puts $fh "$cmd_str $src_file"
+      } else {
+        puts $fh "eval $cmd_str $src_file"
+      }
+    }
+  }
+
+  if { $b_group_files } {
+    if { (!$b_redirect) || (!$b_appended) } {
+      puts $fh "$redirect_cmd_str"
+    }
   }
 
   # compile glbl file
   set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
+  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
     ::tclapp::xilinx::modelsim::usf_copy_glbl_file
     set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
     set file_str "-work $top_lib \"glbl.v\""
-    puts $fh "\n# compile glbl module\nvlog $file_str"
+    puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
   }
 
-  puts $fh "\nquit -force"
+  set b_is_unix false
+  if {$::tcl_platform(platform) == "unix"} {
+    set b_is_unix true
+  }
+
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] && $b_is_unix } {
+    # no op
+  } else {
+    puts $fh "\nquit -force"
+  }
+
+  # Intentional: add a blank line at the very end in do file to avoid vsim error detecting '\' at EOF
+  #              when executing the do file directly with vsim (vsim -c -do tb.do)
+  #              ** Error: <EOF> reached in ./tb_compile.do with incomplete command at line
+  #              e.g vcom test.vhd \
+  #
+  puts $fh ""
+
   close $fh
 }
 
@@ -533,11 +640,30 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
   }
 
   usf_modelsim_write_header $fh $do_file
-  usf_add_quit_on_error $fh
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+    # no op
+  } else {
+    usf_add_quit_on_error $fh "elaborate"
+  }
 
-  set cmd_str [usf_modelsim_get_elaboration_cmdline]
-  puts $fh "$cmd_str"
-  puts $fh "\nquit -force"
+  
+  if { [get_param "project.enable2StepFlowForModelSim"] } {
+    # call vopt args in simulation
+  } else {
+    set cmd_str [usf_modelsim_get_elaboration_cmdline]
+    puts $fh "$cmd_str"
+  }
+
+  set b_is_unix false
+  if {$::tcl_platform(platform) == "unix"} {
+    set b_is_unix true
+  }
+
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] && $b_is_unix } {
+    # no op
+  } else {
+    puts $fh "\nquit -force"
+  }
 
   close $fh
 }
@@ -559,17 +685,21 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [list]
 
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    set s_64bit {}
-    if {$::tcl_platform(platform) == "unix"} {
-      if { {64} == $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) } {
-        set s_64bit {-64}
-      }
+    if { [get_property 32bit $fs_obj] } {
+      lappend arg_list {-32}
+    } else {
+      lappend arg_list {-64}
     }
-    lappend arg_list $s_64bit
   }
 
   if { [get_property "MODELSIM.ELABORATE.ACC" $fs_obj] } {
     lappend arg_list "+acc"
+  }
+
+  set vhdl_generics [list]
+  set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
+  if { [llength $vhdl_generics] > 0 } {
+    ::tclapp::xilinx::modelsim::usf_append_generics $vhdl_generics arg_list  
   }
 
   set more_vopt_options [string trim [get_property "MODELSIM.ELABORATE.VOPT.MORE_OPTIONS" $fs_obj]]
@@ -579,8 +709,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   set t_opts [join $arg_list " "]
 
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+  set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
 
   # add simulation libraries
   set arg_list [list]
@@ -596,14 +725,19 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   }
 
   # behavioral simulation
-  set b_compile_unifast [get_property "MODELSIM.COMPILE.UNIFAST" $fs_obj]
+  set b_compile_unifast 0
+  set simulator_language [string tolower [get_property simulator_language [current_project]]]
+  if { ([get_param "simulation.addUnifastLibraryForVhdl"]) && ({vhdl} == $simulator_language) } {
+    set b_compile_unifast [get_property "unifast" $fs_obj]
+  }
 
   if { ([::tclapp::xilinx::modelsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
-    if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
+    if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast"]
     }
   }
 
+  set b_compile_unifast [get_property "unifast" $fs_obj]
   if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast_ver"]
@@ -616,8 +750,6 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
   # add design libraries
-  set global_files_str {}
-  set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
   set design_libs [usf_modelsim_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -671,7 +803,8 @@ proc usf_modelsim_get_simulation_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      send_msg_id USF-ModelSim-020 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id USF-ModelSim-005 "CRITICAL WARNING" \
+         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
     }
   }
 
@@ -683,6 +816,113 @@ proc usf_modelsim_get_simulation_cmdline {} {
   set cmd_str [join $arg_list " "]
   return $cmd_str
 }
+
+proc usf_modelsim_get_simulation_cmdline_2step {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
+  set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set sim_flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+
+  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
+
+  set tool "vsim"
+  set arg_list [list "-voptargs=\"+acc\"" "-t 1ps"]
+
+  set vhdl_generics [list]
+  set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
+  if { [llength $vhdl_generics] > 0 } {
+    ::tclapp::xilinx::modelsim::usf_append_generics $vhdl_generics arg_list  
+  }
+
+  set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_sim_options } {
+    set arg_list [linsert $arg_list end "$more_sim_options"]
+  }
+
+  # design contains ax-bfm ip? insert bfm library
+  if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {
+    set simulator_lib [usf_get_simulator_lib_for_bfm]
+    if { {} != $simulator_lib } {
+      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
+    } else {
+      send_msg_id USF-ModelSim-020 "CRITICAL WARNING" \
+         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
+    }
+  }
+
+  set t_opts [join $arg_list " "]
+
+  set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
+
+  # add simulation libraries
+  set arg_list [list]
+  # post* simulation
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { [usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
+      if { {timesim} == $netlist_mode } {
+        set arg_list [linsert $arg_list end "-L" "simprims_ver"]
+      } else {
+        set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+      }
+    }
+  }
+
+  # behavioral simulation
+  set b_compile_unifast 0
+  set simulator_language [string tolower [get_property simulator_language [current_project]]]
+  if { ([get_param "simulation.addUnifastLibraryForVhdl"]) && ({vhdl} == $simulator_language) } {
+    set b_compile_unifast [get_property "unifast" $fs_obj]
+  }
+
+  if { ([::tclapp::xilinx::modelsim::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast } {
+      set arg_list [linsert $arg_list end "-L" "unifast"]
+    }
+  }
+
+  set b_compile_unifast [get_property "unifast" $fs_obj]
+  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
+    if { $b_compile_unifast } {
+      set arg_list [linsert $arg_list end "-L" "unifast_ver"]
+    }
+    set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+    set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
+  }
+
+  # add secureip
+  set arg_list [linsert $arg_list end "-L" "secureip"]
+
+  # add design libraries
+  set design_libs [usf_modelsim_get_design_libs $design_files]
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    lappend arg_list "-L"
+    lappend arg_list "$lib"
+    #lappend arg_list "[string tolower $lib]"
+  }
+
+  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  lappend arg_list "-lib"
+  lappend arg_list $default_lib
+  
+  set d_libs [join $arg_list " "]
+  set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
+  set arg_list [list $tool $t_opts]
+  lappend arg_list "$d_libs"
+  lappend arg_list "${top_lib}.$top"
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {    
+    lappend arg_list "${top_lib}.glbl"
+  }
+
+  set cmd_str [join $arg_list " "]
+  return $cmd_str
+}
+
 
 proc usf_modelsim_create_do_file_for_simulation { do_file } {
   # Summary:
@@ -705,7 +945,10 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
   usf_modelsim_create_wave_do_file $wave_do_file
   set cmd_str [usf_modelsim_get_simulation_cmdline]
-  usf_add_quit_on_error $fh
+  if { [get_param "project.enable2StepFlowForModelSim"] } {
+    set cmd_str [usf_modelsim_get_simulation_cmdline_2step]
+  }
+  usf_add_quit_on_error $fh "simulate"
 
   puts $fh "$cmd_str"
   puts $fh "\ndo \{$wave_do_filename\}"
@@ -776,8 +1019,12 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     puts $fh ""
   }
 
-  if { $b_batch || $b_scripts_only } {
+  if { $b_batch } {
     puts $fh "\nquit -force"
+  } elseif { $b_scripts_only } {
+    if { [get_param "simulator.quitOnSimulationComplete"] } {
+      puts $fh "\nquit -force"
+    }
   }
   close $fh
 }
@@ -813,6 +1060,8 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
+  set tool_path $::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
 
   set scr_filename $step;append scr_filename [::tclapp::xilinx::modelsim::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -829,7 +1078,9 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
 
   set s_64bit {}
   if {$::tcl_platform(platform) == "unix"} {
-    if { {64} == $::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) } {
+    if { [get_property 32bit $fs_obj] } {
+      # donot pass os type
+    } else {
       set s_64bit {-64}
     }
   }
@@ -837,13 +1088,37 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/sh -f"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)\""
+    if { {} != $tool_path } {
+      puts $fh_scr "bin_path=\"$tool_path\""
+    }
     ::tclapp::xilinx::modelsim::usf_write_shell_step_fn $fh_scr
-    puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+      puts $fh_scr "ExecStep source ./$do_filename 2>&1 | tee -a $log_filename"
+    } else {
+      if { {} != $tool_path } {
+        puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+      } else {
+        puts $fh_scr "ExecStep vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+      }
+    }
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set bin_path=$::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)"
-    puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    if { ({simulate} == $step) && [get_property 32bit $fs_obj] } {
+      if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {
+        set simulator_lib [usf_get_simulator_lib_for_bfm]
+        if { {} != $simulator_lib } {
+          set vivado_lib [file normalize [file dirname $simulator_lib]]
+          set vivado_lib [string map {/ \\\\} $vivado_lib]
+          puts $fh_scr "set PATH=$vivado_lib;%PATH%"
+        }
+      }
+    }
+    if { {} != $tool_path } {
+      puts $fh_scr "set bin_path=$tool_path"
+      puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    } else {
+      puts $fh_scr "call vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+    }
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
@@ -854,34 +1129,6 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   close $fh_scr
 }
 
-proc usf_modelsim_write_driver_shell_script_native { step } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
-  set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
-  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
-
-  set scr_filename $step;append scr_filename [::tclapp::xilinx::modelsim::usf_get_script_extn]
-  set scr_file [file normalize [file join $dir $scr_filename]]
-  set fh_scr 0
-  if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-ModelSim-023 ERROR "Failed to open file to write ($scr_file)\n"
-    return 1
-  }
-
-  set log_filename "${step}.log"
-  if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/sh -f"
-    usf_modelsim_write_header $fh_scr $scr_file
-    puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)\""
-    usf_write_shell_step_fn_native $step $fh_scr
-  } 
-  close $fh_scr
-}
-
 proc usf_modelsim_get_design_libs { files } {
   # Summary:
   # Argument Usage:
@@ -889,9 +1136,9 @@ proc usf_modelsim_get_design_libs { files } {
 
   set libs [list]
   foreach file $files {
-    set type    [lindex [split $file {#}] 0]
-    set library [lindex [split $file {#}] 1]
-    set cmd_str [lindex [split $file {#}] 2]
+    set type      [lindex [split $file {#}] 0]
+    set file_type [lindex [split $file {#}] 1]
+    set library   [lindex [split $file {#}] 2]
     if { {} == $library } {
       continue;
     }
@@ -902,126 +1149,75 @@ proc usf_modelsim_get_design_libs { files } {
   return $libs
 }
 
-proc usf_write_shell_step_fn_native { step fh_scr } {
-  # Summary:
+proc usf_modelsim_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg } {
+  # Summary: Print compiler command line and store previous file type and library information
   # Argument Usage:
   # Return Value:
+  # None
 
-  set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
-  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
-  set b_absolute_path $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path)
-
-  if { {compile} == $step } {
-    puts $fh_scr "\n# directory path for design sources and include directories (if any) wrt this path"
-    if { $b_absolute_path } {
-      puts $fh_scr "origin_dir=\"$dir\""
-    } else {
-      puts $fh_scr "origin_dir=\".\""
-    }
-  
-    set vlog_arg_list [list "-incr"]
-    set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
-    if { {} != $more_vlog_options } {
-      set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
-    }
-    set vlog_cmd_str [join $vlog_arg_list " "]
-    puts $fh_scr "\n# set vlog command line args"
-    puts $fh_scr "vlog_opts=\"$vlog_cmd_str\""
-  
-    set vcom_arg_list [list]
-    set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
-    lappend vcom_arg_list "-$vhdl_syntax"
-    set more_vcom_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
-    if { {} != $more_vcom_options } {
-      set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
-    }
-    set vcom_cmd_str [join $vcom_arg_list " "]
-    puts $fh_scr "\n# set vcom command line args"
-    puts $fh_scr "vcom_opts=\"$vcom_cmd_str\""
-  
-    set log "${step}.log"
-    set redirect_cmd_str "2>&1 | tee -a $log"
-  
-    puts $fh_scr "\n# create libraries"
-    puts $fh_scr "\$bin_path/vlib work $redirect_cmd_str"
-    puts $fh_scr "\$bin_path/vlib msim $redirect_cmd_str\n"
-  
-    set global_files_str {}
-    set design_files [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
-    set design_libs [usf_modelsim_get_design_libs $design_files]
-  
-    # TODO:
-    # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
-    # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
-  
-    set b_default_lib false
-    set default_lib [get_property "DEFAULT_LIB" [current_project]]
-    foreach lib $design_libs {
-      if {[string length $lib] == 0} { continue; }
-      puts $fh_scr "\$bin_path/vlib msim/$lib $redirect_cmd_str"
-      if { $default_lib == $lib } {
-        set b_default_lib true
-      }
-    }
-    if { !$b_default_lib } {
-      puts $fh_scr "\$bin_path/vlib msim/$default_lib $redirect_cmd_str"
-    }
-     
-    puts $fh_scr "\n# map libraries"
-    foreach lib $design_libs {
-      if {[string length $lib] == 0} { continue; }
-      puts $fh_scr "\$bin_path/vmap $lib msim/$lib $redirect_cmd_str"
-    }
-    if { !$b_default_lib } {
-      puts $fh_scr "\$bin_path/vmap $default_lib msim/$default_lib $redirect_cmd_str"
-    }
-  
-    puts $fh_scr "\n# compile design source files"
-    foreach file $design_files {
-      set type    [lindex [split $file {#}] 0]
-      set lib     [lindex [split $file {#}] 1]
-      set cmd_str [lindex [split $file {#}] 2]
-      puts $fh_scr "\$bin_path/$cmd_str $redirect_cmd_str"
-    }
-  
-    # compile glbl file
-    set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-    if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $design_files] } {
-      ::tclapp::xilinx::modelsim::usf_copy_glbl_file
-      set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
-      set file_str "-work $top_lib \"glbl.v\""
-      puts $fh_scr "\n# compile glbl module\n\$bin_path/vlog $file_str $redirect_cmd_str"
-    }
-  } elseif { {elaborate} == $step } {
-    set cmd_str [usf_modelsim_get_elaboration_cmdline]
-    puts $fh_scr ""
-
-    set log "${step}.log"
-    set redirect_cmd_str "2>&1 | tee -a $log"
-
-    puts $fh_scr "\$bin_path/$cmd_str $redirect_cmd_str"
+  upvar $prev_file_type_arg prev_file_type
+  upvar $prev_lib_arg  prev_lib
+  set tool_path $::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)
+  set DS "\\\\"
+  if {$::tcl_platform(platform) == "unix"} {
+    set DS "/"
   }
+  set tool_path_str ""
+  if { $::tclapp::xilinx::modelsim::a_sim_vars(b_install_path_specified) } {
+    set tool_path_str "$tool_path${DS}"
+  }
+
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+    puts $fh_scr "${tool_path_str}$cmd_str \\"
+  } else {
+    puts $fh_scr "eval $cmd_str \\"
+  }
+  puts $fh_scr "$src_file \\"
+
+  set prev_file_type $file_type
+  set prev_lib  $lib
 }
 
-proc usf_add_quit_on_error { fh } {
+proc usf_add_quit_on_error { fh step } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  set b_batch        $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
 
-  if { ![get_param "simulator.modelsimNoQuitOnError"] } {
-    puts $fh "onbreak {quit -f}"
-    puts $fh "onerror {quit -f}\n"
-  }
-
-  # quit on error always for batch/scripts only and when param is true
-  if { ($b_batch || $b_scripts_only) && ([get_param "simulator.modelsimNoQuitOnError"])  } {
-    puts $fh "onbreak {quit -f}"
-    puts $fh "onerror {quit -f}\n"
+  if { $b_scripts_only } {
+    # for both native and classic modes
+    if { {simulate} == $step } {
+      if { [get_param "simulator.modelsimNoQuitOnError"] } {
+        # no op
+      } else {
+        puts $fh "onbreak {quit -f}"
+        puts $fh "onerror {quit -f}\n"
+      }
+    }
+  } else {
+    # GUI and batch
+    # native mode (default)
+    if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+      if { {simulate} == $step } {
+        if { [get_param "simulator.modelsimNoQuitOnError"] } {
+          # no op
+        } else {
+          puts $fh "onbreak {quit -f}"
+          puts $fh "onerror {quit -f}\n"
+        }
+      }
+    # classic mode
+    } else {
+      if { ({compile} == $step) || ({elaborate} == $step) || ({simulate} == $step) } {
+        if { [get_param "simulator.modelsimNoQuitOnError"] } {
+          # no op
+        } else {
+          puts $fh "onbreak {quit -f}"
+          puts $fh "onerror {quit -f}\n"
+        }
+      }
+    }
   }
 }
 }

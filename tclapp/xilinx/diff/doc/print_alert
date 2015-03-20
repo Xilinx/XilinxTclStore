@@ -1,0 +1,23 @@
+
+Example:
+
+  # print alert to stdout
+  ::tclapp::xilinx::diff::print_alert "An error was encountered\n"
+  !! An error was encountered
+
+  # print alert to an ASCII log
+  ::tclapp::xilinx::diff::print_alert "An error was encountered\n" report.log
+
+  # print alert to HTML file
+  ::tclapp::xilinx::diff::print_alert "An error was encountered\n" report.html
+
+  # print alert to an HTML log using global default
+  ::tclapp::xilinx::diff::set_global_report report.html
+  ::tclapp::xilinx::diff::print_alert "An error was encountered\n"
+
+
+  # Note: When using HTML, it is best to call print_start, print_header, (print_*), print_end
+  #       See these other commands help for more information
+
+
+

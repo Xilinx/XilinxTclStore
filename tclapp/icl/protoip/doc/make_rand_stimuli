@@ -1,0 +1,16 @@
+  Description: 
+   Create input vectors with random data (-5,5) to be used as stimuli 
+   by ip_design_test and store them in  [WORKING DIRECTORY]/ip_design/test/stimuli/project_name.
+   Expected results (using floating point double precision) 
+   for the template project are stored in 
+   [WORKING DIRECTORY]/ip_design/test/results/project_name.
+
+  This command should be run before 'ip_design_test' command.
+
+
+  Example:
+   ip_design_make_rand_stimuli -project_name my_project0
+   ip_design_make_rand_stimuli -project_name my_project0 -input x1:2:fix:4:6 -output y0:3:fix:2:4
+
+
+

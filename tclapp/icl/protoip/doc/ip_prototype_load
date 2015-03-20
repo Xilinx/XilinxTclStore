@@ -1,0 +1,16 @@
+ Description: 
+  Build the FPGA Ethernet server application using SDK according 
+  to the project configuration parameters
+ [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
+  and program the FPGA.
+  
+ An evaluation board connected to an host computer through an Ethernet and USB JTAG cable is required.
+ 
+ This command can be run after 'ip_prototype_build' command only.
+
+ Example:
+  ip_prototype_load -project_name my_project0  -board_name zedboard -type_eth udp
+  ip_prototype_load -project_name my_project0  -board_name zedboard -type_eth udp -mem_base_address 33554432
+
+
+

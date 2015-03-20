@@ -5,13 +5,12 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::write_template {args} {
-  # Summary : generates a Verilog/VHDL stub, instanciation template or testbench for the current design in memory (current_instance)
+  # Summary : generates a Verilog/VHDL stub or instanciation template for the current design in memory (current_instance)
 
   # Argument Usage:
-  # [-type <arg> = stub]: Type of template to create: stub, template or testbench
+  # [-type <arg> = stub]: Type of template to create: stub or template
   # [-stub]: Generate a stub (same as -type stub)
   # [-template]: Generate a template (same as -type template)
-  # [-testbench]: Generate a testbench (same as -type testbench)
   # [-language <arg> = verilog]: Output language of the template: verilog or vhdl
   # [-verilog]: Verilog language (same as -language verilog)
   # [-vhdl]: VHDL language (same as -language vhdl)
@@ -91,9 +90,9 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
       -type -
       {^-ty(pe?)?$} {
            set type [string tolower [lshift args]]
-           if {![regexp {^(stub|template|testbench)$} $type]} {
+           if {![regexp {^(stub|template)$} $type]} {
              incr error
-             puts " -E- the supported values for -type are stub, template, or testbench"
+             puts " -E- the supported values for -type are stub or template"
            }
       }
       -stub -
@@ -103,10 +102,6 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
       -template -
       {^-tem(p(l(a(te?)?)?)?)?$} {
            set type {template}
-      }
-      -testbench -
-      {^-tes(t(b(e(n(ch?)?)?)?)?)?$} {
-           set type {testbench}
       }
       -language -
       {^-l(a(n(g(u(a(ge?)?)?)?)?)?)?$} {
@@ -174,10 +169,9 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
     puts [format {
   Usage: write_template
               [-type <arg>]        - Type of template to create
-                                     Options are: stub,template, or testbench
+                                     Options are: stub or template
               [-stub]              - Generate a stub (same as -type stub)
               [-template]          - Generate a template (same as -type template)
-              [-testbench]         - Generate a testbench (same as -type testbench)
               [-language <arg>]    - Output language of the template
                                      Options are: verilog or vhdl
               [-verilog]           - Verilog language (same as -language verilog)
@@ -195,7 +189,6 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
      This command generates Verilog or VHDL templates for:
        template: -template or -type template
        blackbox stub definition: -stub or -type stub
-       testbench: -testbench or -type testbench
 
   Example:
      write_template
@@ -211,26 +204,27 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
   }
 
   # If no design is open
-  if { [catch {current_instance .}]} {
+  if { [catch {current_instance -quiet .}]} {
     set errMsg "ERROR: No open design. A design must be open to run this command."
     error $errMsg
   }
 
   # Save the current instance we are in so that it can be restored afterward
-  set current_instance [current_instance .]
+  set current_instance [current_instance -quiet .]
 
   # Define module name and if command is being run on top or a cell
   if {$cell != {}} {
     set module [get_property -quiet REF_NAME $cell]
     set isTop 0
   } else {
-    if {$current_instance == [get_property -quiet TOP [current_design]]} {
-      set module $current_instance
+    # If top-level, then $current_instance is empty
+    if {$current_instance == {}} {
+      set module [get_property -quiet TOP [current_design]]
       set isTop 1
     } else {
       # We need to change to the top-level so that the list of pins can be extracted from
       # the current instance
-      current_instance
+      current_instance -quiet
       set module [get_property -quiet REF_NAME [get_cells -quiet $current_instance]]
       set isTop 0
       set cell $current_instance
@@ -299,12 +293,6 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
     } elseif {[string match $language "vhdl"]} {
       set content [vhdlTemplate]
     }
-  } elseif {[string match $type "testbench"]} {
-    if {[string match $language "verilog"]} {
-      set content [vlogTestBench]
-    } elseif {[string match $language "vhdl"]} {
-      set content [vhdlTestBench]
-    }
   }
 
   # Save the template
@@ -314,11 +302,11 @@ proc ::tclapp::xilinx::designutils::write_template::write_template { args } {
   close $tfh
 
   # Go back to the instance level we were in before calling this command
-  if {$current_instance != [get_property -quiet TOP [current_design]]} {
-    current_instance
-    current_instance $current_instance
+  if {$current_instance != {}} {
+    current_instance -quiet
+    current_instance -quiet $current_instance
   } else {
-    current_instance
+    current_instance -quiet
   }
 
   # Return result as string?

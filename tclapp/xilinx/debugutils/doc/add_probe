@@ -1,0 +1,10 @@
+
+
+  Description: Add probe to the design and connect the probe to an output port
+
+     Only add one probe at each time. The probe port can be existed or not, but 
+     if port alreay exist, please use exactly same pin loc & iostandard.
+     When any error happened, will report critical warnings.
+
+  Example:
+     ::xilinx::debugutils::add_probe -net cpuEngine/or1200_cpu/p_0_in[10] -port myprobe -iostandard HSTL -loc W26

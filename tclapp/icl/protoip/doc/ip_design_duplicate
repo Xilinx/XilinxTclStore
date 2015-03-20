@@ -1,0 +1,5 @@
+ Description: Make a copy of a project in [WORKING DIRECTORY]
+
+ Example:
+  ip_design_duplicate -from project_name_original -to project_name_new
+

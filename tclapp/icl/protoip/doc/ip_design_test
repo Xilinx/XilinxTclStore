@@ -1,0 +1,17 @@
+  Description: 
+   Run a C/RTL simulation of the project named 'project_name' according to the 
+   specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt 
+   using Vivado HLS. 
+   
+   The specified inputs parameters overwrite the one specified into 
+   configuration parameters [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt.
+
+  This command should be run after 'make_template' command only.
+
+
+  Example:
+   ip_design_test -project_name my_project0 -type_test c
+   ip_design_test -project_name my_project0 -type_test c -input x1:2:fix:4:6 -output y0:3:fix:2:4 -fclk 150 -FPGA_name xc7z020clg484-1 
+
+
+

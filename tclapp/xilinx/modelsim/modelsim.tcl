@@ -1,6 +1,6 @@
 ###########################################################################
 #
-# modelsim.tcl (allow Tcl to find tclindex and provide package version 1.0)
+# modelsim.tcl (allow Tcl to find tclindex and provide package this version)
 #
 ###########################################################################
 namespace eval ::tclapp::xilinx::modelsim {
@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::modelsim {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::modelsim 1.1
+package provide ::tclapp::xilinx::modelsim 2.27
