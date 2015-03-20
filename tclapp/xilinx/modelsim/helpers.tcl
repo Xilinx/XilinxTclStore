@@ -1297,7 +1297,7 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
       lappend compile_order_files $file
     }
   }
-  set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\" || FILE_TYPE == \"Verilog Header\""
+  set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
   foreach file [usf_get_files_from_block_filesets $verilog_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set cmd_str [usf_get_file_cmd_str $file $file_type $global_files_str l_incl_dirs_opts]
@@ -2290,6 +2290,11 @@ proc usf_get_testbench_files_from_ip { file_type_filter } {
       foreach tb $tb_files {
         set tb_file_obj [lindex [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] $tb] 0]
         if { {simulation testbench} == [get_property "USED_IN" $tb_file_obj] } {
+          if { [lsearch -exact [list_property $tb_file_obj] {IS_USER_DISABLED}] != -1 } {
+            if { [get_property {IS_USER_DISABLED} $tb_file_obj] } {
+              continue;
+            }
+          }
           lappend tb_filelist $tb
         }
       }

@@ -428,7 +428,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
-      set full_cmd "\$xv_path/bin/xvhdl $xvhdl_cmd_str 2>&1 | tee $log_cmd_str"
+      set full_cmd "\$xv_path/bin/xvhdl $xvhdl_cmd_str 2>&1 | tee -a $log_cmd_str"
       puts $fh_scr "ExecStep $full_cmd"
     } else {
       set log_cmd_str " -log $log_filename"
