@@ -1271,7 +1271,12 @@ proc usf_launch_script { simulator step } {
   }
   cd $cwd
   if { $faulty_run } {
-    [catch {send_msg_id USF-XSim-062 ERROR "'$step' step failed with error(s). Please check the Tcl console output or '$results_log' file for more information.\n"}]
+    if { {} == $results_log} {
+      set msg "'$step' step failed with error(s) while executing '$shell_script_file' script. Please check that the file has the correct 'read/write/execute' permissions and the Tcl console output for any other possible errors or warnings.\n"
+      [catch {send_msg_id USF-XSim-062 ERROR "$msg"}]
+    } else {
+      [catch {send_msg_id USF-XSim-062 ERROR "'$step' step failed with error(s). Please check the Tcl console output or '$results_log' file for more information.\n"}]
+    }
     # IMPORTANT - *** DONOT MODIFY THIS ***
     error "_SIM_STEP_RUN_EXEC_ERROR_"
     # IMPORTANT - *** DONOT MODIFY THIS ***

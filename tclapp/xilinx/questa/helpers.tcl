@@ -1373,7 +1373,8 @@ proc usf_launch_script { simulator step } {
   cd $cwd
   if { $faulty_run } {
     if { {} == $results_log} {
-      [catch {send_msg_id USF-Questa-070 ERROR "'$step' step failed with error(s). Please check the Tcl console output for more information.\n"}]
+      set msg "'$step' step failed with error(s) while executing '$shell_script_file' script. Please check that the file has the correct 'read/write/execute' permissions and the Tcl console output for any other possible errors or warnings.\n"
+      [catch {send_msg_id USF-Questa-070 ERROR "$msg"}]
     } else {
       [catch {send_msg_id USF-Questa-070 ERROR "'$step' step failed with error(s). Please check the Tcl console output or '$results_log' file for more information.\n"}]
     }
