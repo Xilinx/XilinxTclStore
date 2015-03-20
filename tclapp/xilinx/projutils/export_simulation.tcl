@@ -999,7 +999,7 @@ proc xps_add_block_fs_files { simulator launch_dir global_files_str l_incl_dirs_
       lappend files $cmd_str
     }
   }
-  set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\" || FILE_TYPE == \"Verilog Header\""
+  set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
   foreach file [xps_get_files_from_block_filesets $verilog_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set compiler [xps_get_compiler $simulator $file_type]
