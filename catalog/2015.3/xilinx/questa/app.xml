@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set PATH to point to 32-bit libraries</revision_history>
+      <revision_history>filter user_disabled test bench sources from IP</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
