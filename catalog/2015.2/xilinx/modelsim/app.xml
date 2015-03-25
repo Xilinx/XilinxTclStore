@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed platform detection for axi-bfm simulator library</revision_history>
+      <revision_history>updated message if run_program fails to execute the script files</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated timing_report_to_verilog to support latest changes in report_timing format.</revision_history>
+      <revision_history>Updated create_combined_mig_io_design to add files to the new project.</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -29,6 +29,10 @@
         <proc>
           <name>convert_muxfx_to_luts</name>
           <summary>Replaces MUXFX cells with LUT3 cells in an open synthesized design</summary>
+        </proc>
+        <proc>
+          <name>create_combined_mig_io_design</name>
+          <summary>Creates a new project instantiating the given MIG IP into a single design for IO pin planning</summary>
         </proc>
         <proc>
           <name>create_diff_ports</name>

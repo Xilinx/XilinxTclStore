@@ -2,10 +2,10 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Adds support to Matlab interface. Enables ip_design_test and ip_prototype_test function to backup previous test results</revision_history>
+      <revision_history>Adds detailed documentation (FPGA, IP and user function level) about resources and power consumption during all the design phases.  Enables Xilinx Vivado and Matlab mixed design flow</revision_history>
       <name>protoip</name>
       <pkg_require>Vivado 2014.4</pkg_require>
-      <author>asuardi &lt;&gt;</author>
+      <author>asuardi https://github.com/asuardi/</author>
       <company>icl</company>
       <company_display>Imperial College London</company_display>
       <summary>Protoip is a utility for quickly prototyping C-based IP in FPGA hardware</summary>
