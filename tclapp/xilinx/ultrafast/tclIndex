@@ -9,4 +9,5 @@
 
 set auto_index(::tclapp::xilinx::ultrafast::check_bd_axi_interface) [list source [file join $dir check_bd_axi_interface.tcl]]
 set auto_index(::tclapp::xilinx::ultrafast::check_pll_connectivity) [list source [file join $dir check_pll_connectivity.tcl]]
+set auto_index(::tclapp::xilinx::ultrafast::report_io_reg) [list source [file join $dir report_io_reg.tcl]]
 set auto_index(::tclapp::xilinx::ultrafast::report_reset_signals) [list source [file join $dir report_reset_signals.tcl]]
