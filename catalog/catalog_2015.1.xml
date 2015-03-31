@@ -105,8 +105,8 @@
     <app>
       <name>ultrafast</name>
       <company>xilinx</company>
-      <commit_id>44b5b6afe1f20b64b7af8d66455a7712aa6eb14a</commit_id>
-      <revision>1.6</revision>
+      <commit_id>458ce2aa058b13d7cfa64871aa6019f169b48e31</commit_id>
+      <revision>1.7</revision>
     </app>
     <app>
       <name>vcs</name>
