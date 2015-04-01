@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
   <remote>2015.3-dev</remote>
-  <support_commit_id>17e51ca4318bb1a807170b89cd9ee78a08e5a959</support_commit_id>
+  <support_commit_id>d9a848ac91453ce7616b94535c5bc9be2d44e9c9</support_commit_id>
   <release>2015.3</release>
-  <revision>2.3</revision>
+  <revision>2.4</revision>
   <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,protoip,diff,junit,tk_tunnel</app_display_order>
   <apps>
     <app>
