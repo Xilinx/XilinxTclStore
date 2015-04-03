@@ -289,6 +289,17 @@ proc xps_invalid_options {} {
     set a_sim_vars(s_ip_netlist) $a_sim_vars(s_simulator_language)
   }
 
+  if { $a_sim_vars(b_single_step) && ([string length $a_sim_vars(s_lib_map_path)] > 0) } {
+    switch $a_sim_vars(s_simulator) {
+      "questa" -
+      "ies" -
+      "vcs" {
+        send_msg_id exportsim-Tcl-007 WARNING \
+          "The '-lib_map_path' switch is not applicable for single-step flow. In single-step flow, the simulation library will be compiled automatically by the generated script.\n"
+       }
+    }
+  }
+
   switch $a_sim_vars(s_simulator) {
     "questa" -
     "vcs" {
@@ -332,18 +343,18 @@ proc xps_extract_ip_files {} {
   }
 }
 
-proc xps_invalid_flow_options {} {
+proc xps_invalid_flow_options { simulator } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
-  switch $a_sim_vars(s_simulator) {
+  switch $simulator {
     "questa" -
     "vcs" {
       if { ($a_sim_vars(b_single_step)) && ([xps_contains_vhdl]) } {
-        [catch {send_msg_id exportsim-Tcl-008 ERROR \
-          "Design contains VHDL sources. The single step simulation flow is not applicable for this simulator. Please remove the '-single_step' switch and try again.\n"}]
+        send_msg_id exportsim-Tcl-008 ERROR \
+          "Design contains VHDL sources. The single step simulation flow is not applicable for '$simulator' simulator. Please remove the '-single_step' switch and try again.\n"
         return 1
       }
     }
@@ -1691,7 +1702,10 @@ proc xps_write_script { simulator dir } {
     return 1
   }
   xps_process_cmd_str $simulator $dir
-  if { [xps_invalid_flow_options] } {
+  if { [xps_invalid_flow_options $simulator] } {
+    if { {all} == $a_sim_vars(s_simulator) } {
+      return 0
+    }
     return 1
   }
 

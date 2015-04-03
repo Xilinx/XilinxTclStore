@@ -788,7 +788,10 @@ proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set flow        $a_sim_vars(s_simulation_flow)
   if { [usf_contains_verilog $design_files] } {
-    return 1
+    if { $b_load_glbl } {
+      return 1
+    }
+    return 0
   }
   # target lang is vhdl and glbl is added as top for post-implementation and post-synthesis and load glbl set (default)
   if { ((({VHDL} == $target_lang) || ({VHDL 2008} == $target_lang)) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
