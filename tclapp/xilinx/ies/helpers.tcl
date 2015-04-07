@@ -327,17 +327,9 @@ proc usf_set_ref_dir { fh } {
   # setup source dir var
   puts $fh "# directory path for design sources and include directories (if any) wrt this path"
   if { $a_sim_vars(b_absolute_path) } {
-    if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "origin_dir=\"$a_sim_vars(s_launch_dir)\""
-    } else {
-      puts $fh "set origin_dir=\"$a_sim_vars(s_launch_dir)\""
-    }
+    puts $fh "origin_dir=\"$a_sim_vars(s_launch_dir)\""
   } else {
-    if {$::tcl_platform(platform) == "unix"} {
-      puts $fh "origin_dir=\".\""
-    } else {
-      puts $fh "set origin_dir=\".\""
-    }
+    puts $fh "origin_dir=\".\""
   }
   puts $fh ""
 } 
@@ -1019,11 +1011,8 @@ proc usf_is_tool_installed {} {
 
   variable a_sim_vars
 
-  set path_sep  {;}
-  set tool_extn {.exe}
-
-  if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
-  if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
+  set path_sep  {:}
+  set tool_extn {}
 
   set tool_name "ncsim";append tool_name ${tool_extn}
 
@@ -1054,10 +1043,8 @@ proc usf_set_simulator_path { simulator } {
   variable a_sim_vars
   set bin_path  {}
   set tool_name {} 
-  set path_sep  {;}
-  set tool_extn {.exe}
-  if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
-  if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
+  set path_sep  {:}
+  set tool_extn {}
   set install_path $a_sim_vars(s_install_path)
   send_msg_id USF-IES-041 INFO "Finding simulator installation...\n"
   switch -regexp -- $simulator {
@@ -1110,10 +1097,7 @@ proc usf_set_simulator_path { simulator } {
     }
   }
 
-  set a_sim_vars(s_tool_bin_path) [string map {/ \\\\} $bin_path]
-  if {$::tcl_platform(platform) == "unix"} {
-    set a_sim_vars(s_tool_bin_path) $bin_path
-  }
+  set a_sim_vars(s_tool_bin_path) $bin_path
 }
 
 proc usf_get_files_for_compilation { global_files_str_arg } {
@@ -1645,10 +1629,7 @@ proc usf_get_script_extn {} {
   # Argument Usage:
   # Return Value:
 
-  set scr_extn ".bat"
-  if {$::tcl_platform(platform) == "unix"} {
-    set scr_extn ".sh"
-  }
+  set scr_extn ".sh"
   return $scr_extn
 }
 
@@ -1660,20 +1641,10 @@ proc usf_get_platform {} {
   variable a_sim_vars
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set platform {}
-  set os $::tcl_platform(platform)
   set b_32_bit [get_property 32bit $fs_obj]
-  if { {windows} == $os } {
-    set platform "win64"
-    if { $b_32_bit } {
-      set platform "win32"
-    }
-  }
-
-  if { {unix} == $os } {
-    set platform "lnx64"
-    if { $b_32_bit } {
-      set platform "lnx32"
-    }
+  set platform "lnx64"
+  if { $b_32_bit } {
+    set platform "lnx32"
   }
   return $platform
 }
@@ -1701,12 +1672,9 @@ proc usf_get_simulator_lib_for_bfm {} {
 
   set simulator_lib {}
   set xil           $::env(XILINX_VIVADO)
-  set path_sep      {;}
-  set lib_extn      {.dll}
+  set path_sep      {:}
+  set lib_extn      {.so}
   set platform      [::tclapp::xilinx::ies::usf_get_platform]
-
-  if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
-  if {$::tcl_platform(platform) == "unix"} { set lib_extn {.so} }
 
   set lib_name "libxil_ncsim";append lib_name $lib_extn
   if { {} != $xil } {

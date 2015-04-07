@@ -369,18 +369,11 @@ proc usf_vcs_write_compile_script {} {
     send_msg_id USF-VCS-012 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
-  if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/sh -f"
-    ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
-    if { {} != $tool_path } {
-      puts $fh_scr "\n# installation path setting"
-      puts $fh_scr "bin_path=\"$tool_path\"\n"
-    }
-  } else {
-    puts $fh_scr "@echo off"
-    if { {} != $tool_path } {
-      puts $fh_scr "set bin_path=\"$tool_path\""
-    }
+  puts $fh_scr "#!/bin/sh -f"
+  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
+  if { {} != $tool_path } {
+    puts $fh_scr "\n# installation path setting"
+    puts $fh_scr "bin_path=\"$tool_path\"\n"
   }
 
   ::tclapp::xilinx::vcs::usf_set_ref_dir $fh_scr
@@ -398,11 +391,7 @@ proc usf_vcs_write_compile_script {} {
   }
 
   puts $fh_scr "# set ${tool} command line args"
-  if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-  } else {
-    puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\""
-  }
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   set tool "vlogan"
   set arg_list [list]
   if { [get_property 32bit $fs_obj] } {
@@ -417,11 +406,7 @@ proc usf_vcs_write_compile_script {} {
   }
 
   puts $fh_scr "\n# set ${tool} command line args"
-  if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
-  } else {
-    puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
-  }
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
   puts $fh_scr "# compile design source files"
   set log "unknown.log"
   
@@ -523,17 +508,11 @@ proc usf_vcs_write_elaborate_script {} {
     send_msg_id USF-VCS-013 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
-  if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/sh -f"
-    ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
-    if { {} != $tool_path } {
-      puts $fh_scr "\n# installation path setting"
-      puts $fh_scr "bin_path=\"$tool_path\"\n"
-    }
-  } else {
-    if { {} != $tool_path } {
-      puts $fh_scr "set bin_path=\"$tool_path\""
-    }
+  puts $fh_scr "#!/bin/sh -f"
+  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
+  if { {} != $tool_path } {
+    puts $fh_scr "\n# installation path setting"
+    puts $fh_scr "bin_path=\"$tool_path\"\n"
   }
   set tool "vcs"
   set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
@@ -572,11 +551,7 @@ proc usf_vcs_write_elaborate_script {} {
   }
 
   puts $fh_scr "# set ${tool} command line args"
-  if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
-  } else {
-    puts $fh_scr "set ${tool}_opts=\"[join $arg_list " "]\"\n"
-  }
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
   set tool_path_val "\$bin_path/$tool"
   if { {} == $tool_path } {
     set tool_path_val "$tool"
@@ -705,141 +680,139 @@ proc usf_vcs_create_setup_script {} {
     send_msg_id USF-VCS-017 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
-  if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/sh -f"
-    ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
 
-    puts $fh_scr "\n# Script usage"
-    puts $fh_scr "usage()"
-    puts $fh_scr "\{"
-    puts $fh_scr "  msg=\"Usage: setup.sh \[-help\]\\n\\"
-    puts $fh_scr "Usage: setup.sh \[-reset_run\]\\n\\n\\\n\\"
-    puts $fh_scr "\[-help\] -- Print help\\n\\n\\"
-    puts $fh_scr "\[-reset_run\] -- Recreate simulator setup files and library mappings for a clean run. The generated files\\n\\"
-    puts $fh_scr "\\t\\tfrom the previous run will be removed automatically.\\n\""
-    puts $fh_scr "  echo -e \$msg"
-    puts $fh_scr "  exit 1"
-    puts $fh_scr "\}"
+  puts $fh_scr "#!/bin/sh -f"
+  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
 
-    puts $fh_scr "\n# Create design library directory paths and define design library mappings in cds.lib"
-    puts $fh_scr "create_lib_mappings()"
-    puts $fh_scr "\{"
-    set simulator "vcs"
-    set libs [list]
-    set design_libs [usf_vcs_get_design_libs $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]
-    foreach lib $design_libs {
-      if { {} == $lib } {
-        continue;
-      }
-      if { {work} == $lib } {
-        continue;
-      }
-      lappend libs [string tolower $lib]
+  puts $fh_scr "\n# Script usage"
+  puts $fh_scr "usage()"
+  puts $fh_scr "\{"
+  puts $fh_scr "  msg=\"Usage: setup.sh \[-help\]\\n\\"
+  puts $fh_scr "Usage: setup.sh \[-reset_run\]\\n\\n\\\n\\"
+  puts $fh_scr "\[-help\] -- Print help\\n\\n\\"
+  puts $fh_scr "\[-reset_run\] -- Recreate simulator setup files and library mappings for a clean run. The generated files\\n\\"
+  puts $fh_scr "\\t\\tfrom the previous run will be removed automatically.\\n\""
+  puts $fh_scr "  echo -e \$msg"
+  puts $fh_scr "  exit 1"
+  puts $fh_scr "\}"
+
+  puts $fh_scr "\n# Create design library directory paths and define design library mappings in cds.lib"
+  puts $fh_scr "create_lib_mappings()"
+  puts $fh_scr "\{"
+  set simulator "vcs"
+  set libs [list]
+  set design_libs [usf_vcs_get_design_libs $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]
+  foreach lib $design_libs {
+    if { {} == $lib } {
+      continue;
     }
-
-    set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
-    if { [lsearch -exact $libs $default_lib] == -1 } {
-      lappend libs $default_lib
+    if { {work} == $lib } {
+      continue;
     }
-
-    puts $fh_scr "  libs=([join $libs " "])"
-    puts $fh_scr "  file=\"synopsys_sim.setup\""
-    if { $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) } {
-      set lib_dir_path [file normalize [string map {\\ /} [file join $dir $simulator]]]
-      puts $fh_scr "  dir=\"$lib_dir_path\"\n"
-    } else {
-      puts $fh_scr "  dir=\"$simulator\"\n"
-    }
-    puts $fh_scr "  if \[\[ -e \$file \]\]; then"
-    puts $fh_scr "    rm -f \$file"
-    puts $fh_scr "  fi"
-    puts $fh_scr "  if \[\[ -e \$dir \]\]; then"
-    puts $fh_scr "    rm -rf \$dir"
-    puts $fh_scr "  fi"
-    puts $fh_scr ""
-    puts $fh_scr "  touch \$file"
-
-    set compiled_lib_dir $::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir)
-    if { ![file exists $compiled_lib_dir] } {
-      puts $fh_scr "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
-    } else {
-      puts $fh_scr "  lib_map_path=\"$compiled_lib_dir\""
-    }
-
-    set file "synopsys_sim.setup"
-    puts $fh_scr "  incl_ref=\"OTHERS=\$lib_map_path/$file\""
-    puts $fh_scr "  echo \$incl_ref >> \$file"
-    puts $fh_scr "  for (( i=0; i<\$\{#libs\[*\]\}; i++ )); do"
-    puts $fh_scr "    lib=\"\$\{libs\[i\]\}\""
-    puts $fh_scr "    lib_dir=\"\$dir/\$lib\""
-    puts $fh_scr "    if \[\[ ! -e \$lib_dir \]\]; then"
-    puts $fh_scr "      mkdir -p \$lib_dir"
-    puts $fh_scr "      mapping=\"\$lib : \$dir/\$lib\""
-    puts $fh_scr "      echo \$mapping >> \$file"
-    puts $fh_scr "    fi"
-    puts $fh_scr "  done"
-    puts $fh_scr "\}"
-    puts $fh_scr ""
-    puts $fh_scr "# Delete generated files from the previous run"
-    puts $fh_scr "reset_run()"
-    puts $fh_scr "\{"
-    set file_list [list "64" "ucli.key" "AN.DB" "csrc" "${top}_simv" "${top}_simv.daidir" "inter.vpd" \
-                        "vlogan.log" "vhdlan.log" "compile.log" "elaborate.log" "simulate.log" \
-                        ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock" "scirocco_command.log"] 
-    set files [join $file_list " "]
-    puts $fh_scr "  files_to_remove=($files)"
-    puts $fh_scr "  for (( i=0; i<\$\{#files_to_remove\[*\]\}; i++ )); do"
-    puts $fh_scr "    file=\"\$\{files_to_remove\[i\]\}\""
-    puts $fh_scr "    if \[\[ -e \$file \]\]; then"
-    puts $fh_scr "      rm -rf \$file"
-    puts $fh_scr "    fi"
-    puts $fh_scr "  done"
-    puts $fh_scr "\}"
-    puts $fh_scr ""
-
-    puts $fh_scr "setup()"
-    puts $fh_scr "\{"
-    puts $fh_scr "  case \$1 in"
-    puts $fh_scr "    \"-reset_run\" )"
-    puts $fh_scr "      reset_run"
-    puts $fh_scr "      echo -e \"INFO: Simulation run files deleted.\\n\""
-    puts $fh_scr "      exit 0"
-    puts $fh_scr "    ;;"
-    puts $fh_scr "    * )"
-    puts $fh_scr "    ;;"
-    puts $fh_scr "  esac\n"
-    puts $fh_scr "  create_lib_mappings"
-    puts $fh_scr "  touch hdl.var"
-    puts $fh_scr "  echo -e \"INFO: Simulation setup files and library mappings created.\\n\""
-    puts $fh_scr "  # Add any setup/initialization commands here:-"
-    puts $fh_scr "  # <user specific commands>"
-    puts $fh_scr "\}"
-    puts $fh_scr ""
-
-    set version_txt [split [version] "\n"]
-    set version     [lindex $version_txt 0]
-    set copyright   [lindex $version_txt 2]
-    set product     [lindex [split $version " "] 0]
-    set version_id  [join [lrange $version 1 end] " "]
-    puts $fh_scr "# Script info"
-    puts $fh_scr "echo -e \"setup.sh - Script generated by launch_simulation ($version-id)\\n\"\n"
-    puts $fh_scr "# Check command line args"
-    puts $fh_scr "if \[\[ \$# > 1 \]\]; then"
-    puts $fh_scr "  echo -e \"ERROR: invalid number of arguments specified\\n\""
-    puts $fh_scr "  usage"
-    puts $fh_scr "fi\n"
-    puts $fh_scr "if \[\[ (\$# == 1 ) && (\$1 != \"-reset_run\" && \$1 != \"-help\" && \$1 != \"-h\") \]\]; then"
-    puts $fh_scr "  echo -e \"ERROR: unknown option specified '\$1' (type \"setup.sh -help\" for for more info)\""
-    puts $fh_scr "  exit 1"
-    puts $fh_scr "fi"
-    puts $fh_scr ""
-    puts $fh_scr "if \[\[ (\$1 == \"-help\" || \$1 == \"-h\") \]\]; then"
-    puts $fh_scr "  usage"
-    puts $fh_scr "fi\n"
-    puts $fh_scr "# Launch script"
-    puts $fh_scr "setup \$1"
-
+    lappend libs [string tolower $lib]
   }
+
+  set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+  if { [lsearch -exact $libs $default_lib] == -1 } {
+    lappend libs $default_lib
+  }
+
+  puts $fh_scr "  libs=([join $libs " "])"
+  puts $fh_scr "  file=\"synopsys_sim.setup\""
+  if { $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) } {
+    set lib_dir_path [file normalize [string map {\\ /} [file join $dir $simulator]]]
+    puts $fh_scr "  dir=\"$lib_dir_path\"\n"
+  } else {
+    puts $fh_scr "  dir=\"$simulator\"\n"
+  }
+  puts $fh_scr "  if \[\[ -e \$file \]\]; then"
+  puts $fh_scr "    rm -f \$file"
+  puts $fh_scr "  fi"
+  puts $fh_scr "  if \[\[ -e \$dir \]\]; then"
+  puts $fh_scr "    rm -rf \$dir"
+  puts $fh_scr "  fi"
+  puts $fh_scr ""
+  puts $fh_scr "  touch \$file"
+
+  set compiled_lib_dir $::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir)
+  if { ![file exists $compiled_lib_dir] } {
+    puts $fh_scr "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
+  } else {
+    puts $fh_scr "  lib_map_path=\"$compiled_lib_dir\""
+  }
+
+  set file "synopsys_sim.setup"
+  puts $fh_scr "  incl_ref=\"OTHERS=\$lib_map_path/$file\""
+  puts $fh_scr "  echo \$incl_ref >> \$file"
+  puts $fh_scr "  for (( i=0; i<\$\{#libs\[*\]\}; i++ )); do"
+  puts $fh_scr "    lib=\"\$\{libs\[i\]\}\""
+  puts $fh_scr "    lib_dir=\"\$dir/\$lib\""
+  puts $fh_scr "    if \[\[ ! -e \$lib_dir \]\]; then"
+  puts $fh_scr "      mkdir -p \$lib_dir"
+  puts $fh_scr "      mapping=\"\$lib : \$dir/\$lib\""
+  puts $fh_scr "      echo \$mapping >> \$file"
+  puts $fh_scr "    fi"
+  puts $fh_scr "  done"
+  puts $fh_scr "\}"
+  puts $fh_scr ""
+  puts $fh_scr "# Delete generated files from the previous run"
+  puts $fh_scr "reset_run()"
+  puts $fh_scr "\{"
+  set file_list [list "64" "ucli.key" "AN.DB" "csrc" "${top}_simv" "${top}_simv.daidir" "inter.vpd" \
+                      "vlogan.log" "vhdlan.log" "compile.log" "elaborate.log" "simulate.log" \
+                      ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock" "scirocco_command.log"] 
+  set files [join $file_list " "]
+  puts $fh_scr "  files_to_remove=($files)"
+  puts $fh_scr "  for (( i=0; i<\$\{#files_to_remove\[*\]\}; i++ )); do"
+  puts $fh_scr "    file=\"\$\{files_to_remove\[i\]\}\""
+  puts $fh_scr "    if \[\[ -e \$file \]\]; then"
+  puts $fh_scr "      rm -rf \$file"
+  puts $fh_scr "    fi"
+  puts $fh_scr "  done"
+  puts $fh_scr "\}"
+  puts $fh_scr ""
+
+  puts $fh_scr "setup()"
+  puts $fh_scr "\{"
+  puts $fh_scr "  case \$1 in"
+  puts $fh_scr "    \"-reset_run\" )"
+  puts $fh_scr "      reset_run"
+  puts $fh_scr "      echo -e \"INFO: Simulation run files deleted.\\n\""
+  puts $fh_scr "      exit 0"
+  puts $fh_scr "    ;;"
+  puts $fh_scr "    * )"
+  puts $fh_scr "    ;;"
+  puts $fh_scr "  esac\n"
+  puts $fh_scr "  create_lib_mappings"
+  puts $fh_scr "  touch hdl.var"
+  puts $fh_scr "  echo -e \"INFO: Simulation setup files and library mappings created.\\n\""
+  puts $fh_scr "  # Add any setup/initialization commands here:-"
+  puts $fh_scr "  # <user specific commands>"
+  puts $fh_scr "\}"
+  puts $fh_scr ""
+
+  set version_txt [split [version] "\n"]
+  set version     [lindex $version_txt 0]
+  set copyright   [lindex $version_txt 2]
+  set product     [lindex [split $version " "] 0]
+  set version_id  [join [lrange $version 1 end] " "]
+  puts $fh_scr "# Script info"
+  puts $fh_scr "echo -e \"setup.sh - Script generated by launch_simulation ($version-id)\\n\"\n"
+  puts $fh_scr "# Check command line args"
+  puts $fh_scr "if \[\[ \$# > 1 \]\]; then"
+  puts $fh_scr "  echo -e \"ERROR: invalid number of arguments specified\\n\""
+  puts $fh_scr "  usage"
+  puts $fh_scr "fi\n"
+  puts $fh_scr "if \[\[ (\$# == 1 ) && (\$1 != \"-reset_run\" && \$1 != \"-help\" && \$1 != \"-h\") \]\]; then"
+  puts $fh_scr "  echo -e \"ERROR: unknown option specified '\$1' (type \"setup.sh -help\" for for more info)\""
+  puts $fh_scr "  exit 1"
+  puts $fh_scr "fi"
+  puts $fh_scr ""
+  puts $fh_scr "if \[\[ (\$1 == \"-help\" || \$1 == \"-h\") \]\]; then"
+  puts $fh_scr "  usage"
+  puts $fh_scr "fi\n"
+  puts $fh_scr "# Launch script"
+  puts $fh_scr "setup \$1"
   close $fh_scr
 
   usf_make_file_executable $scr_file
