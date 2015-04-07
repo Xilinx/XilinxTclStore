@@ -239,7 +239,7 @@ proc usf_questa_verify_compiled_lib {} {
     }
   }
   # 2. not found? find in project default dir (<project>/<project>.cache/compile_simlib
-  set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
+  set dir [get_property "COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR" [current_project]]
   set file [file normalize [file join $dir $ini_file]]
   if { [file exists $file] } {
     set compiled_lib_dir $dir
@@ -271,7 +271,7 @@ proc usf_questa_verify_compiled_lib {} {
         send_msg_id USF-Questa-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
       }
       send_msg_id USF-Questa-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
-                                             - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for Questa, or\n\
+                                             - set the 'COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for Questa, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
                                              - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
     }

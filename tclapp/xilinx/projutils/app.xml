@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>generate error if -single_step specified with -lib_map_path</revision_history>
+      <revision_history>fixed script filename issue when exporting for multiple IP's</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

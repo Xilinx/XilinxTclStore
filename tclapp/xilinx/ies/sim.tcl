@@ -221,7 +221,7 @@ proc usf_ies_verify_compiled_lib {} {
   set compiled_lib_dir {}
   send_msg_id USF-IES-006 INFO "Finding pre-compiled libraries...\n"
   # check property value
-  set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
+  set dir [get_property "COMPXLIB.IES_COMPILED_LIBRARY_DIR" [current_project]]
   set cds_file [file normalize [file join $dir $cds_filename]]
   if { [file exists $cds_file] } {
     set compiled_lib_dir $dir
@@ -246,7 +246,7 @@ proc usf_ies_verify_compiled_lib {} {
     send_msg_id USF-IES-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
   }
   send_msg_id USF-IES-009 INFO \
-     "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for IES.\n"
+     "Please set the 'COMPXLIB.IES_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for IES.\n"
 }
 
 proc usf_ies_write_setup_files {} {

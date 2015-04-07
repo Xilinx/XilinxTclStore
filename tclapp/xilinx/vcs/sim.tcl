@@ -219,7 +219,7 @@ proc usf_vcs_verify_compiled_lib {} {
   set compiled_lib_dir {}
   send_msg_id USF-VCS-006 INFO "Finding pre-compiled libraries...\n"
   # check property value
-  set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
+  set dir [get_property "COMPXLIB.VCS_COMPILED_LIBRARY_DIR" [current_project]]
   set syn_file [file normalize [file join $dir $syn_filename]]
   if { [file exists $syn_file] } {
     set compiled_lib_dir $dir
@@ -244,7 +244,7 @@ proc usf_vcs_verify_compiled_lib {} {
     send_msg_id USF-VCS-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
   }
   send_msg_id USF-VCS-009 INFO \
-     "Please set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for VCS.\n"
+     "Please set the 'COMPXLIB.VCS_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for VCS.\n"
 }
 
 proc usf_vcs_write_setup_files {} {
