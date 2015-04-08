@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed script filename issue when exporting for multiple IP&apos;s</revision_history>
+      <revision_history>support for specifying the origin dir via variable or --origin_dir</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
