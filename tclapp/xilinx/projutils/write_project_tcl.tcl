@@ -274,8 +274,11 @@ proc write_project_tcl_script {} {
     } else {
       send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wrt the 'origin_dir' variable in the\n\
       generated script. When this script is executed from the output directory, these source files will be referenced wrt this 'origin_dir' path value.\n\
-      In case this script was later physically moved to a different directory, the 'origin_dir' value MUST be set manually with the path relative to the\n\
-      new output directory to make sure that the source files are referenced correctly from the original project.\n"
+      In case this script was later physically moved to a different directory, the 'origin_dir' value MUST be set manually in the script with the path\n\
+      relative to the new output directory to make sure that the source files are referenced correctly from the original project. You can also set the\n\
+      'origin_dir' automatically by setting the 'origin_dir_loc' variable in the tcl shell before sourcing this generated script. The 'origin_dir_loc'\n\
+      variable should be set to the path relative to the new output directory. Alternatively, if you are sourcing the script from the Vivado command line,\n\
+      then set the origin dir using '-tclargs --origin_dir <path>'. For example, 'vivado -mode tcl -source $script_filename -tclargs --origin_dir \"..\"\n"
     }
   }
 
@@ -305,6 +308,11 @@ proc wr_create_project { proj_dir name } {
   lappend l_script_data "# Set the reference directory for source file relative paths (by default the value is script directory path)"
   lappend l_script_data "set origin_dir \"$a_global_vars(s_relative_to)\""
   lappend l_script_data ""
+  set var_name "origin_dir_loc"
+  lappend l_script_data "# Use origin directory path location variable, if specified in the tcl shell"
+  lappend l_script_data "if \{ \[info exists ::$var_name\] \} \{"
+  lappend l_script_data "  set origin_dir \$::$var_name"
+  lappend l_script_data "\}"
 
   lappend l_script_data "# Set the directory path for the original project from where this script was exported"
   if { $a_global_vars(b_absolute_path) } {
@@ -315,6 +323,47 @@ proc wr_create_project { proj_dir name } {
     lappend l_script_data "set orig_proj_dir \"$path\""
   }
   lappend l_script_data ""
+
+  lappend l_script_data "variable script_file"
+  lappend l_script_data "set script_file \"[file tail $a_global_vars(script_file)]\"\n"
+  lappend l_script_data "# Help information for this script"
+  lappend l_script_data "proc help \{\} \{"
+  lappend l_script_data "  variable script_file"
+  lappend l_script_data "  puts \"\\nDescription:\""
+  lappend l_script_data "  puts \"Recreate a Vivado project from this script. The created project will be\""
+  lappend l_script_data "  puts \"functionally equivalent to the original project for which this script was\""
+  lappend l_script_data "  puts \"generated. The script contains commands for creating a project, filesets,\""
+  lappend l_script_data "  puts \"runs, adding/importing sources and setting properties on various objects.\\n\""
+  lappend l_script_data "  puts \"Syntax:\""
+  lappend l_script_data "  puts \"\$script_file\""
+  lappend l_script_data "  puts \"\$script_file -tclargs \\\[--origin_dir <path>\\\]\""
+  lappend l_script_data "  puts \"\$script_file -tclargs \\\[--help\\\]\\n\""
+  lappend l_script_data "  puts \"Usage:\""
+  lappend l_script_data "  puts \"Name                   Description\""
+  lappend l_script_data "  puts \"-------------------------------------------------------------------------\""
+  lappend l_script_data "  puts \"\\\[--origin_dir <path>\\\]  Determine source file paths wrt this path. Default\""
+  lappend l_script_data "  puts \"                       origin_dir path value is \\\".\\\", otherwise, the value\""
+  lappend l_script_data "  puts \"                       that was set with the \\\"-paths_relative_to\\\" switch\""
+  lappend l_script_data "  puts \"                       when this script was generated.\\n\""
+  lappend l_script_data "  puts \"\\\[--help\\\]               Print help information for this script\""
+  lappend l_script_data "  puts \"-------------------------------------------------------------------------\\n\""
+  lappend l_script_data "  exit 0"
+  lappend l_script_data "\}\n"
+  lappend l_script_data "if \{ \$::argc > 0 \} \{"
+  lappend l_script_data "  for \{set i 0\} \{\$i < \[llength \$::argc\]\} \{incr i\} \{"
+  lappend l_script_data "    set option \[string trim \[lindex \$::argv \$i\]\]"
+  lappend l_script_data "    switch -regexp -- \$option \{"
+  lappend l_script_data "      \"--origin_dir\" \{ incr i; set origin_dir \[lindex \$::argv \$i\] \}"
+  lappend l_script_data "      \"--help\"       \{ help \}"
+  lappend l_script_data "      default \{"
+  lappend l_script_data "        if \{ \[regexp \{^-\} \$option\] \} \{"
+  lappend l_script_data "          puts \"ERROR: Unknown option '\$option' specified, please type '\$script_file -tclargs --help' for usage info.\\n\""
+  lappend l_script_data "          return 1"
+  lappend l_script_data "        \}"
+  lappend l_script_data "      \}"
+  lappend l_script_data "    \}"
+  lappend l_script_data "  \}"
+  lappend l_script_data "\}\n"
 
   # create project
   lappend l_script_data "# Create project"
@@ -866,7 +915,13 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
  
     # re-align compiled_library_dir
-    if {[string equal -nocase $prop "compxlib.compiled_library_dir"]} {
+    if { [string equal -nocase $prop "compxlib.compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.modelsim_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.questa_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.ies_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.vcs_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.riviera_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.activehdl_compiled_library_dir"] } {
       set compile_lib_dir_path $cur_val
       set cache_dir "${proj_name}.cache"
       set path_dirs [split [string trim [file normalize [string map {\\ /} $cur_val]]] "/"]
