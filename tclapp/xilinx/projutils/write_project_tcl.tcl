@@ -314,14 +314,6 @@ proc wr_create_project { proj_dir name } {
   lappend l_script_data "  set origin_dir \$::$var_name"
   lappend l_script_data "\}"
 
-  lappend l_script_data "# Set the directory path for the original project from where this script was exported"
-  if { $a_global_vars(b_absolute_path) } {
-    lappend l_script_data "set orig_proj_dir \"$proj_dir\""
-  } else {
-    set rel_file_path "[get_relative_file_path_for_source $proj_dir [get_script_execution_dir]]"
-    set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
-    lappend l_script_data "set orig_proj_dir \"$path\""
-  }
   lappend l_script_data ""
 
   lappend l_script_data "variable script_file"
@@ -364,6 +356,16 @@ proc wr_create_project { proj_dir name } {
   lappend l_script_data "    \}"
   lappend l_script_data "  \}"
   lappend l_script_data "\}\n"
+
+  lappend l_script_data "# Set the directory path for the original project from where this script was exported"
+  if { $a_global_vars(b_absolute_path) } {
+    lappend l_script_data "set orig_proj_dir \"$proj_dir\""
+  } else {
+    set rel_file_path "[get_relative_file_path_for_source $proj_dir [get_script_execution_dir]]"
+    set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
+    lappend l_script_data "set orig_proj_dir \"$path\""
+  }
+  lappend l_script_data ""
 
   # create project
   lappend l_script_data "# Create project"
@@ -1203,7 +1205,11 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
         set file_no_quotes [string trim $file "\""]
         set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
         set str "\"\[file normalize \"$org_file_path\"\]\""
-        import_constrs_file $tcl_obj $str
+        if { $a_global_vars(b_arg_no_copy_srcs)} {
+          add_constrs_file "$str"
+        } else {
+          import_constrs_file $tcl_obj $str
+        }
       } else {
         # file is added from remote location, so set it as remote in the new project
         set file_category "remote"
