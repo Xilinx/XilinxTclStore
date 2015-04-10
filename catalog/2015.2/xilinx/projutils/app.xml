@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not fetch verilog headers from block filesets</revision_history>
+      <revision_history>fixed script filename issue when exporting for multiple IP&apos;s</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
