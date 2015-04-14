@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for simulator specific compiled library property</revision_history>
+      <revision_history>do not fetch ip testbench files, get_files will return automatically</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

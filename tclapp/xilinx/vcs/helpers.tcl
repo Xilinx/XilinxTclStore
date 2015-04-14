@@ -1295,33 +1295,33 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   }
 
   # add testbench files if any
-  set vhdl_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\")"
-  foreach file [usf_get_testbench_files_from_ip $vhdl_filter] {
-    if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
-      continue;
-    }
-    #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-    set file_type [get_property "FILE_TYPE" $file]
-    set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
-    if { {} != $cmd_str } {
-      lappend files $cmd_str
-      lappend l_compile_order_files $file
-    }
-  }
-  #set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\""
-  set verilog_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\")"
-  foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
-    if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
-      continue;
-    }
-    #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-    set file_type [get_property "FILE_TYPE" $file]
-    set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
-    if { {} != $cmd_str } {
-      lappend files $cmd_str
-      lappend l_compile_order_files $file
-    }
-  }
+  #set vhdl_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\")"
+  #foreach file [usf_get_testbench_files_from_ip $vhdl_filter] {
+  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #    continue;
+  #  }
+  #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
+  #  set file_type [get_property "FILE_TYPE" $file]
+  #  set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
+  #  if { {} != $cmd_str } {
+  #    lappend files $cmd_str
+  #    lappend l_compile_order_files $file
+  #  }
+  #}
+  ##set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\""
+  #set verilog_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\")"
+  #foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
+  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #    continue;
+  #  }
+  #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
+  #  set file_type [get_property "FILE_TYPE" $file]
+  #  set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
+  #  if { {} != $cmd_str } {
+  #    lappend files $cmd_str
+  #    lappend l_compile_order_files $file
+  #  }
+  #}
 
   # prepare command line args for fileset files
   if { [usf_is_fileset $target_obj] } {
