@@ -659,7 +659,9 @@ proc usf_get_wcfg_files { fs_obj } {
   # Argument Usage:
   # Return Value:
   set uniq_file_set [list]
-  set wcfg_files [split [get_property "XSIM.VIEW" $fs_obj] { }]
+  #set wcfg_files [split [get_property "XSIM.VIEW" $fs_obj] { }]
+  set filter "IS_ENABLED == 1"
+  set wcfg_files [get_files -of_objects [get_filesets $fs_obj] -filter $filter *.wcfg]
   if { [llength $wcfg_files] > 0 } {
     foreach file $wcfg_files {
       set file [string map {\\ /} $file]
