@@ -291,6 +291,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
   set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
+  set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
 
   set b_contain_verilog_srcs [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
   set b_contain_vhdl_srcs    [::tclapp::xilinx::xsim::usf_contains_vhdl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
@@ -350,13 +351,27 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         {VERILOG} { puts $fh_vlog $cmd_str }
       }
     }
-    # compile glbl file
-    set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-    if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] } {
-      set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
-      ::tclapp::xilinx::xsim::usf_copy_glbl_file
-      set file_str "$top_lib \"glbl.v\""
-      puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
+    # compile glbl file for behav
+    if { {behav_sim} == $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow) } {
+      set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
+      if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] } {
+        set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
+        ::tclapp::xilinx::xsim::usf_copy_glbl_file
+        set file_str "$top_lib \"glbl.v\""
+        puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
+      }
+    } else {
+      # for post* compile glbl if design contain verilog and netlist is vhdl
+      if { [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] && ({VHDL} == $target_lang) } {
+        if { ({timing} == $::tclapp::xilinx::xsim::a_sim_vars(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
+          ::tclapp::xilinx::xsim::usf_copy_glbl_file
+          set file_str "$top_lib \"glbl.v\""
+          puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
+        }
+      }
     }
 
     puts $fh_vlog "\n# Do not sort compile order\nnosort"
@@ -661,7 +676,7 @@ proc usf_get_wcfg_files { fs_obj } {
   set uniq_file_set [list]
   #set wcfg_files [split [get_property "XSIM.VIEW" $fs_obj] { }]
   set filter "IS_ENABLED == 1"
-  set wcfg_files [get_files -of_objects [get_filesets $fs_obj] -filter $filter *.wcfg]
+  set wcfg_files [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter *.wcfg]
   if { [llength $wcfg_files] > 0 } {
     foreach file $wcfg_files {
       set file [string map {\\ /} $file]
@@ -861,21 +876,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # add glbl top
-  set b_verilog_sim_netlist 0
-  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-    if { {Verilog} == $target_lang } {
-      set b_verilog_sim_netlist 1
-    }
-  }
-  if { [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] || $b_verilog_sim_netlist } {
-    set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" $fs_obj]
-    if { ([lsearch ${top_level_inst_names} {glbl}] == -1) && $b_load_glbl } {
-      set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
-      lappend args_list "${top_lib}.glbl"
-    }
-  }
-
+  usf_add_glbl_top_instance args_list $top_level_inst_names
   lappend args_list "-log elaborate.log"
 
   # other options
@@ -886,6 +887,55 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   set cmd_args [join $args_list " "]
   return $cmd_args
+}
+
+proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
+  upvar $opts_arg opts 
+  set sim_flow $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow)
+  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
+
+  set b_verilog_sim_netlist 0
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+    if { {Verilog} == $target_lang } {
+      set b_verilog_sim_netlist 1
+    }
+  }
+
+  set b_add_glbl 0
+  set b_top_level_glbl_inst_set 0
+  
+  # is glbl specified explicitly?
+  if { ([lsearch ${top_level_inst_names} {glbl}] != -1) } {
+    set b_top_level_glbl_inst_set 1
+  }
+
+  if { [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] || $b_verilog_sim_netlist } {
+    if { {behav_sim} == $sim_flow } {
+      set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" $fs_obj]
+      if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
+        set b_add_glbl 1
+      }
+    } else {
+      # for post* sim flow add glbl top if design contains verilog sources or verilog netlist add glbl top if not set earlier
+      if { !$b_top_level_glbl_inst_set } {
+        set b_add_glbl 1
+      }
+    }
+  }
+
+  if { $b_add_glbl } {
+    set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
+    # for post* top_lib is xil_defaultlib for glbl since it is compiled inside netlist
+    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+      set top_lib "xil_defaultlib"
+    }
+    lappend opts "${top_lib}.glbl"
+  }
 }
 
 proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view b_batch } {

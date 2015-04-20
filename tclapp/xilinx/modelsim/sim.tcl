@@ -426,6 +426,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path)
   set tool_path $::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)
+  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set DS "\\\\"
   if {$::tcl_platform(platform) == "unix"} {
     set DS "/"
@@ -594,12 +595,26 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
 
   # compile glbl file
-  set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-  if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
-    ::tclapp::xilinx::modelsim::usf_copy_glbl_file
-    set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
-    set file_str "-work $top_lib \"glbl.v\""
-    puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
+  if { {behav_sim} == $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow) } {
+    set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
+    if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
+      ::tclapp::xilinx::modelsim::usf_copy_glbl_file
+      set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
+      set file_str "-work $top_lib \"glbl.v\""
+      puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    if { [::tclapp::xilinx::modelsim::usf_contains_verilog $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] && ({VHDL} == $target_lang) } {
+      if { ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
+        # This is not supported, netlist will be verilog always
+      } else {
+        ::tclapp::xilinx::modelsim::usf_copy_glbl_file
+        set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
+        set file_str "-work $top_lib \"glbl.v\""
+        puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
+      }
+    }
   }
 
   set b_is_unix false
@@ -915,14 +930,61 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {    
-    lappend arg_list "${top_lib}.glbl"
-  }
+  set top_level_inst_names {}
+  usf_add_glbl_top_instance arg_list $top_level_inst_names
 
   set cmd_str [join $arg_list " "]
   return $cmd_str
 }
 
+proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+  upvar $opts_arg opts
+  set sim_flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
+  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
+
+  set b_verilog_sim_netlist 0
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+    if { {Verilog} == $target_lang } {
+      set b_verilog_sim_netlist 1
+    }
+  }
+
+  set b_add_glbl 0
+  set b_top_level_glbl_inst_set 0
+
+  # is glbl specified explicitly?
+  if { ([lsearch ${top_level_inst_names} {glbl}] != -1) } {
+    set b_top_level_glbl_inst_set 1
+  }
+
+  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] || $b_verilog_sim_netlist } {
+    if { {behav_sim} == $sim_flow } {
+      set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" $fs_obj]
+      if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
+        set b_add_glbl 1
+      }
+    } else {
+      # for post* sim flow add glbl top if design contains verilog sources or verilog netlist add glbl top if not set earlier
+      if { !$b_top_level_glbl_inst_set } {
+        set b_add_glbl 1
+      }
+    }
+  }
+
+  if { $b_add_glbl } {
+    set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
+    # for post* top_lib is xil_defaultlib for glbl since it is compiled inside netlist
+    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+      set top_lib "xil_defaultlib"
+    }
+    lappend opts "${top_lib}.glbl"
+  }
+}
 
 proc usf_modelsim_create_do_file_for_simulation { do_file } {
   # Summary:

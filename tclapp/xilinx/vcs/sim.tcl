@@ -360,7 +360,7 @@ proc usf_vcs_write_compile_script {} {
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
-
+  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set scr_filename "compile";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -473,20 +473,43 @@ proc usf_vcs_write_compile_script {} {
   }
 
   # compile glbl file
-  set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
-  set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
-  if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] } {
-    set work_lib_sw {}
-    if { {work} != $top_lib } {
-      set work_lib_sw "-work $top_lib "
+  if { {behav_sim} == $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow) } {
+    set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
+    set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+    if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] } {
+      set work_lib_sw {}
+      if { {work} != $top_lib } {
+        set work_lib_sw "-work $top_lib "
+      }
+      ::tclapp::xilinx::vcs::usf_copy_glbl_file
+      set file_str "${work_lib_sw}\"glbl.v\""
+      puts $fh_scr "\n# compile glbl module"
+      if { {} != $tool_path } {
+        puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+      } else {
+        puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+      }
     }
-    ::tclapp::xilinx::vcs::usf_copy_glbl_file
-    set file_str "${work_lib_sw}\"glbl.v\""
-    puts $fh_scr "\n# compile glbl module"
-    if { {} != $tool_path } {
-      puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
-    } else {
-      puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    if { [::tclapp::xilinx::vcs::usf_contains_verilog $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] && ({VHDL} == $target_lang) } {
+      if { ({timing} == $::tclapp::xilinx::vcs::a_sim_vars(s_type)) } {
+        # This is not supported, netlist will be verilog always
+      } else {
+        set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+        set work_lib_sw {}
+        if { {work} != $top_lib } {
+          set work_lib_sw "-work $top_lib "
+        }
+        ::tclapp::xilinx::vcs::usf_copy_glbl_file
+        set file_str "${work_lib_sw}\"glbl.v\""
+        puts $fh_scr "\n# compile glbl module"
+        if { {} != $tool_path } {
+          puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+        } else {
+          puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+        }
+      }
     }
   }
   close $fh_scr
@@ -568,10 +591,8 @@ proc usf_vcs_write_elaborate_script {} {
   }
 
   lappend arg_list "${top_lib}.$top"
-  if { [::tclapp::xilinx::vcs::usf_contains_verilog $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] } {
-    set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
-    lappend arg_list "${top_lib}.glbl"
-  }
+  set top_level_inst_names {}
+  usf_add_glbl_top_instance arg_list $top_level_inst_names
   lappend arg_list "-o"
   lappend arg_list "${top}_simv"
   set cmd_str [join $arg_list " "]
@@ -579,6 +600,55 @@ proc usf_vcs_write_elaborate_script {} {
   puts $fh_scr "# run elaboration"
   puts $fh_scr "$cmd_str"
   close $fh_scr
+}
+
+proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
+  upvar $opts_arg opts
+  set sim_flow $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow)
+  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
+
+  set b_verilog_sim_netlist 0
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+    if { {Verilog} == $target_lang } {
+      set b_verilog_sim_netlist 1
+    }
+  }
+
+  set b_add_glbl 0
+  set b_top_level_glbl_inst_set 0
+
+  # is glbl specified explicitly?
+  if { ([lsearch ${top_level_inst_names} {glbl}] != -1) } {
+    set b_top_level_glbl_inst_set 1
+  }
+
+  if { [::tclapp::xilinx::vcs::usf_contains_verilog $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] || $b_verilog_sim_netlist } {
+    if { {behav_sim} == $sim_flow } {
+      set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
+      if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
+        set b_add_glbl 1
+      }
+    } else {
+      # for post* sim flow add glbl top if design contains verilog sources or verilog netlist add glbl top if not set earlier
+      if { !$b_top_level_glbl_inst_set } {
+        set b_add_glbl 1
+      }
+    }
+  }
+
+  if { $b_add_glbl } {
+    set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+    # for post* top_lib is xil_defaultlib for glbl since it is compiled inside netlist
+    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+      set top_lib "xil_defaultlib"
+    }
+    lappend opts "${top_lib}.glbl"
+  }
 }
 
 proc usf_vcs_write_simulate_script {} {
