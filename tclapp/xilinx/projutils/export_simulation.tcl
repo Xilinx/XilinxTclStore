@@ -1113,10 +1113,25 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
   }
 
   if { $a_sim_vars(b_absolute_path) } {
-    set file "[xps_resolve_file_path $file $launch_dir]"
-    if { $a_sim_vars(b_xport_src_files) } {
-      set filename [file tail $src_file]
-      set file "$launch_dir/srcs/$filename"
+    #set file "[xps_resolve_file_path $file $launch_dir]"
+    #if { $a_sim_vars(b_xport_src_files) } {
+    #  set filename [file tail $src_file]
+    #  set file "$launch_dir/srcs/$filename"
+    #}
+    switch $simulator {
+      "modelsim" -
+      "questa" {
+        if { $a_sim_vars(b_xport_src_files) } {
+          if { {} != $ip_file } {
+            set proj_src_filename [file tail $src_file]
+            set ip_name [file rootname [file tail $ip_file]]
+            set proj_src_filename "ip/$ip_name/$proj_src_filename"
+            set file "./srcs/$proj_src_filename"
+          } else {
+            set file "./srcs/[file tail $src_file]"
+          }
+        }
+      }
     }
   } else {
     switch $simulator {
@@ -1570,7 +1585,7 @@ proc xps_write_plain_filelist { dir } {
     set proj_src_file [lindex $fargs 3]
     set pfile "[xps_get_relative_file_path $proj_src_file $dir]"
     if { $a_sim_vars(b_absolute_path) } {
-      set pfile "[xps_resolve_file_path $proj_src_file $launch_dir]"
+      set pfile "[xps_resolve_file_path $proj_src_file $dir]"
     }
     puts $fh $pfile
   }
@@ -1604,7 +1619,7 @@ proc xps_write_filelist_info { dir } {
     set ipname   [file rootname [file tail $ip_file]]
     set pfile "[xps_get_relative_file_path $proj_src_file $dir]"
     if { $a_sim_vars(b_absolute_path) } {
-      set pfile "[xps_resolve_file_path $proj_src_file $launch_dir]"
+      set pfile "[xps_resolve_file_path $proj_src_file $dir]"
     }
     if { {} != $ipname } {
       lappend lines "$file_type, $filename, $ipname, $lib, $pfile"
@@ -2225,10 +2240,14 @@ proc xps_write_ref_dir { fh_unix launch_dir srcs_dir } {
   # Argument Usage:
   # Return Value:
   variable a_sim_vars
-  puts $fh_unix "  # Directory path for design sources and include directories (if any) wrt this path"
+  set txt "  # Directory path for design sources and include directories (if any) wrt this path"
   if { $a_sim_vars(b_absolute_path) } {
-    puts $fh_unix "  ref_dir=\"$launch_dir/$srcs_dir\""
+    if { $a_sim_vars(b_xport_src_files) } {
+      puts $fh_unix "$txt"
+      puts $fh_unix "  ref_dir=\"$srcs_dir\""
+    }
   } else {
+    puts $fh_unix "$txt"
     if { $a_sim_vars(b_xport_src_files) } {
       puts $fh_unix "  ref_dir=\"./srcs\""
     } else {
@@ -3661,7 +3680,6 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
         set target_dir $srcs_dir
         if { {} != $ip_file } {
           set ip_name [file rootname [file tail $ip_file]]
-          set proj_src_filename "ip/$ip_name/$proj_src_filename"
           set ip_dir [file join $srcs_dir "ip" $ip_name] 
           if { ![file exists $ip_dir] } {
             if {[catch {file mkdir $ip_dir} error_msg] } {
@@ -3669,7 +3687,18 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
               return 1
             }
           }
+          if { $a_sim_vars(b_absolute_path) } {
+            set proj_src_filename "$ip_dir/$proj_src_filename"
+          } else {
+            set proj_src_filename "./srcs/ip/$ip_name/$proj_src_filename"
+          }
           set target_dir $ip_dir
+        } else {
+          if { $a_sim_vars(b_absolute_path) } {
+            set proj_src_filename "$srcs_dir/$proj_src_filename"
+          } else {
+            set proj_src_filename "./srcs/$proj_src_filename"
+          }
         }
         if {[catch {file copy -force $proj_src_file $target_dir} error_msg] } {
           send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
@@ -3834,6 +3863,9 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
             return 1
           }
         }
+        #if { $a_sim_vars(b_absolute_path) } {
+        #  set proj_src_filename "$ip_dir/$proj_src_filename"
+        #}
         set target_dir $ip_dir
       }
       if {[catch {file copy -force $proj_src_file $target_dir} error_msg] } {
