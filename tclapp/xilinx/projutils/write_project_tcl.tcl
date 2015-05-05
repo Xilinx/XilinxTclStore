@@ -129,7 +129,7 @@ variable b_project_board_set 0
 variable l_filetype_filter [list]
     
 # Setup filter for non-user-settable filetypes
-set l_filetype_filter [list "ip" "embedded design sources" "elf" "coefficient files" "configuration files" \
+set l_filetype_filter [list "ip" "ipx" "embedded design sources" "elf" "coefficient files" "configuration files" \
                             "block diagrams" "block designs" "dsp design sources" "text" \
                             "design checkpoint" "waveform configuration file"]
 # ip file extension types
@@ -1120,6 +1120,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   set add_file_coln [list]
 
   foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
+    if { [file extension $file] == ".xcix" } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
