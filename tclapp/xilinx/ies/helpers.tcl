@@ -564,7 +564,8 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     }
   }
   foreach vh_file $vh_files {
-    # set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
+    #set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
+    set vh_file [usf_xtract_file $vh_file]
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -1901,57 +1902,6 @@ proc usf_get_include_dirs { } {
   return [lsort -unique $dir_names]
 }
 
-proc usf_get_header_include_paths { incl_header_paths_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $incl_header_paths_arg incl_header_paths
-  variable a_sim_vars
-  set simset_obj     [get_filesets $a_sim_vars(s_simset)]
-  set unique_paths   [list]
-  set linked_src_set [get_property "SOURCE_SET" $simset_obj]
-  if { {} != $linked_src_set } {
-    set srcset_obj [get_filesets $linked_src_set]
-    if { {} != $srcset_obj } {
-      usf_add_unique_incl_paths $srcset_obj unique_paths incl_header_paths
-    }
-  }
-  usf_add_unique_incl_paths $simset_obj unique_paths incl_header_paths
-  # add paths from block filesets
-  set filter "FILESET_TYPE == \"BlockSrcs\""
-  foreach blk_fs_obj [get_filesets -filter $filter] {
-    set fs_name [get_property "NAME" [get_filesets $blk_fs_obj]]
-    usf_add_unique_incl_paths $blk_fs_obj unique_paths incl_header_paths
-  }
-}
-
-proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $unique_paths_arg      unique_paths
-  upvar $incl_header_paths_arg incl_header_paths
-  variable a_sim_vars
-  set dir $a_sim_vars(s_launch_dir)
-
-  # setup the filter to include only header types enabled for simulation
-  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
-  set vh_files [get_files -quiet -filter $filter]
-  foreach file $vh_files {
-    if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$file"]] 0]] } {
-      continue
-    }
-    # set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
-    set file_path [file normalize [string map {\\ /} [file dirname $file]]]
-    if { [lsearch -exact $unique_paths $file_path] == -1 } {
-      lappend incl_header_paths $file_path
-      lappend unique_paths      $file_path
-    }
-  }
-}
-
 proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir "true" } } {
   # Summary: find source files marked as global include
   # Argument Usage:
@@ -2036,6 +1986,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
     # set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
+    set file [usf_xtract_file $file]
     set dir [file dirname $file]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -2643,6 +2594,28 @@ proc usf_find_files { src_files_arg filter } {
     }
   }
 }
+
+proc usf_xtract_file { file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  if { $a_sim_vars(b_extract_ip_sim_files) } {
+    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    set xcix_ip_path [get_property core_container $file_obj]
+    if { {} != $xcix_ip_path } {
+      set ip_name [file root [file tail $xcix_ip_path]]
+      set ip_ext_dir [get_property ip_extract_dir [get_ips $ip_name]]
+      set ip_file "./[usf_get_relative_file_path $file $ip_ext_dir]"
+      # remove leading "./../"
+      set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
+      set file [file join $ip_ext_dir $ip_file]
+    }
+  }
+  return $file
+}
+
 }
 
 #

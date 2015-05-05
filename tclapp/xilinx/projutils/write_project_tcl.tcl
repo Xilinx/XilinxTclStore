@@ -988,9 +988,111 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
     }
   }
 
+  if { {fileset} == $type } {
+    set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
+    if { {SimulationSrcs} == $fs_type } {
+      if { ![get_property is_readonly [current_project]] } {
+        add_simulator_props $get_what $tcl_obj prop_info_list
+      }
+    }
+  }
+
   # write properties now
   write_properties $prop_info_list $get_what $tcl_obj
 
+}
+
+proc add_simulator_props { get_what tcl_obj prop_info_list_arg } {
+  # Summary: write file and file properties 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none
+  upvar $prop_info_list_arg prop_info_list
+
+  set target_simulator [get_property target_simulator [current_project]]
+  set simulators [get_simulators]
+  foreach simulator [get_simulators] {
+    if { $target_simulator == $simulator } { continue }
+    set_property target_simulator $simulator [current_project]
+    set prefix [string tolower [lindex [split $simulator {.}] 0]]
+    write_simulator_props $prefix $get_what $tcl_obj prop_info_list
+  }
+  set_property target_simulator $target_simulator [current_project]
+}
+
+proc write_simulator_props { prefix get_what tcl_obj prop_info_list_arg } {
+  # Summary: write non-default simulator properties
+  # Argument Usage: 
+  # Return Value:
+  # none
+  
+  upvar $prop_info_list_arg prop_info_list
+  variable a_global_vars
+  variable l_script_data
+
+  set read_only_props [rdi::get_attr_specs -class [get_property class $tcl_obj] -filter {is_readonly}]
+  foreach prop [list_property [$get_what $tcl_obj]] {
+    if { [lsearch $read_only_props $prop] != -1 } { continue }
+    if { [is_deprecated_property $prop] } { continue }
+    set sim_prefix [string tolower [lindex [split $prop {.}] 0]]
+    if { $prefix != $sim_prefix } { continue }
+
+    set attr_spec [rdi::get_attr_specs -quiet $prop -object [$get_what $tcl_obj]]
+    if { {} == $attr_spec } {
+      set prop_lower [string tolower $prop]
+      set attr_spec [rdi::get_attr_specs -quiet $prop_lower -object [$get_what $tcl_obj]]
+    }
+    set prop_type [get_property type $attr_spec]
+    set def_val [list_property_value -default $prop $tcl_obj]
+    set cur_val [get_property $prop $tcl_obj]
+    set cur_val [get_target_bool_val $def_val $cur_val]
+    set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
+    if { $def_val != $cur_val } {
+      lappend prop_info_list $prop_entry
+    }
+  }
+}
+
+proc is_deprecated_property { property } {
+  # Summary: filter old properties
+  # Argument Usage: 
+  # Return Value:
+
+  set property [string tolower $property]
+
+  if { [string equal $property "runtime"] ||
+       [string equal $property "unit_under_test"] ||
+       [string equal $property "xelab.snapshot"] ||
+       [string equal $property "xelab.debug_level"] ||
+       [string equal $property "xelab.relax"] ||
+       [string equal $property "xelab.mt_level"] ||
+       [string equal $property "xelab.load_glbl"] ||
+       [string equal $property "xelab.rangecheck"] ||
+       [string equal $property "xelab.sdf_delay"] ||
+       [string equal $property "xelab.unifast"] ||
+       [string equal $property "xelab.nosort"] ||
+       [string equal $property "xelab.more_options"] ||
+       [string equal $property "xsim.view"] ||
+       [string equal $property "xsim.wdb"] ||
+       [string equal $property "xsim.saif"] ||
+       [string equal $property "xsim.more_options"] ||
+       [string equal $property "modelsim.custom_do"] ||
+       [string equal $property "modelsim.custom_udo"] ||
+       [string equal $property "modelsim.vhdl_syntax"] ||
+       [string equal $property "modelsim.use_explicit_decl"] ||
+       [string equal $property "modelsim.log_all_signals"] ||
+       [string equal $property "modelsim.sdf_delay"] ||
+       [string equal $property "modelsim.saif"] ||
+       [string equal $property "modelsim.incremental"] ||
+       [string equal $property "modelsim.unifast"] ||
+       [string equal $property "modelsim.64bit"] ||
+       [string equal $property "modelsim.vsim_more_options"] ||
+       [string equal $property "modelsim.vlog_more_options"] ||
+       [string equal $property "modelsim.vcom_more_options"] } {
+     return true
+  }
+  return false
 }
 
 proc write_files { proj_dir proj_name tcl_obj type } {

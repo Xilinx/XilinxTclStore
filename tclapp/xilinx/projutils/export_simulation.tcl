@@ -4752,6 +4752,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir global_files_str { re
 
   foreach vh_file $vh_files {
     # set vh_file [extract_files -files [list "[file tail $vh_file]"] -base_dir $launch_dir/ip_files]
+    set vh_file [xps_xtract_file $vh_file]
     set dir [file normalize [file dirname $vh_file]]
 
     if { $a_sim_vars(b_xport_src_files) } {
@@ -4870,6 +4871,7 @@ proc xps_get_incl_dirs_from_ip { launch_dir tcl_obj } {
   set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
     # set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
+    set file [xps_xtract_file $file]
     set dir [file dirname $file]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[xps_resolve_file_path $dir $launch_dir]"
@@ -5039,5 +5041,26 @@ proc xps_get_secureip_filelist {} {
     lappend filelist "$str_1 $str_2" 
   }
   return $filelist
+}
+
+proc xps_xtract_file { file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  if { $a_sim_vars(b_extract_ip_sim_files) } {
+    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    set xcix_ip_path [get_property core_container $file_obj]
+    if { {} != $xcix_ip_path } {
+      set ip_name [file root [file tail $xcix_ip_path]]
+      set ip_ext_dir [get_property ip_extract_dir [get_ips $ip_name]]
+      set ip_file "./[usf_get_relative_file_path $file $ip_ext_dir]"
+      # remove leading "./../"
+      set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
+      set file [file join $ip_ext_dir $ip_file]
+    }
+  }
+  return $file
 }
 }

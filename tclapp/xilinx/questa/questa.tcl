@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::questa {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::questa 1.24
+package provide ::tclapp::xilinx::questa 1.25
