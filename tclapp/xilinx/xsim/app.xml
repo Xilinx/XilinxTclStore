@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not compile glbl.v for post* simulation if netlist is verilog</revision_history>
+      <revision_history>do not pass include dir settings for xelab</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

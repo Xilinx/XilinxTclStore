@@ -760,11 +760,11 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
  
   # --include
-  set prefix_ref_dir "false"
-  foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $prefix_ref_dir] {
-    set dir [string map {\\ /} $incl_dir]
-    lappend args_list "--include \"$dir\""
-  }
+  #set prefix_ref_dir "false"
+  #foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $prefix_ref_dir] {
+  #  set dir [string map {\\ /} $incl_dir]
+  #  lappend args_list "--include \"$dir\""
+  #}
   
   if { [get_param "project.allowSharedLibraryType"] } {
     if {$::tcl_platform(platform) == "unix"} {
@@ -778,13 +778,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }	
 
   # -i
-  set unique_incl_dirs [list]
-  foreach incl_dir [get_property "INCLUDE_DIRS" $fs_obj] {
-    if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
-      lappend unique_incl_dirs $incl_dir
-      lappend args_list "-i $incl_dir"
-    }
-  }
+  #set unique_incl_dirs [list]
+  #foreach incl_dir [get_property "INCLUDE_DIRS" $fs_obj] {
+  #  if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
+  #    lappend unique_incl_dirs $incl_dir
+  #    lappend args_list "-i $incl_dir"
+  #  }
+  #}
 
   # -d (verilog macros)
   set v_defines [get_property "VERILOG_DEFINE" $fs_obj]
