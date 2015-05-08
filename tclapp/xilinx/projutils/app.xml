@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>filter core-container files in exported project</revision_history>
+      <revision_history>filter deprecated properties</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

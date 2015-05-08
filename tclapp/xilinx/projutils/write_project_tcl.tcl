@@ -662,6 +662,19 @@ proc get_ip_repo_paths { tcl_obj } {
   return $repo_path_list
 }
 
+proc is_deprecated { prop } {
+  # Summary: filter deprecated properties
+  # Argument Usage:
+  # Return Value:
+  # true (1) if found, false (1) otherwise
+
+  set prop [string toupper $prop]
+  if { $prop == "BOARD" } {
+    return 1
+  }
+  return 0
+}
+
 proc filter { prop val { file {} } } {
   # Summary: filter special properties
   # This helper command is used to script help.
@@ -811,6 +824,8 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
   set properties [list_property [$get_what $tcl_obj]]
 
   foreach prop $properties {
+    if { [is_deprecated $prop] } { continue }
+
     # skip read-only properties
     if { [lsearch $read_only_props $prop] != -1 } { continue }
 
