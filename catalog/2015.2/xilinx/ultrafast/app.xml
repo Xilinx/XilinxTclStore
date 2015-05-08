@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added back report_io_reg for 2015.1.</revision_history>
+      <revision_history>Added back report_io_reg</revision_history>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
