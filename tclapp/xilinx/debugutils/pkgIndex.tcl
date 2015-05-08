@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::debugutils 1.0 [list source [file join $dir debugutils.tcl]]
+package ifneeded ::tclapp::xilinx::debugutils 1.1 [list source [file join $dir debugutils.tcl]]

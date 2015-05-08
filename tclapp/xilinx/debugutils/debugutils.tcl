@@ -10,4 +10,4 @@ namespace eval ::tclapp::xilinx::debugutils {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::debugutils 1.0
+package provide ::tclapp::xilinx::debugutils 1.1
