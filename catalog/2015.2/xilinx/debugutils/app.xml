@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Initial Version</revision_history>
+      <revision_history>Fixed issue with finding OBUF cell when a port already exists</revision_history>
       <name>debugutils</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>

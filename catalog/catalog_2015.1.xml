@@ -15,8 +15,8 @@
     <app>
       <name>debugutils</name>
       <company>xilinx</company>
-      <commit_id>faa1ae3d3ae5247107c0b901f8e11ef28414ca64</commit_id>
-      <revision>1.0</revision>
+      <commit_id>6412cfbd68cec17bdd424c118a33dfa791328290</commit_id>
+      <revision>1.1</revision>
     </app>
     <app>
       <name>designutils</name>
