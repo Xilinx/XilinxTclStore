@@ -850,7 +850,8 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
 
   send_msg_id exportsim-Tcl-019 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
-  foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir {}]] {
+  set prefix_ref_dir "false"
+  foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir]] {
     if { {vcs} == $simulator } {
       set dir [string trim $dir "\""]
       regsub -all { } $dir {\\\\ } dir
@@ -1865,7 +1866,8 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
                        "-l run.log" \
                        "./glbl.v"
       #"-R -do \"run 1000ns; quit\""
-      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir {} true]] {
+      set prefix_ref_dir "true"
+      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir]] {
         lappend arg_list "+incdir+\"$dir\""
       }
       set cmd_str [join $arg_list " \\\n       "]
@@ -1957,7 +1959,8 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
       }
 
       lappend arg_list "-l run.log"
-      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir {} true]] {
+      set prefix_ref_dir "true"
+      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir]] {
         if { {vcs} == $simulator } {
           set dir [string trim $dir "\""]
           regsub -all { } $dir {\\\\ } dir
@@ -3004,7 +3007,8 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type global_fi
       }
  
       # include dirs
-      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir {}]] {
+      set prefix_ref_dir "false"
+      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir]] {
         if { {vlogan} == $tool } {
           set dir [string trim $dir "\""]
           regsub -all { } $dir {\\\\ } dir
@@ -3571,7 +3575,6 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
   # Argument Usage:
   # Return Value:
   variable a_sim_vars
-  set global_files_str {}
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   set opts [list]
   if { {VERILOG} == $ft } {
@@ -3591,7 +3594,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
     }
     # --include
     set prefix_ref_dir "false"
-    foreach incl_dir [xps_get_include_file_dirs $launch_dir $global_files_str $prefix_ref_dir] {
+    foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir] {
       set incl_dir [string map {\\ /} $incl_dir]
       lappend opts "--include \"$incl_dir\""
     }
@@ -4123,18 +4126,18 @@ proc xps_write_xelab_cmdline { fh_unix fh_win launch_dir } {
   xps_append_config_opts args "xsim" "xelab"
   lappend args "-wto [get_property ID [current_project]]"
   if { !$a_sim_vars(b_32bit) } { lappend args "-m64" }
-  set prefix_ref_dir "false"
-  foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir] {
-    set dir [string map {\\ /} $incl_dir]
-    lappend args "--include \"$dir\""
-  }
-  set unique_incl_dirs [list]
-  foreach incl_dir [get_property "INCLUDE_DIRS" $a_sim_vars(fs_obj)] {
-    if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
-      lappend unique_incl_dirs $incl_dir
-      lappend args "-i $incl_dir"
-    }
-  }
+  #set prefix_ref_dir "false"
+  #foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir] {
+  #  set dir [string map {\\ /} $incl_dir]
+  #  lappend args "--include \"$dir\""
+  #}
+  #set unique_incl_dirs [list]
+  #foreach incl_dir [get_property "INCLUDE_DIRS" $a_sim_vars(fs_obj)] {
+  #  if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
+  #    lappend unique_incl_dirs $incl_dir
+  #    lappend args "-i $incl_dir"
+  #  }
+  #}
   set v_defines [get_property "VERILOG_DEFINE" $a_sim_vars(fs_obj)]
   if { [llength $v_defines] > 0 } {
     foreach element $v_defines {
