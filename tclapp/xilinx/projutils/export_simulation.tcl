@@ -141,7 +141,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_is_managed)        [get_property managed_ip [current_project]]
   set a_sim_vars(s_install_path)      {}
   set a_sim_vars(b_scripts_only)      0
-  set a_sim_vars(global_files_value)  {}
+  set a_sim_vars(global_files_str)    {}
   set a_sim_vars(default_lib)         [get_property default_lib [current_project]]
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(opts_file)           "export_sim_options.cfg"
@@ -806,7 +806,6 @@ proc xps_process_cmd_str { simulator dir } {
   # Return Value:
 
   variable a_sim_vars
-  set global_files_str {}
   set b_lang_updated 0
   set curr_lang [string tolower [get_property simulator_language [current_project]]]
   if { $a_sim_vars(b_ip_netlist) } {
@@ -815,19 +814,17 @@ proc xps_process_cmd_str { simulator dir } {
       set b_lang_updated 1
     }
   }
-  set a_sim_vars(l_design_files) [xps_uniquify_cmd_str [xps_get_files $simulator $dir global_files_str]]
+  set a_sim_vars(l_design_files) [xps_uniquify_cmd_str [xps_get_files $simulator $dir]]
   if { $b_lang_updated } {
     set_property simulator_language $curr_lang [current_project]
   }
-  set a_sim_vars(global_files_value) $global_files_str
 }
 
-proc xps_get_files { simulator launch_dir global_files_str_arg } {
+proc xps_get_files { simulator launch_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  upvar $global_files_str_arg global_files_str
   variable a_sim_vars
   variable l_compile_order_files
   set files          [list]
@@ -843,15 +840,21 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
   set incl_files      [list]
 
   send_msg_id exportsim-Tcl-018 INFO "Finding global include files..."
-  xps_get_global_include_files $launch_dir incl_file_paths incl_files
+  set prefix_ref_dir "false"
+  switch $simulator {
+    "ies" -
+    "vcs" {
+      set prefix_ref_dir "true"
+    }
+  }
+  xps_get_global_include_files $launch_dir incl_file_paths incl_files $prefix_ref_dir
 
   set global_incl_files $incl_files
-  set global_files_str [xps_get_global_include_file_cmdstr $launch_dir incl_files]
+  set a_sim_vars(global_files_str) [xps_get_global_include_file_cmdstr $simulator $launch_dir incl_files]
 
   send_msg_id exportsim-Tcl-019 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
-  set prefix_ref_dir "false"
-  foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir]] {
+  foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
     if { {vcs} == $simulator } {
       set dir [string trim $dir "\""]
       regsub -all { } $dir {\\\\ } dir
@@ -872,9 +875,8 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
         set file_type "SystemVerilog"
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
-        xps_append_compiler_options $simulator $launch_dir $compiler $file_type $global_files_str l_other_compiler_opts
-        set g_files $global_files_str
-        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler $g_files l_other_compiler_opts l_incl_dirs_opts 1]
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts 1]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -884,21 +886,19 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
     set b_add_sim_files 1
     if { {} != $linked_src_set } {
       if { [get_param project.addBlockFilesetFilesForUnifiedSim] } {
-        xps_add_block_fs_files $simulator $launch_dir $global_files_str l_incl_dirs_opts files l_compile_order_files
+        xps_add_block_fs_files $simulator $launch_dir l_incl_dirs_opts files l_compile_order_files
       }
     }
     if { {All} == $src_mgmt_mode } {
       send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$target_obj'..."
       foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
-        if { [xps_is_global_include_file $global_files_str $file] } { continue }
+        if { [xps_is_global_include_file $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
-        xps_append_compiler_options $simulator $launch_dir $compiler $file_type $global_files_str l_other_compiler_opts
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-        set g_files $global_files_str
-        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler $g_files l_other_compiler_opts l_incl_dirs_opts]
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -915,11 +915,9 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
             set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
             set compiler [xps_get_compiler $simulator $file_type]
             set l_other_compiler_opts [list]
-            xps_append_compiler_options $simulator $launch_dir $compiler $file_type $global_files_str l_other_compiler_opts
+            xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
             if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-            set g_files $global_files_str
-            if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-            set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler $g_files l_other_compiler_opts l_incl_dirs_opts]
+            set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
             if { {} != $cmd_str } {
               lappend files $cmd_str
               lappend l_compile_order_files $file
@@ -935,12 +933,10 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
-        xps_append_compiler_options $simulator $launch_dir $compiler $file_type $global_files_str l_other_compiler_opts
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]]} { continue }
-        set g_files $global_files_str
-        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler $g_files l_other_compiler_opts l_incl_dirs_opts]
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -954,11 +950,9 @@ proc xps_get_files { simulator launch_dir global_files_str_arg } {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       set compiler [xps_get_compiler $simulator $file_type]
       set l_other_compiler_opts [list]
-      xps_append_compiler_options $simulator $launch_dir $compiler $file_type $global_files_str l_other_compiler_opts
+      xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-      set g_files $global_files_str
-      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-      set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler $g_files l_other_compiler_opts l_incl_dirs_opts]
+      set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
@@ -1014,7 +1008,7 @@ proc xps_uniquify_cmd_str { cmd_strs } {
   return $uniq_cmd_strs
 }
 
-proc xps_add_block_fs_files { simulator launch_dir global_files_str l_incl_dirs_opts_arg files_arg compile_order_files_arg } {
+proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg files_arg compile_order_files_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1029,7 +1023,7 @@ proc xps_add_block_fs_files { simulator launch_dir global_files_str l_incl_dirs_
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set compiler [xps_get_compiler $simulator $file_type]
     set l_other_compiler_opts [list]
-    xps_append_compiler_options $simulator $launch_dir $compiler $file_type $global_files_str l_other_compiler_opts
+    xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
     set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler {} l_other_compiler_opts l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
@@ -1041,8 +1035,8 @@ proc xps_add_block_fs_files { simulator launch_dir global_files_str l_incl_dirs_
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set compiler [xps_get_compiler $simulator $file_type]
     set l_other_compiler_opts [list]
-    xps_append_compiler_options $simulator $launch_dir $compiler $file_type $global_files_str l_other_compiler_opts
-    set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler $global_files_str l_other_compiler_opts l_incl_dirs_opts]
+    xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
+    set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
       lappend compile_order_files $file
@@ -1073,7 +1067,7 @@ proc xps_get_files_from_block_filesets { filter_type } {
   return $file_list
 }
 
-proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_str l_other_compiler_opts_arg  l_incl_dirs_opts_arg {b_skip_file_obj_access 0} } {
+proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compiler_opts_arg  l_incl_dirs_opts_arg {b_skip_file_obj_access 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1183,8 +1177,12 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
       }
     }
     set arg_list [linsert $arg_list end "$associated_library"]
-    if { {} != $global_files_str } {
-      set arg_list [linsert $arg_list end "$global_files_str"]
+    if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } {
+      # do not add global files for 2008
+    } else {
+      if { {} != $a_sim_vars(global_files_str) } {
+        set arg_list [linsert $arg_list end [xps_resolve_global_file_paths $simulator $launch_dir]]
+      }
     }
   }
 
@@ -1199,6 +1197,61 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler global_files_
   set cmd_str "$type#$file_type#$associated_library#$src_file#$file_str#$ip_file#\"$file\""
   return $cmd_str
 }
+
+proc xps_resolve_global_file_paths { simulator launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set file_paths [string trim $a_sim_vars(global_files_str)]
+  if { {} == $file_paths } { return $file_paths }
+
+  set resolved_file_paths [list]
+  foreach g_file [split $file_paths {#}] {
+    set file [string trim $g_file {\"}]
+    set src_file [file tail $file]
+    if { $a_sim_vars(b_absolute_path) } {
+      switch -regexp -- $simulator {
+        "ies" -
+        "vcs" {
+          if { $a_sim_vars(b_xport_src_files) } {
+            set file "\$ref_dir/incl/$src_file"
+          } else {
+            set file [file normalize $file]
+          }
+        }
+        default {
+          if { $a_sim_vars(b_xport_src_files) } {
+            set file [file join $launch_dir "srcs/incl/$src_file"]
+          } else {
+            set file "[xps_resolve_file_path $file $launch_dir]"
+          }
+        }
+      }
+    } else {
+      switch -regexp -- $simulator {
+        "ies" -
+        "vcs" {
+          if { $a_sim_vars(b_xport_src_files) } {
+            set file "\$ref_dir/incl/$src_file"
+          } else {
+            set file "\$ref_dir/[xps_get_relative_file_path $file $launch_dir]"
+          }
+        }
+        default {
+          if { $a_sim_vars(b_xport_src_files) } {
+            set file "./srcs/incl/$src_file"
+          } else {
+            set file "[xps_get_relative_file_path $file $launch_dir]"
+          }
+        }
+      }
+    }
+    lappend resolved_file_paths "\"$file\""
+  }
+  return [join $resolved_file_paths " "]
+} 
 
 proc xps_get_ip_name { src_file } {
   # Summary:
@@ -1867,7 +1920,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
                        "./glbl.v"
       #"-R -do \"run 1000ns; quit\""
       set prefix_ref_dir "true"
-      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir]] {
+      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
         lappend arg_list "+incdir+\"$dir\""
       }
       set cmd_str [join $arg_list " \\\n       "]
@@ -1960,7 +2013,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
 
       lappend arg_list "-l run.log"
       set prefix_ref_dir "true"
-      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir]] {
+      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
         if { {vcs} == $simulator } {
           set dir [string trim $dir "\""]
           regsub -all { } $dir {\\\\ } dir
@@ -2944,7 +2997,7 @@ proc xps_get_compiler { simulator file_type } {
   return $compiler
 }
  
-proc xps_append_compiler_options { simulator launch_dir tool file_type global_files_str opts_arg } {
+proc xps_append_compiler_options { simulator launch_dir tool file_type opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -3007,8 +3060,8 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type global_fi
       }
  
       # include dirs
-      set prefix_ref_dir "false"
-      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir]] {
+      set prefix_ref_dir "true"
+      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
         if { {vlogan} == $tool } {
           set dir [string trim $dir "\""]
           regsub -all { } $dir {\\\\ } dir
@@ -3594,7 +3647,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
     }
     # --include
     set prefix_ref_dir "false"
-    foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir] {
+    foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $prefix_ref_dir] {
       set incl_dir [string map {\\ /} $incl_dir]
       lappend opts "--include \"$incl_dir\""
     }
@@ -4127,7 +4180,7 @@ proc xps_write_xelab_cmdline { fh_unix fh_win launch_dir } {
   lappend args "-wto [get_property ID [current_project]]"
   if { !$a_sim_vars(b_32bit) } { lappend args "-m64" }
   #set prefix_ref_dir "false"
-  #foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $a_sim_vars(global_files_value) $prefix_ref_dir] {
+  #foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $prefix_ref_dir] {
   #  set dir [string map {\\ /} $incl_dir]
   #  lappend args "--include \"$dir\""
   #}
@@ -4730,7 +4783,7 @@ proc xps_get_incl_files_from_ip { launch_dir tcl_obj } {
   return $incl_files
 }
 
-proc xps_get_verilog_incl_file_dirs { simulator launch_dir global_files_str { ref_dir "true" } } {
+proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4745,8 +4798,8 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir global_files_str { re
     set vh_files [get_files -all -quiet -filter $filter]
   }
 
-  if { {} != $global_files_str } {
-    set global_files [split $global_files_str { }]
+  if { {} != $a_sim_vars(global_files_str) } {
+    set global_files [split $a_sim_vars(global_files_str) {#}]
     foreach g_file $global_files {
       set g_file [string trim $g_file {\"}]
       lappend vh_files [get_files -quiet -all $g_file]
@@ -4771,15 +4824,14 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir global_files_str { re
       if { $ref_dir } {
         if { $a_sim_vars(b_xport_src_files) } {
           set dir "\$ref_dir/incl"
-          if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
-            set dir "./srcs/incl"
-          }
         } else {
-          if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
-            set dir "./[xps_get_relative_file_path $dir $launch_dir]"
-          } else {
-            set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
-          }
+          set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
+        }
+      } else {
+        if { $a_sim_vars(b_xport_src_files) } {
+          set dir "./srcs/incl"
+        } else {
+          set dir "./[xps_get_relative_file_path $dir $launch_dir]"
         }
       }
     }
@@ -4937,6 +4989,12 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
             } else {
               set incl_file_path "\$ref_dir/[xps_get_relative_file_path $incl_file_path $dir]"
             }
+          } else {
+            if { $a_sim_vars(b_xport_src_files) } {
+              set incl_file_path "./srcs/incl"
+            } else {
+              set incl_file_path "[xps_get_relative_file_path $incl_file_path $dir]"
+            }
           }
         }
         lappend incl_file_paths $incl_file_path
@@ -4945,7 +5003,7 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
   }
 }
 
-proc xps_get_global_include_file_cmdstr { launch_dir incl_files_arg } {
+proc xps_get_global_include_file_cmdstr { simulator launch_dir incl_files_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4957,65 +5015,21 @@ proc xps_get_global_include_file_cmdstr { launch_dir incl_files_arg } {
     # set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
     lappend file_str "\"$file\""
   }
-  return [join $file_str " "]
+  return [join $file_str "#"]
 }
 
-proc xps_is_global_include_file { global_files_str file_to_find } {
+proc xps_is_global_include_file { file_to_find } {
   # Summary:
   # Argument Usage:
   # Return Value:
-
-  foreach g_file [split $global_files_str { }] {
+  variable a_sim_vars
+  foreach g_file [split $a_sim_vars(global_files_str) {#}] {
     set g_file [string trim $g_file {\"}]
     if { [string compare $g_file $file_to_find] == 0 } {
       return true
     }
   }
   return false
-}
-
-proc xps_get_include_file_dirs { launch_dir global_files_str { ref_dir "true" } } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  variable a_sim_vars
-  set dir_names [list]
-  set vh_files [list]
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xps_is_ip $tcl_obj] } {
-    set vh_files [xps_get_incl_files_from_ip $launch_dir $tcl_obj]
-  } else {
-    set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
-    set vh_files [get_files -all -quiet -filter $filter]
-  }
-
-  # append global files (if any)
-  if { {} != $global_files_str } {
-    set global_files [split $global_files_str { }]
-    foreach g_file $global_files {
-      set g_file [string trim $g_file {\"}]
-      lappend vh_files [get_files -quiet -all $g_file]
-    }
-  }
-
-  foreach vh_file $vh_files {
-    # set vh_file [extract_files -files [list "[file tail $vh_file]"] -base_dir $launch_dir/ip_files]
-    set dir [file normalize [file dirname $vh_file]]
-    if { $a_sim_vars(b_absolute_path) } {
-      set dir "[xps_resolve_file_path $dir $launch_dir]"
-     } else {
-       if { $ref_dir } {
-        set dir "\$origin_dir/[xps_get_relative_file_path $dir $launch_dir]"
-      } else {
-        set dir "[xps_get_relative_file_path $dir $launch_dir]"
-      }
-    }
-    lappend dir_names $dir
-  }
-  if {[llength $dir_names] > 0} {
-    return [lsort -unique $dir_names]
-  }
-  return $dir_names
 }
 
 proc xps_get_secureip_filelist {} {
