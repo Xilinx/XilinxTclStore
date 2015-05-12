@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Initial Revision</revision_history>
+      <name>spyglass</name>
+      <pkg_require>Vivado 2015.1</pkg_require>
+      <company>atrenta</company>
+      <company_display>Atrenta, Inc.</company_display>
+      <summary>This is an Atrenta app to generate the configuration file of the design to run it in SpyGlass. The configuration file is named as follows: &lt;design-top&gt;.prj. To run SpyGlass, ensure that the required software and the licenses are available. Invoke SpyGlass using the command: spyglass -project &lt;design-top&gt;.prj. Follow the steps outlined in the SpyGlass user guide.</summary>
+      <display>Atrenta SpyGlass for Lint and CDC</display>
+      <procs>
+        <proc>
+          <name>write_spyglass_script</name>
+          <summary>This proc generates the spyglass project file</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
