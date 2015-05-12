@@ -4,7 +4,7 @@
   <support_commit_id>17e51ca4318bb1a807170b89cd9ee78a08e5a959</support_commit_id>
   <release>2015.1</release>
   <revision>2.3</revision>
-  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,protoip,diff,junit,tk_tunnel</app_display_order>
+  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,spyglass,protoip,diff,junit,tk_tunnel</app_display_order>
   <apps>
     <app>
       <name>activehdl</name>
@@ -88,6 +88,12 @@
       <name>riviera</name>
       <company>aldec</company>
       <commit_id>03a8248bb3cb36b6eab32ae56d72e3f5fc1f6bda</commit_id>
+      <revision>1.0</revision>
+    </app>
+    <app>
+      <name>spyglass</name>
+      <company>atrenta</company>
+      <commit_id>1e38fbe2f63fc462d4156659117da2b380f40840</commit_id>
       <revision>1.0</revision>
     </app>
     <app>
