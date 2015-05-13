@@ -1,0 +1,50 @@
+MyCompany Sample App
+
+This directory contains a sample app provided by mycompany
+
+All Tcl procs, variables, etc. must be defined within the
+::tclapp::mycompany::myapp namespace.  No globals of any kind are
+allowed.
+
+The structure of a .tcl file in this directory is something 
+like this:
+
+################################################################
+package require Vivado 2013.1
+
+namespace eval ::tclapp::mycompany::myapp {
+   namespace export <list of procs to export>
+}
+
+proc ::tclapp::mycompany::myapp::<proc> { ... } {
+ ...
+}
+
+proc ::tclapp::mycompany::myapp::<proc> { ... } {
+ ...
+}
+################################################################
+
+================================================================
+WHEN MAKING CHANGES TO THE CONTENT OF THIS DIRECTORY
+================================================================
+1. Make sure the Tcl files added or changed pass the Tcl linter
+
+% cd <this directory>
+% vivado -nolog -nojournal -mode tcl
+Vivado% lint_files [glob *.tcl]
+
+2. Update the tclIndex file by running auto_mkindex from the 
+   tclsh prompt
+
+Vivado% auto_mkindex .
+
+================================================================
+USING THIS APP FROM VIVADO
+================================================================
+Vivado% package require ::tclapp::mycompany::myapp
+Vivado% ::tclapp::mycompany::myapp::demo1
+Vivado% namespace import ::tclapp::mycompany::myapp::demo1
+Vivado% demo1
+
+
