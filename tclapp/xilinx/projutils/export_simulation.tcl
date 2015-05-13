@@ -2780,6 +2780,13 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
       }
       puts $fh_unix "  opts=\"[join $arg_list " "]\"\n"
       set arg_list [list "vcs" "\$opts" "${top_lib}.$a_sim_vars(s_top)"]
+      if { [xps_is_fileset $a_sim_vars(sp_tcl_obj)] } {
+        set vhdl_generics [list]
+        set vhdl_generics [get_property vhdl_generic [get_filesets $a_sim_vars(fs_obj)]]
+        if { [llength $vhdl_generics] > 0 } {
+          xps_append_define_generics $vhdl_generics "vcs" arg_list
+        }
+      }
       if { [xps_contains_verilog] } {
         lappend arg_list "${top_lib}.glbl"
       }
@@ -2951,15 +2958,24 @@ proc xps_append_define_generics { def_gen_list tool opts_arg } {
   # Argument Usage:
   # Return Value:
 
+  upvar $opts_arg opts
   foreach element $def_gen_list {
     set key_val_pair [split $element "="]
     set name [lindex $key_val_pair 0]
     set val  [lindex $key_val_pair 1]
     if { [string length $val] > 0 } {
-      switch -regexp -- $tool {
-        "ncvlog" { lappend opts_arg "-define"  ; lappend opts_arg "\"$name=$val\""  }
-        "vlogan" { lappend opts_arg "+define+" ; lappend opts_arg "\"$name=$val\""  }
-        "ies"    { lappend opts_arg "-g"       ; lappend opts_arg "\"$name=>$val\"" }
+      if { {vlog} == $tool } {
+        if { [regexp {'} $val] } {
+          regsub -all {'} $val {\\'} val
+        }
+      }
+      switch $tool {
+        "vlog"   { lappend opts "+define+$name=$val"       }
+        "ncvlog" { lappend opts "-define \"$name=$val\""   }
+        "vlogan" { lappend opts "+define+\"$name=$val\""   }
+        "ncelab" -
+        "ies"    { lappend opts "-generic \"$name=>$val\"" }
+        "vcs"    { lappend opts "-gv $name=\"$val\""       }
       }
     }
   }
@@ -3048,6 +3064,7 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type opts_arg 
 
   # append verilog defines, include dirs and include file dirs
   switch $tool {
+    "vlog" -
     "ncvlog" -
     "vlogan" {
       # verilog defines
