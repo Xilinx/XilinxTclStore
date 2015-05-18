@@ -342,6 +342,9 @@ proc xps_extract_ip_files {} {
 
   if { ![get_property enable_core_container [current_project]] } {
     return
+  } else {
+    # auto set if core-container is on
+    set_property extract_ip_sim_files true [current_project]]
   }
  
   set a_sim_vars(b_extract_ip_sim_files) [get_property extract_ip_sim_files [current_project]]

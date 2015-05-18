@@ -57,12 +57,12 @@ proc elaborate { args } {
   # Return Value:
   # none
 
-  send_msg_id USF-ModelSim-003 INFO "ModelSim::Elaborate design"
-  usf_modelsim_write_elaborate_script
+  #send_msg_id USF-ModelSim-003 INFO "ModelSim::Elaborate design"
+  #usf_modelsim_write_elaborate_script
 
-  set proc_name [lindex [split [info level 0] " "] 0]
-  set step [lindex [split $proc_name {:}] end]
-  ::tclapp::xilinx::modelsim::usf_launch_script "modelsim" $step
+  #set proc_name [lindex [split [info level 0] " "] 0]
+  #set step [lindex [split $proc_name {:}] end]
+  #::tclapp::xilinx::modelsim::usf_launch_script "modelsim" $step
 }
 
 proc simulate { args } {
