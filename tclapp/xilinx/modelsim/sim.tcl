@@ -137,7 +137,7 @@ proc usf_modelsim_setup_simulation { args } {
   if {[usf_modelsim_verify_compiled_lib]} { return 1 }
 
   # fetch the compile order for the specified object
-  ::tclapp::xilinx::modelsim::usf_get_compile_order_for_obj
+  ::tclapp::xilinx::modelsim::usf_xport_data_files
 
   # fetch design files
   set global_files_str {}

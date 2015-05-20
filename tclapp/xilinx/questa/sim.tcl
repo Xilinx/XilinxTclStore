@@ -137,7 +137,7 @@ proc usf_questa_setup_simulation { args } {
   usf_questa_verify_compiled_lib
 
   # fetch the compile order for the specified object
-  ::tclapp::xilinx::questa::usf_get_compile_order_for_obj
+  ::tclapp::xilinx::questa::usf_xport_data_files
 
   # fetch design files
   set global_files_str {}

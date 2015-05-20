@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>auto set extract_ip_sim_files for core-container</revision_history>
+      <revision_history>fixed unisim directory path for VCS single-step</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

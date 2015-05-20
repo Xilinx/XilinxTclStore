@@ -466,7 +466,7 @@ proc usf_write_design_netlist {} {
   if { [file exist $sdf_file] } { send_msg_id USF-Questa-035 INFO "SDF generated:$sdf_file" }
 }
 
-proc usf_get_compile_order_for_obj { } {
+proc usf_xport_data_files { } {
   # Summary:
   # Argument Usage:
   # Return Value:

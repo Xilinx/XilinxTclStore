@@ -183,7 +183,7 @@ proc usf_xsim_setup_simulation { args } {
   ::tclapp::xilinx::xsim::usf_generate_mem_files_for_simulation
 
   # fetch the compile order for the specified object
-  ::tclapp::xilinx::xsim::usf_get_compile_order_for_obj
+  ::tclapp::xilinx::xsim::usf_xport_data_files
 
   # fetch design files
   set global_files_str {}

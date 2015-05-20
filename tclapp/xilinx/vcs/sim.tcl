@@ -135,7 +135,7 @@ proc usf_vcs_setup_simulation { args } {
   usf_vcs_verify_compiled_lib
 
   # fetch the compile order for the specified object
-  ::tclapp::xilinx::vcs::usf_get_compile_order_for_obj
+  ::tclapp::xilinx::vcs::usf_xport_data_files
 
   # fetch design files
   set global_files_str {}

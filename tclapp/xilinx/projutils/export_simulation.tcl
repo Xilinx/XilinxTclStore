@@ -344,7 +344,7 @@ proc xps_extract_ip_files {} {
     return
   } else {
     # auto set if core-container is on
-    set_property extract_ip_sim_files true [current_project]]
+    set_property extract_ip_sim_files true [current_project]
   }
  
   set a_sim_vars(b_extract_ip_sim_files) [get_property extract_ip_sim_files [current_project]]
@@ -2006,7 +2006,7 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
       lappend arg_list   "+libext+.v" \
                          "-y $install_path/data/verilog/src/retarget/" \
                          "+libext+.v" \
-                         "-y $install_path/verilog/src/unisims/" \
+                         "-y $install_path/data/verilog/src/unisims/" \
                          "+libext+.v" \
                          "-lca -v2005 +v2k"
 
