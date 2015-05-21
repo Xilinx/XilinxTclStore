@@ -1,0 +1,34 @@
+read_file -type verilog /training/Vivado/2015.1/data/verilog/src/glbl.v
+
+set_option lib unisim ./unisim
+set_option lib unimacro ./unimacro
+set_option y /training/Vivado/2015.1/data/verilog/src/retarget
+set_option y /training/Vivado/2015.1/data/verilog/src/xeclib
+set_option y /training/Vivado/2015.1/data/verilog/src/unimacro
+set_option libhdlfiles unisim   /training/Vivado/2015.1/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhd
+set_option libhdlfiles unimacro /training/Vivado/2015.1/data/vhdl/src/unimacro/unimacro_VCOMP.vhd
+
+read_file -type gateslib /training/Vivado/2015.1/data/parts/xilinx/kintex7/kintex7.lib
+
+
+read_file -type verilog /u/satrajit/PRODUCTS/FPGA/XILINX/github/XilinxTclStore/tclapp/atrenta/spyglass/test/design/source/virtual_packet_fifo/vfifo_controller/address_manager.v 
+read_file -type verilog /u/satrajit/PRODUCTS/FPGA/XILINX/github/XilinxTclStore/tclapp/atrenta/spyglass/test/design/source/virtual_packet_fifo/vfifo_controller/egress_fifo.v 
+read_file -type verilog /u/satrajit/PRODUCTS/FPGA/XILINX/github/XilinxTclStore/tclapp/atrenta/spyglass/test/design/source/virtual_packet_fifo/vfifo_controller/ingress_fifo.v 
+read_file -type verilog /u/satrajit/PRODUCTS/FPGA/XILINX/github/XilinxTclStore/tclapp/atrenta/spyglass/test/design/source/virtual_packet_fifo/vfifo_controller/vfifo_controller.v 
+
+set_option enable_save_restore no
+set_option enable_pass_exit_codes true
+set_option projectwdir sg_results
+set_option libext { .v .sv .vhd .vh }
+set_option work WORK
+set_option enableSV no
+set_option language_mode mixed
+set_option pragma { synopsys synthesis }
+set_option disable_hdllibdu_lexical_checks yes
+set_option top vfifo_controller
+set_option enable_fpga yes
+
+
+current_methodology $SPYGLASS_HOME/GuideWare2.0/block/rtl_handoff
+
+current_goal cdc/cdc_setup
