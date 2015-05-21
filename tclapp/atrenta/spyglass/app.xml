@@ -2,12 +2,12 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Initial Revision</revision_history>
+      <revision_history>1.1</revision_history>
       <name>spyglass</name>
       <pkg_require>Vivado 2015.1</pkg_require>
       <company>atrenta</company>
       <company_display>Atrenta, Inc.</company_display>
-      <summary>This is an Atrenta app to generate the project file of the design to run it in SpyGlass. The App needs user inputs for the design-top name and the SpyGlass project file name- eg: write_spyglass_proc foo run_spy.prj. To run SpyGlass, ensure that the required software and the licenses are available. Invoke SpyGlass using the command: spyglass -project design-top.prj. Follow the steps outlined in the SpyGlass user guide.</summary>
+      <summary>This is an Atrenta app to generate the project file of the design to run it in SpyGlass. The App takes user inputs for the design-top name and the SpyGlass project file name: eg-: write_spyglass_proc foo run_spy.prj, where foo is the design-top and run_spy.prj is the SpYglass Project file name. To run SpyGlass, ensure that the required software and the licenses are available. Invoke SpyGlass using the command: spyglass -project design-top.prj. Follow the steps outlined in the SpyGlass user guide.</summary>
       <display>Atrenta SpyGlass for Lint and CDC</display>
       <procs>
         <proc>

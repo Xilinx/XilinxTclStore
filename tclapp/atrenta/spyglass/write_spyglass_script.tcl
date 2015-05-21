@@ -5,8 +5,8 @@
 # Script created on 05/06/2015 by Satrajit Pal (Atrenta Inc) & 
 #                                 Ravi Kurlagunda
 #
-# 2015.1 - v1.0 (rev 1)
-#  * initial version
+# 2015.1 - v1.1 (rev 1.1)
+#  * Updated Initial Version
 #
 ###############################################################################
 
