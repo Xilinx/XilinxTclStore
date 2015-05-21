@@ -209,7 +209,7 @@ proc ::tclapp::xilinx::debugutils::add_probe {args} {
         connect_net -net [get_nets $obuf_name\_net] -objects "[get_pins $obuf_name/O] [get_ports $name]"
     } else {
         puts "Note: Port already exists, and connects to another signal. Change it to debug signal."
-        set obuf_name [get_cells -filter {REF_NAME == OBUF} -of [get_nets -of [get_ports $name ]]]
+        set obuf_name [get_cells -filter {REF_NAME == OBUF} -of [get_pins -leaf -filter {DIRECTION == OUT} -of [get_nets -of [get_ports $name ]]]]
         set debug_net [get_nets -of [get_pins -filter {DIRECTION == IN} -of [get_cells $obuf_name]]]
         route_design -unroute -pin [get_pins $obuf_name/I]
         disconnect_net -net $debug_net -objects [get_pins $obuf_name/I]
