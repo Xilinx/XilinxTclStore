@@ -1,0 +1,29 @@
+
+Description:
+
+  Writes LOC constraints to a Xilinx Design Constraints file (XDC). The XDC
+  can be exported from the top-level, or from a specific hierarchical cell.
+
+Example:
+
+  The following example creates an XDC file which contains the fixed placement
+  cells in the open design.
+
+    write_loc_constraints -file fixed_only.xdc
+
+  The following example creates an XDC file which contains the all the placed
+  cells (fixed and non-fixed) in the open design for the specified primitive
+  groups BMEM (BlockRAMs) and MULT (DSPs).
+
+  NOTE: The primitive group is specific to the device architecture. For this
+        example, the primitive groups are intended for the 7 Series architecture.
+
+    write_loc_constraints -file my_locs.xdc -all_placement -primitive_group BMEM \
+      -primitive_group MULT
+
+  The following example creates an XDC file which contains the all the placement
+  information from the given cell list including the SLICE BEL locations.
+
+    write_loc_constraints -file my_sub_locs.xdc -all_placement \
+      -include_bels -of_objects [get_cells my_sub/*]
+

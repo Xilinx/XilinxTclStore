@@ -46,5 +46,6 @@ set auto_index(::tclapp::xilinx::designutils::report_parts) [list source [file j
 set auto_index(::tclapp::xilinx::designutils::source_path) [list source [file join $dir source_path.tcl]]
 set auto_index(::tclapp::xilinx::designutils::timing_report_to_verilog) [list source [file join $dir timing_report_to_verilog.tcl]]
 set auto_index(::tclapp::xilinx::designutils::verilog2int) [list source [file join $dir verilog2int.tcl]]
+set auto_index(::tclapp::xilinx::designutils::write_loc_constraints) [list source [file join $dir write_loc_constraints.tcl]]
 set auto_index(::tclapp::xilinx::designutils::write_slr_pblock_xdc) [list source [file join $dir write_slr_pblock_xdc.tcl]]
 set auto_index(::tclapp::xilinx::designutils::write_template) [list source [file join $dir write_template.tcl]]
