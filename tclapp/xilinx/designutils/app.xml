@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated create_combined_mig_io_design to add files to the new project.</revision_history>
+      <revision_history>Added write_loc_constraints tcl app for designutils</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -165,6 +165,10 @@
         <proc>
           <name>verilog2int</name>
           <summary>Convert a Verilog formatted number into an integer</summary>
+        </proc>
+        <proc>
+          <name>write_loc_constraints</name>
+          <summary>Creates a constraints file with the specified design LOCs</summary>
         </proc>
         <proc>
           <name>write_slr_pblock_xdc</name>
