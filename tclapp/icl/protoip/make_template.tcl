@@ -5730,16 +5730,20 @@ set file [open  .metadata/build_sdk_project.tcl w]
 
 puts $file ""
 
-puts $file "create_project -type hw -name design_1_wrapper_hw_platform_1 -hwspec design_1_wrapper.hdf"
-puts $file "create_project -type app -name test_fpga -hwproject design_1_wrapper_hw_platform_1 -proc ps7_cortexa9_0 -os standalone -lang C -app \{lwIP Echo Server\} "
+puts $file "set workspace_name \"workspace1\""
+puts $file "set hdf \"design_1_wrapper.hdf\""
 puts $file ""
-puts $file "file copy -force ../../../src/echo.c test_fpga/src"
-puts $file "file copy -force ../../../src/main.c test_fpga/src"
-puts $file "file copy -force ../../../src/FPGAserver.h test_fpga/src"
+puts $file "sdk set_workspace \$workspace_name"
+puts $file "sdk create_hw_project -name design_1_wrapper_hw_platform_1 -hwspec \$hdf"
+puts $file "sdk create_app_project -name test_fpga -proc ps7_cortexa9_0 -hwproject design_1_wrapper_hw_platform_1 -lang C  -app {lwIP Echo Server}"
 puts $file ""
-puts $file "build -type all"
+puts $file "file copy -force ../../../src/echo.c workspace1/test_fpga/src"
+puts $file "file copy -force ../../../src/main.c workspace1/test_fpga/src"
+puts $file "file copy -force ../../../src/FPGAserver.h workspace1/test_fpga/src"
 puts $file ""
-puts $file "exit"
+puts $file "sdk build_project -type all"
+
+
 
 close $file
 

@@ -337,12 +337,12 @@ if {$error==0} {
 			# Create SDK Project
 			puts "Calling SDK to build the software project ..."
 
-			set sdk_p [open "|xsdk -batch -batch -source build_sdk_project.tcl" r]
+			set sdk_p [open "|xsct build_sdk_project.tcl" r]
 			while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
 			close $sdk_p
 			
 			# set sdk_exit_flag=0 if error, sdk_exit_flag=1 if NOT error
-			set sdk_exit_flag [file exists test_fpga/Release/test_fpga.elf]
+			set sdk_exit_flag [file exists workspace1/test_fpga/Release/test_fpga.elf]
 
 
 			set error 0
