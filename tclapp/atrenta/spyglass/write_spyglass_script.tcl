@@ -330,7 +330,7 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   puts $sg_fh "set_option enable_fpga yes\n\n"
   puts $sg_fh "current_methodology \$SPYGLASS_HOME/GuideWare2.0/block/rtl_handoff\n"
   puts $sg_fh "current_goal cdc/cdc_setup"
-  puts $sg_fh "set_goal_option addrules Setup_blackbox01"
+  puts $sg_fh "set_goal_option addrules Setup_blackbox01\n"
 
   
   close $sg_fh
