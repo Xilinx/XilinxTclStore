@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>1.1</revision_history>
+      <revision_history> Updated write_spyglass_script.tcl to handle projects created using older Vivado versions and read in newer Vivado versions. Also added additional SpyGlass options for design-read. </revision_history>
       <name>spyglass</name>
       <pkg_require>Vivado 2015.1</pkg_require>
       <company>atrenta</company>
