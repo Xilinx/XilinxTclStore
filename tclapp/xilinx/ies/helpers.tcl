@@ -279,7 +279,7 @@ proc usf_extract_ip_files {} {
   # Return Value:
 
   variable a_sim_vars
-  if { ![get_property enable_core_container [current_project]] } {
+  if { ![get_property corecontainer.enable [current_project]] } {
     return
   }
   set a_sim_vars(b_extract_ip_sim_files) [get_property extract_ip_sim_files [current_project]]
