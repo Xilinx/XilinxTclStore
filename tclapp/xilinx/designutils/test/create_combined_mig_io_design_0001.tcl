@@ -10,10 +10,16 @@ puts "== Unit Test name: $unit_test"
 set name [file rootname [file tail [info script]]]
 
 # Create a new Manage IP project
-create_project -ip $name -part xcvu125-flvc2104-2-e-es2 -in_memory
+create_project -ip -part xcvu125-flvc2104-2-e-es2 -in_memory $name 
 
-# Create MIG IP instance
-create_ip -name mig -vendor xilinx.com -library ip -module_name mig_0
+# Check which version of Vivado is being run
+if {[package vcompare [package require Vivado] "1.2015.3"]>=0} {
+	# Create DDR4 IP instance
+	create_ip -name ddr4 -vendor xilinx.com -library ip -module_name mig_0
+} else {
+	# Create MIG IP instance
+	create_ip -name mig -vendor xilinx.com -library ip -module_name mig_0
+}
 
 # Run the Create Combined MIG design script
 if {[catch { ::tclapp::xilinx::designutils::create_combined_mig_io_design -project_name "projtest_$name" -out_dir "." [get_ips mig_0] } catchErrorString]} {
@@ -36,5 +42,8 @@ close_project
 
 # Delete the project on disk
 file delete -force "./projtest_$name"
+
+# Delete the files from the in memory project
+catch {file delete -force "./.srcs"}
 
 return 0
