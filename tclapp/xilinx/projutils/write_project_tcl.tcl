@@ -1136,7 +1136,6 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
   foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
     if { [file extension $file] == ".xcix" } { continue }
-    if { [file extension $file] == ".upgrade_log" } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
