@@ -164,10 +164,12 @@ Example:
 	set _bdName [string map {".bd" ""} $_inputFile]
 	if {$_bdName eq ""} {
 		set _bdName [current_bd_design]
-	}
-	if {$_bdName eq ""} {
-		puts "No current bd file is open or <infile>$_inputFile does not exist, please open a Block Design or specifiy a valid <infile.bd> to continue"
-		return -1
+		if {$_bdName eq ""} {
+			puts "No current bd file is open or <infile>$_inputFile does not exist, please open a Block Design or specifiy a valid <infile.bd> to continue"
+			return -1
+		}
+	} else {
+		open_bd_design $_inputFile
 	}
 	set _bdNameFull $_bdName
 	set _bdName [lindex [file split [file rootname $_bdName]] end]
@@ -182,6 +184,9 @@ Example:
 		set _tbName "$_tbName_noExt_path.$_outputLanguage"
 	}
 
+
+	# Validate to get port sizes
+	validate_bd_design -force
 
 	# Process the Design
 	set writeThisFile [open $_tbName w]
@@ -213,6 +218,8 @@ Example:
 			lappend _makeReset [get_property CONFIG.POLARITY $_bdPort]
 		}
 	}
+	if {[info exists _makeReset] eq 0} {set _makeReset ""}
+	if {[info exists _makeClk] eq 0} {set _makeClk ""}
 
 	set _bdIPorts [get_bd_intf_ports -filter {VLNV =~ "*:diff_clock_rtl:*"}]
 	# find all clocks, resets, enables
@@ -244,6 +251,8 @@ Example:
 			set _bdDir "in"
 		} elseif {$_bdDir eq "O"} {
 			set _bdDir "out"
+		} elseif {$_bdDir eq "IO"} {
+			set _bdDir "inout"
 		}
 		# do I need an IO?
 		set _bdLeft [get_property LEFT $_bdPort]
@@ -294,7 +303,8 @@ Example:
 	putsf $writeVerilogFile ");\n"
 
 	# clocks
-	if {[info exists _makeClk]} {
+	if {[info exists _makeClk]} {}
+	if {$_makeClk ne ""} {
 		foreach {_clk _freq} $_makeClk {
 			set _halfPeriod [expr double(500000000) / double($_freq)]
 			putsf $writeVHDLFile "process\nbegin"
@@ -322,7 +332,8 @@ Example:
 	}
 	
 	# resets
-	if {[info exists _makeReset]} {
+	if {[info exists _makeReset]} {}
+	if {$_makeReset ne ""} {
 		foreach {_reset _polarity} $_makeReset {
 			if {$_polarity eq "ACTIVE_LOW"} { 
 				set _asserted "0"
