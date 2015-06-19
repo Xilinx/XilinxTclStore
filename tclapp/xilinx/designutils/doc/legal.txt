@@ -18,4 +18,3 @@ All contributors must date and digitally sign once below in order to submit to t
 20140221::dpefour::David Pefourque
 20140325::ronagyl::Laszlo Nagy
 20140327::wildingd::Daniel Wilding
-20150618::DanielMichek::Daniel Michek
