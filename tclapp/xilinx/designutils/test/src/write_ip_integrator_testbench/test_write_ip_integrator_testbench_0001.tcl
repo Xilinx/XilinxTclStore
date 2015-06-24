@@ -7,18 +7,6 @@
 # IP Integrator Tcl commands easier.
 ################################################################
 
-################################################################
-# Check if script is running in correct Vivado version.
-################################################################
-set scripts_vivado_version 2015.1
-set current_vivado_version [version -short]
-
-if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
-   puts ""
-   puts "ERROR: This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Please run the script in Vivado <$scripts_vivado_version> then open the design in Vivado <$current_vivado_version>. Upgrade the design by running \"Tools => Report => Report IP Status...\", then run write_bd_tcl to create an updated script."
-
-   return 1
-}
 
 ################################################################
 # START
@@ -152,15 +140,15 @@ proc create_root_design { parentCell } {
   set_property -dict [ list CONFIG.POLARITY {ACTIVE_HIGH}  ] $reset
 
   # Create instance: clk_wiz_0, and set properties
-  set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:5.1 clk_wiz_0 ]
+  set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz clk_wiz_0 ]
   set_property -dict [ list CONFIG.RESET_BOARD_INTERFACE {reset} CONFIG.USE_BOARD_FLOW {true}  ] $clk_wiz_0
 
   # Create instance: dds_compiler_0, and set properties
-  set dds_compiler_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:dds_compiler:6.0 dds_compiler_0 ]
+  set dds_compiler_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:dds_compiler dds_compiler_0 ]
   set_property -dict [ list CONFIG.Has_ARESETn {true} CONFIG.Has_Phase_Out {false} CONFIG.Latency {8} CONFIG.M_DATA_Has_TUSER {Not_Required} CONFIG.Noise_Shaping {Auto} CONFIG.Output_Frequency1 {10} CONFIG.Output_Selection {Sine} CONFIG.Output_Width {16} CONFIG.PINC1 {1100110011001100110011001} CONFIG.Phase_Width {28} CONFIG.Spurious_Free_Dynamic_Range {96}  ] $dds_compiler_0
 
   # Create instance: proc_sys_reset_0, and set properties
-  set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
+  set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset proc_sys_reset_0 ]
   set_property -dict [ list CONFIG.RESET_BOARD_INTERFACE {reset} CONFIG.USE_BOARD_FLOW {true}  ] $proc_sys_reset_0
 
   # Create port connections
