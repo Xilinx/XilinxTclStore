@@ -1128,7 +1128,7 @@ proc xps_fetch_ipi_static_file { file } {
   # get the sub-dir path after "xilinx.com/xbip_utils_v3_0/4f162624"
   set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
   set ip_hdl_dir "/$ip_hdl_dir"
-  # /wrk/hdstaff/rvklair/try/projects/demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
   #puts ip_hdl_dir=$ip_hdl_dir
   incr index
 

@@ -1576,9 +1576,9 @@ proc usf_export_data_files { data_files } {
       }
 
       if {[catch {file copy -force $file $export_dir} error_msg] } {
-        send_msg_id Questa-Tcl-075 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
+        send_msg_id USF-Questa-075 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
       } else {
-        send_msg_id Questa-Tcl-076 INFO "Exported '$file'\n"
+        send_msg_id USF-Questa-076 INFO "Exported '$file'\n"
       }
     }
   }
@@ -2639,7 +2639,7 @@ proc usf_get_ip_file_from_repo { ip_file src_file launch_dir  } {
     set b_is_dynamic 0
     set src_file [usf_get_source_from_repo $ip_file $src_file $launch_dir b_is_static b_is_dynamic]
     if { (!$b_is_static) && (!$b_is_dynamic) } {
-      send_msg_id USF-XSim-056 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
+      send_msg_id USF-Questa-056 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
     }
     # phase-2
     #if { $b_is_static } {
@@ -2778,7 +2778,7 @@ proc usf_fetch_ipi_static_file { file } {
   # get the sub-dir path after "xilinx.com/xbip_utils_v3_0/4f162624"
   set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
   set ip_hdl_dir "/$ip_hdl_dir"
-  # /wrk/hdstaff/rvklair/try/projects/demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
   #puts ip_hdl_dir=$ip_hdl_dir
   incr index
 

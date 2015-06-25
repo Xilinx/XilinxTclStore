@@ -1581,9 +1581,9 @@ proc usf_export_data_files { data_files } {
       }
 
       if {[catch {file copy -force $file $export_dir} error_msg] } {
-        send_msg_id ModelSim-Tcl-065 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
+        send_msg_id USF-ModelSim-075 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
       } else {
-        send_msg_id ModelSim-Tcl-066 INFO "Exported '$file'\n"
+        send_msg_id USF-ModelSim-076 INFO "Exported '$file'\n"
       }
     }
   }
@@ -2783,7 +2783,7 @@ proc usf_fetch_ipi_static_file { file } {
   # get the sub-dir path after "xilinx.com/xbip_utils_v3_0/4f162624"
   set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
   set ip_hdl_dir "/$ip_hdl_dir"
-  # /wrk/hdstaff/rvklair/try/projects/demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
   #puts ip_hdl_dir=$ip_hdl_dir
   incr index
 
