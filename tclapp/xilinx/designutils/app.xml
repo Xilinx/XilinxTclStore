@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated regression suite</revision_history>
+      <revision_history>Added write_ip_integrator_testbench</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -165,6 +165,10 @@
         <proc>
           <name>verilog2int</name>
           <summary>Convert a Verilog formatted number into an integer</summary>
+        </proc>
+        <proc>
+          <name>write_ip_integrator_testbench</name>
+          <summary>Create a testbench for an IP Integrator design and optionally add it to the current project</summary>
         </proc>
         <proc>
           <name>write_loc_constraints</name>
