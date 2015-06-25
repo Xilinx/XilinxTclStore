@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not check for ip upgrade logs (not required anymore)</revision_history>
+      <revision_history>support for the centralized IP repository</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -25,6 +25,10 @@
         <proc>
           <name>write_project_tcl</name>
           <summary>Export Tcl script for re-creating the current project</summary>
+        </proc>
+        <proc>
+          <name>populate_sim_repo</name>
+          <summary>Export IP static files for simulation</summary>
         </proc>
       </procs>
     </app>

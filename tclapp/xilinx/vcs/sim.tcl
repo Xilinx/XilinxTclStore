@@ -109,8 +109,12 @@ proc usf_vcs_setup_simulation { args } {
   # set the simulation flow
   ::tclapp::xilinx::vcs::usf_set_simulation_flow
 
-  # extract ip simulation files
-  ::tclapp::xilinx::vcs::usf_extract_ip_files
+  if { [get_param "project.enableCentralSimRepo"] } {
+    # no op
+  } else {
+    # extract ip simulation files
+    ::tclapp::xilinx::vcs::usf_extract_ip_files
+  }
 
   # set default object
   if { [::tclapp::xilinx::vcs::usf_set_sim_tcl_obj] } {
