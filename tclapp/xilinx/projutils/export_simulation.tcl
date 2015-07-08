@@ -147,7 +147,6 @@ proc xps_init_vars {} {
   set a_sim_vars(opts_file)           "export_sim_options.cfg"
   set a_sim_vars(dynamic_repo_dir)    [get_property sim.central_dir [current_project]]
   set a_sim_vars(ipstatic_dir)        [get_property sim.ipstatic.source_dir [current_project]]
-  set a_sim_vars(ipstatic_clib_dir)   [get_property sim.ipstatic.compiled_library_dir [current_project]]
 
   variable l_compile_order_files      [list]
   variable l_design_files             [list]

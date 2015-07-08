@@ -534,8 +534,6 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
 
   set vcom_arg_list [list]
-  set vhdl_syntax [get_property "QUESTA.COMPILE.VHDL_SYNTAX" $fs_obj]
-  lappend vcom_arg_list "-$vhdl_syntax"
   set more_vcom_options [string trim [get_property "QUESTA.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vcom_options } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]

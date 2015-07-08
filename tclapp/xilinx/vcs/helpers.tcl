@@ -43,7 +43,6 @@ proc usf_init_vars {} {
 
   set a_sim_vars(dynamic_repo_dir)    [get_property sim.central_dir [current_project]]
   set a_sim_vars(ipstatic_dir)        [get_property sim.ipstatic.source_dir [current_project]]
-  set a_sim_vars(ipstatic_clib_dir)   [get_property sim.ipstatic.compiled_library_dir [current_project]]
 
   set a_sim_vars(s_tool_bin_path)    {}
 
@@ -2181,6 +2180,9 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
   switch $tool {
     "vhdlan" {
       lappend opts "\$${tool}_opts"
+      if { [string equal -nocase $file_type "vhdl 2008"] } {
+        lappend opts "-vhdl08"
+      }
     }
     "vlogan" {
       lappend opts "\$${tool}_opts"

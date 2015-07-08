@@ -43,7 +43,6 @@ proc usf_init_vars {} {
 
   set a_sim_vars(dynamic_repo_dir)    [get_property sim.central_dir [current_project]]
   set a_sim_vars(ipstatic_dir)        [get_property sim.ipstatic.source_dir [current_project]]
-  set a_sim_vars(ipstatic_clib_dir)   [get_property sim.ipstatic.compiled_library_dir [current_project]]
 
   set a_sim_vars(s_tool_bin_path)    {}
 
@@ -1922,8 +1921,10 @@ proc usf_get_compiler_name { file_type } {
 
   variable a_sim_vars
   set compiler ""
-  if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } {
+  if { ({VHDL} == $file_type) } {
     set compiler "vhdl"
+  } elseif { ({VHDL 2008} == $file_type) } {
+    set compiler "vhdl2008"
   } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) } {
     if { ({SystemVerilog} == $file_type) } {
       set compiler "sv"

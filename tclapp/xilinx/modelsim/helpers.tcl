@@ -44,7 +44,6 @@ proc usf_init_vars {} {
 
   set a_sim_vars(dynamic_repo_dir)    [get_property sim.central_dir [current_project]]
   set a_sim_vars(ipstatic_dir)        [get_property sim.ipstatic.source_dir [current_project]]
-  set a_sim_vars(ipstatic_clib_dir)   [get_property sim.ipstatic.compiled_library_dir [current_project]]
 
   set a_sim_vars(s_tool_bin_path)    {}
 
@@ -2059,10 +2058,14 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
 
   switch $tool {
     "vcom" {
+      set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
+      set vhd_syntax "-$vhdl_syntax"
+      if { [string equal -nocase $file_type "vhdl 2008"] } {
+        set vhd_syntax "-2008"
+      }
       if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
         set arg_list [list $s_64bit]
-        set vhdl_syntax [get_property "MODELSIM.COMPILE.VHDL_SYNTAX" $fs_obj]
-        lappend arg_list "-$vhdl_syntax"
+        lappend arg_list $vhd_syntax
         set more_options [string trim [get_property "MODELSIM.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
         if { {} != $more_options } {
           set arg_list [linsert $arg_list end "$more_options"]
@@ -2070,6 +2073,7 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         set cmd_str [join $arg_list " "]
         lappend opts $cmd_str
       } else {
+        lappend opts $vhd_syntax
         lappend opts "\$${tool}_opts"
       }
     }
