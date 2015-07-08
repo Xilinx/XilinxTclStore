@@ -572,6 +572,9 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   foreach vh_file $vh_files {
     # set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
     set vh_file [usf_xtract_file $vh_file]
+    if { [get_param project.enableCentralSimRepo] } {
+      set vh_file [usf_fetch_ip_static_file $vh_file]
+    }
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -2818,6 +2821,42 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   return $orig_src_file
 }
 
+proc usf_fetch_ip_static_file { file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set src_ip_file $file
+  #puts src_ip_file=$src_ip_file
+  set comps [lrange [split $src_ip_file "/"] 1 end]
+  set to_match "ip"
+  if { [lsearch -exact $comps $to_match] == -1 } {
+    return $src_ip_file
+  }
+
+  set index 0
+  foreach comp $comps {
+    if { $to_match != $comp } {
+      incr index
+      continue;
+    }
+    break
+  }
+  set file_path_str [join [lrange $comps 0 $index] "/"]
+  set ip_lib_dir "/$file_path_str"
+  #puts ip_lib_dir=$ip_lib_dir
+
+  incr index
+  incr index
+  set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
+  #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
+
+  set dst_cip_file [file join $a_sim_vars(ipstatic_dir) $ip_hdl_sub_dir]
+  #puts dst_cip_file=$dst_cip_file
+  return $dst_cip_file
+}
+
 proc usf_fetch_ipi_static_file { file } {
   # Summary:
   # Argument Usage:
@@ -2825,7 +2864,6 @@ proc usf_fetch_ipi_static_file { file } {
 
   variable a_sim_vars
   set src_ip_file $file
-  set sub_dirs [list]
   set comps [lrange [split $src_ip_file "/"] 1 end]
   set to_match "xilinx.com"
   set index 0
@@ -2868,7 +2906,6 @@ proc usf_get_dynamic_sim_file { ip_name src_file } {
   #puts ip_name=$ip_name
   #puts inn_src_file=$src_file
 
-  set sub_dirs [list]
   set comps [lrange [split $src_file "/"] 1 end]
   #set to_match "ip/$ip_name"
   set to_match "ip"
@@ -2903,7 +2940,6 @@ proc usf_fetch_ipi_dynamic_file { ipi_file src_file } {
   #puts ip_name=$ip_name
   #puts inn_src_file=$src_file
 
-  set sub_dirs [list]
   set comps [lrange [split $src_file "/"] 1 end]
   set to_match "$ip_name"
   set index 0
