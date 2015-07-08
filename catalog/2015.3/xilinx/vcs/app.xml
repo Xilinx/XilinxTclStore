@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for vhdl 2008</revision_history>
+      <revision_history>fixed include file dir reference for static ip files</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
