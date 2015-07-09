@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>wrap file path in quotes for directory with space</revision_history>
+      <revision_history>populate ip dynamic files into ip and bd sub-dir</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
