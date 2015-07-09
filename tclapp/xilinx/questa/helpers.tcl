@@ -2727,7 +2727,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   set b_is_dynamic 1
 
   # is static ip file? set flag and return
-  set ip_static_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] $full_src_file_path -filter {USED_IN=~"*ipstatic*"}]
+  set ip_static_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] [list "$full_src_file_path"] -filter {USED_IN=~"*ipstatic*"}]
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
     set b_is_static 1

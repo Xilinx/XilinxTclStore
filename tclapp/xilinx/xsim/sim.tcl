@@ -635,8 +635,10 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
           }
         }
       }
-      set cmd_args [join $args_list ":"]
-      puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$LD_LIBRARY_PATH\n"
+      if {[llength $args_list] != 0} {
+        set cmd_args [join $args_list ":"]
+        puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$LD_LIBRARY_PATH\n"
+      }
     }
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $b_batch]
     puts $fh_scr "ExecStep \$xv_path/bin/xsim $cmd_args"

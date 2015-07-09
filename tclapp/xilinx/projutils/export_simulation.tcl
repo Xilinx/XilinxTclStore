@@ -343,6 +343,10 @@ proc xps_extract_ip_files {} {
   }
 
   if { [get_param project.enableCentralSimRepo] } {
+    set ips [get_ips -quiet]
+    if { [llength $ips] > 0 } {
+      populate_sim_repo -of_objects $ips
+    }
     return
   }
 
@@ -359,9 +363,9 @@ proc xps_extract_ip_files {} {
     foreach ip [get_ips -quiet] {
       set xci_ip_name "${ip}.xci"
       set xcix_ip_name "${ip}.xcix"
-      set xcix_file_path [get_property core_container [get_files -all ${xci_ip_name}]] 
+      set xcix_file_path [get_property core_container [get_files -quiet -all ${xci_ip_name}]] 
       if { {} != $xcix_file_path } {
-        [catch {rdi::extract_ip_sim_files -of_objects [get_files -all ${xcix_ip_name}]} err]
+        [catch {rdi::extract_ip_sim_files -of_objects [get_files -quiet -all ${xcix_ip_name}]} err]
       }
     }
   }
@@ -720,19 +724,19 @@ proc xps_set_target_obj { obj } {
           set a_sim_vars(fs_obj) [current_fileset]
           set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
           xps_verify_ip_status
-          update_compile_order -fileset $a_sim_vars(sp_tcl_obj)
+          update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
           set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
         } elseif { $fs_type == "SimulationSrcs" } {
           set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
           xps_verify_ip_status
-          update_compile_order -fileset $a_sim_vars(sp_tcl_obj)
+          update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
           set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
         }
       } else {
         # no -of_objects specifed, set default active simset
         set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
         xps_verify_ip_status
-        update_compile_order -fileset $a_sim_vars(sp_tcl_obj)
+        update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
         set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
       }
     }
@@ -751,7 +755,7 @@ proc xps_gen_mem_files { run_dir } {
   if { [xps_is_fileset $a_sim_vars(sp_tcl_obj)] } {
     set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
     if { [llength $embedded_files] > 0 } {
-      send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
+      #send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
       foreach simulator $l_target_simulator {
         set dir [file join $run_dir $simulator] 
         generate_mem_files $dir
@@ -848,7 +852,7 @@ proc xps_get_files { simulator launch_dir } {
   set incl_file_paths [list]
   set incl_files      [list]
 
-  send_msg_id exportsim-Tcl-018 INFO "Finding global include files..."
+  #send_msg_id exportsim-Tcl-018 INFO "Finding global include files..."
   set prefix_ref_dir "false"
   switch $simulator {
     "ies" -
@@ -861,7 +865,7 @@ proc xps_get_files { simulator launch_dir } {
   set global_incl_files $incl_files
   set a_sim_vars(global_files_str) [xps_get_global_include_file_cmdstr $simulator $launch_dir incl_files]
 
-  send_msg_id exportsim-Tcl-019 INFO "Finding include directories and verilog header directory paths..."
+  #send_msg_id exportsim-Tcl-019 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
   foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
     if { {vcs} == $simulator } {
@@ -899,7 +903,7 @@ proc xps_get_files { simulator launch_dir } {
     }
 
     if { {All} == $src_mgmt_mode } {
-      send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$target_obj'..."
+      #send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$target_obj'..."
       foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
         if { [xps_is_global_include_file $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -919,7 +923,7 @@ proc xps_get_files { simulator launch_dir } {
         set srcset_obj [get_filesets $linked_src_set]
         if { {} != $srcset_obj } {
           set used_in_val "simulation"
-          send_msg_id exportsim-Tcl-021 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
+          #send_msg_id exportsim-Tcl-021 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
           foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
             set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
             set compiler [xps_get_compiler $simulator $file_type]
@@ -937,7 +941,7 @@ proc xps_get_files { simulator launch_dir } {
     }
 
     if { $b_add_sim_files } {
-      send_msg_id exportsim-Tcl-022 INFO "Fetching design files from '$a_sim_vars(fs_obj)'..."
+      #send_msg_id exportsim-Tcl-022 INFO "Fetching design files from '$a_sim_vars(fs_obj)'..."
       foreach file [get_files -quiet -all -of_objects $a_sim_vars(fs_obj)] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         set compiler [xps_get_compiler $simulator $file_type]
@@ -953,7 +957,7 @@ proc xps_get_files { simulator launch_dir } {
       }
     }
   } elseif { [xps_is_ip $target_obj] } {
-    send_msg_id exportsim-Tcl-023 INFO "Fetching design files from IP '$target_obj'..."
+    #send_msg_id exportsim-Tcl-023 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -1299,7 +1303,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg files_ar
   upvar $files_arg files
   upvar $compile_order_files_arg compile_order_files
 
-  send_msg_id exportsim-Tcl-024 INFO "Finding block fileset files..."
+  #send_msg_id exportsim-Tcl-024 INFO "Finding block fileset files..."
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
   foreach file [xps_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -1808,7 +1812,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   foreach simulator $l_target_simulator {
     set simulator_name [xps_get_simulator_pretty_name $simulator] 
-    puts ""
+    #puts ""
     send_msg_id exportsim-Tcl-035 INFO \
       "Exporting simulation files for \"[string toupper $simulator]\" ($simulator_name)...\n"
     set dir [file join $run_dir $simulator] 
@@ -1820,14 +1824,14 @@ proc xps_write_sim_script { run_dir data_files filename } {
     }
     if { [xps_is_ip $tcl_obj] } {
       set a_sim_vars(s_top) [file tail [file root $tcl_obj]]
-      send_msg_id exportsim-Tcl-026 INFO "Inspecting IP design source files for '$a_sim_vars(s_top)'...\n"
+      #send_msg_id exportsim-Tcl-026 INFO "Inspecting IP design source files for '$a_sim_vars(s_top)'...\n"
       xps_export_data_files $data_files $dir
       if {[xps_write_script $simulator $dir $filename]} {
         return 1
       }
     } elseif { [xps_is_fileset $tcl_obj] } {
       set a_sim_vars(s_top) [get_property top [get_filesets $tcl_obj]]
-      send_msg_id exportsim-Tcl-027 INFO "Inspecting design source files for '$a_sim_vars(s_top)' in fileset '$tcl_obj'...\n"
+      #send_msg_id exportsim-Tcl-027 INFO "Inspecting design source files for '$a_sim_vars(s_top)' in fileset '$tcl_obj'...\n"
       if {[string length $a_sim_vars(s_top)] == 0} {
         set a_sim_vars(s_top) "unknown"
       }
@@ -1836,7 +1840,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
         return 1
       }
     } else {
-      send_msg_id exportsim-Tcl-028 INFO "Unsupported object source: $tcl_obj\n"
+      #send_msg_id exportsim-Tcl-028 INFO "Unsupported object source: $tcl_obj\n"
       return 1
     }
 
@@ -3443,7 +3447,7 @@ proc xps_get_top_library { } {
   set co_top_library {}
   set filelist [xps_get_compile_order_files]
   if { [llength $filelist] > 0 } {
-    set file_list [get_files -all [list "[lindex $filelist end]"]]
+    set file_list [get_files -quiet -all [list "[lindex $filelist end]"]]
     if { [llength $file_list] > 0 } {
       set co_top_library [get_property "LIBRARY" [lindex $file_list 0]]
     }
@@ -3575,8 +3579,8 @@ proc xps_verify_ip_status {} {
   if { ([xps_is_ip $a_sim_vars(sp_tcl_obj)]) && ({.xci} == $a_sim_vars(s_ip_file_extn)) } {
     set ip [file root [file tail $a_sim_vars(sp_tcl_obj)]]
     # is user-disabled? or auto_disabled? skip
-    if { ({0} == [get_property is_enabled [get_files -all ${ip}.xci]]) ||
-         ({1} == [get_property is_auto_disabled [get_files -all ${ip}.xci]]) } {
+    if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip}.xci]]) ||
+         ({1} == [get_property is_auto_disabled [get_files -quiet -all ${ip}.xci]]) } {
       return
     }
     dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
@@ -3587,8 +3591,8 @@ proc xps_verify_ip_status {} {
   } else {
     foreach ip [get_ips -quiet] {
       # is user-disabled? or auto_disabled? continue
-      if { ({0} == [get_property is_enabled [get_files -all ${ip}.xci]]) ||
-           ({1} == [get_property is_auto_disabled [get_files -all ${ip}.xci]]) } {
+      if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip}.xci]]) ||
+           ({1} == [get_property is_auto_disabled [get_files -quiet -all ${ip}.xci]]) } {
         continue
       }
       dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
@@ -5178,11 +5182,11 @@ proc xps_get_bfm_lib { simulator } {
   if { {} != $xil } {
     append platform ".o"
     set lib_path {}
-    send_msg_id exportsim-Tcl-116 INFO "Finding simulator library from 'XILINX_VIVADO'..."
+    #send_msg_id exportsim-Tcl-116 INFO "Finding simulator library from 'XILINX_VIVADO'..."
     foreach path [split $xil $path_sep] {
       set file [file normalize [file join $path "lib" $platform $lib_name]]
       if { [file exists $file] } {
-        send_msg_id exportsim-Tcl-117 INFO "Using library:'$file'"
+        #send_msg_id exportsim-Tcl-117 INFO "Using library:'$file'"
         set simulator_lib $file
         break
       } else {

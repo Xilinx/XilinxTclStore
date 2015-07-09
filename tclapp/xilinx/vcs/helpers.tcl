@@ -2742,7 +2742,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   }
 
   set b_add_ref 0 
-  if {[regexp -nocase {^\$ref_dir} $src_file]} {
+  if {[regexp -nocase {^\$origin_dir} $src_file]} {
     set b_add_ref 1
     set src_file [string range $src_file 9 end]
     set src_file "./$src_file"
@@ -2790,7 +2790,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   set b_is_dynamic 1
 
   # is static ip file? set flag and return
-  set ip_static_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] $full_src_file_path -filter {USED_IN=~"*ipstatic*"}]
+  set ip_static_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] [list "$full_src_file_path"] -filter {USED_IN=~"*ipstatic*"}]
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
     set b_is_static 1
@@ -2807,11 +2807,12 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     if { $a_sim_vars(b_absolute_path) } {
       set dst_cip_file "[usf_resolve_file_path $dst_cip_file $launch_dir]"
     } else {
-      if { $b_add_ref } {
-        set dst_cip_file "\$ref_dir/[usf_get_relative_file_path $dst_cip_file $launch_dir]"
-      } else {
-        set dst_cip_file "./[usf_get_relative_file_path $dst_cip_file $launch_dir]"
-      }
+      #if { $b_add_ref } {
+      #  set dst_cip_file "\$origin_dir/[usf_get_relative_file_path $dst_cip_file $launch_dir]"
+      #} else {
+      #  set dst_cip_file "./[usf_get_relative_file_path $dst_cip_file $launch_dir]"
+      #}
+      set dst_cip_file "\$origin_dir/[usf_get_relative_file_path $dst_cip_file $launch_dir]"
     }
     if { $b_wrap_in_quotes } {
       set dst_cip_file "\"$dst_cip_file\""

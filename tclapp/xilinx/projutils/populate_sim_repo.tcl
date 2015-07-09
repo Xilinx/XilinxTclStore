@@ -283,7 +283,7 @@ proc cip_export_ip_files { obj } {
   # no extension, just ip name
   if { {} == $ip_extn } {
     set ip_name [file root [file tail $obj]]
-    set file_obj [get_ips $ip_name]
+    set file_obj [get_ips -quiet $ip_name]
     # is bd?
     if { [lsearch -exact [list_property $file_obj] {SCOPE}] != -1 } {
       set bd_file [get_property {SCOPE} $file_obj]
@@ -295,7 +295,7 @@ proc cip_export_ip_files { obj } {
           cip_export_bd $bd_file
         } 
       } else {
-        set ip_file [get_property IP_FILE [get_ips $obj]]
+        set ip_file [get_property IP_FILE [get_ips -quiet $obj]]
         set ip [cip_get_ip_name $ip_file]
         # is BD ip? skip
         if { {} != $ip } {
@@ -361,7 +361,7 @@ proc cip_export_ip { obj } {
   # dynamic files
   #
   set ip_dir [file normalize [file join $a_vars(base_dir) $ip_name]]
-  foreach sim_file [get_files -all -of_objects [get_ips -quiet $ip_name] -filter {USED_IN=~"*simulation*"}] {
+  foreach sim_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] -filter {USED_IN=~"*simulation*"}] {
     if { [lsearch $l_static_files $sim_file] != -1 } { continue }
     if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
     set file {}
@@ -374,7 +374,7 @@ proc cip_export_ip { obj } {
   }
 
   # templates
-  foreach template_file [get_files -all -of [get_ips -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
+  foreach template_file [get_files -quiet -all -of [get_ips -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
     if { [lsearch $l_static_files $template_file] != -1 } { continue }
     set file {}
     if { $a_vars(b_force) } {
@@ -406,7 +406,7 @@ proc cip_export_bd { obj } {
   # static files
   #
   set l_static_files [list]
-  set l_static_files [get_files -quiet -all -of_objects [get_files ${ip_name}.bd] -filter {USED_IN=~"*ipstatic*"}]
+  set l_static_files [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*ipstatic*"}]
   foreach src_ip_file $l_static_files {
     set src_ip_file [string map {\\ /} $src_ip_file]
     # /wrk/hdstaff/rvklair/try/projects/demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
@@ -475,7 +475,7 @@ proc cip_export_bd { obj } {
   #
   # dynamic files
   #
-  foreach src_ip_file [get_files -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*simulation*"}] {
+  foreach src_ip_file [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*simulation*"}] {
     if { [lsearch $l_static_files $src_ip_file] != -1 } { continue }
     if { {.xci} == [file extension $src_ip_file] } { continue }
     if { [lsearch -exact $l_valid_data_file_extns [file extension $src_ip_file]] >= 0 } { continue }
@@ -643,7 +643,7 @@ proc cip_is_upto_date { obj } {
       send_msg_id populate_sim_repo-Tcl-045 INFO "IP status: 'LOCKED' - $ip_name"
       return 0
     }
-    if { ({0} == [get_property is_enabled [get_files -all ${ip_name}.xci]]) } {
+    if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip_name}.xci]]) } {
       send_msg_id populate_sim_repo-Tcl-045 INFO "IP status: 'USER DISABLED' - $ip_name"
       return 0
     }

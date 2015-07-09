@@ -828,6 +828,15 @@ proc usf_questa_get_simulation_cmdline {} {
     }
   }
 
+  if { [get_param "project.allowSharedLibraryType"] } {
+    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
+      if { {Shared Library} == [get_property FILE_TYPE $file] } {
+        lappend arg_list "-sv_lib libsls"
+        break
+      }
+    }
+  }
+
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   lappend arg_list "-lib"
   lappend arg_list $default_lib
@@ -1050,6 +1059,13 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     if { {} != $tool_path } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
+
+    if {({compile} == $step)} {
+      if { [get_param "project.allowSharedLibraryType"] } {
+        puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+      }
+    }
+
     ::tclapp::xilinx::questa::usf_write_shell_step_fn $fh_scr
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
       puts $fh_scr "ExecStep source ./$do_filename 2>&1 | tee -a $log_filename"
@@ -1084,6 +1100,50 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     puts $fh_scr "exit 1"
     puts $fh_scr ":SUCCESS"
     puts $fh_scr "exit 0"
+  }
+
+  if {({compile} == $step)} {
+    set b_sw_lib 0
+    set args_list [list]
+    if { [get_param "project.allowSharedLibraryType"] } {
+      if {$::tcl_platform(platform) == "unix"} {
+        set b_default_sw_lib 0
+        foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
+          set file_dir [file dirname $file]
+          set file_name [file tail $file]
+          set final_file_name $file_dir\/$file_name
+          if [string match "lib*so" $file_name] {
+            # remove "lib" from prefix and ".so" extension
+            set file_name [string range $file_name 3 end-3]
+            set final_file_name "-l$file_name"
+            set file_dir "[usf_get_relative_file_path $file_dir $dir]"
+          }
+
+          if { {Shared Library} == [get_property FILE_TYPE $file] } {
+            if { $b_default_sw_lib == 0 } {
+              lappend args_list "\ng++ -shared -o libsls.so -L\$xv_lib_path/ -lxaxi_tlm -Wl,-rpath -Wl,\$xv_lib_path/ -lsystemc -L$file_dir\/ $final_file_name"
+              # file_dir already set in g++ command? donot add
+              if { [info exists a_shared_lib_dirs($file_dir) ] == 0 } {
+                lappend args_list "-Wl,-rpath -Wl,$file_dir"
+                set a_shared_lib_dirs($file_dir) $file_dir
+              }
+              incr b_default_sw_lib 1
+              incr b_sw_lib 1
+            } else {
+              lappend args_list "-L$file_dir\/ $final_file_name"
+              if { [info exists a_shared_lib_dirs($file_dir)] == 0 } {
+                lappend args_list "-Wl,-rpath -Wl,$file_dir"
+                set a_shared_lib_dirs($file_dir) $file_dir
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if { $b_sw_lib == 1} {
+      puts $fh_scr [join $args_list " "]
+    }
   }
   close $fh_scr
 }
