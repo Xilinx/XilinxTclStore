@@ -2857,9 +2857,9 @@ proc usf_get_dynamic_sim_file { ip_name src_file } {
   }
   set file_path_str [join [lrange $comps $index end] "/"]
   #puts file_path_str=$file_path_str
-  set src_file [file join $a_sim_vars(dynamic_repo_dir) $file_path_str]
+  set src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $file_path_str]
   if { $a_sim_vars(b_is_managed) } {
-    set src_file [file join $a_sim_vars(dynamic_repo_dir) $ip_name $file_path_str]
+    set src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $ip_name $file_path_str]
   }
   #puts out_src_file=$src_file
   return $src_file
@@ -2892,9 +2892,9 @@ proc usf_fetch_ipi_dynamic_file { ipi_file src_file } {
   #puts file_path_str=$file_path_str
 
   set file_path_str "$ip_name/$file_path_str"
-  set src_file [file join $a_sim_vars(dynamic_repo_dir) $file_path_str]
+  set src_file [file join $a_sim_vars(dynamic_repo_dir) "bd" $file_path_str]
   if { $a_sim_vars(b_is_managed) } {
-    set src_file [file join $a_sim_vars(dynamic_repo_dir) $ip_name $file_path_str]
+    set src_file [file join $a_sim_vars(dynamic_repo_dir) "bd" $ip_name $file_path_str]
   }
   #puts out_src_file=$src_file
   return $src_file

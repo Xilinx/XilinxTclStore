@@ -362,7 +362,7 @@ proc cip_export_ip { obj } {
   #
   # dynamic files
   #
-  set ip_dir [file normalize [file join $a_vars(base_dir) $ip_name]]
+  set ip_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
   foreach sim_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] -filter {USED_IN=~"*simulation*"}] {
     if { [lsearch $l_static_files $sim_file] != -1 } { continue }
     if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
@@ -459,18 +459,7 @@ proc cip_export_bd { obj } {
     if { [file exists $dst_file] } {
       # skip  
     } else { 
-      if { [file exists $target_ip_lib_dir] } {
-        #send_msg_id populate_sim_repo-Tcl-009 STATUS " + Exported BD   (static):'$dst_file'\n"
-        if {[catch {file delete -force $target_ip_lib_dir} error_msg] } {
-          send_msg_id populate_sim_repo-Tcl-010 ERROR "failed to delete file ($target_ip_lib_dir): $error_msg\n"
-          return 1
-        }
-      }
-      if {[catch {file copy -force $ip_hdl_dir $target_ip_lib_dir} error_msg] } {
-        send_msg_id populate_sim_repo-Tcl-025 WARNING "Failed to copy file '$ip_hdl_dir' to '$target_ip_lib_dir' : $error_msg\n"
-      } else {
-        #send_msg_id populate_sim_repo-Tcl-009 STATUS " + Exported BD   (static):'$dst_file'\n"
-      }
+      cip_copy_files_recursive $ip_hdl_dir $target_ip_lib_dir
     }
   }
 
@@ -499,8 +488,8 @@ proc cip_export_bd { obj } {
     # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1.srcs/sources_1/bd/design_1 
     #puts ip_lib_dir=$ip_lib_dir
 
-    set target_ip_lib_dir [file join $a_vars(base_dir) ${ip_name}]
-    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1_sim/design_1 
+    set target_ip_lib_dir [file join $a_vars(bd_base_dir) ${ip_name}]
+    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1_sim/bd/design_1 
     #puts target_ip_lib_dir=$target_ip_lib_dir
 
     set hdl_dir_file [join [lrange $comps $index end] "/"]
@@ -508,7 +497,7 @@ proc cip_export_bd { obj } {
     #puts hdl_dir_file=$hdl_dir_file
 
     set dst_file [file join $target_ip_lib_dir $hdl_dir_file]
-    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1_sim/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
+    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1_sim/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
     #puts dst_file=$dst_file
     lappend export_coln $dst_file
 
