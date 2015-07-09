@@ -76,6 +76,7 @@ proc export_simulation {args} {
     return
   }
 
+
   xps_set_target_simulator
 
   set objs $a_sim_vars(sp_of_objects)
@@ -226,13 +227,13 @@ proc xps_xport_simulation { obj } {
   # Return Value:
   variable a_sim_vars
   if { [xps_set_target_obj $obj] } {
-    return
+    return 1
   }
 
   set xport_dir [file normalize [string map {\\ /} $a_sim_vars(s_xport_dir)]]
   set run_dir {}
   if { [xps_create_rundir $xport_dir run_dir] } {
-    return
+    return 1
   }
 
   # main readme
@@ -345,7 +346,8 @@ proc xps_extract_ip_files {} {
   if { [get_param project.enableCentralSimRepo] } {
     set ips [get_ips -quiet]
     if { [llength $ips] > 0 } {
-      populate_sim_repo -of_objects $ips
+      # TODO: this is causing zip_exception
+      #populate_sim_repo -of_objects $ips
     }
     return
   }

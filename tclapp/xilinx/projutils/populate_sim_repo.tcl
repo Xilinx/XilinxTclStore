@@ -26,6 +26,8 @@ proc cip_init_vars {} {
   set a_vars(mem_dir)                 ""
   set a_vars(scr_dir)                 ""
   set a_vars(ipstatic_source_dir)     ""
+  set a_vars(ip_base_dir)             ""
+  set a_vars(bd_base_dir)             ""
   set a_vars(b_central_dir_specified) 0
   set a_vars(b_ipstatic_source_dir)   0
   set a_vars(sp_of_objects)           {}
@@ -756,6 +758,20 @@ proc cip_create_central_dirs {} {
       return 1
     }
   }
+
+  if { ! [file exists $a_vars(ip_base_dir)] } {
+    if {[catch {file mkdir $a_vars(ip_base_dir)} error_msg] } {
+      send_msg_id populate_sim_repo-Tcl-009 ERROR "failed to create the directory $a_vars(ip_base_dir): $error_msg\n"
+      return 1
+    }
+  }
+
+  if { ! [file exists $a_vars(bd_base_dir)] } {
+    if {[catch {file mkdir $a_vars(bd_base_dir)} error_msg] } {
+      send_msg_id populate_sim_repo-Tcl-009 ERROR "failed to create the directory $a_vars(bd_base_dir): $error_msg\n"
+      return 1
+    }
+  }
 }
 
 proc cip_set_dirs {} {
@@ -790,6 +806,12 @@ proc cip_set_dirs {} {
     set a_vars(ipstatic_dir) [file normalize [file join $a_vars(base_dir) "ipstatic"]]
   }
 
+  # ip dir
+  set a_vars(ip_base_dir) [file join $a_vars(base_dir) "ip"]
+
+  # bd dir
+  set a_vars(bd_base_dir) [file join $a_vars(base_dir) "bd"]
+
   set a_vars(mem_dir) [file normalize [file join $a_vars(base_dir) "mem_init_files"]]
   set a_vars(scr_dir) [file normalize [file join $a_vars(base_dir) "scripts"]]
 
@@ -810,6 +832,8 @@ proc cip_clean_central_dirs {} {
   if { [file exists $a_vars(base_dir)] } {
     foreach file_path [glob -nocomplain -directory $a_vars(base_dir) *] {
       set file_path [string map {\\ /} $file_path]
+      if { $file_path == $a_vars(ip_base_dir) } { continue }
+      if { $file_path == $a_vars(bd_base_dir) } { continue }
       if { $file_path == $a_vars(ipstatic_dir) } { continue }
       if { $file_path == $a_vars(mem_dir) } { continue }
       if { $file_path == $a_vars(scr_dir) } { continue }
@@ -846,6 +870,24 @@ proc cip_clean_central_dirs {} {
 
   if { [file exists $a_vars(ipstatic_dir)] } {
     foreach file_path [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
+      if {[catch {file delete -force $file_path} error_msg] } {
+        [catch {send_msg_id populate_sim_repo-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
+        return
+      }
+    }
+  }
+
+  if { [file exists $a_vars(ip_base_dir)] } {
+    foreach file_path [glob -nocomplain -directory $a_vars(ip_base_dir) *] {
+      if {[catch {file delete -force $file_path} error_msg] } {
+        [catch {send_msg_id populate_sim_repo-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
+        return
+      }
+    }
+  }
+
+  if { [file exists $a_vars(bd_base_dir)] } {
+    foreach file_path [glob -nocomplain -directory $a_vars(bd_base_dir) *] {
       if {[catch {file delete -force $file_path} error_msg] } {
         [catch {send_msg_id populate_sim_repo-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
         return
