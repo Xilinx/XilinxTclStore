@@ -1558,7 +1558,6 @@ proc usf_export_data_files { data_files } {
       set extn [file extension $file]
       switch -- $extn {
         {.c} -
-        {.txt} -
         {.zip} -
         {.hwh} -
         {.hwdef} -
