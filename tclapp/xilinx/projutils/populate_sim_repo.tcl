@@ -363,7 +363,7 @@ proc cip_export_ip { obj } {
   # dynamic files
   #
   set ip_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
-  foreach sim_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] -filter {USED_IN=~"*simulation*"}] {
+  foreach sim_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
     if { [lsearch $l_static_files $sim_file] != -1 } { continue }
     if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
     set file {}
