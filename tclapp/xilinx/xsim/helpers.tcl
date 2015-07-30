@@ -558,6 +558,10 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
 
   foreach vh_file $vh_files {
     # set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
+    if { [get_param project.enableCentralSimRepo] } {
+      set parent_ip [get_property PARENT_COMPOSITE_FILE $vh_file]
+      set vh_file [file join $launch_dir [usf_get_ip_file_from_repo $parent_ip $vh_file $launch_dir]]
+    }
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
@@ -1679,15 +1683,8 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
     }
     #set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
     if { [get_param project.enableCentralSimRepo] } {
-      set used_in [get_property USED_IN $file]
-      if { [lsearch $used_in "ipstatic"] != -1 } {
-        # static
-        set file [usf_fetch_ip_static_file $file]
-      } else {
-        # dynamic
-        set parent_ip [get_property PARENT_COMPOSITE_FILE $file]
-        set file [file join $dir [usf_get_ip_file_from_repo $parent_ip $file $dir]]
-      }
+      set parent_ip [get_property PARENT_COMPOSITE_FILE $file]
+      set file [file join $dir [usf_get_ip_file_from_repo $parent_ip $file $dir]]
     }
     set file_path [file normalize [string map {\\ /} [file dirname $file]]]
     if { [lsearch -exact $unique_paths $file_path] == -1 } {
