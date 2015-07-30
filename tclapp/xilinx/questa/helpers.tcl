@@ -1789,15 +1789,8 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
     # set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
     set file [usf_xtract_file $file]
     if { [get_param project.enableCentralSimRepo] } {
-      set used_in [get_property USED_IN $file]
-      if { [lsearch $used_in "ipstatic"] != -1 } {
-        # static
-        set file [usf_fetch_ip_static_file $file]
-      } else {
-        # dynamic
-        set parent_ip [get_property PARENT_COMPOSITE_FILE $file]
-        set file [file join $dir [usf_get_ip_file_from_repo $parent_ip $file $dir]]
-      }
+      set parent_ip [get_property PARENT_COMPOSITE_FILE $file]
+      set file [file join $dir [usf_get_ip_file_from_repo $parent_ip $file $dir]]
     }
     set file_path [file normalize [string map {\\ /} [file dirname $file]]]
     if { [lsearch -exact $unique_paths $file_path] == -1 } {
