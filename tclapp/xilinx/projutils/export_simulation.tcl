@@ -5212,13 +5212,17 @@ proc xps_get_incl_files_from_ip { launch_dir tcl_obj } {
   set filter "FILE_TYPE == \"Verilog Header\""
   set vh_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
-    if { $a_sim_vars(b_absolute_path) } {
-      set file "[xps_resolve_file_path $file $launch_dir]"
+    if { [get_param project.enableCentralSimRepo] } {
+      set file [file join $launch_dir [xps_get_ip_file_from_repo $tcl_obj $file $launch_dir]]
     } else {
-      if { $a_sim_vars(b_xport_src_files) } {
-        set file "\$ref_dir/incl"
+      if { $a_sim_vars(b_absolute_path) } {
+        set file "[xps_resolve_file_path $file $launch_dir]"
       } else {
-        set file "\$ref_dir/[xps_get_relative_file_path $file $launch_dir]"
+        if { $a_sim_vars(b_xport_src_files) } {
+          set file "\$ref_dir/incl"
+        } else {
+          set file "\$ref_dir/[xps_get_relative_file_path $file $launch_dir]"
+        }
       }
     }
     lappend incl_files $file
@@ -5299,8 +5303,7 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir } {
   set incl_dir_str {}
 
   if { [xps_is_ip $tcl_obj] } {
-    set incl_dir_str [xps_get_incl_dirs_from_ip $launch_dir $tcl_obj]
-    set incl_dirs [split $incl_dir_str " "]
+    set incl_dirs [xps_get_incl_dirs_from_ip $launch_dir $tcl_obj]
   } else {
     set incl_dir_str [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]]
     set incl_dirs [split $incl_dir_str "#"]
@@ -5371,13 +5374,18 @@ proc xps_get_incl_dirs_from_ip { launch_dir tcl_obj } {
     # set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
     set file [xps_xtract_file $file]
     set dir [file dirname $file]
-    if { $a_sim_vars(b_absolute_path) } {
-      set dir "[xps_resolve_file_path $dir $launch_dir]"
+    if { [get_param project.enableCentralSimRepo] } {
+      set file [file join $launch_dir [xps_get_ip_file_from_repo $tcl_obj $file $launch_dir]]
+      set dir [file dirname $file]
     } else {
-      if { $a_sim_vars(b_xport_src_files) } {
-        set dir "\$ref_dir/incl"
+      if { $a_sim_vars(b_absolute_path) } {
+        set dir "[xps_resolve_file_path $dir $launch_dir]"
       } else {
-        set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
+        if { $a_sim_vars(b_xport_src_files) } {
+          set dir "\$ref_dir/incl"
+        } else {
+          set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
+        }
       }
     }
     lappend incl_dirs $dir
