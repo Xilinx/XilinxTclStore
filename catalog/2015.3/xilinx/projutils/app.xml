@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>populate ip dynamic files into ip and bd sub-dir</revision_history>
+      <revision_history>fixed header includes to work for dynamic files</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -24,7 +24,7 @@
         </proc>
         <proc>
           <name>populate_sim_repo</name>
-          <summary>Export IP static files for simulation</summary>
+          <summary>Generate and populate the central simulation directory for a project. This can also &#10;be scoped to work on one or more IPs in the project.</summary>
         </proc>
         <proc>
           <name>write_project_tcl</name>
