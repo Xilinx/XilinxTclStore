@@ -573,15 +573,8 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     # set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
     set vh_file [usf_xtract_file $vh_file]
     if { [get_param project.enableCentralSimRepo] } {
-      set used_in [get_property USED_IN $vh_file]
-      if { [lsearch $used_in "ipstatic"] != -1 } {
-        # static
-        set vh_file [usf_fetch_ip_static_file $vh_file]
-      } else {
-        # dynamic
-        set parent_ip [get_property PARENT_COMPOSITE_FILE $vh_file]
-        set vh_file [file join $dir [usf_get_ip_file_from_repo $parent_ip $vh_file $dir]]
-      }
+      set parent_ip [get_property PARENT_COMPOSITE_FILE $vh_file]
+      set vh_file [file join $dir [usf_get_ip_file_from_repo $parent_ip $vh_file $launch_dir]]
     }
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
