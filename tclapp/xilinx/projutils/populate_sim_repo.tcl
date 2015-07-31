@@ -285,7 +285,7 @@ proc cip_export_ip_files { obj } {
   # no extension, just ip name
   if { {} == $ip_extn } {
     set ip_name [file root [file tail $obj]]
-    set file_obj [get_ips -quiet $ip_name]
+    set file_obj [get_ips -all -quiet $ip_name]
     # is bd?
     if { [lsearch -exact [list_property $file_obj] {SCOPE}] != -1 } {
       set bd_file [get_property {SCOPE} $file_obj]
@@ -297,7 +297,7 @@ proc cip_export_ip_files { obj } {
           cip_export_bd $bd_file
         } 
       } else {
-        set ip_file [get_property IP_FILE [get_ips -quiet $obj]]
+        set ip_file [get_property IP_FILE [get_ips -all -quiet $obj]]
         set ip [cip_get_ip_name $ip_file]
         # is BD ip? skip
         if { {} != $ip } {
@@ -344,7 +344,7 @@ proc cip_export_ip { obj } {
   # static files
   #
   set l_static_files [list]
-  foreach src_ip_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
+  foreach src_ip_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
     set filename [file tail $src_ip_file]
     set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
     if { {} == $file_obj } { continue; }
@@ -363,7 +363,7 @@ proc cip_export_ip { obj } {
   # dynamic files
   #
   set ip_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
-  foreach sim_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
+  foreach sim_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
     if { [lsearch $l_static_files $sim_file] != -1 } { continue }
     if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
     set file {}
@@ -376,7 +376,7 @@ proc cip_export_ip { obj } {
   }
 
   # templates
-  foreach template_file [get_files -quiet -all -of [get_ips -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
+  foreach template_file [get_files -quiet -all -of [get_ips -all -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
     if { [lsearch $l_static_files $template_file] != -1 } { continue }
     set file {}
     if { $a_vars(b_force) } {
@@ -627,7 +627,7 @@ proc cip_is_upto_date { obj } {
 
   set regen_ip [dict create]
   if { ([cip_is_ip $obj]) && ({.xci} == $a_vars(s_ip_file_extn)) } {
-    if { {1} == [get_property is_locked [get_ips -quiet $ip_name]] } {
+    if { {1} == [get_property is_locked [get_ips -all -quiet $ip_name]] } {
       if { 0 == $a_vars(b_ips_locked) } {
         set a_vars(b_ips_locked) 1
       }
@@ -638,10 +638,10 @@ proc cip_is_upto_date { obj } {
       send_msg_id populate_sim_repo-Tcl-045 INFO "IP status: 'USER DISABLED' - $ip_name"
       return 0
     }
-    dict set regen_ip $ip_name d_targets [get_property delivered_targets [get_ips -quiet $ip_name]]
-    dict set regen_ip $ip_name generated [get_property is_ip_generated [get_ips -quiet $ip_name]]
+    dict set regen_ip $ip_name d_targets [get_property delivered_targets [get_ips -all -quiet $ip_name]]
+    dict set regen_ip $ip_name generated [get_property is_ip_generated [get_ips -all -quiet $ip_name]]
     dict set regen_ip $ip_name generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip_name}.xci] 0]]
-    dict set regen_ip $ip_name stale [get_property stale_targets [get_ips -quiet $ip_name]]
+    dict set regen_ip $ip_name stale [get_property stale_targets [get_ips -all -quiet $ip_name]]
   }
 
   set not_generated [list]
@@ -893,7 +893,7 @@ proc cip_export_mem_init_files_for_ip { obj } {
   variable a_vars
   set ip_name [file root [file tail $obj]]
   variable s_mem_filter
-  foreach file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] -filter $s_mem_filter] {
+  foreach file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter $s_mem_filter] {
     set extn [file extension $file]
     switch -- $extn {
       {.zip} -

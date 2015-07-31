@@ -344,7 +344,7 @@ proc xps_extract_ip_files {} {
   }
 
   if { [get_param project.enableCentralSimRepo] } {
-    set ips [get_ips -quiet]
+    set ips [get_ips -all -quiet]
     if { [llength $ips] > 0 } {
       # TODO: this is causing zip_exception
       #populate_sim_repo -of_objects $ips
@@ -362,7 +362,7 @@ proc xps_extract_ip_files {} {
   set a_sim_vars(b_extract_ip_sim_files) [get_property extract_ip_sim_files [current_project]]
 
   if { $a_sim_vars(b_extract_ip_sim_files) } {
-    foreach ip [get_ips -quiet] {
+    foreach ip [get_ips -all -quiet] {
       set xci_ip_name "${ip}.xci"
       set xcix_ip_name "${ip}.xcix"
       set xcix_file_path [get_property core_container [get_files -quiet -all ${xci_ip_name}]] 
@@ -693,7 +693,7 @@ proc xps_set_target_obj { obj } {
     xps_verify_ip_status
   } else {
     if { $a_sim_vars(b_is_managed) } {
-      set ips [get_ips -quiet]
+      set ips [get_ips -all -quiet]
       if {[llength $ips] == 0} {
         send_msg_id exportsim-Tcl-014 INFO "No IP's found in the current project.\n"
         return 1
@@ -1040,7 +1040,7 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #puts ip_name=$ip_name
 
   set b_is_bd_ip 0
-  set ip_obj [get_ips -quiet $ip_name]
+  set ip_obj [get_ips -all -quiet $ip_name]
   if { {} != $ip_obj } {
     set ip_file [get_property IP_FILE $ip_obj]
     set ipi_file [xps_get_ip_name $ip_file]
@@ -1075,7 +1075,7 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   # is static ip file? set flag and return
   #puts ip_name=$ip_name
-  set ip_static_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] $full_src_file_path -filter {USED_IN=~"*ipstatic*"}]
+  set ip_static_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] $full_src_file_path -filter {USED_IN=~"*ipstatic*"}]
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
     set b_is_static 1
@@ -1378,7 +1378,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compi
         set xcix_ip_path [get_property core_container $file_obj]
         if { {} != $xcix_ip_path } {
           set ip_name [file root [file tail $xcix_ip_path]]
-          set ip_ext_dir [get_property ip_extract_dir [get_ips -quiet $ip_name]]
+          set ip_ext_dir [get_property ip_extract_dir [get_ips -all -quiet $ip_name]]
           set ip_file "./[xps_get_relative_file_path $file $ip_ext_dir]"
           # remove leading "./../"
           set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
@@ -3585,19 +3585,19 @@ proc xps_verify_ip_status {} {
          ({1} == [get_property is_auto_disabled [get_files -quiet -all ${ip}.xci]]) } {
       return
     }
-    dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
-    dict set regen_ip $ip generated [get_property is_ip_generated [get_ips -quiet $ip]]
+    dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -all -quiet $ip]]
+    dict set regen_ip $ip generated [get_property is_ip_generated [get_ips -all -quiet $ip]]
     dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip}.xci] 0]]
-    dict set regen_ip $ip stale [get_property stale_targets [get_ips -quiet $ip]]
+    dict set regen_ip $ip stale [get_property stale_targets [get_ips -all -quiet $ip]]
     set b_single_ip 1
   } else {
-    foreach ip [get_ips -quiet] {
+    foreach ip [get_ips -all -quiet] {
       # is user-disabled? or auto_disabled? continue
       if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip}.xci]]) ||
            ({1} == [get_property is_auto_disabled [get_files -quiet -all ${ip}.xci]]) } {
         continue
       }
-      dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -quiet $ip]]
+      dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -all -quiet $ip]]
       dict set regen_ip $ip generated [get_property is_ip_generated $ip]
       dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip}.xci] 0]]
       dict set regen_ip $ip stale [get_property stale_targets $ip]
@@ -5126,8 +5126,8 @@ proc xps_is_axi_bfm {} {
   # Argument Usage:
   # Return Value:
 
-  foreach ip [get_ips -quiet] {
-    set ip_def [lindex [split [get_property "IPDEF" [get_ips -quiet $ip]] {:}] 2]
+  foreach ip [get_ips -all -quiet] {
+    set ip_def [lindex [split [get_property "IPDEF" [get_ips -all -quiet $ip]] {:}] 2]
     set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
     if { ([regexp -nocase {axi_bfm} $value]) || ([regexp -nocase {processing_system7} $value]) } {
       return 1
@@ -5522,7 +5522,7 @@ proc xps_xtract_file { file } {
     set xcix_ip_path [get_property core_container $file_obj]
     if { {} != $xcix_ip_path } {
       set ip_name [file root [file tail $xcix_ip_path]]
-      set ip_ext_dir [get_property ip_extract_dir [get_ips -quiet $ip_name]]
+      set ip_ext_dir [get_property ip_extract_dir [get_ips -all -quiet $ip_name]]
       set ip_file "./[usf_get_relative_file_path $file $ip_ext_dir]"
       # remove leading "./../"
       set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
