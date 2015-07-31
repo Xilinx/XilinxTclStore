@@ -1995,7 +1995,7 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
     # does ip generated simulation products? if not, generate them
     if { ![get_property "IS_IP_GENERATED_SIM" $comp_file] } {
       send_msg_id USF-XSim-071 INFO "Generating simulation products for IP '$ip_name'...\n"
-      set delivered_targets [get_property delivered_targets [get_ips -quiet ${ip_name}]]
+      set delivered_targets [get_property delivered_targets [get_ips -all -quiet ${ip_name}]]
       if { [regexp -nocase {simulation} $delivered_targets] } {
         generate_target {simulation} [get_files [list "$comp_file"]] -force
       }
@@ -2454,7 +2454,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #puts ip_name=$ip_name
 
   set b_is_bd_ip 0
-  set ip_obj [get_ips -quiet $ip_name]
+  set ip_obj [get_ips -all -quiet $ip_name]
   if { {} != $ip_obj } {
     set ip_file [get_property IP_FILE $ip_obj]
     set ipi_file [usf_get_ip_name $ip_file]
@@ -2489,7 +2489,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   # is static ip file? set flag and return
   #puts ip_name=$ip_name
-  set ip_static_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] [list "$full_src_file_path"] -filter {USED_IN=~"*ipstatic*"}]
+  set ip_static_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] [list "$full_src_file_path"] -filter {USED_IN=~"*ipstatic*"}]
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
     set b_is_static 1
