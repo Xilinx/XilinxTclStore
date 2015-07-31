@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed header includes to work for dynamic files</revision_history>
+      <revision_history>cleaned up central repo references and fixed xsim includes</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
