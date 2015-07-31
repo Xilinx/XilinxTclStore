@@ -288,7 +288,7 @@ proc usf_extract_ip_files {} {
   }
   set a_sim_vars(b_extract_ip_sim_files) [get_property extract_ip_sim_files [current_project]]
   if { $a_sim_vars(b_extract_ip_sim_files) } {
-    foreach ip [get_ips -quiet] {
+    foreach ip [get_ips -all -quiet] {
       set xci_ip_name "${ip}.xci"
       set xcix_ip_name "${ip}.xcix"
       set xcix_file_path [get_property core_container [get_files ${xci_ip_name}]]
@@ -1444,8 +1444,8 @@ proc usf_is_axi_bfm_ip {} {
   # Return Value:
   # true (1) if specified IP is axi_bfm, false (0) otherwise
 
-  foreach ip [get_ips -quiet] {
-    set ip_def [lindex [split [get_property "IPDEF" [get_ips -quiet $ip]] {:}] 2]
+  foreach ip [get_ips -all -quiet] {
+    set ip_def [lindex [split [get_property "IPDEF" [get_ips -all -quiet $ip]] {:}] 2]
     set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
     if { ([regexp -nocase {axi_bfm} $value]) || ([regexp -nocase {processing_system7} $value]) } {
       return 1
@@ -2154,7 +2154,7 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
     # does ip generated simulation products? if not, generate them
     if { ![get_property "IS_IP_GENERATED_SIM" $comp_file] } {
       send_msg_id USF-Questa-071 INFO "Generating simulation products for IP '$ip_name'...\n"
-      set delivered_targets [get_property delivered_targets [get_ips -quiet ${ip_name}]]
+      set delivered_targets [get_property delivered_targets [get_ips -all -quiet ${ip_name}]]
       if { [regexp -nocase {simulation} $delivered_targets] } {
         generate_target {simulation} [get_files [list "$comp_file"]] -force
       }
@@ -2323,7 +2323,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
         set xcix_ip_path [get_property core_container $file_obj]
         if { {} != $xcix_ip_path } {
           set ip_name [file root [file tail $xcix_ip_path]]
-          set ip_ext_dir [get_property ip_extract_dir [get_ips -quiet $ip_name]]
+          set ip_ext_dir [get_property ip_extract_dir [get_ips -all -quiet $ip_name]]
           set ip_file "./[usf_get_relative_file_path $file $ip_ext_dir]"
           # remove leading "./../"
           set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
@@ -2606,7 +2606,7 @@ proc usf_xtract_file { file } {
     set xcix_ip_path [get_property core_container $file_obj]
     if { {} != $xcix_ip_path } {
       set ip_name [file root [file tail $xcix_ip_path]]
-      set ip_ext_dir [get_property ip_extract_dir [get_ips -quiet $ip_name]]
+      set ip_ext_dir [get_property ip_extract_dir [get_ips -all -quiet $ip_name]]
       set ip_file "./[usf_get_relative_file_path $file $ip_ext_dir]"
       # remove leading "./../"
       set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
@@ -2693,7 +2693,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #puts ip_name=$ip_name
 
   set b_is_bd_ip 0
-  set ip_obj [get_ips -quiet $ip_name]
+  set ip_obj [get_ips -all -quiet $ip_name]
   if { {} != $ip_obj } {
     set ip_file [get_property IP_FILE $ip_obj]
     set ipi_file [usf_get_ip_name $ip_file]
@@ -2727,7 +2727,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   set b_is_dynamic 1
 
   # is static ip file? set flag and return
-  set ip_static_file [get_files -quiet -all -of_objects [get_ips -quiet $ip_name] [list "$full_src_file_path"] -filter {USED_IN=~"*ipstatic*"}]
+  set ip_static_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] [list "$full_src_file_path"] -filter {USED_IN=~"*ipstatic*"}]
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
     set b_is_static 1
