@@ -1055,7 +1055,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/sh -f"
+    puts $fh_scr "#!/bin/bash -f"
     if { {} != $tool_path } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
