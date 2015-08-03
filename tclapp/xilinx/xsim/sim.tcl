@@ -321,7 +321,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   }
 
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/sh -f"
+    puts $fh_scr "#!/bin/bash -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     if { [get_param "project.allowSharedLibraryType"] } {
       puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
@@ -531,7 +531,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
   }
 
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/sh -f"
+    puts $fh_scr "#!/bin/bash -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
     set args [usf_xsim_get_xelab_cmdline_args]
@@ -617,7 +617,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   }
   set b_batch 1
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/sh -f"
+    puts $fh_scr "#!/bin/bash -f"
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
     # TODO: once xsim picks the "so"s path at runtime , we can remove the following code
