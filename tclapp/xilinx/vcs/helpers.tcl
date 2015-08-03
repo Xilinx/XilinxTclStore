@@ -574,7 +574,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     set vh_file [usf_xtract_file $vh_file]
     if { [get_param project.enableCentralSimRepo] } {
       set parent_ip [get_property PARENT_COMPOSITE_FILE $vh_file]
-      set vh_file [file join $dir [usf_get_ip_file_from_repo $parent_ip $vh_file $launch_dir]]
+      set vh_file [file join $launch_dir [usf_get_ip_file_from_repo $parent_ip $vh_file $launch_dir]]
     }
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
