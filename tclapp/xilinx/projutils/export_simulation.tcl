@@ -2924,7 +2924,7 @@ proc xps_write_header { simulator fh_unix fh_win } {
   }
   set script_file $a_sim_vars(s_script_filename)$extn
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_unix "#!/bin/sh -f"
+    puts $fh_unix "#!/bin/bash -f"
     puts $fh_unix "# $product (TM) $version_id\n#"
     puts $fh_unix "# Filename    : $a_sim_vars(s_script_filename)$extn"
     puts $fh_unix "# Simulator   : [xps_get_simulator_pretty_name $simulator]"
