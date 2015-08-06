@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added write_ip_integrator_testbench</revision_history>
+      <revision_history>Fixed create_combined_mig_io_design test to resolve issue with Core Container</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
