@@ -25,6 +25,8 @@ if {[package vcompare [package require Vivado] "1.2015.3"]>=0} {
 
 # Run the Create Combined MIG design script
 if {[catch { ::tclapp::xilinx::designutils::create_combined_mig_io_design -project_name "proj_$name" -out_dir "./${name}_ex" [get_ips mig_0] } catchErrorString]} {
+   # Close the two projects
+    close_project
     close_project
 	file delete -force "./proj_ip_$name"
 	file delete -force "./${name}_ex"
@@ -40,7 +42,8 @@ if {[catch { ::tclapp::xilinx::designutils::create_combined_mig_io_design -proje
 #	error error [format " -E- Unit test $name failed: %s" "synth_1 failed"]
 #}
 
-# Close the project
+# Close the two projects
+close_project
 close_project
 
 # Delete the project on disk
