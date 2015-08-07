@@ -1033,6 +1033,7 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   }
   #puts src_file=$src_file
   set filename [file tail $src_file]
+  #puts ip_file=$ip_file
   set ip_name [file root [file tail $ip_file]] 
 
   set full_src_file_path [xps_find_file_from_compile_order $ip_name $src_file]
@@ -1040,29 +1041,29 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #puts ip_name=$ip_name
 
   set b_is_bd_ip 0
-  set ip_obj [get_ips -all -quiet $ip_name]
-  if { {} != $ip_obj } {
-    set ip_file [get_property IP_FILE $ip_obj]
-    set ipi_file [xps_get_ip_name $ip_file]
-    if { ({} != $ipi_file) && ({.bd} == [file extension $ipi_file]) } {
-      set b_is_bd_ip 1
-    }
-  } else {
-    # ip_name=design_1 (this is not ip, so check if src contain "design_1"
-    set sub_dirs [list]
-    set comps [lrange [split $full_src_file_path "/"] 1 end]
-    set to_match "$ip_name"
-    foreach comp $comps {
-      if { $to_match == $comp } {
-        set ip_file $full_src_file_path
-        set ipi_file [xps_get_ip_name $ip_file]
-        if { ({} != $ipi_file) && ({.bd} == [file extension $ipi_file]) } {
-          set b_is_bd_ip 1
-          break
-        }
-      }
-    }
-  }
+  #set ip_obj [get_ips -all -quiet $ip_name]
+  #if { {} != $ip_obj } {
+  #  set ip_file [get_property IP_FILE $ip_obj]
+  #  set ipi_file [xps_get_ip_name $ip_file]
+  #  if { ({} != $ipi_file) && ({.bd} == [file extension $ipi_file]) } {
+  #    set b_is_bd_ip 1
+  #  }
+  #} else {
+  #  # ip_name=design_1 (this is not ip, so check if src contain "design_1"
+  #  set sub_dirs [list]
+  #  set comps [lrange [split $full_src_file_path "/"] 1 end]
+  #  set to_match "$ip_name"
+  #  foreach comp $comps {
+  #    if { $to_match == $comp } {
+  #      set ip_file $full_src_file_path
+  #      set ipi_file [xps_get_ip_name $ip_file]
+  #      if { ({} != $ipi_file) && ({.bd} == [file extension $ipi_file]) } {
+  #        set b_is_bd_ip 1
+  #        break
+  #      }
+  #    }
+  #  }
+  #}
 
   set b_is_bd_ip 0
   
@@ -1071,7 +1072,7 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set dst_cip_file [xps_fetch_ipi_dynamic_file $ipi_file $full_src_file_path]
   } else {
     #set dst_cip_file [file normalize [file join $a_sim_vars(dynamic_repo_dir) $ip_name "sim" $filename]] 
-    set dst_cip_file [xps_get_dynamic_sim_file $ip_name $full_src_file_path]
+    set dst_cip_file [xps_get_dynamic_sim_file $ip_file $ip_name $full_src_file_path]
   }
   set b_is_dynamic 1
 
@@ -1148,7 +1149,7 @@ proc xps_fetch_ipi_static_file { file } {
   return $dst_cip_file
 }
 
-proc xps_get_dynamic_sim_file { ip_name src_file } {
+proc xps_get_dynamic_sim_file { ip_file ip_name src_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1158,7 +1159,7 @@ proc xps_get_dynamic_sim_file { ip_name src_file } {
   #puts ip_name=$ip_name
   #puts inn_src_file=$src_file
 
-  if { ![xps_is_core_container $ip_name] } {
+  if { ![xps_is_core_container $ip_file $ip_name] } {
     return $src_file
   }
 
@@ -1221,7 +1222,7 @@ proc xps_fetch_ipi_dynamic_file { ipi_file src_file } {
   return $src_file
 }
 
-proc xps_is_core_container { ip_name } {
+proc xps_is_core_container { ip_file ip_name } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1231,7 +1232,11 @@ proc xps_is_core_container { ip_name } {
     return $b_is_container
   }
 
-  set value [string trim [get_property core_container [get_files -all -quiet ${ip_name}.xci]]]
+  set file_extn [file extension $ip_file]
+  #puts $ip_name=$file_extn
+
+  # is this ip core-container? if not return 0 (classic)
+  set value [string trim [get_property core_container [get_files -all -quiet ${ip_name}${file_extn}]]]
   if { {} == $value } {
     set b_is_container 0
   }
