@@ -28,6 +28,7 @@ proc cip_init_vars {} {
   set a_vars(ipstatic_source_dir)     ""
   set a_vars(ip_base_dir)             ""
   set a_vars(bd_base_dir)             ""
+  set a_vars(ip_user_files_dir)       ""
   set a_vars(b_central_dir_specified) 0
   set a_vars(b_ipstatic_source_dir)   0
   set a_vars(sp_of_objects)           {}
@@ -339,7 +340,8 @@ proc cip_export_ip { obj } {
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
-
+  set b_container [cip_is_core_container $ip_name]
+  #puts $ip_name=$b_container
   #
   # static files
   #
@@ -366,16 +368,19 @@ proc cip_export_ip { obj } {
   foreach sim_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
     if { [lsearch $l_static_files $sim_file] != -1 } { continue }
     if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
-    set file {}
-    if { $a_vars(b_force) } {
-      set file [extract_files -base_dir ${ip_dir} -no_ip_dir -force -files $sim_file]
-    } else {
-      set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
+    set file $sim_file
+    if { $b_container } {
+      if { $a_vars(b_force) } {
+        set file [extract_files -base_dir ${ip_dir} -no_ip_dir -force -files $sim_file]
+      } else {
+        set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
+      }
     }
     lappend export_coln $file
   }
 
   # templates
+  set ip_dir [file normalize [file join $a_vars(ip_user_files_dir) $ip_name]]
   foreach template_file [get_files -quiet -all -of [get_ips -all -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
     if { [lsearch $l_static_files $template_file] != -1 } { continue }
     set file {}
@@ -567,6 +572,23 @@ proc cip_is_fileset { obj } {
     }
   }
   return 0
+}
+
+proc cip_is_core_container { ip_name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_is_container 1
+  if { [get_property sim.use_central_dir_for_ips [current_project]] } {
+    return $b_is_container
+  }
+
+  set value [string trim [get_property core_container [get_files -all -quiet ${ip_name}.xci]]]
+  if { {} == $value } {
+    set b_is_container 0
+  }
+  return $b_is_container
 }
 
 proc cip_copy_files_recursive { src dst } {
@@ -761,6 +783,13 @@ proc cip_create_central_dirs {} {
       return 1
     }
   }
+
+  if { ! [file exists $a_vars(ip_user_files_dir)] } {
+    if {[catch {file mkdir $a_vars(ip_user_files_dir)} error_msg] } {
+      send_msg_id populate_sim_repo-Tcl-009 ERROR "failed to create the directory $a_vars(ip_user_files_dir): $error_msg\n"
+      return 1
+    }
+  }
 }
 
 proc cip_set_dirs {} {
@@ -801,6 +830,9 @@ proc cip_set_dirs {} {
   # bd dir
   set a_vars(bd_base_dir) [file join $a_vars(base_dir) "bd"]
 
+  # ip user files dir
+  set a_vars(ip_user_files_dir) [get_property IP.USER_FILES_DIR [current_project]]
+
   set a_vars(mem_dir) [file normalize [file join $a_vars(base_dir) "mem_init_files"]]
   set a_vars(scr_dir) [file normalize [file join $a_vars(base_dir) "scripts"]]
 
@@ -823,6 +855,7 @@ proc cip_clean_central_dirs {} {
       set file_path [string map {\\ /} $file_path]
       if { $file_path == $a_vars(ip_base_dir) } { continue }
       if { $file_path == $a_vars(bd_base_dir) } { continue }
+      if { $file_path == $a_vars(ip_user_files_dir) } { continue }
       if { $file_path == $a_vars(ipstatic_dir) } { continue }
       if { $file_path == $a_vars(mem_dir) } { continue }
       if { $file_path == $a_vars(scr_dir) } { continue }
@@ -877,6 +910,15 @@ proc cip_clean_central_dirs {} {
 
   if { [file exists $a_vars(bd_base_dir)] } {
     foreach file_path [glob -nocomplain -directory $a_vars(bd_base_dir) *] {
+      if {[catch {file delete -force $file_path} error_msg] } {
+        [catch {send_msg_id populate_sim_repo-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
+        return
+      }
+    }
+  }
+
+  if { [file exists $a_vars(ip_user_files_dir)] } {
+    foreach file_path [glob -nocomplain -directory $a_vars(ip_user_files_dir) *] {
       if {[catch {file delete -force $file_path} error_msg] } {
         [catch {send_msg_id populate_sim_repo-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
         return

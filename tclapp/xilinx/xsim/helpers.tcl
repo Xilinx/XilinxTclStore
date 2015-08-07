@@ -559,8 +559,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   foreach vh_file $vh_files {
     # set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
     if { [get_param project.enableCentralSimRepo] } {
-      set parent_ip [get_property PARENT_COMPOSITE_FILE $vh_file]
-      set vh_file [file join $launch_dir [usf_get_ip_file_from_repo $parent_ip $vh_file $launch_dir]]
+      set vh_file [usf_fetch_ip_static_file $vh_file]
     }
     set dir [file normalize [file dirname $vh_file]]
     if { $a_sim_vars(b_absolute_path) } {
@@ -1677,16 +1676,15 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
   # setup the filter to include only header types enabled for simulation
   set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
   set vh_files [get_files -quiet -filter $filter]
-  foreach file $vh_files {
-    if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$file"]] 0]] } {
+  foreach vh_file $vh_files {
+    if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$vh_file"]] 0]] } {
       continue
     }
-    #set file [extract_files -files [list "$file"] -base_dir $dir/ip_files]
+    #set file [extract_files -files [list "$vh_file"] -base_dir $dir/ip_files]
     if { [get_param project.enableCentralSimRepo] } {
-      set parent_ip [get_property PARENT_COMPOSITE_FILE $file]
-      set file [file join $dir [usf_get_ip_file_from_repo $parent_ip $file $dir]]
+      set vh_file [usf_fetch_ip_static_file $vh_file]
     }
-    set file_path [file normalize [string map {\\ /} [file dirname $file]]]
+    set file_path [file normalize [string map {\\ /} [file dirname $vh_file]]]
     if { [lsearch -exact $unique_paths $file_path] == -1 } {
       lappend incl_header_paths $file_path
       lappend unique_paths      $file_path
@@ -1715,22 +1713,22 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
   set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog Template\""
   foreach fs_obj $filesets {
     set vh_files [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter]
-    foreach file $vh_files {
+    foreach vh_file $vh_files {
       # skip if not marked as global include
-      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$file"]] 0]] } {
+      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$vh_file"]] 0]] } {
         continue
       }
 
       # skip if marked user disabled
-      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet [list "$file"]] 0]] } {
+      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet [list "$vh_file"]] 0]] } {
         continue
       }
 
-      set file [file normalize [string map {\\ /} $file]]
-      if { [lsearch -exact $incl_files_set $file] == -1 } {
-        lappend incl_files_set $file
-        lappend incl_files     $file
-        set incl_file_path [file normalize [string map {\\ /} [file dirname $file]]]
+      set vh_file [file normalize [string map {\\ /} $vh_file]]
+      if { [lsearch -exact $incl_files_set $vh_file] == -1 } {
+        lappend incl_files_set $vh_file
+        lappend incl_files     $vh_file
+        set incl_file_path [file normalize [string map {\\ /} [file dirname $vh_file]]]
         if { $a_sim_vars(b_absolute_path) } {
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
@@ -2478,6 +2476,8 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     }
   }
 
+  set b_is_bd_ip 0
+
   set dst_cip_file {}
   if { $b_is_bd_ip } {
     set dst_cip_file [usf_fetch_ipi_dynamic_file $ipi_file $full_src_file_path]
@@ -2494,7 +2494,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     #puts ip_static_file=$ip_static_file
     set b_is_static 1
     set b_is_dynamic 0
-
+    set dst_cip_file $ip_static_file
     if { $b_is_bd_ip } {
       set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
     } else {
@@ -2605,22 +2605,43 @@ proc usf_get_dynamic_sim_file { ip_name src_file } {
   #puts ip_name=$ip_name
   #puts inn_src_file=$src_file
 
+  if { ![usf_is_core_container $ip_name] } {
+    return $src_file
+  }
+
   set comps [lrange [split $src_file "/"] 1 end]
   #set to_match "ip/$ip_name"
   set to_match "ip"
-  if { $a_sim_vars(b_is_managed) } {
-    set to_match "$ip_name"
-  }
   set index 0
+  set b_found false
   foreach comp $comps {
     incr index
     if { $to_match != $comp } continue;
+    set b_found true
     break
   }
+
+  # try ip name
+  if { !$b_found } {
+    set to_match "$ip_name"
+    set index 0
+    set b_found false
+    foreach comp $comps {
+      incr index
+      if { $to_match != $comp } continue;
+      set b_found true
+      break
+    }
+  }
+   
+  if { !$b_found } {
+    return $src_file
+  }
+
   set file_path_str [join [lrange $comps $index end] "/"]
   #puts file_path_str=$file_path_str
   set src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $file_path_str]
-  if { $a_sim_vars(b_is_managed) } {
+  if { $to_match == $ip_name } {
     set src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $ip_name $file_path_str]
   }
   #puts out_src_file=$src_file
@@ -2660,6 +2681,23 @@ proc usf_fetch_ipi_dynamic_file { ipi_file src_file } {
   }
   #puts out_src_file=$src_file
   return $src_file
+}
+
+proc usf_is_core_container { ip_name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_is_container 1
+  if { [get_property sim.use_central_dir_for_ips [current_project]] } {
+    return $b_is_container
+  }
+
+  set value [string trim [get_property core_container [get_files -all -quiet ${ip_name}.xci]]]
+  if { {} == $value } {
+    set b_is_container 0
+  }
+  return $b_is_container
 }
 
 proc usf_find_file_from_compile_order { ip_name src_file } {

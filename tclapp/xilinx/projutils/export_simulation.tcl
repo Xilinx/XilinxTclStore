@@ -1064,6 +1064,8 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     }
   }
 
+  set b_is_bd_ip 0
+  
   set dst_cip_file {}
   if { $b_is_bd_ip } {
     set dst_cip_file [xps_fetch_ipi_dynamic_file $ipi_file $full_src_file_path]
@@ -1080,7 +1082,7 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     #puts ip_static_file=$ip_static_file
     set b_is_static 1
     set b_is_dynamic 0
-   
+    set dst_cip_file $ip_static_file 
     if { $b_is_bd_ip } {
       set dst_cip_file [xps_fetch_ipi_static_file $ip_static_file] 
     } else {
@@ -1156,6 +1158,10 @@ proc xps_get_dynamic_sim_file { ip_name src_file } {
   #puts ip_name=$ip_name
   #puts inn_src_file=$src_file
 
+  if { ![xps_is_core_container $ip_name] } {
+    return $src_file
+  }
+
   set sub_dirs [list]
   set comps [lrange [split $src_file "/"] 1 end]
   #set to_match "ip/$ip_name"
@@ -1213,6 +1219,23 @@ proc xps_fetch_ipi_dynamic_file { ipi_file src_file } {
   }
   #puts out_src_file=$src_file
   return $src_file
+}
+
+proc xps_is_core_container { ip_name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_is_container 1
+  if { [get_property sim.use_central_dir_for_ips [current_project]] } {
+    return $b_is_container
+  }
+
+  set value [string trim [get_property core_container [get_files -all -quiet ${ip_name}.xci]]]
+  if { {} == $value } {
+    set b_is_container 0
+  }
+  return $b_is_container
 }
 
 proc xps_find_file_from_compile_order { ip_name src_file } {
