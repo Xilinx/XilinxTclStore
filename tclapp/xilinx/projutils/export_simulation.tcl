@@ -1222,6 +1222,58 @@ proc xps_fetch_ipi_dynamic_file { ipi_file src_file } {
   return $src_file
 }
 
+proc xps_fetch_header_from_dynamic { vh_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  #puts vh_file=$vh_file
+  set ip_file [usf_get_ip_name $vh_file]
+  if { {} == $ip_file } {
+    return $vh_file
+  }
+  set ip_name [file root [file tail $ip_file]]
+  #puts ip_name=$ip_name
+
+  set comps [lrange [split $vh_file "/"] 1 end]
+  set to_match "ip"
+  set index 0
+  set b_found false
+  foreach comp $comps {
+    incr index
+    if { $to_match != $comp } continue;
+    set b_found true
+    break
+  }
+
+  # try ip name
+  if { !$b_found } {
+    set to_match "$ip_name"
+    set index 0
+    set b_found false
+    foreach comp $comps {
+      incr index
+      if { $to_match != $comp } continue;
+      set b_found true
+      break
+    }
+  }
+
+  if { !$b_found } {
+    return $vh_file
+  }
+
+  set file_path_str [join [lrange $comps $index end] "/"]
+  #puts file_path_str=$file_path_str
+  set vh_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $file_path_str]
+  if { $to_match == $ip_name } {
+    set vh_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $ip_name $file_path_str]
+  }
+  #puts out_src_file=$vh_file
+  return $vh_file
+}
+
 proc xps_is_core_container { ip_file ip_name } {
   # Summary:
   # Argument Usage:
