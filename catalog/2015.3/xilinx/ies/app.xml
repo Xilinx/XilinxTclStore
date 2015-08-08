@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fetch dynamic file path from core-container ip name for sub-cores</revision_history>
+      <revision_history>fetch dynamic verilog header file path for bd</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
