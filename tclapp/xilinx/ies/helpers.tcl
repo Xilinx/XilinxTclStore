@@ -3028,19 +3028,10 @@ proc usf_fetch_header_from_dynamic { vh_file } {
   #puts ip_name=$ip_name
 
   set comps [lrange [split $vh_file "/"] 1 end]
-  set to_match "ip"
-  set index 0
-  set b_found false
-  foreach comp $comps {
-    incr index
-    if { $to_match != $comp } continue;
-    set b_found true
-    break
-  }
 
-  # try ip name
-  if { !$b_found } {
-    set to_match "$ip_name"
+  # for bd's
+  if { [lsearch $comps "bd"] != -1 } {
+    set to_match "bd"
     set index 0
     set b_found false
     foreach comp $comps {
@@ -3049,17 +3040,46 @@ proc usf_fetch_header_from_dynamic { vh_file } {
       set b_found true
       break
     }
-  }
-
-  if { !$b_found } {
-    return $vh_file
-  }
-
-  set file_path_str [join [lrange $comps $index end] "/"]
-  #puts file_path_str=$file_path_str
-  set vh_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $file_path_str]
-  if { $to_match == $ip_name } {
-    set vh_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $ip_name $file_path_str]
+    if { !$b_found } {
+      return $vh_file
+    }
+    set file_path_str [join [lrange $comps $index end] "/"]
+    #puts file_path_str=$file_path_str
+    set vh_file [file join $a_sim_vars(dynamic_repo_dir) "bd" $file_path_str]
+  } else {
+    set to_match "ip"
+    set index 0
+    set b_found false
+    foreach comp $comps {
+      incr index
+      if { $to_match != $comp } continue;
+      set b_found true
+      break
+    }
+  
+    # try ip name
+    if { !$b_found } {
+      set to_match "$ip_name"
+      set index 0
+      set b_found false
+      foreach comp $comps {
+        incr index
+        if { $to_match != $comp } continue;
+        set b_found true
+        break
+      }
+    }
+  
+    if { !$b_found } {
+      return $vh_file
+    }
+  
+    set file_path_str [join [lrange $comps $index end] "/"]
+    #puts file_path_str=$file_path_str
+    set vh_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $file_path_str]
+    if { $to_match == $ip_name } {
+      set vh_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $ip_name $file_path_str]
+    }
   }
   #puts out_src_file=$vh_file
   return $vh_file
