@@ -1159,27 +1159,65 @@ proc xps_get_dynamic_sim_file { ip_file ip_name src_file } {
   #puts ip_name=$ip_name
   #puts inn_src_file=$src_file
 
+  # if not core-container (classic), return original source file from project
   if { ![xps_is_core_container $ip_file $ip_name] } {
     return $src_file
   }
 
-  set sub_dirs [list]
   set comps [lrange [split $src_file "/"] 1 end]
   #set to_match "ip/$ip_name"
   set to_match "ip"
-  if { $a_sim_vars(b_is_managed) } {
-    set to_match "$ip_name"
-  }
   set index 0
+  set b_found false
   foreach comp $comps {
     incr index
     if { $to_match != $comp } continue;
+    set b_found true
     break
   }
+
+  # try ip name
+  if { !$b_found } {
+    set to_match "$ip_name"
+    set index 0
+    set b_found false
+    foreach comp $comps {
+      incr index
+      if { $to_match != $comp } continue;
+      set b_found true
+      break
+    }
+  }
+
+  if { !$b_found } {
+    # get the core container ip name of this source and find from repo area
+    set file_obj [lindex [get_files -all -quiet [list "$src_file"]] 0]
+    set props [list_property $file_obj]
+    if { [lsearch $props CORE_CONTAINER] != -1 } {
+      set xcix_file [string trim [get_property core_container $file_obj]]
+      if { {} != $xcix_file } {
+        set ip_name [file root [file tail $xcix_file]]
+        set to_match "$ip_name"
+        set index 0
+        set b_found false
+        foreach comp $comps {
+          incr index
+          if { $to_match != $comp } continue;
+          set b_found true
+          break
+        }
+      }
+    }
+  }
+
+  if { ! $b_found } {
+    return $src_file
+  }
+
   set file_path_str [join [lrange $comps $index end] "/"]
   #puts file_path_str=$file_path_str
   set src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $file_path_str]
-  if { $a_sim_vars(b_is_managed) } {
+  if { $to_match == $ip_name } {
     set src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $ip_name $file_path_str]
   }
   #puts out_src_file=$src_file

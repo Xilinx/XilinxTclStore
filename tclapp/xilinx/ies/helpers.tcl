@@ -2944,6 +2944,27 @@ proc usf_get_dynamic_sim_file { ip_file ip_name src_file } {
   }
 
   if { !$b_found } {
+    # get the core container ip name of this source and find from repo area
+    set file_obj [lindex [get_files -all -quiet [list "$src_file"]] 0]
+    set props [list_property $file_obj]
+    if { [lsearch $props CORE_CONTAINER] != -1 } {
+      set xcix_file [string trim [get_property core_container $file_obj]]
+      if { {} != $xcix_file } {
+        set ip_name [file root [file tail $xcix_file]]
+        set to_match "$ip_name"
+        set index 0
+        set b_found false
+        foreach comp $comps {
+          incr index
+          if { $to_match != $comp } continue;
+          set b_found true
+          break
+        }
+      }
+    }
+  }
+
+  if { !$b_found } {
     return $src_file
   }
 
