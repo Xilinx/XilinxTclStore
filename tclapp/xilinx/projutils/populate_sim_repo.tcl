@@ -375,8 +375,17 @@ proc cip_export_ip { obj } {
       } else {
         set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
       }
+      lappend export_coln $file
+    } else {
+      set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
+      # cleanup dynamic files for classic ip
+      if { [file exists $file] } {
+        if {[catch {file delete -force $file} error_msg] } {
+          send_msg_id populate_sim_repo-Tcl-010 ERROR "failed to delete file ($file): $error_msg\n"
+          return 1
+        }
+      }
     }
-    lappend export_coln $file
   }
 
   # templates
@@ -506,34 +515,27 @@ proc cip_export_bd { obj } {
     #puts dst_file=$dst_file
     lappend export_coln $dst_file
 
-    if { [file exists $dst_file] } {
-      # skip  
-      # puts skip=$dst_file
-    } else {
-      # iterate over the hdl_dir_file comps and copy to target
-      set sub_dirs [list]
-      set comps [lrange [split $hdl_dir_file "/"] 1 end]
-      set src $ip_lib_dir
-      set dst $target_ip_lib_dir
-      foreach comp $comps {
-        append src "/";append src $comp
-        append dst "/";append dst $comp
-        #puts src=$src
-        #puts dst=$dst
-        if { [file isdirectory $src] } {
-          if { ![file exists $dst] } {
-            if {[catch {file mkdir $dst} error_msg] } {
-              send_msg_id populate_sim_repo-Tcl-009 ERROR "failed to create the directory ($dst): $error_msg\n"
-              return 1
-            }
+    # iterate over the hdl_dir_file comps and copy to target
+    set sub_dirs [list]
+    set comps [lrange [split $hdl_dir_file "/"] 1 end]
+    set src $ip_lib_dir
+    set dst $target_ip_lib_dir
+    foreach comp $comps {
+      append src "/";append src $comp
+      append dst "/";append dst $comp
+      #puts src=$src
+      #puts dst=$dst
+      if { [file isdirectory $src] } {
+        if { ![file exists $dst] } {
+          if {[catch {file mkdir $dst} error_msg] } {
+            send_msg_id populate_sim_repo-Tcl-009 ERROR "failed to create the directory ($dst): $error_msg\n"
+            return 1
           }
-        } else {
-          if { ![file exist $dst] } {
-            set dst_dir [file dirname $dst]
-            if {[catch {file copy -force $src $dst_dir} error_msg] } {
-              send_msg_id export_ip_files-Tcl-025 WARNING "Failed to copy file '$src' to '$dst_dir' : $error_msg\n"
-            }
-          }
+        }
+      } else {
+        set dst_dir [file dirname $dst]
+         if {[catch {file copy -force $src $dst_dir} error_msg] } {
+          send_msg_id export_ip_files-Tcl-025 WARNING "Failed to copy file '$src' to '$dst_dir' : $error_msg\n"
         }
       }
     }
