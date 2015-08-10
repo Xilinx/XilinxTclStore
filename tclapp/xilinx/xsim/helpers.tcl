@@ -2621,21 +2621,13 @@ proc usf_get_dynamic_sim_file { ip_file ip_name src_file } {
     return $src_file
   }
 
-  set comps [lrange [split $src_file "/"] 1 end]
-  #set to_match "ip/$ip_name"
-  set to_match "ip"
-  set index 0
   set b_found false
-  foreach comp $comps {
-    incr index
-    if { $to_match != $comp } continue;
-    set b_found true
-    break
-  }
-
-  # try ip name
-  if { !$b_found } {
-    set to_match "$ip_name"
+  if { $a_sim_vars(b_is_managed) } {
+    # for managed ip get the path from core container ip name (below)
+  } else {
+    set comps [lrange [split $src_file "/"] 1 end]
+    #set to_match "ip/$ip_name"
+    set to_match "ip"
     set index 0
     set b_found false
     foreach comp $comps {
@@ -2643,6 +2635,19 @@ proc usf_get_dynamic_sim_file { ip_file ip_name src_file } {
       if { $to_match != $comp } continue;
       set b_found true
       break
+    }
+  
+    # try ip name
+    if { !$b_found } {
+      set to_match "$ip_name"
+      set index 0
+      set b_found false
+      foreach comp $comps {
+        incr index
+        if { $to_match != $comp } continue;
+        set b_found true
+        break
+      }
     }
   }
 

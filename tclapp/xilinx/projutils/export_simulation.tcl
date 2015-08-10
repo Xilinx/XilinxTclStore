@@ -1165,20 +1165,13 @@ proc xps_get_dynamic_sim_file { ip_file ip_name src_file } {
   }
 
   set comps [lrange [split $src_file "/"] 1 end]
-  #set to_match "ip/$ip_name"
-  set to_match "ip"
-  set index 0
-  set b_found false
-  foreach comp $comps {
-    incr index
-    if { $to_match != $comp } continue;
-    set b_found true
-    break
-  }
 
-  # try ip name
-  if { !$b_found } {
-    set to_match "$ip_name"
+  set b_found false
+  if { $a_sim_vars(b_is_managed) } {
+    # for managed ip get the path from core container ip name (below)
+  } else {
+    #set to_match "ip/$ip_name"
+    set to_match "ip"
     set index 0
     set b_found false
     foreach comp $comps {
@@ -1186,6 +1179,19 @@ proc xps_get_dynamic_sim_file { ip_file ip_name src_file } {
       if { $to_match != $comp } continue;
       set b_found true
       break
+    }
+  
+    # try ip name
+    if { !$b_found } {
+      set to_match "$ip_name"
+      set index 0
+      set b_found false
+      foreach comp $comps {
+        incr index
+        if { $to_match != $comp } continue;
+        set b_found true
+        break
+      }
     }
   }
 
@@ -5259,16 +5265,22 @@ proc xps_write_main { fh_unix fh_win } {
   }
 }
 
-proc xps_is_axi_bfm {} {
-  # Summary:
+proc xps_is_axi_bfm_ip {} {
+  # Summary: Finds VLNV property value for the IP and checks to see if the IP is AXI_BFM
   # Argument Usage:
   # Return Value:
+  # true (1) if specified IP is axi_bfm, false (0) otherwise
 
   foreach ip [get_ips -all -quiet] {
     set ip_def [lindex [split [get_property "IPDEF" [get_ips -all -quiet $ip]] {:}] 2]
-    set value [get_property "VLNV" [get_ipdefs -regexp .*${ip_def}.*]]
-    if { ([regexp -nocase {axi_bfm} $value]) || ([regexp -nocase {processing_system7} $value]) } {
-      return 1
+    set ip_def_obj [get_ipdefs -quiet -regexp .*${ip_def}.*]
+    #puts ip_def_obj=$ip_def_obj
+    if { {} != $ip_def_obj } {
+      set value [get_property "VLNV" $ip_def_obj]
+      #puts is_axi_bfm_ip=$value
+      if { ([regexp -nocase {axi_bfm} $value]) || ([regexp -nocase {processing_system7} $value]) } {
+        return 1
+      }
     }
   }
   return 0
