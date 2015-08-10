@@ -3183,7 +3183,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
         set arg_list [linsert $arg_list 0 "-64bit"]
       }
       # design contains ax-bfm ip? insert bfm library
-      if { [xps_is_axi_bfm] } {
+      if { [xps_is_axi_bfm_ip] } {
         set simulator_lib [xps_get_bfm_lib $simulator]
         if { {} != $simulator_lib } {
           set arg_list [linsert $arg_list 0 "-loadvpi \"$simulator_lib:xilinx_register_systf\""]
@@ -3229,7 +3229,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
       set arg_list [linsert $arg_list end "-debug_pp" "-t" "ps" "-licqueue" "-l" "elaborate.log"]
       if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-full64"] }
       # design contains ax-bfm ip? insert bfm library
-      if { [xps_is_axi_bfm] } {
+      if { [xps_is_axi_bfm_ip] } {
         set simulator_lib [xps_get_bfm_lib $simulator]
         if { {} != $simulator_lib } {
           set arg_list [linsert $arg_list 0 "-load \"$simulator_lib:xilinx_register_systf\""]
@@ -4691,7 +4691,7 @@ proc xps_get_simulation_cmdline_modelsim {} {
   if { [llength $vhdl_generics] > 0 } {
     xps_append_generics $vhdl_generics args
   }
-  if { [xps_is_axi_bfm] } {
+  if { [xps_is_axi_bfm_ip] } {
     set simulator_lib [xps_get_bfm_lib "modelsim"]
     if { {} != $simulator_lib } {
       set args [linsert $args end "-pli \"$simulator_lib\""]
@@ -4739,7 +4739,7 @@ proc xps_get_simulation_cmdline_questa {} {
   lappend args "vsim"
   xps_append_config_opts args "questa" "vsim"
   lappend args "-t 1ps"
-  if { [xps_is_axi_bfm] } {
+  if { [xps_is_axi_bfm_ip] } {
     set simulator_lib [xps_get_bfm_lib $simulator]
     if { {} != $simulator_lib } {
       set args [linsert $args end "-pli \"$simulator_lib\""]
