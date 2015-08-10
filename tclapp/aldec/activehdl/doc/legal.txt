@@ -16,4 +16,3 @@ All contributors must date and digitally sign once below in order to submit to t
 <YYYYMMDD Date>::<github id>::<Full Name>
 =================================================================================================
 20141012::bogdan-aldec::Bogdan Slusarczyk
-20150714::bogdan-aldec::Bogdan Slusarczyk
