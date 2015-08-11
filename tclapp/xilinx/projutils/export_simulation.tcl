@@ -2852,7 +2852,8 @@ proc xps_set_initial_cmd { simulator fh cmd_str src_file file_type lib opts_str 
     }
   }
 }
- 
+
+# multi-step (ies/vcs), single-step (questa, ies, vcs) 
 proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
   # Summary: Write compile order for the target simulator
   # Argument Usage:
@@ -2925,16 +2926,20 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
       switch $simulator {
         "ies" { }
         default {
-          set file $proj_src_file
-          regsub -all {\"} $file {} file
-
-          if { $a_sim_vars(b_absolute_path) } {
-            set file "[xps_resolve_file_path $file $launch_dir]"
+          if { ([get_param project.enableCentralSimRepo]) } {
+            set file $src_file
           } else {
-            set file "[xps_get_relative_file_path $file $launch_dir]"
-          }
-          if { $a_sim_vars(b_xport_src_files) } {
-            set file "./srcs/$proj_src_filename"
+            set file $proj_src_file
+            regsub -all {\"} $file {} file
+
+            if { $a_sim_vars(b_absolute_path) } {
+              set file "[xps_resolve_file_path $file $launch_dir]"
+            } else {
+              set file "[xps_get_relative_file_path $file $launch_dir]"
+            }
+            if { $a_sim_vars(b_xport_src_files) } {
+              set file "./srcs/$proj_src_filename"
+            }
           }
           puts $fh $file
           continue
@@ -3414,6 +3419,48 @@ proc xps_find_files { src_files_arg filter dir } {
 }
 
 proc xps_append_define_generics { def_gen_list tool opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+  foreach element $def_gen_list {
+    set key_val_pair [split $element "="]
+    set name [lindex $key_val_pair 0]
+    set val  [lindex $key_val_pair 1]
+    set str {}
+    switch $tool {
+      "vlog"   { set str "+define+$name="       }
+      "ncvlog" { set str "-define \"$name=\""   }
+      "vlogan" { set str "+define+$name="     }
+      "ncelab" -
+      "ies"    { set str "-generic \"$name=>\"" }
+      "vcs"    { set str "-gv $name=\""         }
+    }
+
+    if { [string length $val] > 0 } {
+      if { {vlog} == $tool } {
+        if { [regexp {'} $val] } {
+          regsub -all {'} $val {\\'} val
+        }
+      }
+    }
+
+    if { [string length $val] > 0 } {
+      switch $tool {
+        "vlog"   { set str "$str$val"   }
+        "ncvlog" { set str "$str$val\"" }
+        "vlogan" { set str "$str\"$val\"" }
+        "ncelab" -
+        "ies"    { set str "$str$val\"" }
+        "vcs"    { set str "$str$val\"" }
+      }
+    }
+    lappend opts "$str"
+  }
+}
+
+proc xps_append_define_generics_1 { def_gen_list tool opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:

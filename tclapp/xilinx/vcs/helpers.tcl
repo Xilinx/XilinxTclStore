@@ -759,7 +759,7 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
       set str "$str\"$val\""
     } 
     switch -regexp -- $tool {
-      "vlogan" { lappend opts "+define+$str+" }
+      "vlogan" { lappend opts "+define+$str" }
     }
   }
 }
@@ -2817,7 +2817,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   if { [file exist $dst_cip_file] } {
     if { $a_sim_vars(b_absolute_path) } {
-      set dst_cip_file "[usf_resolve_file_path $dst_cip_file $launch_dir]"
+      set dst_cip_file "[usf_resolve_file_path $dst_cip_file]"
     } else {
       #if { $b_add_ref } {
       #  set dst_cip_file "\$origin_dir/[usf_get_relative_file_path $dst_cip_file $launch_dir]"
