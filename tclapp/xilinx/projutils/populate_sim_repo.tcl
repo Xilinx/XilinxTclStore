@@ -377,14 +377,14 @@ proc cip_export_ip { obj } {
       }
       lappend export_coln $file
     } else {
-      set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
+      #set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
       # cleanup dynamic files for classic ip
-      if { [file exists $file] } {
-        if {[catch {file delete -force $file} error_msg] } {
-          send_msg_id populate_sim_repo-Tcl-010 ERROR "failed to delete file ($file): $error_msg\n"
-          return 1
-        }
-      }
+      #if { [file exists $file] } {
+      #  if {[catch {file delete -force $file} error_msg] } {
+      #    send_msg_id populate_sim_repo-Tcl-010 ERROR "failed to delete file ($file): $error_msg\n"
+      #    return 1
+      #  }
+      #}
     }
   }
 
