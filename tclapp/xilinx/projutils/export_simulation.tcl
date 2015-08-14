@@ -146,7 +146,7 @@ proc xps_init_vars {} {
   set a_sim_vars(default_lib)         [get_property default_lib [current_project]]
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(opts_file)           "export_sim_options.cfg"
-  set a_sim_vars(dynamic_repo_dir)    [get_property sim.central_dir [current_project]]
+  set a_sim_vars(dynamic_repo_dir)    [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)        [get_property sim.ipstatic.source_dir [current_project]]
 
   variable l_compile_order_files      [list]
@@ -1066,7 +1066,8 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #}
 
   set b_is_bd_ip 0
-  
+  # TODO: handle dynamic bd files 
+
   set dst_cip_file {}
   if { $b_is_bd_ip } {
     set dst_cip_file [xps_fetch_ipi_dynamic_file $ipi_file $full_src_file_path]
@@ -1084,6 +1085,8 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set b_is_static 1
     set b_is_dynamic 0
     set dst_cip_file $ip_static_file 
+
+    set b_is_bd_ip [xps_is_bd_file $full_src_file_path]
     if { $b_is_bd_ip } {
       set dst_cip_file [xps_fetch_ipi_static_file $ip_static_file] 
     } else {
@@ -1107,6 +1110,26 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set orig_src_file $dst_cip_file
   }
   return $orig_src_file
+}
+
+proc xps_is_bd_file { compile_order_src_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set b_is_bd_file 0
+
+  # TODO: recursively find the parent composite file to see if the top most file is a bd
+
+  set comps [lrange [split $compile_order_src_file "/"] 1 end]
+  if { ([lsearch $comps "bd"] != -1)         ||
+       ([lsearch $comps "ipshared"] != -1)   ||
+       ([lsearch $comps "xilinx.com"] != -1) } {
+    set b_is_bd_file 1
+  }
+
+  return $b_is_bd_file
 }
 
 proc xps_fetch_ipi_static_file { file } {

@@ -41,7 +41,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
 
-  set a_sim_vars(dynamic_repo_dir)    [get_property sim.central_dir [current_project]]
+  set a_sim_vars(dynamic_repo_dir)    [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)        [get_property sim.ipstatic.source_dir [current_project]]
 
   set a_sim_vars(s_tool_bin_path)    {}
@@ -1643,65 +1643,6 @@ proc usf_remove_duplicate_files { compile_order_files } {
   return $compile_order
 }
 
-proc usf_get_header_include_paths { incl_header_paths_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $incl_header_paths_arg incl_header_paths
-  variable a_sim_vars
-  set simset_obj     [get_filesets $a_sim_vars(s_simset)]
-  set unique_paths   [list]
-  set linked_src_set [get_property "SOURCE_SET" $simset_obj]
-  if { {} != $linked_src_set } {
-    set srcset_obj [get_filesets $linked_src_set]
-    if { {} != $srcset_obj } {
-      usf_add_unique_incl_paths $srcset_obj unique_paths incl_header_paths
-    }
-  }
-  usf_add_unique_incl_paths $simset_obj unique_paths incl_header_paths
-  # add paths from block filesets
-  set filter "FILESET_TYPE == \"BlockSrcs\""
-  foreach blk_fs_obj [get_filesets -filter $filter] {
-    set fs_name [get_property "NAME" [get_filesets $blk_fs_obj]]
-    usf_add_unique_incl_paths $blk_fs_obj unique_paths incl_header_paths
-  }
-}
-
-proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $unique_paths_arg      unique_paths
-  upvar $incl_header_paths_arg incl_header_paths
-  variable a_sim_vars
-  set dir $a_sim_vars(s_launch_dir)
-
-  # setup the filter to include only header types enabled for simulation
-  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
-  set vh_files [get_files -quiet -filter $filter]
-  foreach vh_file $vh_files {
-    if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$vh_file"]] 0]] } {
-      continue
-    }
-    #set file [extract_files -files [list "$vh_file"] -base_dir $dir/ip_files]
-    if { [get_param project.enableCentralSimRepo] } {
-      set used_in_values [get_property "USED_IN" [lindex [get_files -all -quiet [list "$vh_file"]] 0]]
-      if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
-        set vh_file [usf_fetch_header_from_dynamic $vh_file]
-      } else {
-        set vh_file [usf_fetch_ip_static_file $vh_file]
-      }
-    }
-    set file_path [file normalize [string map {\\ /} [file dirname $vh_file]]]
-    if { [lsearch -exact $unique_paths $file_path] == -1 } {
-      lappend incl_header_paths $file_path
-      lappend unique_paths      $file_path
-    }
-  }
-}
-
 proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir "true" } } {
   # Summary: find source files marked as global include
   # Argument Usage:
@@ -2488,6 +2429,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #}
 
   set b_is_bd_ip 0
+  # TODO: handle dynamic bd files
 
   set dst_cip_file {}
   if { $b_is_bd_ip } {
@@ -2506,6 +2448,8 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set b_is_static 1
     set b_is_dynamic 0
     set dst_cip_file $ip_static_file
+
+    set b_is_bd_ip [usf_is_bd_file $full_src_file_path]
     if { $b_is_bd_ip } {
       set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
     } else {
@@ -2529,6 +2473,26 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set orig_src_file $dst_cip_file
   }
   return $orig_src_file
+}
+
+proc usf_is_bd_file { compile_order_src_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set b_is_bd_file 0
+
+  # TODO: recursively find the parent composite file to see if the top most file is a bd
+
+  set comps [lrange [split $compile_order_src_file "/"] 1 end]
+  if { ([lsearch $comps "bd"] != -1)         ||
+       ([lsearch $comps "ipshared"] != -1)   ||
+       ([lsearch $comps "xilinx.com"] != -1) } {
+    set b_is_bd_file 1
+  }
+
+  return $b_is_bd_file
 }
 
 proc usf_fetch_ip_static_file { file } {
