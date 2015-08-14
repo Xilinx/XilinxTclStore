@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed a bug with usf_resolve_file_path proc args</revision_history>
+      <revision_history>support for the new directory structure for ip user files</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
