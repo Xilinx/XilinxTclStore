@@ -401,7 +401,7 @@ proc xif_export_ip { obj } {
       }
       lappend export_coln $file
     } else {
-      set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
+      #set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
       if { [xif_is_bd_ip_file $file] } {
         # do not delete classic bd file
       } else {
@@ -808,12 +808,12 @@ proc xif_create_central_dirs {} {
   }
 
 
-  if { ! [file exists $a_vars(scr_dir)] } {
-    if {[catch {file mkdir $a_vars(scr_dir)} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory ($a_vars(scr_dir)): $error_msg\n"
-      return 1
-    }
-  }
+  #if { ! [file exists $a_vars(scr_dir)] } {
+  #  if {[catch {file mkdir $a_vars(scr_dir)} error_msg] } {
+  #    send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory ($a_vars(scr_dir)): $error_msg\n"
+  #    return 1
+  #  }
+  #}
 
   if { ! [file exists $a_vars(ipstatic_dir)] } {
     if {[catch {file mkdir $a_vars(ipstatic_dir)} error_msg] } {
@@ -829,12 +829,12 @@ proc xif_create_central_dirs {} {
     }
   }
 
-  if { ! [file exists $a_vars(bd_base_dir)] } {
-    if {[catch {file mkdir $a_vars(bd_base_dir)} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory $a_vars(bd_base_dir): $error_msg\n"
-      return 1
-    }
-  }
+  #if { ! [file exists $a_vars(bd_base_dir)] } {
+  #  if {[catch {file mkdir $a_vars(bd_base_dir)} error_msg] } {
+  #    send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory $a_vars(bd_base_dir): $error_msg\n"
+  #    return 1
+  #  }
+  #}
 }
 
 proc xif_set_dirs {} {
