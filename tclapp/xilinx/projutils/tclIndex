@@ -11,5 +11,6 @@ set auto_index(::tclapp::xilinx::projutils::convert_ngc) [list source [file join
 set auto_index(::tclapp::xilinx::projutils::export_bd_synth) [list source [file join $dir export_bd_synth.tcl]]
 set auto_index(::tclapp::xilinx::projutils::export_simulation) [list source [file join $dir export_simulation.tcl]]
 set auto_index(::tclapp::xilinx::projutils::export_ip_user_files) [list source [file join $dir export_ip_user_files.tcl]]
+set auto_index(::tclapp::xilinx::projutils::setup_ip_static_library) [list source [file join $dir setup_ip_static_library.tcl]]
 set auto_index(::tclapp::xilinx::projutils::populate_sim_repo) [list source [file join $dir populate_sim_repo.tcl]]
 set auto_index(::tclapp::xilinx::projutils::write_project_tcl) [list source [file join $dir write_project_tcl.tcl]]

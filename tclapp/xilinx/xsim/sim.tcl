@@ -157,6 +157,8 @@ proc usf_xsim_setup_simulation { args } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
  
   # set the simulation flow
   ::tclapp::xilinx::xsim::usf_set_simulation_flow
@@ -194,6 +196,17 @@ proc usf_xsim_setup_simulation { args } {
 
   # create setup file
   #usf_xsim_write_setup_files
+  if { $a_sim_vars(b_use_static_lib) } {
+    # is -lib_map_path specified and point to valid location?
+    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+      if { [file exists $a_sim_vars(s_lib_map_path)] } {
+        usf_xsim_copy_pre_compiled_setup_file
+      } else {
+        send_msg_id USF-XSim-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
+      }
+    }
+  }
 
   return 0
 }
@@ -217,6 +230,7 @@ proc usf_xsim_setup_args { args } {
   # [-scripts_only]: Only generate scripts
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
+  # [-lib_map_path <arg>]: Precompiled simulation library directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
@@ -239,6 +253,7 @@ proc usf_xsim_setup_args { args } {
       "-scripts_only"   { set ::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) 1 }
       "-of_objects"     { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) 1 }
+      "-lib_map_path"   { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path) [lindex $args $i] }
       "-batch"          { set ::tclapp::xilinx::xsim::a_sim_vars(b_batch) 1 }
       "-run_dir"        { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
@@ -279,12 +294,32 @@ proc usf_xsim_write_setup_files {} {
   close $fh
 }
 
+proc usf_xsim_copy_pre_compiled_setup_file {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path)
+  set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+
+  set filename "xsim.ini"
+  set ini_file [file normalize [file join $lib_dir $filename]]
+  if { [file exists $ini_file] } {
+    if {[catch {file copy -force $ini_file $run_dir} error_msg] } {
+      send_msg_id USF-XSim-Tcl-051 WARNING "failed to copy file '$ini_file' to '$run_dir' : $error_msg\n"
+    } else {
+      send_msg_id USF-XSim-Tcl-051 INFO "Copied xsim.ini from '$lib_dir'\n"
+    }
+  }
+}
+
 proc usf_xsim_write_compile_script { scr_filename_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   upvar $scr_filename_arg scr_filename
+  variable a_sim_vars
   variable a_xsim_vars
  
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
@@ -343,10 +378,12 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     puts $fh_vlog "# compile verilog/system verilog design source files"
     foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
-      set type      [lindex [split $file {#}] 0]
-      set file_type [lindex [split $file {#}] 1]
-      set lib       [lindex [split $file {#}] 2]
-      set cmd_str   [lindex [split $file {#}] 3]
+      set type        [lindex [split $file {#}] 0]
+      set file_type   [lindex [split $file {#}] 1]
+      set lib         [lindex [split $file {#}] 2]
+      set cmd_str     [lindex [split $file {#}] 3]
+      set b_static_ip [lindex [split $file {#}] 4]
+      if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
       switch $type {
         {VERILOG} { puts $fh_vlog $cmd_str }
       }
@@ -412,10 +449,12 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     puts $fh_vhdl "# compile vhdl design source files"
     foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
-      set type      [lindex [split $file {#}] 0]
-      set file_type [lindex [split $file {#}] 1]
-      set lib       [lindex [split $file {#}] 2]
-      set cmd_str   [lindex [split $file {#}] 3]
+      set type        [lindex [split $file {#}] 0]
+      set file_type   [lindex [split $file {#}] 1]
+      set lib         [lindex [split $file {#}] 2]
+      set cmd_str     [lindex [split $file {#}] 3]
+      set b_static_ip [lindex [split $file {#}] 4]
+      if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
       switch $type {
         {VHDL}    { puts $fh_vhdl $cmd_str }
       }

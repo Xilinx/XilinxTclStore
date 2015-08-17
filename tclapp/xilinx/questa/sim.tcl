@@ -174,6 +174,7 @@ proc usf_questa_setup_args { args } {
   # [-scripts_only]: Only generate scripts
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
+  # [-lib_map_path <arg>]: Precompiled simulation library directory path
   # [-install_path <arg>]: Custom Questa installation directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-run_dir <arg>]: Simulation run directory
@@ -197,6 +198,7 @@ proc usf_questa_setup_args { args } {
       "-scripts_only"   { set ::tclapp::xilinx::questa::a_sim_vars(b_scripts_only) 1 }
       "-of_objects"     { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) 1 }
+      "-lib_map_path"   { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_lib_map_path) [lindex $args $i] }
       "-install_path"   { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_install_path) [lindex $args $i];\
                                  set ::tclapp::xilinx::questa::a_sim_vars(b_install_path_specified) 1 }
       "-batch"          { set ::tclapp::xilinx::questa::a_sim_vars(b_batch) 1 }
@@ -247,6 +249,18 @@ proc usf_questa_verify_compiled_lib {} {
   set file [file normalize [file join $dir $ini_file]]
   if { [file exists $file] } {
     set compiled_lib_dir $dir
+  }
+  # 2a. check -lib_map_path
+  if { $a_sim_vars(b_use_static_lib) } {
+    # is -lib_map_path specified and point to valid location?
+    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+      if { [file exists $a_sim_vars(s_lib_map_path)] } {
+        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+      } else {
+        send_msg_id USF-Questa-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
+      }
+    }
   }
   # 3. not found? find modelsim.ini from current working directory
   if { {} == $compiled_lib_dir } {
@@ -424,6 +438,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
@@ -472,13 +487,17 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
-      puts $fh "${tool_path_str}vlib $lib_dir_path/msim/$lib"
-    } else {
-      puts $fh "${tool_path_str}vlib msim/$lib"
-    }
     if { $default_lib == $lib } {
       set b_default_lib true
+    }
+    set lib_path "msim/$lib"
+    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } {
+      continue
+    }
+    if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+      puts $fh "${tool_path_str}vlib $lib_dir_path/$lib_path"
+    } else {
+      puts $fh "${tool_path_str}vlib $lib_path"
     }
   }
   if { !$b_default_lib } {
@@ -493,10 +512,14 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
-      puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
+    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } {
+      # no op
     } else {
-      puts $fh "${tool_path_str}vmap $lib msim/$lib"
+      if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+        puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
+      } else {
+        puts $fh "${tool_path_str}vmap $lib msim/$lib"
+      }
     }
   }
   if { !$b_default_lib } {
@@ -561,11 +584,14 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   foreach file $::tclapp::xilinx::questa::a_sim_vars(l_design_files) {
     set fargs    [split $file {#}]
     
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set lib       [lindex $fargs 2]
-    set cmd_str   [lindex $fargs 3]
-    set src_file  [lindex $fargs 4]
+    set type        [lindex $fargs 0]
+    set file_type   [lindex $fargs 1]
+    set lib         [lindex $fargs 2]
+    set cmd_str     [lindex $fargs 3]
+    set src_file    [lindex $fargs 4]
+    set b_static_ip [lindex $fargs 5]
+
+    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
 
     if { $b_group_files } {
       if { $b_first } {

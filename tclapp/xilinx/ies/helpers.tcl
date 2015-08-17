@@ -37,12 +37,14 @@ proc usf_init_vars {} {
   set a_sim_vars(s_comp_file)        {}
   set a_sim_vars(b_absolute_path)    0
   set a_sim_vars(s_install_path)     {}
+  set a_sim_vars(s_lib_map_path)     {}
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
 
-  set a_sim_vars(dynamic_repo_dir)    [get_property ip.user_files_dir [current_project]]
-  set a_sim_vars(ipstatic_dir)        [get_property sim.ipstatic.source_dir [current_project]]
+  set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
+  set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
+  set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
   set a_sim_vars(s_tool_bin_path)    {}
 
@@ -52,6 +54,9 @@ proc usf_init_vars {} {
   # fileset compile order
   variable l_compile_order_files     [list]
   variable l_design_files            [list]
+
+  # ip static libraries
+  variable l_ip_static_libs          [list]
 
   # ip file extension types
   variable l_valid_ip_extns          [list]
@@ -2453,7 +2458,8 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
   }
  
   set ip_file  [usf_get_ip_name $file]
-  set file [usf_get_ip_file_from_repo $ip_file $file $dir]
+  set b_static_ip_file 0
+  set file [usf_get_ip_file_from_repo $ip_file $file $associated_library $dir b_static_ip_file]
   
   set compiler [usf_get_compiler_name $file_type]
   set arg_list [list]
@@ -2472,7 +2478,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
 
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
-  set cmd_str "$type#$file_type#$associated_library#$file_str#\"$file\""
+  set cmd_str "$type#$file_type#$associated_library#$file_str#\"$file\"#$b_static_ip_file"
   return $cmd_str
 }
 
@@ -2691,12 +2697,14 @@ proc usf_xtract_file { file } {
   return $file
 }
 
-proc usf_get_ip_file_from_repo { ip_file src_file launch_dir  } {
+proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip_file_arg  } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
+  variable l_ip_static_libs
+  upvar $b_static_ip_file_arg b_static_ip_file
   set b_donot_process 0
 
   if { (![get_param project.enableCentralSimRepo]) || ({} == $ip_file) } {
@@ -2720,12 +2728,9 @@ proc usf_get_ip_file_from_repo { ip_file src_file launch_dir  } {
       send_msg_id USF-IES-056 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
     }
     # phase-2
-    #if { $b_is_static } {
-    #  if { ({} != $a_sim_vars(ipstatic_clib_dir)) && ([file exists $a_sim_vars(ipstatic_clib_dir)]) } {
-    #    # use pre-compiled ipstatic file library
-    #    continue;
-    #  }
-    #}
+    if { $b_is_static } {
+      lappend l_ip_static_libs [string tolower $library]
+    }
   }
 
   return $src_file
@@ -3170,6 +3175,19 @@ proc usf_find_file_from_compile_order { ip_name src_file } {
   }
   #puts out_file=$src_file
   return $src_file
+}
+
+proc usf_is_static_ip_lib { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_ip_static_libs
+  set library [string tolower $library]
+  if { [lsearch $l_ip_static_libs $library] != -1 } {
+    return true
+  }
+  return false
 }
 }
 

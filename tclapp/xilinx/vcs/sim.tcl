@@ -172,6 +172,7 @@ proc usf_vcs_setup_args { args } {
   # [-scripts_only]: Only generate scripts
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
+  # [-lib_map_path <arg>]: Precompiled simulation library directory path
   # [-install_path <arg>]: Custom VCS installation directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-run_dir <arg>]: Simulation run directory
@@ -195,6 +196,7 @@ proc usf_vcs_setup_args { args } {
       "-scripts_only"   { set ::tclapp::xilinx::vcs::a_sim_vars(b_scripts_only) 1 }
       "-of_objects"     { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) 1 }
+      "-lib_map_path"   { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_lib_map_path) [lindex $args $i] }
       "-install_path"   { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_install_path) [lindex $args $i] }
       "-batch"          { set ::tclapp::xilinx::vcs::a_sim_vars(b_batch) 1 }
       "-run_dir"        { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir) [lindex $args $i] }
@@ -228,6 +230,18 @@ proc usf_vcs_verify_compiled_lib {} {
   if { [file exists $syn_file] } {
     set compiled_lib_dir $dir
   }
+  # 1. check -lib_map_path
+  if { $a_sim_vars(b_use_static_lib) } {
+    # is -lib_map_path specified and point to valid location?
+    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+      if { [file exists $a_sim_vars(s_lib_map_path)] } {
+        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+      } else {
+        send_msg_id USF-VCS-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
+      }
+    }
+  }
   # 1a. find setup file from current working directory
   if { {} == $compiled_lib_dir } {
     set dir [file normalize [pwd]]
@@ -256,6 +270,7 @@ proc usf_vcs_write_setup_files {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow)
@@ -306,6 +321,9 @@ proc usf_vcs_write_setup_files {} {
   }
   set dir_name "vcs"
   foreach lib_name $libs {
+    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib_name]) } {
+      continue
+    }
     set lib_dir [file join $dir_name $lib_name]
     set lib_dir_path [file normalize [string map {\\ /} [file join $dir $lib_dir]]]
     if { ! [file exists $lib_dir_path] } {
@@ -359,7 +377,8 @@ proc usf_vcs_write_compile_script {} {
   # Summary:
   # Argument Usage:
   # Return Value:
-
+ 
+  variable a_sim_vars
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
@@ -426,11 +445,14 @@ proc usf_vcs_write_compile_script {} {
   foreach file $::tclapp::xilinx::vcs::a_sim_vars(l_design_files) {
     set fargs    [split $file {#}]
 
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set lib       [lindex $fargs 2]
-    set cmd_str   [lindex $fargs 3]
-    set src_file  [lindex $fargs 4]
+    set type        [lindex $fargs 0]
+    set file_type   [lindex $fargs 1]
+    set lib         [lindex $fargs 2]
+    set cmd_str     [lindex $fargs 3]
+    set src_file    [lindex $fargs 4]
+    set b_static_ip [lindex $fargs 5]
+
+    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
 
     # vlogan expects double back slash
     if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
@@ -745,6 +767,7 @@ proc usf_vcs_create_setup_script {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set filename "setup";append filename [::tclapp::xilinx::vcs::usf_get_script_extn]
@@ -777,6 +800,9 @@ proc usf_vcs_create_setup_script {} {
   set libs [list]
   set design_libs [usf_vcs_get_design_libs $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
+    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } {
+      continue
+    }
     if { {} == $lib } {
       continue;
     }

@@ -20,11 +20,12 @@ proc xif_init_vars {} {
 
   variable a_vars
 
-  set a_vars(s_xport_dir)             "proj_sim"
+  set a_vars(s_xport_dir)             ".ip_user_files"
   set a_vars(base_dir)                ""
   set a_vars(central_dir)             ""
   set a_vars(mem_dir)                 ""
   set a_vars(scr_dir)                 ""
+  set a_vars(co_file_list)            ""
   set a_vars(ipstatic_source_dir)     ""
   set a_vars(ip_base_dir)             ""
   set a_vars(bd_base_dir)             ""
@@ -41,8 +42,10 @@ proc xif_init_vars {} {
   set a_vars(b_ips_locked)            0
   set a_vars(b_ips_upto_date)         1
   set a_vars(b_is_managed)            [get_property managed_ip [current_project]]
+  set a_vars(b_use_static_lib)        [get_property sim.ipstatic.use_precompiled_libs [current_project]]
   set a_vars(fs_obj)                  [current_fileset -simset]
 
+  variable compile_order_data         [list]
   variable export_coln                [list]
 
   variable l_valid_ip_extns           [list]
@@ -60,8 +63,7 @@ proc xif_init_vars {} {
 
 proc export_ip_user_files {args} {
   # Summary:
-  # Generate and populate the central simulation directory for a project. This can also
-  # be scoped to work on one or more IPs in the project.
+  # Generate and export IP user files from a project. This can be scoped to work on one or more IPs.
   # Argument Usage:
   # [-of_objects <arg>]: IP,IPI or a fileset
   # [-ip_user_files_dir <arg>]: Directory path to simulation base directory (for dynamic and other IP non static files)
@@ -71,7 +73,7 @@ proc export_ip_user_files {args} {
   # [-force]: Overwrite files 
 
   # Return Value:
-  # list of files that were populated
+  # list of files that were exported
 
   # Categories: simulation, xilinxtclstore
 
@@ -129,7 +131,9 @@ proc export_ip_user_files {args} {
   }
 
   xif_create_central_dirs
-
+  if { $a_vars(b_use_static_lib) } {
+    xif_fetch_compile_order_data
+  }
 
   # no -of_objects specified
   if { ({} == $a_vars(sp_of_objects)) || ([llength $a_vars(sp_of_objects)] == 1) } {
@@ -155,6 +159,10 @@ proc export_ip_user_files {args} {
     }
   }
 
+  if { $a_vars(b_use_static_lib) } {
+    xif_add_vao_file $a_vars(co_file_list)
+  } 
+
   if { $a_vars(b_ips_locked) } {
     puts ""
     send_msg_id export_ip_user_files-Tcl-045 "WARNING" \
@@ -167,8 +175,8 @@ proc export_ip_user_files {args} {
     puts ""
     send_msg_id export_ip_user_files-Tcl-045 "WARNING" \
       "Detected IP(s) that have either not generated simulation products or have subsequently been updated, making the current\n\
-       products out-of-date. It is strongly recommended that these IP(s) be re-generated and then this script run again to fully populate the central simulation\n\
-       repository. To generate the output products please see 'generate_target' Tcl command.\n"
+       products out-of-date. It is strongly recommended that these IP(s) be re-generated and then this script run again to fully export the IP user files\n\
+       directory. To generate the output products please see 'generate_target' Tcl command.\n"
     puts ""
   }
 
@@ -210,87 +218,6 @@ proc xif_export_files { obj } {
     return 1
   }
 
-
-  return 0
-
-}
-
-proc xif_set_target_obj { obj sp_tcl_obj_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_vars
-  variable l_valid_ip_extns
-  upvar $sp_tcl_obj_arg sp_tcl_obj
-  set sp_tcl_obj 0
-
-  set a_vars(b_is_ip_object_specified) 0
-  set a_vars(b_is_fs_object_specified) 0
-
-  if { {} != $obj } {
-    set a_vars(b_is_ip_object_specified) [xif_is_ip $obj]
-    set a_vars(b_is_fs_object_specified) [xif_is_fileset $obj]
-  }
-
-  if { {1} == $a_vars(b_is_ip_object_specified) } {
-    set comp_file $obj
-    set file_extn [file extension $comp_file]
-    if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {
-      # valid extention not found, set default (.xci)
-      set comp_file ${comp_file}$a_vars(s_ip_file_extn)
-    } else {
-      set a_vars(s_ip_file_extn) $file_extn
-    }
-    set sp_tcl_obj [get_files -all -quiet [list "$comp_file"]]
-    #xps_verify_ip_status
-  } else {
-    if { $a_vars(b_is_managed) } {
-      set ips [get_ips -quiet]
-      if {[llength $ips] == 0} {
-        send_msg_id exportsim-Tcl-014 INFO "No IP's found in the current project.\n"
-        return 1
-      }
-      [catch {send_msg_id exportsim-Tcl-015 ERROR "No IP source object specified. Please type 'export_ip_user_files -help' for usage info.\n"} err]
-      return 1
-    } else {
-      if { $a_vars(b_is_fs_object_specified) } {
-        set fs_type [get_property fileset_type [get_filesets $obj]]
-        set fs_of_obj [get_property name [get_filesets $obj]]
-        set fs_active {}
-        if { $fs_type == "DesignSrcs" } {
-          set fs_active [get_property name [current_fileset]]
-        } elseif { $fs_type == "SimulationSrcs" } {
-          set fs_active [get_property name [get_filesets $a_vars(fs_obj)]]
-        } else {
-          send_msg_id exportsim-Tcl-015 ERROR \
-          "Invalid simulation fileset '$fs_of_obj' of type '$fs_type' specified with the -of_objects switch. Please specify a 'current' simulation or design source fileset.\n"
-          return 1
-        }
-
-        # must work on the current fileset
-        if { $fs_of_obj != $fs_active } {
-          [catch {send_msg_id exportsim-Tcl-015 ERROR \
-            "The specified fileset '$fs_of_obj' is not 'current' (current fileset is '$fs_active'). Please set '$fs_of_obj' as current fileset using the 'current_fileset' Tcl command and retry this command.\n"} err]
-          return 1
-        }
-
-        # -of_objects specifed, set default active source set
-        if { $fs_type == "DesignSrcs" } {
-          set a_vars(fs_obj) [current_fileset]
-          set sp_tcl_obj $a_vars(fs_obj)
-          update_compile_order -quiet -fileset $sp_tcl_obj
-        } elseif { $fs_type == "SimulationSrcs" } {
-          set sp_tcl_obj $a_vars(fs_obj)
-          update_compile_order -quiet -fileset $sp_tcl_obj
-        }
-      } else {
-        # no -of_objects specifed, set default active simset
-        set sp_tcl_obj $a_vars(fs_obj)
-        update_compile_order -quiet -fileset $sp_tcl_obj
-      }
-    }
-  }
   return 0
 }
 
@@ -366,10 +293,12 @@ proc xif_export_ip { obj } {
   set ip_extn [file extension $obj]
   set b_container [xif_is_core_container $ip_name]
   #puts $ip_name=$b_container
+
   #
   # static files
   #
   set l_static_files [list]
+  set ip_data [list]
   foreach src_ip_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
     set filename [file tail $src_ip_file]
     set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
@@ -383,6 +312,20 @@ proc xif_export_ip { obj } {
     set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
     #send_msg_id export_ip_user_files-Tcl-009 STATUS " + exported IP   (static):'$extracted_file'\n"
     lappend export_coln $extracted_file
+
+    if { $a_vars(b_use_static_lib) } {
+      if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+        set library [get_property "LIBRARY" $file_obj]
+        set type    [string tolower [get_property "FILE_TYPE" $file_obj]]
+        set ip_file_path "[xif_get_relative_file_path $extracted_file $a_vars(ipstatic_dir)/$library]"
+        set data "$library,$ip_file_path,$type"
+        lappend ip_data $data
+      }
+    }
+  }
+
+  if { $a_vars(b_use_static_lib) } {
+    xif_add_to_compile_order $ip_data
   }
 
   #
@@ -475,7 +418,7 @@ proc xif_export_bd { obj } {
   set l_static_files [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*ipstatic*"}]
   foreach src_ip_file $l_static_files {
     set src_ip_file [string map {\\ /} $src_ip_file]
-    # /wrk/hdstaff/rvklair/try/projects/demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
+    # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
     #puts src_ip_file=$src_ip_file
 
     set sub_dirs [list]
@@ -489,7 +432,7 @@ proc xif_export_bd { obj } {
     }
     set file_path_str [join [lrange $comps 0 $index] "/"]
     set ip_lib_dir "/$file_path_str"
-    # /wrk/hdstaff/rvklair/try/projects/demo/ipshared/xilinx.com/xbip_utils_v3_0
+    # /demo/ipshared/xilinx.com/xbip_utils_v3_0
     #puts ip_lib_dir=$ip_lib_dir
     set ip_lib_dir_name [file tail $ip_lib_dir]
  
@@ -501,13 +444,13 @@ proc xif_export_bd { obj } {
         continue
       }
     }
-    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0
+    # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0
     #puts target_ip_lib_dir=$target_ip_lib_dir
 
     # get the sub-dir path after "xilinx.com/xbip_utils_v3_0/4f162624"
     set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
     set ip_hdl_dir "/$ip_hdl_dir"
-    # /wrk/hdstaff/rvklair/try/projects/demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
+    # /demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
     #puts ip_hdl_dir=$ip_hdl_dir
     incr index
 
@@ -516,7 +459,7 @@ proc xif_export_bd { obj } {
     #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
 
     set dst_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
-    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
+    # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
     #puts dst_file=$dst_file
     lappend export_coln $dst_file
 
@@ -535,7 +478,7 @@ proc xif_export_bd { obj } {
     if { {.xci} == [file extension $src_ip_file] } { continue }
     if { [lsearch -exact $l_valid_data_file_extns [file extension $src_ip_file]] >= 0 } { continue }
     set src_ip_file [string map {\\ /} $src_ip_file]
-    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1.srcs/sources_1/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
+    # /demo/project_1/project_1.srcs/sources_1/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
     #puts src_ip_file=$src_ip_file
     set sub_dirs [list]
     set comps [lrange [split $src_ip_file "/"] 1 end]
@@ -549,11 +492,11 @@ proc xif_export_bd { obj } {
     incr index -1
     set file_path_str [join [lrange $comps 0 $index] "/"]
     set ip_lib_dir "/$file_path_str"
-    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1.srcs/sources_1/bd/design_1 
+    # /demo/project_1/project_1.srcs/sources_1/bd/design_1 
     #puts ip_lib_dir=$ip_lib_dir
 
     set target_ip_lib_dir [file join $a_vars(bd_base_dir) ${ip_name}]
-    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1_sim/bd/design_1 
+    # /demo/project_1/project_1_sim/bd/design_1 
     #puts target_ip_lib_dir=$target_ip_lib_dir
 
     set hdl_dir_file [join [lrange $comps $index end] "/"]
@@ -561,7 +504,7 @@ proc xif_export_bd { obj } {
     #puts hdl_dir_file=$hdl_dir_file
 
     set dst_file [file join $target_ip_lib_dir $hdl_dir_file]
-    # /wrk/hdstaff/rvklair/try/projects/demo/project_1/project_1_sim/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
+    # /demo/project_1/project_1_sim/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
     #puts dst_file=$dst_file
     lappend export_coln $dst_file
 
@@ -748,34 +691,6 @@ proc xif_is_upto_date { obj } {
     return 0
   }
   return 1
-}
-
-proc xif_vao_file {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_vars
-  variable l_libraries
-  # vhdl analyze order file
-  set vao_file [file normalize [file join $a_vars(ipstatic_dir) "vhdl_analyze_order"]]
-  if { [file exists $vao_file] } {
-    if {[catch {file delete -force $vao_file} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-010 ERROR "failed to delete file ($vao_file): $error_msg\n"
-      return 1
-    }
-  }
-  set fh 0
-  if {[catch {open $vao_file w} fh]} {
-   send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for write ($vao_file)\n"
-   return 1
-  }
-  foreach lib $l_libraries {
-    puts $fh $lib
-  }
-  close $fh
-
-  return
 }
 
 proc xif_create_mem_dir {} {
@@ -971,7 +886,6 @@ proc xif_export_mem_init_files_for_ip { obj } {
     set extn [file extension $file]
     switch -- $extn {
       {.zip} -
-      {.txt} -
       {.xml} {
         if { {} != [xif_get_ip_name $file] } {
           continue
@@ -1000,7 +914,6 @@ proc xif_export_mem_init_files_for_bd { obj } {
     set extn [file extension $file]
     switch -- $extn {
       {.zip} -
-      {.txt} -
       {.xml} {
         if { {} != [xif_get_ip_name $file] } {
           continue
@@ -1035,4 +948,319 @@ proc xif_get_ip_name { src_file } {
   return $ip
 }
 
+proc xif_fetch_compile_order_data {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  variable compile_order_data
+  set a_vars(co_file_list) [file join $a_vars(ipstatic_dir) "compile_order.txt"]
+  if { [file exists $a_vars(co_file_list)] } {
+    if {[catch {open $a_vars(co_file_list) r} fh]} {
+      send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for read ($a_vars(co_file_list))\n"
+      return 1
+    }
+    set compile_order_data [read $fh]
+    close $fh
+    set compile_order_data [split $compile_order_data "\n"]
+    if {[catch {file delete -force $a_vars(co_file_list)} error_msg] } {
+      send_msg_id export_ip_user_files-Tcl-010 ERROR "failed to delete file ($a_vars(co_file_list)): $error_msg\n"
+      return 1
+    }
+  }
+}
+
+proc xif_add_vao_file { co_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  set fh 0
+  if {[catch {open $co_file r} fh]} {
+   send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for read ($co_file)\n"
+   return 1
+  }
+  set data [read $fh]
+  close $fh
+  set data [split $data "\n"]
+
+  # delete analyze order file from all libraries (if exist)
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set file_str [split $line {,}]
+    set library   [string trim [lindex $file_str 0]]
+    set vao_file [file normalize [file join $a_vars(ipstatic_dir) $library "vhdl_analyze_order"]]
+    if { [file exists $vao_file] } {
+      if {[catch {file delete -force $vao_file} error_msg] } {
+        send_msg_id export_ip_user_files-Tcl-010 ERROR "failed to delete file ($vao_file): $error_msg\n"
+        return 1
+      }
+    }
+  }
+
+  # create fresh copy of analyze order file
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set file_str [split $line {,}]
+    set library   [string trim [lindex $file_str 0]]
+    set file_path [string trim [lindex $file_str 1]]
+    set file_type [string tolower [string trim [lindex $file_str 2]]]
+
+    # if not vhdl file type? continue
+    if { {vhdl} != $file_type } { continue }
+    set filename [file tail $file_path]
+
+    set vao_file [file normalize [file join $a_vars(ipstatic_dir) $library "vhdl_analyze_order"]]
+    set fh 0
+    if { [file exist $vao_file] } {
+      if {[catch {open $vao_file a} fh]} {
+       send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for append ($vao_file)\n"
+       return 1
+      }
+    } else {
+      if {[catch {open $vao_file w} fh]} {
+       send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for write ($vao_file)\n"
+       return 1
+      }
+    }
+    puts $fh $file_path
+    close $fh
+  }
+}
+
+proc xif_set_target_obj { obj sp_tcl_obj_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  variable l_valid_ip_extns
+  upvar $sp_tcl_obj_arg sp_tcl_obj
+  set sp_tcl_obj 0
+
+  set a_vars(b_is_ip_object_specified) 0
+  set a_vars(b_is_fs_object_specified) 0
+
+  if { {} != $obj } {
+    set a_vars(b_is_ip_object_specified) [xif_is_ip $obj]
+    set a_vars(b_is_fs_object_specified) [xif_is_fileset $obj]
+  }
+
+  if { {1} == $a_vars(b_is_ip_object_specified) } {
+    set comp_file $obj
+    set file_extn [file extension $comp_file]
+    if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {
+      # valid extention not found, set default (.xci)
+      set comp_file ${comp_file}$a_vars(s_ip_file_extn)
+    } else {
+      set a_vars(s_ip_file_extn) $file_extn
+    }
+    set sp_tcl_obj [get_files -all -quiet [list "$comp_file"]]
+    #xps_verify_ip_status
+  } else {
+    if { $a_vars(b_is_managed) } {
+      set ips [get_ips -quiet]
+      if {[llength $ips] == 0} {
+        send_msg_id exportsim-Tcl-014 INFO "No IP's found in the current project.\n"
+        return 1
+      }
+      [catch {send_msg_id exportsim-Tcl-015 ERROR "No IP source object specified. Please type 'export_ip_user_files -help' for usage info.\n"} err]
+      return 1
+    } else {
+      if { $a_vars(b_is_fs_object_specified) } {
+        set fs_type [get_property fileset_type [get_filesets $obj]]
+        set fs_of_obj [get_property name [get_filesets $obj]]
+        set fs_active {}
+        if { $fs_type == "DesignSrcs" } {
+          set fs_active [get_property name [current_fileset]]
+        } elseif { $fs_type == "SimulationSrcs" } {
+          set fs_active [get_property name [get_filesets $a_vars(fs_obj)]]
+        } else {
+          send_msg_id exportsim-Tcl-015 ERROR \
+          "Invalid simulation fileset '$fs_of_obj' of type '$fs_type' specified with the -of_objects switch. Please specify a 'current' simulation or design source fileset.\n"
+          return 1
+        }
+
+        # must work on the current fileset
+        if { $fs_of_obj != $fs_active } {
+          [catch {send_msg_id exportsim-Tcl-015 ERROR \
+            "The specified fileset '$fs_of_obj' is not 'current' (current fileset is '$fs_active'). Please set '$fs_of_obj' as current fileset using the 'current_fileset' Tcl command and retry this command.\n"} err]
+          return 1
+        }
+
+        # -of_objects specifed, set default active source set
+        if { $fs_type == "DesignSrcs" } {
+          set a_vars(fs_obj) [current_fileset]
+          set sp_tcl_obj $a_vars(fs_obj)
+          update_compile_order -quiet -fileset $sp_tcl_obj
+        } elseif { $fs_type == "SimulationSrcs" } {
+          set sp_tcl_obj $a_vars(fs_obj)
+          update_compile_order -quiet -fileset $sp_tcl_obj
+        }
+      } else {
+        # no -of_objects specifed, set default active simset
+        set sp_tcl_obj $a_vars(fs_obj)
+        update_compile_order -quiet -fileset $sp_tcl_obj
+      }
+    }
+  }
+  return 0
+}
+
+proc xif_add_to_compile_order { ip_data } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  variable compile_order_data
+
+  # update current data
+  foreach ip_data_info $ip_data {
+    if { [lsearch $compile_order_data $ip_data_info] == -1 } {
+      lappend compile_order_data $ip_data_info
+    }
+  }
+
+  # now write fresh copy
+  set fh 0
+  if {[catch {open $a_vars(co_file_list) w} fh]} {
+    send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for append ($a_vars(co_file_list))\n"
+    return 1
+  }
+  foreach data $compile_order_data {
+    set data [string trim $data]
+    if { [string length $data] == 0 } { continue; }
+    puts $fh $data
+  }
+  close $fh
+}
+
+proc xif_get_relative_file_path { file_path_to_convert relative_to } {
+  # Summary:
+  # Argument Usage:
+  # file_path_to_convert:
+  # Return Value:
+
+  variable a_sim_vars
+  # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
+  if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
+    set relative_to [file dirname $relative_to]
+  }
+  set cwd [file normalize [pwd]]
+  if { [file pathtype $file_path_to_convert] eq "relative" } {
+    # is relative_to path same as cwd?, just return this path, no further processing required
+    if { [string equal $relative_to $cwd] } {
+      return $file_path_to_convert
+    }
+    # the specified path is "relative" but something else, so make it absolute wrt current working dir
+    set file_path_to_convert [file join $cwd $file_path_to_convert]
+  }
+  # is relative_to "relative"? convert to absolute as well wrt cwd
+  if { [file pathtype $relative_to] eq "relative" } {
+    set relative_to [file join $cwd $relative_to]
+  }
+  # normalize
+  set file_path_to_convert [file normalize $file_path_to_convert]
+  set relative_to          [file normalize $relative_to]
+  set file_path $file_path_to_convert
+  set file_comps        [file split $file_path]
+  set relative_to_comps [file split $relative_to]
+  set found_match false
+  set index 0
+  set fc_comps_len [llength $file_comps]
+  set rt_comps_len [llength $relative_to_comps]
+  # compare each dir element of file_to_convert and relative_to, set the flag and
+  # get the final index till these sub-dirs matched
+  while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
+    if { !$found_match } { set found_match true }
+    incr index
+    if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
+      break;
+    }
+  }
+  # any common dirs found? convert path to relative
+  if { $found_match } {
+    set parent_dir_path ""
+    set rel_index $index
+    # keep traversing the relative_to dirs and build "../" levels
+    while { [lindex $relative_to_comps $rel_index] != "" } {
+      set parent_dir_path "../$parent_dir_path"
+      incr rel_index
+    }
+    #
+    # at this point we have parent_dir_path setup with exact number of sub-dirs to go up
+    #
+    # now build up part of path which is relative to matched part
+    set rel_path ""
+    set rel_index $index
+    while { [lindex $file_comps $rel_index] != "" } {
+      set comps [lindex $file_comps $rel_index]
+      if { $rel_path == "" } {
+        # first dir
+        set rel_path $comps
+      } else {
+        # append remaining dirs
+        set rel_path "${rel_path}/$comps"
+      }
+      incr rel_index
+    }
+    # prepend parent dirs, this is the complete resolved path now
+    set resolved_path "${parent_dir_path}${rel_path}"
+    return $resolved_path
+  }
+  # no common dirs found, just return the normalized path
+  return $file_path
+}
+
+proc xif_copy_files_recursive { src dst } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { [file isdirectory $src] } {
+    set files [glob -nocomplain -directory $src *]
+    foreach file $files {
+      if { [file isdirectory $file] } {
+        set sub_dir [file tail $file]
+        set dst_dir [file join $dst $sub_dir]
+        if { ![file exists $dst_dir] } {
+          if {[catch {file mkdir $dst_dir} error_msg] } {
+            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
+          }
+        }
+        xif_copy_files_recursive $file $dst_dir
+      } else {
+        set filename [file tail $file]
+        set dst_file [file join $dst $filename]
+        if { ![file exists $dst] } {
+          if {[catch {file mkdir $dst} error_msg] } {
+            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
+          }
+        }
+        if { ![file exist $dst_file] } {
+          if {[catch {file copy -force $file $dst} error_msg] } {
+            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
+          } else {
+            #send_msg_id export_ip_user_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
+          }
+        }
+      }
+    }
+  } else {
+    set filename [file tail $src]
+    set dst_file [file join $dst $filename]
+    if { ![file exist $dst_file] } {
+      if {[catch {file copy -force $src $dst} error_msg] } {
+        #send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
+      } else {
+        #send_msg_id export_ip_user_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
+      }
+    }
+  }
+}
 }
