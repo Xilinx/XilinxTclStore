@@ -329,6 +329,40 @@ proc xif_export_ip { obj } {
   }
 
   #
+  # clean classic dynamic files
+  #
+  foreach dynamic_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {(USED_IN =~ "*simulation*") && (USED_IN !~ "*ipstatic*")}] {
+    if { $b_container } { continue }
+
+    # get dynamic file from repo for classic ip
+    set file [xif_get_dynamic_sim_file $ip_name $dynamic_file]
+    if { {} == $file } { continue }
+    if { ![file exists $file] } { continue }
+
+    # is this file same from within core-container?
+    if { $file == $dynamic_file } { continue }
+
+    if { [catch {file delete -force $file} _error] } {
+      send_msg_id export_ip_user_files-Tcl-010 INFO "failed to remove dynamic simulation file (${file}): $_error\n"
+    }
+
+    set parent_dir [file dirname $file]
+    if { {} == $parent_dir } { continue }
+
+    if { ![file isdirectory $parent_dir] } { continue }
+
+    set dir_files [glob -nocomplain [file join $parent_dir *]]
+    if { [llength $dir_files] != 0 } {
+      continue
+    }
+
+    # delete empty parent dir
+    if { [catch {file delete -force $parent_dir} _error] } {
+      send_msg_id export_ip_user_files-Tcl-011 INFO "failed to remove empty dynamic simulation dir (${parent_dir}): $_error\n"
+    }
+  }
+
+  #
   # dynamic files
   #
   set ip_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
@@ -590,6 +624,7 @@ proc xif_copy_files_recursive { src dst } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
   if { [file isdirectory $src] } {
     set files [glob -nocomplain -directory $src *]
     foreach file $files {
@@ -598,7 +633,7 @@ proc xif_copy_files_recursive { src dst } {
         set dst_dir [file join $dst $sub_dir]
         if { ![file exists $dst_dir] } {
           if {[catch {file mkdir $dst_dir} error_msg] } {
-            send_msg_id export_ip_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
+            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
           }
         }
         xif_copy_files_recursive $file $dst_dir
@@ -607,14 +642,18 @@ proc xif_copy_files_recursive { src dst } {
         set dst_file [file join $dst $filename]
         if { ![file exists $dst] } {
           if {[catch {file mkdir $dst} error_msg] } {
-            send_msg_id export_ip_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
+            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
           }
         }
         if { ![file exist $dst_file] } {
-          if {[catch {file copy -force $file $dst} error_msg] } {
-            send_msg_id export_ip_files-Tcl-025 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
+          if { [xif_filter $file] } {
+            # filter these files
           } else {
-            #send_msg_id export_ip_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
+            if {[catch {file copy -force $file $dst} error_msg] } {
+              send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
+            } else {
+              #send_msg_id export_ip_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
+            }
           }
         }
       }
@@ -622,14 +661,35 @@ proc xif_copy_files_recursive { src dst } {
   } else {
     set filename [file tail $src]
     set dst_file [file join $dst $filename]
-    if { ![file exist $dst_file] } {
-      if {[catch {file copy -force $src $dst} error_msg] } {
-        #send_msg_id export_ip_files-Tcl-025 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
-      } else {
-        #send_msg_id export_ip_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
+    if { [xif_filter $file] } {
+      # filter these files
+    } else {
+      if { ![file exist $dst_file] } {
+        if {[catch {file copy -force $src $dst} error_msg] } {
+          #send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
+        } else {
+        #send_msg_id export_ip_user_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
+        }
       }
     }
   }
+}
+
+proc xif_filter { file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_filter 0
+  if { {} == $file } { return $b_filter }
+  set file_extn [string tolower [file extension $file]]
+  switch -- $file_extn {
+    {.xdc} -
+    {.png} {
+      set b_filter 1
+    }
+  }
+  return $b_filter
 }
 
 proc xif_is_upto_date { obj } {
@@ -1217,50 +1277,73 @@ proc xif_get_relative_file_path { file_path_to_convert relative_to } {
   return $file_path
 }
 
-proc xif_copy_files_recursive { src dst } {
+proc xif_get_dynamic_sim_file { ip_name src_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  if { [file isdirectory $src] } {
-    set files [glob -nocomplain -directory $src *]
-    foreach file $files {
-      if { [file isdirectory $file] } {
-        set sub_dir [file tail $file]
-        set dst_dir [file join $dst $sub_dir]
-        if { ![file exists $dst_dir] } {
-          if {[catch {file mkdir $dst_dir} error_msg] } {
-            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
-          }
-        }
-        xif_copy_files_recursive $file $dst_dir
-      } else {
-        set filename [file tail $file]
-        set dst_file [file join $dst $filename]
-        if { ![file exists $dst] } {
-          if {[catch {file mkdir $dst} error_msg] } {
-            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
-          }
-        }
-        if { ![file exist $dst_file] } {
-          if {[catch {file copy -force $file $dst} error_msg] } {
-            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
-          } else {
-            #send_msg_id export_ip_user_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
-          }
-        }
-      }
-    }
+  variable a_vars
+
+  set comps [lrange [split $src_file "/"] 1 end]
+
+  set b_found false
+  if { $a_vars(b_is_managed) } {
+    # for managed ip get the path from core container ip name (below)
   } else {
-    set filename [file tail $src]
-    set dst_file [file join $dst $filename]
-    if { ![file exist $dst_file] } {
-      if {[catch {file copy -force $src $dst} error_msg] } {
-        #send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
-      } else {
-        #send_msg_id export_ip_user_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
+    #set to_match "ip/$ip_name"
+    set to_match "ip"
+    set index 0
+    set b_found false
+    foreach comp $comps {
+      incr index
+      if { $to_match != $comp } continue;
+      set b_found true
+      break
+    }
+  
+    # try ip name
+    if { !$b_found } {
+      set to_match "$ip_name"
+      set index 0
+      set b_found false
+      foreach comp $comps {
+        incr index
+        if { $to_match != $comp } continue;
+        set b_found true
+        break
       }
     }
   }
+
+  if { !$b_found } {
+    # get the core container ip name of this source and find from repo area
+    set file_obj [lindex [get_files -all -quiet [list "$src_file"]] 0]
+    set xcix_file [string trim [get_property core_container $file_obj]]
+    if { {} != $xcix_file } {
+      set ip_name [file root [file tail $xcix_file]]
+      set to_match "$ip_name"
+      set index 0
+      set b_found false
+      foreach comp $comps {
+        incr index
+        if { $to_match != $comp } continue;
+        set b_found true
+        break
+      }
+    }
+  }
+
+  if { ! $b_found } {
+    return $src_file
+  }
+
+  set file_path_str [join [lrange $comps $index end] "/"]
+  #puts file_path_str=$file_path_str
+  set src_file [file join $a_vars(base_dir) "ip" $file_path_str]
+  if { $to_match == $ip_name } {
+    set src_file [file join $a_vars(base_dir) "ip" $ip_name $file_path_str]
+  }
+  #puts out_src_file=$src_file
+  return $src_file
 }
 }

@@ -3063,6 +3063,11 @@ proc usf_fetch_header_from_dynamic { vh_file } {
   set ip_name [file root [file tail $ip_file]]
   #puts ip_name=$ip_name
 
+  # if not core-container (classic), return original source file from project
+  if { ![usf_is_core_container $ip_file $ip_name] } {
+    return $vh_file
+  }
+
   set comps [lrange [split $vh_file "/"] 1 end]
 
   # for bd's
