@@ -1791,9 +1791,9 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
 
   # setup the filter to include only header types enabled for simulation
   set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
-  set vh_files [get_files -quiet -filter $filter]
+  set vh_files [get_files -all -quiet -filter $filter]
   foreach vh_file $vh_files {
-    if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$vh_file"]] 0]] } {
+    if { [get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -all -quiet [list "$vh_file"]] 0]] } {
       continue
     }
     # set vh_file [extract_files -files [list "$vh_file"] -base_dir $dir/ip_files]
@@ -1843,15 +1843,15 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
   lappend filesets $simset_obj
   set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog Template\""
   foreach fs_obj $filesets {
-    set vh_files [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter]
+    set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach vh_file $vh_files {
       # skip if not marked as global include
-      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$vh_file"]] 0]] } {
+      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet -all [list "$vh_file"]] 0]] } {
         continue
       }
 
       # skip if marked user disabled
-      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet [list "$vh_file"]] 0]] } {
+      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet -all [list "$vh_file"]] 0]] } {
         continue
       }
 

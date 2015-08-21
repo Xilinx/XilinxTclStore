@@ -5616,7 +5616,7 @@ proc xps_get_incl_files_from_ip { launch_dir tcl_obj } {
   set incl_files [list]
   set ip_name [file tail $tcl_obj]
   set filter "FILE_TYPE == \"Verilog Header\""
-  set vh_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
+  set vh_files [get_files -quiet -all -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
     if { [get_param project.enableCentralSimRepo] } {
       set b_static_ip_file 0
@@ -5839,14 +5839,14 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
   lappend filesets $a_sim_vars(fs_obj)
   set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog Template\""
   foreach fs_obj $filesets {
-    set vh_files [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter]
+    set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach file $vh_files {
       # skip if not marked as global include
-      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$file"]] 0]] } {
+      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet -all [list "$file"]] 0]] } {
         continue
       }
       # skip if marked user disabled
-      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet [list "$file"]] 0]] } {
+      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]] } {
         continue
       }
       set file [file normalize [string map {\\ /} $file]]

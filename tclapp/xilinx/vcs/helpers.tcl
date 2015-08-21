@@ -1963,15 +1963,15 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
   lappend filesets $simset_obj
   set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog Template\""
   foreach fs_obj $filesets {
-    set vh_files [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter]
+    set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach vh_file $vh_files {
       # skip if not marked as global include
-      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list "$vh_file"]] 0]] } {
+      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list -all "$vh_file"]] 0]] } {
         continue
       }
 
       # skip if marked user disabled
-      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet [list "$vh_file"]] 0]] } {
+      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet [list -all "$vh_file"]] 0]] } {
         continue
       }
 
@@ -2002,7 +2002,7 @@ proc usf_get_incl_files_from_ip { tcl_obj } {
   set incl_files [list]
   set ip_name [file tail $tcl_obj]
   set filter "FILE_TYPE == \"Verilog Header\""
-  set vh_files [get_files -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]
+  set vh_files [get_files -quiet -all -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach vh_file $vh_files {
     if { $a_sim_vars(b_absolute_path) } {
       set vh_file "[usf_resolve_file_path $vh_file]"
