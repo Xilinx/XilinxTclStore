@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>for non-container ips return default header file</revision_history>
+      <revision_history>pass -all switch to get_files while fetching container property</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -296,9 +296,9 @@ proc usf_extract_ip_files {} {
     foreach ip [get_ips -all -quiet] {
       set xci_ip_name "${ip}.xci"
       set xcix_ip_name "${ip}.xcix"
-      set xcix_file_path [get_property core_container [get_files ${xci_ip_name}]]
+      set xcix_file_path [get_property core_container [get_files -quiet -all ${xci_ip_name}]]
       if { {} != $xcix_file_path } {
-        [catch {rdi::extract_ip_sim_files -of_objects [get_files ${xcix_ip_name}]} err]
+        [catch {rdi::extract_ip_sim_files -of_objects [get_files -quiet -all ${xcix_ip_name}]} err]
       }
     }
   }
