@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass -all switch to get_files while fetching container property</revision_history>
+      <revision_history>pass -all switch to get_files while fetching verilog header</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
