@@ -1966,12 +1966,12 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
     set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach vh_file $vh_files {
       # skip if not marked as global include
-      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet [list -all "$vh_file"]] 0]] } {
+      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet -all [list "$vh_file"]] 0]] } {
         continue
       }
 
       # skip if marked user disabled
-      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet [list -all "$vh_file"]] 0]] } {
+      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet -all [list "$vh_file"]] 0]] } {
         continue
       }
 
