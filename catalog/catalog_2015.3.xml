@@ -117,8 +117,8 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>1bafab63257567166efdf8472e542f8e02732fc2</commit_id>
-      <revision>2.54</revision>
+      <commit_id>717ce29cd24c18efbbe0fb7d61633022639637cb</commit_id>
+      <revision>2.55</revision>
     </app>
     <app>
       <name>xsim</name>
