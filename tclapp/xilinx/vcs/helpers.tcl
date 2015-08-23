@@ -2815,11 +2815,15 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set b_is_dynamic 0
     set dst_cip_file $ip_static_file
 
-    set b_is_bd_ip [usf_is_bd_file $full_src_file_path]
-    if { $b_is_bd_ip } {
-      set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
+    if { $a_sim_vars(b_use_static_lib) } {
+      # use pre-compiled lib
     } else {
-      set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$ip_static_file"] -base_dir $a_sim_vars(ipstatic_dir)]
+      set b_is_bd_ip [usf_is_bd_file $full_src_file_path]
+      if { $b_is_bd_ip } {
+        set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
+      } else {
+        set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$ip_static_file"] -base_dir $a_sim_vars(ipstatic_dir)]
+      }
     }
   }
 
@@ -2868,6 +2872,10 @@ proc usf_fetch_ip_static_file { file } {
   # Return Value:
 
   variable a_sim_vars
+  if { $a_sim_vars(b_use_static_lib) } {
+    return $file
+  }
+
   set src_ip_file $file
   #puts src_ip_file=$src_ip_file
   set comps [lrange [split $src_ip_file "/"] 1 end]
@@ -2904,6 +2912,10 @@ proc usf_fetch_ipi_static_file { file } {
   # Return Value:
 
   variable a_sim_vars
+  if { $a_sim_vars(b_use_static_lib) } {
+    return $file
+  }
+
   set src_ip_file $file
   set comps [lrange [split $src_ip_file "/"] 1 end]
   set to_match "xilinx.com"

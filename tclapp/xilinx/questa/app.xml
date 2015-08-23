@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass -all switch to get_files while fetching verilog header</revision_history>
+      <revision_history>support for the pre-compiled static library</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

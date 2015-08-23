@@ -95,7 +95,7 @@ proc export_ip_user_files {args} {
       "-force"               { set a_vars(b_force) 1 }
       default {
         if { [regexp {^-} $option] } {
-          send_msg_id export_ip_user_files-Tcl-003 ERROR "Unknown option '$option', please type 'export_ip_user_files -help' for usage info.\n"
+          send_msg_id export_ip_user_files-Tcl-001 ERROR "Unknown option '$option', please type 'export_ip_user_files -help' for usage info.\n"
           return $export_coln
         }
       }
@@ -105,13 +105,13 @@ proc export_ip_user_files {args} {
   xif_set_dirs
 
   if { ($a_vars(b_clean_dir)) && ($a_vars(b_of_objects_specified))} {
-    [catch {send_msg_id export_ip_user_files-Tcl-009 ERROR "The -of_objects switch is not applicable when -clean_dir is specified.\n"} err]
+    [catch {send_msg_id export_ip_user_files-Tcl-002 ERROR "The -of_objects switch is not applicable when -clean_dir is specified.\n"} err]
     return $export_coln
   }
 
   if { $a_vars(b_clean_dir) } {
     xif_clean_central_dirs
-    #send_msg_id export_ip_user_files-Tcl-009 INFO "Cleaned up simulation repository.\n"
+    #send_msg_id export_ip_user_files-Tcl-003 INFO "Cleaned up simulation repository.\n"
     return $export_coln
   }
 
@@ -121,7 +121,7 @@ proc export_ip_user_files {args} {
   }
 
   if { $a_vars(b_of_objects_specified) && ({} == $a_vars(sp_of_objects)) } {
-    [catch {send_msg_id export_ip_user_files-Tcl-000 ERROR "No objects found specified with the -of_objects switch.\n"} err]
+    [catch {send_msg_id export_ip_user_files-Tcl-004 ERROR "No objects found specified with the -of_objects switch.\n"} err]
     return $export_coln
   }
   
@@ -131,9 +131,6 @@ proc export_ip_user_files {args} {
   }
 
   xif_create_central_dirs
-  if { $a_vars(b_use_static_lib) } {
-    xif_fetch_compile_order_data
-  }
 
   # no -of_objects specified
   if { ({} == $a_vars(sp_of_objects)) || ([llength $a_vars(sp_of_objects)] == 1) } {
@@ -159,13 +156,9 @@ proc export_ip_user_files {args} {
     }
   }
 
-  if { $a_vars(b_use_static_lib) } {
-    xif_add_vao_file $a_vars(co_file_list)
-  } 
-
   if { $a_vars(b_ips_locked) } {
     puts ""
-    send_msg_id export_ip_user_files-Tcl-045 "WARNING" \
+    send_msg_id export_ip_user_files-Tcl-005 "WARNING" \
       "Detected IP(s) that are in the locked state. It is strongly recommended that these IP(s) be upgraded and re-generated.\n\
        To upgrade the IP, please see 'upgrade_ip \[get_ips <ip-name>\]' Tcl command.\n"
     puts ""
@@ -173,14 +166,14 @@ proc export_ip_user_files {args} {
 
   if { !$a_vars(b_ips_upto_date) } {
     puts ""
-    send_msg_id export_ip_user_files-Tcl-045 "WARNING" \
+    send_msg_id export_ip_user_files-Tcl-006 "WARNING" \
       "Detected IP(s) that have either not generated simulation products or have subsequently been updated, making the current\n\
        products out-of-date. It is strongly recommended that these IP(s) be re-generated and then this script run again to fully export the IP user files\n\
        directory. To generate the output products please see 'generate_target' Tcl command.\n"
     puts ""
   }
 
-  #send_msg_id export_ip_user_files-Tcl-009 INFO "Done\n"
+  #send_msg_id export_ip_user_files-Tcl-007 INFO "Done\n"
   
   # Call export simulation to generate simulation scripts (default behavior: generate export_simulation scripts)
   if { $a_vars(b_no_script) } {
@@ -294,38 +287,28 @@ proc xif_export_ip { obj } {
   set b_container [xif_is_core_container $ip_name]
   #puts $ip_name=$b_container
 
-  #
-  # static files
-  #
   set l_static_files [list]
-  set ip_data [list]
-  foreach src_ip_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
-    set filename [file tail $src_ip_file]
-    set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
-    if { {} == $file_obj } { continue; }
-    if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
-      if { [get_property {IS_USER_DISABLED} $file_obj] } {
-        continue;
-      }
-    }
-    lappend l_static_files $src_ip_file
-    set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
-    #send_msg_id export_ip_user_files-Tcl-009 STATUS " + exported IP   (static):'$extracted_file'\n"
-    lappend export_coln $extracted_file
-
-    if { $a_vars(b_use_static_lib) } {
-      if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
-        set library [get_property "LIBRARY" $file_obj]
-        set type    [string tolower [get_property "FILE_TYPE" $file_obj]]
-        set ip_file_path "[xif_get_relative_file_path $extracted_file $a_vars(ipstatic_dir)/$library]"
-        set data "$library,$ip_file_path,$type"
-        lappend ip_data $data
-      }
-    }
-  }
-
   if { $a_vars(b_use_static_lib) } {
-    xif_add_to_compile_order $ip_data
+    # do not export static files for pre-compiled lib
+  } else {
+    #
+    # static files
+    #
+    set ip_data [list]
+    foreach src_ip_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
+      set filename [file tail $src_ip_file]
+      set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+      if { {} == $file_obj } { continue; }
+      if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
+        if { [get_property {IS_USER_DISABLED} $file_obj] } {
+          continue;
+        }
+      }
+      lappend l_static_files $src_ip_file
+      set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
+      #send_msg_id export_ip_user_files-Tcl-008 STATUS " + exported IP   (static):'$extracted_file'\n"
+      lappend export_coln $extracted_file
+    }
   }
 
   #
@@ -343,7 +326,7 @@ proc xif_export_ip { obj } {
     if { $file == $dynamic_file } { continue }
 
     if { [catch {file delete -force $file} _error] } {
-      send_msg_id export_ip_user_files-Tcl-010 INFO "failed to remove dynamic simulation file (${file}): $_error\n"
+      send_msg_id export_ip_user_files-Tcl-009 INFO "failed to remove dynamic simulation file (${file}): $_error\n"
     }
 
     set parent_dir [file dirname $file]
@@ -358,7 +341,7 @@ proc xif_export_ip { obj } {
 
     # delete empty parent dir
     if { [catch {file delete -force $parent_dir} _error] } {
-      send_msg_id export_ip_user_files-Tcl-011 INFO "failed to remove empty dynamic simulation dir (${parent_dir}): $_error\n"
+      send_msg_id export_ip_user_files-Tcl-010 INFO "failed to remove empty dynamic simulation dir (${parent_dir}): $_error\n"
     }
   }
 
@@ -385,7 +368,7 @@ proc xif_export_ip { obj } {
         # cleanup dynamic files for classic ip
         #if { [file exists $file] } {
         #  if {[catch {file delete -force $file} error_msg] } {
-        #    send_msg_id export_ip_user_files-Tcl-010 ERROR "failed to delete file ($file): $error_msg\n"
+        #    send_msg_id export_ip_user_files-Tcl-011 ERROR "failed to delete file ($file): $error_msg\n"
         #    return 1
         #  }
         #}
@@ -474,7 +457,7 @@ proc xif_export_bd { obj } {
     set target_ip_lib_dir [file join $a_vars(ipstatic_dir) $ip_lib_dir_name]
     if { ![file exists $target_ip_lib_dir] } {
       if {[catch {file mkdir $target_ip_lib_dir} error_msg] } {
-        send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory ($target_ip_lib_dir): $error_msg\n"
+        send_msg_id export_ip_user_files-Tcl-012 ERROR "failed to create the directory ($target_ip_lib_dir): $error_msg\n"
         continue
       }
     }
@@ -555,14 +538,14 @@ proc xif_export_bd { obj } {
       if { [file isdirectory $src] } {
         if { ![file exists $dst] } {
           if {[catch {file mkdir $dst} error_msg] } {
-            send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory ($dst): $error_msg\n"
+            send_msg_id export_ip_user_files-Tcl-013 ERROR "failed to create the directory ($dst): $error_msg\n"
             return 1
           }
         }
       } else {
         set dst_dir [file dirname $dst]
          if {[catch {file copy -force $src $dst_dir} error_msg] } {
-          send_msg_id export_ip_files-Tcl-025 WARNING "Failed to copy file '$src' to '$dst_dir' : $error_msg\n"
+          send_msg_id export_ip_user_files-Tcl-014 WARNING "Failed to copy file '$src' to '$dst_dir' : $error_msg\n"
         }
       }
     }
@@ -633,7 +616,7 @@ proc xif_copy_files_recursive { src dst } {
         set dst_dir [file join $dst $sub_dir]
         if { ![file exists $dst_dir] } {
           if {[catch {file mkdir $dst_dir} error_msg] } {
-            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
+            send_msg_id export_ip_user_files-Tcl-015 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
           }
         }
         xif_copy_files_recursive $file $dst_dir
@@ -642,7 +625,7 @@ proc xif_copy_files_recursive { src dst } {
         set dst_file [file join $dst $filename]
         if { ![file exists $dst] } {
           if {[catch {file mkdir $dst} error_msg] } {
-            send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
+            send_msg_id export_ip_user_files-Tcl-016 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
           }
         }
         if { ![file exist $dst_file] } {
@@ -650,9 +633,9 @@ proc xif_copy_files_recursive { src dst } {
             # filter these files
           } else {
             if {[catch {file copy -force $file $dst} error_msg] } {
-              send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
+              send_msg_id export_ip_user_files-Tcl-017 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
             } else {
-              #send_msg_id export_ip_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
+              #send_msg_id export_ip_user_files-Tcl-018 STATUS " + Exported file (dynamic):'$dst'\n"
             }
           }
         }
@@ -666,9 +649,9 @@ proc xif_copy_files_recursive { src dst } {
     } else {
       if { ![file exist $dst_file] } {
         if {[catch {file copy -force $src $dst} error_msg] } {
-          #send_msg_id export_ip_user_files-Tcl-025 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
+          #send_msg_id export_ip_user_files-Tcl-019 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
         } else {
-        #send_msg_id export_ip_user_files-Tcl-009 STATUS " + Exported file (dynamic):'$dst'\n"
+        #send_msg_id export_ip_user_files-Tcl-020 STATUS " + Exported file (dynamic):'$dst'\n"
         }
       }
     }
@@ -708,11 +691,11 @@ proc xif_is_upto_date { obj } {
       if { 0 == $a_vars(b_ips_locked) } {
         set a_vars(b_ips_locked) 1
       }
-      send_msg_id export_ip_user_files-Tcl-045 INFO "IP status: 'LOCKED' - $ip_name"
+      send_msg_id export_ip_user_files-Tcl-021 INFO "IP status: 'LOCKED' - $ip_name"
       return 0
     }
     if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip_name}.xci]]) } {
-      send_msg_id export_ip_user_files-Tcl-045 INFO "IP status: 'USER DISABLED' - $ip_name"
+      send_msg_id export_ip_user_files-Tcl-022 INFO "IP status: 'USER DISABLED' - $ip_name"
       return 0
     }
     dict set regen_ip $ip_name d_targets [get_property delivered_targets [get_ips -all -quiet $ip_name]]
@@ -747,7 +730,7 @@ proc xif_is_upto_date { obj } {
 
   if { $b_not_generated || $b_is_stale } {
     set a_vars(b_ips_upto_date) 0
-    send_msg_id export_ip_user_files-Tcl-045 INFO $msg_txt
+    send_msg_id export_ip_user_files-Tcl-023 INFO $msg_txt
     return 0
   }
   return 1
@@ -761,7 +744,7 @@ proc xif_create_mem_dir {} {
   variable a_vars
   if { ! [file exists $a_vars(mem_dir)] } {
     if {[catch {file mkdir $a_vars(mem_dir)} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory ($a_vars(mem_dir)): $error_msg\n"
+      send_msg_id export_ip_user_files-Tcl-024 ERROR "failed to create the directory ($a_vars(mem_dir)): $error_msg\n"
       return 1
     }
   }
@@ -777,7 +760,7 @@ proc xif_create_central_dirs {} {
 
   if { ! [file exists $a_vars(base_dir)] } {
     if {[catch {file mkdir $a_vars(base_dir)} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory ($a_vars(base_dir)): $error_msg\n"
+      send_msg_id export_ip_user_files-Tcl-025 ERROR "failed to create the directory ($a_vars(base_dir)): $error_msg\n"
       return 1
     }
   }
@@ -785,28 +768,32 @@ proc xif_create_central_dirs {} {
 
   #if { ! [file exists $a_vars(scr_dir)] } {
   #  if {[catch {file mkdir $a_vars(scr_dir)} error_msg] } {
-  #    send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory ($a_vars(scr_dir)): $error_msg\n"
+  #    send_msg_id export_ip_user_files-Tcl-026 ERROR "failed to create the directory ($a_vars(scr_dir)): $error_msg\n"
   #    return 1
   #  }
   #}
 
-  if { ! [file exists $a_vars(ipstatic_dir)] } {
-    if {[catch {file mkdir $a_vars(ipstatic_dir)} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory $a_vars(ipstatic_dir): $error_msg\n"
-      return 1
+  if { $a_vars(b_use_static_lib) } {
+    # do not create static lib dir
+  } else {
+    if { ! [file exists $a_vars(ipstatic_dir)] } {
+      if {[catch {file mkdir $a_vars(ipstatic_dir)} error_msg] } {
+        send_msg_id export_ip_user_files-Tcl-027 ERROR "failed to create the directory $a_vars(ipstatic_dir): $error_msg\n"
+        return 1
+      }
     }
   }
 
-  if { ! [file exists $a_vars(ip_base_dir)] } {
-    if {[catch {file mkdir $a_vars(ip_base_dir)} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory $a_vars(ip_base_dir): $error_msg\n"
-      return 1
-    }
-  }
+  #if { ! [file exists $a_vars(ip_base_dir)] } {
+  #  if {[catch {file mkdir $a_vars(ip_base_dir)} error_msg] } {
+  #    send_msg_id export_ip_user_files-Tcl-028 ERROR "failed to create the directory $a_vars(ip_base_dir): $error_msg\n"
+  #    return 1
+  #  }
+  #}
 
   #if { ! [file exists $a_vars(bd_base_dir)] } {
   #  if {[catch {file mkdir $a_vars(bd_base_dir)} error_msg] } {
-  #    send_msg_id export_ip_user_files-Tcl-009 ERROR "failed to create the directory $a_vars(bd_base_dir): $error_msg\n"
+  #    send_msg_id export_ip_user_files-Tcl-029 ERROR "failed to create the directory $a_vars(bd_base_dir): $error_msg\n"
   #    return 1
   #  }
   #}
@@ -876,7 +863,7 @@ proc xif_clean_central_dirs {} {
       if { $file_path == $a_vars(mem_dir) } { continue }
       if { $file_path == $a_vars(scr_dir) } { continue }
       if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
+        [catch {send_msg_id export_ip_user_files-Tcl-030 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
         return
       }
     }
@@ -885,13 +872,13 @@ proc xif_clean_central_dirs {} {
   if { [file exists $a_vars(mem_dir)] } {
     foreach file_path [glob -nocomplain -directory $a_vars(mem_dir) *] {
       if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
+        [catch {send_msg_id export_ip_user_files-Tcl-031 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
         return
       }
     }
     if { [file exists $a_vars(mem_dir)] } {
       if {[catch {file delete -force $a_vars(mem_dir)} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-033 ERROR "failed to delete file ($a_vars(mem_dir)): $error_msg\n"} err]
+        [catch {send_msg_id export_ip_user_files-Tcl-032 ERROR "failed to delete file ($a_vars(mem_dir)): $error_msg\n"} err]
         return
       }
     }
@@ -909,7 +896,7 @@ proc xif_clean_central_dirs {} {
   if { [file exists $a_vars(ipstatic_dir)] } {
     foreach file_path [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
       if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
+        [catch {send_msg_id export_ip_user_files-Tcl-034 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
         return
       }
     }
@@ -918,7 +905,7 @@ proc xif_clean_central_dirs {} {
   if { [file exists $a_vars(ip_base_dir)] } {
     foreach file_path [glob -nocomplain -directory $a_vars(ip_base_dir) *] {
       if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
+        [catch {send_msg_id export_ip_user_files-Tcl-035 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
         return
       }
     }
@@ -927,7 +914,7 @@ proc xif_clean_central_dirs {} {
   if { [file exists $a_vars(bd_base_dir)] } {
     foreach file_path [glob -nocomplain -directory $a_vars(bd_base_dir) *] {
       if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
+        [catch {send_msg_id export_ip_user_files-Tcl-036 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
         return
       }
     }
@@ -957,7 +944,7 @@ proc xif_export_mem_init_files_for_ip { obj } {
     }
     set file [extract_files -no_paths -files [list "$file"] -base_dir $a_vars(mem_dir)]
     if { {} != $file } {
-      #send_msg_id export_ip_user_files-Tcl-009 STATUS " + exported IP (mem_init):'$file'\n"
+      #send_msg_id export_ip_user_files-Tcl-037 STATUS " + exported IP (mem_init):'$file'\n"
     }
   }
 }
@@ -985,7 +972,7 @@ proc xif_export_mem_init_files_for_bd { obj } {
     }
     set file [extract_files -no_paths -files [list "$file"] -base_dir $a_vars(mem_dir)]
     if { {} != $file } {
-      #send_msg_id export_ip_user_files-Tcl-009 STATUS " + exported IP (mem_init):'$file'\n"
+      #send_msg_id export_ip_user_files-Tcl-038 STATUS " + exported IP (mem_init):'$file'\n"
     }
   }
 }
@@ -1006,90 +993,6 @@ proc xif_get_ip_name { src_file } {
     set ip [get_property "PARENT_COMPOSITE_FILE" $file_obj]
   }
   return $ip
-}
-
-proc xif_fetch_compile_order_data {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_vars
-  variable compile_order_data
-  set a_vars(co_file_list) [file join $a_vars(ipstatic_dir) "compile_order.txt"]
-  if { [file exists $a_vars(co_file_list)] } {
-    if {[catch {open $a_vars(co_file_list) r} fh]} {
-      send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for read ($a_vars(co_file_list))\n"
-      return 1
-    }
-    set compile_order_data [read $fh]
-    close $fh
-    set compile_order_data [split $compile_order_data "\n"]
-    if {[catch {file delete -force $a_vars(co_file_list)} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-010 ERROR "failed to delete file ($a_vars(co_file_list)): $error_msg\n"
-      return 1
-    }
-  }
-}
-
-proc xif_add_vao_file { co_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_vars
-  set fh 0
-  if {[catch {open $co_file r} fh]} {
-   send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for read ($co_file)\n"
-   return 1
-  }
-  set data [read $fh]
-  close $fh
-  set data [split $data "\n"]
-
-  # delete analyze order file from all libraries (if exist)
-  foreach line $data {
-    set line [string trim $line]
-    if { [string length $line] == 0 } { continue; }
-    set file_str [split $line {,}]
-    set library   [string trim [lindex $file_str 0]]
-    set vao_file [file normalize [file join $a_vars(ipstatic_dir) $library "vhdl_analyze_order"]]
-    if { [file exists $vao_file] } {
-      if {[catch {file delete -force $vao_file} error_msg] } {
-        send_msg_id export_ip_user_files-Tcl-010 ERROR "failed to delete file ($vao_file): $error_msg\n"
-        return 1
-      }
-    }
-  }
-
-  # create fresh copy of analyze order file
-  foreach line $data {
-    set line [string trim $line]
-    if { [string length $line] == 0 } { continue; }
-    set file_str [split $line {,}]
-    set library   [string trim [lindex $file_str 0]]
-    set file_path [string trim [lindex $file_str 1]]
-    set file_type [string tolower [string trim [lindex $file_str 2]]]
-
-    # if not vhdl file type? continue
-    if { {vhdl} != $file_type } { continue }
-    set filename [file tail $file_path]
-
-    set vao_file [file normalize [file join $a_vars(ipstatic_dir) $library "vhdl_analyze_order"]]
-    set fh 0
-    if { [file exist $vao_file] } {
-      if {[catch {open $vao_file a} fh]} {
-       send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for append ($vao_file)\n"
-       return 1
-      }
-    } else {
-      if {[catch {open $vao_file w} fh]} {
-       send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for write ($vao_file)\n"
-       return 1
-      }
-    }
-    puts $fh $file_path
-    close $fh
-  }
 }
 
 proc xif_set_target_obj { obj sp_tcl_obj_arg } {
@@ -1125,10 +1028,10 @@ proc xif_set_target_obj { obj sp_tcl_obj_arg } {
     if { $a_vars(b_is_managed) } {
       set ips [get_ips -quiet]
       if {[llength $ips] == 0} {
-        send_msg_id exportsim-Tcl-014 INFO "No IP's found in the current project.\n"
+        send_msg_id export_ip_user_files-Tcl-040 INFO "No IP's found in the current project.\n"
         return 1
       }
-      [catch {send_msg_id exportsim-Tcl-015 ERROR "No IP source object specified. Please type 'export_ip_user_files -help' for usage info.\n"} err]
+      [catch {send_msg_id export_ip_user_files-Tcl-041 ERROR "No IP source object specified. Please type 'export_ip_user_files -help' for usage info.\n"} err]
       return 1
     } else {
       if { $a_vars(b_is_fs_object_specified) } {
@@ -1140,14 +1043,14 @@ proc xif_set_target_obj { obj sp_tcl_obj_arg } {
         } elseif { $fs_type == "SimulationSrcs" } {
           set fs_active [get_property name [get_filesets $a_vars(fs_obj)]]
         } else {
-          send_msg_id exportsim-Tcl-015 ERROR \
+          send_msg_id export_ip_user_files-Tcl-042 ERROR \
           "Invalid simulation fileset '$fs_of_obj' of type '$fs_type' specified with the -of_objects switch. Please specify a 'current' simulation or design source fileset.\n"
           return 1
         }
 
         # must work on the current fileset
         if { $fs_of_obj != $fs_active } {
-          [catch {send_msg_id exportsim-Tcl-015 ERROR \
+          [catch {send_msg_id export_ip_user_files-Tcl-043 ERROR \
             "The specified fileset '$fs_of_obj' is not 'current' (current fileset is '$fs_active'). Please set '$fs_of_obj' as current fileset using the 'current_fileset' Tcl command and retry this command.\n"} err]
           return 1
         }
@@ -1171,42 +1074,12 @@ proc xif_set_target_obj { obj sp_tcl_obj_arg } {
   return 0
 }
 
-proc xif_add_to_compile_order { ip_data } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_vars
-  variable compile_order_data
-
-  # update current data
-  foreach ip_data_info $ip_data {
-    if { [lsearch $compile_order_data $ip_data_info] == -1 } {
-      lappend compile_order_data $ip_data_info
-    }
-  }
-
-  # now write fresh copy
-  set fh 0
-  if {[catch {open $a_vars(co_file_list) w} fh]} {
-    send_msg_id export_ip_user_files-Tcl-005 ERROR "failed to open file for append ($a_vars(co_file_list))\n"
-    return 1
-  }
-  foreach data $compile_order_data {
-    set data [string trim $data]
-    if { [string length $data] == 0 } { continue; }
-    puts $fh $data
-  }
-  close $fh
-}
-
 proc xif_get_relative_file_path { file_path_to_convert relative_to } {
   # Summary:
   # Argument Usage:
   # file_path_to_convert:
   # Return Value:
 
-  variable a_sim_vars
   # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
   if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
     set relative_to [file dirname $relative_to]
