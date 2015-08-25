@@ -378,11 +378,12 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     puts $fh_vlog "# compile verilog/system verilog design source files"
     foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
-      set type        [lindex [split $file {#}] 0]
-      set file_type   [lindex [split $file {#}] 1]
-      set lib         [lindex [split $file {#}] 2]
-      set cmd_str     [lindex [split $file {#}] 3]
-      set b_static_ip [lindex [split $file {#}] 4]
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set b_static_ip [lindex $fargs 4]
       if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
       switch $type {
         {VERILOG} { puts $fh_vlog $cmd_str }
@@ -449,11 +450,12 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     puts $fh_vhdl "# compile vhdl design source files"
     foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
-      set type        [lindex [split $file {#}] 0]
-      set file_type   [lindex [split $file {#}] 1]
-      set lib         [lindex [split $file {#}] 2]
-      set cmd_str     [lindex [split $file {#}] 3]
-      set b_static_ip [lindex [split $file {#}] 4]
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set b_static_ip [lindex $fargs 4]
       if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
       switch $type {
         {VHDL}    { puts $fh_vhdl $cmd_str }
@@ -1251,10 +1253,11 @@ proc usf_xsim_get_design_libs { design_files } {
 
   set libs [list]
   foreach file $design_files {
-    set type      [lindex [split $file {#}] 0]
-    set file_type [lindex [split $file {#}] 1]
-    set library   [lindex [split $file {#}] 2]
-    set cmd_str   [lindex [split $file {#}] 3]
+    set fargs     [split $file {|}]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set library   [lindex $fargs 2]
+    set cmd_str   [lindex $fargs 3]
     if { {} == $library } {
       continue;
     }

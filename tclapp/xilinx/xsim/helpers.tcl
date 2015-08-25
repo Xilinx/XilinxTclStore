@@ -80,6 +80,7 @@ proc usf_init_vars {} {
   variable s_non_hdl_data_files_filter
   set s_non_hdl_data_files_filter \
                "FILE_TYPE != \"Verilog\"                      && \
+                FILE_TYPE != \"SystemVerilog\"                && \
                 FILE_TYPE != \"Verilog Header\"               && \
                 FILE_TYPE != \"Verilog Template\"             && \
                 FILE_TYPE != \"VHDL\"                         && \
@@ -562,9 +563,10 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   }
 
   foreach vh_file $vh_files {
+    set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
     # set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
     if { [get_param project.enableCentralSimRepo] } {
-      set used_in_values [get_property "USED_IN" [lindex [get_files -all -quiet [list "$vh_file"]] 0]]
+      set used_in_values [get_property "USED_IN" $vh_file_obj]
       if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
         set vh_file [usf_fetch_header_from_dynamic $vh_file]
       } else {
@@ -678,7 +680,7 @@ proc usf_contains_vhdl { design_files } {
 
   set b_vhdl_srcs 0
   foreach file $design_files {
-    set type [lindex [split $file {#}] 0]
+    set type [lindex [split $file {|}] 0]
     switch $type {
       {VHDL} -
       {VHDL 2008} {
@@ -708,7 +710,7 @@ proc usf_contains_verilog { design_files } {
 
   set b_verilog_srcs 0
   foreach file $design_files {
-    set type [lindex [split $file {#}] 0]
+    set type [lindex [split $file {|}] 0]
     switch $type {
       {VERILOG} {
         set b_verilog_srcs 1
@@ -907,7 +909,7 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
   # include_dirs
   set unique_incl_dirs [list]
   set incl_dir_str [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $fs_obj]]]
-  foreach incl_dir [split $incl_dir_str "#"] {
+  foreach incl_dir [split $incl_dir_str "|"] {
     if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
       lappend unique_incl_dirs $incl_dir
       if { $a_sim_vars(b_absolute_path) } {
@@ -2132,7 +2134,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str other_ver_opts_arg} 
 
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
-  set cmd_str "$type#$file_type#$associated_library#$file_str#$b_static_ip_file"
+  set cmd_str "$type|$file_type|$associated_library|$file_str|$b_static_ip_file"
   return $cmd_str
 }
 
@@ -2261,7 +2263,7 @@ proc usf_resolve_incl_dir_property_value { incl_dirs } {
     if { [string match "/*" $elem] || [regexp {^[a-zA-Z]:} $elem] } {
       if { {} != $path_elem } {
         # previous path is complete now, add hash and append to resolved path string
-        set path_elem "$path_elem#"
+        set path_elem "$path_elem|"
         append resolved_path $path_elem
       }
       # setup new path

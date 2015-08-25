@@ -454,8 +454,7 @@ proc usf_ies_write_compile_script {} {
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach file $::tclapp::xilinx::ies::a_sim_vars(l_design_files) {
-    set fargs    [split $file {#}]
-
+    set fargs       [split $file {|}]
     set type        [lindex $fargs 0]
     set file_type   [lindex $fargs 1]
     set lib         [lindex $fargs 2]
@@ -790,10 +789,11 @@ proc usf_ies_get_design_libs { files } {
 
   set libs [list]
   foreach file $files {
-    set type      [lindex [split $file {#}] 0]
-    set file_type [lindex [split $file {#}] 1]
-    set library   [lindex [split $file {#}] 2]
-    set cmd_str   [lindex [split $file {#}] 3]
+    set fargs     [split $file {|}]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set library   [lindex $fargs 2]
+    set cmd_str   [lindex $fargs 3]
     if { {} == $library } {
       continue;
     }

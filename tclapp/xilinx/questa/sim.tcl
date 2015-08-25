@@ -582,8 +582,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach file $::tclapp::xilinx::questa::a_sim_vars(l_design_files) {
-    set fargs    [split $file {#}]
-    
+    set fargs       [split $file {|}]
     set type        [lindex $fargs 0]
     set file_type   [lindex $fargs 1]
     set lib         [lindex $fargs 2]
@@ -1181,9 +1180,10 @@ proc usf_questa_get_design_libs { files } {
 
   set libs [list]
   foreach file $files {
-    set type      [lindex [split $file {#}] 0]
-    set file_type [lindex [split $file {#}] 1]
-    set library   [lindex [split $file {#}] 2]
+    set fargs     [split $file {|}]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set library   [lindex $fargs 2]
     if { {} == $library } {
       continue;
     }

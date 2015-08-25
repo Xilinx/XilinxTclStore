@@ -174,6 +174,7 @@ proc xps_init_vars {} {
   variable s_non_hdl_data_files_filter
   set s_non_hdl_data_files_filter \
                "FILE_TYPE != \"Verilog\"                      && \
+                FILE_TYPE != \"SystemVerilog\"                && \
                 FILE_TYPE != \"Verilog Header\"               && \
                 FILE_TYPE != \"Verilog Template\"             && \
                 FILE_TYPE != \"VHDL\"                         && \
@@ -250,7 +251,6 @@ proc xps_xport_simulation { obj } {
     return 1
   }
 
-  xps_gen_mem_files $run_dir
 
   set data_files [list]
   xps_xport_data_files data_files
@@ -777,15 +777,10 @@ proc xps_gen_mem_files { run_dir } {
   variable a_sim_vars
   variable s_embedded_files_filter
   variable l_target_simulator
-  if { [xps_is_fileset $a_sim_vars(sp_tcl_obj)] } {
-    set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
-    if { [llength $embedded_files] > 0 } {
-      #send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
-      foreach simulator $l_target_simulator {
-        set dir [file join $run_dir $simulator] 
-        generate_mem_files $dir
-      }
-    }
+  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
+  if { [llength $embedded_files] > 0 } {
+    #send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
+    generate_mem_files $run_dir
   }
 }
 
@@ -1628,7 +1623,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compi
   set type [xps_get_file_type_category $file_type]
 
 
-  set cmd_str "$type#$file_type#$associated_library#$src_file#$file_str#$ip_file#\"$file\"#$b_static_ip_file"
+  set cmd_str "$type|$file_type|$associated_library|$src_file|$file_str|$ip_file|\"$file\"|$b_static_ip_file"
   return $cmd_str
 }
 
@@ -1642,7 +1637,7 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
   if { {} == $file_paths } { return $file_paths }
 
   set resolved_file_paths [list]
-  foreach g_file [split $file_paths {#}] {
+  foreach g_file [split $file_paths {|}] {
     set file [string trim $g_file {\"}]
     set src_file [file tail $file]
     if { $a_sim_vars(b_absolute_path) } {
@@ -1733,9 +1728,10 @@ proc xps_get_design_libs {} {
   variable a_sim_vars
   set libs [list]
   foreach file $a_sim_vars(l_design_files) {
-    set type      [lindex [split $file {#}] 0]
-    set file_type [lindex [split $file {#}] 1]
-    set library   [lindex [split $file {#}] 2]
+    set fargs     [split $file {|}]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set library   [lindex $fargs 2]
     if { {} == $library } {
       continue;
     }
@@ -1992,6 +1988,8 @@ proc xps_write_sim_script { run_dir data_files filename } {
       return 1
     }
 
+    xps_gen_mem_files $dir
+
     if { [xps_write_simulator_readme $dir] } {
       return 1
     }
@@ -2084,7 +2082,7 @@ proc xps_write_plain_filelist { dir } {
     return 1
   }
   foreach file $a_sim_vars(l_design_files) {
-    set fargs         [split $file {#}]
+    set fargs         [split $file {|}]
     set proj_src_file [lindex $fargs 3]
     set pfile "[xps_get_relative_file_path $proj_src_file $dir]"
     if { $a_sim_vars(b_absolute_path) } {
@@ -2828,8 +2826,7 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
   set b_appended false
 
   foreach file $a_sim_vars(l_design_files) {
-    set fargs    [split $file {#}]
-
+    set fargs          [split $file {|}]
     set type           [lindex $fargs 0]
     set file_type      [lindex $fargs 1]
     set lib            [lindex $fargs 2]
@@ -3192,7 +3189,6 @@ proc xps_write_elaboration_cmds { simulator fh_unix fh_win dir} {
   # Return Value:
  
   variable a_sim_vars
-  set design_files $a_sim_vars(l_design_files)
   set top $a_sim_vars(s_top)
 
   if {$::tcl_platform(platform) == "unix"} {
@@ -3650,7 +3646,7 @@ proc xps_get_compile_order_libs { } {
   variable a_sim_vars
   set libs [list]
   foreach file $a_sim_vars(l_design_files) {
-    set library   [lindex [split $file {#}] 2]
+    set library   [lindex [split $file {|}] 2]
     if { {} == $library } {
       continue;
     }
@@ -3741,7 +3737,7 @@ proc xps_contains_verilog {} {
   set design_files $a_sim_vars(l_design_files)
   set b_verilog_srcs 0
   foreach file $design_files {
-    set type [lindex [split $file {#}] 0]
+    set type [lindex [split $file {|}] 0]
     switch $type {
       {VERILOG} {
         set b_verilog_srcs 1
@@ -3760,7 +3756,7 @@ proc xps_contains_system_verilog {} {
   set design_files $a_sim_vars(l_design_files)
   set b_sys_verilog_srcs 0
   foreach file $design_files {
-    set type [lindex [split $file {#}] 1]
+    set type [lindex [split $file {|}] 1]
     if { {SystemVerilog} == $type } {
       set b_sys_verilog_srcs 1
     }
@@ -3777,7 +3773,7 @@ proc xps_contains_vhdl {} {
   set design_files $a_sim_vars(l_design_files)
   set b_vhdl_srcs 0
   foreach file $design_files {
-    set type [lindex [split $file {#}] 0]
+    set type [lindex [split $file {|}] 0]
     switch $type {
       {VHDL} -
       {VHDL 2008} {
@@ -3823,6 +3819,7 @@ proc xps_verify_ip_status {} {
       return
     }
     dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -all -quiet $ip]]
+    dict set regen_ip $ip s_targets [get_property supported_targets [get_ips -all -quiet $ip]]
     dict set regen_ip $ip generated [get_property is_ip_generated [get_ips -all -quiet $ip]]
     dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip}.xci] 0]]
     dict set regen_ip $ip stale [get_property stale_targets [get_ips -all -quiet $ip]]
@@ -3835,6 +3832,7 @@ proc xps_verify_ip_status {} {
         continue
       }
       dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -all -quiet $ip]]
+      dict set regen_ip $ip s_targets [get_property supported_targets [get_ips -all -quiet $ip]]
       dict set regen_ip $ip generated [get_property is_ip_generated $ip]
       dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip}.xci] 0]]
       dict set regen_ip $ip stale [get_property stale_targets $ip]
@@ -3846,6 +3844,9 @@ proc xps_verify_ip_status {} {
   dict for {ip regen} $regen_ip {
     dic with regen {
       if { {} == $d_targets } {
+        continue
+      }
+      if { [lsearch $s_targets "simulation"] == -1 } {
         continue
       }
       if { {0} == $generated_sim } {
@@ -4361,42 +4362,8 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   set opts [list]
   if { {VERILOG} == $ft } {
-    # include_dirs
-    set unique_incl_dirs [list]
-    set incl_dir_str [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $a_sim_vars(fs_obj)]]]
-    foreach incl_dir [split $incl_dir_str "#"] {
-      if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
-        lappend unique_incl_dirs $incl_dir
-        if { $a_sim_vars(b_absolute_path) } {
-          set incl_dir "[xps_resolve_file_path $incl_dir $launch_dir]"
-        } else {
-          set incl_dir "[xps_get_relative_file_path $incl_dir $launch_dir]"
-        }
-        lappend opts "-i \"$incl_dir\""
-      }
-    }
-    # --include
-    set prefix_ref_dir "false"
-    foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $prefix_ref_dir] {
-      set incl_dir [string map {\\ /} $incl_dir]
-      lappend opts "--include \"$incl_dir\""
-    }
-    # -d (verilog macros)
-    set v_defines [get_property "VERILOG_DEFINE" [get_filesets $a_sim_vars(fs_obj)]]
-    if { [llength $v_defines] > 0 } {
-      foreach element $v_defines {
-        set key_val_pair [split $element "="]
-        set name [lindex $key_val_pair 0]
-        set val  [lindex $key_val_pair 1]
-        set str "$name="
-        if { [string length $val] > 0 } {
-          set str "$str$val"
-        }
-        lappend opts "-d \"$str\""
-      }
-    }
+    xps_get_xsim_verilog_options $launch_dir opts
   }
-
   set opts_str [join $opts " "]
 
   set fh 0
@@ -4413,7 +4380,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
   set b_appended false
 
   foreach file $a_sim_vars(l_design_files) {
-    set fargs         [split $file {#}]
+    set fargs         [split $file {|}]
     set type          [lindex $fargs 0]
     set file_type     [lindex $fargs 1] 
     set lib           [lindex $fargs 2] 
@@ -4541,8 +4508,13 @@ proc xps_write_prj_single_step { dir srcs_dir} {
     send_msg_id exportsim-Tcl-052 "Failed to open file to write ($file)\n"
     return 1
   }
+
+  set opts [list]
+  xps_get_xsim_verilog_options $dir opts
+  set verilog_opts_str [join $opts " "]
+
   foreach file $a_sim_vars(l_design_files) {
-    set fargs         [split $file {#}]
+    set fargs         [split $file {|}]
     set type          [lindex $fargs 0]
     set file_type     [lindex $fargs 1] 
     set lib           [lindex $fargs 2] 
@@ -4576,13 +4548,60 @@ proc xps_write_prj_single_step { dir srcs_dir} {
         send_msg_id exportsim-Tcl-054 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
       }
     }
-    puts $fh "$cmd_str $src_file"
+    if { {VERILOG} == $type } {
+      puts $fh "$cmd_str $src_file ${verilog_opts_str}"
+    } else {
+      puts $fh "$cmd_str $src_file"
+    }
   }
   if { [xps_contains_verilog] } {
     puts $fh "\nverilog [xps_get_top_library] \"glbl.v\""
     puts $fh "\nnosort"
   }
   close $fh
+}
+
+proc xps_get_xsim_verilog_options { launch_dir opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  upvar $opts_arg opts
+  # include_dirs
+  set unique_incl_dirs [list]
+  set incl_dir_str [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $a_sim_vars(fs_obj)]]]
+  foreach incl_dir [split $incl_dir_str "|"] {
+    if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
+      lappend unique_incl_dirs $incl_dir
+      if { $a_sim_vars(b_absolute_path) } {
+        set incl_dir "[xps_resolve_file_path $incl_dir $launch_dir]"
+      } else {
+        set incl_dir "[xps_get_relative_file_path $incl_dir $launch_dir]"
+      }
+      lappend opts "-i \"$incl_dir\""
+    }
+  }
+  # --include
+  set prefix_ref_dir "false"
+  foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $prefix_ref_dir] {
+    set incl_dir [string map {\\ /} $incl_dir]
+    lappend opts "--include \"$incl_dir\""
+  }
+  # -d (verilog macros)
+  set v_defines [get_property "VERILOG_DEFINE" [get_filesets $a_sim_vars(fs_obj)]]
+  if { [llength $v_defines] > 0 } {
+    foreach element $v_defines {
+      set key_val_pair [split $element "="]
+      set name [lindex $key_val_pair 0]
+      set val  [lindex $key_val_pair 1]
+      set str "$name="
+      if { [string length $val] > 0 } {
+        set str "$str$val"
+      }
+      lappend opts "-d \"$str\""
+    }
+  }
 }
 
 # multi-step (modelsim and questa) and single-step (modelsim)
@@ -4642,7 +4661,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
   set b_redirect false
   set b_appended false
   foreach file $a_sim_vars(l_design_files) {
-    set fargs    [split $file {#}]
+    set fargs         [split $file {|}]
     set type          [lindex $fargs 0]
     set file_type     [lindex $fargs 1]
     set lib           [lindex $fargs 2]
@@ -5668,7 +5687,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
   }
 
   if { {} != $a_sim_vars(global_files_str) } {
-    set global_files [split $a_sim_vars(global_files_str) {#}]
+    set global_files [split $a_sim_vars(global_files_str) {|}]
     foreach g_file $global_files {
       set g_file [string trim $g_file {\"}]
       lappend vh_files [get_files -quiet -all $g_file]
@@ -5729,7 +5748,7 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir } {
     set incl_dirs [split $incl_dir_str " "]
   } else {
     set incl_dir_str [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]]
-    set incl_dirs [split $incl_dir_str "#"]
+    set incl_dirs [split $incl_dir_str "|"]
   }
 
   foreach vh_dir $incl_dirs {
@@ -5769,7 +5788,7 @@ proc xps_resolve_incldir { incl_dirs } {
     if { [string match "/*" $elem] || [regexp {^[a-zA-Z]:} $elem] } {
       if { {} != $path_elem } {
         # previous path is complete now, add hash and append to resolved path string
-        set path_elem "$path_elem#"
+        set path_elem "$path_elem|"
         append resolved_path $path_elem
       }
       # setup new path
@@ -5897,7 +5916,7 @@ proc xps_get_global_include_file_cmdstr { simulator launch_dir incl_files_arg } 
     # set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
     lappend file_str "\"$file\""
   }
-  return [join $file_str "#"]
+  return [join $file_str "|"]
 }
 
 proc xps_is_global_include_file { file_to_find } {
@@ -5905,7 +5924,7 @@ proc xps_is_global_include_file { file_to_find } {
   # Argument Usage:
   # Return Value:
   variable a_sim_vars
-  foreach g_file [split $a_sim_vars(global_files_str) {#}] {
+  foreach g_file [split $a_sim_vars(global_files_str) {|}] {
     set g_file [string trim $g_file {\"}]
     if { [string compare $g_file $file_to_find] == 0 } {
       return true
@@ -5991,7 +6010,7 @@ proc xps_write_filelist_info { dir } {
   set lines [list]
   lappend lines "Language File-Name IP Library File-Path"
   foreach file $a_sim_vars(l_design_files) {
-    set fargs         [split $file {#}]
+    set fargs         [split $file {|}]
     set type          [lindex $fargs 0]
     set file_type     [lindex $fargs 1]
     set lib           [lindex $fargs 2]
