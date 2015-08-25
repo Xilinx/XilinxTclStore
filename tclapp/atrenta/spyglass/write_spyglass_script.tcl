@@ -254,7 +254,7 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
           puts $sg_fh "set_option lib $lib_no_num $lib_no_num"
           puts $sg_fh "set_option libhdlfiles $lib_no_num { \\"
           foreach f [split $lib_file_array($lib)] {
-            if {[string match [get_property FILE_TYPE [get_files -all -of [get_filesets $synth_fileset] $f]] "VHDL"]} {
+            if {[string match [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0] ] "VHDL"]} {
               if {![regexp {^blk_mem_gen_v\d+_\d+$} $lib] || ([regexp {^blk_mem_gen_v\d+_\d+$} $lib] && [regexp {/blk_mem_gen_v\d+_\d+\.v} $f]) } {
                 puts $sg_fh "  $f \\"
               }
@@ -264,7 +264,7 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
         } elseif {[string match $lang "Verilog"] || [string match $lang "SystemVerilog"]} {
 #_satrajit          puts $sg_fh "read_file -type verilog { \\"
           foreach f [split $lib_file_array($lib)] {
-            set f_type [get_property FILE_TYPE [get_files -all -of [get_filesets $synth_fileset] $f]]
+            set f_type [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
             if {[string match $f_type "Verilog"] || [string match $f_type "SystemVerilog"]} {
               if {![regexp {^blk_mem_gen_v\d+_\d+$} $lib] || ([regexp {^blk_mem_gen_v\d+_\d+$} $lib] && [regexp {/blk_mem_gen_v\d+_\d+\.v} $f]) } {
                 puts $sg_fh "read_file -type verilog $f "
@@ -310,7 +310,7 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   set bb_list [array names black_box_libs]
   if {$bb_list != ""} {
     foreach bb $bb_list {
-      puts $sg_fh "set_option stop {$bb}"
+      puts $sg_fh "set_option stop $bb\*"
     }
   }
 
@@ -325,7 +325,7 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   puts $sg_fh "set_option pragma { synopsys synthesis }"
   puts $sg_fh "set_option disable_hdllibdu_lexical_checks yes"
   puts $sg_fh "set_option top $top_module"
-  puts $sg_fh "set_option prefer_tech_lib yes"
+  puts $sg_fh "#set_option prefer_tech_lib yes"
   puts $sg_fh "set_option enable_auto_infer_bus_pins yes"
   puts $sg_fh "set_option enable_fpga yes\n\n"
   puts $sg_fh "current_methodology \$SPYGLASS_HOME/GuideWare2.0/block/rtl_handoff\n"
