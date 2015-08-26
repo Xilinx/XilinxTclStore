@@ -24,7 +24,7 @@ proc xif_init_vars {} {
   set a_vars(base_dir)                ""
   set a_vars(central_dir)             ""
   set a_vars(mem_dir)                 ""
-  set a_vars(scr_dir)                 ""
+  set a_vars(scripts_dir)             ""
   set a_vars(co_file_list)            ""
   set a_vars(ipstatic_source_dir)     ""
   set a_vars(ip_base_dir)             ""
@@ -36,7 +36,7 @@ proc xif_init_vars {} {
   set a_vars(b_is_ip_object_specified)  0
   set a_vars(b_is_fs_object_specified)  0
   set a_vars(b_no_script)             0
-  set a_vars(b_clean_dir)             0
+  set a_vars(b_sync)                  0
   set a_vars(b_force)                 0
   set a_vars(s_ip_file_extn)          ".xci"
   set a_vars(b_ips_locked)            0
@@ -58,18 +58,17 @@ proc xif_init_vars {} {
 
   variable l_libraries                [list]
   
-  variable l_ip_info                  [list]
 }
 
 proc export_ip_user_files {args} {
   # Summary:
-  # Generate and export IP user files from a project. This can be scoped to work on one or more IPs.
+  # Generate and export IP/IPI user files from a project. This can be scoped to work on one or more IPs.
   # Argument Usage:
   # [-of_objects <arg>]: IP,IPI or a fileset
   # [-ip_user_files_dir <arg>]: Directory path to simulation base directory (for dynamic and other IP non static files)
   # [-ipstatic_source_dir <arg>]: Directory path to the static IP files
   # [-no_script]: Do not export simulation scripts
-  # [-clean_dir]: Delete all IP files from central directory
+  # [-sync]: Delete IP/IPI dynamic and simulation script files
   # [-force]: Overwrite files 
 
   # Return Value:
@@ -81,7 +80,6 @@ proc export_ip_user_files {args} {
   variable l_libraries
   variable export_coln
   variable l_valid_ip_extns
-  variable l_ip_info
   xif_init_vars
   set a_vars(options) [split $args " "]
   for {set i 0} {$i < [llength $args]} {incr i} {
@@ -91,7 +89,7 @@ proc export_ip_user_files {args} {
       "-ip_user_files_dir"   { incr i;set a_vars(central_dir) [lindex $args $i];set a_vars(b_central_dir_specified) 1 }
       "-ipstatic_source_dir" { incr i;set a_vars(ipstatic_source_dir) [lindex $args $i];set a_vars(b_ipstatic_source_dir) 1 }
       "-no_script"           { set a_vars(b_no_script) 1 }
-      "-clean_dir"           { set a_vars(b_clean_dir) 1 }
+      "-sync"                { set a_vars(b_sync) 1 }
       "-force"               { set a_vars(b_force) 1 }
       default {
         if { [regexp {^-} $option] } {
@@ -103,17 +101,6 @@ proc export_ip_user_files {args} {
   }
 
   xif_set_dirs
-
-  if { ($a_vars(b_clean_dir)) && ($a_vars(b_of_objects_specified))} {
-    [catch {send_msg_id export_ip_user_files-Tcl-002 ERROR "The -of_objects switch is not applicable when -clean_dir is specified.\n"} err]
-    return $export_coln
-  }
-
-  if { $a_vars(b_clean_dir) } {
-    xif_clean_central_dirs
-    #send_msg_id export_ip_user_files-Tcl-003 INFO "Cleaned up simulation repository.\n"
-    return $export_coln
-  }
 
   # default: all ips in project
   if { !$a_vars(b_of_objects_specified) } {
@@ -173,21 +160,18 @@ proc export_ip_user_files {args} {
     puts ""
   }
 
-  #send_msg_id export_ip_user_files-Tcl-007 INFO "Done\n"
-  
   # Call export simulation to generate simulation scripts (default behavior: generate export_simulation scripts)
   if { $a_vars(b_no_script) } {
     # do not export simulation scripts 
   } else {
-    foreach ip_info $l_ip_info {
-      set ip_name [lindex [split $ip_info {#}] 0]
-      set ip_type [lindex [split $ip_info {#}] 1]
-      set ip_dir [file normalize [file join $a_vars(base_dir) "sim_scripts"]]
-      if { {bd} == $ip_type } {
-        export_simulation -of_objects [get_files -quiet -all ${ip_name}.bd] -directory $ip_dir -force
-      } else {
-        export_simulation -of_objects [get_ips -quiet -all $ip_name] -directory $ip_dir -force
-      }
+    set top_level_ips [get_files -quiet -norecurse *.xci]
+    foreach ip_file $top_level_ips {
+      export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force
+    }
+
+    set top_level_bds [get_files -quiet -norecurse *.bd]
+    foreach bd_file $top_level_bds {
+      export_simulation -of_objects [get_files -all -quiet $bd_file] -directory $a_vars(scripts_dir) -force
     }
   }
   return $export_coln
@@ -278,11 +262,8 @@ proc xif_export_ip { obj } {
   variable a_vars
   variable export_coln
   variable l_valid_data_file_extns
-  variable l_ip_info
 
   set ip_name [file root [file tail $obj]]
-  set ip_info "${ip_name}#xci"
-  lappend l_ip_info $ip_info
   set ip_extn [file extension $obj]
   set b_container [xif_is_core_container $ip_name]
   #puts $ip_name=$b_container
@@ -306,69 +287,114 @@ proc xif_export_ip { obj } {
       }
       lappend l_static_files $src_ip_file
       set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
-      #send_msg_id export_ip_user_files-Tcl-008 STATUS " + exported IP   (static):'$extracted_file'\n"
       lappend export_coln $extracted_file
     }
   }
 
-  #
-  # clean classic dynamic files
-  #
-  foreach dynamic_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {(USED_IN =~ "*simulation*") && (USED_IN !~ "*ipstatic*")}] {
-    if { $b_container } { continue }
+  # set ip instance dir <ip_user_files>/ip/<ip_instance>
+  set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
 
-    # get dynamic file from repo for classic ip
-    set file [xif_get_dynamic_sim_file $ip_name $dynamic_file]
-    if { {} == $file } { continue }
-    if { ![file exists $file] } { continue }
-
-    # is this file same from within core-container?
-    if { $file == $dynamic_file } { continue }
-
-    if { [catch {file delete -force $file} _error] } {
-      send_msg_id export_ip_user_files-Tcl-009 INFO "failed to remove dynamic simulation file (${file}): $_error\n"
+  # delete dynamic files (ONLY) for non-container ips
+  if { $b_container } {
+    # no op
+  } else {
+    set empty_dirs [list]
+    # classic ip (non-container) - remove dynamic files
+    foreach dynamic_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {(USED_IN =~ "*simulation*") && (USED_IN !~ "*ipstatic*")}] {
+      # puts dynamic_file=$dynamic_file
+      set repo_file [xif_get_dynamic_sim_file $ip_name $dynamic_file]
+      # repo file not found? continue
+      if { {} == $repo_file } {
+        continue
+      }
+      # is this repo file path same from within core-container? continue, we don't want to delete source dynamic file
+      set repo_file [string map {\\ /} $repo_file]
+      set dynamic_file [string map {\\ /} $dynamic_file]
+      if { $repo_file == $dynamic_file } {
+        continue
+      }
+      # add directory for cleanup
+      set file_dir [file dirname $repo_file]
+      lappend empty_dirs $file_dir
+      # repo file does not exist? continue
+      if { ![file exists $repo_file] } {
+        continue
+      }
+      # delete repo file
+      if { [catch {file delete -force $repo_file} _error] } {
+        send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove dynamic simulation file (${repo_file}): $_error\n"
+      } else {
+        #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted dynamic file:$repo_file\n"
+      }
     }
 
-    set parent_dir [file dirname $file]
-    if { {} == $parent_dir } { continue }
-
-    if { ![file isdirectory $parent_dir] } { continue }
-
-    set dir_files [glob -nocomplain [file join $parent_dir *]]
-    if { [llength $dir_files] != 0 } {
-      continue
+    # delete empty dynamic file dirs, if any
+    foreach dir $empty_dirs {
+      if { [file isdirectory $dir] } {
+        set dir_files [glob -nocomplain -directory $dir *]
+        if { [llength $dir_files] == 0 } {
+          if { [catch {file delete -force $dir} _error] } {
+            send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove directory:($dir): $_error\n"
+          } else {
+            #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted directory:$dir\n"
+          }
+        }
+      }
     }
+  }
 
-    # delete empty parent dir
-    if { [catch {file delete -force $parent_dir} _error] } {
-      send_msg_id export_ip_user_files-Tcl-010 INFO "failed to remove empty dynamic simulation dir (${parent_dir}): $_error\n"
+  # if sync requested delete ip/<ip_instance> and sim_scipts/<ip_instance>
+  if { $a_vars(b_sync) } {
+    if { [catch {file delete -force $ip_inst_dir} _error] } {
+      send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove IP instance dirrectory:(${ip_inst_dir}): $_error\n"
+    } else {
+      #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted IP instance directory:$ip_inst_dir\n"
+    }
+    # sim_scripts/<ip_instance> 
+    set ip_inst_scripts_dir [file normalize [file join $a_vars(scripts_dir) $ip_name]]
+    if { [catch {file delete -force $ip_inst_scripts_dir} _error] } {
+      send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove IP instance scripts dirrectory:(${ip_inst_scripts_dir}): $_error\n"
+    } else {
+      #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted IP instance scripts directory:$ip_inst_scripts_dir\n"
+    }
+    # delete sim_scripts, if empty
+    if { [file isdirectory $a_vars(scripts_dir)] } {
+      set sim_script_dir_files [glob -nocomplain -directory $a_vars(scripts_dir) *]
+      #puts sim_script_dir_files=$sim_script_dir_files
+      if { [llength $sim_script_dir_files] == 0 } {
+        if { [catch {file delete -force $a_vars(scripts_dir)} _error] } {
+          send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove sim scripts dirrectory:($a_vars(scripts_dir)): $_error\n"
+        } else {
+          #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted sim scripts directory:$a_vars(scripts_dir)\n"
+        }
+      }
     }
   }
 
   #
   # dynamic files
   #
-  set ip_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
   foreach sim_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
     if { [lsearch $l_static_files $sim_file] != -1 } { continue }
     if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
     set file $sim_file
     if { $b_container } {
       if { $a_vars(b_force) } {
-        set file [extract_files -base_dir ${ip_dir} -no_ip_dir -force -files $sim_file]
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $sim_file]
       } else {
-        set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $sim_file]
       }
       lappend export_coln $file
     } else {
-      #set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $sim_file]
-      if { [xif_is_bd_ip_file $file] } {
+      #set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $sim_file]
+      set bd_file {}
+      if { [xif_is_bd_ip_file $file bd_file] } {
         # do not delete classic bd file
       } else {
         # cleanup dynamic files for classic ip
         #if { [file exists $file] } {
         #  if {[catch {file delete -force $file} error_msg] } {
-        #    send_msg_id export_ip_user_files-Tcl-011 ERROR "failed to delete file ($file): $error_msg\n"
+        #    send_msg_id export_ip_user_files-Tcl-011 ERROR "Failed to delete file ($file): $error_msg\n"
         #    return 1
         #  }
         #}
@@ -377,14 +403,13 @@ proc xif_export_ip { obj } {
   }
 
   # templates
-  set ip_dir [file normalize [file join $a_vars(base_dir) "ip" $ip_name]]
   foreach template_file [get_files -quiet -all -of [get_ips -all -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
     if { [lsearch $l_static_files $template_file] != -1 } { continue }
     set file {}
     if { $a_vars(b_force) } {
-      set file [extract_files -base_dir ${ip_dir} -no_ip_dir -force -files $template_file]
+      set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $template_file]
     } else {
-      set file [extract_files -base_dir ${ip_dir} -no_ip_dir -files $template_file]
+      set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $template_file]
     }
     lappend export_coln $file
   }
@@ -394,23 +419,33 @@ proc xif_export_ip { obj } {
   return 0
 }
 
-proc xif_is_bd_ip_file { file } {
+proc xif_is_bd_ip_file { src_file bd_file_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  #puts file=$file
-  set b_is_bd_file 0
-  #set file_obj [get_files -all $file]
-  #if { {} != $file } {
-  #  set props [list_property $file_obj]
-  #  if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
-  #    set ip_file [get_property "PARENT_COMPOSITE_FILE" $file_obj]
-  #    puts ip_file=$ip_file
-  #  }
-  #}
-
-  return $b_is_bd_file
+  set b_is_bd 0
+  return 0
+  upvar $bd_file_arg bd_file
+  set comp_file $src_file
+  set MAX_PARENT_COMP_LEVELS 5
+  set count 0
+  while (1) {
+    incr count
+    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
+    set file_obj [lindex [get_files -all $comp_file] 0]
+    set props [list_property $file_obj]
+    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+      break
+    }
+    set comp_file [get_property parent_composite_file $file_obj]
+    if { {.bd} == [file extension $comp_file] } {
+      set b_is_bd 1
+      set bd_file $comp_file
+      break
+    }
+  }
+  return $b_is_bd
 }
 
 proc xif_export_bd { obj } {
@@ -421,12 +456,9 @@ proc xif_export_bd { obj } {
   variable a_vars
   variable export_coln
   variable l_valid_data_file_extns
-  variable l_ip_info
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
-  set ip_info "${ip_name}#bd"
-  lappend l_ip_info $ip_info
 
   #
   # static files
@@ -438,7 +470,6 @@ proc xif_export_bd { obj } {
     # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
     #puts src_ip_file=$src_ip_file
 
-    set sub_dirs [list]
     set comps [lrange [split $src_ip_file "/"] 1 end]
     set to_match "xilinx.com"
     set index 0
@@ -457,7 +488,7 @@ proc xif_export_bd { obj } {
     set target_ip_lib_dir [file join $a_vars(ipstatic_dir) $ip_lib_dir_name]
     if { ![file exists $target_ip_lib_dir] } {
       if {[catch {file mkdir $target_ip_lib_dir} error_msg] } {
-        send_msg_id export_ip_user_files-Tcl-012 ERROR "failed to create the directory ($target_ip_lib_dir): $error_msg\n"
+        send_msg_id export_ip_user_files-Tcl-012 ERROR "Failed to create the directory ($target_ip_lib_dir): $error_msg\n"
         continue
       }
     }
@@ -487,49 +518,57 @@ proc xif_export_bd { obj } {
     }
   }
 
+  # set bd instance dir <ip_user_files>/bd/<ip_instance>
+  set bd_inst_dir [file normalize [file join $a_vars(bd_base_dir) $ip_name]]
+
+  # if sync requested delete bd/<bd_instance> and sim_scipts/<bd_instance>
+  if { $a_vars(b_sync) } {
+    if { [catch {file delete -force $bd_inst_dir} _error] } {
+      send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove BD instance dirrectory:(${bd_inst_dir}): $_error\n"
+    } else {
+      #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted BD instance directory:$bd_inst_dir\n"
+    }
+    # sim_scripts/<bd_instance> 
+    set bd_inst_scripts_dir [file normalize [file join $a_vars(scripts_dir) $ip_name]]
+    if { [catch {file delete -force $bd_inst_scripts_dir} _error] } {
+      send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove BD instance scripts dirrectory:(${bd_inst_scripts_dir}): $_error\n"
+    } else {
+      #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted BD instance scripts directory:$bd_inst_scripts_dir\n"
+    }
+    # delete sim_scripts, if empty
+    if { [file isdirectory $a_vars(scripts_dir)] } {
+      set sim_script_dir_files [glob -nocomplain -directory $a_vars(scripts_dir) *]
+      #puts sim_script_dir_files=$sim_script_dir_files
+      if { [llength $sim_script_dir_files] == 0 } {
+        if { [catch {file delete -force $a_vars(scripts_dir)} _error] } {
+          send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove sim scripts dirrectory:($a_vars(scripts_dir)): $_error\n"
+        } else {
+          #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted sim scripts directory:$a_vars(scripts_dir)\n"
+        }
+      }
+    }
+  }
+
   #
   # dynamic files
   #
-  foreach src_ip_file [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*simulation*"}] {
-    if { [lsearch $l_static_files $src_ip_file] != -1 } { continue }
-    if { {.xci} == [file extension $src_ip_file] } { continue }
-    if { [lsearch -exact $l_valid_data_file_extns [file extension $src_ip_file]] >= 0 } { continue }
-    set src_ip_file [string map {\\ /} $src_ip_file]
-    # /demo/project_1/project_1.srcs/sources_1/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
-    #puts src_ip_file=$src_ip_file
-    set sub_dirs [list]
-    set comps [lrange [split $src_ip_file "/"] 1 end]
-    set to_match "$ip_name"
-    set index 0
-    foreach comp $comps {
-      incr index
-      if { $to_match != $comp } continue;
-      break
-    }
-    incr index -1
-    set file_path_str [join [lrange $comps 0 $index] "/"]
-    set ip_lib_dir "/$file_path_str"
-    # /demo/project_1/project_1.srcs/sources_1/bd/design_1 
-    #puts ip_lib_dir=$ip_lib_dir
+  foreach dynamic_file [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*simulation*"}] {
+    if { [lsearch $l_static_files $dynamic_file] != -1 } { continue }
+    if { {.xci} == [file extension $dynamic_file] } { continue }
+    if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file]] >= 0 } { continue }
+    set dynamic_file [string map {\\ /} $dynamic_file]
+    #puts dynamic_file=$dynamic_file
 
-    set target_ip_lib_dir [file join $a_vars(bd_base_dir) ${ip_name}]
-    # /demo/project_1/project_1_sim/bd/design_1 
-    #puts target_ip_lib_dir=$target_ip_lib_dir
-
-    set hdl_dir_file [join [lrange $comps $index end] "/"]
-    # ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
-    #puts hdl_dir_file=$hdl_dir_file
-
-    set dst_file [file join $target_ip_lib_dir $hdl_dir_file]
-    # /demo/project_1/project_1_sim/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
-    #puts dst_file=$dst_file
-    lappend export_coln $dst_file
+    set hdl_dir_file {}
+    set ip_lib_dir {}
+    set target_ip_lib_dir {}
+    set repo_file [xif_get_dynamic_sim_file_bd $ip_name $dynamic_file hdl_dir_file ip_lib_dir target_ip_lib_dir]
+    lappend export_coln $repo_file
 
     # iterate over the hdl_dir_file comps and copy to target
-    set sub_dirs [list]
     set comps [lrange [split $hdl_dir_file "/"] 1 end]
-    set src $ip_lib_dir
-    set dst $target_ip_lib_dir
+    set src   $ip_lib_dir
+    set dst   $target_ip_lib_dir
     foreach comp $comps {
       append src "/";append src $comp
       append dst "/";append dst $comp
@@ -538,7 +577,7 @@ proc xif_export_bd { obj } {
       if { [file isdirectory $src] } {
         if { ![file exists $dst] } {
           if {[catch {file mkdir $dst} error_msg] } {
-            send_msg_id export_ip_user_files-Tcl-013 ERROR "failed to create the directory ($dst): $error_msg\n"
+            send_msg_id export_ip_user_files-Tcl-013 ERROR "Failed to create the directory ($dst): $error_msg\n"
             return 1
           }
         }
@@ -554,6 +593,44 @@ proc xif_export_bd { obj } {
   xif_export_mem_init_files_for_bd $obj
 
   return 0
+}
+
+proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_dir_arg target_ip_lib_dir_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  upvar $hdl_dir_file_arg hdl_dir_file
+  upvar $ip_lib_dir_arg ip_lib_dir
+  upvar $target_ip_lib_dir_arg target_ip_lib_dir
+
+  # dynamic_file: /demo/project_1/project_1.srcs/sources_1/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
+  set comps [lrange [split $dynamic_file "/"] 1 end]
+  set to_match "$ip_name"
+  set index 0
+  set b_found [xif_find_comp comps index $to_match]
+
+  incr index -1
+  set file_path_str [join [lrange $comps 0 $index] "/"]
+
+  set ip_lib_dir "/$file_path_str"
+  # ip_lib_dir: /demo/project_1/project_1.srcs/sources_1/bd/design_1 
+  #puts ip_lib_dir=$ip_lib_dir
+
+  set target_ip_lib_dir [file join $a_vars(bd_base_dir) ${ip_name}]
+  # target_ip_lib_dir: /demo/project_1/project_1.ip_user_files/bd/design_1
+  #puts target_ip_lib_dir=$target_ip_lib_dir
+
+  set hdl_dir_file [join [lrange $comps $index end] "/"]
+  # hdl_dir_file: ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
+  #puts hdl_dir_file=$hdl_dir_file
+
+  set repo_file [file join $target_ip_lib_dir $hdl_dir_file]
+  # repo_file: /demo/project_1/project_1.ip_user_files/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
+  #puts repo_file=$repo_file
+
+  return $repo_file
 }
 
 proc xif_is_ip { obj } {
@@ -744,7 +821,7 @@ proc xif_create_mem_dir {} {
   variable a_vars
   if { ! [file exists $a_vars(mem_dir)] } {
     if {[catch {file mkdir $a_vars(mem_dir)} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-024 ERROR "failed to create the directory ($a_vars(mem_dir)): $error_msg\n"
+      send_msg_id export_ip_user_files-Tcl-024 ERROR "Failed to create the directory ($a_vars(mem_dir)): $error_msg\n"
       return 1
     }
   }
@@ -760,15 +837,15 @@ proc xif_create_central_dirs {} {
 
   if { ! [file exists $a_vars(base_dir)] } {
     if {[catch {file mkdir $a_vars(base_dir)} error_msg] } {
-      send_msg_id export_ip_user_files-Tcl-025 ERROR "failed to create the directory ($a_vars(base_dir)): $error_msg\n"
+      send_msg_id export_ip_user_files-Tcl-025 ERROR "Failed to create the directory ($a_vars(base_dir)): $error_msg\n"
       return 1
     }
   }
 
 
-  #if { ! [file exists $a_vars(scr_dir)] } {
-  #  if {[catch {file mkdir $a_vars(scr_dir)} error_msg] } {
-  #    send_msg_id export_ip_user_files-Tcl-026 ERROR "failed to create the directory ($a_vars(scr_dir)): $error_msg\n"
+  #if { ! [file exists $a_vars(scripts_dir)] } {
+  #  if {[catch {file mkdir $a_vars(scripts_dir)} error_msg] } {
+  #    send_msg_id export_ip_user_files-Tcl-026 ERROR "Failed to create the directory ($a_vars(scripts_dir)): $error_msg\n"
   #    return 1
   #  }
   #}
@@ -778,7 +855,7 @@ proc xif_create_central_dirs {} {
   } else {
     if { ! [file exists $a_vars(ipstatic_dir)] } {
       if {[catch {file mkdir $a_vars(ipstatic_dir)} error_msg] } {
-        send_msg_id export_ip_user_files-Tcl-027 ERROR "failed to create the directory $a_vars(ipstatic_dir): $error_msg\n"
+        send_msg_id export_ip_user_files-Tcl-027 ERROR "Failed to create the directory $a_vars(ipstatic_dir): $error_msg\n"
         return 1
       }
     }
@@ -786,14 +863,14 @@ proc xif_create_central_dirs {} {
 
   #if { ! [file exists $a_vars(ip_base_dir)] } {
   #  if {[catch {file mkdir $a_vars(ip_base_dir)} error_msg] } {
-  #    send_msg_id export_ip_user_files-Tcl-028 ERROR "failed to create the directory $a_vars(ip_base_dir): $error_msg\n"
+  #    send_msg_id export_ip_user_files-Tcl-028 ERROR "Failed to create the directory $a_vars(ip_base_dir): $error_msg\n"
   #    return 1
   #  }
   #}
 
   #if { ! [file exists $a_vars(bd_base_dir)] } {
   #  if {[catch {file mkdir $a_vars(bd_base_dir)} error_msg] } {
-  #    send_msg_id export_ip_user_files-Tcl-029 ERROR "failed to create the directory $a_vars(bd_base_dir): $error_msg\n"
+  #    send_msg_id export_ip_user_files-Tcl-029 ERROR "Failed to create the directory $a_vars(bd_base_dir): $error_msg\n"
   #    return 1
   #  }
   #}
@@ -838,87 +915,13 @@ proc xif_set_dirs {} {
   set a_vars(bd_base_dir) [file join $a_vars(base_dir) "bd"]
 
   set a_vars(mem_dir) [file normalize [file join $a_vars(base_dir) "mem_init_files"]]
-  set a_vars(scr_dir) [file normalize [file join $a_vars(base_dir) "sim_scripts"]]
+  set a_vars(scripts_dir) [file normalize [file join $a_vars(base_dir) "sim_scripts"]]
 
   # set path separator
   set a_vars(base_dir)     [string map {\\ /} $a_vars(base_dir)]
   set a_vars(ipstatic_dir) [string map {\\ /} $a_vars(ipstatic_dir)]
   set a_vars(mem_dir)      [string map {\\ /} $a_vars(mem_dir)]
-  set a_vars(scr_dir)      [string map {\\ /} $a_vars(scr_dir)]
-}
-
-proc xif_clean_central_dirs {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_vars
-
-  if { [file exists $a_vars(base_dir)] } {
-    foreach file_path [glob -nocomplain -directory $a_vars(base_dir) *] {
-      set file_path [string map {\\ /} $file_path]
-      if { $file_path == $a_vars(ip_base_dir) } { continue }
-      if { $file_path == $a_vars(bd_base_dir) } { continue }
-      if { $file_path == $a_vars(ipstatic_dir) } { continue }
-      if { $file_path == $a_vars(mem_dir) } { continue }
-      if { $file_path == $a_vars(scr_dir) } { continue }
-      if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-030 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
-        return
-      }
-    }
-  }
-
-  if { [file exists $a_vars(mem_dir)] } {
-    foreach file_path [glob -nocomplain -directory $a_vars(mem_dir) *] {
-      if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-031 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
-        return
-      }
-    }
-    if { [file exists $a_vars(mem_dir)] } {
-      if {[catch {file delete -force $a_vars(mem_dir)} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-032 ERROR "failed to delete file ($a_vars(mem_dir)): $error_msg\n"} err]
-        return
-      }
-    }
-  }
-
-  if { [file exists $a_vars(scr_dir)] } {
-    foreach file_path [glob -nocomplain -directory $a_vars(scr_dir) *] {
-      if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-033 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
-        return
-      }
-    }
-  }
-
-  if { [file exists $a_vars(ipstatic_dir)] } {
-    foreach file_path [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
-      if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-034 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
-        return
-      }
-    }
-  }
-
-  if { [file exists $a_vars(ip_base_dir)] } {
-    foreach file_path [glob -nocomplain -directory $a_vars(ip_base_dir) *] {
-      if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-035 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
-        return
-      }
-    }
-  }
-
-  if { [file exists $a_vars(bd_base_dir)] } {
-    foreach file_path [glob -nocomplain -directory $a_vars(bd_base_dir) *] {
-      if {[catch {file delete -force $file_path} error_msg] } {
-        [catch {send_msg_id export_ip_user_files-Tcl-036 ERROR "failed to delete file ($a_vars(file_path)): $error_msg\n"} err]
-        return
-      }
-    }
-  }
+  set a_vars(scripts_dir)      [string map {\\ /} $a_vars(scripts_dir)]
 }
 
 proc xif_export_mem_init_files_for_ip { obj } {
@@ -1158,33 +1161,18 @@ proc xif_get_dynamic_sim_file { ip_name src_file } {
   variable a_vars
 
   set comps [lrange [split $src_file "/"] 1 end]
-
+  set index 0
   set b_found false
+  set to_match {}
   if { $a_vars(b_is_managed) } {
     # for managed ip get the path from core container ip name (below)
   } else {
-    #set to_match "ip/$ip_name"
     set to_match "ip"
-    set index 0
-    set b_found false
-    foreach comp $comps {
-      incr index
-      if { $to_match != $comp } continue;
-      set b_found true
-      break
-    }
-  
+    set b_found [xif_find_comp comps index $to_match]
     # try ip name
     if { !$b_found } {
       set to_match "$ip_name"
-      set index 0
-      set b_found false
-      foreach comp $comps {
-        incr index
-        if { $to_match != $comp } continue;
-        set b_found true
-        break
-      }
+      set b_found [xif_find_comp comps index $to_match]
     }
   }
 
@@ -1192,18 +1180,14 @@ proc xif_get_dynamic_sim_file { ip_name src_file } {
     # get the core container ip name of this source and find from repo area
     set file_obj [lindex [get_files -all -quiet [list "$src_file"]] 0]
     set xcix_file [string trim [get_property core_container $file_obj]]
-    if { {} != $xcix_file } {
+    if { {} == $xcix_file } {
+      set comp_file [get_property parent_composite_file $file_obj]
+      set ip_name [file root [file tail $comp_file]]
+    } else {
       set ip_name [file root [file tail $xcix_file]]
-      set to_match "$ip_name"
-      set index 0
-      set b_found false
-      foreach comp $comps {
-        incr index
-        if { $to_match != $comp } continue;
-        set b_found true
-        break
-      }
     }
+    set to_match "$ip_name"
+    set b_found [xif_find_comp comps index $to_match]
   }
 
   if { ! $b_found } {
@@ -1218,5 +1202,23 @@ proc xif_get_dynamic_sim_file { ip_name src_file } {
   }
   #puts out_src_file=$src_file
   return $src_file
+}
+
+proc xif_find_comp { comps_arg index_arg to_match } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $comps_arg comps
+  upvar $index_arg index
+  set index 0
+  set b_found false
+  foreach comp $comps {
+    incr index
+    if { $to_match != $comp } continue;
+    set b_found true
+    break
+  }
+  return $b_found
 }
 }
