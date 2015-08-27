@@ -1810,7 +1810,12 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
       if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
         set vh_file [usf_fetch_header_from_dynamic $vh_file]
       } else {
-        set vh_file [usf_fetch_ip_static_file $vh_file]
+        set bd_file {}
+        if { [usf_is_bd_file $vh_file bd_file] } {
+          set vh_file [usf_fetch_ipi_static_file $vh_file]
+        } else {
+          set vh_file [usf_fetch_ip_static_file $vh_file $vh_file_obj]
+        }
       }
     }
     set file_path [file normalize [string map {\\ /} [file dirname $vh_file]]]
@@ -2763,7 +2768,8 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     if { $a_sim_vars(b_use_static_lib) } {
       # use pre-compiled lib
     } else {
-      set b_is_bd_ip [usf_is_bd_file $full_src_file_path]
+      set bd_file {}
+      set b_is_bd_ip [usf_is_bd_file $full_src_file_path bd_file]
       if { $b_is_bd_ip } {
         set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
       } else {
@@ -2790,27 +2796,36 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   return $orig_src_file
 }
 
-proc usf_is_bd_file { compile_order_src_file } {
+proc usf_is_bd_file { src_file bd_file_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set b_is_bd_file 0
-
-  # TODO: recursively find the parent composite file to see if the top most file is a bd
-
-  set comps [lrange [split $compile_order_src_file "/"] 1 end]
-  if { ([lsearch $comps "bd"] != -1)         ||
-       ([lsearch $comps "ipshared"] != -1)   ||
-       ([lsearch $comps "xilinx.com"] != -1) } {
-    set b_is_bd_file 1
+  upvar $bd_file_arg bd_file
+  set b_is_bd 0
+  set comp_file $src_file
+  set MAX_PARENT_COMP_LEVELS 10
+  set count 0
+  while (1) {
+    incr count
+    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
+    set file_obj [lindex [get_files -all $comp_file] 0]
+    set props [list_property $file_obj]
+    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+      break
+    }
+    set comp_file [get_property parent_composite_file $file_obj]
   }
 
-  return $b_is_bd_file
+  # got top-most file whose parent-comp is empty ... is this BD?
+  if { {.bd} == [file extension $comp_file] } {
+    set b_is_bd 1
+    set bd_file $comp_file
+  }
+  return $b_is_bd
 }
 
-proc usf_fetch_ip_static_file { file } {
+proc usf_fetch_ip_static_file { file vh_file_obj } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2820,32 +2835,41 @@ proc usf_fetch_ip_static_file { file } {
     return $file
   }
 
+  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
   set src_ip_file $file
+  set src_ip_file [string map {\\ /} $src_ip_file]
   #puts src_ip_file=$src_ip_file
-  set comps [lrange [split $src_ip_file "/"] 1 end]
-  set to_match "ip"
-  if { [lsearch -exact $comps $to_match] == -1 } {
-    return $src_ip_file
-  }
 
-  set index 0
-  foreach comp $comps {
-    if { $to_match != $comp } {
-      incr index
-      continue;
+  # get parent composite file path dir
+  set comp_file [get_property parent_composite_file $vh_file_obj] 
+  set comp_file_dir [file dirname $comp_file]
+  set comp_file_dir [string map {\\ /} $comp_file_dir]
+  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2
+  #puts comp_file_dir=$comp_file_dir
+
+  # strip parent dir from file path dir
+  set lib_file_path {}
+  # axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
+
+  set src_file_dirs  [file split [file normalize $src_ip_file]]
+  set comp_file_dirs [file split [file normalize $comp_file_dir]]
+  set src_file_len [llength $src_file_dirs]
+  set comp_dir_len [llength $comp_file_dir]
+
+  set index 1
+  #puts src_file_dirs=$src_file_dirs
+  #puts com_file_dirs=$comp_file_dirs
+  while { [lindex $src_file_dirs $index] == [lindex $comp_file_dirs $index] } {
+    incr index
+    if { ($index == $src_file_len) || ($index == $comp_dir_len) } {
+      break;
     }
-    break
   }
-  set file_path_str [join [lrange $comps 0 $index] "/"]
-  set ip_lib_dir "/$file_path_str"
-  #puts ip_lib_dir=$ip_lib_dir
+  set lib_file_path [join [lrange $src_file_dirs $index end] "/"]
+  #puts lib_file_path=$lib_file_path
 
-  incr index
-  incr index
-  set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
-  #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
-
-  set dst_cip_file [file join $a_sim_vars(ipstatic_dir) $ip_hdl_sub_dir]
+  set dst_cip_file [file join $a_sim_vars(ipstatic_dir) $lib_file_path]
+  # /tmp/tp/tp.ip_user_files/ipstatic/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
   #puts dst_cip_file=$dst_cip_file
   return $dst_cip_file
 }
@@ -2856,11 +2880,12 @@ proc usf_fetch_ipi_static_file { file } {
   # Return Value:
 
   variable a_sim_vars
+  set src_ip_file $file
+
   if { $a_sim_vars(b_use_static_lib) } {
-    return $file
+    return $src_ip_file
   }
 
-  set src_ip_file $file
   set comps [lrange [split $src_ip_file "/"] 1 end]
   set to_match "xilinx.com"
   set index 0
@@ -2877,19 +2902,25 @@ proc usf_fetch_ipi_static_file { file } {
   set target_ip_lib_dir [file join $a_sim_vars(ipstatic_dir) $ip_lib_dir_name]
   #puts target_ip_lib_dir=$target_ip_lib_dir
 
-  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0/4f162624"
+  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
   set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
   set ip_hdl_dir "/$ip_hdl_dir"
-  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
   #puts ip_hdl_dir=$ip_hdl_dir
   incr index
 
   set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
-  # /4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd
+  # /hdl/xbip_utils_v3_0_vh_rfs.vhd
   #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
 
   set dst_cip_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
   #puts dst_cip_file=$dst_cip_file
+
+  # repo static file does not exist? maybe generate_target or export_ip_user_files was not executed, fall-back to project src file
+  if { ![file exists $dst_cip_file] } {
+    return $src_ip_file
+  }
+
   return $dst_cip_file
 }
 

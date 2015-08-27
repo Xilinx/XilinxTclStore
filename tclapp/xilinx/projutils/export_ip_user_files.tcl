@@ -94,7 +94,7 @@ proc export_ip_user_files {args} {
       default {
         if { [regexp {^-} $option] } {
           send_msg_id export_ip_user_files-Tcl-001 ERROR "Unknown option '$option', please type 'export_ip_user_files -help' for usage info.\n"
-          return $export_coln
+          return
         }
       }
     }
@@ -109,12 +109,12 @@ proc export_ip_user_files {args} {
 
   if { $a_vars(b_of_objects_specified) && ({} == $a_vars(sp_of_objects)) } {
     [catch {send_msg_id export_ip_user_files-Tcl-004 ERROR "No objects found specified with the -of_objects switch.\n"} err]
-    return $export_coln
+    return
   }
   
   # no objects, return
   if { {} == $a_vars(sp_of_objects) } {
-    return $export_coln
+    return
   }
 
   xif_create_central_dirs
@@ -174,7 +174,7 @@ proc export_ip_user_files {args} {
       export_simulation -of_objects [get_files -all -quiet $bd_file] -directory $a_vars(scripts_dir) -force
     }
   }
-  return $export_coln
+  return
 }
 
 proc xif_export_files { obj } {
@@ -893,6 +893,17 @@ proc xif_set_dirs {} {
     set base_dir $a_vars(s_xport_dir)
   }
   set a_vars(base_dir) [file normalize $dir]
+
+  # create readme
+  set readme_file "$a_vars(base_dir)/README.txt"
+  if { ![file exists $readme_file] } {
+    if {[catch {open $readme_file w} fh]} {
+      send_msg_id export_ip_user_files-Tcl-030 ERROR "failed to open file to write ($readme_file)\n"
+    } else {
+      puts $fh "The files in this directory structure are automatically generated and managed by Vivado. Editing these files is not recommended."
+      close $fh
+    }
+  }
 
   # ipstatic dir
   set a_vars(ipstatic_dir) [get_property sim.ipstatic.source_dir [current_project]]
