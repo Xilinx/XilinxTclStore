@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for the readme.txt in ip_user_files dir</revision_history>
+      <revision_history>check for ip_user_files dir before creating readme.txt</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
