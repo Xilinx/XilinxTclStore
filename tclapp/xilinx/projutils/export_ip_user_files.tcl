@@ -895,13 +895,27 @@ proc xif_set_dirs {} {
   set a_vars(base_dir) [file normalize $dir]
 
   # create readme
-  set readme_file "$a_vars(base_dir)/README.txt"
-  if { ![file exists $readme_file] } {
-    if {[catch {open $readme_file w} fh]} {
-      send_msg_id export_ip_user_files-Tcl-030 ERROR "failed to open file to write ($readme_file)\n"
-    } else {
-      puts $fh "The files in this directory structure are automatically generated and managed by Vivado. Editing these files is not recommended."
-      close $fh
+  # make sure the base dir exists, if not created
+  if { ![file exists $a_vars(base_dir)] } {
+    if {[catch {file mkdir $a_vars(base_dir)} error_msg] } {
+      send_msg_id export_ip_user_files-Tcl-012 ERROR "Failed to create the directory ($a_vars(base_dir)): $error_msg\n"
+    }
+  }
+
+  if { [file isdirectory $a_vars(base_dir)] } {
+    set readme_file "$a_vars(base_dir)/README.txt"
+    if { ![file exists $readme_file] } {
+      set fh 0
+      if {[catch {open $readme_file w} fh]} {
+        send_msg_id export_ip_user_files-Tcl-030 ERROR "failed to open file to write ($readme_file)\n"
+      } else {
+        puts $fh "The files in this directory structure are automatically generated and managed by Vivado. Editing these files is not recommended."
+        close $fh
+      }
+    }
+  } else {  
+    if {[catch {file mkdir $a_vars(base_dir)} error_msg] } {
+      send_msg_id export_ip_user_files-Tcl-012 ERROR "Failed to create the directory ($a_vars(base_dir)): $error_msg\n"
     }
   }
 
