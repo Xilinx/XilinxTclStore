@@ -2803,7 +2803,7 @@ proc usf_is_bd_file { src_file bd_file_arg } {
   while (1) {
     incr count
     if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all $comp_file] 0]
+    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
     set props [list_property $file_obj]
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
