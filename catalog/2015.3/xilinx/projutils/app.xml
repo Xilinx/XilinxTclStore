@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>check for ip_user_files dir before creating readme.txt</revision_history>
+      <revision_history>fix for fetching the static user file path when parent composite file is set</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
