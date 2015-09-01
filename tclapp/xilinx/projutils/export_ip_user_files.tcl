@@ -286,7 +286,33 @@ proc xif_export_ip { obj } {
         }
       }
       lappend l_static_files $src_ip_file
-      set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
+
+      # get the parent composite file for this static file
+      set parent_comp_file [get_property parent_composite_file [lindex [get_files -all [list "$src_ip_file"]] 0]]
+
+      # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be 
+      # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
+      if { {} == $parent_comp_file } {
+        set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
+        #puts extracted_file_no_pc=$extracted_file
+      } else {
+        # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
+        set parent_ip_name [file root [file tail $parent_comp_file]]
+        set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
+        #puts src_ip_file=$src_ip_file
+	
+        # get the source ip file dir
+        set src_ip_file_dir [file dirname $src_ip_file]
+
+        # strip the ip_output_dir path from source ip file and prepend static dir 
+        set lib_dir [xif_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+        set target_extract_dir [file normalize [file join $a_vars(ipstatic_dir) $lib_dir]]
+        #puts target_extract_dir=$target_extract_dir
+	
+        set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
+        #puts extracted_file_with_pc=$extracted_file
+      }
+
       lappend export_coln $extracted_file
     }
   }
@@ -419,6 +445,28 @@ proc xif_export_ip { obj } {
   return 0
 }
 
+proc xif_get_sub_file_path { src_file_path dir_path_to_remove } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set src_path_comps [file split [file normalize $src_file_path]]
+  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
+
+  set src_path_len [llength $src_path_comps]
+  set dir_path_len [llength $dir_path_comps]
+
+  set index 1
+  while { [lindex $src_path_comps $index] == [lindex $dir_path_comps $index] } {
+    incr index
+    if { ($index == $src_path_len) || ($index == $dir_path_len) } {
+      break;
+    }
+  }
+  set sub_file_path [join [lrange $src_path_comps $index end] "/"]
+  return $sub_file_path
+}
+
 proc xif_is_bd_ip_file { src_file bd_file_arg } {
   # Summary:
   # Argument Usage:
@@ -473,11 +521,15 @@ proc xif_export_bd { obj } {
     set comps [lrange [split $src_ip_file "/"] 1 end]
     set to_match "xilinx.com"
     set index 0
-    foreach comp $comps {
-      incr index
-      if { $to_match != $comp } continue;
-      break
+    set b_found [xif_find_comp comps index $to_match]
+    if { !$b_found } {
+      set to_match "user_company"
+      set b_found [xif_find_comp comps index $to_match]
     }
+    if { !$b_found } {
+      continue;
+    }
+
     set file_path_str [join [lrange $comps 0 $index] "/"]
     set ip_lib_dir "/$file_path_str"
     # /demo/ipshared/xilinx.com/xbip_utils_v3_0
@@ -495,15 +547,15 @@ proc xif_export_bd { obj } {
     # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0
     #puts target_ip_lib_dir=$target_ip_lib_dir
 
-    # get the sub-dir path after "xilinx.com/xbip_utils_v3_0/4f162624"
+    # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
     set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
     set ip_hdl_dir "/$ip_hdl_dir"
-    # /demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
+    # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
     #puts ip_hdl_dir=$ip_hdl_dir
     incr index
 
     set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
-    # /4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd
+    # /hdl/xbip_utils_v3_0_vh_rfs.vhd
     #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
 
     set dst_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]

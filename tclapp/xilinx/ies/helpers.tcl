@@ -2013,11 +2013,6 @@ proc usf_get_incl_files_from_ip { tcl_obj } {
   set filter "FILE_TYPE == \"Verilog Header\""
   set vh_files [get_files -quiet -all -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach vh_file $vh_files {
-    if { $a_sim_vars(b_absolute_path) } {
-      set vh_file "[usf_resolve_file_path $vh_file]"
-    } else {
-      set vh_file "\$origin_dir/[usf_get_relative_file_path $vh_file $a_sim_vars(s_launch_dir)]"
-    }
     lappend incl_files $vh_file
   }
   return $incl_files
@@ -2829,7 +2824,31 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
       if { $b_is_bd_ip } {
         set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
       } else {
-        set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$ip_static_file"] -base_dir $a_sim_vars(ipstatic_dir)]
+        # get the parent composite file for this static file
+        set parent_comp_file [get_property parent_composite_file [lindex [get_files -all [list "$ip_static_file"]] 0]]
+
+        # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be
+        # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
+        if { {} == $parent_comp_file } {
+          set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$ip_static_file"] -base_dir $a_sim_vars(ipstatic_dir)]
+          #puts extracted_file_no_pc=$dst_cip_file
+        } else {
+          # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
+          set parent_ip_name [file root [file tail $parent_comp_file]]
+          set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
+          #puts src_ip_file=$ip_static_file
+
+          # get the source ip file dir
+          set src_ip_file_dir [file dirname $ip_static_file]
+
+          # strip the ip_output_dir path from source ip file and prepend static dir
+          set lib_dir [usf_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+          set target_extract_dir [file normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
+          #puts target_extract_dir=$target_extract_dir
+
+          set dst_cip_file [extract_files -no_path -quiet -files [list "$ip_static_file"] -base_dir $target_extract_dir]
+          #puts extracted_file_with_pc=$dst_cip_file
+        }
       }
     }
   }
@@ -2946,11 +2965,15 @@ proc usf_fetch_ipi_static_file { file } {
   set comps [lrange [split $src_ip_file "/"] 1 end]
   set to_match "xilinx.com"
   set index 0
-  foreach comp $comps {
-    incr index
-    if { $to_match != $comp } continue;
-    break
+  set b_found [usf_find_comp comps index $to_match]
+  if { !$b_found } {
+    set to_match "user_company"
+    set b_found [usf_find_comp comps index $to_match]
   }
+  if { !$b_found } {
+    return $src_ip_file
+  }
+
   set file_path_str [join [lrange $comps 0 $index] "/"]
   set ip_lib_dir "/$file_path_str"
 
@@ -3171,6 +3194,28 @@ proc usf_fetch_header_from_dynamic { vh_file } {
   return $vh_file
 }
 
+proc usf_get_sub_file_path { src_file_path dir_path_to_remove } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set src_path_comps [file split [file normalize $src_file_path]]
+  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
+
+  set src_path_len [llength $src_path_comps]
+  set dir_path_len [llength $dir_path_comps]
+
+  set index 1
+  while { [lindex $src_path_comps $index] == [lindex $dir_path_comps $index] } {
+    incr index
+    if { ($index == $src_path_len) || ($index == $dir_path_len) } {
+      break;
+    }
+  }
+  set sub_file_path [join [lrange $src_path_comps $index end] "/"]
+  return $sub_file_path
+}
+
 proc usf_is_core_container { ip_file ip_name } {
   # Summary:
   # Argument Usage:
@@ -3238,6 +3283,24 @@ proc usf_is_static_ip_lib { library } {
     return true
   }
   return false
+}
+
+proc usf_find_comp { comps_arg index_arg to_match } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $comps_arg comps
+  upvar $index_arg index
+  set index 0
+  set b_found false
+  foreach comp $comps {
+    incr index
+    if { $to_match != $comp } continue;
+    set b_found true
+    break
+  }
+  return $b_found
 }
 }
 
