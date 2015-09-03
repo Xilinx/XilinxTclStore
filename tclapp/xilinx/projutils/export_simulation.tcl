@@ -55,7 +55,7 @@ proc export_simulation {args} {
       "-absolute_path"            { set a_sim_vars(b_absolute_path) 1 }
       "-single_step"              { set a_sim_vars(b_single_step) 1 }
       "-language"                 { incr i;set a_sim_vars(s_simulator_language) [string tolower [lindex $args $i]];set a_sim_vars(b_simulator_language) 1 }
-      "-ip_netlist"               { incr i;set a_sim_vars(b_ip_netlist) 1 }
+      "-ip_netlist"               { set a_sim_vars(b_ip_netlist) 1 }
       "-export_source_files"      { set a_sim_vars(b_xport_src_files) 1 }
       "-reset_config_options"     { set a_sim_vars(b_reset_config_opts) 1 }
       "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path) [lindex $args $i] }
@@ -294,18 +294,18 @@ proc xps_invalid_options {} {
   }
 
   if { [lsearch -exact $l_valid_simulator_types $a_sim_vars(s_simulator)] == -1 } {
-    send_msg_id exportsim-Tcl-004 ERROR "Invalid simulator type specified. Please type 'export_simulation -help' for usage info.\n"
+    [catch {send_msg_id exportsim-Tcl-004 ERROR "Invalid simulator type specified. Please type 'export_simulation -help' for usage info.\n"} err]
     return 1
   }
 
   if {($::tcl_platform(platform) != "unix") && ({ies} == $a_sim_vars(s_simulator) || {vcs} == $a_sim_vars(s_simulator)) } {
-    send_msg_id exportsim-Tcl-004 ERROR "Export simulation is not supported for '$simulator' on this platform.\n"
+    [catch {send_msg_id exportsim-Tcl-004 ERROR "Export simulation is not supported for '$a_sim_vars(s_simulator)' on this platform.\n"} err]
     return 1
   }
 
   if { $a_sim_vars(b_simulator_language) } {
     if { [lsearch -exact $l_valid_simulator_language_types $a_sim_vars(s_simulator_language)] == -1 } {
-      send_msg_id exportsim-Tcl-005 ERROR "Invalid simulator language type specified. Please type 'export_simulation -help' for usage info.\n"
+      [catch {send_msg_id exportsim-Tcl-005 ERROR "Invalid simulator language type specified. Please type 'export_simulation -help' for usage info.\n"} err]
       return 1
     }
 
@@ -328,8 +328,7 @@ proc xps_invalid_options {} {
     "vcs" {
       if { $a_sim_vars(b_ip_netlist) } {
         if { ($a_sim_vars(b_single_step)) && ({vhdl} == $a_sim_vars(s_ip_netlist)) } {
-          send_msg_id exportsim-Tcl-007 ERROR \
-            "Single step simulation flow is not applicable for IP's containing VHDL netlist. Please select Verilog netlist for this simulator.\n"
+          [catch {send_msg_id exportsim-Tcl-007 ERROR "Single step simulation flow is not applicable for IP's containing VHDL netlist. Please select Verilog netlist for this simulator.\n"} err]
           return 1
         }
       }
@@ -2960,19 +2959,26 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
           } else {
             if { {} != $ip_file } {
               set source_file [string trim $src_file {\"}]
-              set src_file "\$ref_dir/$source_file"
-              #set src_file "\$ref_dir/[xps_get_relative_file_path $source_file $launch_dir]"
-              set src_file "\"$src_file\""
+              if { $a_sim_vars(b_single_step) } {
+                set src_file "$source_file"
+              } else {
+                set src_file "\$ref_dir/$source_file"
+                #set src_file "\$ref_dir/[xps_get_relative_file_path $source_file $launch_dir]"
+                set src_file "\"$src_file\""
+              }
             } else {
               set source_file [string trim $src_file {\"}]
-              set src_file "\$ref_dir/[xps_get_relative_file_path $source_file $launch_dir]"
-              set src_file "\"$src_file\""
+              if { $a_sim_vars(b_single_step) } {
+                set src_file "[xps_get_relative_file_path $source_file $launch_dir]"
+              } else {
+                set src_file "\$ref_dir/[xps_get_relative_file_path $source_file $launch_dir]"
+                set src_file "\"$src_file\""
+              }
             }
           }
         }
       }
     }
-
     set proj_src_filename [file tail $proj_src_file]
     if { $a_sim_vars(b_xport_src_files) } {
       set target_dir $srcs_dir
@@ -5758,8 +5764,15 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
       if { $ref_dir } {
         if { $a_sim_vars(b_xport_src_files) } {
           set dir "\$ref_dir/incl"
+          if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
+            set dir "./srcs/incl"
+          }
         } else {
-          set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
+          if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
+            set dir "./[xps_get_relative_file_path $dir $launch_dir]"
+          } else {
+            set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
+          }
         }
       } else {
         if { $a_sim_vars(b_xport_src_files) } {
