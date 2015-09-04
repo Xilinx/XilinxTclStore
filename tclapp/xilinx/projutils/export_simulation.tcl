@@ -2147,8 +2147,10 @@ proc xps_check_script { dir filename } {
   variable a_sim_vars
   set file [file normalize [file join $dir $filename]]
   if { [file exists $file] && (!$a_sim_vars(b_overwrite)) } {
-    send_msg_id exportsim-Tcl-032 ERROR "Script file exist:'$file'. Use the -force option to overwrite or select 'Overwrite files' from 'File->Export->Export Simulation' dialog box in GUI."
-    return 1
+    if {$::tcl_platform(platform) == "unix"} {
+      send_msg_id exportsim-Tcl-032 ERROR "Script file exist:'$file'. Use the -force option to overwrite or select 'Overwrite files' from 'File->Export->Export Simulation' dialog box in GUI."
+      return 1
+    }
   }
   if { [file exists $file] } {
     if {[catch {file delete -force $file} error_msg] } {
@@ -2187,8 +2189,15 @@ proc xps_write_script { simulator dir filename } {
   }
 
   xps_write_simulation_script $simulator $dir
-  send_msg_id exportsim-Tcl-029 INFO \
-    "Script generated: '$dir/$filename'\n"
+  if {$::tcl_platform(platform) == "unix"} {
+    send_msg_id exportsim-Tcl-029 INFO \
+      "Script generated: '$dir/$filename'\n"
+  } else {
+    set file_path [file join $dir $filename]
+    if { [file exists $file_path] } {
+      [catch {file delete -force $file_path} error_msg]
+    }
+  }
 
   return 0
 }
@@ -2994,11 +3003,17 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
         }
         set target_dir $ip_dir
       }
-      if { ([get_param project.enableCentralSimRepo]) && ($a_sim_vars(b_xport_src_files)) } {
-        set repo_file $src_file
-        set repo_file [string trim $repo_file "\""]
-        if {[catch {file copy -force $repo_file $target_dir} error_msg] } {
-          send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$repo_file' to '$srcs_dir' : $error_msg\n"
+      if { [get_param project.enableCentralSimRepo] } {
+        if { $a_sim_vars(b_xport_src_files) } {
+          if {[catch {file copy -force $proj_src_file $target_dir} error_msg] } {
+            send_msg_id exportsim-Tcl-041 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
+          }
+        } else { 
+          set repo_file $src_file
+          set repo_file [string trim $repo_file "\""]
+          if {[catch {file copy -force $repo_file $target_dir} error_msg] } {
+            send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$repo_file' to '$srcs_dir' : $error_msg\n"
+          }
         }
       } else {
         if {[catch {file copy -force $proj_src_file $target_dir} error_msg] } {
