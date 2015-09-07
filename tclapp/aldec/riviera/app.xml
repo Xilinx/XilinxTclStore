@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Update 1.1</revision_history>
+      <revision_history>Update 1.2: Proper detection of Riviera-PRO platform.</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
