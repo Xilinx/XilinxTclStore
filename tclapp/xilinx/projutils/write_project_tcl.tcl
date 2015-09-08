@@ -1148,11 +1148,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
         set file_no_quotes [string trim $file "\""]
         set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
         set str "\"\[file normalize \"$org_file_path\"\]\""
-        if { $a_global_vars(b_arg_no_copy_srcs)} {
-          add_constrs_file "$str"
-        } else {
-          import_constrs_file $tcl_obj $str
-        }
+        import_constrs_file $tcl_obj $str
       } else {
         # file is added from remote location, so set it as remote in the new project
         set file_category "remote"

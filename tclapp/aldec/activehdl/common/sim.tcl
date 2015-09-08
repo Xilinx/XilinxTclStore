@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.1
+package require ::tclapp::aldec::common::helpers 1.0
 
-package provide ::tclapp::aldec::common::sim 1.1
+package provide ::tclapp::aldec::common::sim 1.0
 
 namespace eval ::tclapp::aldec::common {
 
@@ -453,16 +453,25 @@ proc usf_create_do_file_for_compilation { do_file } {
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     puts $fh "vlib ${libraryPrefix}$lib"
-    puts $fh "vdel -lib $lib -all"
+    puts $fh "vdel -lib ${libraryPrefix}$lib -all"
     if { $default_lib == $lib } {
       set b_default_lib true
     }
   }
   if { !$b_default_lib } {
     puts $fh "vlib ${libraryPrefix}$default_lib"
-    puts $fh "vdel -lib $default_lib -all"
+    puts $fh "vdel -lib ${libraryPrefix}$default_lib -all"
   }
    
+  puts $fh ""
+
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    puts $fh "vmap $lib ${libraryPrefix}$lib"
+  }
+  if { !$b_default_lib } {
+    puts $fh "vmap $default_lib ${libraryPrefix}$default_lib"
+  }
   puts $fh ""
 
   if { $b_absolute_path } {
@@ -865,9 +874,9 @@ proc usf_writeWindowsExecutableCmdLine { out batch_sw do_filename log_filename }
     
   } else {
     if { $batch_sw != "" } {
-      puts $out "call \"%bin_path%/../runvsimsa\" -l \"$log_filename\" -do \"do \{$do_filename\}\""
+      puts $out "call \"%bin_path%/runvsimsa\" -l \"$log_filename\" -do \"do \{$do_filename\}\""
     } else {
-      puts $out "call \"%bin_path%/../rungui\" -l \"$log_filename\" -do \"do \{$do_filename\}\""
+      puts $out "call \"%bin_path%/rungui\" -l \"$log_filename\" -do \"do \{$do_filename\}\""
     }
   }
 }
@@ -900,9 +909,9 @@ proc usf_write_driver_shell_script { do_filename step } {
     puts $fh_scr "bin_path=\"$::tclapp::aldec::common::helpers::a_sim_vars(s_tool_bin_path)\""
     ::tclapp::aldec::common::helpers::usf_write_shell_step_fn $fh_scr
     if { $batch_sw != "" } {
-      puts $fh_scr "ExecStep \$bin_path/../runvsimsa -l $log_filename -do \"do \{$do_filename\}\""
+      puts $fh_scr "ExecStep \$bin_path/runvsimsa -l $log_filename -do \"do \{$do_filename\}\""
     } else {
-      puts $fh_scr "ExecStep \$bin_path/../rungui -l $log_filename -do \"do \{$do_filename\}\""
+      puts $fh_scr "ExecStep \$bin_path/rungui -l $log_filename -do \"do \{$do_filename\}\""
     }
   } else {
     puts $fh_scr "@echo off"

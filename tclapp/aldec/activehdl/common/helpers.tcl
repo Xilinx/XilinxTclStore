@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.1
+package provide ::tclapp::aldec::common::helpers 1.0
 
 namespace eval ::tclapp::aldec::common {
 
@@ -32,8 +32,8 @@ proc usf_getLibraryPrefix {} {
   # Return Value:
   
   switch -- [get_property target_simulator [current_project]] {
-    Riviera { return "riviera/" }
-    ActiveHDL { return "activehdl/" }
+    Riviera { return riviera_ }
+    ActiveHDL { return activehdl_ }
     default { error "Unknown target simulator" }
   }
 }
@@ -997,7 +997,7 @@ proc usf_set_simulator_path {} {
     Riviera {
       set tool_extn {.bat}
       if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
-      set tool_name "../rungui";append tool_name ${tool_extn}
+      set tool_name "rungui";append tool_name ${tool_extn}
       if { $install_path == "" } {
         set install_path [get_param "simulator.rivieraInstallPath"] 
       }
@@ -2109,6 +2109,9 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
     }
     "vlog" {
       lappend opts "\$${tool}_opts"
+      if { [string equal -nocase $file_type "systemverilog"] } {
+        lappend opts "-sv"
+      }
     }
   }
 }
