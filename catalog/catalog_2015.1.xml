@@ -9,7 +9,7 @@
     <app>
       <name>activehdl</name>
       <company>aldec</company>
-      <commit_id>03a8248bb3cb36b6eab32ae56d72e3f5fc1f6bda</commit_id>
+      <commit_id>076872f12dd0af39e037b75082d5bc4d70cb8855</commit_id>
       <revision>1.0</revision>
     </app>
     <app>
@@ -69,7 +69,7 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>39f58dcc7c2539bbe5d8549580e29a39206e8ddc</commit_id>
+      <commit_id>076872f12dd0af39e037b75082d5bc4d70cb8855</commit_id>
       <revision>3.24</revision>
     </app>
     <app>
