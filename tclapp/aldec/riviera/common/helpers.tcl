@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.1
+package provide ::tclapp::aldec::common::helpers 1.2
 
 namespace eval ::tclapp::aldec::common {
 
@@ -1011,7 +1011,7 @@ proc usf_set_simulator_path {} {
       }
     }
   }
- 
+
   if { {} == $install_path } {
     set bin_path [usf_get_bin_path $tool_name $path_sep]
     if { {} == $bin_path } {
@@ -1458,14 +1458,58 @@ proc usf_get_platform {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+
+  switch -- [get_property target_simulator [current_project]] {
+    Riviera {
+      set tool_extn {.bat}
+      if { $::tcl_platform(platform) == "unix" } { set tool_extn {} }
+      set vsimsa [file join $a_sim_vars(s_tool_bin_path) "../runvsimsa$tool_extn"]
+      if { [file isfile $vsimsa] } {
+        set in [open "| \"$vsimsa\" -version"]
+        set data [read $in]
+        close $in
+        switch -regexp -- $data {
+          "built for Windows " { return "win32" }
+          "built for Windows64" { return "win64" }
+          "built for Linux " { return "lnx32" }
+          "built for Linux64" { return "lnx64" }
+        }
+      }
+    }
+    ActiveHDL {
+      set avhdlXml [file join $a_sim_vars(s_tool_bin_path) avhdl.xml]
+      if { [file isfile $avhdlXml] } {
+        set in [open $avhdlXml r]
+        while { ![eof $in] } {
+          gets $in line
+          if { [regexp {UserConfigPath.+\\32-bit\\.+} $line] } {
+            return "win32"
+          } elseif { [regexp {UserConfigPath.+\\64-bit\\.+} $line] } {
+            return "win64"
+          }
+        }
+        close $in
+      }
+    }
+  }
+  
+  send_msg_id USF-[usf_getSimulatorName]-49 WARNING "Failed to detect whether 32- or 64-bit version of [usf_getSimulatorName] is installed.\n"
+
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
   set platform {}
   set os $::tcl_platform(platform)
-  if { {windows}   == $os } { set platform "win32" }
-  if { {windows64} == $os } { set platform "win64" }
+  set b_32_bit [get_property 32bit $fs_obj]
+  if { {windows} == $os } {
+    set platform "win64"
+    if { $b_32_bit } {
+      set platform "win32"
+    }
+  }
+
   if { {unix} == $os } {
-    if { {x86_64} == $::tcl_platform(machine) } {
-      set platform "lnx64"
-    } else {
+    set platform "lnx64"
+    if { $b_32_bit } {
       set platform "lnx32"
     }
   }
@@ -1501,7 +1545,8 @@ proc usf_get_simulator_lib_for_bfm {} {
   if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
   if {$::tcl_platform(platform) == "unix"} { set lib_extn {.so} }
 
-  set lib_name "libxil_vsim";append lib_name $lib_extn
+  set lib_name "libxil_riviera"; append lib_name $lib_extn
+
   if { {} != $xil } {
     append platform ".o"
     set lib_path {}
@@ -1513,7 +1558,7 @@ proc usf_get_simulator_lib_for_bfm {} {
       }
     }
   } else {
-    send_msg_id USF-[usf_getSimulatorName]-49 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
+    send_msg_id USF-[usf_getSimulatorName]-50 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
   }
   return $simulator_lib
 }
@@ -1540,7 +1585,7 @@ proc usf_get_netlist_extn { warning } {
     set extn {.v}
     if { $warning } {
       #[BS] do we have the same constraint?
-      send_msg_id USF-[usf_getSimulatorName]-50 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
+      send_msg_id USF-[usf_getSimulatorName]-51 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
     }
   }
   return $extn
@@ -1582,9 +1627,9 @@ proc usf_export_data_files { data_files } {
     # export now
     foreach file $data_files {
       if {[catch {file copy -force $file $export_dir} error_msg] } {
-        send_msg_id USF-[usf_getSimulatorName]-51 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
+        send_msg_id USF-[usf_getSimulatorName]-52 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
       } else {
-        send_msg_id USF-[usf_getSimulatorName]-52 INFO "Exported '$file'\n"
+        send_msg_id USF-[usf_getSimulatorName]-53 INFO "Exported '$file'\n"
       }
     }
   }
@@ -1710,14 +1755,14 @@ proc usf_get_files_from_block_filesets { filter_type } {
   set used_in_val "simulation"
   set fs_objs [get_filesets -filter $filter]
   if { [llength $fs_objs] > 0 } {
-    send_msg_id USF-[usf_getSimulatorName]-53 INFO "Finding block fileset files..."
+    send_msg_id USF-[usf_getSimulatorName]-54 INFO "Finding block fileset files..."
     foreach fs_obj $fs_objs {
       set fs_name [get_property "NAME" $fs_obj]
-      send_msg_id USF-[usf_getSimulatorName]-54 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
+      send_msg_id USF-[usf_getSimulatorName]-55 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
       #set files [usf_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]]
       set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]
       if { [llength $files] == 0 } {
-        send_msg_id USF-[usf_getSimulatorName]-55 INFO "No files found in '$fs_name'\n"
+        send_msg_id USF-[usf_getSimulatorName]-56 INFO "No files found in '$fs_name'\n"
         continue
       } else {
         foreach file $files {
@@ -2142,11 +2187,11 @@ proc usf_make_file_executable { file } {
 
   if {$::tcl_platform(platform) == "unix"} {
     if {[catch {exec chmod a+x $file} error_msg] } {
-      send_msg_id USF-[usf_getSimulatorName]-56 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-[usf_getSimulatorName]-57 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   } else {
     if {[catch {exec attrib /D -R $file} error_msg] } {
-      send_msg_id USF-[usf_getSimulatorName]-57 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-[usf_getSimulatorName]-58 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   }
 }
@@ -2169,22 +2214,22 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
   if { [get_property "IS_IP_BEHAV_LANG_SUPPORTED" $comp_file] } {
     # does ip generated simulation products? if not, generate them
     if { ![get_property "IS_IP_GENERATED_SIM" $comp_file] } {
-      send_msg_id USF-[usf_getSimulatorName]-58 INFO "Generating simulation products for IP '$ip_name'...\n"
+      send_msg_id USF-[usf_getSimulatorName]-59 INFO "Generating simulation products for IP '$ip_name'...\n"
       set delivered_targets [get_property delivered_targets [get_ips -quiet ${ip_name}]]
       if { [regexp -nocase {simulation} $delivered_targets] } {
         generate_target {simulation} [get_files [list "$comp_file"]] -force
       }
     } else {
-      send_msg_id USF-[usf_getSimulatorName]-59 INFO "IP '$ip_name' is upto date for simulation\n"
+      send_msg_id USF-[usf_getSimulatorName]-60 INFO "IP '$ip_name' is upto date for simulation\n"
     }
   } elseif { [get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file] } {
     # make sure ip is up-to-date
     if { ![get_property "IS_IP_GENERATED" $comp_file] } {
       generate_target {all} [get_files [list "$comp_file"]] -force
-      send_msg_id USF-[usf_getSimulatorName]-60 INFO "Generating functional netlist for IP '$ip_name'...\n"
+      send_msg_id USF-[usf_getSimulatorName]-61 INFO "Generating functional netlist for IP '$ip_name'...\n"
       usf_generate_ip_netlist $comp_file runs_to_launch
     } else {
-      send_msg_id USF-[usf_getSimulatorName]-61 INFO "IP '$ip_name' is upto date for all products\n"
+      send_msg_id USF-[usf_getSimulatorName]-62 INFO "IP '$ip_name' is upto date for all products\n"
     }
   } else {
     # at this point, ip doesnot support behavioral language and synth check point is false, so advise
@@ -2199,7 +2244,7 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
     } else {
       # no synthesis, so no recommendation to do a synth checkpoint.
     }
-    send_msg_id USF-[usf_getSimulatorName]-62 WARNING "$error_msg\n"
+    send_msg_id USF-[usf_getSimulatorName]-63 WARNING "$error_msg\n"
     #return 1
   }
 }
@@ -2213,17 +2258,17 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
   set comp_file_obj [get_files [list "$comp_file"]]
   set comp_file_fs  [get_property "FILESET_NAME" $comp_file_obj]
   if { ![get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file_obj] } {
-    send_msg_id USF-[usf_getSimulatorName]-63 INFO "Generate synth checkpoint is 'false':$comp_file\n"
+    send_msg_id USF-[usf_getSimulatorName]-64 INFO "Generate synth checkpoint is 'false':$comp_file\n"
     # if synth checkpoint read-only, return
     if { [get_property "IS_IP_SYNTH_CHECKPOINT_READONLY" $comp_file_obj] } {
-      send_msg_id USF-[usf_getSimulatorName]-64 WARNING "Synth checkpoint property is 'readonly' ... skipping:$comp_file\n"
+      send_msg_id USF-[usf_getSimulatorName]-65 WARNING "Synth checkpoint property is 'readonly' ... skipping:$comp_file\n"
       return
     }
     # set property to create a DCP/structural simulation file
-    send_msg_id USF-[usf_getSimulatorName]-65 INFO "Setting synth checkpoint for generating simulation netlist:$comp_file\n"
+    send_msg_id USF-[usf_getSimulatorName]-66 INFO "Setting synth checkpoint for generating simulation netlist:$comp_file\n"
     set_property "GENERATE_SYNTH_CHECKPOINT" true $comp_file_obj
   } else {
-    send_msg_id USF-[usf_getSimulatorName]-66 INFO "Generate synth checkpoint is set:$comp_file\n"
+    send_msg_id USF-[usf_getSimulatorName]-67 INFO "Generate synth checkpoint is set:$comp_file\n"
   }
   # block fileset name is based on the basename of the IP
   set src_file [file normalize $comp_file]
@@ -2234,16 +2279,16 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
   if { {} == $block_fs_obj } {
     create_fileset -blockset "$ip_basename"
     set block_fs_obj [get_filesets $ip_basename]
-    send_msg_id USF-[usf_getSimulatorName]-67 INFO "Block-fileset created:$block_fs_obj"
+    send_msg_id USF-[usf_getSimulatorName]-68 INFO "Block-fileset created:$block_fs_obj"
     # set fileset top
     set comp_file_top [get_property "IP_TOP" $comp_file_obj]
     set_property "TOP" $comp_file_top [get_filesets $ip_basename]
     # move sub-design to block-fileset
-    send_msg_id USF-[usf_getSimulatorName]-68 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
+    send_msg_id USF-[usf_getSimulatorName]-69 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
     move_files -fileset [get_filesets $ip_basename] [get_files -of_objects [get_filesets $comp_file_fs] $src_file] 
   }
   if { {BlockSrcs} != [get_property "FILESET_TYPE" $block_fs_obj] } {
-    send_msg_id USF-[usf_getSimulatorName]-69 ERROR "Given source file is not associated with a design source fileset.\n"
+    send_msg_id USF-[usf_getSimulatorName]-70 ERROR "Given source file is not associated with a design source fileset.\n"
     return 1
   }
   # construct block-fileset run for the netlist
@@ -2252,7 +2297,7 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
     reset_run $run_name
   }
   lappend runs_to_launch $run_name
-  send_msg_id USF-[usf_getSimulatorName]-70 INFO "Run scheduled for '$ip_basename':$run_name\n"
+  send_msg_id USF-[usf_getSimulatorName]-71 INFO "Run scheduled for '$ip_basename':$run_name\n"
 }
 
 proc usf_get_testbench_files_from_ip { file_type_filter } {
@@ -2447,7 +2492,7 @@ proc usf_check_errors { step results_log_arg } {
   set log [file normalize [file join $run_dir ${step}.log]]
   set fh 0
   if {[catch {open $log r} fh]} {
-    send_msg_id USF-[usf_getSimulatorName]-71 WARNING "Failed to open file to read ($log)\n"
+    send_msg_id USF-[usf_getSimulatorName]-72 WARNING "Failed to open file to read ($log)\n"
   } else {
     set log_data [read $fh]
     close $fh
@@ -2471,7 +2516,7 @@ proc usf_check_errors { step results_log_arg } {
     }
   }
   if { $retval } {
-    [catch {send_msg_id USF-[usf_getSimulatorName]-72 INFO "Step results log file:'$log'\n"}]
+    [catch {send_msg_id USF-[usf_getSimulatorName]-73 INFO "Step results log file:'$log'\n"}]
     return 1
   }
   return 0
@@ -2581,7 +2626,7 @@ proc usf_get_top { top_arg } {
   set fs_name [get_property "NAME" $fs_obj]
   set top [get_property "TOP" $fs_obj]
   if { {} == $top } {
-    send_msg_id USF-[usf_getSimulatorName]-73 ERROR "Top module not set for fileset '$fs_name'. Please ensure that a valid \
+    send_msg_id USF-[usf_getSimulatorName]-74 ERROR "Top module not set for fileset '$fs_name'. Please ensure that a valid \
        value is provided for 'top'. The value for 'top' can be set/changed using the 'Top Module Name' field under\
        'Project Settings', or using the 'set_property top' Tcl command (e.g. set_property top <name> \[current_fileset\])."
     return 1
