@@ -58,7 +58,7 @@ proc export_simulation {args} {
       "-export_source_files"      { set a_sim_vars(b_xport_src_files) 1 }
       "-reset_config_options"     { set a_sim_vars(b_reset_config_opts) 1 }
       "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path) [lindex $args $i] }
-      "-script_name"              { incr i;set a_sim_vars(s_script_filename) [lindex $args $i] }
+      "-script_name"              { incr i;set a_sim_vars(s_script_filename) [lindex $args $i];set a_sim_vars(b_script_specified) 1 }
       "-force"                    { set a_sim_vars(b_overwrite) 1 }
       "-simulator"                { incr i;set a_sim_vars(s_simulator) [string tolower [lindex $args $i]] }
       "-directory"                { incr i;set a_sim_vars(s_xport_dir) [lindex $args $i];set a_sim_vars(b_directory_specified) 1 }
@@ -111,6 +111,7 @@ proc xps_init_vars {} {
   set a_sim_vars(s_simulator_name)    ""
   set a_sim_vars(b_xsim_specified)    0
   set a_sim_vars(s_lib_map_path)      ""
+  set a_sim_vars(b_script_specified)  0
   set a_sim_vars(s_script_filename)   ""
   set a_sim_vars(s_ip_netlist)        "verilog"
   set a_sim_vars(b_ip_netlist)        0
@@ -238,9 +239,15 @@ proc xps_xport_simulation { obj } {
   set data_files [list]
   xps_get_compile_order_files data_files
   xps_set_script_filename
+
+  set filename ${a_sim_vars(s_script_filename)}.bat
+  if {$::tcl_platform(platform) == "unix"} {
+    set filename ${a_sim_vars(s_script_filename)}.sh
+  }
+
   xps_export_config
 
-  if { [xps_write_sim_script $data_files] } { return }
+  if { [xps_write_sim_script $data_files $filename] } { return }
 
   set readme_file [file join $a_sim_vars(s_xport_dir) "README.txt"]
   #send_msg_id exportsim-Tcl-030 INFO \
@@ -1372,12 +1379,12 @@ proc xps_set_script_filename {} {
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   if { [xps_is_ip $tcl_obj] } {
     set a_sim_vars(ip_filename) [file tail $tcl_obj]
-    if { {} == $a_sim_vars(s_script_filename) } {
+    if { ! $a_sim_vars(b_script_specified) } {
       set ip_name [file root $a_sim_vars(ip_filename)]
       set a_sim_vars(s_script_filename) "${ip_name}"
     }
   } elseif { [xps_is_fileset $tcl_obj] } {
-    if { {} == $a_sim_vars(s_script_filename) } {
+    if { ! $a_sim_vars(b_script_specified) } {
       set a_sim_vars(s_script_filename) "$a_sim_vars(s_top)"
       if { {} == $a_sim_vars(s_script_filename) } {
         set extn ".bat"
@@ -1398,7 +1405,7 @@ proc xps_set_script_filename {} {
   }
 }
 
-proc xps_write_sim_script { data_files } {
+proc xps_write_sim_script { data_files filename } {
   # Summary:
   # Argument Usage:
   # none
@@ -1422,7 +1429,7 @@ proc xps_write_sim_script { data_files } {
       set a_sim_vars(s_top) [file tail [file root $tcl_obj]]
       send_msg_id exportsim-Tcl-026 INFO "Inspecting IP design source files for '$a_sim_vars(s_top)'...\n"
       xps_export_data_files $data_files $dir
-      if {[xps_export_sim_files_for_ip $tcl_obj $simulator $dir]} {
+      if {[xps_export_sim_files_for_ip $tcl_obj $simulator $dir $filename]} {
         return 1
       }
     } elseif { [xps_is_fileset $tcl_obj] } {
@@ -1432,7 +1439,7 @@ proc xps_write_sim_script { data_files } {
         set a_sim_vars(s_top) "unknown"
       }
       xps_export_data_files $data_files $dir
-      if { [xps_export_sim_files_for_fs $simulator $dir] } {
+      if { [xps_export_sim_files_for_fs $simulator $dir $filename] } {
         return 1
       }
     } else {
@@ -1596,7 +1603,7 @@ proc xps_write_filelist_info { launch_dir } {
   return 0
 }
 
-proc xps_export_sim_files_for_ip { tcl_obj simulator dir } {
+proc xps_export_sim_files_for_ip { tcl_obj simulator dir filename } {
   # Summary: 
   # Argument Usage:
   # source object
@@ -1606,13 +1613,13 @@ proc xps_export_sim_files_for_ip { tcl_obj simulator dir } {
   variable l_compile_order_files
   set l_compile_order_files [xps_remove_duplicate_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$a_sim_vars(ip_filename)]]]
   xps_print_source_info
-  if {[xps_write_script $simulator $dir]} {
+  if {[xps_write_script $simulator $dir $filename]} {
     return 1
   }
   return 0
 }
  
-proc xps_export_sim_files_for_fs { simulator dir } {
+proc xps_export_sim_files_for_fs { simulator dir filename } {
   # Summary: 
   # Argument Usage:
   # source object
@@ -1620,7 +1627,7 @@ proc xps_export_sim_files_for_fs { simulator dir } {
   # true (0) if success, false (1) otherwise
   variable a_sim_vars
   xps_print_source_info
-  if {[xps_write_script $simulator $dir]} {
+  if {[xps_write_script $simulator $dir $filename]} {
     return 1
   }
   return 0
@@ -1676,16 +1683,12 @@ proc xps_print_source_info {} {
   #send_msg_id exportsim-Tcl-031 INFO "Number of design source files found = $n_total_srcs\n"
 }
 
-proc xps_write_script { simulator dir } {
+proc xps_write_script { simulator dir filename } {
   # Summary:
   # Argument Usage:
   # Return Value:
  
   variable a_sim_vars
-  set filename ${a_sim_vars(s_script_filename)}.bat
-  if {$::tcl_platform(platform) == "unix"} {
-    set filename ${a_sim_vars(s_script_filename)}.sh
-  }
 
   if { [xps_check_script $dir $filename] } {
     return 1
