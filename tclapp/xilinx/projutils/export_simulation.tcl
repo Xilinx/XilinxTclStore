@@ -28,7 +28,6 @@ proc export_simulation {args} {
   # [-single_step]: Generate script to launch all steps in one step
   # [-ip_netlist]: Select the netlist files for IP(s) in the project or the selected object for the specified simulator language (default:verilog) 
   # [-export_source_files]: Copy design files to output directory
-  # [-reset_config_options]: Regenerate 'expsim_options.cfg' file with the default options.
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
 
@@ -57,7 +56,6 @@ proc export_simulation {args} {
       "-language"                 { incr i;set a_sim_vars(s_simulator_language) [string tolower [lindex $args $i]];set a_sim_vars(b_simulator_language) 1 }
       "-ip_netlist"               { set a_sim_vars(b_ip_netlist) 1 }
       "-export_source_files"      { set a_sim_vars(b_xport_src_files) 1 }
-      "-reset_config_options"     { set a_sim_vars(b_reset_config_opts) 1 }
       "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path) [lindex $args $i] }
       "-script_name"              { incr i;set a_sim_vars(s_script_filename) [lindex $args $i];set a_sim_vars(b_script_specified) 1 }
       "-force"                    { set a_sim_vars(b_overwrite) 1 }
@@ -133,7 +131,6 @@ proc xps_init_vars {} {
   set a_sim_vars(b_absolute_path)     0             
   set a_sim_vars(b_single_step)       0             
   set a_sim_vars(b_xport_src_files)   0             
-  set a_sim_vars(b_reset_config_opts) 0             
   set a_sim_vars(b_overwrite)         0
   set a_sim_vars(b_of_objects_specified)        0
   set a_sim_vars(b_directory_specified)         0
@@ -146,7 +143,6 @@ proc xps_init_vars {} {
   set a_sim_vars(global_files_str)    {}
   set a_sim_vars(default_lib)         [get_property default_lib [current_project]]
   set a_sim_vars(do_filename)         "simulate.do"
-  set a_sim_vars(opts_file)           "export_sim_options.cfg"
   set a_sim_vars(dynamic_repo_dir)    [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)        [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)    [get_property sim.ipstatic.use_precompiled_libs [current_project]]
@@ -260,8 +256,6 @@ proc xps_xport_simulation { obj } {
   if {$::tcl_platform(platform) == "unix"} {
     set filename ${a_sim_vars(s_script_filename)}.sh
   }
-
-  xps_export_config
 
   if { [xps_write_sim_script $run_dir $data_files $filename] } { return }
 
@@ -1105,7 +1099,8 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     if { $a_sim_vars(b_use_static_lib) } {
       # use pre-compiled lib
     } else {
-      set b_is_bd_ip [xps_is_bd_file $full_src_file_path]
+      set bd_file {}
+      set b_is_bd_ip [xps_is_bd_file $full_src_file_path bd_file]
       if { $b_is_bd_ip } {
         set dst_cip_file [xps_fetch_ipi_static_file $ip_static_file] 
       } else {
@@ -1156,27 +1151,36 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   return $orig_src_file
 }
 
-proc xps_is_bd_file { compile_order_src_file } {
+proc xps_is_bd_file { src_file bd_file_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set b_is_bd_file 0
-
-  # TODO: recursively find the parent composite file to see if the top most file is a bd
-
-  set comps [lrange [split $compile_order_src_file "/"] 1 end]
-  if { ([lsearch $comps "bd"] != -1)         ||
-       ([lsearch $comps "ipshared"] != -1)   ||
-       ([lsearch $comps "xilinx.com"] != -1) } {
-    set b_is_bd_file 1
+  upvar $bd_file_arg bd_file
+  set b_is_bd 0
+  set comp_file $src_file
+  set MAX_PARENT_COMP_LEVELS 10
+  set count 0
+  while (1) {
+    incr count
+    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
+    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    set props [list_property $file_obj]
+    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+      break
+    }
+    set comp_file [get_property parent_composite_file $file_obj]
   }
 
-  return $b_is_bd_file
+  # got top-most file whose parent-comp is empty ... is this BD?
+  if { {.bd} == [file extension $comp_file] } {
+    set b_is_bd 1
+    set bd_file $comp_file
+  }
+  return $b_is_bd
 }
 
-proc xps_fetch_ipi_static_file { file } {
+proc xps_fetch_ip_static_file { file vh_file_obj } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1186,16 +1190,69 @@ proc xps_fetch_ipi_static_file { file } {
     return $file
   }
 
+  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
   set src_ip_file $file
-  set sub_dirs [list]
+  set src_ip_file [string map {\\ /} $src_ip_file]
+  #puts src_ip_file=$src_ip_file
+
+  # get parent composite file path dir
+  set comp_file [get_property parent_composite_file $vh_file_obj]
+  set comp_file_dir [file dirname $comp_file]
+  set comp_file_dir [string map {\\ /} $comp_file_dir]
+  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2
+  #puts comp_file_dir=$comp_file_dir
+
+  # strip parent dir from file path dir
+  set lib_file_path {}
+  # axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
+
+  set src_file_dirs  [file split [file normalize $src_ip_file]]
+  set comp_file_dirs [file split [file normalize $comp_file_dir]]
+  set src_file_len [llength $src_file_dirs]
+  set comp_dir_len [llength $comp_file_dir]
+
+  set index 1
+  #puts src_file_dirs=$src_file_dirs
+  #puts com_file_dirs=$comp_file_dirs
+  while { [lindex $src_file_dirs $index] == [lindex $comp_file_dirs $index] } {
+    incr index
+    if { ($index == $src_file_len) || ($index == $comp_dir_len) } {
+      break;
+    }
+  }
+  set lib_file_path [join [lrange $src_file_dirs $index end] "/"]
+  #puts lib_file_path=$lib_file_path
+
+  set dst_cip_file [file join $a_sim_vars(ipstatic_dir) $lib_file_path]
+  # /tmp/tp/tp.ip_user_files/ipstatic/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
+  #puts dst_cip_file=$dst_cip_file
+  return $dst_cip_file
+}
+
+proc xps_fetch_ipi_static_file { file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set src_ip_file $file
+
+  if { $a_sim_vars(b_use_static_lib) } {
+    return $src_ip_file
+  }
+
   set comps [lrange [split $src_ip_file "/"] 1 end]
   set to_match "xilinx.com"
   set index 0
-  foreach comp $comps {
-    incr index
-    if { $to_match != $comp } continue;
-    break
+  set b_found [xps_find_comp comps index $to_match]
+  if { !$b_found } {
+    set to_match "user_company"
+    set b_found [xps_find_comp comps index $to_match]
   }
+  if { !$b_found } {
+    return $src_ip_file
+  }
+
   set file_path_str [join [lrange $comps 0 $index] "/"]
   set ip_lib_dir "/$file_path_str"
 
@@ -1204,19 +1261,24 @@ proc xps_fetch_ipi_static_file { file } {
   set target_ip_lib_dir [file join $a_sim_vars(ipstatic_dir) $ip_lib_dir_name]
   #puts target_ip_lib_dir=$target_ip_lib_dir
 
-  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0/4f162624"
+  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
   set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
   set ip_hdl_dir "/$ip_hdl_dir"
-  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
   #puts ip_hdl_dir=$ip_hdl_dir
   incr index
-
   set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
-  # /4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd
+  # /hdl/xbip_utils_v3_0_vh_rfs.vhd
   #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
 
   set dst_cip_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
   #puts dst_cip_file=$dst_cip_file
+
+  # repo static file does not exist? maybe generate_target or export_ip_user_files was not executed, fall-back to project src file
+  if { ![file exists $dst_cip_file] } {
+    return $src_ip_file
+  }
+
   return $dst_cip_file
 }
 
@@ -1341,7 +1403,7 @@ proc xps_fetch_header_from_dynamic { vh_file } {
 
   variable a_sim_vars
   #puts vh_file=$vh_file
-  set ip_file [usf_get_ip_name $vh_file]
+  set ip_file [xps_get_ip_name $vh_file]
   if { {} == $ip_file } {
     return $vh_file
   }
@@ -2049,71 +2111,6 @@ proc xps_write_sim_script { run_dir data_files filename } {
   return 0
 }
 
-
-proc xps_export_config {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  variable a_sim_vars
-
-  set fh 0
-  set file $a_sim_vars(opts_file)
-  if { [file exists $file] } {
-    if { $a_sim_vars(b_reset_config_opts) } {
-      if {[catch {file delete -force $file} error_msg] } {
-        [catch {send_msg_id exportsim-Tcl-033 ERROR "failed to delete file ($file): $error_msg\n"} err]
-        return
-      }
-    } else {
-      return
-    }
-  }
-  if {[catch {open $file w} fh]} {
-    send_msg_id exportsim-Tcl-066 ERROR "failed to open file to write ($file)\n"
-    return 1
-  }
-
-  set version_txt [split [version] "\n"]
-  set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
-  set product     [lindex [split $version " "] 0]
-  set version_id  [join [lrange $version 1 end] " "]
-
-  puts $fh "# $product (TM) $version_id\n#"
-  puts $fh "# $file (generated by export_simulation on $a_sim_vars(curr_time))"
-  puts $fh "#\n# Specify the switches for the simulator tools that will be added in the exported script.\n#"
-  puts $fh "# Syntax:-\n#"
-  puts $fh "# <simulator>:<tool>:<options>"
-  puts $fh "#\n##########################################################################################\n#"
-  puts $fh "# XSim\n#"
-  puts $fh "xsim:xvlog:--relax"
-  puts $fh "xsim:xvhdl:--relax"
-  puts $fh "xsim:xelab:--relax --debug typical --mt auto"
-  puts $fh "xsim:xsim:"
-  puts $fh "#\n# ModelSim\n#"
-  puts $fh "modelsim:vlog:-incr"
-  puts $fh "modelsim:vcom:-93"
-  puts $fh "modelsim:vsim:"
-  puts $fh "#\n# Questa\n#"
-  puts $fh "questa:vlog:"
-  puts $fh "questa:vcom:"
-  puts $fh "questa:vopt:"
-  puts $fh "questa:vsim:"
-  puts $fh "questa:qverilog:-incr +acc"
-  puts $fh "#\n# IES\n#"
-  puts $fh "ies:ncvlog:"
-  puts $fh "ies:ncvhdl:-V93"
-  puts $fh "ies:ncelab:-relax -access +rwc -messages"
-  puts $fh "ies:ncsim:"
-  puts $fh "ies:irun:-V93 -RELAX"
-  puts $fh "#\n# VCS\n#"
-  puts $fh "vcs:vlogan:-timescale=1ps/1ps"
-  puts $fh "vcs:vhdlan:"
-  puts $fh "vcs:vcs:"
-  puts $fh "vcs:simv:"
-  close $fh
-}
-
 proc xps_write_plain_filelist { dir } {
   # Summary:
   # Argument Usage:
@@ -2670,37 +2667,42 @@ proc xps_append_config_opts { opts_arg simulator tool } {
   # Summary:
   # Argument Usage:
   # Return Value:
-  upvar $opts_arg opts
-  variable a_sim_vars
-  set fh 0
-  set file $a_sim_vars(opts_file)
-  if { ![file exists $file] } {
-    return
-  }
-  if { [catch {open $file r} fh] } {
-    send_msg_id exportsim-Tcl-044 ERROR "Failed to open file to read ($file)\n"
-    return  
-  }
-  set data [read $fh]
-  close $fh
 
-  set args_list [list]
-  set data [split $data "\n"]
-  foreach line $data {
-    set line [string trim $line]
-    if { [string length $line] == 0 } { continue; } 
-    if {[regexp {^#} $line]} { continue; }
-    set tokens [split $line {:}]
-    set name_id [lindex $tokens 0]
-    set tool_id [lindex $tokens 1]
-    set tool_opts [lindex $tokens 2]
-    if { $simulator == $name_id } {
-      if { $tool == $tool_id } {
-        lappend args_list $tool_opts
-      }
+  upvar $opts_arg opts
+  set opts_str {}
+  switch -exact -- $simulator {
+    "xsim" {
+      if {"xvlog" == $tool} {set opts_str "--relax"}
+      if {"xvhdl" == $tool} {set opts_str "--relax"}
+      if {"xelab" == $tool} {set opts_str "--relax --debug typical --mt auto"}
+      if {"xsim"  == $tool} {set opts_str ""}
+    }
+    "modelsim" {
+      if {"vlog" == $tool} {set opts_str "-incr"}
+      if {"vcom" == $tool} {set opts_str "-93"}
+      if {"vsim" == $tool} {set opts_str ""}
+    }
+    "questa" {
+      if {"vlog"     == $tool} {set opts_str ""}
+      if {"vcom"     == $tool} {set opts_str ""}
+      if {"vopt"     == $tool} {set opts_str ""}
+      if {"vsim"     == $tool} {set opts_str ""}
+      if {"qverilog" == $tool} {set opts_str "-incr +acc"}
+    }
+    "ies" {
+      if {"ncvlog" == $tool} {set opts_str ""}
+      if {"ncvhdl" == $tool} {set opts_str "-V93"}
+      if {"ncelab" == $tool} {set opts_str "-relax -access +rwc -messages"}
+      if {"ncsim"  == $tool} {set opts_str ""}
+      if {"irun"   == $tool} {set opts_str "-V93 -RELAX"}
+    }
+    "vcs" {
+      if {"vlogan" == $tool} {set opts_str "-timescale=1ps/1ps"}
+      if {"vhdlan" == $tool} {set opts_str ""}
+      if {"vcs"    == $tool} {set opts_str ""}
+      if {"simv"   == $tool} {set opts_str ""}
     }
   }
-  set opts_str [string trim [join $args_list " "]]
   if { {} != $opts_str } {
     lappend opts $opts_str
   }
@@ -5712,27 +5714,6 @@ proc xps_get_incl_files_from_ip { launch_dir tcl_obj } {
   set filter "FILE_TYPE == \"Verilog Header\""
   set vh_files [get_files -quiet -all -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
-    if { [get_param project.enableCentralSimRepo] } {
-      set b_static_ip_file 0
-      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
-      set associated_library {}
-      if { {} != $file_obj } {
-        if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
-          set associated_library [get_property "LIBRARY" $file_obj]
-        }
-      }
-      set file [file join $launch_dir [xps_get_ip_file_from_repo $tcl_obj $file $associated_library $launch_dir b_static_ip_file]]
-    } else {
-      if { $a_sim_vars(b_absolute_path) } {
-        set file "[xps_resolve_file_path $file $launch_dir]"
-      } else {
-        if { $a_sim_vars(b_xport_src_files) } {
-          set file "\$ref_dir/incl"
-        } else {
-          set file "\$ref_dir/[xps_get_relative_file_path $file $launch_dir]"
-        }
-      }
-    }
     lappend incl_files $file
   }
   return $incl_files
@@ -5762,8 +5743,22 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
   }
 
   foreach vh_file $vh_files {
+    set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
     # set vh_file [extract_files -files [list "[file tail $vh_file]"] -base_dir $launch_dir/ip_files]
     set vh_file [xps_xtract_file $vh_file]
+    if { [get_param project.enableCentralSimRepo] } {
+      set used_in_values [get_property "USED_IN" $vh_file_obj]
+      if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+        set vh_file [xps_fetch_header_from_dynamic $vh_file]
+      } else {
+        set bd_file {}
+        if { [xps_is_bd_file $vh_file bd_file] } {
+          set vh_file [xps_fetch_ipi_static_file $vh_file]
+        } else {
+          set vh_file [xps_fetch_ip_static_file $vh_file $vh_file_obj]
+        }
+      }
+    }
     set dir [file normalize [file dirname $vh_file]]
 
     if { $a_sim_vars(b_xport_src_files) } {
@@ -5899,7 +5894,7 @@ proc xps_get_incl_dirs_from_ip { launch_dir tcl_obj } {
           set associated_library [get_property "LIBRARY" $file_obj]
         }
       }
-      set file [file join $launch_dir [xps_get_ip_file_from_repo $tcl_obj $file $associated_library $launch_dir b_static_ip_file]]
+      set file [xps_get_ip_file_from_repo $tcl_obj $file $associated_library $launch_dir b_static_ip_file]
       set dir [file dirname $file]
     } else {
       if { $a_sim_vars(b_absolute_path) } {
@@ -6047,7 +6042,7 @@ proc xps_xtract_file { file } {
     if { {} != $xcix_ip_path } {
       set ip_name [file root [file tail $xcix_ip_path]]
       set ip_ext_dir [get_property ip_extract_dir [get_ips -all -quiet $ip_name]]
-      set ip_file "./[usf_get_relative_file_path $file $ip_ext_dir]"
+      set ip_file "./[xps_get_relative_file_path $file $ip_ext_dir]"
       # remove leading "./../"
       set ip_file [join [lrange [split $ip_file "/"] 2 end] "/"]
       set file [file join $ip_ext_dir $ip_file]
@@ -6119,5 +6114,23 @@ proc xps_write_filelist_info { dir } {
   file_matrix destroy
   close $fh
   return 0
+}
+
+proc xps_find_comp { comps_arg index_arg to_match } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $comps_arg comps
+  upvar $index_arg index
+  set index 0
+  set b_found false
+  foreach comp $comps {
+    incr index
+    if { $to_match != $comp } continue;
+    set b_found true
+    break
+  }
+  return $b_found
 }
 }

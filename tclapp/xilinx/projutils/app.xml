@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed file path for export source flow while copying sources to ./srcs dir</revision_history>
+      <revision_history>fixed export_simulation to handle verilog include dirs from static files</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
