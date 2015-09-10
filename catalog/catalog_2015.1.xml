@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <remote>master</remote>
+  <remote>2015.1</remote>
   <support_commit_id>17e51ca4318bb1a807170b89cd9ee78a08e5a959</support_commit_id>
   <release>2015.1</release>
   <revision>2.3</revision>
-  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,protoip,diff,junit,tk_tunnel</app_display_order>
+  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,spyglass,protoip,diff,junit,tk_tunnel</app_display_order>
   <apps>
     <app>
       <name>activehdl</name>
@@ -15,14 +15,14 @@
     <app>
       <name>debugutils</name>
       <company>xilinx</company>
-      <commit_id>faa1ae3d3ae5247107c0b901f8e11ef28414ca64</commit_id>
-      <revision>1.0</revision>
+      <commit_id>6412cfbd68cec17bdd424c118a33dfa791328290</commit_id>
+      <revision>1.1</revision>
     </app>
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>1dbd78d304de42645fa848a5f01ae8b1aa2c9eb5</commit_id>
-      <revision>1.14</revision>
+      <commit_id>ffe83d3136b29e4c72368db359f36ce4f770a5fc</commit_id>
+      <revision>1.18</revision>
     </app>
     <app>
       <name>diff</name>
@@ -75,8 +75,8 @@
     <app>
       <name>protoip</name>
       <company>icl</company>
-      <commit_id>a773a4a0bd63e0c2608962dcd2f81d3d7820430c</commit_id>
-      <revision>1.2</revision>
+      <commit_id>b65fae382bdf47e7e142e9844f71bf74196ad03c</commit_id>
+      <revision>1.4</revision>
     </app>
     <app>
       <name>questa</name>
@@ -89,6 +89,12 @@
       <company>aldec</company>
       <commit_id>03a8248bb3cb36b6eab32ae56d72e3f5fc1f6bda</commit_id>
       <revision>1.0</revision>
+    </app>
+    <app>
+      <name>spyglass</name>
+      <company>atrenta</company>
+      <commit_id>3f8296e06f6f1d1b483cab112ac55610a8ad4a6c</commit_id>
+      <revision>1.1</revision>
     </app>
     <app>
       <name>template</name>
