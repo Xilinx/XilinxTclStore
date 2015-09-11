@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add constrs from local if -no_copy_sources is set</revision_history>
+      <revision_history>fixed export_simulation to handle verilog include dirs from static files</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -21,6 +21,10 @@
         <proc>
           <name>export_simulation</name>
           <summary>Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
+        </proc>
+        <proc>
+          <name>populate_sim_repo</name>
+          <summary>Generate and populate the central simulation directory for a project. This can also &#10;be scoped to work on one or more IPs in the project.</summary>
         </proc>
         <proc>
           <name>write_project_tcl</name>

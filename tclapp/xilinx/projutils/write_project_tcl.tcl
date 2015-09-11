@@ -129,7 +129,7 @@ variable b_project_board_set 0
 variable l_filetype_filter [list]
     
 # Setup filter for non-user-settable filetypes
-set l_filetype_filter [list "ip" "embedded design sources" "elf" "coefficient files" "configuration files" \
+set l_filetype_filter [list "ip" "ipx" "embedded design sources" "elf" "coefficient files" "configuration files" \
                             "block diagrams" "block designs" "dsp design sources" "text" \
                             "design checkpoint" "waveform configuration file"]
 # ip file extension types
@@ -274,8 +274,11 @@ proc write_project_tcl_script {} {
     } else {
       send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wrt the 'origin_dir' variable in the\n\
       generated script. When this script is executed from the output directory, these source files will be referenced wrt this 'origin_dir' path value.\n\
-      In case this script was later physically moved to a different directory, the 'origin_dir' value MUST be set manually with the path relative to the\n\
-      new output directory to make sure that the source files are referenced correctly from the original project.\n"
+      In case this script was later physically moved to a different directory, the 'origin_dir' value MUST be set manually in the script with the path\n\
+      relative to the new output directory to make sure that the source files are referenced correctly from the original project. You can also set the\n\
+      'origin_dir' automatically by setting the 'origin_dir_loc' variable in the tcl shell before sourcing this generated script. The 'origin_dir_loc'\n\
+      variable should be set to the path relative to the new output directory. Alternatively, if you are sourcing the script from the Vivado command line,\n\
+      then set the origin dir using '-tclargs --origin_dir <path>'. For example, 'vivado -mode tcl -source $script_filename -tclargs --origin_dir \"..\"\n"
     }
   }
 
@@ -305,6 +308,54 @@ proc wr_create_project { proj_dir name } {
   lappend l_script_data "# Set the reference directory for source file relative paths (by default the value is script directory path)"
   lappend l_script_data "set origin_dir \"$a_global_vars(s_relative_to)\""
   lappend l_script_data ""
+  set var_name "origin_dir_loc"
+  lappend l_script_data "# Use origin directory path location variable, if specified in the tcl shell"
+  lappend l_script_data "if \{ \[info exists ::$var_name\] \} \{"
+  lappend l_script_data "  set origin_dir \$::$var_name"
+  lappend l_script_data "\}"
+
+  lappend l_script_data ""
+
+  lappend l_script_data "variable script_file"
+  lappend l_script_data "set script_file \"[file tail $a_global_vars(script_file)]\"\n"
+  lappend l_script_data "# Help information for this script"
+  lappend l_script_data "proc help \{\} \{"
+  lappend l_script_data "  variable script_file"
+  lappend l_script_data "  puts \"\\nDescription:\""
+  lappend l_script_data "  puts \"Recreate a Vivado project from this script. The created project will be\""
+  lappend l_script_data "  puts \"functionally equivalent to the original project for which this script was\""
+  lappend l_script_data "  puts \"generated. The script contains commands for creating a project, filesets,\""
+  lappend l_script_data "  puts \"runs, adding/importing sources and setting properties on various objects.\\n\""
+  lappend l_script_data "  puts \"Syntax:\""
+  lappend l_script_data "  puts \"\$script_file\""
+  lappend l_script_data "  puts \"\$script_file -tclargs \\\[--origin_dir <path>\\\]\""
+  lappend l_script_data "  puts \"\$script_file -tclargs \\\[--help\\\]\\n\""
+  lappend l_script_data "  puts \"Usage:\""
+  lappend l_script_data "  puts \"Name                   Description\""
+  lappend l_script_data "  puts \"-------------------------------------------------------------------------\""
+  lappend l_script_data "  puts \"\\\[--origin_dir <path>\\\]  Determine source file paths wrt this path. Default\""
+  lappend l_script_data "  puts \"                       origin_dir path value is \\\".\\\", otherwise, the value\""
+  lappend l_script_data "  puts \"                       that was set with the \\\"-paths_relative_to\\\" switch\""
+  lappend l_script_data "  puts \"                       when this script was generated.\\n\""
+  lappend l_script_data "  puts \"\\\[--help\\\]               Print help information for this script\""
+  lappend l_script_data "  puts \"-------------------------------------------------------------------------\\n\""
+  lappend l_script_data "  exit 0"
+  lappend l_script_data "\}\n"
+  lappend l_script_data "if \{ \$::argc > 0 \} \{"
+  lappend l_script_data "  for \{set i 0\} \{\$i < \[llength \$::argc\]\} \{incr i\} \{"
+  lappend l_script_data "    set option \[string trim \[lindex \$::argv \$i\]\]"
+  lappend l_script_data "    switch -regexp -- \$option \{"
+  lappend l_script_data "      \"--origin_dir\" \{ incr i; set origin_dir \[lindex \$::argv \$i\] \}"
+  lappend l_script_data "      \"--help\"       \{ help \}"
+  lappend l_script_data "      default \{"
+  lappend l_script_data "        if \{ \[regexp \{^-\} \$option\] \} \{"
+  lappend l_script_data "          puts \"ERROR: Unknown option '\$option' specified, please type '\$script_file -tclargs --help' for usage info.\\n\""
+  lappend l_script_data "          return 1"
+  lappend l_script_data "        \}"
+  lappend l_script_data "      \}"
+  lappend l_script_data "    \}"
+  lappend l_script_data "  \}"
+  lappend l_script_data "\}\n"
 
   lappend l_script_data "# Set the directory path for the original project from where this script was exported"
   if { $a_global_vars(b_absolute_path) } {
@@ -611,6 +662,19 @@ proc get_ip_repo_paths { tcl_obj } {
   return $repo_path_list
 }
 
+proc is_deprecated { prop } {
+  # Summary: filter deprecated properties
+  # Argument Usage:
+  # Return Value:
+  # true (1) if found, false (1) otherwise
+
+  set prop [string toupper $prop]
+  if { $prop == "BOARD" } {
+    return 1
+  }
+  return 0
+}
+
 proc filter { prop val { file {} } } {
   # Summary: filter special properties
   # This helper command is used to script help.
@@ -760,6 +824,8 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
   set properties [list_property [$get_what $tcl_obj]]
 
   foreach prop $properties {
+    if { [is_deprecated $prop] } { continue }
+
     # skip read-only properties
     if { [lsearch $read_only_props $prop] != -1 } { continue }
 
@@ -866,7 +932,13 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
  
     # re-align compiled_library_dir
-    if {[string equal -nocase $prop "compxlib.compiled_library_dir"]} {
+    if { [string equal -nocase $prop "compxlib.compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.modelsim_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.questa_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.ies_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.vcs_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.riviera_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.activehdl_compiled_library_dir"] } {
       set compile_lib_dir_path $cur_val
       set cache_dir "${proj_name}.cache"
       set path_dirs [split [string trim [file normalize [string map {\\ /} $cur_val]]] "/"]
@@ -931,9 +1003,111 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
     }
   }
 
+  if { {fileset} == $type } {
+    set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
+    if { {SimulationSrcs} == $fs_type } {
+      if { ![get_property is_readonly [current_project]] } {
+        add_simulator_props $get_what $tcl_obj prop_info_list
+      }
+    }
+  }
+
   # write properties now
   write_properties $prop_info_list $get_what $tcl_obj
 
+}
+
+proc add_simulator_props { get_what tcl_obj prop_info_list_arg } {
+  # Summary: write file and file properties 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none
+  upvar $prop_info_list_arg prop_info_list
+
+  set target_simulator [get_property target_simulator [current_project]]
+  set simulators [get_simulators]
+  foreach simulator [get_simulators] {
+    if { $target_simulator == $simulator } { continue }
+    set_property target_simulator $simulator [current_project]
+    set prefix [string tolower [lindex [split $simulator {.}] 0]]
+    write_simulator_props $prefix $get_what $tcl_obj prop_info_list
+  }
+  set_property target_simulator $target_simulator [current_project]
+}
+
+proc write_simulator_props { prefix get_what tcl_obj prop_info_list_arg } {
+  # Summary: write non-default simulator properties
+  # Argument Usage: 
+  # Return Value:
+  # none
+  
+  upvar $prop_info_list_arg prop_info_list
+  variable a_global_vars
+  variable l_script_data
+
+  set read_only_props [rdi::get_attr_specs -class [get_property class $tcl_obj] -filter {is_readonly}]
+  foreach prop [list_property [$get_what $tcl_obj]] {
+    if { [lsearch $read_only_props $prop] != -1 } { continue }
+    if { [is_deprecated_property $prop] } { continue }
+    set sim_prefix [string tolower [lindex [split $prop {.}] 0]]
+    if { $prefix != $sim_prefix } { continue }
+
+    set attr_spec [rdi::get_attr_specs -quiet $prop -object [$get_what $tcl_obj]]
+    if { {} == $attr_spec } {
+      set prop_lower [string tolower $prop]
+      set attr_spec [rdi::get_attr_specs -quiet $prop_lower -object [$get_what $tcl_obj]]
+    }
+    set prop_type [get_property type $attr_spec]
+    set def_val [list_property_value -default $prop $tcl_obj]
+    set cur_val [get_property $prop $tcl_obj]
+    set cur_val [get_target_bool_val $def_val $cur_val]
+    set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
+    if { $def_val != $cur_val } {
+      lappend prop_info_list $prop_entry
+    }
+  }
+}
+
+proc is_deprecated_property { property } {
+  # Summary: filter old properties
+  # Argument Usage: 
+  # Return Value:
+
+  set property [string tolower $property]
+
+  if { [string equal $property "runtime"] ||
+       [string equal $property "unit_under_test"] ||
+       [string equal $property "xelab.snapshot"] ||
+       [string equal $property "xelab.debug_level"] ||
+       [string equal $property "xelab.relax"] ||
+       [string equal $property "xelab.mt_level"] ||
+       [string equal $property "xelab.load_glbl"] ||
+       [string equal $property "xelab.rangecheck"] ||
+       [string equal $property "xelab.sdf_delay"] ||
+       [string equal $property "xelab.unifast"] ||
+       [string equal $property "xelab.nosort"] ||
+       [string equal $property "xelab.more_options"] ||
+       [string equal $property "xsim.view"] ||
+       [string equal $property "xsim.wdb"] ||
+       [string equal $property "xsim.saif"] ||
+       [string equal $property "xsim.more_options"] ||
+       [string equal $property "modelsim.custom_do"] ||
+       [string equal $property "modelsim.custom_udo"] ||
+       [string equal $property "modelsim.vhdl_syntax"] ||
+       [string equal $property "modelsim.use_explicit_decl"] ||
+       [string equal $property "modelsim.log_all_signals"] ||
+       [string equal $property "modelsim.sdf_delay"] ||
+       [string equal $property "modelsim.saif"] ||
+       [string equal $property "modelsim.incremental"] ||
+       [string equal $property "modelsim.unifast"] ||
+       [string equal $property "modelsim.64bit"] ||
+       [string equal $property "modelsim.vsim_more_options"] ||
+       [string equal $property "modelsim.vlog_more_options"] ||
+       [string equal $property "modelsim.vcom_more_options"] } {
+     return true
+  }
+  return false
 }
 
 proc write_files { proj_dir proj_name tcl_obj type } {
@@ -961,6 +1135,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   set add_file_coln [list]
 
   foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
+    if { [file extension $file] == ".xcix" } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
