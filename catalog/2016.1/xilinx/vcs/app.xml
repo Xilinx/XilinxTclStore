@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed VCS simulator so that it correctly generates scripts</revision_history>
+      <revision_history>fix for fetching the static user file path when parent composite file is set</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
