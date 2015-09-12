@@ -57,14 +57,14 @@
     <app>
       <name>myapp</name>
       <company>mycompany</company>
-      <commit_id>faed604180a2e177765422d01e05e13283e1a514</commit_id>
+      <commit_id>2ef741c479840455a22ec9754b9e660ea957c2d3</commit_id>
       <revision>1.0</revision>
     </app>
     <app>
       <name>myapp6</name>
       <company>mycompany</company>
-      <commit_id>faed604180a2e177765422d01e05e13283e1a514</commit_id>
-      <revision>2.11</revision>
+      <commit_id>2ef741c479840455a22ec9754b9e660ea957c2d3</commit_id>
+      <revision>2.12</revision>
     </app>
     <app>
       <name>projutils</name>
@@ -99,7 +99,7 @@
     <app>
       <name>template</name>
       <company>mycompany</company>
-      <commit_id>faed604180a2e177765422d01e05e13283e1a514</commit_id>
+      <commit_id>2ef741c479840455a22ec9754b9e660ea957c2d3</commit_id>
       <revision>1.0</revision>
     </app>
     <app>
