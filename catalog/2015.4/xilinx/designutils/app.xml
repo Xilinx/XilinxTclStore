@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Fixed create_combined_mig_io_design test to resolve issue with Core Container</revision_history>
+      <name>designutils</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to querying and analyzing a logical design, principally around the netlist object model.</summary>
+      <display>Design Utilities</display>
+      <procs>
+        <proc>
+          <name>bisect_pblock</name>
+          <summary>bisect a P block</summary>
+        </proc>
+        <proc>
+          <name>check_cdc_paths</name>
+          <summary>checks all the Cross Domain Crossing paths for typical issues</summary>
+        </proc>
+        <proc>
+          <name>clone_cell</name>
+          <summary>Clone a cell and connects all the clone input pins to the master input pins. Run after synthesis</summary>
+        </proc>
+        <proc>
+          <name>clone_net_driver</name>
+          <summary>Clone the driver cell of a net. Run after synthesis</summary>
+        </proc>
+        <proc>
+          <name>convert_muxfx_to_luts</name>
+          <summary>Replaces MUXFX cells with LUT3 cells in an open synthesized design</summary>
+        </proc>
+        <proc>
+          <name>create_combined_mig_io_design</name>
+          <summary>Creates a new project instantiating the given MIG IP into a single design for IO pin planning</summary>
+        </proc>
+        <proc>
+          <name>create_diff_ports</name>
+          <summary>Creates differential _N port for each _P port in a pinplanning design</summary>
+        </proc>
+        <proc>
+          <name>generate_runs</name>
+          <summary>Create all possible combinations of runs</summary>
+        </proc>
+        <proc>
+          <name>get_clock_interaction</name>
+          <summary>Return a specific string within the clock interaction report</summary>
+        </proc>
+        <proc>
+          <name>get_connected_ref_pins</name>
+          <summary>Return a list of reference pins connected to the pin</summary>
+        </proc>
+        <proc>
+          <name>get_data_through_pins</name>
+          <summary>Return the data pins of a single timing path</summary>
+        </proc>
+        <proc>
+          <name>get_host_platform</name>
+          <summary>return the host platform (windows|unix)</summary>
+        </proc>
+        <proc>
+          <name>get_inter_slr_nets</name>
+          <summary>get all the inter-SLR nets</summary>
+        </proc>
+        <proc>
+          <name>get_leaf_cells</name>
+          <summary>get all the leave cells below an instance</summary>
+        </proc>
+        <proc>
+          <name>get_mem</name>
+          <summary>queries the kernel for current heap memory of Vivado session</summary>
+        </proc>
+        <proc>
+          <name>get_pid_mem</name>
+          <summary>queries the kernel for the heap memory of a specific process</summary>
+        </proc>
+        <proc>
+          <name>get_sll_nets</name>
+          <summary>get routed inter-SLR nets that have a VLONG12 cost and over 100 wire shapes on at least one of its nodes</summary>
+        </proc>
+        <proc>
+          <name>get_sll_nodes</name>
+          <summary>returns all the sll node objects in the device for matching SLRs</summary>
+        </proc>
+        <proc>
+          <name>gets_regexp</name>
+          <summary>returns the next line that matches occurrence of a regular expression in the file</summary>
+        </proc>
+        <proc>
+          <name>highlight_enable_signal_sites</name>
+          <summary>highlight the destination sites of the enable signals reported by report_control_set command</summary>
+        </proc>
+        <proc>
+          <name>insert_buffer</name>
+          <summary>insert a buffer or any 2-pins cell on a net or a pin</summary>
+        </proc>
+        <proc>
+          <name>insert_buffer_chain</name>
+          <summary>insert a chain of buffers or any 2-pins cells on a net or a pin</summary>
+        </proc>
+        <proc>
+          <name>insert_clock_probe</name>
+          <summary>insert a clock probe to the design and connect the probe to an output port. The output should not exist and is created by the command</summary>
+        </proc>
+        <proc>
+          <name>is_fabric_connected</name>
+          <summary>Determine if the given pin is connected to a SLICE. For input pins, check just the driver. For output pins, check all loads</summary>
+        </proc>
+        <proc>
+          <name>prettyTable</name>
+          <summary>utility to easily create and print tables</summary>
+        </proc>
+        <proc>
+          <name>read_file_regexp</name>
+          <summary>returns all lines that match occurrence of a regular expression in the file</summary>
+        </proc>
+        <proc>
+          <name>reapply_iostandard</name>
+          <summary>this command queries the tool-chosen defaults from implementation &#10;and &quot;apply&quot; them so it looks like the user did it from the beginning. &#10;This complies with the bit export restriction that all ios be LOCd and &#10;explicitly set to an IO Standard</summary>
+        </proc>
+        <proc>
+          <name>remove_buffer</name>
+          <summary>remove a buffer or any 2-pins cell</summary>
+        </proc>
+        <proc>
+          <name>rename_net</name>
+          <summary>rename a local net name</summary>
+        </proc>
+        <proc>
+          <name>replicate_high_fanout_registers</name>
+          <summary>Replicate registers to limit register fanout to maxFan.  Run after synthesis</summary>
+        </proc>
+        <proc>
+          <name>report_all_primitives</name>
+          <summary>reports all primitives (LIB_CELL) in the design</summary>
+        </proc>
+        <proc>
+          <name>report_cells_fanout</name>
+          <summary>report the fanout of cells matching a REF_NAME pattern</summary>
+        </proc>
+        <proc>
+          <name>report_cells_loc</name>
+          <summary>report the location of cells matching a REF_NAME pattern</summary>
+        </proc>
+        <proc>
+          <name>report_critical_hfn</name>
+          <summary>report timing critical high fanout nets based on fanout and slack</summary>
+        </proc>
+        <proc>
+          <name>report_hier_util</name>
+          <summary>report the cell utilization below hierarchical instances</summary>
+        </proc>
+        <proc>
+          <name>report_parts</name>
+          <summary>report all the available parts that match a pattern</summary>
+        </proc>
+        <proc>
+          <name>source_path</name>
+          <summary>source a script from a choice of paths</summary>
+        </proc>
+        <proc>
+          <name>timing_report_to_verilog</name>
+          <summary>Convert timing paths to a Verilog structural netlist</summary>
+        </proc>
+        <proc>
+          <name>verilog2int</name>
+          <summary>Convert a Verilog formatted number into an integer</summary>
+        </proc>
+        <proc>
+          <name>write_ip_integrator_testbench</name>
+          <summary>Create a testbench for an IP Integrator design and optionally add it to the current project</summary>
+        </proc>
+        <proc>
+          <name>write_loc_constraints</name>
+          <summary>Creates a constraints file with the specified design LOCs</summary>
+        </proc>
+        <proc>
+          <name>write_slr_pblock_xdc</name>
+          <summary>Exports the current SLR placement to pblock constraints in an XDC file</summary>
+        </proc>
+        <proc>
+          <name>write_template</name>
+          <summary>generates a Verilog/VHDL stub or instanciation template for the current design in memory (current_instance)</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
