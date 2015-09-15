@@ -577,12 +577,13 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     #set vh_file [extract_files -files [list "$vh_file"] -base_dir $launch_dir/ip_files]
     set vh_file [usf_xtract_file $vh_file]
     if { [get_param project.enableCentralSimRepo] } {
+      set bd_file {}
+      set b_is_bd [usf_is_bd_file $vh_file bd_file]
       set used_in_values [get_property "USED_IN" $vh_file_obj]
       if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
-        set vh_file [usf_fetch_header_from_dynamic $vh_file]
+        set vh_file [usf_fetch_header_from_dynamic $vh_file $b_is_bd]
       } else {
-        set bd_file {}
-        if { [usf_is_bd_file $vh_file bd_file] } {
+        if { $b_is_bd } {
           set vh_file [usf_fetch_ipi_static_file $vh_file]
         } else {
           set vh_file [usf_fetch_ip_static_file $vh_file $vh_file_obj]
@@ -1800,21 +1801,18 @@ proc usf_export_data_files { data_files } {
           }
         }
       }
-      set filename [file tail $file]
-      set repo_file {}
+      set target_file [file join $export_dir [file tail $file]]
       if { [get_param project.enableCentralSimRepo] } {
-        set repo_file [file normalize [file join $a_sim_vars(dynamic_repo_dir) "mem_init_files" $filename]]
-      }
-      if { ({} != $repo_file) && ([file exists $repo_file]) } {
-        set file $repo_file
+        set mem_init_dir [file normalize [file join $a_sim_vars(dynamic_repo_dir) "mem_init_files"]]
+        set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
+        if {[catch {file copy -force $data_file $export_dir} error_msg] } {
+          send_msg_id USF-IES-025 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
+        } else {
+          send_msg_id USF-IES-025 INFO "Exported '$target_file'\n"
+        }
       } else {
-        set file [extract_files -no_paths -files [list "$file"] -base_dir $export_dir]
-      }
-
-      if {[catch {file copy -force $file $export_dir} error_msg] } {
-        send_msg_id USF-IES-068 WARNING "Failed to copy file '$file' to '$export_dir' : $error_msg\n"
-      } else {
-        send_msg_id USF-IES-069 INFO "Exported '$file'\n"
+        set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $export_dir]
+        send_msg_id USF-IES-025 INFO "Exported '$target_file'\n"
       }
     }
   }
@@ -2769,43 +2767,20 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   set full_src_file_path [usf_find_file_from_compile_order $ip_name $src_file]
   #puts ful_file=$full_src_file_path
+  set full_src_file_obj [lindex [get_files -all [list "$full_src_file_path"]] 0]
   #puts ip_name=$ip_name
 
-  set b_is_bd_ip 0
-  #set ip_obj [get_ips -all -quiet $ip_name]
-  #if { {} != $ip_obj } {
-  #  set ip_file [get_property IP_FILE $ip_obj]
-  #  set ipi_file [usf_get_ip_name $ip_file]
-  #  if { ({} != $ipi_file) && ({.bd} == [file extension $ipi_file]) } {
-  #    set b_is_bd_ip 1
-  #  }
-  #} else {
-  #  # ip_name=design_1 (this is not ip, so check if src contain "design_1"
-  #  set sub_dirs [list]
-  #  set comps [lrange [split $full_src_file_path "/"] 1 end]
-  #  set to_match "$ip_name"
-  #  foreach comp $comps {
-  #    if { $to_match == $comp } {
-  #      set ip_file $full_src_file_path
-  #      set ipi_file [usf_get_ip_name $ip_file]
-  #      if { ({} != $ipi_file) && ({.bd} == [file extension $ipi_file]) } {
-  #        set b_is_bd_ip 1
-  #        break
-  #      }
-  #    }
-  #  }
-  #}
-
-  set b_is_bd_ip 0
-  # TODO: handle dynamic bd files
-
-  set dst_cip_file {}
-  if { $b_is_bd_ip } {
-    set dst_cip_file [usf_fetch_ipi_dynamic_file $ipi_file $full_src_file_path]
-  } else {
-    #set dst_cip_file [file normalize [file join $a_sim_vars(dynamic_repo_dir) $ip_name "sim" $filename]] 
-    set dst_cip_file [usf_get_dynamic_sim_file $ip_file $ip_name $full_src_file_path]
+  set dst_cip_file $full_src_file_path
+  set used_in_values [get_property "USED_IN" $full_src_file_obj]
+  # is dynamic?
+  if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+    if { [usf_is_core_container $ip_file $ip_name] } {
+      set dst_cip_file [usf_get_dynamic_sim_file_core_container $full_src_file_path]
+    } else {
+      set dst_cip_file [usf_get_dynamic_sim_file_core_classic $full_src_file_path]
+    }
   }
+
   set b_is_dynamic 1
 
   # is static ip file? set flag and return
@@ -3004,120 +2979,100 @@ proc usf_fetch_ipi_static_file { file } {
   return $dst_cip_file
 }
 
-proc usf_get_dynamic_sim_file { ip_file ip_name src_file } {
+proc usf_get_dynamic_sim_file_core_container { src_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  variable a_sim_vars
+
+  set filename  [file tail $src_file]
+  set file_dir  [file dirname $src_file]
+  set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
+  set xcix_file [get_property core_container $file_obj]
+  set core_name [file root [file tail $xcix_file]]
+
+  set parent_comp_file      [get_property parent_composite_file $file_obj]
+  set parent_comp_file_type [get_property file_type [lindex [get_files -all [list "$parent_comp_file"]] 0]]
+
+  set ip_dir {}
+  if { {Block Designs} == $parent_comp_file_type } {
+    set ip_dir [file join [file dirname $xcix_file] $core_name]
+  } else {
+    set top_ip_file_name {}
+    set ip_dir [usf_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+  }
+  set hdl_dir_file [usf_get_sub_file_path $file_dir $ip_dir]
+  set repo_src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $core_name $hdl_dir_file $filename]
+
+  if { [file exists $repo_src_file] } {
+    return $repo_src_file
+  }
+
+  #send_msg_id exportsim-Tcl-024 WARNING "Corresponding IP user file does not exist:'$repo_src_file'!, using default:'$src_file'"
+  return $src_file
+}
+
+proc usf_get_dynamic_sim_file_core_classic { src_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
+  set filename  [file tail $src_file]
+  set file_dir  [file dirname $src_file]
+  set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
 
-  #puts ip_name=$ip_name
-  #puts inn_src_file=$src_file
+  set top_ip_file_name {}
+  set ip_dir [usf_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+  set hdl_dir_file [usf_get_sub_file_path $file_dir $ip_dir]
 
-  # if not core-container (classic), return original source file from project
-  if { ![usf_is_core_container $ip_file $ip_name] } {
-    return $src_file
+  set top_ip_name [file root [file tail $top_ip_file_name]]
+  set extn [file extension $top_ip_file_name]
+  set repo_src_file {}
+  set sub_dir "ip"
+  if { {.bd} == $extn } {
+    set sub_dir "bd"
   }
+  set repo_src_file [file join $a_sim_vars(dynamic_repo_dir) $sub_dir $top_ip_name $hdl_dir_file $filename]
+  if { [file exists $repo_src_file] } {
+    return $repo_src_file
+  }
+  return $src_file
+}
 
-  set comps [lrange [split $src_file "/"] 1 end]
+proc usf_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
 
-  set b_found false
-  if { $a_sim_vars(b_is_managed) } {
-    # for managed ip get the path from core container ip name (below)
-  } else {
-    #set to_match "ip/$ip_name"
-    set to_match "ip"
-    set index 0
-    set b_found false
-    foreach comp $comps {
-      incr index
-      if { $to_match != $comp } continue;
-      set b_found true
+  upvar $top_ip_file_name_arg top_ip_file_name
+  set comp_file $src_file
+  set MAX_PARENT_COMP_LEVELS 10
+  set count 0
+  while (1) {
+    incr count
+    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
+    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    set props [list_property $file_obj]
+    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
     }
-  
-    # try ip name
-    if { !$b_found } {
-      set to_match "$ip_name"
-      set index 0
-      set b_found false
-      foreach comp $comps {
-        incr index
-        if { $to_match != $comp } continue;
-        set b_found true
-        break
-      }
-    }
+    set comp_file [get_property parent_composite_file $file_obj]
+    #puts "+comp_file=$comp_file"
   }
+  set top_ip_name [file root [file tail $comp_file]]
+  set top_ip_file_name $comp_file
 
-  if { !$b_found } {
-    # get the core container ip name of this source and find from repo area
-    set file_obj [lindex [get_files -all -quiet [list "$src_file"]] 0]
-    set xcix_file [string trim [get_property core_container $file_obj]]
-    if { {} != $xcix_file } {
-      set ip_name [file root [file tail $xcix_file]]
-      set to_match "$ip_name"
-      set index 0
-      set b_found false
-      foreach comp $comps {
-        incr index
-        if { $to_match != $comp } continue;
-        set b_found true
-        break
-      }
-    }
+  set root_comp_file_type [get_property file_type [lindex [get_files -all [list "$comp_file"]] 0]]
+  if { {Block Designs} == $root_comp_file_type } {
+    set ip_output_dir [file dirname $comp_file]
+  } else {
+    set ip_output_dir [get_property ip_output_dir [get_ips -all $top_ip_name]]
   }
-
-  if { !$b_found } {
-    return $src_file
-  }
-
-  set file_path_str [join [lrange $comps $index end] "/"]
-  #puts file_path_str=$file_path_str
-  set src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $file_path_str]
-  if { $to_match == $ip_name } {
-    set src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $ip_name $file_path_str]
-  }
-  #puts out_src_file=$src_file
-  return $src_file
+  return $ip_output_dir
 }
 
-proc usf_fetch_ipi_dynamic_file { ipi_file src_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-
-  set ip_name [file root [file tail $ipi_file]]
-  # design_1
-  #puts ip_name=$ip_name
-  #puts inn_src_file=$src_file
-
-  set comps [lrange [split $src_file "/"] 1 end]
-  set to_match "$ip_name"
-  set index 0
-  foreach comp $comps {
-    incr index
-    if { $to_match != $comp } continue;
-    break
-  }
-  set file_path_str [join [lrange $comps $index end] "/"]
-  if { {} == $file_path_str } {
-    return $src_file
-  }
-  #puts file_path_str=$file_path_str
-
-  set file_path_str "$ip_name/$file_path_str"
-  set src_file [file join $a_sim_vars(dynamic_repo_dir) "bd" $file_path_str]
-  if { $a_sim_vars(b_is_managed) } {
-    set src_file [file join $a_sim_vars(dynamic_repo_dir) "bd" $ip_name $file_path_str]
-  }
-  #puts out_src_file=$src_file
-  return $src_file
-}
-
-proc usf_fetch_header_from_dynamic { vh_file } {
+proc usf_fetch_header_from_dynamic { vh_file b_is_bd } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -3136,61 +3091,19 @@ proc usf_fetch_header_from_dynamic { vh_file } {
     return $vh_file
   }
 
-  set comps [lrange [split $vh_file "/"] 1 end]
+  set vh_filename   [file tail $vh_file]
+  set vh_file_dir   [file dirname $vh_file]
+  set output_dir    [get_property IP_OUTPUT_DIR [lindex [get_ips -all $ip_name] 0]]
+  set sub_file_path [usf_get_sub_file_path $vh_file_dir $output_dir]
 
-  # for bd's
-  if { [lsearch $comps "bd"] != -1 } {
-    set to_match "bd"
-    set index 0
-    set b_found false
-    foreach comp $comps {
-      incr index
-      if { $to_match != $comp } continue;
-      set b_found true
-      break
-    }
-    if { !$b_found } {
-      return $vh_file
-    }
-    set file_path_str [join [lrange $comps $index end] "/"]
-    #puts file_path_str=$file_path_str
-    set vh_file [file join $a_sim_vars(dynamic_repo_dir) "bd" $file_path_str]
-  } else {
-    set to_match "ip"
-    set index 0
-    set b_found false
-    foreach comp $comps {
-      incr index
-      if { $to_match != $comp } continue;
-      set b_found true
-      break
-    }
-  
-    # try ip name
-    if { !$b_found } {
-      set to_match "$ip_name"
-      set index 0
-      set b_found false
-      foreach comp $comps {
-        incr index
-        if { $to_match != $comp } continue;
-        set b_found true
-        break
-      }
-    }
-  
-    if { !$b_found } {
-      return $vh_file
-    }
-  
-    set file_path_str [join [lrange $comps $index end] "/"]
-    #puts file_path_str=$file_path_str
-    set vh_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $file_path_str]
-    if { $to_match == $ip_name } {
-      set vh_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $ip_name $file_path_str]
-    }
+  # construct full repo dynamic file path
+  set sub_dir "ip"
+  if { $b_is_bd } {
+    set sub_dir "bd"
   }
-  #puts out_src_file=$vh_file
+  set vh_file [file join $a_sim_vars(dynamic_repo_dir) $sub_dir $ip_name $sub_file_path $vh_filename]
+  #puts vh_file=$vh_file
+
   return $vh_file
 }
 

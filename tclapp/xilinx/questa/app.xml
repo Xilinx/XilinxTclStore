@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fix for fetching the static user file path when parent composite file is set</revision_history>
+      <revision_history>calculate the verilog include dir paths for core-container using the ip_output_dir property</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
