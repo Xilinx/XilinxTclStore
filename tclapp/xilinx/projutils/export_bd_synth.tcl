@@ -16,7 +16,7 @@ namespace eval ::tclapp::xilinx::projutils {
 proc export_bd_synth {args} {
 
   # Summary:
-  # Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necesssary.
+  # Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necessary.
 
   # Argument Usage: 
   # [-force]: Overwrite existing design checkpoint and stub files
