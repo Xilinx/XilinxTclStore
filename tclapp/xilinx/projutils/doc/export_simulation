@@ -1,10 +1,9 @@
 
 Description:
 
-  Export a simulation script file for the target simulator. Currently the Cadence Incisive 
-  Enterprise Simulator (ies) and the Synopsys VCS MX simulator (vcs_mx) are supported. The
-  generated script will contain simulator commands for compiling, elaborating and simulating
-  the design.
+  Export a simulation script file for the target simulator (please see the list of supported
+  simulators below). The generated script will contain simulator commands for compiling, 
+  elaborating and simulating the design.
 
   The command will retrieve the simulation compile order of specified objects, and export
   this information in a shell script with the compiler commands and default options for the
@@ -29,6 +28,14 @@ Description:
   be compiled first using the 'compile_simlib' Tcl command with the compiled library directory
   path specified, when generating this script. The generated script will automatically include
   the setup files for the target simulator from the compiled library directory.
+
+  Supported simulators:-
+
+    Vivado Simulator (xsim)
+    ModelSim Simulator (modelsim) 
+    Questa Advanced Simulator (questa)
+    Incisive Enterprise Simulator (ies)
+    Verilog Compiler Simulator (vcs)
 
 Arguments:
 
@@ -61,7 +68,15 @@ Arguments:
   -directory - (Required) Specify the directory path where the script file will be exported.
 
   -simulator - (Required) Specify the target simulator name for the simulation script. The valid
-  simulators names are "ies" and "vcs_mx".
+  simulators names are "xsim" "modelsim" "questa" "ies" and "vcs" (or "vcs_mx").
+
+  -language - (Optional) Select the simulator language for which the IP netlist will be referred
+  in the generated script. By default, the language is 'mixed'. Other values are 'vhdl' and 'verilog'.
+
+  -ip_netlist - (Optional) Use the netlist file for the IP(s) in the generated script. By default,
+  if this switch is specified, the verilog netlist will be referenced in the script. To override
+  this netlist language type, use the -language switch in conjunction with -ip_netlist switch. By default,
+  the simulator language value from the project settings will be selected if -ip_netlist is specified.
 
   -quiet - (Optional) Execute the command quietly, ignoring any command line errors and returning no
   messages. The command also returns TCL_OK regardless of any errors encountered during execution.

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>updated message if run_program fails to execute the script files</revision_history>
+      <revision_history>calculate the verilog include dir paths for core-container using the ip_output_dir property</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
