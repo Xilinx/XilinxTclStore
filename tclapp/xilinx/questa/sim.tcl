@@ -590,7 +590,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     set src_file    [lindex $fargs 4]
     set b_static_ip [lindex $fargs 5]
 
-    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
     if { $b_group_files } {
       if { $b_first } {

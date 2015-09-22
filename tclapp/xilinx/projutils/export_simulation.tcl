@@ -1004,6 +1004,7 @@ proc xps_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
     set b_is_static 0
     set b_is_dynamic 0
     set src_file [xps_get_source_from_repo $ip_file $src_file $launch_dir b_is_static b_is_dynamic]
+    set b_static_ip_file $b_is_static
     if { (!$b_is_static) && (!$b_is_dynamic) } {
       send_msg_id exportsim-Tcl-056 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
     }
@@ -1126,6 +1127,37 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set orig_src_file $dst_cip_file
   }
   return $orig_src_file
+}
+
+proc xps_find_top_level_ip_file { src_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set comp_file $src_file
+  #puts "-----\n  +$src_file"
+  set MAX_PARENT_COMP_LEVELS 10
+  set count 0
+  while (1) {
+    incr count
+    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
+    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    if { {} == $file_obj } {
+      # try from filename (this may be from .ext dir when -export_src_files is specified)
+      set file_name [file tail $comp_file]
+      set file_obj [lindex [get_files -all "$file_name"] 0]
+      set comp_file $file_obj
+    }
+    set props [list_property $file_obj]
+    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+      break
+    }
+    set comp_file [get_property parent_composite_file $file_obj]
+    #puts "  +$comp_file"
+  }
+  #puts "  +[file root [file tail $comp_file]]"
+  #puts "-----\n"
+  return $comp_file
 }
 
 proc xps_is_bd_file { src_file bd_file_arg } {
@@ -1360,7 +1392,7 @@ proc xps_fetch_header_from_dynamic { vh_file b_is_bd } {
 
   variable a_sim_vars
   #puts vh_file=$vh_file
-  set ip_file [xps_get_ip_name $vh_file]
+  set ip_file [xps_get_top_ip_filename $vh_file]
   if { {} == $ip_file } {
     return $vh_file
   }
@@ -1612,9 +1644,13 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compi
   if { $b_skip_file_obj_access } {
     #
   } else {
-    set ip_file [xps_get_ip_name $src_file]
+    set ip_file [xps_get_top_ip_filename $src_file]
     set b_static_ip_file 0
-    set file [xps_get_ip_file_from_repo $ip_file $src_file $associated_library $launch_dir b_static_ip_file]
+    if { $a_sim_vars(b_xport_src_files) } {
+      # no-op
+    } else {
+      set file [xps_get_ip_file_from_repo $ip_file $src_file $associated_library $launch_dir b_static_ip_file]
+    }
     #puts file=$file
   }
 
@@ -1704,22 +1740,31 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
   return [join $resolved_file_paths " "]
 } 
 
-proc xps_get_ip_name { src_file } {
+proc xps_get_top_ip_filename { src_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
-  
-  set ip {}
+
+  set top_ip_file {}
+
+  # find file by full path
   set file_obj [lindex [get_files -all -quiet $src_file] 0]
+
+  # not found, try from source filename
   if { {} == $file_obj } {
     set file_obj [lindex [get_files -all -quiet [file tail $src_file]] 0]
   }
-
-  set props [list_property $file_obj]
-  if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
-    set ip [get_property "PARENT_COMPOSITE_FILE" $file_obj]
+  
+  if { {} == $file_obj } {
+    return $top_ip_file
   }
-  return $ip
+  
+  set props [list_property $file_obj]
+  # get the hierarchical top level ip file name if parent comp file is defined
+  if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
+    set top_ip_file [xps_find_top_level_ip_file $src_file]
+  }
+  return $top_ip_file
 }
 
 proc xps_get_file_type_category { file_type } {
@@ -1907,7 +1952,7 @@ proc xps_export_data_files { data_files export_dir } {
         {.hwh} -
         {.hwdef} -
         {.xml} {
-          if { {} != [xps_get_ip_name $file] } {
+          if { {} != [xps_get_top_ip_filename $file] } {
             continue
           }
         }
@@ -2802,7 +2847,7 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
     set src_file       [lindex $fargs 6]
     set b_static_ip    [lindex $fargs 7]
 
-    if { $a_sim_vars(b_use_static_lib) && ([xps_is_static_ip_lib $lib]) } { continue }
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
     if { $a_sim_vars(b_absolute_path) } {
       switch $simulator {
@@ -3596,12 +3641,10 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type opts_arg 
     "ncvlog" -
     "vlogan" {
       # verilog defines
-      if { [xps_is_fileset $a_sim_vars(sp_tcl_obj)] } {
-        set verilog_defines [list]
-        set verilog_defines [get_property verilog_define [get_filesets $a_sim_vars(fs_obj)]]
-        if { [llength $verilog_defines] > 0 } {
-          xps_append_define_generics $verilog_defines $tool opts
-        }
+      set verilog_defines [list]
+      set verilog_defines [get_property verilog_define [get_filesets $a_sim_vars(fs_obj)]]
+      if { [llength $verilog_defines] > 0 } {
+        xps_append_define_generics $verilog_defines $tool opts
       }
  
       # include dirs
@@ -4369,7 +4412,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
     set src_file      [lindex $fargs 6]
     set b_static_ip   [lindex $fargs 7]
 
-    if { $a_sim_vars(b_use_static_lib) && ([xps_is_static_ip_lib $lib]) } { continue }
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
     if { $a_sim_vars(b_xport_src_files) } {
       set source_file {}
@@ -4650,7 +4693,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
     set src_file      [lindex $fargs 6]
     set b_static_ip   [lindex $fargs 7]
 
-    if { $a_sim_vars(b_use_static_lib) && ([xps_is_static_ip_lib $lib]) } { continue }
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
     if { $a_sim_vars(b_absolute_path) } {
       if { $a_sim_vars(b_xport_src_files) } {
@@ -5723,32 +5766,16 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir } {
   set incl_dir_str {}
 
   if { [xps_is_ip $tcl_obj] } {
-    set incl_dir_str [xps_get_incl_dirs_from_ip $launch_dir $tcl_obj]
-    set incl_dirs [split $incl_dir_str " "]
+    set incl_dir_str [xps_get_incl_dirs_from_ip $simulator $launch_dir $tcl_obj]
+    set incl_dirs [split $incl_dir_str "|"]
   } else {
     set incl_dir_str [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]]
     set incl_dirs [split $incl_dir_str "|"]
   }
 
   foreach vh_dir $incl_dirs {
-    set dir [file normalize $vh_dir]
-    if { $a_sim_vars(b_absolute_path) } {
-      set dir "[xps_resolve_file_path $dir $launch_dir]"
-    } else {
-      if { $a_sim_vars(b_xport_src_files) } {
-        set dir "\$ref_dir/incl"
-        if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
-          set dir "./srcs/incl"
-        }
-      } else {
-        if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
-          set dir "./[xps_get_relative_file_path $dir $launch_dir]"
-        } else {
-          set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
-        }
-      }
-    }
-    lappend dir_names $dir
+    set vh_dir [string trim $vh_dir {\{\}}]
+    lappend dir_names $vh_dir
   }
   return [lsort -unique $dir_names]
 }
@@ -5781,7 +5808,7 @@ proc xps_resolve_incldir { incl_dirs } {
   return $resolved_path
 }
 
-proc xps_get_incl_dirs_from_ip { launch_dir tcl_obj } {
+proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5806,6 +5833,23 @@ proc xps_get_incl_dirs_from_ip { launch_dir tcl_obj } {
       }
       set file [xps_get_ip_file_from_repo $tcl_obj $file $associated_library $launch_dir b_static_ip_file]
       set dir [file dirname $file]
+      # remove leading "./"
+      if { [regexp {^\.\/} $dir] } {
+        set dir [join [lrange [split $dir "/"] 1 end] "/"]
+      }
+      if { $a_sim_vars(b_xport_src_files) } {
+        set dir "\$ref_dir/incl"
+        if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
+          set dir "./srcs/incl"
+        }
+      } else {
+        if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
+          # not required, the dir is already returned in right format for relative and absolute
+          #set dir "./[xps_get_relative_file_path $dir $launch_dir]"
+        } else {
+          set dir "\$ref_dir/$dir"
+        }
+      }
     } else {
       if { $a_sim_vars(b_absolute_path) } {
         set dir "[xps_resolve_file_path $dir $launch_dir]"
@@ -5819,6 +5863,7 @@ proc xps_get_incl_dirs_from_ip { launch_dir tcl_obj } {
     }
     lappend incl_dirs $dir
   }
+  set incl_dirs [join $incl_dirs "|"]
   return $incl_dirs
 }
 
@@ -6000,7 +6045,7 @@ proc xps_write_filelist_info { dir } {
     set filename [file tail $proj_src_file]
     set ipname   [file rootname [file tail $ip_file]]
   
-    if { $a_sim_vars(b_use_static_lib) && ([xps_is_static_ip_lib $lib]) } { continue }
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
     set pfile $src_file
 

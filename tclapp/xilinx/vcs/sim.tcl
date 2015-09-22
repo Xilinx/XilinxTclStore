@@ -451,7 +451,7 @@ proc usf_vcs_write_compile_script {} {
     set src_file    [lindex $fargs 4]
     set b_static_ip [lindex $fargs 5]
 
-    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
     # vlogan expects double back slash
     if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {

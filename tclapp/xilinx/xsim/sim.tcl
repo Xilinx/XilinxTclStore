@@ -384,7 +384,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set lib         [lindex $fargs 2]
       set cmd_str     [lindex $fargs 3]
       set b_static_ip [lindex $fargs 4]
-      if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
       switch $type {
         {VERILOG} { puts $fh_vlog $cmd_str }
       }
@@ -456,7 +456,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set lib         [lindex $fargs 2]
       set cmd_str     [lindex $fargs 3]
       set b_static_ip [lindex $fargs 4]
-      if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } { continue }
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
       switch $type {
         {VHDL}    { puts $fh_vhdl $cmd_str }
       }
