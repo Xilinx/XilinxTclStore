@@ -164,17 +164,32 @@ proc export_ip_user_files {args} {
   if { $a_vars(b_no_script) } {
     # do not export simulation scripts 
   } else {
-    set top_level_ips [get_files -quiet -norecurse *.xci]
-    foreach ip_file $top_level_ips {
-      export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force
-    }
-
-    set top_level_bds [get_files -quiet -norecurse *.bd]
-    foreach bd_file $top_level_bds {
-      export_simulation -of_objects [get_files -all -quiet $bd_file] -directory $a_vars(scripts_dir) -force
+    # -of_objects not specified? generate sim scripts for all ips/bds
+    if { !$a_vars(b_of_objects_specified) } {
+      set top_level_ips [get_files -quiet -norecurse *.xci]
+      foreach ip_file $top_level_ips {
+        export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force
+      }
+  
+      set top_level_bds [get_files -quiet -norecurse *.bd]
+      foreach bd_file $top_level_bds {
+        export_simulation -of_objects [get_files -all -quiet $bd_file] -directory $a_vars(scripts_dir) -force
+      }
     }
   }
   return
+}
+
+proc xif_export_simulation { ip_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  # -of_objects specified? generate sim scripts for the specified object
+  if { $a_vars(b_of_objects_specified) && (!$a_vars(b_no_script)) } {
+    export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force
+  }
 }
 
 proc xif_export_files { obj } {
@@ -221,6 +236,7 @@ proc xif_export_ip_files { obj } {
         if { {.bd} == $bd_extn } {
           #puts bd=$obj
           xif_export_bd $bd_file
+          xif_export_simulation $bd_file
         } 
       } else {
         set ip_file [get_property IP_FILE [get_ips -all -quiet $obj]]
@@ -231,12 +247,14 @@ proc xif_export_ip_files { obj } {
         } else {
           #puts ip=$obj
           xif_export_ip $obj
+          xif_export_simulation $ip_file
         }
       }
     }
   } else {
     if { {.bd} == $ip_extn } {
       xif_export_bd $obj
+      xif_export_simulation $obj
     } elseif { ({.xci} == $ip_extn) || ({.xcix} == $ip_extn) } {
       set ip [xif_get_ip_name $obj]
       # is BD ip? skip
@@ -245,6 +263,7 @@ proc xif_export_ip_files { obj } {
       } else {
         #puts ip=$obj
         xif_export_ip $obj
+        xif_export_simulation $obj
       }
     } else {
       puts unknown_extn=$ip_extn
