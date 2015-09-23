@@ -2585,14 +2585,15 @@ proc xps_write_multi_step { simulator fh_unix fh_win launch_dir srcs_dir } {
   }
    
   if { [xps_contains_verilog] } {
+    set top_lib [xps_get_top_library]
     switch -regexp -- $simulator {
       "ies" {
-        puts $fh_unix "\n  ncvlog \$opts_ver -work $a_sim_vars(default_lib) \\\n\    \"./glbl.v\""
+        puts $fh_unix "\n  ncvlog \$opts_ver -work $top_lib \\\n\    \"./glbl.v\""
       }
       "vcs" {
         set sw {}
-        if { {work} != $a_sim_vars(default_lib) } {
-          set sw "-work $a_sim_vars(default_lib)"
+        if { {work} != $top_lib } {
+          set sw "-work $top_lib"
         }
         puts $fh_unix "  vlogan $sw \$opts_ver +v2k \\\n    ./glbl.v \\\n  2>&1 | tee -a vlogan.log"
       }
