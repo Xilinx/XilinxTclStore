@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>find the top-level ip name from parent composite file recursively</revision_history>
+      <revision_history>pass top library name for glbl.v for IES/VCS</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
