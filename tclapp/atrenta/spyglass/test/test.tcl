@@ -34,7 +34,7 @@ if {[catch {source -notrace [file join $test_dir vivado_flow_x4gen2.tcl]} errors
 # Cleaning
 close_project
 file delete $test_dir/spy_run.prj
-file delete -force $test_dir/vivado_proj_1
+#file delete -force $test_dir/vivado_proj_1
 
 # Uninstall the app if it was not already installed when starting the script
 if {[lsearch -exact $listInstalledApps $appName] == -1} {

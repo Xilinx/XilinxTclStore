@@ -10,7 +10,7 @@ namespace eval ::tclapp::atrenta::spyglass {
     }
 
 }
-package provide ::tclapp::atrenta::spyglass 1.2
+package provide ::tclapp::atrenta::spyglass 1.3
 # this is a comment
 # this is another comment
 # this is a 3rd comment line

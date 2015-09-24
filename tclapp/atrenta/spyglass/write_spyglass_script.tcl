@@ -35,7 +35,7 @@ proc ::tclapp::atrenta::spyglass::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::atrenta::spyglass::uniquify_lib {lib num} {
+proc ::tclapp::atrenta::spyglass::uniquify_lib {lib lang num} {
 
   # Summary: internally used routine to uniquify libs
   # Argument Usage:
@@ -46,9 +46,9 @@ proc ::tclapp::atrenta::spyglass::uniquify_lib {lib num} {
 
   set new_lib ""
   if {[matches_default_libs $lib]} {
-    set new_lib [concat $lib:$num]
+    set new_lib [concat $lib:$lang:$num]
   } else {
-    set new_lib $lib
+    set new_lib [concat $lib:$lang]
   }
   return $new_lib
 }
@@ -205,7 +205,7 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
       }
 
       if {$resp_file_order == 1} {
-        set lib [uniquify_lib $lib $num_lib]
+        set lib [uniquify_lib $lib $ft $num_lib]
       }
 
       ## Create a list of files for each library
@@ -215,6 +215,7 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
         } else {
           set lib_file_array($lib) $fn
           lappend lib_file_order $lib
+          puts "\nINFO: Adding Library= $lib to list of libraries"
         }
         if {[string match $ft "SystemVerilog"]} {
           set enableSV "yes"

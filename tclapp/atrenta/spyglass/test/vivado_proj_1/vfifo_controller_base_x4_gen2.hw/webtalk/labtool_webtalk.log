@@ -1,0 +1,12 @@
+
+****** Webtalk v2015.1 (64-bit)
+  **** SW Build 1215546 on Mon Apr 27 19:07:21 MDT 2015
+  **** IP Build 1209967 on Tue Apr 21 11:39:20 MDT 2015
+    ** Copyright 1986-2015 Xilinx, Inc. All Rights Reserved.
+
+source /u/satrajit/PRODUCTS/FPGA/XILINX/github/08-24/check/XilinxTclStore/tclapp/atrenta/spyglass/test/vivado_proj_1/vfifo_controller_base_x4_gen2.hw/webtalk/labtool_webtalk.tcl -notrace
+
+    while executing
+"webtalk_transmit -clientid 1974645213 -regid "531_2343_1430158964_680" -xml /u/satrajit/PRODUCTS/FPGA/XILINX/github/08-24/check/XilinxTclStore/tclapp/..."
+    (file "/u/satrajit/PRODUCTS/FPGA/XILINX/github/08-24/check/XilinxTclStore/tclapp/atrenta/spyglass/test/vivado_proj_1/vfifo_controller_base_x4_gen2.hw/webtalk..." line 26)
+INFO: [Common 17-206] Exiting Webtalk at Thu Sep 24 10:33:38 2015...
