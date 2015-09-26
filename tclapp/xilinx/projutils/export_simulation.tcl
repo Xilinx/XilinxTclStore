@@ -880,7 +880,9 @@ proc xps_get_files { simulator launch_dir } {
 
   #send_msg_id exportsim-Tcl-019 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
+  set l_verilog_incl_dirs [list]
   foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
+    lappend l_verilog_incl_dirs $dir
     if { {vcs} == $simulator } {
       set dir [string trim $dir "\""]
       regsub -all { } $dir {\\\\ } dir
@@ -900,7 +902,7 @@ proc xps_get_files { simulator launch_dir } {
         set file_type "SystemVerilog"
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
-        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts 1]
         if { {} != $cmd_str } {
           lappend files $cmd_str
@@ -911,7 +913,7 @@ proc xps_get_files { simulator launch_dir } {
     set b_add_sim_files 1
     if { {} != $linked_src_set } {
       if { [get_param project.addBlockFilesetFilesForUnifiedSim] } {
-        xps_add_block_fs_files $simulator $launch_dir l_incl_dirs_opts files l_compile_order_files
+        xps_add_block_fs_files $simulator $launch_dir l_incl_dirs_opts l_verilog_incl_dirs files l_compile_order_files
       }
     }
 
@@ -922,7 +924,7 @@ proc xps_get_files { simulator launch_dir } {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
-        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
         if { {} != $cmd_str } {
@@ -941,7 +943,7 @@ proc xps_get_files { simulator launch_dir } {
             set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
             set compiler [xps_get_compiler $simulator $file_type]
             set l_other_compiler_opts [list]
-            xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
+            xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
             if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
             set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
             if { {} != $cmd_str } {
@@ -959,7 +961,7 @@ proc xps_get_files { simulator launch_dir } {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
-        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]]} { continue }
         set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
@@ -976,7 +978,7 @@ proc xps_get_files { simulator launch_dir } {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       set compiler [xps_get_compiler $simulator $file_type]
       set l_other_compiler_opts [list]
-      xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
+      xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
       if { {} != $cmd_str } {
@@ -1544,12 +1546,13 @@ proc xps_uniquify_cmd_str { cmd_strs } {
   return $uniq_cmd_strs
 }
 
-proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg files_arg compile_order_files_arg } {
+proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilog_incl_dirs_arg files_arg compile_order_files_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   upvar $l_incl_dirs_opts_arg l_incl_dirs_opts
+  upvar $l_verilog_incl_dirs_arg l_verilog_incl_dirs 
   upvar $files_arg files
   upvar $compile_order_files_arg compile_order_files
 
@@ -1559,7 +1562,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg files_ar
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set compiler [xps_get_compiler $simulator $file_type]
     set l_other_compiler_opts [list]
-    xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
+    xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
     set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler {} l_other_compiler_opts l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
@@ -1571,7 +1574,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg files_ar
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set compiler [xps_get_compiler $simulator $file_type]
     set l_other_compiler_opts [list]
-    xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_other_compiler_opts
+    xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
     set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
@@ -3587,11 +3590,12 @@ proc xps_get_compiler { simulator file_type } {
   return $compiler
 }
  
-proc xps_append_compiler_options { simulator launch_dir tool file_type opts_arg } {
+proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog_incl_dirs_arg opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  upvar $l_verilog_incl_dirs_arg l_verilog_incl_dirs
   upvar $opts_arg opts
   variable a_sim_vars
   set tcl_obj $a_sim_vars(sp_tcl_obj)
@@ -3650,7 +3654,7 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type opts_arg 
  
       # include dirs
       set prefix_ref_dir "true"
-      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
+      foreach dir $l_verilog_incl_dirs {
         if { {vlogan} == $tool } {
           set dir [string trim $dir "\""]
           regsub -all { } $dir {\\\\ } dir
