@@ -46,7 +46,6 @@ proc xif_init_vars {} {
   set a_vars(fs_obj)                  [current_fileset -simset]
 
   variable compile_order_data         [list]
-  variable export_coln                [list]
 
   variable l_valid_ip_extns           [list]
   set l_valid_ip_extns                [list ".xci" ".bd" ".slx"]
@@ -78,7 +77,6 @@ proc export_ip_user_files {args} {
 
   variable a_vars
   variable l_libraries
-  variable export_coln
   variable l_valid_ip_extns
   xif_init_vars
   set a_vars(options) [split $args " "]
@@ -279,7 +277,6 @@ proc xif_export_ip { obj } {
   # Return Value:
 
   variable a_vars
-  variable export_coln
   variable l_valid_data_file_extns
 
   set ip_name [file root [file tail $obj]]
@@ -309,6 +306,14 @@ proc xif_export_ip { obj } {
       # get the parent composite file for this static file
       set parent_comp_file [get_property parent_composite_file [lindex [get_files -all [list "$src_ip_file"]] 0]]
 
+      # calculate destination path
+      set ipstatic_file_path [xif_find_ipstatic_file_path $src_ip_file $parent_comp_file]
+
+      # skip if file exists
+      if { ({} != $ipstatic_file_path) && ([file exists $ipstatic_file_path]) } {
+        continue
+      }
+
       # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be 
       # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
       if { {} == $parent_comp_file } {
@@ -331,8 +336,6 @@ proc xif_export_ip { obj } {
         set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
         #puts extracted_file_with_pc=$extracted_file
       }
-
-      lappend export_coln $extracted_file
     }
   }
 
@@ -429,7 +432,6 @@ proc xif_export_ip { obj } {
       } else {
         set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $sim_file]
       }
-      lappend export_coln $file
     } else {
       #set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $sim_file]
       set bd_file {}
@@ -456,7 +458,6 @@ proc xif_export_ip { obj } {
     } else {
       set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $template_file]
     }
-    lappend export_coln $file
   }
 
   xif_export_mem_init_files_for_ip $obj
@@ -521,7 +522,6 @@ proc xif_export_bd { obj } {
   # Return Value:
 
   variable a_vars
-  variable export_coln
   variable l_valid_data_file_extns
 
   set ip_name [file root [file tail $obj]]
@@ -580,7 +580,6 @@ proc xif_export_bd { obj } {
     set dst_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
     # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
     #puts dst_file=$dst_file
-    lappend export_coln $dst_file
 
     if { [file exists $dst_file] } {
       # skip  
@@ -634,7 +633,6 @@ proc xif_export_bd { obj } {
     set ip_lib_dir {}
     set target_ip_lib_dir {}
     set repo_file [xif_get_dynamic_sim_file_bd $ip_name $dynamic_file hdl_dir_file ip_lib_dir target_ip_lib_dir]
-    lappend export_coln $repo_file
 
     # iterate over the hdl_dir_file comps and copy to target
     set comps [lrange [split $hdl_dir_file "/"] 1 end]
@@ -702,6 +700,45 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   #puts repo_file=$repo_file
 
   return $repo_file
+}
+
+proc xif_find_ipstatic_file_path { src_ip_file parent_comp_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  set dest_file {}
+  set filename [file tail $src_ip_file]
+  set file_obj [list [get_files -quiet -all [list "$src_ip_file"]] 0]
+  if { {} == $file_obj } {
+    set file_obj [list [get_files -quiet -all $filename] 0]
+  }
+  if { {} == $file_obj } {
+    return $dest_file
+  }
+
+  if { {} == $parent_comp_file } {
+    set library_name [get_property library $file_obj]
+    set comps [lrange [split $src_ip_file "/"] 1 end]
+    set index 0
+    set b_found false
+    set to_match $library_name
+    set b_found [xif_find_comp comps index $to_match]
+    if { $b_found } {
+      set file_path_str [join [lrange $comps $index end] "/"]
+      #puts file_path_str=$file_path_str
+      set dest_file [file normalize [file join $a_vars(ipstatic_dir) $file_path_str]]
+    }
+  } else {
+    set parent_ip_name [file root [file tail $parent_comp_file]]
+    set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
+    set src_ip_file_dir [file dirname $src_ip_file]
+    set lib_dir [xif_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+    set target_extract_dir [file normalize [file join $a_vars(ipstatic_dir) $lib_dir]]
+    set dest_file [file join $target_extract_dir $filename]
+  }
+  return $dest_file
 }
 
 proc xif_is_ip { obj } {

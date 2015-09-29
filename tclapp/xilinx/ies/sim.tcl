@@ -553,7 +553,11 @@ proc usf_ies_write_elaborate_script {} {
 
   set tool "ncelab"
   set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
-  set arg_list [list "-relax -access +rwc -messages" "-logfile" "elaborate.log"]
+  set arg_list [list "-relax -access +rwc"]
+  if { ({post-implementation} == $::tclapp::xilinx::ies::a_sim_vars(s_mode)) && ({timing} == $::tclapp::xilinx::ies::a_sim_vars(s_type)) } {
+    set arg_list [linsert $arg_list end "-pulse_r 100"]
+  }
+  set arg_list [linsert $arg_list end "-messages -logfile elaborate.log"]
 
   if { [get_property 32bit $fs_obj] } {
     # donot pass os type

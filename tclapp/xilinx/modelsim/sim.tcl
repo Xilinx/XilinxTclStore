@@ -740,6 +740,12 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     lappend arg_list "+acc"
   }
 
+  if { ({post-implementation} == $::tclapp::xilinx::modelsim::a_sim_vars(s_mode)) && ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
+    lappend arg_list "+transport_int_delays"
+    lappend arg_list "+pulse_int_e/0"
+    lappend arg_list "+pulse_int_r/0"
+  }
+
   set vhdl_generics [list]
   set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
   if { [llength $vhdl_generics] > 0 } {
@@ -876,6 +882,13 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
 
   set tool "vsim"
   set arg_list [list "-voptargs=\"+acc\"" "-t 1ps"]
+
+  if { ({post-implementation} == $::tclapp::xilinx::modelsim::a_sim_vars(s_mode)) && ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
+    lappend arg_list "+transport_int_delays"
+    lappend arg_list "+pulse_int_e/0"
+    lappend arg_list "+pulse_int_r/0"
+  }
+
 
   set vhdl_generics [list]
   set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]

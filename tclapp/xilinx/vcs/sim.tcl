@@ -548,6 +548,8 @@ proc usf_vcs_write_elaborate_script {} {
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
+  set mode $::tclapp::xilinx::vcs::a_sim_vars(s_mode)
+  set type $::tclapp::xilinx::vcs::a_sim_vars(s_type)
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
   set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -568,16 +570,24 @@ proc usf_vcs_write_elaborate_script {} {
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
     lappend arg_list {-debug_pp}
   }
-  set arg_list [linsert $arg_list end "-t" "ps" "-licqueue" "-l" "elaborate.log"]
+  set arg_list [linsert $arg_list end "-t" "ps" "-licqueue"]
+  if { ({post-implementation} == $mode) && ({timing} == $type) } {
+    set arg_list [linsert $arg_list end "+pulse_r/100"]
+  }
+  set arg_list [linsert $arg_list end "-l" "elaborate.log"]
   if { [get_property 32bit $fs_obj] } {
     # donot pass os type
   } else {
      set arg_list [linsert $arg_list 0 "-full64"]
   }
 
-  if { ({post-implementation} == $::tclapp::xilinx::vcs::a_sim_vars(s_mode)) || ({timing} == $::tclapp::xilinx::vcs::a_sim_vars(s_mode)) } { 
+  if { ({post-synthesis} == $mode) || ({post-implementation} == $mode) } {
     lappend arg_list "-liblist"
-    lappend arg_list "simprims_ver"
+    if { {functional} == $type } {
+      lappend arg_list "unisims_ver"
+    } elseif { {timing} == $type } {
+      lappend arg_list "simprims_ver"
+    }
     lappend arg_list "-liblist"
     lappend arg_list "secureip"
   }
