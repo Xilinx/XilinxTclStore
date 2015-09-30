@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not extract ip static file if file already exist in ip user files</revision_history>
+      <revision_history>fixed a spelling error in export_bd_synth description</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
