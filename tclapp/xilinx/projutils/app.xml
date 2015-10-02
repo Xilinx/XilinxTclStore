@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed a spelling error in export_bd_synth description</revision_history>
+      <revision_history>fixed the is_ip_fileset algorithm to use -all with get_files</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
