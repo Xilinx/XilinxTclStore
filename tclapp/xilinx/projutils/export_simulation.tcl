@@ -487,12 +487,12 @@ proc xps_readme { dir } {
   set lib_path "c:\\design\\questa\\clibs"
   set sep "\\"
   set drive {c:}
-  if {$::tcl_platform(platform) == "unix"} {
+  #if {$::tcl_platform(platform) == "unix"} {
     set extn ".sh"
     set lib_path "/design/questa/clibs"
     set sep "/"
     set drive {}
-  }
+  #}
   puts $fh "% ./top$extn\n"
   puts $fh "The export simulation flow requires the Xilinx pre-compiled simulation library"
   puts $fh "components for the target simulator. These components are referred using the"
@@ -530,11 +530,9 @@ proc xps_readme { dir } {
   puts $fh "By default, when the -script_name switch is not specified, export_simulation will"
   puts $fh "create the following script name:-\n"
   puts $fh "<simulation_top>.sh  (Unix)"
-  puts $fh "<simulation_top>.bat (Windows)\n"
   puts $fh "When exporting the files for an IP using the -of_objects switch, export_simulation"
   puts $fh "will create the following script name:-\n"
   puts $fh "<ip-name>.sh  (Unix)"
-  puts $fh "<ip-name>.bat (Windows)\n"
   puts $fh "Export simulation will create the setup files for the target simulator specified"
   puts $fh "with the -simulator switch.\n"
   puts $fh "For example, if the target simulator is \"ies\", export_simulation will create the"

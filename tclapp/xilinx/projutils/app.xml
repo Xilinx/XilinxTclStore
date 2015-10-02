@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed the is_ip_fileset algorithm to use -all with get_files</revision_history>
+      <revision_history>removed the .bat references from the readme</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
