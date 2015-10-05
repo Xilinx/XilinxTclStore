@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>removed the .bat references from the readme</revision_history>
+      <revision_history>added message to convert_ngc to indicate encrypted NGCs are not supported</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
