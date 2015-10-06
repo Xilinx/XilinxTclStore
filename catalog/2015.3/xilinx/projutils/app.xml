@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not extract ip static file if file already exist in ip user files</revision_history>
+      <revision_history>start from zero&apos;th element while calculating file paths for BD to fix an issue on window</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -16,7 +16,7 @@
         </proc>
         <proc>
           <name>export_bd_synth</name>
-          <summary>Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necesssary.</summary>
+          <summary>Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necessary.</summary>
         </proc>
         <proc>
           <name>export_ip_user_files</name>
