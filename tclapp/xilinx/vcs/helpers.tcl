@@ -1173,8 +1173,12 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   # verilog incl dir's and verilog headers directory path if any
   send_msg_id USF-VCS-101 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
+  set uniq_dirs [list]
   foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}]] {
-    lappend l_incl_dirs_opts "+incdir+$dir"
+    if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+      lappend uniq_dirs $dir
+      lappend l_incl_dirs_opts "+incdir+$dir"
+    }
   }
 
   # prepare command line args for fileset files
@@ -1303,8 +1307,12 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   # verilog incl dir's and verilog headers directory path if any
   send_msg_id USF-VCS-106 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
+  set uniq_dirs [list]
   foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}]] {
-    lappend l_incl_dirs_opts "+incdir+$dir"
+    if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+      lappend uniq_dirs $dir
+      lappend l_incl_dirs_opts "+incdir+$dir"
+    }
   }
 
   if { {} != $netlist_file } {
@@ -1928,13 +1936,35 @@ proc usf_get_include_dirs { } {
   variable a_sim_vars
   set dir_names [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
+  set incl_dirs [list]
   set incl_dir_str {}
   if { [usf_is_ip $tcl_obj] } {
     set incl_dir_str [usf_get_incl_dirs_from_ip $tcl_obj]
     set incl_dirs [split $incl_dir_str "|"]
   } else {
     set incl_dir_str [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]]
-    set incl_dirs [split $incl_dir_str "|"]
+    set incl_prop_dirs [split $incl_dir_str "|"]
+
+    # include dirs from design source set
+    set linked_src_set [get_property "SOURCE_SET" [get_filesets $tcl_obj]]
+    if { {} != $linked_src_set } {
+      set src_fs_obj [get_filesets $linked_src_set]
+      set dirs [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $src_fs_obj]]]
+      foreach dir [split $dirs "|"] {
+        if { [lsearch -exact $incl_prop_dirs $dir] == -1 } {
+          lappend incl_prop_dirs $dir
+        }
+      }
+    }
+
+    foreach dir $incl_prop_dirs {
+      if { $a_sim_vars(b_absolute_path) } {
+        set dir "[usf_resolve_file_path $dir]"
+      } else {
+        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      }
+      lappend incl_dirs $dir
+    }
   }
   foreach vh_dir $incl_dirs {
     set vh_dir [string trim $vh_dir {\{\}}]
@@ -2996,7 +3026,7 @@ proc usf_fetch_ipi_static_file { file } {
     return $src_ip_file
   }
 
-  set comps [lrange [split $src_ip_file "/"] 1 end]
+  set comps [lrange [split $src_ip_file "/"] 0 end]
   set to_match "xilinx.com"
   set index 0
   set b_found [usf_find_comp comps index $to_match]
@@ -3009,7 +3039,7 @@ proc usf_fetch_ipi_static_file { file } {
   }
 
   set file_path_str [join [lrange $comps 0 $index] "/"]
-  set ip_lib_dir "/$file_path_str"
+  set ip_lib_dir "$file_path_str"
 
   #puts ip_lib_dir=$ip_lib_dir
   set ip_lib_dir_name [file tail $ip_lib_dir]
@@ -3018,7 +3048,7 @@ proc usf_fetch_ipi_static_file { file } {
 
   # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
   set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
-  set ip_hdl_dir "/$ip_hdl_dir"
+  set ip_hdl_dir "$ip_hdl_dir"
   # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
   #puts ip_hdl_dir=$ip_hdl_dir
   incr index

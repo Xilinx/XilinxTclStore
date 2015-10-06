@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not extract ip static file if file already exist in ip user files</revision_history>
+      <revision_history>start from zero'th element while calculating file paths for BD to fix an issue on window</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -902,6 +902,25 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
       lappend opts "-i \"$incl_dir\""
     }
   }
+
+  # include dirs from design source set
+  set linked_src_set [get_property "SOURCE_SET" [get_filesets $fs_obj]]
+  if { {} != $linked_src_set } {
+    set src_fs_obj [get_filesets $linked_src_set]
+    set incl_dir_str [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $src_fs_obj]]]
+    foreach incl_dir [split $incl_dir_str "|"] {
+      if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
+        lappend unique_incl_dirs $incl_dir
+        if { $a_sim_vars(b_absolute_path) } {
+          set incl_dir "[usf_resolve_file_path $incl_dir]"
+        } else {
+          set incl_dir "[usf_get_relative_file_path $incl_dir $dir]"
+        }
+        lappend opts "-i \"$incl_dir\""
+      }
+    }
+  }
+
   # --include
   set prefix_ref_dir "false"
   foreach incl_dir [usf_get_include_file_dirs $global_files_str $prefix_ref_dir] {
@@ -2600,7 +2619,7 @@ proc usf_fetch_ipi_static_file { file } {
     return $src_ip_file
   }
 
-  set comps [lrange [split $src_ip_file "/"] 1 end]
+  set comps [lrange [split $src_ip_file "/"] 0 end]
   set to_match "xilinx.com"
   set index 0
   set b_found [usf_find_comp comps index $to_match]
@@ -2613,7 +2632,7 @@ proc usf_fetch_ipi_static_file { file } {
   }
 
   set file_path_str [join [lrange $comps 0 $index] "/"]
-  set ip_lib_dir "/$file_path_str"
+  set ip_lib_dir "$file_path_str"
 
   #puts ip_lib_dir=$ip_lib_dir
   set ip_lib_dir_name [file tail $ip_lib_dir]
@@ -2622,7 +2641,7 @@ proc usf_fetch_ipi_static_file { file } {
 
   # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
   set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
-  set ip_hdl_dir "/$ip_hdl_dir"
+  set ip_hdl_dir "$ip_hdl_dir"
   # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
   #puts ip_hdl_dir=$ip_hdl_dir
   incr index

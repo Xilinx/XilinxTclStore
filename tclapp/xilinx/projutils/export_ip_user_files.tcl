@@ -537,7 +537,7 @@ proc xif_export_bd { obj } {
     # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
     #puts src_ip_file=$src_ip_file
 
-    set comps [lrange [split $src_ip_file "/"] 1 end]
+    set comps [lrange [split $src_ip_file "/"] 0 end]
     set to_match "xilinx.com"
     set index 0
     set b_found [xif_find_comp comps index $to_match]
@@ -550,7 +550,7 @@ proc xif_export_bd { obj } {
     }
 
     set file_path_str [join [lrange $comps 0 $index] "/"]
-    set ip_lib_dir "/$file_path_str"
+    set ip_lib_dir "$file_path_str"
     # /demo/ipshared/xilinx.com/xbip_utils_v3_0
     #puts ip_lib_dir=$ip_lib_dir
     set ip_lib_dir_name [file tail $ip_lib_dir]
@@ -568,7 +568,7 @@ proc xif_export_bd { obj } {
 
     # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
     set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
-    set ip_hdl_dir "/$ip_hdl_dir"
+    set ip_hdl_dir "$ip_hdl_dir"
     # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
     #puts ip_hdl_dir=$ip_hdl_dir
     incr index
@@ -675,15 +675,17 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   upvar $target_ip_lib_dir_arg target_ip_lib_dir
 
   # dynamic_file: /demo/project_1/project_1.srcs/sources_1/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
-  set comps [lrange [split $dynamic_file "/"] 1 end]
+  set full_comps [lrange [split $dynamic_file "/"] 0 end]
+  set comps [lrange $full_comps 1 end]
+
   set to_match "$ip_name"
   set index 0
   set b_found [xif_find_comp comps index $to_match]
 
-  incr index -1
-  set file_path_str [join [lrange $comps 0 $index] "/"]
+  #incr index -1
+  set file_path_str [join [lrange $full_comps 0 $index] "/"]
 
-  set ip_lib_dir "/$file_path_str"
+  set ip_lib_dir "$file_path_str"
   # ip_lib_dir: /demo/project_1/project_1.srcs/sources_1/bd/design_1 
   #puts ip_lib_dir=$ip_lib_dir
 
@@ -691,11 +693,11 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   # target_ip_lib_dir: /demo/project_1/project_1.ip_user_files/bd/design_1
   #puts target_ip_lib_dir=$target_ip_lib_dir
 
-  set hdl_dir_file [join [lrange $comps $index end] "/"]
+  set hdl_dir_file [join [lrange $full_comps $index end] "/"]
   # hdl_dir_file: ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
   #puts hdl_dir_file=$hdl_dir_file
 
-  set repo_file [file join $target_ip_lib_dir $hdl_dir_file]
+  set repo_file [file join $a_vars(bd_base_dir) $hdl_dir_file]
   # repo_file: /demo/project_1/project_1.ip_user_files/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
   #puts repo_file=$repo_file
 
@@ -829,7 +831,7 @@ proc xif_copy_files_recursive { src dst } {
   } else {
     set filename [file tail $src]
     set dst_file [file join $dst $filename]
-    if { [xif_filter $file] } {
+    if { [xif_filter $src] } {
       # filter these files
     } else {
       if { ![file exist $dst_file] } {
@@ -1078,7 +1080,7 @@ proc xif_export_mem_init_files_for_ip { obj } {
     if { ![file exists $a_vars(mem_dir)] } {
       xif_create_mem_dir
     }
-    set file [extract_files -no_paths -files [list "$file"] -base_dir $a_vars(mem_dir)]
+    set file [extract_files -no_paths -force -files [list "$file"] -base_dir $a_vars(mem_dir)]
     if { {} != $file } {
       #send_msg_id export_ip_user_files-Tcl-037 STATUS " + exported IP (mem_init):'$file'\n"
     }

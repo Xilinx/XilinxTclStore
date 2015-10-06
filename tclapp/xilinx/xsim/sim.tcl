@@ -48,7 +48,7 @@ proc compile { args } {
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::xsim::usf_launch_script "xsim" $step
-  ::tclapp::xilinx::xsim::usf_xsim_include_xvhdl_log
+  #::tclapp::xilinx::xsim::usf_xsim_include_xvhdl_log
 }
 
 proc elaborate { args } {
@@ -434,8 +434,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set full_cmd "\$xv_path/bin/xvlog $xvlog_cmd_str 2>&1 | tee $log_cmd_str"
       puts $fh_scr "ExecStep $full_cmd"
     } else {
-      set log_cmd_str " -log $log_filename"
+      set log_cmd_str " -log xvlog.log"
       puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw $xvlog_cmd_str$log_cmd_str"
+      puts $fh_scr "call type xvlog.log > $log_filename"
     }
   }
   
@@ -487,8 +488,13 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set full_cmd "\$xv_path/bin/xvhdl $xvhdl_cmd_str 2>&1 | tee -a $log_cmd_str"
       puts $fh_scr "ExecStep $full_cmd"
     } else {
-      set log_cmd_str " -log $log_filename"
+      set log_cmd_str " -log xvhdl.log"
       puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw $xvhdl_cmd_str$log_cmd_str"
+      if { $b_contain_verilog_srcs } {
+        puts $fh_scr "call type xvhdl.log >> $log_filename"
+      } else {
+        puts $fh_scr "call type xvhdl.log > $log_filename"
+      }
     }
   }
   
@@ -1191,25 +1197,40 @@ proc usf_xsim_get_top_level_instance_names {} {
   set top_level_instance_names [list]
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
   set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
-  set assoc_lib "${top_lib}";append assoc_lib {.}
   set top_names [split $top " "]
   if { [llength $top_names] > 1 } {
     foreach name $top_names {
       if { [lsearch $top_level_instance_names $name] == -1 } {
-        if { ![regexp "^$assoc_lib" $name] } {
-          set name ${assoc_lib}$name
-        }
-        lappend top_level_instance_names $name
+        lappend top_level_instance_names [usf_get_top_name $name $top_lib]
       }
     }
   } else {
     set name $top_names
-    if { ![regexp "^$assoc_lib" $name] } {
-      set name ${assoc_lib}$name
-    }
-    lappend top_level_instance_names $name
+    lappend top_level_instance_names [usf_get_top_name $name $top_lib]
   }
   return $top_level_instance_names
+}
+
+proc usf_get_top_name { name top_lib } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  set top {}
+  # check if top defines the library already (mylib.top)
+  set lib {}
+  if { [regexp {\.} $name] } {
+    set lib [lindex [split $name "."] 0]
+  }
+  # if library already prefixed, append lib.top name as is, else prefix it
+  if { $lib == $top_lib } {
+    # name already contains library, return the name as is
+    set top $name
+  } else {
+    # name does not contain library, append library
+    set top "${top_lib}.$name"
+  }
+  return $top
 }
 
 proc usf_xsim_get_sim_flow_type_as_pretty_str { type } {

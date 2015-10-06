@@ -26,10 +26,12 @@ proc isl_init_vars {} {
   set a_isl_vars(co_file_list)      ""
 
   variable compile_order_data       [list]
-  variable export_coln              [list]
 
   variable l_static_files
   set l_static_files                [list]
+
+  variable l_valid_data_file_extns
+  set l_valid_data_file_extns       [list ".mif" ".coe"]
 
   set_param tcl.statsThreshold      100
 
@@ -52,7 +54,6 @@ proc setup_ip_static_library {args} {
 
   variable a_isl_vars
   variable l_static_files
-  variable export_coln
 
   isl_init_vars
 
@@ -149,7 +150,8 @@ proc isl_extract_proj_files { } {
       continue
     }
   }
-  isl_add_vao_file $a_isl_vars(co_file_list)
+  isl_add_vao_file
+  isl_add_incl_file
   return
 }
 
@@ -211,7 +213,7 @@ proc isl_export_ip { obj } {
   # Return Value:
 
   variable a_isl_vars
-  variable export_coln
+  variable l_valid_data_file_extns
 
   set ip_name [file root [file tail $obj]]
   set ip_info "${ip_name}#xci"
@@ -231,18 +233,83 @@ proc isl_export_ip { obj } {
       }
     }
     lappend l_static_files $src_ip_file
-    set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_isl_vars(ipstatic_dir)]
-    lappend export_coln $extracted_file
+    set parent_comp_file [get_property parent_composite_file [lindex [get_files -all [list "$src_ip_file"]] 0]]
+    if { {} == $parent_comp_file } {
+      set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_isl_vars(ipstatic_dir)]
+    } else {
+      set parent_ip_name [file root [file tail $parent_comp_file]]
+      set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
+      set src_ip_file_dir [file dirname $src_ip_file]
+      set lib_dir [isl_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+      set target_extract_dir [file normalize [file join $a_isl_vars(ipstatic_dir) $lib_dir]]
+      set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
+    }
 
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set library [get_property "LIBRARY" $file_obj]
-      set type    [string tolower [get_property "FILE_TYPE" $file_obj]]
+      set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
       set ip_file_path "[isl_get_relative_file_path $extracted_file $a_isl_vars(ipstatic_dir)/$library]"
-      set data "$library,$ip_file_path,$type"
+      # is this verilog header? strip prefixed library name
+      if { {verilog header} == $file_type } {
+        set comps [lrange [split $ip_file_path "/"] 0 end]
+        set lib_comps [lrange [split $ip_file_path "/"] 1 end]
+        set library [lindex $comps 0]
+        set ip_file_path [join $lib_comps "/"]
+      }
+      set data "$library,$ip_file_path,$file_type,static"
+      lappend ip_data $data
+    }
+  }
+
+  # extract dynamic verilog header files if any that may be referenced by static ips
+  foreach dynamic_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
+    if { [lsearch $l_static_files $dynamic_file] != -1 } { continue }
+    if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file]] >= 0 } { continue }
+
+    set file_obj [lindex [get_files -all [list "$dynamic_file"]] 0]
+    if { {} == $file_obj } { continue }
+    set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
+
+    # is this verilog header? extract it and strip prefixed library name
+    if { {verilog header} == $file_type } {
+      set ip_static_dir [file normalize [file join $a_isl_vars(ipstatic_dir)]]
+    
+      # extract dynamic header file into static lib
+      set extracted_file [extract_files -base_dir $ip_static_dir -no_ip_dir -force -files $dynamic_file]
+      set library [get_property "LIBRARY" $file_obj]
+      set ip_file_path "[isl_get_relative_file_path $extracted_file $a_isl_vars(ipstatic_dir)/$library]"
+
+      set comps [lrange [split $ip_file_path "/"] 0 end]
+      set lib_comps [lrange [split $ip_file_path "/"] 1 end]
+      set library_name [lindex $comps 0]
+      set ip_file_path [join $lib_comps "/"]
+      set data "$library_name,$ip_file_path,$file_type,dynamic"
       lappend ip_data $data
     }
   }
   isl_update_compile_order_data $ip_data
+}
+
+proc isl_get_sub_file_path { src_file_path dir_path_to_remove } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set src_path_comps [file split [file normalize $src_file_path]]
+  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
+
+  set src_path_len [llength $src_path_comps]
+  set dir_path_len [llength $dir_path_comps]
+
+  set index 1
+  while { [lindex $src_path_comps $index] == [lindex $dir_path_comps $index] } {
+    incr index
+    if { ($index == $src_path_len) || ($index == $dir_path_len) } {
+      break;
+    }
+  }
+  set sub_file_path [join [lrange $src_path_comps $index end] "/"]
+  return $sub_file_path
 }
 
 proc isl_export_bd { obj } {
@@ -251,7 +318,6 @@ proc isl_export_bd { obj } {
   # Return Value:
 
   variable a_isl_vars
-  variable export_coln
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
@@ -307,7 +373,6 @@ proc isl_export_bd { obj } {
     set dst_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
     # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
     #puts dst_file=$dst_file
-    lappend export_coln $dst_file
 
     if { [file exists $dst_file] } {
       # skip
@@ -411,15 +476,17 @@ proc isl_update_compile_order_data { ip_data } {
   close $fh
 }
 
-proc isl_add_vao_file { co_file } {
+proc isl_add_vao_file {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_isl_vars
+
+  # read compile order data
   set fh 0
-  if {[catch {open $co_file r} fh]} {
-   send_msg_id setup_ip_static_library-Tcl-014 ERROR "failed to open file for read ($co_file)\n"
+  if {[catch {open $a_isl_vars(co_file_list) r} fh]} {
+   send_msg_id setup_ip_static_library-Tcl-014 ERROR "failed to open file for read ($a_isl_vars(co_file_list))\n"
    return 1
   }
   set data [read $fh]
@@ -441,7 +508,7 @@ proc isl_add_vao_file { co_file } {
     }
   }
 
-  # create fresh copy of analyze order file
+  # create fresh copy of analyze order file for each library containing vhdl files
   foreach line $data {
     set line [string trim $line]
     if { [string length $line] == 0 } { continue; }
@@ -452,24 +519,244 @@ proc isl_add_vao_file { co_file } {
 
     # if not vhdl file type? continue
     if { {vhdl} != $file_type } { continue }
-    set filename [file tail $file_path]
-
     set vao_file [file normalize [file join $a_isl_vars(ipstatic_dir) $library "vhdl_analyze_order"]]
     set fh 0
     if { [file exist $vao_file] } {
       if {[catch {open $vao_file a} fh]} {
-       send_msg_id setup_ip_static_library-Tcl-016 ERROR "failed to open file for append ($vao_file)\n"
-       return 1
+        send_msg_id setup_ip_static_library-Tcl-016 ERROR "failed to open file for append ($vao_file)\n"
+        continue
       }
     } else {
       if {[catch {open $vao_file w} fh]} {
-       send_msg_id setup_ip_static_library-Tcl-017 ERROR "failed to open file for write ($vao_file)\n"
-       return 1
+        send_msg_id setup_ip_static_library-Tcl-017 ERROR "failed to open file for write ($vao_file)\n"
+        continue
       }
     }
     puts $fh $file_path
     close $fh
   }
+}
+
+proc isl_add_incl_file { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_isl_vars
+
+  # 1. read compile order data
+  set fh 0
+  if {[catch {open $a_isl_vars(co_file_list) r} fh]} {
+   send_msg_id setup_ip_static_library-Tcl-014 ERROR "failed to open file for read ($a_isl_vars(co_file_list))\n"
+   return 1
+  }
+  set data [read $fh]
+  close $fh
+  set data [split $data "\n"]
+
+  # 2. delete include file from all libraries (if exist)
+  isl_delete_include_files $data
+
+  set static_incl_data           [list]
+  set dynamic_incl_data          [list]
+  set uniq_static_incl_lib_files [list]
+
+  # 3. fetch all static include files from compile order data into incl_files collection (<library>#<file_path>)
+  isl_fetch_all_static_include_files $data static_incl_data dynamic_incl_data uniq_static_incl_lib_files
+ 
+  # 4. populate static include files in <library>/include.h with file path information
+  isl_populate_static_incl_files $uniq_static_incl_lib_files
+
+  # 5. iterate over all dynamic verilog header files if any and copy to static library dir (<library>/incl)
+  set v_filelist [list]
+  isl_copy_static_include_with_dynamic_header_files $data $static_incl_data $dynamic_incl_data v_filelist
+
+  # 6. iterate over all dynamic verilog header files if any and copy to static library dir (<library>/incl)
+  isl_update_static_include_with_dynamic_header_files $data $v_filelist
+} 
+
+proc isl_delete_include_files { data } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_isl_vars
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set file_str  [split $line {,}]
+    set library   [string trim [lindex $file_str 0]]
+    set incl_file [file normalize [file join $a_isl_vars(ipstatic_dir) $library "include.h"]]
+    if { [file exists $incl_file] } {
+      if { [catch {file delete -force $incl_file} error_msg ] } {
+        send_msg_id setup_ip_static_library-Tcl-015 ERROR "failed to delete file ($incl_file): $error_msg\n"
+      }
+    }
+  }
+}
+
+proc isl_fetch_all_static_include_files { data static_incl_data_arg dynamic_incl_data_arg uniq_static_incl_lib_files_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  upvar $static_incl_data_arg           static_incl_data
+  upvar $dynamic_incl_data_arg          dynamic_incl_data
+  upvar $uniq_static_incl_lib_files_arg uniq_static_incl_lib_files 
+
+  set incl_files [list]
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set file_str  [split $line {,}]
+    set library   [string trim [lindex $file_str 0]]
+    set file_path [string trim [lindex $file_str 1]]
+    set file_type [string tolower [string trim [lindex $file_str 2]]]
+    set type      [string tolower [string trim [lindex $file_str 3]]]
+
+    if { {static} == $type } {
+      lappend static_incl_data $line
+    } elseif { {dynamic} == $type } {
+      lappend dynamic_incl_data $line
+      continue
+    }
+    if { {verilog header} == $file_type } {
+      set str "$library#$file_path"
+      lappend incl_files $str
+    }
+  }
+  # uniquify include files (just in case found)
+  set incl_file_set [list]
+  foreach file $incl_files {
+    if { [lsearch -exact $incl_file_set $file] == -1 } {
+      lappend incl_file_set $file
+      lappend uniq_static_incl_lib_files $file
+    }
+  }
+}
+
+proc isl_populate_static_incl_files { uniq_static_incl_lib_files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_isl_vars
+  foreach file_str $uniq_static_incl_lib_files {
+    set library   [lindex [split $file_str "#"] 0]
+    set file_path [lindex [split $file_str "#"] 1]
+    set incl_file [file normalize [file join $a_isl_vars(ipstatic_dir) $library "include.h"]]
+    set fh 0
+    if { [file exists $incl_file] } {
+      if {[catch {open $incl_file a} fh]} {
+        send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for append ($incl_file)\n"
+        continue
+      }
+    } else {
+      if {[catch {open $incl_file w} fh]} {
+        send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for write ($incl_file)\n"
+        continue
+      }
+    }
+    puts $fh $file_path
+    close $fh
+  }
+}
+
+proc isl_copy_static_include_with_dynamic_header_files { data static_incl_data dynamic_incl_data v_filelist_arg } { 
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_isl_vars
+  upvar $v_filelist_arg v_filelist
+
+  # copy dynamic header files to each static library (<library>/vh/<header file>) and construct the list of all header files that were copied in v_filelist
+  foreach line $dynamic_incl_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set file_str  [split $line {,}]
+    set library   [string trim [lindex $file_str 0]]
+    set file_path [string trim [lindex $file_str 1]]
+    set filename  [file tail $file_path]
+
+    set src_file_path [file normalize [file join $a_isl_vars(ipstatic_dir) $library $file_path]]
+
+    # now copy this verilog include file to all the static libraries and update include.h
+    foreach static_line $static_incl_data {
+      set sline [string trim $static_line]
+      if { [string length $sline] == 0 } { continue; }
+      set sfile_str [split $sline {,}]
+      set slibrary  [string trim [lindex $sfile_str 0]]
+
+      set dst_dir [file normalize [file join $a_isl_vars(ipstatic_dir) $slibrary "vh"]]
+      if { ![file exists $dst_dir] } {
+        if {[catch {file mkdir $dst_dir} error_msg] } {
+          send_msg_id setup_ip_static_library-Tcl-022 ERROR "failed to create the directory ($dst_dir)): $error_msg\n"
+        }
+      }
+      set dst_file [file join $dst_dir $filename]
+
+      # update v_filelist with header file (unique list of header files)
+      if { [lsearch $v_filelist "$filename"] == -1 } {
+        lappend v_filelist "$filename"
+      }
+
+      # copy header file to <library>/vh
+      if { ![file exists $dst_file] } {
+        if {[catch {file copy -force $src_file_path $dst_dir} error_msg] } {
+          send_msg_id setup_ip_static_library-Tcl-026 WARNING "Failed to copy file '$src_file_path' to '$dst_dir' : $error_msg\n"
+        }
+      }
+    }
+  }
+}
+
+proc isl_update_static_include_with_dynamic_header_files { data v_filelist } { 
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  variable a_isl_vars
+
+  # 1. construct list of static libraries
+  set l_static_libraries [list]
+
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set file_str [split $line {,}]
+    set library [string trim [lindex $file_str 0]]
+    set type [string tolower [string trim [lindex $file_str 3]]]
+    if { {static} == $type } {
+      if { [lsearch $l_static_libraries "$library"] == -1 } {
+        lappend l_static_libraries "$library"
+      }
+    }
+  }
+
+  # 2. now update include.h in each static library with the header files copied in previous step (v_filelist)
+  foreach lib $l_static_libraries {
+    set dst_dir [file normalize [file join $a_isl_vars(ipstatic_dir) $lib "vh"]]
+    if { ![file exists $dst_dir] } {
+      continue
+    }
+    set incl_file [file normalize [file join $a_isl_vars(ipstatic_dir) $lib "include.h"]]
+    set fh 0
+    if { [file exists $incl_file] } {
+      if {[catch {open $incl_file a} fh]} {
+        send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for append ($incl_file)\n"
+        continue
+      } 
+    } else {
+      if {[catch {open $incl_file w} fh]} {
+        send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for write ($incl_file)\n"
+        continue
+      }
+    }
+    foreach v_file $v_filelist {
+      puts $fh "vh/$v_file"
+    }
+    close $fh
+  } 
 }
 
 proc isl_extract_install_files { } {
@@ -853,7 +1140,7 @@ proc isl_copy_files_recursive { src dst } {
   } else {
     set filename [file tail $src]
     set dst_file [file join $dst $filename]
-    if { [isl_filter $file] } {
+    if { [isl_filter $src] } {
       # filter these files
     } else {
       if { ![file exist $dst_file] } {

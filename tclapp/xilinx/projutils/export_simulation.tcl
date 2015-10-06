@@ -879,13 +879,17 @@ proc xps_get_files { simulator launch_dir } {
   #send_msg_id exportsim-Tcl-019 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
   set l_verilog_incl_dirs [list]
-  foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
+  set uniq_dirs [list]
+  foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir $prefix_ref_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
     lappend l_verilog_incl_dirs $dir
     if { {vcs} == $simulator } {
       set dir [string trim $dir "\""]
       regsub -all { } $dir {\\\\ } dir
     }
-    lappend l_incl_dirs_opts "+incdir+\"$dir\""
+    if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+      lappend uniq_dirs $dir
+      lappend l_incl_dirs_opts "+incdir+\"$dir\""
+    }
   }
   if { [xps_is_fileset $target_obj] } {
     set used_in_val "simulation"
@@ -1261,7 +1265,7 @@ proc xps_fetch_ipi_static_file { file } {
     return $src_ip_file
   }
 
-  set comps [lrange [split $src_ip_file "/"] 1 end]
+  set comps [lrange [split $src_ip_file "/"] 0 end]
   set to_match "xilinx.com"
   set index 0
   set b_found [xps_find_comp comps index $to_match]
@@ -1274,7 +1278,7 @@ proc xps_fetch_ipi_static_file { file } {
   }
 
   set file_path_str [join [lrange $comps 0 $index] "/"]
-  set ip_lib_dir "/$file_path_str"
+  set ip_lib_dir "$file_path_str"
 
   #puts ip_lib_dir=$ip_lib_dir
   set ip_lib_dir_name [file tail $ip_lib_dir]
@@ -1283,7 +1287,7 @@ proc xps_fetch_ipi_static_file { file } {
 
   # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
   set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
-  set ip_hdl_dir "/$ip_hdl_dir"
+  set ip_hdl_dir "$ip_hdl_dir"
   # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
   #puts ip_hdl_dir=$ip_hdl_dir
   incr index
@@ -2377,8 +2381,12 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
                        "./glbl.v"
       #"-R -do \"run 1000ns; quit\""
       set prefix_ref_dir "true"
-      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
-        lappend arg_list "+incdir+\"$dir\""
+      set uniq_dirs [list]
+      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir $prefix_ref_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
+        if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+          lappend uniq_dirs $dir
+          lappend arg_list "+incdir+\"$dir\""
+        }
       }
       set cmd_str [join $arg_list " \\\n       "]
       if {$::tcl_platform(platform) == "unix"} {
@@ -2429,8 +2437,12 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
         lappend arg_list "+incdir+\"./srcs/incl\""
       } else {
         set prefix_ref_dir "false"
-        foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
-          lappend arg_list "+incdir+\"$dir\""
+        set uniq_dirs [list]
+        foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir $prefix_ref_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
+          if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+            lappend uniq_dirs $dir
+            lappend arg_list "+incdir+\"$dir\""
+          }
         }
       }
       lappend arg_list   "-l run.log"
@@ -2475,12 +2487,16 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
 
       lappend arg_list "-l run.log"
       set prefix_ref_dir "true"
-      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
+      set uniq_dirs [list]
+      foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir $prefix_ref_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
         if { {vcs} == $simulator } {
           set dir [string trim $dir "\""]
           regsub -all { } $dir {\\\\ } dir
         }
-        lappend arg_list "+incdir+\"$dir\""
+        if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+          lappend uniq_dirs $dir
+          lappend arg_list "+incdir+\"$dir\""
+        }
       }
       lappend arg_list "-R"
       set cmd_str [join $arg_list " \\\n       "]
@@ -3703,12 +3719,16 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
  
       # include dirs
       set prefix_ref_dir "true"
+      set uniq_dirs [list]
       foreach dir $l_verilog_incl_dirs {
         if { {vlogan} == $tool } {
           set dir [string trim $dir "\""]
           regsub -all { } $dir {\\\\ } dir
         }
-        lappend opts "+incdir+\"$dir\""
+        if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+          lappend uniq_dirs $dir
+          lappend opts "+incdir+\"$dir\""
+        }
       }
     }
   }
@@ -4670,6 +4690,25 @@ proc xps_get_xsim_verilog_options { launch_dir opts_arg } {
       lappend opts "-i \"$incl_dir\""
     }
   }
+
+  # include dirs from design source set
+  set linked_src_set [get_property "SOURCE_SET" [get_filesets $a_sim_vars(fs_obj)]]
+  if { {} != $linked_src_set } {
+    set src_fs_obj [get_filesets $linked_src_set]
+    set incl_dir_str [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $src_fs_obj]]]
+    foreach incl_dir [split $incl_dir_str "|"] {
+      if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
+        lappend unique_incl_dirs $incl_dir
+        if { $a_sim_vars(b_absolute_path) } {
+          set incl_dir "[xps_resolve_file_path $incl_dir $launch_dir]"
+        } else {
+          set incl_dir "[xps_get_relative_file_path $incl_dir $launch_dir]"
+        }
+        lappend opts "-i \"$incl_dir\""
+      }
+    }
+  }
+
   # --include
   set prefix_ref_dir "false"
   foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $prefix_ref_dir] {
@@ -5820,7 +5859,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
   return $dir_names
 }
 
-proc xps_get_verilog_incl_dirs { simulator launch_dir } {
+proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5829,6 +5868,7 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir } {
 
   set dir_names [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
+  set incl_dirs [list]
   set incl_dir_str {}
 
   if { [xps_is_ip $tcl_obj] } {
@@ -5836,7 +5876,47 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir } {
     set incl_dirs [split $incl_dir_str "|"]
   } else {
     set incl_dir_str [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]]
-    set incl_dirs [split $incl_dir_str "|"]
+    set incl_prop_dirs [split $incl_dir_str "|"]
+
+    # include dirs from design source set
+    set linked_src_set [get_property "SOURCE_SET" [get_filesets $tcl_obj]]
+    if { {} != $linked_src_set } {
+      set src_fs_obj [get_filesets $linked_src_set]
+      set dirs [xps_resolve_incldir [get_property "INCLUDE_DIRS" [get_filesets $src_fs_obj]]]
+      foreach dir [split $dirs "|"] {
+        if { [lsearch -exact $incl_prop_dirs $dir] == -1 } {
+          lappend incl_prop_dirs $dir
+        }
+      }
+    }
+
+    foreach dir $incl_prop_dirs {
+      if { $a_sim_vars(b_absolute_path) } {
+        set dir "[xps_resolve_file_path $dir $launch_dir]"
+      } else {
+        if { $ref_dir } {
+          if { $a_sim_vars(b_xport_src_files) } {
+            set dir "\$ref_dir/incl"
+            if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
+              set dir "./srcs/incl"
+            }
+          } else {
+            if { ({modelsim} == $simulator) || ({questa} == $simulator) } {
+              set dir "./[xps_get_relative_file_path $dir $launch_dir]"
+            } else {
+              set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
+            }
+          }
+        } else {
+          if { $a_sim_vars(b_xport_src_files) } {
+            set dir "./srcs/incl"
+          } else {
+            set dir "./[xps_get_relative_file_path $dir $launch_dir]"
+          }
+        }
+      }
+      lappend incl_dirs $dir
+    }
   }
 
   foreach vh_dir $incl_dirs {
