@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for single-step filelist for IES irun in default mode</revision_history>
+      <revision_history>added message to convert_ngc to indicate encrypted NGCs are not supported</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

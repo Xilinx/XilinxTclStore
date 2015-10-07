@@ -26,7 +26,7 @@ proc export_simulation {args} {
   # [-runtime <arg> = Empty]: Run simulation for this time (default:full simulation run or until a logical break or finish condition)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-single_step]: Generate script to launch all steps in one step
-  # [-ip_netlist]: Select the netlist file for IP(s) in the project or the selected object (-of_objects) for the specified simulator language (default:verilog)
+  # [-ip_netlist]: Select the netlist files for IP(s) in the project or the selected object for the specified simulator language (default:verilog) 
   # [-export_source_files]: Copy design files to output directory
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
@@ -772,25 +772,6 @@ proc xps_gen_mem_files { run_dir } {
   if { [llength $embedded_files] > 0 } {
     #send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
     generate_mem_files $run_dir
-  }
-}
-
-proc xps_copy_glbl { run_dir } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  if { [xps_contains_verilog] } {
-    set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-    set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
-    if { [file exists $glbl_file] } {
-      set target_file [file normalize [file join $run_dir "glbl.v"]]
-      if { ![file exists $target_file] } {
-        if {[catch {file copy -force $glbl_file $run_dir} error_msg] } {
-          send_msg_id exportsim-Tcl-041 WARNING "failed to copy file '$glbl_file' to '$run_dir' : $error_msg\n"
-        }
-      }
-    }
   }
 }
 
@@ -2021,8 +2002,6 @@ proc xps_export_data_files { data_files export_dir } {
     foreach file $data_files {
       set extn [file extension $file]
       switch -- $extn {
-        {.bd} -
-        {.png} -
         {.c} -
         {.zip} -
         {.hwh} -
@@ -2033,19 +2012,6 @@ proc xps_export_data_files { data_files export_dir } {
           }
         }
       }
-
-      set filename [file tail $file]
-      if { ([string match *_bd* $filename]) && ({.tcl} == $extn) } {
-        continue
-      }
-      if { ([string match *_changelog* $filename]) && ({.txt} == $extn) } {
-        continue
-      }
-   
-      # mig data files
-      set mig_files [list "xsim_run.sh" "ies_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
-      if { [lsearch $mig_files $filename] != -1 } {continue}
-
       set target_file [file join $export_dir [file tail $file]]
       if { [get_param project.enableCentralSimRepo] } {
         set mem_init_dir [file normalize [file join $a_sim_vars(dynamic_repo_dir) "mem_init_files"]]
@@ -2140,7 +2106,6 @@ proc xps_write_sim_script { run_dir data_files filename } {
 
     xps_export_data_files $data_files $dir
     xps_gen_mem_files $dir
-    xps_copy_glbl $dir
 
     if { [xps_write_simulator_readme $dir] } {
       return 1
@@ -2177,13 +2142,6 @@ proc xps_write_plain_filelist { dir } {
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
     set pfile [xps_resolve_file $proj_src_file $ip_file $src_file $dir]
     puts $fh $pfile
-  }
-  if { [xps_contains_verilog] } {
-    set file "./glbl.v"
-    if { $a_sim_vars(b_absolute_path) } {
-      set file [file normalize [file join $dir $file]]
-    }
-    puts $fh "$file"
   }
   close $fh
   return 0
@@ -2363,9 +2321,6 @@ proc xps_write_simulator_procs { simulator fh_unix fh_win launch_dir } {
     xps_write_single_step $simulator $fh_unix $fh_win $launch_dir $srcs_dir
   } else {
     xps_write_multi_step $simulator $fh_unix $fh_win $launch_dir $srcs_dir
-    if { {ies} == $simulator } {
-      xps_write_single_step_for_irun $launch_dir $srcs_dir
-    }
   }
 }
 
@@ -2463,36 +2418,20 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
 
       set install_path $::env(XILINX_VIVADO)
 
-      lappend arg_list  "-timescale 1ps/1ps"
-      set opts [list]
-      set defines [get_property verilog_define [get_filesets $a_sim_vars(fs_obj)]]
-      set generics [get_property vhdl_generic [get_filesets $a_sim_vars(fs_obj)]]
-      if { [llength $defines] > 0 } {
-        xps_append_define_generics $defines "irun" opts
-      }
-      if { [llength $generics] > 0 } {
-        xps_append_define_generics $generics "irun" opts
-      }
-      if { [llength $opts] > 0 } {
-        foreach opt $opts {
-          set opt_str [string trim $opt "\{\}"]
-          lappend arg_list  "$opt_str"
-        }
-      }
-      lappend arg_list  "-top $a_sim_vars(s_top)" \
-                        "-f $filename"
+      lappend arg_list  "-timescale 1ps/1ps" \
+                         "-top $a_sim_vars(s_top)" \
+                         "-f $filename"
       if { $b_verilog_only } {
-        lappend arg_list   "-f $install_path/data/secureip/secureip_cell.list.f"
+      lappend arg_list   "-f $install_path/data/secureip/secureip_cell.list.f"
       }
       if { [xps_contains_verilog] } {
-        lappend arg_list "-top glbl"
-        lappend arg_list "glbl.v"
+      lappend arg_list "glbl.v"
       }
       if { $b_verilog_only } {
-        lappend arg_list   "-y $install_path/data/verilog/src/retarget/" \
-                           "+libext+.v" \
-                           "-y $install_path/data/verilog/src/unisims/" \
-                           "+libext+.v"
+      lappend arg_list   "-y $install_path/data/verilog/src/retarget/" \
+                         "+libext+.v" \
+                         "-y $install_path/data/verilog/src/unisims/" \
+                         "+libext+.v"
       }
       if { $a_sim_vars(b_xport_src_files) } {
         lappend arg_list "+incdir+\"./srcs/incl\""
@@ -2580,25 +2519,6 @@ proc xps_write_single_step { simulator fh_unix fh_win launch_dir srcs_dir } {
     puts $fh_win "goto:eof\n"
   }
   return 0
-}
-
-proc xps_write_single_step_for_irun { launch_dir srcs_dir } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set fh 0
-  set filename "filelist_irun.f"
-  set file [file normalize [file join $launch_dir $filename]]
-  if {[catch {open $file w} fh]} {
-    send_msg_id exportsim-Tcl-038 ERROR "failed to open file to write ($file)\n"
-    return 1
-  }
-  set a_sim_vars(b_single_step) 1
-  xps_write_compile_order "ies" $fh $launch_dir $srcs_dir
-  set a_sim_vars(b_single_step) 0
-  close $fh
 }
 
 proc xps_write_multi_step { simulator fh_unix fh_win launch_dir srcs_dir } {
@@ -3646,8 +3566,7 @@ proc xps_append_define_generics { def_gen_list tool opts_arg } {
     set str {}
     switch $tool {
       "vlog"   { set str "+define+$name="       }
-      "ncvlog" -
-      "irun"   { set str "-define \"$name=\""   }
+      "ncvlog" { set str "-define \"$name=\""   }
       "vlogan" { set str "+define+$name="     }
       "ncelab" -
       "ies"    { set str "-generic \"$name=>\"" }
@@ -3665,8 +3584,7 @@ proc xps_append_define_generics { def_gen_list tool opts_arg } {
     if { [string length $val] > 0 } {
       switch $tool {
         "vlog"   { set str "$str$val"   }
-        "ncvlog" -
-        "irun"   { set str "$str$val\"" }
+        "ncvlog" { set str "$str$val\"" }
         "vlogan" { set str "$str\"$val\"" }
         "ncelab" -
         "ies"    { set str "$str$val\"" }
@@ -4262,20 +4180,8 @@ proc xps_write_libs_unix { simulator fh_unix } {
     }
     "ies" {
       set file "cds.lib"
-      if { $a_sim_vars(b_single_step) } {
-        puts $fh_unix ""
-        #puts $fh_unix "  echo \"INCLUDE \$lib_map_path/$file\" > \$file" 
-        puts $fh_unix "  echo \"DEFINE secureip \$lib_map_path/secureip\" >> \$file"
-        puts $fh_unix "  echo \"DEFINE unisim \$lib_map_path/unisim\" >> \$file"
-        puts $fh_unix "  echo \"DEFINE unimacro \$lib_map_path/unimacro\" >> \$file"
-        puts $fh_unix "  echo \"DEFINE unifast \$lib_map_path/unifast\" >> \$file"
-        puts $fh_unix "  echo \"DEFINE unisims_ver \$lib_map_path/unisims_ver\" >> \$file"
-        puts $fh_unix "  echo \"DEFINE unimacro_ver \$lib_map_path/unimacro_ver\" >> \$file"
-        puts $fh_unix "  echo \"DEFINE unifast_ver \$lib_map_path/unifast_ver\" >> \$file"
-      } else {
-        puts $fh_unix "  incl_ref=\"INCLUDE \$lib_map_path/$file\""
-        puts $fh_unix "  echo \$incl_ref >> \$file"
-      }
+      puts $fh_unix "  incl_ref=\"INCLUDE \$lib_map_path/$file\""
+      puts $fh_unix "  echo \$incl_ref >> \$file"
     }
     "vcs" {
       set file "synopsys_sim.setup"
@@ -4603,10 +4509,6 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
         set source_file "./srcs/$proj_src_filename"
       } else {
         set source_file "./srcs/[file tail $proj_src_file]"
-        if { $a_sim_vars(b_absolute_path) } {
-          set proj_src_filename [file tail $proj_src_file]
-          set source_file "$srcs_dir/$proj_src_filename"
-        }
       }
       set src_file "\"$source_file\""
     } else {
@@ -4615,9 +4517,6 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
       } else {
         set source_file [string trim $src_file {\"}]
         set src_file "./[xps_get_relative_file_path $source_file $launch_dir]"
-        if { $a_sim_vars(b_absolute_path) } {
-          set src_file $proj_src_file 
-        }
         set src_file "\"$src_file\""
       }
     }
@@ -4699,8 +4598,8 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
 
   if { {VERILOG} == $ft } {
     puts $fh "\nverilog [xps_get_top_library] \"glbl.v\""
+    puts $fh "\nnosort"
   }
-  puts $fh "\nnosort"
 
   close $fh
 }
@@ -4765,9 +4664,8 @@ proc xps_write_prj_single_step { dir srcs_dir} {
   }
   if { [xps_contains_verilog] } {
     puts $fh "\nverilog [xps_get_top_library] \"glbl.v\""
+    puts $fh "\nnosort"
   }
-  puts $fh "\nnosort"
-
   close $fh
 }
 
@@ -6307,14 +6205,6 @@ proc xps_write_filelist_info { dir } {
     } else {
       lappend lines "$file_type, $filename, *, $lib, $pfile"
     }
-  }
-  if { [xps_contains_verilog] } {
-    set file "./glbl.v"
-    if { $a_sim_vars(b_absolute_path) } {
-      set file [file normalize [file join $dir $file]]
-    }
-    set top_lib [xps_get_top_library]
-    lappend lines "Verilog, glbl.v, *, $top_lib, $file"
   }
   struct::matrix file_matrix;
   file_matrix add columns 5;
