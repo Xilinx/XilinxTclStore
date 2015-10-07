@@ -33,7 +33,7 @@
     <app>
       <name>ies</name>
       <company>xilinx</company>
-      <commit_id>45e9801695bd3e26eaebafb3736dfd5864972ad7</commit_id>
+      <commit_id>9010da26ca1da71bb0f0293f6664f3935488b1b1</commit_id>
       <revision>2.63</revision>
     </app>
     <app>
@@ -51,7 +51,7 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>45e9801695bd3e26eaebafb3736dfd5864972ad7</commit_id>
+      <commit_id>9010da26ca1da71bb0f0293f6664f3935488b1b1</commit_id>
       <revision>2.71</revision>
     </app>
     <app>
@@ -69,8 +69,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>45e9801695bd3e26eaebafb3736dfd5864972ad7</commit_id>
-      <revision>3.85</revision>
+      <commit_id>9010da26ca1da71bb0f0293f6664f3935488b1b1</commit_id>
+      <revision>3.86</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -81,7 +81,7 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>45e9801695bd3e26eaebafb3736dfd5864972ad7</commit_id>
+      <commit_id>9010da26ca1da71bb0f0293f6664f3935488b1b1</commit_id>
       <revision>1.61</revision>
     </app>
     <app>
@@ -117,13 +117,13 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>45e9801695bd3e26eaebafb3736dfd5864972ad7</commit_id>
+      <commit_id>9010da26ca1da71bb0f0293f6664f3935488b1b1</commit_id>
       <revision>2.64</revision>
     </app>
     <app>
       <name>xsim</name>
       <company>xilinx</company>
-      <commit_id>45e9801695bd3e26eaebafb3736dfd5864972ad7</commit_id>
+      <commit_id>9010da26ca1da71bb0f0293f6664f3935488b1b1</commit_id>
       <revision>2.66</revision>
     </app>
   </apps>
