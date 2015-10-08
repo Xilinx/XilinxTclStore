@@ -2621,7 +2621,9 @@ proc xps_write_multi_step { simulator fh_unix fh_win launch_dir srcs_dir } {
 
   if {[llength $a_sim_vars(l_design_files)] == 0} {
     if {$::tcl_platform(platform) == "unix"} {
-      puts $fh_unix "# None (no sources present)"
+      puts $fh_unix "  # None (no sources present)"
+      puts $fh_unix "  echo -e \"INFO: No simulation source files to compile\\n\""
+      puts $fh_unix "  exit 0"
       puts $fh_unix "\}"
     } else {
       puts $fh_win "rem # None (no sources present)"

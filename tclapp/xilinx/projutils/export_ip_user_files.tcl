@@ -112,6 +112,7 @@ proc export_ip_user_files {args} {
   
   # no objects, return
   if { {} == $a_vars(sp_of_objects) } {
+    send_msg_id export_ip_user_files-Tcl-009 INFO "No IPs found in the project.\n"
     return
   }
 
