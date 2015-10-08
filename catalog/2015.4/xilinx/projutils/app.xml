@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added message to convert_ngc to indicate encrypted NGCs are not supported</revision_history>
+      <revision_history>support for single-step filelist for IES irun in default mode</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -16,7 +16,7 @@
         </proc>
         <proc>
           <name>export_bd_synth</name>
-          <summary>Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necesssary.</summary>
+          <summary>Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necessary.</summary>
         </proc>
         <proc>
           <name>export_ip_user_files</name>
