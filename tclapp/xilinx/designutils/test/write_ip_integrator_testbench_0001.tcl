@@ -46,5 +46,6 @@ close_project
 
 # Clean up the generated files from the script run
 file delete -force -- $myproj
+file delete -force -- add_wave_design_1.tcl
 
 return 0
