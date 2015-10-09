@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixed regressions for create_combined_mig_io_design and timing_report_to_verilog</revision_history>
+      <revision_history>Added report_clock_buffers. Improvements for convert_muxfx_to_luts, timing_report_to_verilog</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -141,6 +141,10 @@
         <proc>
           <name>report_cells_loc</name>
           <summary>report the location of cells matching a REF_NAME pattern</summary>
+        </proc>
+        <proc>
+          <name>report_clock_buffers</name>
+          <summary>Gathers clock buffer information and displays report</summary>
         </proc>
         <proc>
           <name>report_critical_hfn</name>
