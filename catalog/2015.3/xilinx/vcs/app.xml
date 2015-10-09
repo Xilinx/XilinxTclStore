@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>start from zero element while calculating file paths for BD to fix an issue on window</revision_history>
+      <revision_history>pass netlist file only when no test bench set for post-simulation</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

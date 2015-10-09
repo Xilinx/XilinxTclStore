@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for single-step filelist for IES irun in default mode</revision_history>
+      <revision_history>print info messsage in export simulation script when no simulation files present</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
