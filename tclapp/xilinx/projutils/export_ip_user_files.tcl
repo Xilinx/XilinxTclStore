@@ -112,7 +112,7 @@ proc export_ip_user_files {args} {
   
   # no objects, return
   if { {} == $a_vars(sp_of_objects) } {
-    send_msg_id export_ip_user_files-Tcl-009 INFO "No IPs found in the project.\n"
+    send_msg_id export_ip_user_files-Tcl-002 INFO "No IPs found in the project.\n"
     return
   }
 
@@ -371,7 +371,7 @@ proc xif_export_ip { obj } {
       }
       # delete repo file
       if { [catch {file delete -force $repo_file} _error] } {
-        send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove dynamic simulation file (${repo_file}): $_error\n"
+        send_msg_id export_ip_user_files-Tcl-003 INFO "Failed to remove dynamic simulation file (${repo_file}): $_error\n"
       } else {
         #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted dynamic file:$repo_file\n"
       }
@@ -383,7 +383,7 @@ proc xif_export_ip { obj } {
         set dir_files [glob -nocomplain -directory $dir *]
         if { [llength $dir_files] == 0 } {
           if { [catch {file delete -force $dir} _error] } {
-            send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove directory:($dir): $_error\n"
+            send_msg_id export_ip_user_files-Tcl-007 INFO "Failed to remove directory:($dir): $_error\n"
           } else {
             #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted directory:$dir\n"
           }
@@ -395,14 +395,14 @@ proc xif_export_ip { obj } {
   # if sync requested delete ip/<ip_instance> and sim_scipts/<ip_instance>
   if { $a_vars(b_sync) } {
     if { [catch {file delete -force $ip_inst_dir} _error] } {
-      send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove IP instance dirrectory:(${ip_inst_dir}): $_error\n"
+      send_msg_id export_ip_user_files-Tcl-008 INFO "Failed to remove IP instance dirrectory:(${ip_inst_dir}): $_error\n"
     } else {
       #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted IP instance directory:$ip_inst_dir\n"
     }
     # sim_scripts/<ip_instance> 
     set ip_inst_scripts_dir [file normalize [file join $a_vars(scripts_dir) $ip_name]]
     if { [catch {file delete -force $ip_inst_scripts_dir} _error] } {
-      send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove IP instance scripts dirrectory:(${ip_inst_scripts_dir}): $_error\n"
+      send_msg_id export_ip_user_files-Tcl-010 INFO "Failed to remove IP instance scripts dirrectory:(${ip_inst_scripts_dir}): $_error\n"
     } else {
       #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted IP instance scripts directory:$ip_inst_scripts_dir\n"
     }

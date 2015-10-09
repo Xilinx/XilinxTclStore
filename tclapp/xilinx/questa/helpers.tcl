@@ -1215,6 +1215,14 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
 
   # prepare command line args for fileset files
   if { [usf_is_fileset $target_obj] } {
+
+    # 851957 - if simulation and design source file tops are same (no testbench), skip adding simset files. Just pass the netlist above.
+    set src_fs_top [get_property top [current_fileset]]
+    set sim_fs_top [get_property top [get_filesets $a_sim_vars(s_simset)]]
+    if { $src_fs_top == $sim_fs_top } {
+      return $files
+    }
+
     # add additional files from simulation fileset
     set simset_files [get_files -compile_order sources -used_in synthesis_post -of_objects [get_filesets $a_sim_vars(s_simset)]]
     foreach file $simset_files {
