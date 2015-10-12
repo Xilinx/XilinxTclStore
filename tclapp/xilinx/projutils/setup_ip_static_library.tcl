@@ -567,11 +567,14 @@ proc isl_add_incl_file { } {
   # 4. populate static include files in <library>/include.h with file path information
   isl_populate_static_incl_files $uniq_static_incl_lib_files
 
-  # 5. iterate over all dynamic verilog header files if any and copy to static library dir (<library>/incl)
+  # 5. iterate over all static verilog header files if any and copy to other static library dir (<library>/incl)
+  isl_copy_static_include_files $data
+
+  # 6. iterate over all dynamic verilog header files if any and copy to static library dir (<library>/incl)
   set v_filelist [list]
   isl_copy_static_include_with_dynamic_header_files $data $static_incl_data $dynamic_incl_data v_filelist
 
-  # 6. iterate over all dynamic verilog header files if any and copy to static library dir (<library>/incl)
+  # 7. iterate over all dynamic verilog header files if any and copy to static library dir (<library>/incl)
   isl_update_static_include_with_dynamic_header_files $data $v_filelist
 } 
 
@@ -659,6 +662,133 @@ proc isl_populate_static_incl_files { uniq_static_incl_lib_files } {
     }
     puts $fh $file_path
     close $fh
+  }
+}
+
+proc isl_copy_static_include_files { data } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_isl_vars
+
+  # construct list of all static verilog headers
+  set static_vh_filelist [list]
+  set static_vh_libraries [list]
+  
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set file_str  [split $line {,}]
+    set library   [string trim [lindex $file_str 0]]
+    set file_path [string trim [lindex $file_str 1]]
+    set file_type [string tolower [string trim [lindex $file_str 2]]]
+    
+    if { {verilog header} == $file_type } {
+      lappend static_vh_filelist "$library#$file_path"
+      lappend static_vh_libraries "$library"
+    }
+  }
+
+  # iterate over the compile order data and for all non verilog header static libraries, copy the static verilog headers collected above
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set file_str  [split $line {,}]
+    set library   [string trim [lindex $file_str 0]]
+    set file_path [string trim [lindex $file_str 1]]
+    set filename  [file tail $file_path]
+    set file_type [string tolower [string trim [lindex $file_str 2]]]
+    
+    if { {verilog header} == $file_type } {
+      continue
+    }
+    
+    # work on only those libraries that were not in the static vh libraries
+    if { [lsearch $static_vh_libraries $library] != -1 } { continue }
+
+    # if include file exist, get it's current header list, close and then open for update (skip if header already exist, else copy it)
+    set incl_file [file normalize [file join $a_isl_vars(ipstatic_dir) $library "include.h"]]
+    if { [file exists $incl_file] } {
+      # check if the vh file already present
+      set fh_exist 0
+      if {[catch {open $incl_file r} fh_exist]} {
+        send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for append ($incl_file)\n"
+      } else {
+        set curr_data [read $fh_exist]
+        close $fh_exist
+        set curr_data [split $curr_data "\n"]
+
+        # collect current header files from existing include.h
+        set curr_vh_filelist [list]
+        foreach file $curr_data {
+          set file [string trim $file]
+          if { [string length $file] == 0 } { continue; }
+          set filename [file tail $file]
+          lappend curr_vh_filelist $filename
+        }
+
+        # open this file for update 
+        set fh_update 0
+        if {[catch {open $incl_file a} fh_update]} {
+          send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for append ($incl_file)\n"
+        } else {
+          # check if header already present, if not copy
+          foreach vh_file $static_vh_filelist {
+            set v_lib       [lindex [split $vh_file {#}] 0]
+            set v_file_path [lindex [split $vh_file {#}] 1]
+            set v_file_name [file tail $v_file_path]
+            if { [lsearch $curr_vh_filelist $v_file_name] == -1 } {
+              isl_copy_header $fh_update $v_lib $v_file_path $v_file_name $library
+            }
+          }
+          close $fh_update
+        }
+      }
+    } else {
+      # construct new include.h
+      set fh_new 0
+      if {[catch {open $incl_file w} fh_new]} {
+        send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for append ($incl_file)\n"
+        continue
+      }
+      foreach vh_file $static_vh_filelist {
+        set v_lib       [lindex [split $vh_file {#}] 0]
+        set v_file_path [lindex [split $vh_file {#}] 1]
+        set v_file_name [file tail $v_file_path]
+        # copy file
+        isl_copy_header $fh_new $v_lib $v_file_path $v_file_name $library
+      }
+      close $fh_new
+    }
+  }
+}
+
+proc isl_copy_header { fh v_lib v_file_path v_file_name library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_isl_vars
+
+  puts $fh "vh/$v_file_name"
+
+  set src_file_path [file normalize [file join $a_isl_vars(ipstatic_dir) $v_lib $v_file_path]]
+  set dst_dir [file normalize [file join $a_isl_vars(ipstatic_dir) $library "vh"]]
+
+  if { ![file exists $dst_dir] } {
+    if {[catch {file mkdir $dst_dir} error_msg] } {
+      send_msg_id setup_ip_static_library-Tcl-022 ERROR "failed to create the directory ($dst_dir)): $error_msg\n"
+      return
+    }
+  }
+
+  # copy header file to <library>/vh
+  set dst_file [file join $dst_dir $v_file_name]
+  if { ![file exists $dst_file] } {
+    if {[catch {file copy -force $src_file_path $dst_dir} error_msg] } {
+      send_msg_id setup_ip_static_library-Tcl-026 WARNING "Failed to copy file '$src_file_path' to '$dst_dir' : $error_msg\n"
+    }
   }
 }
 
