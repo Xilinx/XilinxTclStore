@@ -1407,6 +1407,28 @@ proc usf_write_shell_step_fn { fh } {
   puts $fh "\}"
 }
 
+proc usf_resolve_uut_name_with_scope { uut_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $uut_arg uut
+  set uut [string map {\\ /} $uut]
+  # prepend slash
+  if { ![string match "/*" $uut] } {
+    set uut "/$uut"
+  }
+  # remove trailing *
+  if { [string match "*\*" $uut] } {
+    set uut [string trimright $uut {*}]
+  }
+  # remove trailing /
+  if { [string match "*/" $uut] } {
+    set uut [string trimright $uut {/}]
+  }
+  return $uut
+}
+
 proc usf_resolve_uut_name { uut_arg } {
   # Summary:
   # Argument Usage:
