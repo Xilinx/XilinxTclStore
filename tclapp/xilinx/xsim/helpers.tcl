@@ -1414,6 +1414,7 @@ proc usf_resolve_uut_name_with_scope { uut_arg } {
 
   upvar $uut_arg uut
   set uut [string map {\\ /} $uut]
+
   # prepend slash
   if { ![string match "/*" $uut] } {
     set uut "/$uut"

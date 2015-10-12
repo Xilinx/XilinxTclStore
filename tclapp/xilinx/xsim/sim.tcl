@@ -1095,7 +1095,9 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     if { {} == $uut } {
       set uut "/$top/uut"
     }
+
     set uut_name [::tclapp::xilinx::xsim::usf_resolve_uut_name_with_scope uut]
+
     puts $fh_scr "set curr_xsim_wave_scope \[current_scope\]"
     puts $fh_scr "current_scope $uut_name"
     if { $b_post_sim } {
