@@ -233,7 +233,7 @@ proc isl_export_ip { obj } {
       }
     }
     lappend l_static_files $src_ip_file
-    set parent_comp_file [get_property parent_composite_file [lindex [get_files -all [list "$src_ip_file"]] 0]]
+    set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$src_ip_file"]] 0]]
     if { {} == $parent_comp_file } {
       set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_isl_vars(ipstatic_dir)]
     } else {
@@ -395,7 +395,7 @@ proc isl_get_ip_name { src_file } {
 
   set props [list_property $file_obj]
   if { [lsearch $props parent_composite_file] != -1 } {
-    set ip [get_property parent_composite_file $file_obj]
+    set ip [get_property parent_composite_file -quiet $file_obj]
   }
   return $ip
 }

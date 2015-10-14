@@ -305,7 +305,7 @@ proc xif_export_ip { obj } {
       lappend l_static_files $src_ip_file
 
       # get the parent composite file for this static file
-      set parent_comp_file [get_property parent_composite_file [lindex [get_files -all [list "$src_ip_file"]] 0]]
+      set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$src_ip_file"]] 0]]
 
       # calculate destination path
       set ipstatic_file_path [xif_find_ipstatic_file_path $src_ip_file $parent_comp_file]
@@ -507,7 +507,7 @@ proc xif_is_bd_ip_file { src_file bd_file_arg } {
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
     }
-    set comp_file [get_property parent_composite_file $file_obj]
+    set comp_file [get_property parent_composite_file -quiet $file_obj]
     if { {.bd} == [file extension $comp_file] } {
       set b_is_bd 1
       set bd_file $comp_file
@@ -713,9 +713,9 @@ proc xif_find_ipstatic_file_path { src_ip_file parent_comp_file } {
   variable a_vars
   set dest_file {}
   set filename [file tail $src_ip_file]
-  set file_obj [list [get_files -quiet -all [list "$src_ip_file"]] 0]
+  set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
   if { {} == $file_obj } {
-    set file_obj [list [get_files -quiet -all $filename] 0]
+    set file_obj [lindex [get_files -quiet -all $filename] 0]
   }
   if { {} == $file_obj } {
     return $dest_file
@@ -1317,7 +1317,7 @@ proc xif_get_dynamic_sim_file { ip_name src_file } {
     set file_obj [lindex [get_files -all -quiet [list "$src_file"]] 0]
     set xcix_file [string trim [get_property core_container $file_obj]]
     if { {} == $xcix_file } {
-      set comp_file [get_property parent_composite_file $file_obj]
+      set comp_file [get_property parent_composite_file -quiet $file_obj]
       set ip_name [file root [file tail $comp_file]]
     } else {
       set ip_name [file root [file tail $xcix_file]]

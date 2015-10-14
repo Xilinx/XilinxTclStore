@@ -560,7 +560,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
       set dir "[usf_resolve_file_path $dir]"
      } else {
        if { $ref_dir } {
-        set dir "./[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
       } else {
         set dir "[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
       }
@@ -1720,7 +1720,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
           if { $ref_dir } {
-           set incl_file_path "./[usf_get_relative_file_path $incl_file_path $dir]"
+           set incl_file_path "[usf_get_relative_file_path $incl_file_path $dir]"
           }
         }
         lappend incl_file_paths $incl_file_path
@@ -1762,7 +1762,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[usf_resolve_file_path $dir]"
     } else {
-      set dir "./[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      set dir "[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
     }
     lappend incl_dirs $dir
   }
@@ -2429,7 +2429,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   if {[regexp -nocase {^\$ref_dir} $src_file]} {
     set b_add_ref 1
     set src_file [string range $src_file 9 end]
-    set src_file "./$src_file"
+    set src_file "$src_file"
   }
   #puts src_file=$src_file
   set filename [file tail $src_file]
@@ -2477,7 +2477,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
         set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
       } else {
         # get the parent composite file for this static file
-        set parent_comp_file [get_property parent_composite_file [lindex [get_files -all [list "$ip_static_file"]] 0]]
+        set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
 
         # calculate destination path
         set dst_cip_file [usf_find_ipstatic_file_path $ip_static_file $parent_comp_file]
@@ -2518,7 +2518,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
       if { $b_add_ref } {
         set dst_cip_file "\$ref_dir/[usf_get_relative_file_path $dst_cip_file $launch_dir]"
       } else {
-        set dst_cip_file "./[usf_get_relative_file_path $dst_cip_file $launch_dir]"
+        set dst_cip_file "[usf_get_relative_file_path $dst_cip_file $launch_dir]"
       }
     }
     if { $b_wrap_in_quotes } {
@@ -2552,7 +2552,7 @@ proc usf_find_top_level_ip_file { src_file } {
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
     }
-    set comp_file [get_property parent_composite_file $file_obj]
+    set comp_file [get_property parent_composite_file -quiet $file_obj]
     #puts "  +$comp_file"
   }
   #puts "  +[file root [file tail $comp_file]]"
@@ -2578,7 +2578,7 @@ proc usf_is_bd_file { src_file bd_file_arg } {
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
     }
-    set comp_file [get_property parent_composite_file $file_obj]
+    set comp_file [get_property parent_composite_file -quiet $file_obj]
   }
 
   # got top-most file whose parent-comp is empty ... is this BD?
@@ -2605,7 +2605,7 @@ proc usf_fetch_ip_static_file { file vh_file_obj } {
   #puts src_ip_file=$src_ip_file
 
   # get parent composite file path dir
-  set comp_file [get_property parent_composite_file $vh_file_obj] 
+  set comp_file [get_property parent_composite_file -quiet $vh_file_obj] 
   set comp_file_dir [file dirname $comp_file]
   set comp_file_dir [string map {\\ /} $comp_file_dir]
   # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2
@@ -2704,7 +2704,7 @@ proc usf_get_dynamic_sim_file_core_container { src_file } {
   set xcix_file [get_property core_container $file_obj]
   set core_name [file root [file tail $xcix_file]]
 
-  set parent_comp_file      [get_property parent_composite_file $file_obj]
+  set parent_comp_file      [get_property parent_composite_file -quiet $file_obj]
   set parent_comp_file_type [get_property file_type [lindex [get_files -all [list "$parent_comp_file"]] 0]]
 
   set ip_dir {}
@@ -2770,7 +2770,7 @@ proc usf_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
     }
-    set comp_file [get_property parent_composite_file $file_obj]
+    set comp_file [get_property parent_composite_file -quiet $file_obj]
     #puts "+comp_file=$comp_file"
   }
   set top_ip_name [file root [file tail $comp_file]]
@@ -2871,9 +2871,9 @@ proc usf_find_ipstatic_file_path { src_ip_file parent_comp_file } {
   variable a_sim_vars
   set dest_file {}
   set filename [file tail $src_ip_file]
-  set file_obj [list [get_files -quiet -all [list "$src_ip_file"]] 0]
+  set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
   if { {} == $file_obj } {
-    set file_obj [list [get_files -quiet -all $filename] 0]
+    set file_obj [lindex [get_files -quiet -all $filename] 0]
   }
   if { {} == $file_obj } {
     return $dest_file
