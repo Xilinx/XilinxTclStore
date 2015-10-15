@@ -63,8 +63,8 @@
     <app>
       <name>myapp6</name>
       <company>mycompany</company>
-      <commit_id>87342afdbce8b0bbbea4eb5ab0e67bfbf24ec35e</commit_id>
-      <revision>2.12</revision>
+      <commit_id>60e42a35c5ed8ef5f941f914b925e202ed8e8b9c</commit_id>
+      <revision>2.14</revision>
     </app>
     <app>
       <name>projutils</name>
