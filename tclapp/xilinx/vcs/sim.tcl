@@ -551,6 +551,7 @@ proc usf_vcs_write_elaborate_script {} {
   set mode $::tclapp::xilinx::vcs::a_sim_vars(s_mode)
   set type $::tclapp::xilinx::vcs::a_sim_vars(s_type)
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
+  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
@@ -582,14 +583,25 @@ proc usf_vcs_write_elaborate_script {} {
   }
 
   if { ({post-synthesis} == $mode) || ({post-implementation} == $mode) } {
-    lappend arg_list "-liblist"
-    if { {functional} == $type } {
-      lappend arg_list "unisims_ver"
-    } elseif { {timing} == $type } {
-      lappend arg_list "simprims_ver"
+    if { {Verilog} == $target_lang } {
+      lappend arg_list "-liblist"
+      if { {functional} == $type } {
+        lappend arg_list "unisims_ver"
+      } elseif { {timing} == $type } {
+        lappend arg_list "simprims_ver"
+      }
+      lappend arg_list "-liblist"
+      lappend arg_list "secureip"
+    } elseif { {VHDL} == $target_lang } {
+      if { {functional} == $type } {
+        # not required
+      } elseif { {timing} == $type } {
+        lappend arg_list "-liblist"
+        lappend arg_list "simprims_ver"
+        lappend arg_list "-liblist"
+        lappend arg_list "secureip"
+      }
     }
-    lappend arg_list "-liblist"
-    lappend arg_list "secureip"
   }
 
   set more_elab_options [string trim [get_property "VCS.ELABORATE.VCS.MORE_OPTIONS" $fs_obj]]

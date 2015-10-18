@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::vcs 2.66 [list source [file join $dir vcs.tcl]]
+package ifneeded ::tclapp::xilinx::vcs 2.67 [list source [file join $dir vcs.tcl]]

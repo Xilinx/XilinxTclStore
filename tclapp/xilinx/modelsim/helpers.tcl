@@ -1039,7 +1039,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths]] {
     if { [lsearch -exact $uniq_dirs $dir] == -1 } {
       lappend uniq_dirs $dir
-      lappend l_incl_dirs_opts "+incdir+\"$dir\""
+      lappend l_incl_dirs_opts "\"+incdir+$dir\""
     }
   }
 
@@ -1172,7 +1172,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths]] {
     if { [lsearch -exact $uniq_dirs $dir] == -1 } {
       lappend uniq_dirs $dir
-      lappend l_incl_dirs_opts "+incdir+\"$dir\""
+      lappend l_incl_dirs_opts "\"+incdir+$dir\""
     }
   }
 
