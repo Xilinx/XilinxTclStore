@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>removed prefixed dot slash from the relative for fix drive letter path on windows</revision_history>
+      <revision_history>wrap include dir file path and incdir in quotes</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

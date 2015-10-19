@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated a proc</revision_history>
+      <revision_history>Create revision history</revision_history>
       <name>myapp6</name>
       <company>mycompany</company>
       <company_display>MY COMPANY</company_display>
