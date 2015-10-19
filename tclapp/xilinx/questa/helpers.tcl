@@ -586,7 +586,7 @@ proc usf_get_top_library { } {
   #    than this default, return the compile order file library
   if { {} != $default_top_library } {
     # manual compile order, we just return the file set's top
-    if { manual_compile_order && ({} != $fs_top_library) } {
+    if { $manual_compile_order && ({} != $fs_top_library) } {
       return $fs_top_library
     }
     # compile order library is set and is different then the default
@@ -603,7 +603,7 @@ proc usf_get_top_library { } {
   #    than this default, return the compile order file library
   if { {} != $fs_top_library } {
     # manual compile order, we just return the file set's top
-    if { manual_compile_order } {
+    if { $manual_compile_order } {
       return $fs_top_library
     }
     # compile order library is set and is different then the fileset
