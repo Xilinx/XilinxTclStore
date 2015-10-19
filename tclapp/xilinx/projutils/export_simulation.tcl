@@ -3624,7 +3624,7 @@ proc xps_get_top_library { } {
   set tcl_obj $a_sim_vars(sp_tcl_obj)
 
   set src_mgmt_mode         [get_property "SOURCE_MGMT_MODE" [current_project]]
-  set manual_compile_order  [expr $src_mgmt_mode != "All"]
+  set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
 
   # was -of_objects <ip> specified?, fetch current fileset
   if { [xps_is_ip $tcl_obj] } {
