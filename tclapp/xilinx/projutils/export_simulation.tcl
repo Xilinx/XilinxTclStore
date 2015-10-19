@@ -3623,6 +3623,9 @@ proc xps_get_top_library { } {
 
   set tcl_obj $a_sim_vars(sp_tcl_obj)
 
+  set src_mgmt_mode         [get_property "SOURCE_MGMT_MODE" [current_project]]
+  set manual_compile_order  [expr $src_mgmt_mode != "All"]
+
   # was -of_objects <ip> specified?, fetch current fileset
   if { [xps_is_ip $tcl_obj] } {
     set tcl_obj $a_sim_vars(fs_obj)
@@ -3647,6 +3650,10 @@ proc xps_get_top_library { } {
   # 4. if default top library is set and the compile order file library is different
   #    than this default, return the compile order file library
   if { {} != $default_top_library } {
+    # manual compile order, we just return the file set's top
+    if { manual_compile_order && ({} != $fs_top_library) } {
+      return $fs_top_library
+    }
     # compile order library is set and is different then the default
     if { ({} != $co_top_library) && ($default_top_library != $co_top_library) } {
       return $co_top_library
@@ -3660,6 +3667,10 @@ proc xps_get_top_library { } {
   #    if fileset top library is set and the compile order file library is different
   #    than this default, return the compile order file library
   if { {} != $fileset_top_library } {
+    # manual compile order, we just return the file set's top
+    if { manual_compile_order } {
+      return $fs_top_library
+    }
     # compile order library is set and is different then the fileset
     if { ({} != $co_top_library) && ($fileset_top_library != $co_top_library) } {
       return $co_top_library
