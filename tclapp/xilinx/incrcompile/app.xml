@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixing issues with arguments of procs</revision_history>
+      <revision_history>1.1</revision_history>
       <name>incrcompile</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -12,8 +12,15 @@
       <procs>
         <proc>
           <name>analyze_critical_path</name>
-          <summary>highlight reused pins of given timing paths given by &apos;get_timing_paths&apos; command 
-Example: analyze_critical_path [get_timing_paths -max_paths 5] result1</summary>
+          <summary>highlight reused pins of given timing paths given by &apos;get_timing_paths&apos; command &#10;Example: analyze_critical_path [get_timing_paths -max_paths 5] result1</summary>
+        </proc>
+        <proc>
+          <name>disable_auto_incremental_compile</name>
+          <summary>Disables the auto detection and enablement of incremental flow. </summary>
+        </proc>
+        <proc>
+          <name>enable_auto_incremental_compile</name>
+          <summary>Enables the auto detection and enablement of incremental flow. </summary>
         </proc>
         <proc>
           <name>get_non_reused</name>
@@ -21,7 +28,7 @@ Example: analyze_critical_path [get_timing_paths -max_paths 5] result1</summary>
         </proc>
         <proc>
           <name>get_reused</name>
-          <summary>get reused objects</summary>
+          <summary/>
         </proc>
         <proc>
           <name>highlight_non_reused</name>
