@@ -8,5 +8,5 @@
 
   Example:
   
-     set mem [::tclapp::xilinx::designutils::get_pid_mem <pid>]
+     set mem [::xilinx::designutils::get_pid_mem <pid>]
 

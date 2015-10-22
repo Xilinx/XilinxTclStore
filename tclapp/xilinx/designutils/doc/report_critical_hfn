@@ -8,6 +8,6 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::report_critical_hfn
-     ::tclapp::xilinx::designutils::report_critical_hfn slack 1000
+     ::xilinx::designutils::report_critical_hfn
+     ::xilinx::designutils::report_critical_hfn slack 1000
 

@@ -1,3 +1,6 @@
+
+source [file join  [file dirname [info script]] common.tcl]
+
 namespace eval ::tclapp::xilinx::designutils {
 
     # Allow Tcl to find tclIndex
@@ -8,4 +11,4 @@ namespace eval ::tclapp::xilinx::designutils {
 
 }
 
-package provide ::tclapp::xilinx::designutils 1.20
+package provide ::tclapp::xilinx::designutils 1.21

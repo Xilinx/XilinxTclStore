@@ -9,4 +9,4 @@
   Example:
   
     The following example replicate the registers to limit the register fanout to 150:
-     ::tclapp::xilinx::designutils::replicate_high_fanout_registers 150
+     ::xilinx::designutils::replicate_high_fanout_registers 150

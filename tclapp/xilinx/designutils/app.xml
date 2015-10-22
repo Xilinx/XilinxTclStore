@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added report_clock_buffers. Improvements for convert_muxfx_to_luts, timing_report_to_verilog</revision_history>
+      <revision_history>Updated get_sll_nets and get_sll_nodes for UltraScale support. Minor improvements to get_inter_slr_nets.</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -60,7 +60,7 @@
         </proc>
         <proc>
           <name>get_inter_slr_nets</name>
-          <summary>get all the inter-SLR nets</summary>
+          <summary>get all the inter-SLR nets (runtime intensive)</summary>
         </proc>
         <proc>
           <name>get_leaf_cells</name>
@@ -76,11 +76,11 @@
         </proc>
         <proc>
           <name>get_sll_nets</name>
-          <summary>get routed inter-SLR nets that have a VLONG12 cost and over 100 wire shapes on at least one of its nodes</summary>
+          <summary>get the SLL nets on a routed design</summary>
         </proc>
         <proc>
           <name>get_sll_nodes</name>
-          <summary>returns all the sll node objects in the device for matching SLRs</summary>
+          <summary>get the SLL nodes on a routed design</summary>
         </proc>
         <proc>
           <name>gets_regexp</name>

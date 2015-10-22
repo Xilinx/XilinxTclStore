@@ -8,5 +8,5 @@
 
   Example:
   
-     set mem [::tclapp::xilinx::designutils::get_mem]
+     set mem [::xilinx::designutils::get_mem]
 

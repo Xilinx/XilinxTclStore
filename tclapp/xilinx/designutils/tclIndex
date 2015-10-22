@@ -24,7 +24,7 @@ set auto_index(::tclapp::xilinx::designutils::get_leaf_cells) [list source [file
 set auto_index(::tclapp::xilinx::designutils::get_mem) [list source [file join $dir get_pid_mem.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_pid_mem) [list source [file join $dir get_pid_mem.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_sll_nets) [list source [file join $dir get_sll_nets.tcl]]
-set auto_index(::tclapp::xilinx::designutils::get_sll_nodes) [list source [file join $dir get_sll_nodes.tcl]]
+set auto_index(::tclapp::xilinx::designutils::get_sll_nodes) [list source [file join $dir get_sll_nets.tcl]]
 set auto_index(::tclapp::xilinx::designutils::gets_regexp) [list source [file join $dir read_file_regexp.tcl]]
 set auto_index(::tclapp::xilinx::designutils::highlight_enable_signal_sites) [list source [file join $dir highlight_enable_signal_sites.tcl]]
 set auto_index(::tclapp::xilinx::designutils::insert_buffer) [list source [file join $dir insert_buffer.tcl]]

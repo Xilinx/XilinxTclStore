@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::source_path run.tcl $auto_path
+     ::xilinx::designutils::source_path run.tcl $auto_path
 

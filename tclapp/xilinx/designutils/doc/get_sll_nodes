@@ -2,11 +2,11 @@
 
   Description: 
 
-     Returns all the sll node objects in the device for matching SLRs.
+     Returns all the SLL nodes. Support 7-Serie and UltraScale devices.
 
-     This command must be run on an implemented design.
+     This command must be run on a routed design.
 
   Example:
   
-     set nodes [::tclapp::xilinx::designutils::get_sll_nodes]
+     set nodes [::xilinx::designutils::get_sll_nodes]
 

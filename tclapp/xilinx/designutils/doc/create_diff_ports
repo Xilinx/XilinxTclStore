@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::create_diff_ports
+     ::xilinx::designutils::create_diff_ports
 

@@ -10,11 +10,11 @@
     The following example creates a Verilog structural netlist using the -of_objects option and
     the get_timing_paths command for the three paths with the worst calculated slack.
 
-      ::tclapp::xilinx::designutils::timing_report_to_verilog -of_objects [get_timing_paths -max_paths 3]
+      ::xilinx::designutils::timing_report_to_verilog -of_objects [get_timing_paths -max_paths 3]
 
     This next example creates a Verilog structural netlist based on the two timing paths
     with the worst calculated slack parsed directly from the timing report.
 
-      ::tclapp::xilinx::designutils::timing_report_to_verilog -filename xlnx_design -report_string [report_timing -input_pins -max_paths 2 -return_string]
+      ::xilinx::designutils::timing_report_to_verilog -filename xlnx_design -report_string [report_timing -input_pins -max_paths 2 -return_string]
 
     *NOTE* The report_timing string requires the -input_pins and -return_string switches for proper processing of the report.

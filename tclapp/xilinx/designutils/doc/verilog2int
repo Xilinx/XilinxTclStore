@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::verilog2int <verilogNumber>
+     ::xilinx::designutils::verilog2int <verilogNumber>
 

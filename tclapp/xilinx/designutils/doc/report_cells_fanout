@@ -8,6 +8,6 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::report_cells_fanout
-     ::tclapp::xilinx::designutils::report_cells_fanout LUT*
+     ::xilinx::designutils::report_cells_fanout
+     ::xilinx::designutils::report_cells_fanout LUT*
 

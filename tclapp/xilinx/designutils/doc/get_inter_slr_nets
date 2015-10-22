@@ -4,9 +4,15 @@
 
      Get all the inter-SLR nets.
 
-     This command must be run on a placed design.
+     This command must be run on a placed or routed design.
+     
+     This command is runtime intensive and can take several hours to complete
+     on a very large design. 
+     
+     If the design is routed, the command ::xilinx::designutils::get_sll_nets 
+     should be used instead as it is much faster.
 
   Example:
   
-     set nets [::tclapp::xilinx::designutils::get_inter_slr_nets]
+     set nets [::xilinx::designutils::get_inter_slr_nets]
 

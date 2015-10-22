@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::insert_buffer_chain -net [get_nets ingressLoop[0].ingressFifo/reset_IBUF] -buffers {BUFG BUFH}
-     ::tclapp::xilinx::designutils::insert_buffer_chain -pin [get_nets ingressLoop[0].ingressFifo/O] -buffers {BUFG BUFH}
+     ::xilinx::designutils::insert_buffer_chain -net [get_nets ingressLoop[0].ingressFifo/reset_IBUF] -buffers {BUFG BUFH}
+     ::xilinx::designutils::insert_buffer_chain -pin [get_nets ingressLoop[0].ingressFifo/O] -buffers {BUFG BUFH}

@@ -6,4 +6,4 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::report_clock_buffers
+     ::xilinx::designutils::report_clock_buffers

@@ -6,5 +6,5 @@
 
   Example:
   
-     set host [::tclapp::xilinx::designutils::get_host_platform]
+     set host [::xilinx::designutils::get_host_platform]
 

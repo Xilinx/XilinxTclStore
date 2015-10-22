@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::report_all_primitives
+     ::xilinx::designutils::report_all_primitives
 

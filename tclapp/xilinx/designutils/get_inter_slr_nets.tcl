@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::get_inter_slr_nets {} {
-  # Summary : get all the inter-SLR nets
+  # Summary : get all the inter-SLR nets (runtime intensive)
 
   # Argument Usage:
 
@@ -15,7 +15,7 @@ proc ::tclapp::xilinx::designutils::get_inter_slr_nets {} {
   # Categories: xilinxtclstore, designutils
 
   # returns all 
-  set nets [get_nets -hier]
+  set nets [get_nets -hier -top_net_of_hierarchical_group -filter {(TYPE != POWER) && (TYPE != GROUND)}]
   set netCrossing [list]
   foreach net $nets {
     # Query all the sites of all the placed calls attached to this net

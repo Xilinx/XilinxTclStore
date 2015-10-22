@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::write_template -verilog -return_string
+     ::xilinx::designutils::write_template -verilog -return_string
 
