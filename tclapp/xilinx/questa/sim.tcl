@@ -742,10 +742,21 @@ proc usf_questa_get_elaboration_cmdline {} {
     lappend arg_list "+acc"
   }
 
-  if { ({post-implementation} == $::tclapp::xilinx::questa::a_sim_vars(s_mode)) && ({timing} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) } {
+  set path_delay 0
+  set int_delay 0
+  set tpd_prop "TRANSPORT_PATH_DELAY"
+  set tid_prop "TRANSPORT_INT_DELAY"
+  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+    set path_delay [get_property $tpd_prop $fs_obj]
+  }
+  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+    set int_delay [get_property $tid_prop $fs_obj]
+  }
+
+  if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
     lappend arg_list "+transport_int_delays"
-    lappend arg_list "+pulse_int_e/0"
-    lappend arg_list "+pulse_int_r/0"
+    lappend arg_list "+pulse_r/$path_delay"
+    lappend arg_list "+pulse_int_r/$int_delay"
   }
 
   set vhdl_generics [list]
