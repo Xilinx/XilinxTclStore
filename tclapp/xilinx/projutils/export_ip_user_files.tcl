@@ -394,25 +394,27 @@ proc xif_export_ip { obj } {
 
   # if sync requested delete ip/<ip_instance> and sim_scipts/<ip_instance>
   if { $a_vars(b_sync) } {
-    if { [catch {file delete -force $ip_inst_dir} _error] } {
-      send_msg_id export_ip_user_files-Tcl-008 INFO "Failed to remove IP instance dirrectory:(${ip_inst_dir}): $_error\n"
-    } else {
-      #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted IP instance directory:$ip_inst_dir\n"
+    xif_delete_ip_inst_dir $ip_inst_dir $ip_name
+
+    # delete core-container ip inst dir
+    foreach sim_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
+      if { [lsearch $l_static_files $sim_file] != -1 } { continue }
+      if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
+      set file $sim_file
+      if { $b_container } {
+        set ip_name [xif_get_dynamic_core_container_ip_name $sim_file $ip_name]
+        set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
+        xif_delete_ip_inst_dir $ip_inst_dir $ip_name
+      }
     }
-    # sim_scripts/<ip_instance> 
-    set ip_inst_scripts_dir [file normalize [file join $a_vars(scripts_dir) $ip_name]]
-    if { [catch {file delete -force $ip_inst_scripts_dir} _error] } {
-      send_msg_id export_ip_user_files-Tcl-010 INFO "Failed to remove IP instance scripts dirrectory:(${ip_inst_scripts_dir}): $_error\n"
-    } else {
-      #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted IP instance scripts directory:$ip_inst_scripts_dir\n"
-    }
+
     # delete sim_scripts, if empty
     if { [file isdirectory $a_vars(scripts_dir)] } {
       set sim_script_dir_files [glob -nocomplain -directory $a_vars(scripts_dir) *]
       #puts sim_script_dir_files=$sim_script_dir_files
       if { [llength $sim_script_dir_files] == 0 } {
         if { [catch {file delete -force $a_vars(scripts_dir)} _error] } {
-          send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove sim scripts dirrectory:($a_vars(scripts_dir)): $_error\n"
+          send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove sim scripts directory:($a_vars(scripts_dir)): $_error\n"
         } else {
           #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted sim scripts directory:$a_vars(scripts_dir)\n"
         }
@@ -428,6 +430,8 @@ proc xif_export_ip { obj } {
     if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
     set file $sim_file
     if { $b_container } {
+      set ip_name [xif_get_dynamic_core_container_ip_name $sim_file $ip_name]
+      set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
       if { $a_vars(b_force) } {
         set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $sim_file]
       } else {
@@ -464,6 +468,41 @@ proc xif_export_ip { obj } {
   xif_export_mem_init_files_for_ip $obj
 
   return 0
+}
+
+proc xif_delete_ip_inst_dir { dir ip_name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  if { [catch {file delete -force $dir} _error] } {
+    send_msg_id export_ip_user_files-Tcl-008 INFO "Failed to remove IP instance directory:(${dir}): $_error\n"
+  } else {
+    #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted IP instance directory:$dir\n"
+  }
+
+  # sim_scripts/<ip_instance> 
+  set ip_inst_scripts_dir [file normalize [file join $a_vars(scripts_dir) $ip_name]]
+  if { [catch {file delete -force $ip_inst_scripts_dir} _error] } {
+    send_msg_id export_ip_user_files-Tcl-010 INFO "Failed to remove IP instance scripts directory:(${ip_inst_scripts_dir}): $_error\n"
+  } else {
+    #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted IP instance scripts directory:$ip_inst_scripts_dir\n"
+  }
+}
+
+proc xif_get_dynamic_core_container_ip_name { src_file ip_name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
+  set xcix_file [get_property core_container $file_obj]
+  set core_name [file root [file tail $xcix_file]]
+  if { {} != $core_name } {
+    return $core_name
+  }
+  return $ip_name
 }
 
 proc xif_get_sub_file_path { src_file_path dir_path_to_remove } {

@@ -549,9 +549,11 @@ proc usf_vcs_write_elaborate_script {} {
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set mode $::tclapp::xilinx::vcs::a_sim_vars(s_mode)
+  set sim_flow $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow)
   set type $::tclapp::xilinx::vcs::a_sim_vars(s_type)
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
   set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
@@ -572,8 +574,20 @@ proc usf_vcs_write_elaborate_script {} {
     lappend arg_list {-debug_pp}
   }
   set arg_list [linsert $arg_list end "-t" "ps" "-licqueue"]
-  if { ({post-implementation} == $mode) && ({timing} == $type) } {
-    set arg_list [linsert $arg_list end "+pulse_r/100"]
+
+  set path_delay 0
+  set int_delay 0
+  set tpd_prop "TRANSPORT_PATH_DELAY"
+  set tid_prop "TRANSPORT_INT_DELAY"
+  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+    set path_delay [get_property $tpd_prop $fs_obj]
+  }
+  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+    set int_delay [get_property $tid_prop $fs_obj]
+  }
+
+  if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
+    set arg_list [linsert $arg_list end "+pulse_r/$path_delay +pulse_int_r/$int_delay"]
   }
   set arg_list [linsert $arg_list end "-l" "elaborate.log"]
   if { [get_property 32bit $fs_obj] } {

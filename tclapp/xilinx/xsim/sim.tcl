@@ -915,11 +915,22 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   # snapshot
   lappend args_list "--snapshot $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)"
 
+  set path_delay 0
+  set int_delay 0
+  set tpd_prop "TRANSPORT_PATH_DELAY"
+  set tid_prop "TRANSPORT_INT_DELAY"
+  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+    set path_delay [get_property $tpd_prop $fs_obj]
+  }
+  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+    set int_delay [get_property $tid_prop $fs_obj]
+  }
+
   # avoid pulse swallowing for timing
   if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
     lappend args_list "-transport_int_delays"
-    lappend args_list "-pulse_r 0"
-    lappend args_list "-pulse_int_r 0"
+    lappend args_list "-pulse_r $path_delay"
+    lappend args_list "-pulse_int_r $int_delay"
   }
 
   # add top's

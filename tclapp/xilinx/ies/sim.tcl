@@ -554,9 +554,22 @@ proc usf_ies_write_elaborate_script {} {
   set tool "ncelab"
   set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
   set arg_list [list "-relax -access +rwc"]
-  if { ({post-implementation} == $::tclapp::xilinx::ies::a_sim_vars(s_mode)) && ({timing} == $::tclapp::xilinx::ies::a_sim_vars(s_type)) } {
-    set arg_list [linsert $arg_list end "-pulse_r 100"]
+
+  set path_delay 0
+  set int_delay 0
+  set tpd_prop "TRANSPORT_PATH_DELAY"
+  set tid_prop "TRANSPORT_INT_DELAY"
+  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+    set path_delay [get_property $tpd_prop $fs_obj]
   }
+  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+    set int_delay [get_property $tid_prop $fs_obj]
+  }
+
+  if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
+    set arg_list [linsert $arg_list end "-pulse_r $path_delay -pulse_int_r $int_delay"]
+  }
+
   set arg_list [linsert $arg_list end "-messages -logfile elaborate.log"]
 
   if { [get_property 32bit $fs_obj] } {
