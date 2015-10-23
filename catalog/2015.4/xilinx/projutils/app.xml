@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>extract core-container dynamic files by setting target inst dir path using core_container ip name</revision_history>
+      <revision_history>wrap incdir with include dir path in quotes for ModelSim and Questa flows</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
