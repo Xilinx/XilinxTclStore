@@ -887,7 +887,11 @@ proc xps_get_files { simulator launch_dir } {
     }
     if { [lsearch -exact $uniq_dirs $dir] == -1 } {
       lappend uniq_dirs $dir
-      lappend l_incl_dirs_opts "+incdir+\"$dir\""
+      if { ({questa} == $simulator) || ({modelsim} == $simulator) } {
+        lappend l_incl_dirs_opts "\"+incdir+$dir\""
+      } else {
+        lappend l_incl_dirs_opts "+incdir+\"$dir\""
+      }
     }
   }
   if { [xps_is_fileset $target_obj] } {
@@ -2355,7 +2359,7 @@ proc xps_write_single_step { simulator fh_unix launch_dir srcs_dir } {
       foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir $prefix_ref_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
         if { [lsearch -exact $uniq_dirs $dir] == -1 } {
           lappend uniq_dirs $dir
-          lappend arg_list "+incdir+\"$dir\""
+          lappend arg_list "\"+incdir+$dir\""
         }
       }
       set cmd_str [join $arg_list " \\\n       "]
@@ -3587,7 +3591,11 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
         }
         if { [lsearch -exact $uniq_dirs $dir] == -1 } {
           lappend uniq_dirs $dir
-          lappend opts "+incdir+\"$dir\""
+          if { ({questa} == $simulator) || ({modelsim} == $simulator) } {
+            lappend opts "\"+incdir+$dir\""
+          } else {
+            lappend opts "+incdir+\"$dir\""
+          }
         }
       }
     }
