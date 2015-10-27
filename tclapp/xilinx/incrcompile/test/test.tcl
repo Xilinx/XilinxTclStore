@@ -26,6 +26,8 @@ source -notrace [file join $script_dir get_non_reused.tcl]
 source -notrace [file join $script_dir highlight_reused.tcl]
 source -notrace [file join $script_dir highlight_non_reused.tcl]
 source -notrace [file join $script_dir analyze_critical_path.tcl]
+source -notrace [file join $script_dir enable_auto_incremental_compile.tcl]
+source -notrace [file join $script_dir disable_auto_incremental_compile.tcl]
 
 # Uninstall the app if it was not already installed when starting the script
 if {[lsearch -exact $listInstalledApps $appName] == -1} {
