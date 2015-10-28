@@ -8,10 +8,10 @@ proc ::tclapp::xilinx::incrcompile::enable_auto_incremental_compile { args } {
   # Summary : Enables the auto detection and enablement of incremental flow. 
 
   # Argument Usage:
-  # [-fixed <arg>]: Usage information
-  # [-lastRun]: Usage information
-  # [-bestWNS]: Usage information
-  # [-bestTNS]: Usage information
+  # [-fixed <arg>]: <arg> run's routed (or placed) checkpoint  will be used a reference checkpoint for subsequent incremental runs
+  # [-lastRun]: last modified run's routed (or placed) checkpoint  will be used a reference checkpoint for subsequent incremental runs
+  # [-bestWNS]: best WNS runs's routed (or placed) checkpoint will be used as reference checkpoint for subsequent incremental runs
+  # [-bestTNS]: best TNS run's routed (or placed) checkpoint will be used as reference checkpoint for subsequent incremental runs 
   # [-usage]: Usage information
 
   # Return Value:
@@ -20,9 +20,9 @@ proc ::tclapp::xilinx::incrcompile::enable_auto_incremental_compile { args } {
   # Categories: xilinxtclstore, incrcompile
 
 
-  global autoIncrCompileScheme 
-  global autoIncrCompileScheme_RunName
-  global swapRuns
+  variable ::tclapp::xilinx::incrcompile::autoIncrCompileScheme 
+  variable ::tclapp::xilinx::incrcompile::autoIncrCompileScheme_RunName
+  variable ::tclapp::xilinx::incrcompile::swapRuns
 
   #-------------------------------------------------------
   # Process command line arguments
@@ -44,7 +44,7 @@ proc ::tclapp::xilinx::incrcompile::enable_auto_incremental_compile { args } {
          if {[ string length [ get_runs $runname] ] == 0 } {
           incr error
          } elseif {[string length [ ::tclapp::xilinx::incrcompile::get_placed_or_routed_dcp [get_runs $runname ] ]] } {
-           set autoIncrCompileScheme_RunName $runname
+           set ::tclapp::xilinx::incrcompile::autoIncrCompileScheme_RunName $runname
          } else {
             puts "AutoIncrementalCompile: $runname provided for -fixed scheme does not have a placed or routed checkpoint to use for incremetnal flow"
             incr error
@@ -82,20 +82,21 @@ proc ::tclapp::xilinx::incrcompile::enable_auto_incremental_compile { args } {
   Usage: enable_auto_incremental_compile: Enables the auto detection and enablement of incremental flow. 
 				 Reference checkpoint for incrmental flow is configured based on the argument provided to enable_auto_incremental_compile
          [-lastRun]          	- Last Modified Run
-         [-fixed]  <run_name>	- <run_names> 
+         [-fixed <run_name>]	- <run_names> 
          [-bestWNS]          	- Run with the best WNS.
          [-bestTNS]           - Run with the best TNS.
          [-usage|-u]          - This help message
 
   Description: Enables Auto Detection and Enablement of Incremental Compile Flow.
+  
   Examples:
-     	enable_auto_incremental_compile -lastRun
-     	enable_auto_incremental_compile -fixed impl_1
-     	enable_auto_incremental_compile -bestWNS
-     	enable_auto_incremental_compile -bestTNS
+     	::xilinx::incrcompile::enable_auto_incremental_compile -lastRun
+     	::xilinx::incrcompile::enable_auto_incremental_compile -fixed impl_1
+     	::xilinx::incrcompile::enable_auto_incremental_compile -bestWNS
+     	::xilinx::incrcompile::enable_auto_incremental_compile -bestTNS
 
   Also See:
-			disable_auto_incremental_compile
+			::xilinx::incrcompile::disable_auto_incremental_compile
 	
 } ]
     # HELP -->
@@ -110,8 +111,8 @@ proc ::tclapp::xilinx::incrcompile::enable_auto_incremental_compile { args } {
   #-------------------------------------------------------
   # sainath reddy
   #-------------------------------------------------------
-  set autoIncrCompileScheme $schemeName
-  puts "AutoIncrementalCompile: Enabled with scheme $autoIncrCompileScheme " 
+  set ::tclapp::xilinx::incrcompile::autoIncrCompileScheme $schemeName
+  puts "AutoIncrementalCompile: Enabled with scheme $::tclapp::xilinx::incrcompile::autoIncrCompileScheme " 
   if {![isLaunchRunsSwappedWithIncr]} {
     swapLaunchRunsWithIncrLaunchRuns
   }
@@ -145,8 +146,8 @@ proc ::tclapp::xilinx::incrcompile::isLaunchRunsSwappedWithIncr {} {
   # Argument Usage :
   # Return Value :
 
-  global swapRuns
-  if {![info exists swapRuns] || $swapRuns==0} {
+  variable ::tclapp::xilinx::incrcompile swapRuns
+  if {![info exists ::tclapp::xilinx::incrcompile::swapRuns] || $::tclapp::xilinx::incrcompile::swapRuns==0} {
     return 0
   } else {
     return 1
@@ -158,10 +159,10 @@ proc ::tclapp::xilinx::incrcompile::swapLaunchRunsWithIncrLaunchRuns {} {
   # Argument Usage:
   # Return Value:
 
-  global swapRuns
+  variable ::tclapp::xilinx::incrcompile ::tclapp::xilinx::incrcompile::swapRuns
 	uplevel 2 rename ::launch_runs 			::_real_launch_runs
 	uplevel 2 rename ::tclapp::xilinx::incrcompile::incr_launch_runs ::launch_runs
-  set swapRuns 1
+  set ::tclapp::xilinx::incrcompile::swapRuns 1
 }
 				
 proc ::tclapp::xilinx::incrcompile::incr_launch_runs { args } {
@@ -216,21 +217,21 @@ proc ::tclapp::xilinx::incrcompile::configure_incr_flow { run_name } {
   # Argument Usage:
   # Return Value:
 
-  global autoIncrCompileScheme 
-  global autoIncrCompileScheme_RunName
+  variable ::tclapp::xilinx::incrcompile autoIncrCompileScheme 
+  variable ::tclapp::xilinx::incrcompile autoIncrCompileScheme_RunName
 
   set run [get_runs $run_name ]
 
 	set all_impl_runs 									[get_runs -filter IS_IMPLEMENTATION]
 	set all_impl_runs_placed_or_routed 	[get_impl_runs_placed_or_routed $all_impl_runs]
 
-  puts "AutoIncrementalCompile: Scheme Enabled: $autoIncrCompileScheme "
-	switch $autoIncrCompileScheme {
+  puts "AutoIncrementalCompile: Scheme Enabled: $::tclapp::xilinx::incrcompile::autoIncrCompileScheme "
+	switch $::tclapp::xilinx::incrcompile::autoIncrCompileScheme {
 	LastRun {
 	  set refRun [ lindex [ lsort -command compare_runs_dcp_time $all_impl_runs_placed_or_routed ] 0 ]
   } 	 
 	Fixed {
-	   set refRun [ get_runs $autoIncrCompileScheme_RunName ]  
+	   set refRun [ get_runs $::tclapp::xilinx::incrcompile::autoIncrCompileScheme_RunName ]  
   } 	 
   BestWNS {
 		 set refRun [ lindex [ lsort -command compare_runs_wns $all_impl_runs_placed_or_routed ] 0 ]
@@ -242,7 +243,7 @@ proc ::tclapp::xilinx::incrcompile::configure_incr_flow { run_name } {
 	# set the guide file if it exists
 	set guideFile [ ::tclapp::xilinx::incrcompile::get_placed_or_routed_dcp $refRun ]
 	if {![ file exists $guideFile]} {
-		puts "AutoIncrementalCompile: Incremental Flow not enabled as $guideFile for scheme $autoIncrCompileScheme does not exist"
+		puts "AutoIncrementalCompile: Incremental Flow not enabled as $guideFile for scheme $::tclapp::xilinx::incrcompile::autoIncrCompileScheme does not exist"
 		return;
 		} else {
 			puts "AutoIncrementalCompile: Incremental Flow enabled for $run with $refRun 's  $guideFile as the reference checkpoint"

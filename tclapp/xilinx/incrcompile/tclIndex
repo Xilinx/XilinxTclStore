@@ -6,23 +6,11 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
+
 set auto_index(::tclapp::xilinx::incrcompile::analyze_critical_path) [list source [file join $dir analyze_critical_path.tcl]]
+set auto_index(::tclapp::xilinx::incrcompile::disable_auto_incremental_compile) [list source [file join $dir disable_auto_incremental_compile.tcl]]
+set auto_index(::tclapp::xilinx::incrcompile::enable_auto_incremental_compile) [list source [file join $dir enable_auto_incremental_compile.tcl]]
 set auto_index(::tclapp::xilinx::incrcompile::get_non_reused) [list source [file join $dir get_non_reused.tcl]]
 set auto_index(::tclapp::xilinx::incrcompile::get_reused) [list source [file join $dir get_reused.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::lshift) [list source [file join $dir get_reused.tcl]]
 set auto_index(::tclapp::xilinx::incrcompile::highlight_non_reused) [list source [file join $dir highlight_non_reused.tcl]]
 set auto_index(::tclapp::xilinx::incrcompile::highlight_reused) [list source [file join $dir highlight_reused.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::enable_auto_incremental_compile) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::get_placed_or_routed_dcp) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::isLaunchRunsSwappedWithIncr) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::swapLaunchRunsWithIncrLaunchRuns) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::incr_launch_runs) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::configure_incr_flow) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::get_impl_runs_placed_or_routed) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::compare_runs_dcp_time) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::compare_runs_wns) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::compare_runs_tns) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::is_run_routed) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::is_run_placed_but_not_routed) [list source [file join $dir enable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::disable_auto_incremental_compile) [list source [file join $dir disable_auto_incremental_compile.tcl]]
-set auto_index(::tclapp::xilinx::incrcompile::swapIncrLaunchRunsWithLaunchRuns) [list source [file join $dir disable_auto_incremental_compile.tcl]]

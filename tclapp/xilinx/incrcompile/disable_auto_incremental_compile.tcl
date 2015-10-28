@@ -47,10 +47,10 @@ proc ::tclapp::xilinx::incrcompile::disable_auto_incremental_compile { args } {
 
   Description: Disables Auto Detection and Enablement of Incremental Compile Flow.
   Examples:
-     	disable_auto_incremental_compile
+     	::xilinx::incrcompile::disable_auto_incremental_compile
 
   Also See:
-			enable_auto_incremental_compile
+			::xilinx::incrcompile::enable_auto_incremental_compile
 	
 } ]
     # HELP -->
@@ -67,11 +67,11 @@ proc ::tclapp::xilinx::incrcompile::disable_auto_incremental_compile { args } {
   #-------------------------------------------------------
   if {[isLaunchRunsSwappedWithIncr]} {
     swapIncrLaunchRunsWithLaunchRuns
-    global autoIncrCompileScheme 
-    global autoIncrCompileScheme_RunName
+    variable ::tclapp::xilinx::incrcompile::autoIncrCompileScheme 
+    variable ::tclapp::xilinx::incrcompile::autoIncrCompileScheme_RunName
     puts "AutoIncrementalCompile: Disabled " 
-    set autoIncrCompileScheme  ""
-    set autoIncrCompileScheme_RunName ""
+    set ::tclapp::xilinx::incrcompile::autoIncrCompileScheme  ""
+    set ::tclapp::xilinx::incrcompile::autoIncrCompileScheme_RunName ""
   } else {
     puts "AutoIncrementalCompile: Is Already Disabled"
   }
@@ -82,9 +82,9 @@ proc ::tclapp::xilinx::incrcompile::swapIncrLaunchRunsWithLaunchRuns {} {
   # Argument Usage :
   # Return Value :
 
-  global swapRuns
+  variable ::tclapp::xilinx::incrcompile::swapRuns
 	uplevel 2 rename ::launch_runs 				::tclapp::xilinx::incrcompile::incr_launch_runs 
 	uplevel 2 rename ::_real_launch_runs 	::launch_runs 
-  set swapRuns 0
+  set ::tclapp::xilinx::incrcompile::swapRuns 0
 }
 
