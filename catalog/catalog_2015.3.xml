@@ -39,8 +39,8 @@
     <app>
       <name>incrcompile</name>
       <company>xilinx</company>
-      <commit_id>868ae43d4b4cc7806bdb6a53d74efdc01c744ece</commit_id>
-      <revision>1.1</revision>
+      <commit_id>100178dedfddde1093199f9fd59619c73feba283</commit_id>
+      <revision>1.2</revision>
     </app>
     <app>
       <name>junit</name>
