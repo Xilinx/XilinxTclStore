@@ -52,7 +52,14 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nets {} {
     zynq {
       set nodes [::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_7serie]
       set nets [get_nets -quiet -of $nodes]
-      return $nets
+      # The list of nets need to be post-processed to only keep nets that have leaf
+      # pins in multiple SLRs
+      set slls [list]
+      foreach net $nets {
+        if {[llength [get_slrs -quiet -of [get_pins -quiet -leaf -of $net]]] < 2} { continue }
+        lappend slls $net
+      }
+      return $slls
     }
     kintexu -
     kintexum -
