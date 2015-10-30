@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated get_sll_nets and get_sll_nodes for UltraScale support. Minor improvements to get_inter_slr_nets.</revision_history>
+      <revision_history>Fixed too many nets from get_sll_nets (7-serie)</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
