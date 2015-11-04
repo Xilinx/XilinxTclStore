@@ -2721,7 +2721,7 @@ proc usf_get_dynamic_sim_file_core_container { src_file } {
   set parent_comp_file_type [get_property file_type [lindex [get_files -all [list "$parent_comp_file"]] 0]]
 
   set ip_dir {}
-  if { {Block Designs} == $parent_comp_file_type } {
+  if { ({Block Designs} == $parent_comp_file_type) || ({DSP Design Sources} == $parent_comp_file_type) } {
     set ip_dir [file join [file dirname $xcix_file] $core_name]
   } else {
     set top_ip_file_name {}
@@ -2790,7 +2790,7 @@ proc usf_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
   set top_ip_file_name $comp_file
 
   set root_comp_file_type [get_property file_type [lindex [get_files -all [list "$comp_file"]] 0]]
-  if { {Block Designs} == $root_comp_file_type } {
+  if { ({Block Designs} == $root_comp_file_type) || ({DSP Design Sources} == $root_comp_file_type) } {
     set ip_output_dir [file dirname $comp_file]
   } else {
     set ip_output_dir [get_property ip_output_dir [get_ips -all $top_ip_name]]
