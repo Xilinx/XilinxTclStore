@@ -1339,9 +1339,12 @@ proc usf_launch_script { simulator step } {
   switch $step {
     {compile} -
     {elaborate} {
+      set start_time [clock seconds]
       if {[catch {rdi::run_program $scr_file} error_log]} {
         set faulty_run 1
       }
+      set end_time [clock seconds]
+      send_msg_id USF-Questa-069 INFO "'$step' step finished in '[expr $end_time - $start_time]' seconds"
       # check errors
       if { [usf_check_errors $step results_log] } {
         set faulty_run 1
