@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::get_mem {} {
-  # Summary : queries the kernel for current heap memory of Vivado session
+  # Summary : Queries the kernel for current heap memory of Vivado session
 
   # Argument Usage:
 
@@ -19,7 +19,7 @@ proc ::tclapp::xilinx::designutils::get_mem {} {
 
 
 proc ::tclapp::xilinx::designutils::get_pid_mem { {pid {}} } {
-  # Summary : queries the kernel for the heap memory of a specific process
+  # Summary : Queries the kernel for the heap memory of a specific process
 
   # Argument Usage:
   # [pid = current Vivado session] : Process ID

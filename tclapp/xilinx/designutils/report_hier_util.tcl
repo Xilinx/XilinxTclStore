@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::report_hier_util {{pattern {*}}} {
-  # Summary : report the cell utilization below hierarchical instances
+  # Summary : Report the cell utilization below hierarchical instances
 
   # Argument Usage:
   # [pattern= * ] : Pattern of hierarchical cells

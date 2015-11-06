@@ -8,7 +8,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::insert_buffer_chain {args} {
-  # Summary : insert a chain of buffers or any 2-pins cells on a net or a pin
+  # Summary : Insert a chain of buffers or any 2-pins cells on a net or a pin
 
   # Argument Usage:
   # -net <arg>: Net name to insert the chain of buffer(s) on. After insertion, the driver of the net is connected to the input of the inserted cell
@@ -30,7 +30,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer_chain {args} {
 }
 
 proc ::tclapp::xilinx::designutils::insert_buffer {args} {
-  # Summary : insert a buffer or any 2-pins cell on a net or a pin
+  # Summary : Insert a buffer or any 2-pins cell on a net or a pin
 
   # Argument Usage:
   # -net <arg>: Net name to insert the buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
@@ -48,7 +48,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer {args} {
 }
 
 proc ::tclapp::xilinx::designutils::remove_buffer {args} {
-  # Summary : remove a buffer or any 2-pins cell
+  # Summary : Remove a buffer or any 2-pins cell
 
   # Argument Usage:
   # -cell <arg>: Buffer to be removed
@@ -64,7 +64,7 @@ proc ::tclapp::xilinx::designutils::remove_buffer {args} {
 }
 
 proc ::tclapp::xilinx::designutils::insert_clock_probe {args} {
-  # Summary : insert a clock probe to the design and connect the probe to an output port. The output should not exist and is created by the command
+  # Summary : Insert a clock probe to the design and connect the probe to an output port. The output should not exist and is created by the command
 
   # Argument Usage:
   # -pin <arg>: Output leaf clock pin
@@ -84,7 +84,7 @@ proc ::tclapp::xilinx::designutils::insert_clock_probe {args} {
 }
 
 proc ::tclapp::xilinx::designutils::rename_net {args} {
-  # Summary : rename a local net name
+  # Summary : Rename a local net name
 
   # Argument Usage:
   # -net <arg>: Net name to rename (full hierarchical name)
@@ -112,7 +112,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::insert_buffer {
  } ]
 
 proc ::tclapp::xilinx::designutils::insert_buffer::insert_buffer_chain {args} {
-  # Summary : insert a list of buffers or any 2-pins cells on a net
+  # Summary : Insert a list of buffers or any 2-pins cells on a net
 
   # Argument Usage:
   # net : Net to insert buffer on. After insertion, the driver of the net is connected to the input of the inserted cell
@@ -211,7 +211,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insert_buffer_chain {args} {
 }
 
 proc ::tclapp::xilinx::designutils::insert_buffer::insert_buffer {args} {
-  # Summary : insert a buffer or any 2-pins cell on a net or a pin
+  # Summary : Insert a buffer or any 2-pins cell on a net or a pin
 
   # Argument Usage:
   # name : Net or pin to insert buffer on
@@ -334,7 +334,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insert_buffer {args} {
 }
 
 proc ::tclapp::xilinx::designutils::insert_buffer::remove_buffer {args} {
-  # Summary : remove a buffer or any 2-pins cell
+  # Summary : Remove a buffer or any 2-pins cell
 
   # Argument Usage:
   # cell : Buffer to be removed
@@ -517,7 +517,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::remove_buffer {args} {
 # should not exist and is created by the command
 #------------------------------------------------------------------------
 proc ::tclapp::xilinx::designutils::insert_buffer::insert_clock_probe {args} {
-  # Summary : insert a probe to connect an output leaf clock pin to an output port. The output should not exist and is created by the command
+  # Summary : Insert a probe to connect an output leaf clock pin to an output port. The output should not exist and is created by the command
 
   # Argument Usage:
   # -pin : Output leaf clock pin

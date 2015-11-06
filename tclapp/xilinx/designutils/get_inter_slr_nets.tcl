@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::get_inter_slr_nets {} {
-  # Summary : get all the inter-SLR nets (runtime intensive)
+  # Summary : Get all the inter-SLR nets (runtime intensive)
 
   # Argument Usage:
 
