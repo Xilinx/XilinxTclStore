@@ -21,8 +21,8 @@
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>e626ff0ee6768e3dd00f641dc03da1308fb40314</commit_id>
-      <revision>1.22</revision>
+      <commit_id>65af064e2e24cb75739c7dd4be8f8b6fa1e8b0d9</commit_id>
+      <revision>1.23</revision>
     </app>
     <app>
       <name>diff</name>
