@@ -738,9 +738,12 @@ proc usf_questa_get_elaboration_cmdline {} {
     }
   }
 
-  if { [get_property "QUESTA.ELABORATE.ACC" $fs_obj] } {
-    lappend arg_list "+acc"
+  set acc [string tolower [get_property "QUESTA.ELABORATE.ACC" $fs_obj]]
+  set acc_val "+acc"
+  if { {npr} == $acc } {
+    append acc_val "=$acc"
   }
+  lappend arg_list $acc_val
 
   set path_delay 0
   set int_delay 0
