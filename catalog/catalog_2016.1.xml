@@ -81,8 +81,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>d82227c601dc3264e6f328baa3960c8275374969</commit_id>
-      <revision>1.67</revision>
+      <commit_id>e747a949680a39113b27b4a0b85d86fe1c9cbb79</commit_id>
+      <revision>1.69</revision>
     </app>
     <app>
       <name>riviera</name>
