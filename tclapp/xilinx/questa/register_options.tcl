@@ -40,7 +40,7 @@ proc register_options { simulator } {
     {{compile.incremental}         {bool}   {1}                                     {Perform incremental compilation}}
     {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
-    {{elaborate.acc}               {bool}   {1}                                     {Enable access to simulation objects that might be optimized by default}}
+    {{elaborate.acc}               {string} {npr}                                   {Enable access to simulation objects that might be optimized by default}}
     {{elaborate.vopt.more_options} {string} {}                                      {More VOPT elaboration options}}
     {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.log_all_signals}    {bool}   {0}                                     {Log all signals}}
