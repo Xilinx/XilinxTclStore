@@ -121,11 +121,11 @@ proc setup_ip_static_library {args} {
 
   if { $a_isl_vars(b_project_mode) } {
     isl_extract_proj_files
+    send_msg_id setup_ip_static_library-Tcl-008 INFO "Library created:$a_isl_vars(ipstatic_dir)\n"
   } elseif { $a_isl_vars(b_install_mode) } {
     isl_extract_install_files
   }
 
-  send_msg_id setup_ip_static_library-Tcl-008 INFO "Library created:$a_isl_vars(ipstatic_dir)\n"
   return
 }
 
@@ -900,13 +900,14 @@ proc isl_extract_install_files { } {
   set l_static_files [list]
 
   create_project -in_memory
-  send_msg_id setup_ip_static_library-Tcl-018 INFO "Updating IP catalog..."
+  #send_msg_id setup_ip_static_library-Tcl-018 INFO "Updating IP catalog..."
   if { ! [update_ip_catalog -quiet] } {
     close_project
     return 1
   }
 
-  send_msg_id setup_ip_static_library-Tcl-019 INFO "Finding IP definitions..."
+  #send_msg_id setup_ip_static_library-Tcl-019 INFO "Finding IP definitions..."
+  puts -nonewline "."
   set ips [list]
   set ips [ipx::get_cores -all -from catalog]
   if { [llength $ips] == 0 } {
@@ -914,16 +915,24 @@ proc isl_extract_install_files { } {
     return 1
   }
 
-  send_msg_id setup_ip_static_library-Tcl-021 INFO "Extracting static files from IP catalog...(this may take a while, please wait)..."
+  #send_msg_id setup_ip_static_library-Tcl-021 INFO "Extracting static files from IP catalog...(this may take a while, please wait)..."
   set compile_order_data [list]
   set ip_libs [list]
+  set count 0
+  set ip_count 0
   foreach ip $ips {
+    incr ip_count
     set vlnv    [get_property vlnv $ip]
     set ip_def  [get_ipdefs -all -vlnv $vlnv]
     set ip_xml  [get_property xml_file_name $ip_def]
     set ip_dir  [file dirname $ip_xml]
     set ip_comp [ipx::open_core $ip_xml]
-
+    puts -nonewline "."
+    if { $count > 100 } {
+      puts ""
+      set count -2
+    }
+    incr count
     foreach file_group [ipx::get_file_groups -of $ip_comp] {
       set type [get_property type $file_group]
       if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
@@ -969,7 +978,9 @@ proc isl_extract_install_files { } {
   isl_write_compile_order
   isl_post_processing ip_libs
   close_project
-  send_msg_id setup_ip_static_library-Tcl-023 INFO "Files extracted in '$a_isl_vars(ipstatic_dir)'"
+  puts ""
+  send_msg_id setup_ip_static_library-Tcl-023 INFO "Library created. Inspected $ip_count IPs from catalog repository.\n\n"
+  #send_msg_id setup_ip_static_library-Tcl-023 INFO "Files extracted in '$a_isl_vars(ipstatic_dir)'"
   return 0
 }
 
