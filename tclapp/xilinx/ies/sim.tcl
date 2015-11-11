@@ -334,6 +334,10 @@ proc usf_ies_write_setup_files {} {
     }
     puts $fh "DEFINE $default_lib $lib_dir"
   }
+
+  if { $a_sim_vars(b_use_static_lib) } {
+    usf_ies_map_pre_compiled_libs $fh
+  }
  
   close $fh
 
@@ -819,6 +823,30 @@ proc usf_ies_get_design_libs { files } {
     }
   }
   return $libs
+}
+
+proc usf_ies_map_pre_compiled_libs { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  if { $a_sim_vars(b_use_static_lib) } {
+    set static_libs [get_property sim.ipstatic.precompiled_libs [current_project]]
+    if { [llength $static_libs] > 0 } {
+      foreach lib_path $static_libs {
+        set lib_path [string trim $lib_path]
+        if { [string length $lib_path] == 0 } { continue; }
+        if { [file exists $lib_path] } {
+          set name [file tail $lib_path]
+          set dir  [file dirname $lib_path]
+          puts $fh "DEFINE $name $dir/$name"
+        } else {
+          send_msg_id USF-IES-103 WARNING "The specified pre-compiled IP static library '$lib_path' does not exist. Library will be ignored."
+        }
+      }
+    }
+  }
 }
 
 proc usf_ies_create_setup_script {} {

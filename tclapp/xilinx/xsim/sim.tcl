@@ -274,6 +274,7 @@ proc usf_xsim_write_setup_files {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
@@ -291,6 +292,11 @@ proc usf_xsim_write_setup_files {} {
     if {[string length $lib] == 0} { continue; }
     puts $fh "$lib=xsim.dir/$lib"
   }
+  
+  if { $a_sim_vars(b_use_static_lib) } {
+    usf_xsim_map_pre_compiled_libs $fh
+  }
+
   close $fh
 }
 
@@ -299,6 +305,7 @@ proc usf_xsim_copy_pre_compiled_setup_file {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path)
   set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
@@ -309,6 +316,16 @@ proc usf_xsim_copy_pre_compiled_setup_file {} {
       send_msg_id USF-XSim-Tcl-051 WARNING "failed to copy file '$ini_file' to '$run_dir' : $error_msg\n"
     } else {
       send_msg_id USF-XSim-Tcl-051 INFO "Copied xsim.ini from '$lib_dir'\n"
+      if { $a_sim_vars(b_use_static_lib) } {
+        set fh 0
+        set file [file join $run_dir $filename]
+        if {[catch {open $file a} fh]} {
+          send_msg_id USF-XSim-011 ERROR "Failed to open file to append ($file)\n"
+          return
+        }
+        usf_xsim_map_pre_compiled_libs $fh
+        close $fh
+      }
     }
   }
 }
@@ -1308,6 +1325,30 @@ proc usf_xsim_get_design_libs { design_files } {
     }
   }
   return $libs
+}
+
+proc usf_xsim_map_pre_compiled_libs { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  if { $a_sim_vars(b_use_static_lib) } {
+    set static_libs [get_property sim.ipstatic.precompiled_libs [current_project]]
+    if { [llength $static_libs] > 0 } {
+      foreach lib_path $static_libs {
+        set lib_path [string trim $lib_path]
+        if { [string length $lib_path] == 0 } { continue; }
+        if { [file exists $lib_path] } {
+          set name [file tail $lib_path]
+          set dir  [file dirname $lib_path]
+          puts $fh "$name=$dir/$name"
+        } else {
+          send_msg_id USF-XSim-103 WARNING "The specified pre-compiled IP static library '$lib_path' does not exist. Library will be ignored."
+        }
+      }
+    }
+  }
 }
 
 proc usf_xsim_include_xvhdl_log {} {
