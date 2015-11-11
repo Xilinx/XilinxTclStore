@@ -530,6 +530,11 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     }
   }
 
+  if { $a_sim_vars(b_use_static_lib) } {
+    set cmd "${tool_path_str}vmap"
+    usf_questa_map_pre_compiled_libs $fh $cmd
+  }
+
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
     # no op
   } else {
@@ -1213,6 +1218,30 @@ proc usf_questa_get_design_libs { files } {
     }
   }
   return $libs
+}
+
+proc usf_questa_map_pre_compiled_libs { fh cmd } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  if { $a_sim_vars(b_use_static_lib) } {
+    set static_libs [get_property sim.ipstatic.precompiled_libs [current_project]]
+    if { [llength $static_libs] > 0 } {
+      foreach lib_path $static_libs {
+        set lib_path [string trim $lib_path]
+        if { [string length $lib_path] == 0 } { continue; }
+        if { [file exists $lib_path] } {
+          set name [file tail $lib_path]
+          set dir  [file dirname $lib_path]
+          puts $fh "$cmd $name $dir/$name"
+        } else {
+          send_msg_id USF-Questa-103 WARNING "The specified pre-compiled IP static library '$lib_path' does not exist. Library will be ignored."
+        }
+      }
+    }
+  }
 }
 
 proc usf_questa_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg } {
