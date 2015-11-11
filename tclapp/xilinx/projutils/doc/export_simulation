@@ -134,12 +134,12 @@ Examples:
   % export_simulation -force -32bit -directory "test_bft_vcs_mx" -simulator vcs_mx
 
   The following command will include "/sim_libs/ius/lin64/lib/cds.lib" file path in the "./test_sim/cds.lib"
-  file ("INCLUDE /sim_libs/ius/lin64/lib/cds.lib") for referencing the compiled libraries for "IES" simulator:-
+  file ("INCLUDE /sim_libs/ius/lin64/lib/cds.lib") for refrencing the compiled libraries for "IES" simulator:-
 
   % export_simulation -lib_map_path "/sim_libs/ius/lin64/lib" -directory "test_sim" -simulator ies
 
   The following command will include "/sim_libs/vcs/lin64/lib/synopsys_sim.setup" file path in the
-  "./test_sim/synopsys_sim.setup" file ("OTHERS=/sim_libs/vcs/lin64/lib/synopsys_sim.setup") for referencing
+  "./test_sim/synopsys_sim.setup" file ("OTHERS=/sim_libs/vcs/lin64/lib/synopsys_sim.setup") for refrencing
   the compiled libraries for the "VCS_MX" simulator:-
 
   % export_simulation -lib_map_path "/sim_libs/vcs/lin64/lib" -directory "test_sim" -simulator vcs_mx

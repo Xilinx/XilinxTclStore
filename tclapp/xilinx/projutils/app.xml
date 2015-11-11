@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>print IP catalog static file processing messages</revision_history>
+      <revision_history>changed fs_top_lib to fileset_top_lib in projutils</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

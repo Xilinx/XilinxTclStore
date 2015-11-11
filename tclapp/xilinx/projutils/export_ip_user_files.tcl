@@ -287,10 +287,7 @@ proc xif_export_ip { obj } {
 
   set l_static_files [list]
   if { $a_vars(b_use_static_lib) } {
-    # cleanup and do not export static files for pre-compiled lib
-    foreach file [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
-      [catch {file delete -force $file} error_msg]
-    }
+    # do not export static files for pre-compiled lib
   } else {
     #
     # static files
@@ -574,70 +571,60 @@ proc xif_export_bd { obj } {
   # static files
   #
   set l_static_files [list]
-  if { $a_vars(b_use_static_lib) } {
-    # cleanup and do not export static files for pre-compiled lib
-    foreach file [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
-      [catch {file delete -force $file} error_msg]
-    }
-  } else {
-    #
-    # static files
-    #
-    set l_static_files [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*ipstatic*"}]
-    foreach src_ip_file $l_static_files {
-      set src_ip_file [string map {\\ /} $src_ip_file]
-      # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
-      #puts src_ip_file=$src_ip_file
-  
-      set comps [lrange [split $src_ip_file "/"] 0 end]
-      set to_match "xilinx.com"
-      set index 0
+  set l_static_files [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*ipstatic*"}]
+  foreach src_ip_file $l_static_files {
+    set src_ip_file [string map {\\ /} $src_ip_file]
+    # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
+    #puts src_ip_file=$src_ip_file
+
+    set comps [lrange [split $src_ip_file "/"] 0 end]
+    set to_match "xilinx.com"
+    set index 0
+    set b_found [xif_find_comp comps index $to_match]
+    if { !$b_found } {
+      set to_match "user_company"
       set b_found [xif_find_comp comps index $to_match]
-      if { !$b_found } {
-        set to_match "user_company"
-        set b_found [xif_find_comp comps index $to_match]
+    }
+    if { !$b_found } {
+      continue;
+    }
+
+    set file_path_str [join [lrange $comps 0 $index] "/"]
+    set ip_lib_dir "$file_path_str"
+    # /demo/ipshared/xilinx.com/xbip_utils_v3_0
+    #puts ip_lib_dir=$ip_lib_dir
+    set ip_lib_dir_name [file tail $ip_lib_dir]
+ 
+    # create target library dir
+    set target_ip_lib_dir [file join $a_vars(ipstatic_dir) $ip_lib_dir_name]
+    if { ![file exists $target_ip_lib_dir] } {
+      if {[catch {file mkdir $target_ip_lib_dir} error_msg] } {
+        send_msg_id export_ip_user_files-Tcl-012 ERROR "Failed to create the directory ($target_ip_lib_dir): $error_msg\n"
+        continue
       }
-      if { !$b_found } {
-        continue;
-      }
-  
-      set file_path_str [join [lrange $comps 0 $index] "/"]
-      set ip_lib_dir "$file_path_str"
-      # /demo/ipshared/xilinx.com/xbip_utils_v3_0
-      #puts ip_lib_dir=$ip_lib_dir
-      set ip_lib_dir_name [file tail $ip_lib_dir]
-   
-      # create target library dir
-      set target_ip_lib_dir [file join $a_vars(ipstatic_dir) $ip_lib_dir_name]
-      if { ![file exists $target_ip_lib_dir] } {
-        if {[catch {file mkdir $target_ip_lib_dir} error_msg] } {
-          send_msg_id export_ip_user_files-Tcl-012 ERROR "Failed to create the directory ($target_ip_lib_dir): $error_msg\n"
-          continue
-        }
-      }
-      # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0
-      #puts target_ip_lib_dir=$target_ip_lib_dir
-  
-      # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
-      set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
-      set ip_hdl_dir "$ip_hdl_dir"
-      # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
-      #puts ip_hdl_dir=$ip_hdl_dir
-      incr index
-  
-      set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
-      # /hdl/xbip_utils_v3_0_vh_rfs.vhd
-      #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
-  
-      set dst_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
-      # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
-      #puts dst_file=$dst_file
-  
-      if { [file exists $dst_file] } {
-        # skip  
-      } else { 
-        xif_copy_files_recursive $ip_hdl_dir $target_ip_lib_dir
-      }
+    }
+    # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0
+    #puts target_ip_lib_dir=$target_ip_lib_dir
+
+    # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
+    set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
+    set ip_hdl_dir "$ip_hdl_dir"
+    # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
+    #puts ip_hdl_dir=$ip_hdl_dir
+    incr index
+
+    set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
+    # /hdl/xbip_utils_v3_0_vh_rfs.vhd
+    #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
+
+    set dst_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
+    # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
+    #puts dst_file=$dst_file
+
+    if { [file exists $dst_file] } {
+      # skip  
+    } else { 
+      xif_copy_files_recursive $ip_hdl_dir $target_ip_lib_dir
     }
   }
 
