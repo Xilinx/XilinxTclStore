@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
     
 proc ::tclapp::xilinx::designutils::report_cells_fanout { {ref_name FD*} } {
-  # Summary : report the fanout of cells matching a REF_NAME pattern
+  # Summary : Report the fanout of cells matching a REF_NAME pattern
   
   # Argument Usage:
   # [ref_name = FD*] : Cell pattern

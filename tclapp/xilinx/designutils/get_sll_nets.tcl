@@ -10,7 +10,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::get_sll_nets {
  } ]
 
 proc ::tclapp::xilinx::designutils::get_sll_nodes {args} {
-  # Summary : get the SLL nodes on a routed design
+  # Summary : Get the SLL nodes on a routed design
 
   # Argument Usage:
 
@@ -24,7 +24,7 @@ proc ::tclapp::xilinx::designutils::get_sll_nodes {args} {
 }
 
 proc ::tclapp::xilinx::designutils::get_sll_nets {args} {
-  # Summary : get the SLL nets on a routed design
+  # Summary : Get the SLL nets on a routed design
 
   # Argument Usage:
 

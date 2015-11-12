@@ -11,7 +11,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ##    }
 ##
 proc ::tclapp::xilinx::designutils::read_file_regexp {filename rexp} {
-  # Summary : returns all lines that match occurrence of a regular expression in the file
+  # Summary : Returns all lines that match occurrence of a regular expression in the file
 
   # Argument Usage:
   # filename : File name to process
@@ -48,7 +48,7 @@ proc ::tclapp::xilinx::designutils::read_file_regexp {filename rexp} {
 ##    close $FH
 ##
 proc ::tclapp::xilinx::designutils::gets_regexp {FH rexp var} {
-  # Summary : returns the next line that matches occurrence of a regular expression in the file
+  # Summary : Returns the next line that matches occurrence of a regular expression in the file
 
   # Argument Usage:
   # FH : File handler of the file to process

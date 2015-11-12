@@ -11,7 +11,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
     
 proc ::tclapp::xilinx::designutils::report_cells_loc { {pattern "*"} } {
-  # Summary : report the location of cells matching a REF_NAME pattern
+  # Summary : Report the location of cells matching a REF_NAME pattern
   
   # Argument Usage:
   # [pattern = *] : Cell pattern. The pattern * matches any cell
