@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Minor documentation update</revision_history>
+      <revision_history>Runtime improvement for get_inter_slr_nets</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -60,7 +60,7 @@
         </proc>
         <proc>
           <name>get_inter_slr_nets</name>
-          <summary>Get all the inter-SLR nets (runtime intensive)</summary>
+          <summary>Get all inter-SLR nets</summary>
         </proc>
         <proc>
           <name>get_leaf_cells</name>
