@@ -1339,10 +1339,40 @@ proc usf_xsim_map_pre_compiled_libs { fh } {
       foreach lib_path $static_libs {
         set lib_path [string trim $lib_path]
         if { [string length $lib_path] == 0 } { continue; }
-        if { [file exists $lib_path] } {
-          set name [file tail $lib_path]
-          set dir  [file dirname $lib_path]
-          puts $fh "$name=$dir/$name"
+        set ini_file [file join $lib_path "xsim.ini"]
+        if { [file exists $ini_file] } {
+          set fh_ini 0
+          if { [catch {open $ini_file r} fh_ini] } {
+            send_msg_id USF-XSim-099 WARNING "Failed to open file for read ($ini_file)\n"
+            continue
+          }
+          set ini_data [read $fh_ini]
+          close $fh_ini
+          set ini_data [split $ini_data "\n"]
+          set b_lib_start false
+          foreach line $ini_data {
+            set line [string trim $line]
+            if { [string length $line] == 0 } { continue; }
+            if { [regexp "^secureip" $line] } {
+              set b_lib_start true
+            }
+            if { $b_lib_start } {
+              if { [regexp "^secureip" $line] ||
+                   [regexp "^unisim" $line] ||
+                   [regexp "^simprim" $line] ||
+                   [regexp "^unifast" $line] ||
+                   [regexp "^unimacro" $line] } {
+                continue
+              }
+              if { ([regexp {^--} $line]) } {
+                set b_lib_start false
+                continue
+              }
+              if { [regexp "=" $line] } {
+                puts $fh "$line"
+              }
+            }
+          }
         } else {
           send_msg_id USF-XSim-103 WARNING "The specified pre-compiled IP static library '$lib_path' does not exist. Library will be ignored."
         }

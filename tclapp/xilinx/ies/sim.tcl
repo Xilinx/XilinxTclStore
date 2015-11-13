@@ -837,10 +837,40 @@ proc usf_ies_map_pre_compiled_libs { fh } {
       foreach lib_path $static_libs {
         set lib_path [string trim $lib_path]
         if { [string length $lib_path] == 0 } { continue; }
-        if { [file exists $lib_path] } {
-          set name [file tail $lib_path]
-          set dir  [file dirname $lib_path]
-          puts $fh "DEFINE $name $dir/$name"
+        set ini_file [file join $lib_path "cds.lib"]
+        if { [file exists $ini_file] } {
+          set fh_ini 0
+          if { [catch {open $ini_file r} fh_ini] } {
+            send_msg_id USF-IES-099 WARNING "Failed to open file for read ($ini_file)\n"
+            continue
+          }
+          set ini_data [read $fh_ini]
+          close $fh_ini
+          set ini_data [split $ini_data "\n"]
+          set b_lib_start false
+          foreach line $ini_data {
+            set line [string trim $line]
+            if { [string length $line] == 0 } { continue; }
+            if { [regexp "^DEFINE secureip" $line] } {
+              set b_lib_start true
+            }
+            if { $b_lib_start } {
+              if { [regexp "^DEFINE secureip" $line] ||
+                   [regexp "^DEFINE unisim" $line] ||
+                   [regexp "^DEFINE simprim" $line] ||
+                   [regexp "^DEFINE unifast" $line] ||
+                   [regexp "^DEFINE unimacro" $line] } {
+                continue
+              }
+              if { ([regexp {^#} $line]) || ([regexp {^--} $line]) } {
+                set b_lib_start false
+                continue
+              }
+              if { [regexp "^DEFINE" $line] } {
+                puts $fh "$line"
+              }
+            }
+          }
         } else {
           send_msg_id USF-IES-103 WARNING "The specified pre-compiled IP static library '$lib_path' does not exist. Library will be ignored."
         }

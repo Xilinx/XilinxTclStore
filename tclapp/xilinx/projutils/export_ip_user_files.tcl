@@ -291,6 +291,7 @@ proc xif_export_ip { obj } {
     foreach file [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
       [catch {file delete -force $file} error_msg]
     }
+    [catch {file delete -force $a_vars(ipstatic_dir)} error_msg]
   } else {
     #
     # static files
@@ -579,6 +580,7 @@ proc xif_export_bd { obj } {
     foreach file [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
       [catch {file delete -force $file} error_msg]
     }
+    [catch {file delete -force $a_vars(ipstatic_dir)} error_msg]
   } else {
     #
     # static files

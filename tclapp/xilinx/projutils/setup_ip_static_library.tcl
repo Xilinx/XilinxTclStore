@@ -23,6 +23,7 @@ proc isl_init_vars {} {
   set a_isl_vars(b_dir_specified)   0
   set a_isl_vars(b_project_mode)    0
   set a_isl_vars(b_install_mode)    0
+  set a_isl_vars(b_locked_ip)       0
   set a_isl_vars(co_file_list)      ""
 
   variable compile_order_data       [list]
@@ -46,6 +47,7 @@ proc setup_ip_static_library {args} {
   # [-directory <arg>]: Extract static files in the specified directory
   # [-project]: Extract static files for the current project
   # [-install]: Extract static files for the IP catalog
+  # [-locked_ip]: Extract static files for locked IPs only
 
   # Return Value:
   # None
@@ -64,6 +66,7 @@ proc setup_ip_static_library {args} {
       "-directory" { incr i;set a_isl_vars(ipstatic_dir) [lindex $args $i];set a_isl_vars(b_dir_specified) 1 }
       "-project" { set a_isl_vars(b_project_mode) 1 }
       "-install" { set a_isl_vars(b_install_mode) 1 }
+      "-locked_ip" { set a_isl_vars(b_locked_ip) 1 }
       default {
         if { [regexp {^-} $option] } {
           send_msg_id setup_ip_static_library-Tcl-001 ERROR "Unknown option '$option', please type 'setup_ip_static_library -help' for usage info.\n"
@@ -140,12 +143,15 @@ proc isl_extract_proj_files { } {
   }
   send_msg_id setup_ip_static_library-Tcl-009 INFO "Creating static source library for compile_simlib...\n"
   foreach obj [get_ips -quiet] {
+    set b_locked false
     set file_extn [file extension $obj]
     if { {} != $file_extn } {
       if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {
         continue
       }
     }
+    set b_locked [get_property is_locked $obj]
+    if { $a_isl_vars(b_locked_ip) && (!$b_locked)} { continue }
     if { [isl_export_files $obj] } {
       continue
     }
@@ -327,8 +333,14 @@ proc isl_export_bd { obj } {
   # static files
   #
   set l_static_files [list]
+  set ip_data [list]
   set l_static_files [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*ipstatic*"}]
   foreach src_ip_file $l_static_files {
+    set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+    set library {}
+    if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+      set library [get_property "LIBRARY" $file_obj]
+    }
     set src_ip_file [string map {\\ /} $src_ip_file]
     # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd
     #puts src_ip_file=$src_ip_file
@@ -347,6 +359,9 @@ proc isl_export_bd { obj } {
     # /demo/ipshared/xilinx.com/xbip_utils_v3_0
     #puts ip_lib_dir=$ip_lib_dir
     set ip_lib_dir_name [file tail $ip_lib_dir]
+    if { {} != $library } {
+      set ip_lib_dir_name $library
+    }
 
     # create target library dir
     set target_ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $ip_lib_dir_name]
@@ -379,7 +394,23 @@ proc isl_export_bd { obj } {
     } else {
       isl_copy_files_recursive $ip_hdl_dir $target_ip_lib_dir
     }
+
+    if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+      set library [get_property "LIBRARY" $file_obj]
+      set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
+      set ip_file_path "[isl_get_relative_file_path $dst_file $a_isl_vars(ipstatic_dir)/$library]"
+      # is this verilog header? strip prefixed library name
+      if { {verilog header} == $file_type } {
+        #set comps [lrange [split $ip_file_path "/"] 0 end]
+        #set lib_comps [lrange [split $ip_file_path "/"] 1 end]
+        #set library [lindex $comps 0]
+        #set ip_file_path [join $lib_comps "/"]
+      }
+      set data "$library,$ip_file_path,$file_type,static"
+      lappend ip_data $data
+    }
   }
+  isl_update_compile_order_data $ip_data
 }
 
 proc isl_get_ip_name { src_file } {
