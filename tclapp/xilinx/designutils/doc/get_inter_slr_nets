@@ -1,18 +1,16 @@
 
 
   Description: 
+  
+     Get all inter-SLR nets
 
-     Get all the inter-SLR nets.
+     This command returns the inter-SLR nets. By default, all inter-SLR nets
+     are returned. The command options -from/-to must be used together to
+     filter inter-SLR nets between 2 SLRs.
 
      This command must be run on a placed or routed design.
-     
-     This command is runtime intensive and can take several hours to complete
-     on a very large design. 
-     
-     If the design is routed, the command ::xilinx::designutils::get_sll_nets 
-     should be used instead as it is much faster.
 
   Example:
-  
-     set nets [::xilinx::designutils::get_inter_slr_nets]
 
+     set xnets [::xilinx::designutils::get_inter_slr_nets]
+     set xnets [::xilinx::designutils::get_inter_slr_nets -from SLR0 -to SLR1]
