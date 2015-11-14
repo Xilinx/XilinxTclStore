@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
     
 proc ::tclapp::xilinx::designutils::get_host_platform {} {
-  # Summary : return the host platform (windows|unix)
+  # Summary : Return the host platform (windows|unix)
   
   # Argument Usage:
   

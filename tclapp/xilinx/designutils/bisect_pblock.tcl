@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::bisect_pblock {{pb {}} {first {top}} {second {left}} } {
-  # Summary : bisect a P block
+  # Summary : Bisect a PBlock
 
   # Argument Usage:
   # pb : PBlock (default: )

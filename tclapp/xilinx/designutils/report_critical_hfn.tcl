@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::report_critical_hfn {{sortBy slack} {limitFanout 256} {limitSlack 0}} {
-  # Summary : report timing critical high fanout nets based on fanout and slack
+  # Summary : Report timing critical high fanout nets based on fanout and slack
   
   # Argument Usage:
   # sortBy : Sorting critierion. Valid values: slack (default), fanout

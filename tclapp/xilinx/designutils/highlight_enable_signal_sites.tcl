@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::highlight_enable_signal_sites {} {
-  # Summary : highlight the destination sites of the enable signals reported by report_control_set command
+  # Summary : Highlight the destination sites of the enable signals reported by report_control_set command
 
   # Argument Usage:
 

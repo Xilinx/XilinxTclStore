@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::report_all_primitives {} {
-  # Summary : reports all primitives (LIB_CELL) in the design
+  # Summary : Reports all primitives (LIB_CELL) in the design
 
   # Argument Usage:
 

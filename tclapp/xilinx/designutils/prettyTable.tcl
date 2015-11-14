@@ -270,7 +270,7 @@ namespace eval ::tclapp::xilinx::designutils {
 
 
 proc ::tclapp::xilinx::designutils::prettyTable { args } {
-  # Summary : utility to easily create and print tables
+  # Summary : Utility to easily create and print tables
   
   # Argument Usage:
   # [args]: sub-command. The supported sub-commands are: create | info | sizeof | destroyall
