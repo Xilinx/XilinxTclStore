@@ -996,17 +996,17 @@ proc xps_get_files { simulator launch_dir } {
 
     if { {All} == $src_mgmt_mode } {
       #send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$target_obj'..."
-      foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
-        if { [xps_is_global_include_file $file] } { continue }
-        set file_type [get_property "FILE_TYPE" $file]
+      foreach fs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
+        if { [xps_is_global_include_file $fs_file_obj] } { continue }
+        set file_type [get_property "FILE_TYPE" $fs_file_obj]
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $fs_file_obj $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
-          lappend l_compile_order_files $file
+          lappend l_compile_order_files $fs_file_obj
         }
       }
       set b_add_sim_files 0
@@ -1016,16 +1016,16 @@ proc xps_get_files { simulator launch_dir } {
         if { {} != $srcset_obj } {
           set used_in_val "simulation"
           #send_msg_id exportsim-Tcl-021 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
-          foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
-            set file_type [get_property "FILE_TYPE" $file]
+          foreach simfs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
+            set file_type [get_property "FILE_TYPE" $simfs_file_obj]
             set compiler [xps_get_compiler $simulator $file_type]
             set l_other_compiler_opts [list]
             xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
             if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-            set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
+            set cmd_str [xps_get_cmdstr $simulator $launch_dir $simfs_file_obj $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
             if { {} != $cmd_str } {
               lappend files $cmd_str
-              lappend l_compile_order_files $file
+              lappend l_compile_order_files $simfs_file_obj
             }
           }
         }
@@ -1034,33 +1034,33 @@ proc xps_get_files { simulator launch_dir } {
 
     if { $b_add_sim_files } {
       #send_msg_id exportsim-Tcl-022 INFO "Fetching design files from '$a_sim_vars(fs_obj)'..."
-      foreach file [get_files -quiet -all -of_objects $a_sim_vars(fs_obj)] {
-        set file_type [get_property "FILE_TYPE" $file]
+      foreach of_file_obj [get_files -quiet -all -of_objects $a_sim_vars(fs_obj)] {
+        set file_type [get_property "FILE_TYPE" $of_file_obj]
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-        if { [get_property "IS_AUTO_DISABLED" $file]} { continue }
-        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
+        if { [get_property "IS_AUTO_DISABLED" $of_file_obj]} { continue }
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $of_file_obj $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
-          lappend l_compile_order_files $file
+          lappend l_compile_order_files $of_file_obj
         }
       }
     }
   } elseif { [xps_is_ip $target_obj] } {
     #send_msg_id exportsim-Tcl-023 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
-    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
-      set file_type [get_property "FILE_TYPE" $file]
+    foreach ip_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
+      set file_type [get_property "FILE_TYPE" $ip_file_obj]
       set compiler [xps_get_compiler $simulator $file_type]
       set l_other_compiler_opts [list]
       xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-      set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
+      set cmd_str [xps_get_cmdstr $simulator $launch_dir $ip_file_obj $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
-        lappend l_compile_order_files $file
+        lappend l_compile_order_files $ip_file_obj
       }
     }
   }
@@ -1273,11 +1273,12 @@ proc xps_is_bd_file { src_file bd_file_arg } {
   while (1) {
     incr count
     if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set comp_file_str [get_property parent_composite_file -quiet $comp_file]
-    if { [llength $comp_file_str] == 0 } {
+    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    set props [list_property $file_obj]
+    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
     }
-    set comp_file [lindex [get_files -all -quiet "$comp_file_str"] 0]
+    set comp_file [get_property parent_composite_file -quiet $file_obj]
   }
 
   # got top-most file whose parent-comp is empty ... is this BD?
@@ -1757,12 +1758,13 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compi
   if { $b_skip_file_obj_access } {
     #
   } else {
-    if { {} != $file } {
-      if { [lsearch -exact [list_property $file] {LIBRARY}] != -1 } {
-        set associated_library [get_property "LIBRARY" $file]
+    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    if { {} != $file_obj } {
+      if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+        set associated_library [get_property "LIBRARY" $file_obj]
       }
       if { ($a_sim_vars(b_extract_ip_sim_files) || $a_sim_vars(b_xport_src_files)) } {
-        set xcix_ip_path [get_property core_container $file]
+        set xcix_ip_path [get_property core_container $file_obj]
         if { {} != $xcix_ip_path } {
           set ip_name [file root [file tail $xcix_ip_path]]
           set ip_ext_dir [get_property ip_extract_dir [get_ips -all -quiet $ip_name]]

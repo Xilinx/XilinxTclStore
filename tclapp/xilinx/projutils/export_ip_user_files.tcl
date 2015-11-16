@@ -226,7 +226,8 @@ proc xif_export_simulation { ip_file } {
   variable a_vars
   # -of_objects specified? generate sim scripts for the specified object
   if { $a_vars(b_of_objects_specified) && (!$a_vars(b_no_script)) } {
-    export_simulation -of_objects $ip_file -directory $a_vars(scripts_dir) -force
+    # TODO: speedup
+    export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force
   }
 }
 
@@ -392,16 +393,16 @@ proc xif_export_ip { obj } {
   } else {
     set empty_dirs [list]
     # classic ip (non-container) - remove dynamic files
-    foreach dynamic_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {(USED_IN =~ "*simulation*") && (USED_IN !~ "*ipstatic*")}] {
-      # puts dynamic_file=$dynamic_file
-      set repo_file [xif_get_dynamic_sim_file $ip_name $dynamic_file]
+    foreach dynamic_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {(USED_IN =~ "*simulation*") && (USED_IN !~ "*ipstatic*")}] {
+      # puts dynamic_file_obj=$dynamic_file_obj
+      set repo_file [xif_get_dynamic_sim_file $ip_name $dynamic_file_obj]
       # repo file not found? continue
       if { {} == $repo_file } {
         continue
       }
       # is this repo file path same from within core-container? continue, we don't want to delete source dynamic file
       set repo_file [string map {\\ /} $repo_file]
-      set dynamic_file [string map {\\ /} $dynamic_file]
+      set dynamic_file [string map {\\ /} $dynamic_file_obj]
       if { $repo_file == $dynamic_file } {
         continue
       }
@@ -817,12 +818,17 @@ proc xif_find_ipstatic_file_path { src_ip_file parent_comp_file } {
 
   variable a_vars
   set dest_file {}
-  if { ! [xif_valid_object_types $src_ip_file "file"] } {
+  set filename [file tail $src_ip_file]
+  set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+  if { {} == $file_obj } {
+    set file_obj [lindex [get_files -quiet -all $filename] 0]
+  }
+  if { {} == $file_obj } {
     return $dest_file
   }
 
   if { {} == $parent_comp_file } {
-    set library_name [get_property library $src_ip_file]
+    set library_name [get_property library $file_obj]
     set comps [lrange [split $src_ip_file "/"] 1 end]
     set index 0
     set b_found false
@@ -839,7 +845,6 @@ proc xif_find_ipstatic_file_path { src_ip_file parent_comp_file } {
     set src_ip_file_dir [file dirname $src_ip_file]
     set lib_dir [xif_get_sub_file_path $src_ip_file_dir $ip_output_dir]
     set target_extract_dir [file normalize [file join $a_vars(ipstatic_dir) $lib_dir]]
-    set filename [file tail $src_ip_file]
     set dest_file [file join $target_extract_dir $filename]
   }
   return $dest_file
