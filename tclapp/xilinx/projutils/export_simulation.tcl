@@ -98,6 +98,7 @@ proc export_simulation {args} {
 
   # cache, clear here to free memory - also clear in init
   array unset a_sim_cache
+  array unset a_sim_cache_extract_source_from_repo
   array unset a_sim_cache_gen_mem_files
   array unset a_sim_cache_is_bd_file
 
@@ -197,9 +198,11 @@ proc xps_init_vars {} {
   
   # cache, clear in-case of catastrophic failure - also clear after export_simulation
   variable a_sim_cache
+  variable a_sim_cache_extract_source_from_repo
   variable a_sim_cache_gen_mem_files
   variable a_sim_cache_is_bd_file
   array unset a_sim_cache
+  array unset a_sim_cache_extract_source_from_repo
   array unset a_sim_cache_gen_mem_files
   array unset a_sim_cache_is_bd_file
 }
@@ -802,9 +805,9 @@ proc xps_gen_mem_files { run_dir } {
   # tp/tp.ip_user_files/sim_scripts/<ip>/<simulator>/<?bd+ip?>.mem
   set s_ip_dir [file tail [file dirname $run_dir]]
   set s_hash "_${s_ip_dir}"; # cache hash, _ prepend supports empty args
-  if { [info exists ::a_sim_cache_gen_mem_files($s_hash)] } { 
+  if { [info exists a_sim_cache_gen_mem_files($s_hash)] } { 
     # copy the already generated output to the next location...
-    set existing_run_dir $::a_sim_cache_gen_mem_files($s_hash)
+    set existing_run_dir $a_sim_cache_gen_mem_files($s_hash)
     if { ! [file isdirectory $run_dir] } {
       if { [catch {file mkdir $run_dir} error] } {
         send_msg_id exportsim-Tcl-068 ERROR "failed to create directory: $run_dir\n$error"
@@ -823,7 +826,7 @@ proc xps_gen_mem_files { run_dir } {
   if { [llength $embedded_files] > 0 } {
     #send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
     generate_mem_files $run_dir
-    set ::a_sim_cache_gen_mem_files($s_hash) $run_dir
+    set a_sim_cache_gen_mem_files($s_hash) $run_dir
   }
 }
 
@@ -1082,7 +1085,10 @@ proc xps_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
   if { ({} != $a_sim_vars(dynamic_repo_dir)) && ([file exist $a_sim_vars(dynamic_repo_dir)]) } {
     set b_is_static 0
     set b_is_dynamic 0
-    set src_file [xps_get_source_from_repo $ip_file $src_file $launch_dir b_is_static b_is_dynamic]
+    set b_add_ref 0
+    set b_wrap_in_quotes 0
+    set dst_cip_file [xps_extract_source_from_repo $ip_file $src_file b_is_static b_is_dynamic b_add_ref b_wrap_in_quotes]
+    set src_file [xps_get_source_from_repo $src_file $dst_cip_file $b_add_ref $b_wrap_in_quotes $launch_dir]
     set b_static_ip_file $b_is_static
     if { (!$b_is_static) && (!$b_is_dynamic) } {
       send_msg_id exportsim-Tcl-056 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
@@ -1097,27 +1103,45 @@ proc xps_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
   return $src_file
 }
 
-proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg b_is_dynamic_arg } {
+proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_dynamic_arg b_add_ref_arg b_wrap_in_quotes_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_extract_source_from_repo
   variable a_sim_vars
   upvar $b_is_static_arg b_is_static
   upvar $b_is_dynamic_arg b_is_dynamic
+  upvar $b_add_ref_arg b_add_ref
+  upvar $b_wrap_in_quotes_arg b_wrap_in_quotes
+
+  set s_hash "_${ip_file}-${orig_src_file}"; # cache hash, _ prepend supports empty args
+  if { [info exists a_sim_cache_extract_source_from_repo($s_hash)] } { 
+    if { [info exists a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static")] } { 
+      set b_is_static $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") 
+    }
+    set b_is_dynamic $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") 
+    set b_add_ref $a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") 
+    set b_wrap_in_quotes $a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") 
+    return $a_sim_cache_extract_source_from_repo($s_hash) 
+  }
 
   #puts org_file=$orig_src_file
   set src_file $orig_src_file
 
   set b_wrap_in_quotes 0
+  set a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") $b_wrap_in_quotes
   if { [regexp {\"} $src_file] } {
     set b_wrap_in_quotes 1
+    set a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") $b_wrap_in_quotes
     regsub -all {\"} $src_file {} src_file
   }
 
   set b_add_ref 0 
+  set a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") $b_add_ref
   if {[regexp -nocase {^\$ref_dir} $src_file]} {
     set b_add_ref 1
+    set a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") $b_add_ref
     set src_file [string range $src_file 9 end]
     set src_file "$src_file"
   }
@@ -1143,6 +1167,7 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   }
 
   set b_is_dynamic 1
+  set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") $b_is_dynamic
   set bd_file {}
   set b_is_bd_ip [xps_is_bd_file $full_src_file_path bd_file]
   set bd_filename [file tail $bd_file]
@@ -1157,7 +1182,9 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
     set b_is_static 1
+    set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") $b_is_static
     set b_is_dynamic 0
+    set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") $b_is_dynamic
     set dst_cip_file $ip_static_file 
 
     if { $a_sim_vars(b_use_static_lib) } {
@@ -1200,6 +1227,15 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
       }
     }
   }
+  return [set a_sim_cache_extract_source_from_repo($s_hash) $dst_cip_file]
+}
+
+proc xps_get_source_from_repo { orig_src_file dst_cip_file b_add_ref b_wrap_in_quotes launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
 
   if { [file exist $dst_cip_file] } {
     if { $a_sim_vars(b_absolute_path) } {
@@ -1259,11 +1295,11 @@ proc xps_is_bd_file { src_file bd_file_arg } {
   upvar $bd_file_arg bd_file
 
   set s_hash "_${src_file}"; # cache hash, _ supports empty args
-  if { [info exists ::a_sim_cache_is_bd_file($s_hash)] } { 
-    if { [info exists ::a_sim_cache_is_bd_file("${s_hash}-bd_file")] } { 
-      set bd_file $::a_sim_cache_is_bd_file("${s_hash}-bd_file") 
+  if { [info exists a_sim_cache_is_bd_file($s_hash)] } { 
+    if { [info exists a_sim_cache_is_bd_file("${s_hash}-bd_file")] } { 
+      set bd_file $a_sim_cache_is_bd_file("${s_hash}-bd_file") 
     }
-    return $::a_sim_cache_is_bd_file($s_hash) 
+    return $a_sim_cache_is_bd_file($s_hash) 
   }
 
   set b_is_bd 0
@@ -1285,9 +1321,9 @@ proc xps_is_bd_file { src_file bd_file_arg } {
   if { {.bd} == [file extension $comp_file] } {
     set b_is_bd 1
     set bd_file $comp_file
-    set ::a_sim_cache_is_bd_file("${s_hash}-bd_file") $bd_file
+    set a_sim_cache_is_bd_file("${s_hash}-bd_file") $bd_file
   }
-  return [set ::a_sim_cache_is_bd_file($s_hash) $b_is_bd]
+  return [set a_sim_cache_is_bd_file($s_hash) $b_is_bd]
 }
 
 proc xps_fetch_ip_static_file { file vh_file_obj } {

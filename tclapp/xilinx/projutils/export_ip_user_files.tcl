@@ -771,11 +771,11 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   upvar $target_ip_lib_dir_arg target_ip_lib_dir
 
   set s_hash "_${ip_name}-${dynamic_file}"; # cache hash, _ prepend supports empty args
-  if { [info exists ::a_cache_get_dynamic_sim_file_bd($s_hash)] } { 
-    set hdl_dir_file $::a_cache_get_dynamic_sim_file_bd("${s_hash}-hdl_dir_file") 
-    set ip_lib_dir $::a_cache_get_dynamic_sim_file_bd("${s_hash}-ip_lib_dir") 
-    set target_ip_lib_dir $::a_cache_get_dynamic_sim_file_bd("${s_hash}-target_ip_lib_dir") 
-    return $::a_cache_get_dynamic_sim_file_bd($s_hash) 
+  if { [info exists a_cache_get_dynamic_sim_file_bd($s_hash)] } { 
+    set hdl_dir_file $a_cache_get_dynamic_sim_file_bd("${s_hash}-hdl_dir_file") 
+    set ip_lib_dir $a_cache_get_dynamic_sim_file_bd("${s_hash}-ip_lib_dir") 
+    set target_ip_lib_dir $a_cache_get_dynamic_sim_file_bd("${s_hash}-target_ip_lib_dir") 
+    return $a_cache_get_dynamic_sim_file_bd($s_hash) 
   }
 
   # dynamic_file: /demo/project_1/project_1.srcs/sources_1/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
@@ -790,17 +790,17 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   set file_path_str [join [lrange $full_comps 0 $index] "/"]
 
   set ip_lib_dir "$file_path_str"
-  set ::a_cache_get_dynamic_sim_file_bd("${s_hash}-ip_lib_dir") $ip_lib_dir
+  set a_cache_get_dynamic_sim_file_bd("${s_hash}-ip_lib_dir") $ip_lib_dir
   # ip_lib_dir: /demo/project_1/project_1.srcs/sources_1/bd/design_1 
   #puts ip_lib_dir=$ip_lib_dir
 
   set target_ip_lib_dir [file join $a_vars(bd_base_dir) ${ip_name}]
-  set ::a_cache_get_dynamic_sim_file_bd("${s_hash}-target_ip_lib_dir") $target_ip_lib_dir
+  set a_cache_get_dynamic_sim_file_bd("${s_hash}-target_ip_lib_dir") $target_ip_lib_dir
   # target_ip_lib_dir: /demo/project_1/project_1.ip_user_files/bd/design_1
   #puts target_ip_lib_dir=$target_ip_lib_dir
 
   set hdl_dir_file [join [lrange $full_comps $index end] "/"]
-  set ::a_cache_get_dynamic_sim_file_bd("${s_hash}-hdl_dir_file") $hdl_dir_file
+  set a_cache_get_dynamic_sim_file_bd("${s_hash}-hdl_dir_file") $hdl_dir_file
   # hdl_dir_file: ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
   #puts hdl_dir_file=$hdl_dir_file
 
@@ -808,7 +808,7 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   # repo_file: /demo/project_1/project_1.ip_user_files/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
   #puts repo_file=$repo_file
 
-  return [set ::a_cache_get_dynamic_sim_file_bd($s_hash) $repo_file]
+  return [set a_cache_get_dynamic_sim_file_bd($s_hash) $repo_file]
 }
 
 proc xif_find_ipstatic_file_path { src_ip_file parent_comp_file } {
