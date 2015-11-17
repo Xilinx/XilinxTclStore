@@ -95,6 +95,12 @@ proc export_simulation {args} {
       }
     }
   }
+
+  # clear cache
+  array unset a_sim_cache
+  array unset a_sim_cache_gen_mem_files
+  array unset a_sim_cache_is_bd_file
+
   return
 }
 }
@@ -188,6 +194,15 @@ proc xps_init_vars {} {
                 FILE_TYPE != \"BMM\"                          && \
                 FILE_TYPE != \"ELF\"                          && \
                 FILE_TYPE != \"Design Checkpoint\""
+  
+  # setup cache
+  variable a_sim_cache_result
+  variable a_sim_cache_gen_mem_files
+  variable a_sim_cache_is_bd_file
+
+  array unset a_sim_cache_result
+  array unset a_sim_cache_gen_mem_files
+  array unset a_sim_cache_is_bd_file
 }
 }
 
@@ -744,14 +759,38 @@ proc xps_gen_mem_files { run_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
-
+  
+  variable a_sim_cache_gen_mem_files
   variable a_sim_vars
   variable s_embedded_files_filter
   variable l_target_simulator
+
+  set s_ip_dir [file tail [file dirname $run_dir]]
+  set s_hash "_${s_ip_dir}"; # cache hash, _ prepend supports empty args
+
+  # if mem files cache setup, copy mem files from this cache run dir to other simulator dir
+  if { [info exists ::a_sim_cache_gen_mem_files($s_hash)] } { 
+    if { ! [file isdirectory $run_dir] } {
+      if { [catch {file mkdir $run_dir} error] } {
+        send_msg_id exportsim-Tcl-068 ERROR "failed to create directory: $run_dir\n$error"
+      }
+    }
+
+    foreach file [glob -nocomplain -directory $::a_sim_cache_gen_mem_files($s_hash) *.mem] {
+      if { [catch {file copy -force $file $run_dir} error] } {
+        send_msg_id exportsim-Tcl-069 ERROR "failed to copy '${file}' to '${run_dir}': $error"
+      } else {
+        generate_mem_files $run_dir
+      }
+    }
+    return
+  }
+
   set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
   if { [llength $embedded_files] > 0 } {
     #send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
     generate_mem_files $run_dir
+    set ::a_sim_cache_gen_mem_files($s_hash) $run_dir
   }
 }
 
@@ -850,15 +889,15 @@ proc xps_get_files { simulator launch_dir } {
 
   variable a_sim_vars
   variable l_compile_order_files
-  set files          [list]
+  set files                 [list]
   set l_compile_order_files [list]
-  set target_obj        $a_sim_vars(sp_tcl_obj)
-  set linked_src_set {}
+  set target_obj            $a_sim_vars(sp_tcl_obj)
+  set linked_src_set        {}
   if { ([xps_is_fileset $a_sim_vars(sp_tcl_obj)]) && ({SimulationSrcs} == [get_property fileset_type $a_sim_vars(fs_obj)]) } {
     set linked_src_set [get_property "SOURCE_SET" $a_sim_vars(fs_obj)]
   }
-  set target_lang    [get_property "TARGET_LANGUAGE" [current_project]]
-  set src_mgmt_mode  [get_property "SOURCE_MGMT_MODE" [current_project]]
+  set target_lang     [get_property "TARGET_LANGUAGE" [current_project]]
+  set src_mgmt_mode   [get_property "SOURCE_MGMT_MODE" [current_project]]
   set incl_file_paths [list]
   set incl_files      [list]
 
@@ -924,17 +963,17 @@ proc xps_get_files { simulator launch_dir } {
 
     if { {All} == $src_mgmt_mode } {
       #send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$target_obj'..."
-      foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
-        if { [xps_is_global_include_file $file] } { continue }
-        set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
+      foreach fs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
+        if { [xps_is_global_include_file $fs_file_obj] } { continue }
+        set file_type [get_property "FILE_TYPE" $fs_file_obj]
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $fs_file_obj $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
-          lappend l_compile_order_files $file
+          lappend l_compile_order_files $fs_file_obj
         }
       }
       set b_add_sim_files 0
@@ -944,16 +983,16 @@ proc xps_get_files { simulator launch_dir } {
         if { {} != $srcset_obj } {
           set used_in_val "simulation"
           #send_msg_id exportsim-Tcl-021 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
-          foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
-            set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
+          foreach fs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
+            set file_type [get_property "FILE_TYPE" $fs_file_obj]
             set compiler [xps_get_compiler $simulator $file_type]
             set l_other_compiler_opts [list]
             xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
             if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-            set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
+            set cmd_str [xps_get_cmdstr $simulator $launch_dir $fs_file_obj $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
             if { {} != $cmd_str } {
               lappend files $cmd_str
-              lappend l_compile_order_files $file
+              lappend l_compile_order_files $fs_file_obj
             }
           }
         }
@@ -962,33 +1001,33 @@ proc xps_get_files { simulator launch_dir } {
 
     if { $b_add_sim_files } {
       #send_msg_id exportsim-Tcl-022 INFO "Fetching design files from '$a_sim_vars(fs_obj)'..."
-      foreach file [get_files -quiet -all -of_objects $a_sim_vars(fs_obj)] {
-        set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
+      foreach fs_file_obj [get_files -quiet -all -of_objects $a_sim_vars(fs_obj)] {
+        set file_type [get_property "FILE_TYPE" $fs_file_obj]
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-        if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]]} { continue }
-        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
+        if { [get_property "IS_AUTO_DISABLED" $fs_file_obj]} { continue }
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $fs_file_obj $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
-          lappend l_compile_order_files $file
+          lappend l_compile_order_files $fs_file_obj
         }
       }
     }
   } elseif { [xps_is_ip $target_obj] } {
     #send_msg_id exportsim-Tcl-023 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
-    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
-      set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
+    foreach ip_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
+      set file_type [get_property "FILE_TYPE" $ip_file_obj]
       set compiler [xps_get_compiler $simulator $file_type]
       set l_other_compiler_opts [list]
       xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
-      set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
+      set cmd_str [xps_get_cmdstr $simulator $launch_dir $ip_file_obj $file_type $compiler l_other_compiler_opts l_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
-        lappend l_compile_order_files $file
+        lappend l_compile_order_files $ip_file_obj
       }
     }
   }
@@ -1063,7 +1102,7 @@ proc xps_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   set used_in_values [get_property "USED_IN" $full_src_file_obj]
   # is dynamic?
   if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
-    if { [xps_is_core_container $ip_file $ip_name] } {
+    if { [xps_cache_result {xps_is_core_container $ip_file $ip_name}] } {
       set dst_cip_file [xps_get_dynamic_sim_file_core_container $full_src_file_path]
     } else {
       set dst_cip_file [xps_get_dynamic_sim_file_core_classic $full_src_file_path]
@@ -1183,7 +1222,17 @@ proc xps_is_bd_file { src_file bd_file_arg } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_is_bd_file
   upvar $bd_file_arg bd_file
+
+  set s_hash "_${src_file}"; # cache hash, _ supports empty args
+  if { [info exists ::a_sim_cache_is_bd_file($s_hash)] } { 
+    if { [info exists ::a_sim_cache_is_bd_file("${s_hash}-bd_file")] } { 
+      set bd_file $::a_sim_cache_is_bd_file("${s_hash}-bd_file") 
+    }
+    return $::a_sim_cache_is_bd_file($s_hash) 
+  }
+
   set b_is_bd 0
   set comp_file $src_file
   set MAX_PARENT_COMP_LEVELS 10
@@ -1203,8 +1252,9 @@ proc xps_is_bd_file { src_file bd_file_arg } {
   if { {.bd} == [file extension $comp_file] } {
     set b_is_bd 1
     set bd_file $comp_file
+    set ::a_sim_cache_is_bd_file("${s_hash}-bd_file") $bd_file
   }
-  return $b_is_bd
+  return [set ::a_sim_cache_is_bd_file($s_hash) $b_is_bd]
 }
 
 proc xps_fetch_ip_static_file { file vh_file_obj } {
@@ -1410,7 +1460,7 @@ proc xps_fetch_header_from_dynamic { vh_file b_is_bd } {
 
   variable a_sim_vars
   #puts vh_file=$vh_file
-  set ip_file [xps_get_top_ip_filename $vh_file]
+  set ip_file [xps_cache_result {xps_get_top_ip_filename $vh_file}]
   if { {} == $ip_file } {
     return $vh_file
   }
@@ -1418,7 +1468,7 @@ proc xps_fetch_header_from_dynamic { vh_file b_is_bd } {
   #puts ip_name=$ip_name
 
   # if not core-container (classic), return original source file from project
-  if { ![xps_is_core_container $ip_file $ip_name] } {
+  if { ![xps_cache_result {xps_is_core_container $ip_file $ip_name}] } {
     return $vh_file
   }
 
@@ -1702,7 +1752,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compi
   if { $b_skip_file_obj_access } {
     #
   } else {
-    set ip_file [xps_get_top_ip_filename $src_file]
+    set ip_file [xps_cache_result {xps_get_top_ip_filename $src_file}]
     set b_static_ip_file 0
     if { $a_sim_vars(b_xport_src_files) } {
       # no-op
@@ -1820,7 +1870,7 @@ proc xps_get_top_ip_filename { src_file } {
   set props [list_property $file_obj]
   # get the hierarchical top level ip file name if parent comp file is defined
   if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
-    set top_ip_file [xps_find_top_level_ip_file $src_file]
+    set top_ip_file [xps_cache_result {xps_find_top_level_ip_file $src_file}]
   }
   return $top_ip_file
 }
@@ -2012,7 +2062,7 @@ proc xps_export_data_files { data_files export_dir } {
         {.hwh} -
         {.hwdef} -
         {.xml} {
-          if { {} != [xps_get_top_ip_filename $file] } {
+          if { {} != [xps_cache_result {xps_get_top_ip_filename $file}] } {
             continue
           }
         }
@@ -5912,5 +5962,38 @@ proc xps_find_comp { comps_arg index_arg to_match } {
     break
   }
   return $b_found
+}
+
+proc xps_cache_result {args} {
+  # Summary:
+  # Will return already generated results if they exists else it will run the command
+  # NOTICE: The xps_cache_result command can only be used with procs that _do_not_ use upvar
+  #         If you need to cache a proc that leverages upvar, then see 
+  #         export_simulation::a_cache_get_dynamic_sim_file_bd
+  # Argument Usage:
+  # Return Value:
+  variable a_sim_cache_result
+
+  set cache_hash [regsub -all {[\[\]]} $args {|}]; # remove "..."
+  set cache_hash [uplevel expr \"$cache_hash\"]
+
+  #puts "XPS_CACHE_ARGS: '${args}'"
+  #puts "XPS_CACHE_HASH: '${cache_hash}'"
+  
+  # Validation - for every call we compare the cache to the actual values
+  #if { [info exists a_sim_cache_result($cache_hash)] } {
+  #  #puts " CACHE_EXISTS"
+  #  set old $a_sim_cache_result($cache_hash)
+  #  set a_sim_cache_result($cache_hash) [uplevel eval $args]
+  #  if { "$a_sim_cache_result($cache_hash)" != "$old" } {
+  #    error "CACHE_VALIDATION: difference detected, halting flow\n OLD: ${old}\n NEW: $a_sim_cache_result($cache_hash)"
+  #  }
+  #  return $a_sim_cache_result($cache_hash) 
+  #}
+
+  # NOTE: to disable caching (with this proc) comment out this line:
+  if { [info exists a_sim_cache_result($cache_hash)] } { return $a_sim_cache_result($cache_hash) }
+
+  return [set a_sim_cache_result($cache_hash) [uplevel eval $args]]
 }
 }

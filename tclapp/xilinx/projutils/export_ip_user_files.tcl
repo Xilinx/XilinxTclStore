@@ -6,6 +6,7 @@
 #
 ####################################################################################
 package require Vivado 1.2014.1
+package require struct::set
 
 namespace eval ::tclapp::xilinx::projutils {
   namespace export export_ip_user_files
@@ -56,8 +57,15 @@ proc xif_init_vars {} {
   set s_mem_filter                    "FILE_TYPE==\"Data Files\" || FILE_TYPE==\"Memory Initialization Files\" || FILE_TYPE==\"Coefficient Files\""
 
   variable l_libraries                [list]
-  
+
+  # store cached results
+  variable    a_cache_result
+  array unset a_cache_result
+
+  variable    a_cache_get_dynamic_sim_file_bd
+  array unset a_cache_get_dynamic_sim_file_bd
 }
+
 
 proc export_ip_user_files {args} {
   # Summary:
@@ -79,6 +87,7 @@ proc export_ip_user_files {args} {
   variable l_libraries
   variable l_valid_ip_extns
   xif_init_vars
+
   set a_vars(options) [split $args " "]
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
@@ -165,17 +174,16 @@ proc export_ip_user_files {args} {
   } else {
     # -of_objects not specified? generate sim scripts for all ips/bds
     if { !$a_vars(b_of_objects_specified) } {
-      set top_level_ips [get_files -quiet -norecurse *.xci]
-      foreach ip_file $top_level_ips {
+      foreach ip_file [get_files -quiet -norecurse -pattern *.xci -pattern *.bd] {
         export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force
-      }
-  
-      set top_level_bds [get_files -quiet -norecurse *.bd]
-      foreach bd_file $top_level_bds {
-        export_simulation -of_objects [get_files -all -quiet $bd_file] -directory $a_vars(scripts_dir) -force
       }
     }
   }
+
+  # clear cache
+  array unset a_cache_result
+  array unset a_cache_get_dynamic_sim_file_bd
+
   return
 }
 
@@ -187,6 +195,7 @@ proc xif_export_simulation { ip_file } {
   variable a_vars
   # -of_objects specified? generate sim scripts for the specified object
   if { $a_vars(b_of_objects_specified) && (!$a_vars(b_no_script)) } {
+    # TODO: speedup
     export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force
   }
 }
@@ -234,7 +243,7 @@ proc xif_export_ip_files { obj } {
         set bd_extn [file extension $bd_file]
         if { {.bd} == $bd_extn } {
           #puts bd=$obj
-          xif_export_bd $bd_file
+          xif_cache_result {xif_export_bd $bd_file}
           xif_export_simulation $bd_file
         } 
       } else {
@@ -252,7 +261,7 @@ proc xif_export_ip_files { obj } {
     }
   } else {
     if { {.bd} == $ip_extn } {
-      xif_export_bd $obj
+      xif_cache_result {xif_export_bd $obj}
       xif_export_simulation $obj
     } elseif { ({.xci} == $ip_extn) || ({.xcix} == $ip_extn) } {
       set ip [xif_get_ip_name $obj]
@@ -353,16 +362,16 @@ proc xif_export_ip { obj } {
   } else {
     set empty_dirs [list]
     # classic ip (non-container) - remove dynamic files
-    foreach dynamic_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {(USED_IN =~ "*simulation*") && (USED_IN !~ "*ipstatic*")}] {
-      # puts dynamic_file=$dynamic_file
-      set repo_file [xif_get_dynamic_sim_file $ip_name $dynamic_file]
+    foreach dynamic_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {(USED_IN =~ "*simulation*") && (USED_IN !~ "*ipstatic*")}] {
+      # puts dynamic_file_obj=$dynamic_file_obj
+      set repo_file [xif_get_dynamic_sim_file $ip_name $dynamic_file_obj]
       # repo file not found? continue
       if { {} == $repo_file } {
         continue
       }
       # is this repo file path same from within core-container? continue, we don't want to delete source dynamic file
       set repo_file [string map {\\ /} $repo_file]
-      set dynamic_file [string map {\\ /} $dynamic_file]
+      set dynamic_file [string map {\\ /} $dynamic_file_obj]
       if { $repo_file == $dynamic_file } {
         continue
       }
@@ -401,12 +410,11 @@ proc xif_export_ip { obj } {
     xif_delete_ip_inst_dir $ip_inst_dir $ip_name
 
     # delete core-container ip inst dir
-    foreach sim_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
-      if { [lsearch $l_static_files $sim_file] != -1 } { continue }
-      if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
-      set file $sim_file
+    foreach sim_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
+      if { [lsearch $l_static_files $sim_file_obj] != -1 } { continue }
+      if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file_obj]] >= 0 } { continue }
       if { $b_container } {
-        set ip_name [xif_get_dynamic_core_container_ip_name $sim_file $ip_name]
+        set ip_name [xif_get_dynamic_core_container_ip_name $sim_file_obj $ip_name]
         set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
         xif_delete_ip_inst_dir $ip_inst_dir $ip_name
       }
@@ -429,28 +437,28 @@ proc xif_export_ip { obj } {
   #
   # dynamic files
   #
-  foreach sim_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
-    if { [lsearch $l_static_files $sim_file] != -1 } { continue }
-    if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file]] >= 0 } { continue }
-    set file $sim_file
+  foreach dynamic_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
+    if { [lsearch $l_static_files $dynamic_file_obj] != -1 } { continue }
+    if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file_obj]] >= 0 } { continue }
+    set file $dynamic_file_obj
     if { $b_container } {
-      set ip_name [xif_get_dynamic_core_container_ip_name $sim_file $ip_name]
+      set ip_name [xif_get_dynamic_core_container_ip_name $dynamic_file_obj $ip_name]
       set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
       if { $a_vars(b_force) } {
-        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $sim_file]
+        set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $dynamic_file_obj]
       } else {
-        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $sim_file]
+        set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $dynamic_file_obj]
       }
     } else {
-      #set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $sim_file]
+      #set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $dynamic_file_obj]
       set bd_file {}
-      if { [xif_is_bd_ip_file $file bd_file] } {
+      if { [xif_is_bd_ip_file $dynamic_file_obj bd_file] } {
         # do not delete classic bd file
       } else {
         # cleanup dynamic files for classic ip
         #if { [file exists $file] } {
         #  if {[catch {file delete -force $file} error_msg] } {
-        #    send_msg_id export_ip_user_files-Tcl-011 ERROR "Failed to delete file ($file): $error_msg\n"
+        #    send_msg_id export_ip_user_files-Tcl-011 ERROR "Failed to delete file ($dynamic_file_obj): $error_msg\n"
         #    return 1
         #  }
         #}
@@ -495,13 +503,12 @@ proc xif_delete_ip_inst_dir { dir ip_name } {
   }
 }
 
-proc xif_get_dynamic_core_container_ip_name { src_file ip_name } {
+proc xif_get_dynamic_core_container_ip_name { src_file_obj ip_name } {
   # Summary:
   # Argument Usage:
   # Return Value:
  
-  set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
-  set xcix_file [get_property core_container $file_obj]
+  set xcix_file [get_property core_container $src_file_obj]
   set core_name [file root [file tail $xcix_file]]
   if { {} != $core_name } {
     return $core_name
@@ -531,7 +538,7 @@ proc xif_get_sub_file_path { src_file_path dir_path_to_remove } {
   return $sub_file_path
 }
 
-proc xif_is_bd_ip_file { src_file bd_file_arg } {
+proc xif_is_bd_ip_file { src_file_obj bd_file_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -539,21 +546,20 @@ proc xif_is_bd_ip_file { src_file bd_file_arg } {
   set b_is_bd 0
   return 0
   upvar $bd_file_arg bd_file
-  set comp_file $src_file
+  
   set MAX_PARENT_COMP_LEVELS 5
   set count 0
   while (1) {
     incr count
     if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all $comp_file] 0]
-    set props [list_property $file_obj]
+    set props [list_property $src_file_obj]
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
     }
-    set comp_file [get_property parent_composite_file -quiet $file_obj]
-    if { {.bd} == [file extension $comp_file] } {
+    set parent_file [get_property parent_composite_file -quiet $src_file_obj]
+    if { {.bd} == [file extension $parent_file] } {
       set b_is_bd 1
-      set bd_file $comp_file
+      set bd_file $parent_file
       break
     }
   }
@@ -570,6 +576,7 @@ proc xif_export_bd { obj } {
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
+  set bd_file [get_files -quiet ${ip_name}.bd]
 
   #
   # static files
@@ -585,7 +592,7 @@ proc xif_export_bd { obj } {
     #
     # static files
     #
-    set l_static_files [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*ipstatic*"}]
+    set l_static_files [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*ipstatic*"}]
     foreach src_ip_file $l_static_files {
       set src_ip_file [string map {\\ /} $src_ip_file]
       # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
@@ -677,7 +684,7 @@ proc xif_export_bd { obj } {
   #
   # dynamic files
   #
-  foreach dynamic_file [get_files -quiet -all -of_objects [get_files -quiet ${ip_name}.bd] -filter {USED_IN=~"*simulation*"}] {
+  foreach dynamic_file [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*simulation*"}] {
     if { [lsearch $l_static_files $dynamic_file] != -1 } { continue }
     if { {.xci} == [file extension $dynamic_file] } { continue }
     if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file]] >= 0 } { continue }
@@ -724,10 +731,22 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   # Argument Usage:
   # Return Value:
 
+  variable a_cache_get_dynamic_sim_file_bd
   variable a_vars
   upvar $hdl_dir_file_arg hdl_dir_file
   upvar $ip_lib_dir_arg ip_lib_dir
   upvar $target_ip_lib_dir_arg target_ip_lib_dir
+
+  # cache hash, _ prepend supports empty args
+  set s_hash "_${ip_name}-${dynamic_file}"
+
+  if { [info exists ::a_cache_get_dynamic_sim_file_bd($s_hash)] } {
+    set hdl_dir_file      $::a_cache_get_dynamic_sim_file_bd("${s_hash}-hdl_dir_file") 
+    set ip_lib_dir        $::a_cache_get_dynamic_sim_file_bd("${s_hash}-ip_lib_dir") 
+    set target_ip_lib_dir $::a_cache_get_dynamic_sim_file_bd("${s_hash}-target_ip_lib_dir")
+    
+    return $::a_cache_get_dynamic_sim_file_bd($s_hash) 
+  }
 
   # dynamic_file: /demo/project_1/project_1.srcs/sources_1/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
   set full_comps [lrange [split $dynamic_file "/"] 0 end]
@@ -741,14 +760,17 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   set file_path_str [join [lrange $full_comps 0 $index] "/"]
 
   set ip_lib_dir "$file_path_str"
+  set ::a_cache_get_dynamic_sim_file_bd("${s_hash}-ip_lib_dir") $ip_lib_dir
   # ip_lib_dir: /demo/project_1/project_1.srcs/sources_1/bd/design_1 
   #puts ip_lib_dir=$ip_lib_dir
 
   set target_ip_lib_dir [file join $a_vars(bd_base_dir) ${ip_name}]
+  set ::a_cache_get_dynamic_sim_file_bd("${s_hash}-target_ip_lib_dir") $target_ip_lib_dir
   # target_ip_lib_dir: /demo/project_1/project_1.ip_user_files/bd/design_1
   #puts target_ip_lib_dir=$target_ip_lib_dir
 
   set hdl_dir_file [join [lrange $full_comps $index end] "/"]
+  set ::a_cache_get_dynamic_sim_file_bd("${s_hash}-hdl_dir_file") $hdl_dir_file
   # hdl_dir_file: ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
   #puts hdl_dir_file=$hdl_dir_file
 
@@ -756,7 +778,7 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   # repo_file: /demo/project_1/project_1.ip_user_files/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
   #puts repo_file=$repo_file
 
-  return $repo_file
+  return [set ::a_cache_get_dynamic_sim_file_bd($s_hash) $repo_file]
 }
 
 proc xif_find_ipstatic_file_path { src_ip_file parent_comp_file } {
@@ -1343,14 +1365,18 @@ proc xif_get_relative_file_path { file_path_to_convert relative_to } {
   return $file_path
 }
 
-proc xif_get_dynamic_sim_file { ip_name src_file } {
+proc xif_get_dynamic_sim_file { ip_name src_file_obj } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_vars
 
-  set comps [lrange [split $src_file "/"] 1 end]
+  if { ! [xif_valid_object_types $src_file_obj "file"] } {
+    send_msg_id export_ip_user_files-Tcl-045 ERROR "[lindex [info level [info level]] 0] - only accepts 'file' type objects"
+  }
+
+  set comps [lrange [split $src_file_obj "/"] 1 end]
   set index 0
   set b_found false
   set to_match {}
@@ -1368,10 +1394,9 @@ proc xif_get_dynamic_sim_file { ip_name src_file } {
 
   if { !$b_found } {
     # get the core container ip name of this source and find from repo area
-    set file_obj [lindex [get_files -all -quiet [list "$src_file"]] 0]
-    set xcix_file [string trim [get_property core_container $file_obj]]
+    set xcix_file [string trim [get_property core_container $src_file_obj]]
     if { {} == $xcix_file } {
-      set comp_file [get_property parent_composite_file -quiet $file_obj]
+      set comp_file [get_property parent_composite_file -quiet $src_file_obj]
       set ip_name [file root [file tail $comp_file]]
     } else {
       set ip_name [file root [file tail $xcix_file]]
@@ -1381,7 +1406,7 @@ proc xif_get_dynamic_sim_file { ip_name src_file } {
   }
 
   if { ! $b_found } {
-    return $src_file
+    return $src_file_obj
   }
 
   set file_path_str [join [lrange $comps $index end] "/"]
@@ -1410,5 +1435,63 @@ proc xif_find_comp { comps_arg index_arg to_match } {
     break
   }
   return $b_found
+}
+
+proc xif_cache_result {args} {
+  # Summary:
+  # Will return already generated results if they exists else it will run the command
+  # NOTICE: The xif_cache_result command can only be used with procs that _do_not_ use upvar
+  #         If you need to cache a proc that leverages upvar, then see a_cache_get_dynamic_sim_file_bd
+  # Argument Usage:
+  # Return Value:
+  variable a_cache_result
+
+  set cache_hash [regsub -all {[\[\]]} $args {|}]; # replace "[" and "]" with "|"
+  set cache_hash [uplevel expr \"$cache_hash\"]
+
+  # Validation - for every call we compare the cache to the actual values
+  #puts "XIF_CACHE_ARGS: '${args}'"
+  #puts "XIF_CACHE_HASH: '${cache_hash}'"
+
+  #if { [info exists a_cache_result($cache_hash)] } {
+  #  #puts " CACHE_EXISTS"
+  #  set old $a_cache_result($cache_hash)
+  #  set a_cache_result($cache_hash) [uplevel eval $args]
+  #  if { "$a_cache_result($cache_hash)" != "$old" } {
+  #    error "CACHE_VALIDATION: difference detected, halting flow\n OLD: ${old}\n NEW: $a_cache_result($cache_hash)"
+  #  }
+  #  return $a_cache_result($cache_hash) 
+  #}
+
+  # NOTE: to disable caching (with this proc) comment out this line:
+  if { [info exists a_cache_result($cache_hash)] } {
+    return $a_cache_result($cache_hash)
+  }
+
+  return [set a_cache_result($cache_hash) [uplevel eval $args]]
+}
+
+
+proc xif_valid_object_types { objs allowedTypes } {
+  if { [llength $objs] == 0 } {
+    return true; # Zero objects is considered a passing condition
+  }
+  # TODO: more efficient way than throw/catch?
+  if { [catch {get_property CLASS $objs} objTypes] } {
+    #set message "[lindex [info level [info level]] 0] - only accepts first-class Tcl objects (CLASS property is expected to exist), received: '[join $objs ',\ ']'"
+    #puts $message
+    #send_msg_id export_ip_user_files-Tcl-044 ERROR $message
+    #error $message
+    return false
+  }
+  set nonAllowedObjTypes [struct::set difference [lsort -unique ${objTypes}] [lsort -unique ${allowedTypes}]]
+  if { [llength $nonAllowedObjTypes] > 0 } {
+    #set message "[lindex [info level [info level]] 0] - only accepts '[join $allowedTypes ',\ ' ]' type objects, received '[join $nonAllowedObjTypes ',\ ']'"
+    #puts $message
+    #send_msg_id export_ip_user_files-Tcl-045 ERROR $message
+    #error $message
+    return false
+  }
+  return true
 }
 }
