@@ -840,7 +840,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     if {$::tcl_platform(platform) == "unix"} {
       foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
         if { {Shared Library} == [get_property FILE_TYPE $file] } {
-          lappend args_list "--sv_root \".\/\" -sv_lib libsls"
+          lappend args_list "--sv_root \".\/\" -sv_lib libsls.so"
           break
         }
       }
