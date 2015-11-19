@@ -1101,7 +1101,7 @@ proc isl_write_compile_order { } {
     set comps [split $data {,}]
     set library [lindex $comps 0]
     if { {lib_fifo_v1_0_4} == $library } { continue }
-    if { {axi_datamover_v5_1_9} == $library } {
+    if { {axi_pcie_v2_7_1} == $library } {
       if { ! $b_pre_add_lib } {
         puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/async_fifo_fg.vhd,vhdl"
         puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/sync_fifo_fg.vhd,vhdl"

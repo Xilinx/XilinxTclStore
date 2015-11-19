@@ -2432,7 +2432,7 @@ proc xps_write_single_step { simulator fh_unix launch_dir srcs_dir } {
       #  lappend arg_list $filelist
       #}
       set install_path $::env(XILINX_VIVADO)
-      lappend arg_list "-f $install_path/data/secureip/secureip_cell.list.f" \
+      lappend arg_list "-f $install_path/data/secureip/secureip_cell.list.vf" \
                        "-y $install_path/data/verilog/src/retarget/" \
                        "+libext+.v" \
                        "-y $install_path/data/verilog/src/unisims/" \
@@ -2493,7 +2493,7 @@ proc xps_write_single_step { simulator fh_unix launch_dir srcs_dir } {
       lappend arg_list  "-top $a_sim_vars(s_top)" \
                         "-f $filename"
       if { $b_verilog_only } {
-        lappend arg_list   "-f $install_path/data/secureip/secureip_cell.list.f"
+        lappend arg_list   "-f $install_path/data/secureip/secureip_cell.list.vf"
       }
       if { [xps_contains_verilog] } {
         lappend arg_list "-top glbl"
@@ -2542,7 +2542,7 @@ proc xps_write_single_step { simulator fh_unix launch_dir srcs_dir } {
       lappend arg_list   "-V" \
                          "-timescale=1ps/1ps" \
                          "-f $filename" \
-                         "-f $install_path/data/secureip/secureip_cell.list.f"
+                         "-f $install_path/data/secureip/secureip_cell.list.vf"
       if { [xps_contains_verilog] } {
         lappend arg_list "glbl.v"
       }
@@ -3387,9 +3387,21 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
     "xsim" {
       xps_write_xsim_cmdline $fh_unix $dir
     }
-    "modelsim" -
+    "modelsim" {
+      set s_64bit {}
+      if { !$a_sim_vars(b_32bit) } {
+        set s_64bit {-64}
+      }
+      set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+      puts $fh_unix "  $cmd_str"
+      xps_write_do_file_for_simulate $simulator $dir
+    }
     "questa" {
-      set cmd_str "vsim -64 -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+      set s_64bit {}
+      if { !$a_sim_vars(b_32bit) } {
+        set s_64bit {-64}
+      }
+      set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
       puts $fh_unix "  $cmd_str"
       xps_write_do_file_for_simulate $simulator $dir
     }
@@ -3617,6 +3629,9 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
   switch $tool {
     "vcom" {
       set s_64bit {-64}
+      if { $a_sim_vars(b_32bit) } {
+        set s_64bit {-32}
+      }
       set arg_list [list $s_64bit]
       #lappend arg_list "-93"
       xps_append_config_opts arg_list $simulator "vcom"
@@ -3625,6 +3640,9 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
     }
     "vlog" {
       set s_64bit {-64}
+      if { $a_sim_vars(b_32bit) } {
+        set s_64bit {-32}
+      }
       set arg_list [list $s_64bit]
       xps_append_config_opts arg_list $simulator "vlog"
       set cmd_str [join $arg_list " "]
