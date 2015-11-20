@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reimplement logic for referencing pre-compiled IP static libraries from pre-compiled property setting</revision_history>
+      <revision_history>re-structured common helper procedures in utils</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
