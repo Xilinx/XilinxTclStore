@@ -110,6 +110,12 @@ proc usf_init_vars {} {
 
   # netlist file
   set a_sim_vars(s_netlist_file)            {}
+   
+  # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
+  if { ! [info exists ::tclapp::xilinx::ies::_xcs_defined] } {
+    variable home
+    source [file join $home "common" "utils.tcl"] 
+  }
 }
 
 proc usf_create_options { simulator opts } {
@@ -725,35 +731,6 @@ proc usf_contains_vhdl { design_files } {
   return $b_vhdl_srcs
 }
 
-proc usf_contains_verilog { design_files } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-
-  set flow $a_sim_vars(s_simulation_flow)
-
-  set b_verilog_srcs 0
-  foreach file $design_files {
-    set type [lindex [split $file {|}] 0]
-    switch $type {
-      {VERILOG} {
-        set b_verilog_srcs 1
-      }
-    }
-  }
-
-  if { (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && (!$b_verilog_srcs) } {
-    set extn [file extension $a_sim_vars(s_netlist_file)]
-    if { {.v} == $extn } {
-      set b_verilog_srcs 1
-    }
-  }
-
-  return $b_verilog_srcs
-}
-
 proc usf_is_fileset { tcl_obj } {
   # Summary:
   # Argument Usage:
@@ -812,7 +789,8 @@ proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
   set fs_obj      [get_filesets $a_sim_vars(s_simset)]
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set flow        $a_sim_vars(s_simulation_flow)
-  if { [usf_contains_verilog $design_files] } {
+  set netlist     $a_sim_vars(s_netlist_file)
+  if { [xcs_contains_verilog $design_files $flow $netlist] } {
     if { $b_load_glbl } {
       return 1
     }
