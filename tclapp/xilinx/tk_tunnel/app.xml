@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixed bug with windows server launch</revision_history>
+      <revision_history>tk_tunnel: Close cmd when tclsh exits</revision_history>
       <name>tk_tunnel</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
