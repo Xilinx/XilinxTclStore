@@ -429,7 +429,7 @@ proc usf_modelsim_create_wave_do_file { file } {
   usf_modelsim_write_header $fh $file
   puts $fh "add wave *"
 
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
     puts $fh "add wave /glbl/GSR"
   }
   close $fh
@@ -639,7 +639,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     }
   } else {
     # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { [::tclapp::xilinx::modelsim::usf_contains_verilog $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] && ({VHDL} == $target_lang) } {
+    if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang) } {
       if { ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
@@ -722,6 +722,8 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
@@ -781,7 +783,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [list]
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    if { [usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
+    if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-L" "simprims_ver"]
       } else {
@@ -804,7 +806,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   }
 
   set b_compile_unifast [get_property "unifast" $fs_obj]
-  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast_ver"]
     }
@@ -833,7 +835,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $design_files] } {    
+  if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {    
     lappend arg_list "${top_lib}.glbl"
   }
   lappend arg_list "-o"
@@ -887,6 +889,8 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
 
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
@@ -946,7 +950,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set arg_list [list]
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    if { [usf_contains_verilog $design_files] || ({Verilog} == $target_lang) } {
+    if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-L" "simprims_ver"]
       } else {
@@ -969,7 +973,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   }
 
   set b_compile_unifast [get_property "unifast" $fs_obj]
-  if { ([usf_contains_verilog $design_files]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast_ver"]
     }
@@ -1009,6 +1013,9 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
+
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   upvar $opts_arg opts
   set sim_flow $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow)
@@ -1030,7 +1037,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_top_level_glbl_inst_set 1
   }
 
-  if { [::tclapp::xilinx::modelsim::usf_contains_verilog $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] || $b_verilog_sim_netlist } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $b_verilog_sim_netlist } {
     if { {behav_sim} == $sim_flow } {
       set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" $fs_obj]
       if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
