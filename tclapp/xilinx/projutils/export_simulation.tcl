@@ -195,6 +195,12 @@ proc xps_init_vars {} {
                 FILE_TYPE != \"BMM\"                          && \
                 FILE_TYPE != \"ELF\"                          && \
                 FILE_TYPE != \"Design Checkpoint\""
+
+  # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
+  if { ! [info exists ::tclapp::xilinx::xsim::_xcs_defined] } {
+    variable home
+    source [file join $home "common" "simulation.tcl"] 
+  }
   
   # setup cache
   variable a_sim_cache_result
@@ -802,7 +808,8 @@ proc xps_copy_glbl { run_dir } {
   # Argument Usage:
   # Return Value:
 
-  if { [xps_contains_verilog] } {
+  variable a_sim_vars
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
     set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
     if { [file exists $glbl_file] } {
@@ -1083,32 +1090,32 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   upvar $b_wrap_in_quotes_arg b_wrap_in_quotes
 
   set s_hash "_${ip_file}-${orig_src_file}"; # cache hash, _ prepend supports empty args
-  if { [info exists ::a_sim_cache_extract_source_from_repo($s_hash)] } { 
-    if { [info exists ::a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static")] } { 
-      set b_is_static $::a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") 
+  if { [info exists a_sim_cache_extract_source_from_repo($s_hash)] } { 
+    if { [info exists a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static")] } { 
+      set b_is_static $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") 
     }
-    set b_is_dynamic $::a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") 
-    set b_add_ref $::a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") 
-    set b_wrap_in_quotes $::a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") 
-    return $::a_sim_cache_extract_source_from_repo($s_hash) 
+    set b_is_dynamic $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") 
+    set b_add_ref $a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") 
+    set b_wrap_in_quotes $a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") 
+    return $a_sim_cache_extract_source_from_repo($s_hash) 
   }
 
   #puts org_file=$orig_src_file
   set src_file $orig_src_file
 
   set b_wrap_in_quotes 0
-  set ::a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") $b_wrap_in_quotes
+  set a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") $b_wrap_in_quotes
   if { [regexp {\"} $src_file] } {
     set b_wrap_in_quotes 1
-    set ::a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") $b_wrap_in_quotes
+    set a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") $b_wrap_in_quotes
     regsub -all {\"} $src_file {} src_file
   }
 
   set b_add_ref 0 
-  set ::a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") $b_add_ref
+  set a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") $b_add_ref
   if {[regexp -nocase {^\$ref_dir} $src_file]} {
     set b_add_ref 1
-    set ::a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") $b_add_ref
+    set a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") $b_add_ref
     set src_file [string range $src_file 9 end]
     set src_file "$src_file"
   }
@@ -1134,7 +1141,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   }
 
   set b_is_dynamic 1
-  set ::a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") $b_is_dynamic
+  set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") $b_is_dynamic
   set bd_file {}
   set b_is_bd_ip [xps_is_bd_file $full_src_file_path bd_file]
   set bd_filename [file tail $bd_file]
@@ -1149,9 +1156,9 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
     set b_is_static 1
-    set ::a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") $b_is_static
+    set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") $b_is_static
     set b_is_dynamic 0
-    set ::a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") $b_is_dynamic
+    set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") $b_is_dynamic
     set dst_cip_file $ip_static_file 
 
     if { $a_sim_vars(b_use_static_lib) } {
@@ -1194,7 +1201,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
       }
     }
   }
-  return [set ::a_sim_cache_extract_source_from_repo($s_hash) $dst_cip_file]
+  return [set a_sim_cache_extract_source_from_repo($s_hash) $dst_cip_file]
 }
 
 proc xps_get_source_from_repo { orig_src_file dst_cip_file b_add_ref b_wrap_in_quotes launch_dir } {
@@ -2245,7 +2252,7 @@ proc xps_write_plain_filelist { dir } {
     set pfile [xps_resolve_file $proj_src_file $ip_file $src_file $dir]
     puts $fh $pfile
   }
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set file "glbl.v"
     if { $a_sim_vars(b_absolute_path) } {
       set file [file normalize [file join $dir $file]]
@@ -2466,7 +2473,7 @@ proc xps_write_single_step { simulator fh_unix launch_dir srcs_dir } {
       puts $fh_unix "  XILINX_VIVADO=$::env(XILINX_VIVADO)"
       puts $fh_unix "  export XILINX_VIVADO"
       set b_verilog_only 0
-      if { [xps_contains_verilog] && ![xps_contains_vhdl] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] && ![xps_contains_vhdl] } {
         set b_verilog_only 1
       }
       xps_append_config_opts arg_list "ies" "irun"
@@ -2495,7 +2502,7 @@ proc xps_write_single_step { simulator fh_unix launch_dir srcs_dir } {
       if { $b_verilog_only } {
         lappend arg_list   "-f $install_path/data/secureip/secureip_cell.list.vf"
       }
-      if { [xps_contains_verilog] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         lappend arg_list "-top glbl"
         lappend arg_list "glbl.v"
       }
@@ -2543,7 +2550,7 @@ proc xps_write_single_step { simulator fh_unix launch_dir srcs_dir } {
                          "-timescale=1ps/1ps" \
                          "-f $filename" \
                          "-f $install_path/data/secureip/secureip_cell.list.vf"
-      if { [xps_contains_verilog] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         lappend arg_list "glbl.v"
       }
       lappend arg_list   "+libext+.v" \
@@ -2643,7 +2650,7 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
       set arg_list [list]
       xps_append_config_opts arg_list "xsim" "xvlog"
       if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-m64"] }
-      if { [xps_contains_verilog] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         puts $fh_unix "  opts_ver=\"[join $arg_list " "]\""
       }
       set arg_list [list]
@@ -2684,7 +2691,7 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
   switch $simulator { 
     "xsim" {
       set redirect "2>&1 | tee compile.log"
-      if { [xps_contains_verilog] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         puts $fh_unix "  xvlog \$opts_ver -prj vlog.prj $redirect"
       }
       if { [xps_contains_vhdl] } {
@@ -2703,7 +2710,7 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
     }
   }
    
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set top_lib [xps_get_top_library]
     switch -regexp -- $simulator {
       "ies" {
@@ -3195,7 +3202,7 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
     }
   }
 
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     if { $a_sim_vars(b_single_step) } { 
       switch -regexp -- $simulator {
         "ies" {
@@ -3303,7 +3310,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
       }
       puts $fh_unix "  opts=\"[join $arg_list " "]\""
       set arg_list [list]
-      if { [xps_contains_verilog] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         lappend arg_list "-libname unisims_ver"
         lappend arg_list "-libname unimacro_ver"
       }
@@ -3324,7 +3331,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
         }
       }
       lappend arg_list "${top_lib}.$a_sim_vars(s_top)"
-      if { [xps_contains_verilog] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         lappend arg_list "${top_lib}.glbl"
       }
       lappend arg_list "\$libs"
@@ -3356,7 +3363,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
           xps_append_define_generics $vhdl_generics "vcs" arg_list
         }
       }
-      if { [xps_contains_verilog] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         lappend arg_list "${top_lib}.glbl"
       }
       lappend arg_list "-o"
@@ -3807,25 +3814,6 @@ proc xps_get_compile_order_files { } {
   return [xps_uniquify_cmd_str $::tclapp::xilinx::projutils::l_compile_order_files]
 }
  
-proc xps_contains_verilog {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set design_files $a_sim_vars(l_design_files)
-  set b_verilog_srcs 0
-  foreach file $design_files {
-    set type [lindex [split $file {|}] 0]
-    switch $type {
-      {VERILOG} {
-        set b_verilog_srcs 1
-      }
-    }
-  }
-  return $b_verilog_srcs 
-}
-
 proc xps_contains_system_verilog {} {
   # Summary:
   # Argument Usage:
@@ -4318,7 +4306,7 @@ proc xps_write_xsim_prj { dir srcs_dir } {
 
   variable a_sim_vars
   set top $a_sim_vars(s_top)
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set filename "vlog.prj"
     set file [file normalize [file join $dir $filename]]
     xps_write_prj $dir $file "VERILOG" $srcs_dir
@@ -4538,7 +4526,7 @@ proc xps_write_prj_single_step { dir srcs_dir} {
       puts $fh "$cmd_str $src_file"
     }
   }
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     puts $fh "\nverilog [xps_get_top_library] \"glbl.v\""
   }
   puts $fh "\nnosort"
@@ -4771,7 +4759,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
   }
 
   # compile glbl file
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     puts $fh "\nvlog -work [xps_get_top_library] \"glbl.v\""
   }
   if { $a_sim_vars(b_single_step) } {
@@ -4815,7 +4803,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       }
       set t_opts [join $arg_list " "]
       set arg_list [list]
-      if { [xps_contains_verilog] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         set arg_list [linsert $arg_list end "-L" "unisims_ver"]
         set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
       }
@@ -4840,7 +4828,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       lappend arg_list "$d_libs"
       set top $a_sim_vars(s_top)
       lappend arg_list "${top_lib}.$top"
-      if { [xps_contains_verilog] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         lappend arg_list "${top_lib}.glbl"
       }
       lappend arg_list "-o"
@@ -4920,7 +4908,7 @@ proc xps_create_wave_do_file { file } {
     return 1
   }
   puts $fh "add wave *"
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     puts $fh "add wave /glbl/GSR"
   }
   close $fh
@@ -4966,7 +4954,7 @@ proc xps_get_simulation_cmdline_modelsim {} {
   }
   set t_opts [join $args " "]
   set args [list]
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set args [linsert $args end "-L" "unisims_ver"]
     set args [linsert $args end "-L" "unimacro_ver"]
   }
@@ -4986,7 +4974,7 @@ proc xps_get_simulation_cmdline_modelsim {} {
   set args [list "vsim" $t_opts]
   lappend args "$d_libs"
   lappend args "${top_lib}.$a_sim_vars(s_top)"
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     lappend args "${top_lib}.glbl"
   }
   return [join $args " "]
@@ -5073,7 +5061,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
     if {[string length $lib] == 0} { continue; }
     lappend args "-L $lib"
   }
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     lappend args "-L unisims_ver"
     lappend args "-L unimacro_ver"
   }
@@ -5082,7 +5070,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   foreach top [xps_get_tops] {
     lappend args "$top"
   }
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     if { ([lsearch [xps_get_tops] {glbl}] == -1) } {
       set top_lib [xps_get_top_library]
       lappend args "${top_lib}.glbl"
@@ -5349,7 +5337,7 @@ proc xps_write_setup { simulator fh_unix } {
   switch -regexp -- $simulator {
     "ies" { puts $fh_unix "     touch hdl.var" }
   }
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     #puts $fh_unix "     copy_glbl_file"
   }
   puts $fh_unix "    ;;"
@@ -5380,7 +5368,7 @@ proc xps_write_setup { simulator fh_unix } {
   switch -regexp -- $simulator {
     "ies" { puts $fh_unix "     touch hdl.var" }
   }
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     #puts $fh_unix "     copy_glbl_file"
   }
   puts $fh_unix "  esac"
@@ -5950,7 +5938,7 @@ proc xps_write_filelist_info { dir } {
       lappend lines "$file_type, $filename, *, $lib, $pfile"
     }
   }
-  if { [xps_contains_verilog] } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set file "glbl.v"
     if { $a_sim_vars(b_absolute_path) } {
       set file [file normalize [file join $dir $file]]
