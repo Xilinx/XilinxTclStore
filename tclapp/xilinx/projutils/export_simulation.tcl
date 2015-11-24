@@ -199,7 +199,7 @@ proc xps_init_vars {} {
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::xsim::_xcs_defined] } {
     variable home
-    source [file join $home "common" "utils.tcl"] 
+    source -notrace [file join $home "common" "utils.tcl"] 
   }
   
   # setup cache
