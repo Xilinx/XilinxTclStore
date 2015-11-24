@@ -1,1 +1,2 @@
+1.73 source utils.tcl with notrace
 1.72 re-structured common helper procedures in utils

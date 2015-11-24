@@ -1,2 +1,3 @@
+3.103 source utils.tcl with notrace
 3.102 re-structured common helper procedures in utils
 3.101 reference secureip vf files for single step simulation
