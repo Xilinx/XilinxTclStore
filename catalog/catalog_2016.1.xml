@@ -105,8 +105,8 @@
     <app>
       <name>tk_tunnel</name>
       <company>xilinx</company>
-      <commit_id>868ae43d4b4cc7806bdb6a53d74efdc01c744ece</commit_id>
-      <revision>1.6</revision>
+      <commit_id>c6dcf2a6325ecd96451df6ee4a05c60f253f2d0d</commit_id>
+      <revision>1.7</revision>
     </app>
     <app>
       <name>ultrafast</name>
