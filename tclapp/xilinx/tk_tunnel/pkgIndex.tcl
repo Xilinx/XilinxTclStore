@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::tk_tunnel 1.6 [list source [file join $dir tk_tunnel.tcl]]
+package ifneeded ::tclapp::xilinx::tk_tunnel 1.7 [list source [file join $dir tk_tunnel.tcl]]
