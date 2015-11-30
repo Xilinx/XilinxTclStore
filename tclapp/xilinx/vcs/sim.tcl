@@ -303,7 +303,7 @@ proc usf_vcs_write_setup_files {} {
   }
 
   set b_compile_unifast [get_property "unifast" $fs_obj]
-  if { ([::tclapp::xilinx::vcs::usf_contains_verilog $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       puts $fh "unifast_ver : $lib_map_path/unifast_ver"
     }
@@ -521,7 +521,7 @@ proc usf_vcs_write_compile_script {} {
     }
   } else {
     # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { [::tclapp::xilinx::vcs::usf_contains_verilog $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] && ({VHDL} == $target_lang) } {
+    if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang) } {
       if { ({timing} == $::tclapp::xilinx::vcs::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
@@ -671,6 +671,9 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
+
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   upvar $opts_arg opts
   set sim_flow $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow)
@@ -692,7 +695,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_top_level_glbl_inst_set 1
   }
 
-  if { [::tclapp::xilinx::vcs::usf_contains_verilog $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] || $b_verilog_sim_netlist } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $b_verilog_sim_netlist } {
     if { {behav_sim} == $sim_flow } {
       set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
       if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
