@@ -3596,34 +3596,6 @@ proc xps_append_define_generics { def_gen_list tool opts_arg } {
   }
 }
 
-proc xps_append_define_generics_1 { def_gen_list tool opts_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $opts_arg opts
-  foreach element $def_gen_list {
-    set key_val_pair [split $element "="]
-    set name [lindex $key_val_pair 0]
-    set val  [lindex $key_val_pair 1]
-    if { [string length $val] > 0 } {
-      if { {vlog} == $tool } {
-        if { [regexp {'} $val] } {
-          regsub -all {'} $val {\\'} val
-        }
-      }
-      switch $tool {
-        "vlog"   { lappend opts "+define+$name=$val"       }
-        "ncvlog" { lappend opts "-define \"$name=$val\""   }
-        "vlogan" { lappend opts "+define+\"$name=$val\""   }
-        "ncelab" -
-        "ies"    { lappend opts "-generic \"$name=>$val\"" }
-        "vcs"    { lappend opts "-gv $name=\"$val\""       }
-      }
-    }
-  }
-}
-
 proc xps_get_compiler { simulator file_type } {
   # Summary:
   # Argument Usage:
@@ -4227,90 +4199,6 @@ proc xps_write_libs_unix { simulator fh_unix } {
       puts $fh_unix "  done"
       puts $fh_unix "\}"
       puts $fh_unix ""
-    }
-  }
-}
-
-proc xps_set_cxl_lib { simulator } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  variable a_sim_vars
-
-  set simulator_id [string tolower $simulator]
-  set old_param "simulator.compiled_library_dir"
-  set old_prop  "compxlib.compiled_library_dir"
-  
-  set old_dir [get_property $old_prop [current_project]]
-  set old_dir [file normalize $old_dir]
-  set old_dir [string map {\\ /} $old_dir]
-  #puts "old_param=$old_param"
-  #puts "old_prop =$old_prop"
-  #puts "old_dir  =$old_dir"
-
-  set new_param "simulator.${simulator_id}_compiled_library_dir"
-  set new_prop  "compxlib.${simulator_id}_compiled_library_dir"
-  set new_dir   ""
-  switch -regexp -- $simulator_id {
-    "modelsim" { set new_dir [get_property compxlib.modelsim_compiled_library_dir [current_project]] }
-    "questa"   { set new_dir [get_property compxlib.questa_compiled_library_dir   [current_project]] }
-    "ies"      { set new_dir [get_property compxlib.ies_compiled_library_dir      [current_project]] }
-    "vcs"      { set new_dir [get_property compxlib.vcs_compiled_library_dir      [current_project]] }
-  }
-  set new_dir [file normalize $new_dir]
-  set new_dir [string map {\\ /} $new_dir]
-  #puts "new_param=$new_param"
-  #puts "new_prop =$new_prop"
-  #puts "new_dir  =$new_dir"
-
-  if { $old_dir != $new_dir } {
-    set_property $new_prop $old_dir [current_project]
-    #puts "set_property=$new_prop=$old_dir"
-  }
-  
-  set old_param_lib_dir [get_param $old_param]
-  if { {} != $old_param_lib_dir } {
-    set old_param_lib_dir [file normalize $old_param_lib_dir]
-    set old_param_lib_dir [string map {\\ /} $old_param_lib_dir]
-  }
-
-  set new_param_lib_dir [get_param $new_param]
-  if { {} != $new_param_lib_dir } {
-    set new_param_lib_dir [file normalize $new_param_lib_dir]
-    set new_param_lib_dir [string map {\\ /} $new_param_lib_dir]
-  }
-
-  if { ({} != $old_param_lib_dir) || ({} != $new_param_lib_dir) } {
-    if { {} == $new_param_lib_dir } {
-      set_param $new_param $old_param_lib_dir
-    }
-
-    set param_lib_dir [get_param $new_param]
-    if { {} != $param_lib_dir } {
-      set param_lib_dir [file normalize $param_lib_dir]
-      set param_lib_dir [string map {\\ /} $param_lib_dir]
-
-      set b_cxl_prop 0
-      if {$::tcl_platform(platform) == "unix"} {
-        if { [string equal $old_dir $param_lib_dir] == 0 } {
-          set b_cxl_prop 1
-        }
-      } else {
-        if { [string equal -nocase $old_dir $param_lib_dir] == 0 } {
-          set b_cxl_prop 1
-        }
-      }
-    
-      if { $b_cxl_prop } {
-
-        set_property $old_prop $param_lib_dir [current_project]
-        #puts "set_proprty=$old_prop=$param_lib_dir"
-        set_property $new_prop $param_lib_dir [current_project]
-        #puts "set_proprty=$new_prop=$param_lib_dir"
-
-        #send_msg_id exportsim-Tcl-048 WARNING \
-        #"The compiled library project property '$old_prop' is now set to '$param_lib_dir'. To reset this property back to its previous value '$old_dir', please set the '$old_param' param to an empty string and manually set the '$old_prop' property.\n"
-      }
     }
   }
 }
@@ -5258,25 +5146,6 @@ proc xps_write_xsim_tcl_cmd_file { dir filename } {
   close $fh
 }
 
-proc xps_resolve_uut_name { uut_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $uut_arg uut
-  set uut [string map {\\ /} $uut]
-  if { ![string match "/*" $uut] } {
-    set uut "/$uut"
-  }
-  if { [string match "*/" $uut] } {
-    set uut "${uut}*"
-  }
-  if { {/*} != [string range $uut end-1 end] } {
-    set uut "${uut}/*"
-  }
-  return $uut
-}
-
 proc xps_get_tops {} {
   # Summary:
   # Argument Usage:
@@ -5315,26 +5184,6 @@ proc xps_get_snapshot {} {
   variable a_sim_vars
   set snapshot $a_sim_vars(s_top)
   return $snapshot
-}
-
-proc xps_write_glbl { fh_unix } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-  set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
-
-  puts $fh_unix "# Copy glbl.v file into run directory"
-  puts $fh_unix "copy_glbl_file()"
-  puts $fh_unix "\{"
-  puts $fh_unix "  glbl_file=\"glbl.v\""
-  puts $fh_unix "  src_file=\"$glbl_file\""
-  puts $fh_unix "  if \[\[ ! -e \$glbl_file \]\]; then"
-  puts $fh_unix "    cp \$src_file ."
-  puts $fh_unix "  fi"
-  puts $fh_unix "\}"
-  puts $fh_unix ""
 }
 
 proc xps_write_reset { simulator fh_unix } {
@@ -5934,34 +5783,6 @@ proc xps_is_global_include_file { file_to_find } {
   return false
 }
 
-proc xps_get_secureip_filelist {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  variable a_sim_vars
-  set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-  set file [file normalize [file join $data_dir "secureip/secureip_cell.list.f"]]
-  set fh 0
-  if {[catch {open $file r} fh]} {
-    send_msg_id exportsim-Tcl-066 ERROR "failed to open file to read ($file))\n"
-    return 1
-  }
-  set data [read $fh]
-  close $fh
-  set filelist [list]
-  set data [split $data "\n"]
-  foreach line $data {
-    set line [string trim $line]
-    if { [string length $line] == 0 } { continue; } 
-    set file_str [split [lindex [split $line {=}] 0] { }]
-    set str_1 [string trim [lindex $file_str 0]]
-    set str_2 [string trim [lindex $file_str 1]]
-    #set str_2 [string map {\$XILINX_VIVADO $::env(XILINX_VIVADO)} $str_2]
-    lappend filelist "$str_1 $str_2" 
-  }
-  return $filelist
-}
-
 proc xps_xtract_file { file } {
   # Summary:
   # Argument Usage:
@@ -6138,3 +5959,199 @@ proc xps_cache_result {args} {
   return [set a_sim_cache_result($cache_hash) [uplevel eval $args]]
 }
 }
+
+
+#############
+# Graveyard #
+#############
+
+#namespace eval ::tclapp::xilinx::projutils {
+#proc xps_append_define_generics_1 { def_gen_list tool opts_arg } {
+#  # Summary:
+#  # Argument Usage:
+#  # Return Value:
+#
+#  upvar $opts_arg opts
+#  foreach element $def_gen_list {
+#    set key_val_pair [split $element "="]
+#    set name [lindex $key_val_pair 0]
+#    set val  [lindex $key_val_pair 1]
+#    if { [string length $val] > 0 } {
+#      if { {vlog} == $tool } {
+#        if { [regexp {'} $val] } {
+#          regsub -all {'} $val {\\'} val
+#        }
+#      }
+#      switch $tool {
+#        "vlog"   { lappend opts "+define+$name=$val"       }
+#        "ncvlog" { lappend opts "-define \"$name=$val\""   }
+#        "vlogan" { lappend opts "+define+\"$name=$val\""   }
+#        "ncelab" -
+#        "ies"    { lappend opts "-generic \"$name=>$val\"" }
+#        "vcs"    { lappend opts "-gv $name=\"$val\""       }
+#      }
+#    }
+#  }
+#}
+#}
+
+#namespace eval ::tclapp::xilinx::projutils {
+#proc xps_get_secureip_filelist {} {
+#  # Summary:
+#  # Argument Usage:
+#  # Return Value:
+#  variable a_sim_vars
+#  set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
+#  set file [file normalize [file join $data_dir "secureip/secureip_cell.list.f"]]
+#  set fh 0
+#  if {[catch {open $file r} fh]} {
+#    send_msg_id exportsim-Tcl-066 ERROR "failed to open file to read ($file))\n"
+#    return 1
+#  }
+#  set data [read $fh]
+#  close $fh
+#  set filelist [list]
+#  set data [split $data "\n"]
+#  foreach line $data {
+#    set line [string trim $line]
+#    if { [string length $line] == 0 } { continue; } 
+#    set file_str [split [lindex [split $line {=}] 0] { }]
+#    set str_1 [string trim [lindex $file_str 0]]
+#    set str_2 [string trim [lindex $file_str 1]]
+#    #set str_2 [string map {\$XILINX_VIVADO $::env(XILINX_VIVADO)} $str_2]
+#    lappend filelist "$str_1 $str_2" 
+#  }
+#  return $filelist
+#}
+#
+#}
+
+#namespace eval ::tclapp::xilinx::projutils {
+#proc xps_resolve_uut_name { uut_arg } {
+#  # Summary:
+#  # Argument Usage:
+#  # Return Value:
+#
+#  upvar $uut_arg uut
+#  set uut [string map {\\ /} $uut]
+#  if { ![string match "/*" $uut] } {
+#    set uut "/$uut"
+#  }
+#  if { [string match "*/" $uut] } {
+#    set uut "${uut}*"
+#  }
+#  if { {/*} != [string range $uut end-1 end] } {
+#    set uut "${uut}/*"
+#  }
+#  return $uut
+#}
+#}
+
+#namespace eval ::tclapp::xilinx::projutils {
+#proc xps_set_cxl_lib { simulator } {
+#  # Summary:
+#  # Argument Usage:
+#  # Return Value:
+#  variable a_sim_vars
+#
+#  set simulator_id [string tolower $simulator]
+#  set old_param "simulator.compiled_library_dir"
+#  set old_prop  "compxlib.compiled_library_dir"
+#  
+#  set old_dir [get_property $old_prop [current_project]]
+#  set old_dir [file normalize $old_dir]
+#  set old_dir [string map {\\ /} $old_dir]
+#  #puts "old_param=$old_param"
+#  #puts "old_prop =$old_prop"
+#  #puts "old_dir  =$old_dir"
+#
+#  set new_param "simulator.${simulator_id}_compiled_library_dir"
+#  set new_prop  "compxlib.${simulator_id}_compiled_library_dir"
+#  set new_dir   ""
+#  switch -regexp -- $simulator_id {
+#    "modelsim" { set new_dir [get_property compxlib.modelsim_compiled_library_dir [current_project]] }
+#    "questa"   { set new_dir [get_property compxlib.questa_compiled_library_dir   [current_project]] }
+#    "ies"      { set new_dir [get_property compxlib.ies_compiled_library_dir      [current_project]] }
+#    "vcs"      { set new_dir [get_property compxlib.vcs_compiled_library_dir      [current_project]] }
+#  }
+#  set new_dir [file normalize $new_dir]
+#  set new_dir [string map {\\ /} $new_dir]
+#  #puts "new_param=$new_param"
+#  #puts "new_prop =$new_prop"
+#  #puts "new_dir  =$new_dir"
+#
+#  if { $old_dir != $new_dir } {
+#    set_property $new_prop $old_dir [current_project]
+#    #puts "set_property=$new_prop=$old_dir"
+#  }
+#  
+#  set old_param_lib_dir [get_param $old_param]
+#  if { {} != $old_param_lib_dir } {
+#    set old_param_lib_dir [file normalize $old_param_lib_dir]
+#    set old_param_lib_dir [string map {\\ /} $old_param_lib_dir]
+#  }
+#
+#  set new_param_lib_dir [get_param $new_param]
+#  if { {} != $new_param_lib_dir } {
+#    set new_param_lib_dir [file normalize $new_param_lib_dir]
+#    set new_param_lib_dir [string map {\\ /} $new_param_lib_dir]
+#  }
+#
+#  if { ({} != $old_param_lib_dir) || ({} != $new_param_lib_dir) } {
+#    if { {} == $new_param_lib_dir } {
+#      set_param $new_param $old_param_lib_dir
+#    }
+#
+#    set param_lib_dir [get_param $new_param]
+#    if { {} != $param_lib_dir } {
+#      set param_lib_dir [file normalize $param_lib_dir]
+#      set param_lib_dir [string map {\\ /} $param_lib_dir]
+#
+#      set b_cxl_prop 0
+#      if {$::tcl_platform(platform) == "unix"} {
+#        if { [string equal $old_dir $param_lib_dir] == 0 } {
+#          set b_cxl_prop 1
+#        }
+#      } else {
+#        if { [string equal -nocase $old_dir $param_lib_dir] == 0 } {
+#          set b_cxl_prop 1
+#        }
+#      }
+#    
+#      if { $b_cxl_prop } {
+#
+#        set_property $old_prop $param_lib_dir [current_project]
+#        #puts "set_proprty=$old_prop=$param_lib_dir"
+#        set_property $new_prop $param_lib_dir [current_project]
+#        #puts "set_proprty=$new_prop=$param_lib_dir"
+#
+#        #send_msg_id exportsim-Tcl-048 WARNING \
+#        #"The compiled library project property '$old_prop' is now set to '$param_lib_dir'. To reset this property back to its previous value '$old_dir', please set the '$old_param' param to an empty string and manually set the '$old_prop' property.\n"
+#      }
+#    }
+#  }
+#}
+#}
+
+#namespace eval ::tclapp::xilinx::projutils {
+#proc xps_write_glbl { fh_unix } {
+#  # Summary:
+#  # Argument Usage:
+#  # Return Value:
+#
+#  set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
+#  set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
+#
+#  puts $fh_unix "# Copy glbl.v file into run directory"
+#  puts $fh_unix "copy_glbl_file()"
+#  puts $fh_unix "\{"
+#  puts $fh_unix "  glbl_file=\"glbl.v\""
+#  puts $fh_unix "  src_file=\"$glbl_file\""
+#  puts $fh_unix "  if \[\[ ! -e \$glbl_file \]\]; then"
+#  puts $fh_unix "    cp \$src_file ."
+#  puts $fh_unix "  fi"
+#  puts $fh_unix "\}"
+#  puts $fh_unix ""
+#}
+#}
+

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed a bug where projutils was checking xsim variable</revision_history>
+      <revision_history>projutils - commented several unused procs</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
