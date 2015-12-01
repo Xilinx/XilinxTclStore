@@ -939,67 +939,6 @@ proc xif_filter { file } {
   return $b_filter
 }
 
-proc xif_is_upto_date { obj } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_vars
-  set ip_name [file root [file tail $obj]]
-  set ip_extn [file extension $obj]
-  if { {.bd} == $ip_extn } { return 1 }
-
-  set regen_ip [dict create]
-  if { ([xif_is_ip $obj]) && ({.xci} == $a_vars(s_ip_file_extn)) } {
-    if { {1} == [get_property is_locked [get_ips -all -quiet $ip_name]] } {
-      if { 0 == $a_vars(b_ips_locked) } {
-        set a_vars(b_ips_locked) 1
-      }
-      send_msg_id export_ip_user_files-Tcl-021 INFO "IP status: 'LOCKED' - $ip_name"
-      return 0
-    }
-    if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip_name}.xci]]) } {
-      send_msg_id export_ip_user_files-Tcl-022 INFO "IP status: 'USER DISABLED' - $ip_name"
-      return 0
-    }
-    dict set regen_ip $ip_name d_targets [get_property delivered_targets [get_ips -all -quiet $ip_name]]
-    dict set regen_ip $ip_name generated [get_property is_ip_generated [get_ips -all -quiet $ip_name]]
-    dict set regen_ip $ip_name generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip_name}.xci] 0]]
-    dict set regen_ip $ip_name stale [get_property stale_targets [get_ips -all -quiet $ip_name]]
-  }
-
-  set not_generated [list]
-  set stale_ips [list]
-  dict for {ip regen} $regen_ip {
-    dic with regen {
-      if { ({} == $d_targets) || ({0} == $generated_sim) } {
-        lappend not_generated $ip
-      } else {
-        if { [llength $stale] > 0 } {
-          lappend stale_ips $ip
-        }
-      }
-    }
-  }
-
-  set b_not_generated 0
-  set b_is_stale 0
-  if { [llength $not_generated] > 0} { set b_not_generated 1}
-  if { [llength $stale_ips] > 0}     { set b_is_stale 1}
-
-  set msg_txt "IP status: "
-  if { $b_not_generated } { append msg_txt "'NOT GENERATED' " }
-  if { $b_is_stale }      { append msg_txt "'OUT OF DATE' " }
-  append msg_txt "- $ip_name"
-
-  if { $b_not_generated || $b_is_stale } {
-    set a_vars(b_ips_upto_date) 0
-    send_msg_id export_ip_user_files-Tcl-023 INFO $msg_txt
-    return 0
-  }
-  return 1
-}
-
 proc xif_create_mem_dir {} {
   # Summary:
   # Argument Usage:
@@ -1210,161 +1149,6 @@ proc xif_get_ip_name { src_file } {
   return $ip
 }
 
-proc xif_set_target_obj { obj sp_tcl_obj_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_vars
-  variable l_valid_ip_extns
-  upvar $sp_tcl_obj_arg sp_tcl_obj
-  set sp_tcl_obj 0
-
-  set a_vars(b_is_ip_object_specified) 0
-  set a_vars(b_is_fs_object_specified) 0
-
-  if { {} != $obj } {
-    set a_vars(b_is_ip_object_specified) [xif_is_ip $obj]
-    set a_vars(b_is_fs_object_specified) [xif_is_fileset $obj]
-  }
-
-  if { {1} == $a_vars(b_is_ip_object_specified) } {
-    set comp_file $obj
-    set file_extn [file extension $comp_file]
-    if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {
-      # valid extention not found, set default (.xci)
-      set comp_file ${comp_file}$a_vars(s_ip_file_extn)
-    } else {
-      set a_vars(s_ip_file_extn) $file_extn
-    }
-    set sp_tcl_obj [get_files -all -quiet [list "$comp_file"]]
-    #xps_verify_ip_status
-  } else {
-    if { $a_vars(b_is_managed) } {
-      set ips [get_ips -quiet]
-      if {[llength $ips] == 0} {
-        send_msg_id export_ip_user_files-Tcl-040 INFO "No IP's found in the current project.\n"
-        return 1
-      }
-      [catch {send_msg_id export_ip_user_files-Tcl-041 ERROR "No IP source object specified. Please type 'export_ip_user_files -help' for usage info.\n"} err]
-      return 1
-    } else {
-      if { $a_vars(b_is_fs_object_specified) } {
-        set fs_type [get_property fileset_type [get_filesets $obj]]
-        set fs_of_obj [get_property name [get_filesets $obj]]
-        set fs_active {}
-        if { $fs_type == "DesignSrcs" } {
-          set fs_active [get_property name [current_fileset]]
-        } elseif { $fs_type == "SimulationSrcs" } {
-          set fs_active [get_property name [get_filesets $a_vars(fs_obj)]]
-        } else {
-          send_msg_id export_ip_user_files-Tcl-042 ERROR \
-          "Invalid simulation fileset '$fs_of_obj' of type '$fs_type' specified with the -of_objects switch. Please specify a 'current' simulation or design source fileset.\n"
-          return 1
-        }
-
-        # must work on the current fileset
-        if { $fs_of_obj != $fs_active } {
-          [catch {send_msg_id export_ip_user_files-Tcl-043 ERROR \
-            "The specified fileset '$fs_of_obj' is not 'current' (current fileset is '$fs_active'). Please set '$fs_of_obj' as current fileset using the 'current_fileset' Tcl command and retry this command.\n"} err]
-          return 1
-        }
-
-        # -of_objects specifed, set default active source set
-        if { $fs_type == "DesignSrcs" } {
-          set a_vars(fs_obj) [current_fileset]
-          set sp_tcl_obj $a_vars(fs_obj)
-          update_compile_order -quiet -fileset $sp_tcl_obj
-        } elseif { $fs_type == "SimulationSrcs" } {
-          set sp_tcl_obj $a_vars(fs_obj)
-          update_compile_order -quiet -fileset $sp_tcl_obj
-        }
-      } else {
-        # no -of_objects specifed, set default active simset
-        set sp_tcl_obj $a_vars(fs_obj)
-        update_compile_order -quiet -fileset $sp_tcl_obj
-      }
-    }
-  }
-  return 0
-}
-
-proc xif_get_relative_file_path { file_path_to_convert relative_to } {
-  # Summary:
-  # Argument Usage:
-  # file_path_to_convert:
-  # Return Value:
-
-  # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
-  if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
-    set relative_to [file dirname $relative_to]
-  }
-  set cwd [file normalize [pwd]]
-  if { [file pathtype $file_path_to_convert] eq "relative" } {
-    # is relative_to path same as cwd?, just return this path, no further processing required
-    if { [string equal $relative_to $cwd] } {
-      return $file_path_to_convert
-    }
-    # the specified path is "relative" but something else, so make it absolute wrt current working dir
-    set file_path_to_convert [file join $cwd $file_path_to_convert]
-  }
-  # is relative_to "relative"? convert to absolute as well wrt cwd
-  if { [file pathtype $relative_to] eq "relative" } {
-    set relative_to [file join $cwd $relative_to]
-  }
-  # normalize
-  set file_path_to_convert [file normalize $file_path_to_convert]
-  set relative_to          [file normalize $relative_to]
-  set file_path $file_path_to_convert
-  set file_comps        [file split $file_path]
-  set relative_to_comps [file split $relative_to]
-  set found_match false
-  set index 0
-  set fc_comps_len [llength $file_comps]
-  set rt_comps_len [llength $relative_to_comps]
-  # compare each dir element of file_to_convert and relative_to, set the flag and
-  # get the final index till these sub-dirs matched
-  while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
-    if { !$found_match } { set found_match true }
-    incr index
-    if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
-      break;
-    }
-  }
-  # any common dirs found? convert path to relative
-  if { $found_match } {
-    set parent_dir_path ""
-    set rel_index $index
-    # keep traversing the relative_to dirs and build "../" levels
-    while { [lindex $relative_to_comps $rel_index] != "" } {
-      set parent_dir_path "../$parent_dir_path"
-      incr rel_index
-    }
-    #
-    # at this point we have parent_dir_path setup with exact number of sub-dirs to go up
-    #
-    # now build up part of path which is relative to matched part
-    set rel_path ""
-    set rel_index $index
-    while { [lindex $file_comps $rel_index] != "" } {
-      set comps [lindex $file_comps $rel_index]
-      if { $rel_path == "" } {
-        # first dir
-        set rel_path $comps
-      } else {
-        # append remaining dirs
-        set rel_path "${rel_path}/$comps"
-      }
-      incr rel_index
-    }
-    # prepend parent dirs, this is the complete resolved path now
-    set resolved_path "${parent_dir_path}${rel_path}"
-    return $resolved_path
-  }
-  # no common dirs found, just return the normalized path
-  return $file_path
-}
-
 proc xif_get_dynamic_sim_file { ip_name src_file_obj } {
   # Summary:
   # Argument Usage:
@@ -1495,3 +1279,230 @@ proc xif_valid_object_types { objs allowedTypes } {
   return true
 }
 }
+
+
+#############
+# Graveyard #
+#############
+
+#namespace eval ::tclapp::xilinx::projutils {
+#proc xif_get_relative_file_path { file_path_to_convert relative_to } {
+#  # Summary:
+#  # Argument Usage:
+#  # file_path_to_convert:
+#  # Return Value:
+#
+#  # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
+#  if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
+#    set relative_to [file dirname $relative_to]
+#  }
+#  set cwd [file normalize [pwd]]
+#  if { [file pathtype $file_path_to_convert] eq "relative" } {
+#    # is relative_to path same as cwd?, just return this path, no further processing required
+#    if { [string equal $relative_to $cwd] } {
+#      return $file_path_to_convert
+#    }
+#    # the specified path is "relative" but something else, so make it absolute wrt current working dir
+#    set file_path_to_convert [file join $cwd $file_path_to_convert]
+#  }
+#  # is relative_to "relative"? convert to absolute as well wrt cwd
+#  if { [file pathtype $relative_to] eq "relative" } {
+#    set relative_to [file join $cwd $relative_to]
+#  }
+#  # normalize
+#  set file_path_to_convert [file normalize $file_path_to_convert]
+#  set relative_to          [file normalize $relative_to]
+#  set file_path $file_path_to_convert
+#  set file_comps        [file split $file_path]
+#  set relative_to_comps [file split $relative_to]
+#  set found_match false
+#  set index 0
+#  set fc_comps_len [llength $file_comps]
+#  set rt_comps_len [llength $relative_to_comps]
+#  # compare each dir element of file_to_convert and relative_to, set the flag and
+#  # get the final index till these sub-dirs matched
+#  while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
+#    if { !$found_match } { set found_match true }
+#    incr index
+#    if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
+#      break;
+#    }
+#  }
+#  # any common dirs found? convert path to relative
+#  if { $found_match } {
+#    set parent_dir_path ""
+#    set rel_index $index
+#    # keep traversing the relative_to dirs and build "../" levels
+#    while { [lindex $relative_to_comps $rel_index] != "" } {
+#      set parent_dir_path "../$parent_dir_path"
+#      incr rel_index
+#    }
+#    #
+#    # at this point we have parent_dir_path setup with exact number of sub-dirs to go up
+#    #
+#    # now build up part of path which is relative to matched part
+#    set rel_path ""
+#    set rel_index $index
+#    while { [lindex $file_comps $rel_index] != "" } {
+#      set comps [lindex $file_comps $rel_index]
+#      if { $rel_path == "" } {
+#        # first dir
+#        set rel_path $comps
+#      } else {
+#        # append remaining dirs
+#        set rel_path "${rel_path}/$comps"
+#      }
+#      incr rel_index
+#    }
+#    # prepend parent dirs, this is the complete resolved path now
+#    set resolved_path "${parent_dir_path}${rel_path}"
+#    return $resolved_path
+#  }
+#  # no common dirs found, just return the normalized path
+#  return $file_path
+#}
+#}
+
+#namespace eval ::tclapp::xilinx::projutils {
+#proc xif_is_upto_date { obj } {
+#  # Summary:
+#  # Argument Usage:
+#  # Return Value:
+#
+#  variable a_vars
+#  set ip_name [file root [file tail $obj]]
+#  set ip_extn [file extension $obj]
+#  if { {.bd} == $ip_extn } { return 1 }
+#
+#  set regen_ip [dict create]
+#  if { ([xif_is_ip $obj]) && ({.xci} == $a_vars(s_ip_file_extn)) } {
+#    if { {1} == [get_property is_locked [get_ips -all -quiet $ip_name]] } {
+#      if { 0 == $a_vars(b_ips_locked) } {
+#        set a_vars(b_ips_locked) 1
+#      }
+#      send_msg_id export_ip_user_files-Tcl-021 INFO "IP status: 'LOCKED' - $ip_name"
+#      return 0
+#    }
+#    if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip_name}.xci]]) } {
+#      send_msg_id export_ip_user_files-Tcl-022 INFO "IP status: 'USER DISABLED' - $ip_name"
+#      return 0
+#    }
+#    dict set regen_ip $ip_name d_targets [get_property delivered_targets [get_ips -all -quiet $ip_name]]
+#    dict set regen_ip $ip_name generated [get_property is_ip_generated [get_ips -all -quiet $ip_name]]
+#    dict set regen_ip $ip_name generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip_name}.xci] 0]]
+#    dict set regen_ip $ip_name stale [get_property stale_targets [get_ips -all -quiet $ip_name]]
+#  }
+#
+#  set not_generated [list]
+#  set stale_ips [list]
+#  dict for {ip regen} $regen_ip {
+#    dic with regen {
+#      if { ({} == $d_targets) || ({0} == $generated_sim) } {
+#        lappend not_generated $ip
+#      } else {
+#        if { [llength $stale] > 0 } {
+#          lappend stale_ips $ip
+#        }
+#      }
+#    }
+#  }
+#
+#  set b_not_generated 0
+#  set b_is_stale 0
+#  if { [llength $not_generated] > 0} { set b_not_generated 1}
+#  if { [llength $stale_ips] > 0}     { set b_is_stale 1}
+#
+#  set msg_txt "IP status: "
+#  if { $b_not_generated } { append msg_txt "'NOT GENERATED' " }
+#  if { $b_is_stale }      { append msg_txt "'OUT OF DATE' " }
+#  append msg_txt "- $ip_name"
+#
+#  if { $b_not_generated || $b_is_stale } {
+#    set a_vars(b_ips_upto_date) 0
+#    send_msg_id export_ip_user_files-Tcl-023 INFO $msg_txt
+#    return 0
+#  }
+#  return 1
+#}
+#}
+
+#namespace eval ::tclapp::xilinx::projutils {
+#proc xif_set_target_obj { obj sp_tcl_obj_arg } {
+#  # Summary:
+#  # Argument Usage:
+#  # Return Value:
+#
+#  variable a_vars
+#  variable l_valid_ip_extns
+#  upvar $sp_tcl_obj_arg sp_tcl_obj
+#  set sp_tcl_obj 0
+#
+#  set a_vars(b_is_ip_object_specified) 0
+#  set a_vars(b_is_fs_object_specified) 0
+#
+#  if { {} != $obj } {
+#    set a_vars(b_is_ip_object_specified) [xif_is_ip $obj]
+#    set a_vars(b_is_fs_object_specified) [xif_is_fileset $obj]
+#  }
+#
+#  if { {1} == $a_vars(b_is_ip_object_specified) } {
+#    set comp_file $obj
+#    set file_extn [file extension $comp_file]
+#    if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {
+#      # valid extention not found, set default (.xci)
+#      set comp_file ${comp_file}$a_vars(s_ip_file_extn)
+#    } else {
+#      set a_vars(s_ip_file_extn) $file_extn
+#    }
+#    set sp_tcl_obj [get_files -all -quiet [list "$comp_file"]]
+#    #xps_verify_ip_status
+#  } else {
+#    if { $a_vars(b_is_managed) } {
+#      set ips [get_ips -quiet]
+#      if {[llength $ips] == 0} {
+#        send_msg_id export_ip_user_files-Tcl-040 INFO "No IP's found in the current project.\n"
+#        return 1
+#      }
+#      [catch {send_msg_id export_ip_user_files-Tcl-041 ERROR "No IP source object specified. Please type 'export_ip_user_files -help' for usage info.\n"} err]
+#      return 1
+#    } else {
+#      if { $a_vars(b_is_fs_object_specified) } {
+#        set fs_type [get_property fileset_type [get_filesets $obj]]
+#        set fs_of_obj [get_property name [get_filesets $obj]]
+#        set fs_active {}
+#        if { $fs_type == "DesignSrcs" } {
+#          set fs_active [get_property name [current_fileset]]
+#        } elseif { $fs_type == "SimulationSrcs" } {
+#          set fs_active [get_property name [get_filesets $a_vars(fs_obj)]]
+#        } else {
+#          send_msg_id export_ip_user_files-Tcl-042 ERROR \
+#          "Invalid simulation fileset '$fs_of_obj' of type '$fs_type' specified with the -of_objects switch. Please specify a 'current' simulation or design source fileset.\n"
+#          return 1
+#        }
+#
+#        # must work on the current fileset
+#        if { $fs_of_obj != $fs_active } {
+#          [catch {send_msg_id export_ip_user_files-Tcl-043 ERROR \
+#            "The specified fileset '$fs_of_obj' is not 'current' (current fileset is '$fs_active'). Please set '$fs_of_obj' as current fileset using the 'current_fileset' Tcl command and retry this command.\n"} err]
+#          return 1
+#        }
+#
+#        # -of_objects specifed, set default active source set
+#        if { $fs_type == "DesignSrcs" } {
+#          set a_vars(fs_obj) [current_fileset]
+#          set sp_tcl_obj $a_vars(fs_obj)
+#          update_compile_order -quiet -fileset $sp_tcl_obj
+#        } elseif { $fs_type == "SimulationSrcs" } {
+#          set sp_tcl_obj $a_vars(fs_obj)
+#          update_compile_order -quiet -fileset $sp_tcl_obj
+#        }
+#      } else {
+#        # no -of_objects specifed, set default active simset
+#        set sp_tcl_obj $a_vars(fs_obj)
+#        update_compile_order -quiet -fileset $sp_tcl_obj
+#      }
+#    }
+#  }
+#  return 0
+#}
+#}
