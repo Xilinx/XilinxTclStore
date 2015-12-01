@@ -2642,10 +2642,10 @@ proc usf_fetch_ipi_static_file { file } {
   set comps [lrange [split $src_ip_file "/"] 0 end]
   set to_match "xilinx.com"
   set index 0
-  set b_found [usf_find_comp comps index $to_match]
+  set b_found [xcs_find_comp comps index $to_match]
   if { !$b_found } {
     set to_match "user_company"
-    set b_found [usf_find_comp comps index $to_match]
+    set b_found [xcs_find_comp comps index $to_match]
   }
   if { !$b_found } {
     return $src_ip_file
@@ -2874,7 +2874,7 @@ proc usf_find_ipstatic_file_path { src_ip_file parent_comp_file } {
     set index 0
     set b_found false
     set to_match $library_name
-    set b_found [usf_find_comp comps index $to_match]
+    set b_found [xcs_find_comp comps index $to_match]
     if { $b_found } {
       set file_path_str [join [lrange $comps $index end] "/"]
       #puts file_path_str=$file_path_str
@@ -2937,24 +2937,6 @@ proc usf_is_static_ip_lib { library } {
     return true
   }
   return false
-}
-
-proc usf_find_comp { comps_arg index_arg to_match } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $comps_arg comps
-  upvar $index_arg index
-  set index 0
-  set b_found false
-  foreach comp $comps {
-    incr index
-    if { $to_match != $comp } continue;
-    set b_found true
-    break
-  }
-  return $b_found
 }
 }
 

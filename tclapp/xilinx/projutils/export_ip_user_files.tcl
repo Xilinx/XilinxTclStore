@@ -601,10 +601,10 @@ proc xif_export_bd { obj } {
       set comps [lrange [split $src_ip_file "/"] 0 end]
       set to_match "xilinx.com"
       set index 0
-      set b_found [xif_find_comp comps index $to_match]
+      set b_found [xcs_find_comp comps index $to_match]
       if { !$b_found } {
         set to_match "user_company"
-        set b_found [xif_find_comp comps index $to_match]
+        set b_found [xcs_find_comp comps index $to_match]
       }
       if { !$b_found } {
         continue;
@@ -754,7 +754,7 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
 
   set to_match "$ip_name"
   set index 0
-  set b_found [xif_find_comp comps index $to_match]
+  set b_found [xcs_find_comp comps index $to_match]
 
   #incr index -1
   set file_path_str [join [lrange $full_comps 0 $index] "/"]
@@ -803,7 +803,7 @@ proc xif_find_ipstatic_file_path { src_ip_file parent_comp_file } {
     set index 0
     set b_found false
     set to_match $library_name
-    set b_found [xif_find_comp comps index $to_match]
+    set b_found [xcs_find_comp comps index $to_match]
     if { $b_found } {
       set file_path_str [join [lrange $comps $index end] "/"]
       #puts file_path_str=$file_path_str
@@ -1168,11 +1168,11 @@ proc xif_get_dynamic_sim_file { ip_name src_file_obj } {
     # for managed ip get the path from core container ip name (below)
   } else {
     set to_match "ip"
-    set b_found [xif_find_comp comps index $to_match]
+    set b_found [xcs_find_comp comps index $to_match]
     # try ip name
     if { !$b_found } {
       set to_match "$ip_name"
-      set b_found [xif_find_comp comps index $to_match]
+      set b_found [xcs_find_comp comps index $to_match]
     }
   }
 
@@ -1186,7 +1186,7 @@ proc xif_get_dynamic_sim_file { ip_name src_file_obj } {
       set ip_name [file root [file tail $xcix_file]]
     }
     set to_match "$ip_name"
-    set b_found [xif_find_comp comps index $to_match]
+    set b_found [xcs_find_comp comps index $to_match]
   }
 
   if { ! $b_found } {
@@ -1201,24 +1201,6 @@ proc xif_get_dynamic_sim_file { ip_name src_file_obj } {
   }
   #puts out_src_file=$src_file
   return $src_file
-}
-
-proc xif_find_comp { comps_arg index_arg to_match } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $comps_arg comps
-  upvar $index_arg index
-  set index 0
-  set b_found false
-  foreach comp $comps {
-    incr index
-    if { $to_match != $comp } continue;
-    set b_found true
-    break
-  }
-  return $b_found
 }
 
 proc xif_cache_result {args} {

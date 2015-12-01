@@ -13,6 +13,24 @@
 
 variable _xcs_defined 1
 
+proc xcs_find_comp { comps_arg index_arg to_match } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $comps_arg comps
+  upvar $index_arg index
+  set index 0
+  set b_found false
+  foreach comp $comps {
+    incr index
+    if { $to_match != $comp } continue;
+    set b_found true
+    break
+  }
+  return $b_found
+}
+
 proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   # Summary:
   # Argument Usage:
