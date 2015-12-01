@@ -58,6 +58,12 @@ proc xif_init_vars {} {
 
   variable l_libraries                [list]
 
+  # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
+  if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
+    variable home
+    source -notrace [file join $home "common" "utils.tcl"] 
+  }
+
   # store cached results
   variable    a_cache_result
   array unset a_cache_result
