@@ -820,20 +820,6 @@ proc xif_is_ip { obj } {
   return 0
 }
 
-proc xif_is_fileset { obj } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set spec_list [rdi::get_attr_specs -quiet -object $obj -regexp .*FILESET_TYPE.*]
-  if { [llength $spec_list] > 0 } {
-    if {[regexp -nocase {^fileset_type} $spec_list]} {
-      return 1
-    }
-  }
-  return 0
-}
-
 proc xif_copy_files_recursive { src dst } {
   # Summary:
   # Argument Usage:
@@ -1391,7 +1377,7 @@ proc xif_valid_object_types { objs allowedTypes } {
 #
 #  if { {} != $obj } {
 #    set a_vars(b_is_ip_object_specified) [xif_is_ip $obj]
-#    set a_vars(b_is_fs_object_specified) [xif_is_fileset $obj]
+#    set a_vars(b_is_fs_object_specified) [xcs_is_fileset $obj]
 #  }
 #
 #  if { {1} == $a_vars(b_is_ip_object_specified) } {

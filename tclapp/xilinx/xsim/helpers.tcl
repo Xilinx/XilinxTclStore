@@ -488,7 +488,7 @@ proc usf_xport_data_files { } {
       }
       usf_export_data_files $data_files
     }
-  } elseif { [usf_is_fileset $tcl_obj] } {
+  } elseif { [xcs_is_fileset $tcl_obj] } {
     send_msg_id USF-XSim-037 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
     # export all fileset data files to run dir
     if { [get_param "project.copyDataFilesForSim"] } {
@@ -697,17 +697,6 @@ proc usf_contains_vhdl { design_files } {
   return $b_vhdl_srcs
 }
 
-proc usf_is_fileset { tcl_obj } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  if {[regexp -nocase {^fileset_type} [rdi::get_attr_specs -quiet -object $tcl_obj -regexp .*FILESET_TYPE.*]]} {
-    return 1
-  }
-  return 0
-}
-
 proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
   # Summary:
   # Argument Usage:
@@ -765,7 +754,7 @@ proc usf_prepare_ip_for_simulation { } {
   set runs_to_launch [list]
   # target object (fileset or ip)
   set target_obj $a_sim_vars(sp_tcl_obj)
-  if { [usf_is_fileset $target_obj] } {
+  if { [xcs_is_fileset $target_obj] } {
     set fs $target_obj
     # add specified fileset (expected simulation fileset)
     lappend fs_objs $fs
@@ -827,7 +816,7 @@ proc usf_generate_mem_files_for_simulation { } {
 
   variable a_sim_vars
 
-  if { [usf_is_fileset $a_sim_vars(sp_tcl_obj)] } {
+  if { [xcs_is_fileset $a_sim_vars(sp_tcl_obj)] } {
     # fileset contains embedded sources? generate mem files
     if { [usf_is_embedded_flow] } {
       send_msg_id USF-XSim-096 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
@@ -978,7 +967,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   usf_get_other_verilog_options $global_files_str other_ver_opts
 
   # prepare command line args for fileset files
-  if { [usf_is_fileset $target_obj] } {
+  if { [xcs_is_fileset $target_obj] } {
     set used_in_val "simulation"
     switch [get_property "FILESET_TYPE" [get_filesets $target_obj]] {
       "DesignSrcs"     { set used_in_val "synthesis" }
@@ -1145,7 +1134,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   #}
 
   # prepare command line args for fileset files
-  if { [usf_is_fileset $target_obj] } {
+  if { [xcs_is_fileset $target_obj] } {
 
     # 851957 - if simulation and design source file tops are same (no testbench), skip adding simset files. Just pass the netlist above.
     set src_fs_top [get_property top [current_fileset]]
@@ -2242,7 +2231,7 @@ proc usf_find_files { src_files_arg filter } {
       }
       lappend src_files $file
     }
-  } elseif { [usf_is_fileset $tcl_obj] } {
+  } elseif { [xcs_is_fileset $tcl_obj] } {
     set filesets       [list]
     set simset_obj     [get_filesets $a_sim_vars(s_simset)]
 

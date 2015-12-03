@@ -647,7 +647,7 @@ proc usf_vcs_write_elaborate_script {} {
   set arg_list [list "${tool_path_val}" "\$${tool}_opts"]
 
   set obj $::tclapp::xilinx::vcs::a_sim_vars(sp_tcl_obj)
-  if { [::tclapp::xilinx::vcs::usf_is_fileset $obj] } {
+  if { [xcs_is_fileset $obj] } {
     set vhdl_generics [list]
     set vhdl_generics [get_property "GENERIC" [get_filesets $obj]]
     if { [llength $vhdl_generics] > 0 } {

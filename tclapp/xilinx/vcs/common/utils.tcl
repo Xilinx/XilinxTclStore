@@ -173,3 +173,18 @@ proc xcs_is_core_container { ip_file_name } {
   }
   return $b_is_container
 }
+
+proc xcs_is_fileset { tcl_obj } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set spec_list [rdi::get_attr_specs -quiet -object $tcl_obj -regexp .*FILESET_TYPE.*]
+  if { [llength $spec_list] > 0 } {
+    if {[regexp -nocase {^fileset_type} $spec_list]} {
+      return 1
+    }
+  }
+  return 0
+}
+

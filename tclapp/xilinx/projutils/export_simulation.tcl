@@ -697,7 +697,7 @@ proc xps_set_target_obj { obj } {
   set a_sim_vars(b_is_fs_object_specified) 0
   if { {} != $obj } {
     set a_sim_vars(b_is_ip_object_specified) [xps_is_ip $obj]
-    set a_sim_vars(b_is_fs_object_specified) [xps_is_fileset $obj]
+    set a_sim_vars(b_is_fs_object_specified) [xcs_is_fileset $obj]
   }
   if { {1} == $a_sim_vars(b_is_ip_object_specified) } {
     set comp_file $obj
@@ -847,7 +847,7 @@ proc xps_xport_data_files { data_files_arg } {
       }
       lappend data_files $file
     }
-  } elseif { [xps_is_fileset $tcl_obj] } {
+  } elseif { [xcs_is_fileset $tcl_obj] } {
     xps_export_fs_data_files $s_data_files_filter data_files
     xps_export_fs_non_hdl_data_files data_files
   } else {
@@ -905,7 +905,7 @@ proc xps_get_files { simulator launch_dir } {
   set l_compile_order_files [list]
   set target_obj            $a_sim_vars(sp_tcl_obj)
   set linked_src_set        {}
-  if { ([xps_is_fileset $a_sim_vars(sp_tcl_obj)]) && ({SimulationSrcs} == [get_property fileset_type $a_sim_vars(fs_obj)]) } {
+  if { ([xcs_is_fileset $a_sim_vars(sp_tcl_obj)]) && ({SimulationSrcs} == [get_property fileset_type $a_sim_vars(fs_obj)]) } {
     set linked_src_set [get_property "SOURCE_SET" $a_sim_vars(fs_obj)]
   }
   set target_lang     [get_property "TARGET_LANGUAGE" [current_project]]
@@ -945,7 +945,7 @@ proc xps_get_files { simulator launch_dir } {
       }
     }
   }
-  if { [xps_is_fileset $target_obj] } {
+  if { [xcs_is_fileset $target_obj] } {
     set used_in_val "simulation"
     switch [get_property "FILESET_TYPE" [get_filesets $target_obj]] {
       "DesignSrcs"     { set used_in_val "synthesis" }
@@ -1625,20 +1625,6 @@ proc xps_is_ip { tcl_obj } {
   return 0
 }
 
-proc xps_is_fileset { tcl_obj } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  set spec_list [rdi::get_attr_specs -quiet -object $tcl_obj -regexp .*FILESET_TYPE.*]
-  if { [llength $spec_list] > 0 } {
-    if {[regexp -nocase {^fileset_type} $spec_list]} {
-      return 1
-    }
-  }
-  return 0
-}
-
 proc xps_uniquify_cmd_str { cmd_strs } {
   # Summary:
   # Argument Usage:
@@ -2036,7 +2022,7 @@ proc xps_set_script_filename {} {
       set ip_name [file root $a_sim_vars(ip_filename)]
       set a_sim_vars(s_script_filename) "${ip_name}"
     }
-  } elseif { [xps_is_fileset $tcl_obj] } {
+  } elseif { [xcs_is_fileset $tcl_obj] } {
     if { ! $a_sim_vars(b_script_specified) } {
       set a_sim_vars(s_script_filename) "$a_sim_vars(s_top)"
       if { {} == $a_sim_vars(s_script_filename) } {
@@ -2082,7 +2068,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
       if {[xps_write_script $simulator $dir $filename]} {
         return 1
       }
-    } elseif { [xps_is_fileset $tcl_obj] } {
+    } elseif { [xcs_is_fileset $tcl_obj] } {
       set a_sim_vars(s_top) [get_property top [get_filesets $tcl_obj]]
       #send_msg_id exportsim-Tcl-027 INFO "Inspecting design source files for '$a_sim_vars(s_top)' in fileset '$tcl_obj'...\n"
       if {[string length $a_sim_vars(s_top)] == 0} {
@@ -3231,7 +3217,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
       puts $fh_unix "  libs=\"[join $arg_list " "]\""
 
       set arg_list [list "ncelab" "\$opts"]
-      if { [xps_is_fileset $a_sim_vars(sp_tcl_obj)] } {
+      if { [xcs_is_fileset $a_sim_vars(sp_tcl_obj)] } {
         set vhdl_generics [list]
         set vhdl_generics [get_property vhdl_generic [get_filesets $a_sim_vars(fs_obj)]]
         if { [llength $vhdl_generics] > 0 } {
@@ -3264,7 +3250,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
       }
       puts $fh_unix "  opts=\"[join $arg_list " "]\"\n"
       set arg_list [list "vcs" "\$opts" "${top_lib}.$a_sim_vars(s_top)"]
-      if { [xps_is_fileset $a_sim_vars(sp_tcl_obj)] } {
+      if { [xcs_is_fileset $a_sim_vars(sp_tcl_obj)] } {
         set vhdl_generics [list]
         set vhdl_generics [get_property vhdl_generic [get_filesets $a_sim_vars(fs_obj)]]
         if { [llength $vhdl_generics] > 0 } {
@@ -3397,7 +3383,7 @@ proc xps_find_files { src_files_arg filter dir } {
       }
       lappend src_files $file
     }
-  } elseif { [xps_is_fileset $tcl_obj] } {
+  } elseif { [xcs_is_fileset $tcl_obj] } {
     set filesets       [list]
 
     lappend filesets $a_sim_vars(fs_obj)
@@ -5587,7 +5573,7 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
   set filesets       [list]
   set dir            $launch_dir
   set linked_src_set {}
-  if { ([xps_is_fileset $a_sim_vars(sp_tcl_obj)]) && ({SimulationSrcs} == [get_property fileset_type $a_sim_vars(fs_obj)]) } {
+  if { ([xcs_is_fileset $a_sim_vars(sp_tcl_obj)]) && ({SimulationSrcs} == [get_property fileset_type $a_sim_vars(fs_obj)]) } {
     set linked_src_set [get_property "SOURCE_SET" $a_sim_vars(fs_obj)]
   }
   set incl_files_set [list]
