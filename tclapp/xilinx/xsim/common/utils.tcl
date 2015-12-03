@@ -188,3 +188,21 @@ proc xcs_is_fileset { tcl_obj } {
   return 0
 }
 
+proc xcs_is_ip { tcl_obj } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_valid_ip_extns
+  # check if ip file extension
+  if { [lsearch -exact $l_valid_ip_extns [file extension $tcl_obj]] >= 0 } {
+    return 1
+  } else {
+    # check if IP object
+    if {[regexp -nocase {^ip} [get_property [rdi::get_attr_specs CLASS -object $tcl_obj] $tcl_obj]] } {
+      return 1
+    }
+  }
+  return 0
+}
+

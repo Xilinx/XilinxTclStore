@@ -34,7 +34,7 @@ proc xif_init_vars {} {
   set a_vars(b_ipstatic_source_dir)   0
   set a_vars(sp_of_objects)           {}
   set a_vars(b_of_objects_specified)    0
-  set a_vars(b_is_ip_object_specified)  0
+  set a_vars(xcs_is_ip_object_specified)  0
   set a_vars(b_is_fs_object_specified)  0
   set a_vars(b_no_script)             0
   set a_vars(b_sync)                  0
@@ -804,22 +804,6 @@ proc xif_find_ipstatic_file_path { src_ip_file parent_comp_file } {
   return $dest_file
 }
 
-proc xif_is_ip { obj } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
- 
-  variable l_valid_ip_extns 
-  if { [lsearch -exact $l_valid_ip_extns [file extension $obj]] >= 0 } {
-    return 1
-  } else {
-    if {[regexp -nocase {^ip} [get_property -quiet [rdi::get_attr_specs CLASS -object $obj] $obj]] } {
-      return 1
-    }
-  }
-  return 0
-}
-
 proc xif_copy_files_recursive { src dst } {
   # Summary:
   # Argument Usage:
@@ -1310,7 +1294,7 @@ proc xif_valid_object_types { objs allowedTypes } {
 #  if { {.bd} == $ip_extn } { return 1 }
 #
 #  set regen_ip [dict create]
-#  if { ([xif_is_ip $obj]) && ({.xci} == $a_vars(s_ip_file_extn)) } {
+#  if { ([xcs_is_ip $obj]) && ({.xci} == $a_vars(s_ip_file_extn)) } {
 #    if { {1} == [get_property is_locked [get_ips -all -quiet $ip_name]] } {
 #      if { 0 == $a_vars(b_ips_locked) } {
 #        set a_vars(b_ips_locked) 1
@@ -1372,15 +1356,15 @@ proc xif_valid_object_types { objs allowedTypes } {
 #  upvar $sp_tcl_obj_arg sp_tcl_obj
 #  set sp_tcl_obj 0
 #
-#  set a_vars(b_is_ip_object_specified) 0
+#  set a_vars(xcs_is_ip_object_specified) 0
 #  set a_vars(b_is_fs_object_specified) 0
 #
 #  if { {} != $obj } {
-#    set a_vars(b_is_ip_object_specified) [xif_is_ip $obj]
+#    set a_vars(xcs_is_ip_object_specified) [xcs_is_ip $obj]
 #    set a_vars(b_is_fs_object_specified) [xcs_is_fileset $obj]
 #  }
 #
-#  if { {1} == $a_vars(b_is_ip_object_specified) } {
+#  if { {1} == $a_vars(xcs_is_ip_object_specified) } {
 #    set comp_file $obj
 #    set file_extn [file extension $comp_file]
 #    if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {

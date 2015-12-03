@@ -506,7 +506,7 @@ proc usf_xport_data_files { } {
   variable s_data_files_filter
   variable s_non_hdl_data_files_filter
   set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [usf_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj] } {
     send_msg_id USF-VCS-032 INFO "Inspecting IP design source files for '$a_sim_vars(s_sim_top)'...\n"
 
     # export ip data files to run dir
@@ -566,7 +566,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   set dir_names [list]
   set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [usf_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj] } {
     set vh_files [usf_get_incl_files_from_ip $tcl_obj]
   } else {
     set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
@@ -637,7 +637,7 @@ proc usf_get_top_library { } {
   set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
 
   # was -of_objects <ip> specified?, fetch current fileset
-  if { [usf_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj] } {
     set tcl_obj [get_filesets $a_sim_vars(s_simset)]
   }
 
@@ -938,7 +938,7 @@ proc usf_prepare_ip_for_simulation { } {
       send_msg_id USF-VCS-037 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
       generate_mem_files $a_sim_vars(s_launch_dir)
     }
-  } elseif { [usf_is_ip $target_obj] } {
+  } elseif { [xcs_is_ip $target_obj] } {
     set comp_file $target_obj
     usf_generate_comp_file_for_simulation $comp_file runs_to_launch
   } else {
@@ -1239,7 +1239,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         }
       }
     }
-  } elseif { [usf_is_ip $target_obj] } {
+  } elseif { [xcs_is_ip $target_obj] } {
     # prepare command line args for fileset ip files
     send_msg_id USF-VCS-105 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
@@ -1358,7 +1358,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
         lappend l_compile_order_files $file
       }
     }
-  } elseif { [usf_is_ip $target_obj] } {
+  } elseif { [xcs_is_ip $target_obj] } {
     # prepare command line args for fileset ip files
     set ip_filename [file tail $target_obj]
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
@@ -1926,7 +1926,7 @@ proc usf_get_include_dirs { } {
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   set incl_dirs [list]
   set incl_dir_str {}
-  if { [usf_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj] } {
     set incl_dir_str [usf_get_incl_dirs_from_ip $tcl_obj]
     set incl_dirs [split $incl_dir_str "|"]
   } else {
@@ -2091,24 +2091,6 @@ proc usf_resolve_file_path { file_dir_path_to_convert } {
   }
   # return absolute
   return $file_dir_path_to_convert
-}
-
-proc usf_is_ip { tcl_obj } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable l_valid_ip_extns
-  # check if ip file extension
-  if { [lsearch -exact $l_valid_ip_extns [file extension $tcl_obj]] >= 0 } {
-    return 1
-  } else {
-    # check if IP object
-    if {[regexp -nocase {^ip} [get_property [rdi::get_attr_specs CLASS -object $tcl_obj] $tcl_obj]] } {
-      return 1
-    }
-  }
-  return 0
 }
 
 proc usf_is_embedded_flow {} {
@@ -2577,7 +2559,7 @@ proc usf_find_files { src_files_arg filter } {
   upvar $src_files_arg src_files
 
   set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [usf_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj] } {
     set ip_name [file tail $tcl_obj]
     foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
       if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
