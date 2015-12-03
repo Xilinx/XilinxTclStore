@@ -134,6 +134,28 @@ proc xcs_get_relative_file_path { file_path_to_convert relative_to } {
   return $file_path
 }
 
+proc xcs_get_sub_file_path { src_file_path dir_path_to_remove } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set src_path_comps [file split [file normalize $src_file_path]]
+  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
+
+  set src_path_len [llength $src_path_comps]
+  set dir_path_len [llength $dir_path_comps]
+
+  set index 1
+  while { [lindex $src_path_comps $index] == [lindex $dir_path_comps $index] } {
+    incr index
+    if { ($index == $src_path_len) || ($index == $dir_path_len) } {
+      break;
+    }
+  }
+  set sub_file_path [join [lrange $src_path_comps $index end] "/"]
+  return $sub_file_path
+}
+
 proc xcs_is_core_container { ip_file_name } {
   # Summary:
   # Argument Usage:

@@ -252,7 +252,7 @@ proc isl_export_ip { obj } {
       set parent_ip_name [file root [file tail $parent_comp_file]]
       set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
       set src_ip_file_dir [file dirname $src_ip_file]
-      set lib_dir [isl_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+      set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
       set target_extract_dir [file normalize [file join $a_isl_vars(ipstatic_dir) $lib_dir]]
       set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
     }
@@ -300,28 +300,6 @@ proc isl_export_ip { obj } {
     }
   }
   isl_update_compile_order_data $ip_data
-}
-
-proc isl_get_sub_file_path { src_file_path dir_path_to_remove } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set src_path_comps [file split [file normalize $src_file_path]]
-  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
-
-  set src_path_len [llength $src_path_comps]
-  set dir_path_len [llength $dir_path_comps]
-
-  set index 1
-  while { [lindex $src_path_comps $index] == [lindex $dir_path_comps $index] } {
-    incr index
-    if { ($index == $src_path_len) || ($index == $dir_path_len) } {
-      break;
-    }
-  }
-  set sub_file_path [join [lrange $src_path_comps $index end] "/"]
-  return $sub_file_path
 }
 
 proc isl_export_bd { obj } {

@@ -1193,7 +1193,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
             set src_ip_file_dir [file dirname $ip_static_file]
     
             # strip the ip_output_dir path from source ip file and prepend static dir
-            set lib_dir [xps_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+            set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
             set target_extract_dir [file normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
             #puts target_extract_dir=$target_extract_dir
     
@@ -1428,7 +1428,7 @@ proc xps_get_dynamic_sim_file_core_container { src_file } {
     set top_ip_file_name {}
     set ip_dir [xps_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
   }
-  set hdl_dir_file [xps_get_sub_file_path $file_dir $ip_dir]
+  set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
   set repo_src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $core_name $hdl_dir_file $filename]
 
   if { [file exists $repo_src_file] } { 
@@ -1451,7 +1451,7 @@ proc xps_get_dynamic_sim_file_core_classic { src_file } {
 
   set top_ip_file_name {}
   set ip_dir [xps_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
-  set hdl_dir_file [xps_get_sub_file_path $file_dir $ip_dir]
+  set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
 
   set top_ip_name [file root [file tail $top_ip_file_name]]
   set extn [file extension $top_ip_file_name]
@@ -1522,7 +1522,7 @@ proc xps_fetch_header_from_dynamic { vh_file b_is_bd } {
   set vh_filename   [file tail $vh_file]
   set vh_file_dir   [file dirname $vh_file]
   set output_dir    [get_property IP_OUTPUT_DIR [lindex [get_ips -all $ip_name] 0]]
-  set sub_file_path [xps_get_sub_file_path $vh_file_dir $output_dir]
+  set sub_file_path [xcs_get_sub_file_path $vh_file_dir $output_dir]
 
   # construct full repo dynamic file path
   set sub_dir "ip"
@@ -1533,28 +1533,6 @@ proc xps_fetch_header_from_dynamic { vh_file b_is_bd } {
   #puts vh_file=$vh_file
 
   return $vh_file
-}
-
-proc xps_get_sub_file_path { src_file_path dir_path_to_remove } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set src_path_comps [file split [file normalize $src_file_path]]
-  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
-
-  set src_path_len [llength $src_path_comps]
-  set dir_path_len [llength $dir_path_comps]
-
-  set index 1
-  while { [lindex $src_path_comps $index] == [lindex $dir_path_comps $index] } {
-    incr index
-    if { ($index == $src_path_len) || ($index == $dir_path_len) } {
-      break;
-    }
-  }
-  set sub_file_path [join [lrange $src_path_comps $index end] "/"]
-  return $sub_file_path
 }
 
 proc xps_find_ipstatic_file_path { src_ip_file parent_comp_file } {
@@ -1589,7 +1567,7 @@ proc xps_find_ipstatic_file_path { src_ip_file parent_comp_file } {
     set parent_ip_name [file root [file tail $parent_comp_file]]
     set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
     set src_ip_file_dir [file dirname $src_ip_file]
-    set lib_dir [xif_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+    set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
     set target_extract_dir [file normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
     set dest_file [file join $target_extract_dir $filename]
   }

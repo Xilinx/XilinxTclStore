@@ -349,7 +349,7 @@ proc xif_export_ip { obj } {
         set src_ip_file_dir [file dirname $src_ip_file]
 
         # strip the ip_output_dir path from source ip file and prepend static dir 
-        set lib_dir [xif_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+        set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
         set target_extract_dir [file normalize [file join $a_vars(ipstatic_dir) $lib_dir]]
         #puts target_extract_dir=$target_extract_dir
 	
@@ -520,28 +520,6 @@ proc xif_get_dynamic_core_container_ip_name { src_file_obj ip_name } {
     return $core_name
   }
   return $ip_name
-}
-
-proc xif_get_sub_file_path { src_file_path dir_path_to_remove } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set src_path_comps [file split [file normalize $src_file_path]]
-  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
-
-  set src_path_len [llength $src_path_comps]
-  set dir_path_len [llength $dir_path_comps]
-
-  set index 1
-  while { [lindex $src_path_comps $index] == [lindex $dir_path_comps $index] } {
-    incr index
-    if { ($index == $src_path_len) || ($index == $dir_path_len) } {
-      break;
-    }
-  }
-  set sub_file_path [join [lrange $src_path_comps $index end] "/"]
-  return $sub_file_path
 }
 
 proc xif_is_bd_ip_file { src_file_obj bd_file_arg } {
@@ -819,7 +797,7 @@ proc xif_find_ipstatic_file_path { src_ip_file parent_comp_file } {
     set parent_ip_name [file root [file tail $parent_comp_file]]
     set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
     set src_ip_file_dir [file dirname $src_ip_file]
-    set lib_dir [xif_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+    set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
     set target_extract_dir [file normalize [file join $a_vars(ipstatic_dir) $lib_dir]]
     set dest_file [file join $target_extract_dir $filename]
   }
