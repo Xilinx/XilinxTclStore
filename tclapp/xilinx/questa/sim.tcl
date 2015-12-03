@@ -1172,7 +1172,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             # remove "lib" from prefix and ".so" extension
             set file_name [string range $file_name 3 end-3]
             set final_file_name "-l$file_name"
-            set file_dir "[usf_get_relative_file_path $file_dir $dir]"
+            set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
           }
 
           if { {Shared Library} == [get_property FILE_TYPE $file] } {

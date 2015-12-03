@@ -532,7 +532,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           # remove "lib" from prefix and ".so" extension 
           set file_name [string range $file_name 3 end-3]
           set final_file_name "-l$file_name"
-          set file_dir "[usf_get_relative_file_path $file_dir $dir]"
+          set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
         }
         
         if { {Shared Library} == [get_property FILE_TYPE $file] } {
@@ -696,7 +696,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
         set file_dir [file dirname $file] 
         set file_name [file tail $file] 
         if { $file_type == "Shared Library" } {
-          set file_dir "[usf_get_relative_file_path $file_dir $dir]"
+          set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
           if {[info exists a_shared_lib_dirs($file_dir)] == 0} {
             set a_shared_lib_dirs($file_dir) $file_dir
             lappend args_list "$file_dir"

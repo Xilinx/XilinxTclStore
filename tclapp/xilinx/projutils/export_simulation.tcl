@@ -1219,9 +1219,9 @@ proc xps_get_source_from_repo { orig_src_file dst_cip_file b_add_ref b_wrap_in_q
       set dst_cip_file "[xps_resolve_file_path $dst_cip_file $launch_dir]"
     } else {
       if { $b_add_ref } {
-        set dst_cip_file "\$ref_dir/[xps_get_relative_file_path $dst_cip_file $launch_dir]"
+        set dst_cip_file "\$ref_dir/[xcs_get_relative_file_path $dst_cip_file $launch_dir]"
       } else {
-        set dst_cip_file "[xps_get_relative_file_path $dst_cip_file $launch_dir]"
+        set dst_cip_file "[xcs_get_relative_file_path $dst_cip_file $launch_dir]"
       }
     }
     if { $b_wrap_in_quotes } {
@@ -1761,7 +1761,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compi
         if { {} != $xcix_ip_path } {
           set ip_name [file root [file tail $xcix_ip_path]]
           set ip_ext_dir [get_property ip_extract_dir [get_ips -all -quiet $ip_name]]
-          set ip_file "[xps_get_relative_file_path $file $ip_ext_dir]"
+          set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
           # remove leading "../"
           set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
           set file [file join $ip_ext_dir $ip_file]
@@ -1857,14 +1857,14 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
           if { $a_sim_vars(b_xport_src_files) } {
             set file "\$ref_dir/incl/$src_file"
           } else {
-            set file "\$ref_dir/[xps_get_relative_file_path $file $launch_dir]"
+            set file "\$ref_dir/[xcs_get_relative_file_path $file $launch_dir]"
           }
         }
         default {
           if { $a_sim_vars(b_xport_src_files) } {
             set file "srcs/incl/$src_file"
           } else {
-            set file "[xps_get_relative_file_path $file $launch_dir]"
+            set file "[xcs_get_relative_file_path $file $launch_dir]"
           }
         }
       }
@@ -1943,83 +1943,6 @@ proc xps_get_design_libs {} {
   return $libs
 }
 
-proc xps_get_relative_file_path { file_path_to_convert relative_to } {
-  # Summary:
-  # Argument Usage:
-  # file_path_to_convert:
-  # Return Value:
-
-  variable a_sim_vars
-  # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
-  if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
-    set relative_to [file dirname $relative_to]
-  }
-  set cwd [file normalize [pwd]]
-  if { [file pathtype $file_path_to_convert] eq "relative" } {
-    # is relative_to path same as cwd?, just return this path, no further processing required
-    if { [string equal $relative_to $cwd] } {
-      return $file_path_to_convert
-    }
-    # the specified path is "relative" but something else, so make it absolute wrt current working dir
-    set file_path_to_convert [file join $cwd $file_path_to_convert]
-  }
-  # is relative_to "relative"? convert to absolute as well wrt cwd
-  if { [file pathtype $relative_to] eq "relative" } {
-    set relative_to [file join $cwd $relative_to]
-  }
-  # normalize
-  set file_path_to_convert [file normalize $file_path_to_convert]
-  set relative_to          [file normalize $relative_to]
-  set file_path $file_path_to_convert
-  set file_comps        [file split $file_path]
-  set relative_to_comps [file split $relative_to]
-  set found_match false
-  set index 0
-  set fc_comps_len [llength $file_comps]
-  set rt_comps_len [llength $relative_to_comps]
-  # compare each dir element of file_to_convert and relative_to, set the flag and
-  # get the final index till these sub-dirs matched
-  while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
-    if { !$found_match } { set found_match true }
-    incr index
-    if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
-      break;
-    }
-  }
-  # any common dirs found? convert path to relative
-  if { $found_match } {
-    set parent_dir_path ""
-    set rel_index $index
-    # keep traversing the relative_to dirs and build "../" levels
-    while { [lindex $relative_to_comps $rel_index] != "" } {
-      set parent_dir_path "../$parent_dir_path"
-      incr rel_index
-    }
-    #
-    # at this point we have parent_dir_path setup with exact number of sub-dirs to go up
-    #
-    # now build up part of path which is relative to matched part
-    set rel_path ""
-    set rel_index $index
-    while { [lindex $file_comps $rel_index] != "" } {
-      set comps [lindex $file_comps $rel_index]
-      if { $rel_path == "" } {
-        # first dir
-        set rel_path $comps
-      } else {
-        # append remaining dirs
-        set rel_path "${rel_path}/$comps"
-      }
-      incr rel_index
-    }
-    # prepend parent dirs, this is the complete resolved path now
-    set resolved_path "${parent_dir_path}${rel_path}"
-    return $resolved_path
-  }
-  # no common dirs found, just return the normalized path
-  return $file_path
-}
-
 proc xps_resolve_file_path { file_dir_path_to_convert launch_dir } {
   # Summary: Make file path relative to ref_dir if relative component found
   # Argument Usage:
@@ -2037,7 +1960,7 @@ proc xps_resolve_file_path { file_dir_path_to_convert launch_dir } {
   }
   # is file path within reference dir? return relative path
   if { $index == [llength $ref_comps] } {
-    return [xps_get_relative_file_path $file_dir_path_to_convert $ref_dir]
+    return [xcs_get_relative_file_path $file_dir_path_to_convert $ref_dir]
   }
   # return absolute
   return $file_dir_path_to_convert
@@ -2987,7 +2910,7 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
               # no op
             } else {
               set source_file [string trim $src_file {\"}]
-              set src_file "[xps_get_relative_file_path $source_file $launch_dir]"
+              set src_file "[xcs_get_relative_file_path $source_file $launch_dir]"
               set src_file "\"$src_file\""
             }
           }
@@ -3009,9 +2932,9 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
               set src_file "\"$src_file\""
             } else {
               set source_file [string trim $src_file {\"}]
-              set src_file "\$ref_dir/[xps_get_relative_file_path $source_file $launch_dir]"
+              set src_file "\$ref_dir/[xcs_get_relative_file_path $source_file $launch_dir]"
               if { $a_sim_vars(b_single_step) } {
-                set src_file "[xps_get_relative_file_path $proj_src_file $launch_dir]"
+                set src_file "[xcs_get_relative_file_path $proj_src_file $launch_dir]"
               }
               set src_file "\"$src_file\""
             }
@@ -3031,15 +2954,15 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
                 set src_file "$source_file"
               } else {
                 set src_file "\$ref_dir/$source_file"
-                #set src_file "\$ref_dir/[xps_get_relative_file_path $source_file $launch_dir]"
+                #set src_file "\$ref_dir/[xcs_get_relative_file_path $source_file $launch_dir]"
                 set src_file "\"$src_file\""
               }
             } else {
               set source_file [string trim $src_file {\"}]
               if { $a_sim_vars(b_single_step) } {
-                set src_file "[xps_get_relative_file_path $source_file $launch_dir]"
+                set src_file "[xcs_get_relative_file_path $source_file $launch_dir]"
               } else {
-                set src_file "\$ref_dir/[xps_get_relative_file_path $source_file $launch_dir]"
+                set src_file "\$ref_dir/[xcs_get_relative_file_path $source_file $launch_dir]"
                 set src_file "\"$src_file\""
               }
             }
@@ -3104,7 +3027,7 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
             if { $a_sim_vars(b_absolute_path) } {
               set file "[xps_resolve_file_path $file $launch_dir]"
             } else {
-              set file "[xps_get_relative_file_path $file $launch_dir]"
+              set file "[xcs_get_relative_file_path $file $launch_dir]"
             }
             if { $a_sim_vars(b_xport_src_files) } {
               set file "srcs/$proj_src_filename"
@@ -3492,7 +3415,7 @@ proc xps_find_files { src_files_arg filter dir } {
       if { $a_sim_vars(b_absolute_path) } {
         set file "[xps_resolve_file_path $file $dir]"
       } else {
-        set file "[xps_get_relative_file_path $file $dir]"
+        set file "[xcs_get_relative_file_path $file $dir]"
       }
       lappend src_files $file
     }
@@ -3525,7 +3448,7 @@ proc xps_find_files { src_files_arg filter dir } {
         if { $a_sim_vars(b_absolute_path) } {
           set file "[xps_resolve_file_path $file $dir]"
         } else {
-          set file "[xps_get_relative_file_path $file $dir]"
+          set file "[xcs_get_relative_file_path $file $dir]"
         }
         lappend src_files $file
       }
@@ -4295,7 +4218,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
         # no op
       } else {
         set source_file [string trim $src_file {\"}]
-        set src_file "[xps_get_relative_file_path $source_file $launch_dir]"
+        set src_file "[xcs_get_relative_file_path $source_file $launch_dir]"
         if { $a_sim_vars(b_absolute_path) } {
           set src_file $proj_src_file 
         }
@@ -4468,7 +4391,7 @@ proc xps_get_xsim_verilog_options { launch_dir opts_arg } {
       if { $a_sim_vars(b_absolute_path) } {
         set incl_dir "[xps_resolve_file_path $incl_dir $launch_dir]"
       } else {
-        set incl_dir "[xps_get_relative_file_path $incl_dir $launch_dir]"
+        set incl_dir "[xcs_get_relative_file_path $incl_dir $launch_dir]"
       }
       lappend opts "-i \"$incl_dir\""
     }
@@ -4485,7 +4408,7 @@ proc xps_get_xsim_verilog_options { launch_dir opts_arg } {
         if { $a_sim_vars(b_absolute_path) } {
           set incl_dir "[xps_resolve_file_path $incl_dir $launch_dir]"
         } else {
-          set incl_dir "[xps_get_relative_file_path $incl_dir $launch_dir]"
+          set incl_dir "[xcs_get_relative_file_path $incl_dir $launch_dir]"
         }
         lappend opts "-i \"$incl_dir\""
       }
@@ -4618,7 +4541,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
           # no op
         } else {
           set source_file [string trim $src_file {\"}]
-          set src_file "[xps_get_relative_file_path $source_file $dir]"
+          set src_file "[xcs_get_relative_file_path $source_file $dir]"
           set src_file "\"$src_file\""
         }
       }
@@ -5498,16 +5421,16 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
           }
         } else {
           if { ({modelsim} == $simulator) || ({questa} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
-            set dir "[xps_get_relative_file_path $dir $launch_dir]"
+            set dir "[xcs_get_relative_file_path $dir $launch_dir]"
           } else {
-            set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
+            set dir "\$ref_dir/[xcs_get_relative_file_path $dir $launch_dir]"
           }
         }
       } else {
         if { $a_sim_vars(b_xport_src_files) } {
           set dir "srcs/incl"
         } else {
-          set dir "[xps_get_relative_file_path $dir $launch_dir]"
+          set dir "[xcs_get_relative_file_path $dir $launch_dir]"
         }
       }
     }
@@ -5563,16 +5486,16 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
             }
           } else {
             if { ({modelsim} == $simulator) || ({questa} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
-              set dir "[xps_get_relative_file_path $dir $launch_dir]"
+              set dir "[xcs_get_relative_file_path $dir $launch_dir]"
             } else {
-              set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
+              set dir "\$ref_dir/[xcs_get_relative_file_path $dir $launch_dir]"
             }
           }
         } else {
           if { $a_sim_vars(b_xport_src_files) } {
             set dir "srcs/incl"
           } else {
-            set dir "[xps_get_relative_file_path $dir $launch_dir]"
+            set dir "[xcs_get_relative_file_path $dir $launch_dir]"
           }
         }
       }
@@ -5652,7 +5575,7 @@ proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
       } else {
         if { ({modelsim} == $simulator) || ({questa} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
           # not required, the dir is already returned in right format for relative and absolute
-          #set dir "[xps_get_relative_file_path $dir $launch_dir]"
+          #set dir "[xcs_get_relative_file_path $dir $launch_dir]"
         } else {
           set dir "\$ref_dir/$dir"
         }
@@ -5664,7 +5587,7 @@ proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
         if { $a_sim_vars(b_xport_src_files) } {
           set dir "\$ref_dir/incl"
         } else {
-          set dir "\$ref_dir/[xps_get_relative_file_path $dir $launch_dir]"
+          set dir "\$ref_dir/[xcs_get_relative_file_path $dir $launch_dir]"
         }
       }
     }
@@ -5719,13 +5642,13 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
             if { $a_sim_vars(b_xport_src_files) } {
               set incl_file_path "\$ref_dir/incl"
             } else {
-              set incl_file_path "\$ref_dir/[xps_get_relative_file_path $incl_file_path $dir]"
+              set incl_file_path "\$ref_dir/[xcs_get_relative_file_path $incl_file_path $dir]"
             }
           } else {
             if { $a_sim_vars(b_xport_src_files) } {
               set incl_file_path "srcs/incl"
             } else {
-              set incl_file_path "[xps_get_relative_file_path $incl_file_path $dir]"
+              set incl_file_path "[xcs_get_relative_file_path $incl_file_path $dir]"
             }
           }
         }
@@ -5776,7 +5699,7 @@ proc xps_xtract_file { file } {
     if { {} != $xcix_ip_path } {
       set ip_name [file root [file tail $xcix_ip_path]]
       set ip_ext_dir [get_property ip_extract_dir [get_ips -all -quiet $ip_name]]
-      set ip_file "[xps_get_relative_file_path $file $ip_ext_dir]"
+      set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
       # remove leading "../"
       set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
       set file [file join $ip_ext_dir $ip_file]
@@ -5828,7 +5751,7 @@ proc xps_write_filelist_info { dir } {
     set src_file [xps_resolve_file $proj_src_file $ip_file $src_file $dir]
     set pfile $src_file
 
-    #set pfile "[xps_get_relative_file_path $proj_src_file $dir]"
+    #set pfile "[xcs_get_relative_file_path $proj_src_file $dir]"
     #if { $a_sim_vars(b_absolute_path) } {
     #  set pfile "[xps_resolve_file_path $proj_src_file $dir]"
     #}
@@ -5870,7 +5793,7 @@ proc xps_resolve_file { proj_src_file ip_file src_file dir } {
     if { $a_sim_vars(b_absolute_path) } {
       set src_file "[xps_resolve_file_path $source_file $dir]"
     } else {
-      set src_file "[xps_get_relative_file_path $source_file $dir]"
+      set src_file "[xcs_get_relative_file_path $source_file $dir]"
     }
   }
   if { $a_sim_vars(b_xport_src_files) } {

@@ -58,6 +58,82 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   return $b_verilog_srcs
 }
 
+proc xcs_get_relative_file_path { file_path_to_convert relative_to } {
+  # Summary:
+  # Argument Usage:
+  # file_path_to_convert:
+  # Return Value:
+
+  # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
+  if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
+    set relative_to [file dirname $relative_to]
+  }
+  set cwd [file normalize [pwd]]
+  if { [file pathtype $file_path_to_convert] eq "relative" } {
+    # is relative_to path same as cwd?, just return this path, no further processing required
+    if { [string equal $relative_to $cwd] } {
+      return $file_path_to_convert
+    }
+    # the specified path is "relative" but something else, so make it absolute wrt current working dir
+    set file_path_to_convert [file join $cwd $file_path_to_convert]
+  }
+  # is relative_to "relative"? convert to absolute as well wrt cwd
+  if { [file pathtype $relative_to] eq "relative" } {
+    set relative_to [file join $cwd $relative_to]
+  }
+  # normalize
+  set file_path_to_convert [file normalize $file_path_to_convert]
+  set relative_to          [file normalize $relative_to]
+  set file_path $file_path_to_convert
+  set file_comps        [file split $file_path]
+  set relative_to_comps [file split $relative_to]
+  set found_match false
+  set index 0
+  set fc_comps_len [llength $file_comps]
+  set rt_comps_len [llength $relative_to_comps]
+  # compare each dir element of file_to_convert and relative_to, set the flag and
+  # get the final index till these sub-dirs matched
+  while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
+    if { !$found_match } { set found_match true }
+    incr index
+    if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
+      break;
+    }
+  }
+  # any common dirs found? convert path to relative
+  if { $found_match } {
+    set parent_dir_path ""
+    set rel_index $index
+    # keep traversing the relative_to dirs and build "../" levels
+    while { [lindex $relative_to_comps $rel_index] != "" } {
+      set parent_dir_path "../$parent_dir_path"
+      incr rel_index
+    }
+    #
+    # at this point we have parent_dir_path setup with exact number of sub-dirs to go up
+    #
+    # now build up part of path which is relative to matched part
+    set rel_path ""
+    set rel_index $index
+    while { [lindex $file_comps $rel_index] != "" } {
+      set comps [lindex $file_comps $rel_index]
+      if { $rel_path == "" } {
+        # first dir
+        set rel_path $comps
+      } else {
+        # append remaining dirs
+        set rel_path "${rel_path}/$comps"
+      }
+      incr rel_index
+    }
+    # prepend parent dirs, this is the complete resolved path now
+    set resolved_path "${parent_dir_path}${rel_path}"
+    return $resolved_path
+  }
+  # no common dirs found, just return the normalized path
+  return $file_path
+}
+
 proc xcs_is_core_container { ip_file_name } {
   # Summary:
   # Argument Usage:

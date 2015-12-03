@@ -605,7 +605,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
       set dir "[usf_resolve_file_path $dir]"
      } else {
        if { $ref_dir } {
-        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "\$origin_dir/[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
       }
     }
     lappend dir_names $dir
@@ -1960,7 +1960,7 @@ proc usf_get_include_dirs { } {
       if { $a_sim_vars(b_absolute_path) } {
         set dir "[usf_resolve_file_path $dir]"
       } else {
-        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "\$origin_dir/[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
       }
       lappend incl_dirs $dir
     }
@@ -2013,7 +2013,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
           if { $ref_dir } {
-           set incl_file_path "\$origin_dir/[usf_get_relative_file_path $incl_file_path $dir]"
+           set incl_file_path "\$origin_dir/[xcs_get_relative_file_path $incl_file_path $dir]"
           }
         }
         lappend incl_file_paths $incl_file_path
@@ -2072,91 +2072,13 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
       if { $a_sim_vars(b_absolute_path) } {
         set dir "[usf_resolve_file_path $dir]"
       } else {
-        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "\$origin_dir/[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
       }
     }
     lappend incl_dirs $dir
   }
   set incl_dirs [join $incl_dirs "|"]
   return $incl_dirs
-}
-
-proc usf_get_relative_file_path { file_path_to_convert relative_to } {
-  # Summary: Get the relative path wrt to path specified
-  # Argument Usage:
-  # file_path_to_convert: input file to make relative to specfied path
-  # Return Value:
-  # Relative path wrt the path specified
-
-  variable a_sim_vars
-  # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
-  if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
-    set relative_to [file dirname $relative_to]
-  }
-  set cwd [file normalize [pwd]]
-  if { [file pathtype $file_path_to_convert] eq "relative" } {
-    # is relative_to path same as cwd?, just return this path, no further processing required
-    if { [string equal $relative_to $cwd] } {
-      return $file_path_to_convert
-    }
-    # the specified path is "relative" but something else, so make it absolute wrt current working dir
-    set file_path_to_convert [file join $cwd $file_path_to_convert]
-  }
-  # is relative_to "relative"? convert to absolute as well wrt cwd
-  if { [file pathtype $relative_to] eq "relative" } {
-    set relative_to [file join $cwd $relative_to]
-  }
-  # normalize
-  set file_path_to_convert [file normalize $file_path_to_convert]
-  set relative_to          [file normalize $relative_to]
-  set file_path $file_path_to_convert
-  set file_comps        [file split $file_path]
-  set relative_to_comps [file split $relative_to]
-  set found_match false
-  set index 0
-  set fc_comps_len [llength $file_comps]
-  set rt_comps_len [llength $relative_to_comps]
-  # compare each dir element of file_to_convert and relative_to, set the flag and
-  # get the final index till these sub-dirs matched
-  while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
-    if { !$found_match } { set found_match true }
-    incr index
-    if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
-      break;
-    }
-  }
-  # any common dirs found? convert path to relative
-  if { $found_match } {
-    set parent_dir_path ""
-    set rel_index $index
-    # keep traversing the relative_to dirs and build "../" levels
-    while { [lindex $relative_to_comps $rel_index] != "" } {
-      set parent_dir_path "../$parent_dir_path"
-      incr rel_index
-    }
-    #
-    # at this point we have parent_dir_path setup with exact number of sub-dirs to go up
-    #
-    # now build up part of path which is relative to matched part
-    set rel_path ""
-    set rel_index $index
-    while { [lindex $file_comps $rel_index] != "" } {
-      set comps [lindex $file_comps $rel_index]
-      if { $rel_path == "" } {
-        # first dir
-        set rel_path $comps
-      } else {
-        # append remaining dirs
-        set rel_path "${rel_path}/$comps"
-      }
-      incr rel_index
-    }
-    # prepend parent dirs, this is the complete resolved path now
-    set resolved_path "${parent_dir_path}${rel_path}"
-    return $resolved_path
-  }
-  # no common dirs found, just return the normalized path
-  return $file_path
 }
 
 proc usf_resolve_file_path { file_dir_path_to_convert } {
@@ -2176,7 +2098,7 @@ proc usf_resolve_file_path { file_dir_path_to_convert } {
   }
   # is file path within reference dir? return relative path
   if { $index == [llength $ref_comps] } {
-    return [usf_get_relative_file_path $file_dir_path_to_convert $ref_dir]
+    return [xcs_get_relative_file_path $file_dir_path_to_convert $ref_dir]
   }
   # return absolute
   return $file_dir_path_to_convert
@@ -2482,7 +2404,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
         if { {} != $xcix_ip_path } {
           set ip_name [file root [file tail $xcix_ip_path]]
           set ip_ext_dir [get_property ip_extract_dir [get_ips -all -quiet $ip_name]]
-          set ip_file "[usf_get_relative_file_path $file $ip_ext_dir]"
+          set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
           # remove leading "../"
           set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
           set file [file join $ip_ext_dir $ip_file]
@@ -2678,7 +2600,7 @@ proc usf_find_files { src_files_arg filter } {
       if { $a_sim_vars(b_absolute_path) } {
         set file "[usf_resolve_file_path $file]"
       } else {
-        set file "[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+        set file "[xcs_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
       }
       lappend src_files $file
     }
@@ -2709,7 +2631,7 @@ proc usf_find_files { src_files_arg filter } {
         if { $a_sim_vars(b_absolute_path) } {
           set file "[usf_resolve_file_path $file]"
         } else {
-          set file "[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+          set file "[xcs_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
         }
         lappend src_files $file
       }
@@ -2733,7 +2655,7 @@ proc usf_xtract_file { file } {
     if { {} != $xcix_ip_path } {
       set ip_name [file root [file tail $xcix_ip_path]]
       set ip_ext_dir [get_property ip_extract_dir [get_ips all -quiet $ip_name]]
-      set ip_file "[usf_get_relative_file_path $file $ip_ext_dir]"
+      set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
       # remove leading "../"
       set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
       set file [file join $ip_ext_dir $ip_file]
@@ -2760,7 +2682,7 @@ proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
     if { $a_sim_vars(b_absolute_path) } {
       set src_file "[usf_resolve_file_path $src_file]"
     } else {
-      set src_file "\$origin_dir/[usf_get_relative_file_path $src_file $launch_dir]"
+      set src_file "\$origin_dir/[xcs_get_relative_file_path $src_file $launch_dir]"
     }
     return $src_file
   }
@@ -2891,11 +2813,11 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
       set dst_cip_file "[usf_resolve_file_path $dst_cip_file]"
     } else {
       #if { $b_add_ref } {
-      #  set dst_cip_file "\$origin_dir/[usf_get_relative_file_path $dst_cip_file $launch_dir]"
+      #  set dst_cip_file "\$origin_dir/[xcs_get_relative_file_path $dst_cip_file $launch_dir]"
       #} else {
-      #  set dst_cip_file "[usf_get_relative_file_path $dst_cip_file $launch_dir]"
+      #  set dst_cip_file "[xcs_get_relative_file_path $dst_cip_file $launch_dir]"
       #}
-      set dst_cip_file "\$origin_dir/[usf_get_relative_file_path $dst_cip_file $launch_dir]"
+      set dst_cip_file "\$origin_dir/[xcs_get_relative_file_path $dst_cip_file $launch_dir]"
     }
     if { $b_wrap_in_quotes } {
       set dst_cip_file "\"$dst_cip_file\""

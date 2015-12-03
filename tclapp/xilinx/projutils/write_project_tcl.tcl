@@ -1734,6 +1734,8 @@ proc get_script_execution_dir { } {
   return $scr_exe_dir
 }
 
+# TODO: This is the same as xcs_get_relative_file_path for simulators, see common/utils.tcl
+# Remember to add the 'source .../common/utils.tcl' in the write_project_tcl proc to load the common file
 proc get_relative_file_path_for_source { file_path_to_convert relative_to } {
   # Summary: Get the relative path wrt to path specified
   # Argument Usage:
