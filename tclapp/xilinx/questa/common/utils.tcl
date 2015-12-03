@@ -58,3 +58,20 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   return $b_verilog_srcs
 }
 
+proc xcs_is_core_container { ip_file_name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_is_container 1
+  if { [get_property sim.use_central_dir_for_ips [current_project]] } {
+    return $b_is_container
+  }
+
+  # is this ip core-container? if not return 0 (classic)
+  set value [string trim [get_property core_container [get_files -all -quiet ${ip_file_name}]]]
+  if { {} == $value } {
+    set b_is_container 0
+  }
+  return $b_is_container
+}

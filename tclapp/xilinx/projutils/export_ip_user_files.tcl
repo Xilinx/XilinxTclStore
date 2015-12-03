@@ -297,7 +297,7 @@ proc xif_export_ip { obj } {
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
-  set b_container [xif_is_core_container $ip_name]
+  set b_container [xcs_is_core_container ${ip_name}.xci]
   #puts $ip_name=$b_container
 
   set l_static_files [list]
@@ -854,23 +854,6 @@ proc xif_is_fileset { obj } {
     }
   }
   return 0
-}
-
-proc xif_is_core_container { ip_name } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set b_is_container 1
-  if { [get_property sim.use_central_dir_for_ips [current_project]] } {
-    return $b_is_container
-  }
-
-  set value [string trim [get_property core_container [get_files -all -quiet ${ip_name}.xci]]]
-  if { {} == $value } {
-    set b_is_container 0
-  }
-  return $b_is_container
 }
 
 proc xif_copy_files_recursive { src dst } {

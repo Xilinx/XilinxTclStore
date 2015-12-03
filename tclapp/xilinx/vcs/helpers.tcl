@@ -2820,7 +2820,8 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   set used_in_values [get_property "USED_IN" $full_src_file_obj]
   # is dynamic?
   if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
-    if { [usf_is_core_container $ip_file $ip_name] } {
+    set file_extn [file extension $ip_file]
+    if { [xcs_is_core_container ${ip_name}${file_extn}] } {
       set dst_cip_file [usf_get_dynamic_sim_file_core_container $full_src_file_path]
     } else {
       set dst_cip_file [usf_get_dynamic_sim_file_core_classic $full_src_file_path]
@@ -3175,7 +3176,8 @@ proc usf_fetch_header_from_dynamic { vh_file b_is_bd } {
   #puts ip_name=$ip_name
 
   # if not core-container (classic), return original source file from project
-  if { ![usf_is_core_container $ip_file $ip_name] } {
+  set file_extn [file extension $ip_file]
+  if { ![xcs_is_core_container ${ip_name}${file_extn}] } {
     return $vh_file
   }
 
@@ -3215,27 +3217,6 @@ proc usf_get_sub_file_path { src_file_path dir_path_to_remove } {
   }
   set sub_file_path [join [lrange $src_path_comps $index end] "/"]
   return $sub_file_path
-}
-
-proc usf_is_core_container { ip_file ip_name } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set b_is_container 1
-  if { [get_property sim.use_central_dir_for_ips [current_project]] } {
-    return $b_is_container
-  }
-
-  set file_extn [file extension $ip_file]
-  #puts $ip_name=$file_extn
-
-  # is this ip core-container? if not return 0 (classic)
-  set value [string trim [get_property core_container [get_files -all -quiet ${ip_name}${file_extn}]]]
-  if { {} == $value } {
-    set b_is_container 0
-  }
-  return $b_is_container
 }
 
 proc usf_find_ipstatic_file_path { src_ip_file parent_comp_file } {

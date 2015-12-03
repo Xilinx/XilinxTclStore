@@ -38,6 +38,12 @@ proc isl_init_vars {} {
 
   variable l_valid_ip_extns         [list]
   set l_valid_ip_extns              [list ".xci" ".bd" ".slx"]
+
+  # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
+  if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
+    variable home
+    source -notrace [file join $home "common" "utils.tcl"]
+  }
 }
 
 proc setup_ip_static_library {args} {
@@ -224,7 +230,7 @@ proc isl_export_ip { obj } {
   set ip_name [file root [file tail $obj]]
   set ip_info "${ip_name}#xci"
   set ip_extn [file extension $obj]
-  set b_container [isl_is_core_container $ip_name]
+  set b_container [xcs_is_core_container ${ip_name}.xci]
   #puts $ip_name=$b_container
 
   set l_static_files [list]
@@ -459,23 +465,6 @@ proc isl_fetch_compile_order_data {} {
   }
 
   return 0
-}
-
-proc isl_is_core_container { ip_name } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set b_is_container 1
-  if { [get_property sim.use_central_dir_for_ips [current_project]] } {
-    return $b_is_container
-  }
-
-  set value [string trim [get_property core_container [get_files -all -quiet ${ip_name}.xci]]]
-  if { {} == $value } {
-    set b_is_container 0
-  }
-  return $b_is_container
 }
 
 proc isl_update_compile_order_data { ip_data } {
