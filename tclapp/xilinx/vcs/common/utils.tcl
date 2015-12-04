@@ -58,6 +58,44 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   return $b_verilog_srcs
 }
 
+proc xcs_find_ipstatic_file_path { src_ip_file parent_comp_file ipstatic_dir} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set dest_file {}
+  set filename [file tail $src_ip_file]
+  set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+  if { {} == $file_obj } {
+    set file_obj [lindex [get_files -quiet -all $filename] 0]
+  }
+  if { {} == $file_obj } {
+    return $dest_file
+  }
+
+  if { {} == $parent_comp_file } {
+    set library_name [get_property library $file_obj]
+    set comps [lrange [split $src_ip_file "/"] 1 end]
+    set index 0
+    set b_found false
+    set to_match $library_name
+    set b_found [xcs_find_comp comps index $to_match]
+    if { $b_found } {
+      set file_path_str [join [lrange $comps $index end] "/"]
+      #puts file_path_str=$file_path_str
+      set dest_file [file normalize [file join $ipstatic_dir $file_path_str]]
+    }
+  } else {
+    set parent_ip_name [file root [file tail $parent_comp_file]]
+    set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
+    set src_ip_file_dir [file dirname $src_ip_file]
+    set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+    set target_extract_dir [file normalize [file join $ipstatic_dir $lib_dir]]
+    set dest_file [file join $target_extract_dir $filename]
+  }
+  return $dest_file
+}
+
 proc xcs_get_relative_file_path { file_path_to_convert relative_to } {
   # Summary:
   # Argument Usage:

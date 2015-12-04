@@ -2680,7 +2680,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
         set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
 
         # calculate destination path
-        set dst_cip_file [usf_find_ipstatic_file_path $ip_static_file $parent_comp_file]
+        set dst_cip_file [xcs_find_ipstatic_file_path $ip_static_file $parent_comp_file $a_sim_vars(ipstatic_dir)]
 
         # skip if file exists
         if { ({} == $dst_cip_file) || (![file exists $dst_cip_file]) } {
@@ -3019,45 +3019,6 @@ proc usf_fetch_header_from_dynamic { vh_file b_is_bd } {
   #puts vh_file=$vh_file
 
   return $vh_file
-}
-
-proc usf_find_ipstatic_file_path { src_ip_file parent_comp_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set dest_file {}
-  set filename [file tail $src_ip_file]
-  set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
-  if { {} == $file_obj } {
-    set file_obj [lindex [get_files -quiet -all $filename] 0]
-  }
-  if { {} == $file_obj } {
-    return $dest_file
-  }
-
-  if { {} == $parent_comp_file } {
-    set library_name [get_property library $file_obj]
-    set comps [lrange [split $src_ip_file "/"] 1 end]
-    set index 0
-    set b_found false
-    set to_match $library_name
-    set b_found [xcs_find_comp comps index $to_match]
-    if { $b_found } {
-      set file_path_str [join [lrange $comps $index end] "/"]
-      #puts file_path_str=$file_path_str
-      set dest_file [file normalize [file join $a_sim_vars(ipstatic_dir) $file_path_str]]
-    }
-  } else {
-    set parent_ip_name [file root [file tail $parent_comp_file]]
-    set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
-    set src_ip_file_dir [file dirname $src_ip_file]
-    set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
-    set target_extract_dir [file normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
-    set dest_file [file join $target_extract_dir $filename]
-  }
-  return $dest_file
 }
 
 proc usf_find_file_from_compile_order { ip_name src_file } {
