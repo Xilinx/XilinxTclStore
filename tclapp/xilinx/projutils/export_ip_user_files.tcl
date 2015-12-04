@@ -34,7 +34,7 @@ proc xif_init_vars {} {
   set a_vars(b_ipstatic_source_dir)   0
   set a_vars(sp_of_objects)           {}
   set a_vars(b_of_objects_specified)    0
-  set a_vars(xcs_is_ip_object_specified)  0
+  set a_vars(b_is_ip_object_specified)  0
   set a_vars(b_is_fs_object_specified)  0
   set a_vars(b_no_script)             0
   set a_vars(b_sync)                  0
@@ -1317,15 +1317,15 @@ proc xif_valid_object_types { objs allowedTypes } {
 #  upvar $sp_tcl_obj_arg sp_tcl_obj
 #  set sp_tcl_obj 0
 #
-#  set a_vars(xcs_is_ip_object_specified) 0
+#  set a_vars(b_is_ip_object_specified) 0
 #  set a_vars(b_is_fs_object_specified) 0
 #
 #  if { {} != $obj } {
-#    set a_vars(xcs_is_ip_object_specified) [xcs_is_ip $obj]
+#    set a_vars(b_is_ip_object_specified) [xcs_is_ip $obj]
 #    set a_vars(b_is_fs_object_specified) [xcs_is_fileset $obj]
 #  }
 #
-#  if { {1} == $a_vars(xcs_is_ip_object_specified) } {
+#  if { {1} == $a_vars(b_is_ip_object_specified) } {
 #    set comp_file $obj
 #    set file_extn [file extension $comp_file]
 #    if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {

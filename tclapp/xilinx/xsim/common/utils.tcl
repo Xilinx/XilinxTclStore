@@ -288,14 +288,13 @@ proc xcs_is_fileset { tcl_obj } {
   return 0
 }
 
-proc xcs_is_ip { tcl_obj } {
+proc xcs_is_ip { tcl_obj valid_ip_extns } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  variable l_valid_ip_extns
   # check if ip file extension
-  if { [lsearch -exact $l_valid_ip_extns [file extension $tcl_obj]] >= 0 } {
+  if { [lsearch -exact $valid_ip_extns [file extension $tcl_obj]] >= 0 } {
     return 1
   } else {
     # check if IP object

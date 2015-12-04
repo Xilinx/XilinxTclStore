@@ -133,7 +133,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_extract_ip_sim_files) 0
   set a_sim_vars(b_32bit)             0
   set a_sim_vars(sp_of_objects)       {}
-  set a_sim_vars(xcs_is_ip_object_specified)      0
+  set a_sim_vars(b_is_ip_object_specified)      0
   set a_sim_vars(b_is_fs_object_specified)      0
   set a_sim_vars(b_absolute_path)     0             
   set a_sim_vars(b_single_step)       0             
@@ -425,9 +425,11 @@ proc xps_create_rundir { dir run_dir_arg } {
  
   variable a_sim_vars
   variable l_target_simulator
+  variable l_valid_ip_extns
   upvar $run_dir_arg run_dir
+
   set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
     if { $a_sim_vars(b_directory_specified) } {
       set ip_dir [file tail [file dirname $tcl_obj]]
       #append ip_dir "_sim"
@@ -693,13 +695,14 @@ proc xps_set_target_obj { obj } {
 
   variable a_sim_vars
   variable l_valid_ip_extns
-  set a_sim_vars(xcs_is_ip_object_specified) 0
+
+  set a_sim_vars(b_is_ip_object_specified) 0
   set a_sim_vars(b_is_fs_object_specified) 0
   if { {} != $obj } {
-    set a_sim_vars(xcs_is_ip_object_specified) [xcs_is_ip $obj]
+    set a_sim_vars(b_is_ip_object_specified) [xcs_is_ip $obj $l_valid_ip_extns]
     set a_sim_vars(b_is_fs_object_specified) [xcs_is_fileset $obj]
   }
-  if { {1} == $a_sim_vars(xcs_is_ip_object_specified) } {
+  if { {1} == $a_sim_vars(b_is_ip_object_specified) } {
     set comp_file $obj
     set file_extn [file extension $comp_file]
     if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {
@@ -833,9 +836,11 @@ proc xps_xport_data_files { data_files_arg } {
   variable a_sim_vars
   variable s_data_files_filter
   variable s_non_hdl_data_files_filter
+  variable l_valid_ip_extns
   upvar $data_files_arg data_files
+
   set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
     set ip_filter "FILE_TYPE == \"IP\""
     set ip_name [file tail $tcl_obj]
     set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
@@ -901,6 +906,7 @@ proc xps_get_files { simulator launch_dir } {
 
   variable a_sim_vars
   variable l_compile_order_files
+  variable l_valid_ip_extns
   set files                 [list]
   set l_compile_order_files [list]
   set target_obj            $a_sim_vars(sp_tcl_obj)
@@ -1027,7 +1033,7 @@ proc xps_get_files { simulator launch_dir } {
         }
       }
     }
-  } elseif { [xcs_is_ip $target_obj] } {
+  } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
     #send_msg_id exportsim-Tcl-023 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
     foreach ip_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
@@ -1880,9 +1886,12 @@ proc xps_set_script_filename {} {
   # Summary:
   # Argument Usage:
   # Return Value:
+
   variable a_sim_vars
+  variable l_valid_ip_extns
+
   set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
     set a_sim_vars(ip_filename) [file tail $tcl_obj]
     if { ! $a_sim_vars(b_script_specified) } {
       set ip_name [file root $a_sim_vars(ip_filename)]
@@ -1915,6 +1924,8 @@ proc xps_write_sim_script { run_dir data_files filename } {
 
   variable a_sim_vars
   variable l_target_simulator
+  variable l_valid_ip_extns
+
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   foreach simulator $l_target_simulator {
     set simulator_name [xps_get_simulator_pretty_name $simulator] 
@@ -1928,7 +1939,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
       xps_create_dir [file join $dir "srcs" "incl"]
       xps_create_dir [file join $dir "srcs" "ip"]
     }
-    if { [xcs_is_ip $tcl_obj] } {
+    if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
       set a_sim_vars(s_top) [file tail [file root $tcl_obj]]
       #send_msg_id exportsim-Tcl-026 INFO "Inspecting IP design source files for '$a_sim_vars(s_top)'...\n"
       if {[xps_write_script $simulator $dir $filename]} {
@@ -3230,10 +3241,11 @@ proc xps_find_files { src_files_arg filter dir } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_valid_ip_extns
   upvar $src_files_arg src_files
 
   set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
     set ip_name [file tail $tcl_obj]
     foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
       if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
@@ -3487,6 +3499,7 @@ proc xps_get_top_library { } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_valid_ip_extns
 
   set tcl_obj $a_sim_vars(sp_tcl_obj)
 
@@ -3494,7 +3507,7 @@ proc xps_get_top_library { } {
   set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
 
   # was -of_objects <ip> specified?, fetch current fileset
-  if { [xcs_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
     set tcl_obj $a_sim_vars(fs_obj)
   }
 
@@ -3624,9 +3637,11 @@ proc xps_verify_ip_status {} {
   # Return Value:
 
   variable a_sim_vars
+  variable l_valid_ip_extns
+
   set regen_ip [dict create] 
   set b_single_ip 0
-  if { ([xcs_is_ip $a_sim_vars(sp_tcl_obj)]) && ({.xci} == $a_sim_vars(s_ip_file_extn)) } {
+  if { ([xcs_is_ip $a_sim_vars(sp_tcl_obj) $l_valid_ip_extns]) && ({.xci} == $a_sim_vars(s_ip_file_extn)) } {
     set ip [file root [file tail $a_sim_vars(sp_tcl_obj)]]
     # is user-disabled? or auto_disabled? skip
     if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip}.xci]]) ||
@@ -5197,11 +5212,14 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
   # Summary:
   # Argument Usage:
   # Return Value:
+
   variable a_sim_vars
+  variable l_valid_ip_extns
+
   set dir_names [list]
   set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
     set vh_files [xps_get_incl_files_from_ip $launch_dir $tcl_obj]
   } else {
     set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
@@ -5281,13 +5299,14 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_valid_ip_extns
 
   set dir_names [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   set incl_dirs [list]
   set incl_dir_str {}
 
-  if { [xcs_is_ip $tcl_obj] } {
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
     set incl_dir_str [xps_get_incl_dirs_from_ip $simulator $launch_dir $tcl_obj]
     set incl_dirs [split $incl_dir_str "|"]
   } else {
