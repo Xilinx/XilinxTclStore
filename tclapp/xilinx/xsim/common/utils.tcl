@@ -206,3 +206,14 @@ proc xcs_is_ip { tcl_obj } {
   return 0
 }
 
+proc xcs_is_static_ip_lib { library ip_static_libs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set library [string tolower $library]
+  if { [lsearch $ip_static_libs $library] != -1 } {
+    return true
+  }
+  return false
+}

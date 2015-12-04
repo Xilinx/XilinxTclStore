@@ -3845,6 +3845,7 @@ proc xps_write_libs_unix { simulator fh_unix } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_ip_static_libs
   switch $simulator {
     "xsim" {
       if { $a_sim_vars(b_use_static_lib) } {
@@ -3872,7 +3873,7 @@ proc xps_write_libs_unix { simulator fh_unix } {
       foreach lib [xps_get_compile_order_libs] {
         if {[string length $lib] == 0} { continue; }
         if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
-        if { $a_sim_vars(b_use_static_lib) && ([xps_is_static_ip_lib $lib]) } {
+        if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
           # no op
         } else {
           lappend libs [string tolower $lib]
@@ -4392,6 +4393,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_ip_static_libs
   set filename "compile.do"
   if { $a_sim_vars(b_single_step) } {
     set filename "run.do"
@@ -4417,7 +4419,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
       set b_default_lib true
     }
     set lib_path "$lib_dir/$lib"
-    if { $a_sim_vars(b_use_static_lib) && ([xps_is_static_ip_lib $lib]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       continue
     }
     puts $fh "vlib $lib_path"
@@ -4429,7 +4431,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
   puts $fh ""
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    if { $a_sim_vars(b_use_static_lib) && ([xps_is_static_ip_lib $lib]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # no op
     } else {
       puts $fh "vmap $lib $lib_dir/$lib"
@@ -5654,19 +5656,6 @@ proc xps_xtract_file { file } {
     }
   }
   return $file
-}
-
-proc xps_is_static_ip_lib { library } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable l_ip_static_libs
-  set library [string tolower $library]
-  if { [lsearch $l_ip_static_libs $library] != -1 } {
-    return true
-  }
-  return false
 }
 
 proc xps_write_filelist_info { dir } {

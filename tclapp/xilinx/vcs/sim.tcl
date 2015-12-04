@@ -271,6 +271,7 @@ proc usf_vcs_write_setup_files {} {
   # Return Value:
 
   variable a_sim_vars
+  variable l_ip_static_libs
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow)
@@ -321,7 +322,7 @@ proc usf_vcs_write_setup_files {} {
   }
   set dir_name "vcs"
   foreach lib_name $libs {
-    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib_name]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {
       continue
     }
     set lib_dir [file join $dir_name $lib_name]
@@ -897,7 +898,7 @@ proc usf_vcs_create_setup_script {} {
   set libs [list]
   set design_libs [usf_vcs_get_design_libs $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
-    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       continue
     }
     if { {} == $lib } {

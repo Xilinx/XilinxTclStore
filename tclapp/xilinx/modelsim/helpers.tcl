@@ -3110,19 +3110,6 @@ proc usf_find_file_from_compile_order { ip_name src_file } {
   #puts out_file=$src_file
   return $src_file
 }
-
-proc usf_is_static_ip_lib { library } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable l_ip_static_libs
-  set library [string tolower $library]
-  if { [lsearch $l_ip_static_libs $library] != -1 } {
-    return true
-  }
-  return false
-}
 }
 
 #
