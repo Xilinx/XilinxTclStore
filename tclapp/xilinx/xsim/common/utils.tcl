@@ -95,6 +95,36 @@ proc xcs_find_ipstatic_file_path { src_ip_file parent_comp_file ipstatic_dir} {
   }
   return $dest_file
 }
+proc xcs_find_top_level_ip_file { src_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set comp_file $src_file
+  #puts "-----\n  +$src_file"
+  set MAX_PARENT_COMP_LEVELS 10
+  set count 0
+  while (1) {
+    incr count
+    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
+    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    if { {} == $file_obj } {
+      # try from filename
+      set file_name [file tail $comp_file]
+      set file_obj [lindex [get_files -all "$file_name"] 0]
+      set comp_file $file_obj
+    }
+    set props [list_property $file_obj]
+    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+      break
+    }
+    set comp_file [get_property parent_composite_file -quiet $file_obj]
+    #puts "  +$comp_file"
+  }
+  #puts "  +[file root [file tail $comp_file]]"
+  #puts "-----\n"
+  return $comp_file
+}
 
 proc xcs_get_relative_file_path { file_path_to_convert relative_to } {
   # Summary:

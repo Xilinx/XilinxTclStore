@@ -2049,7 +2049,7 @@ proc usf_get_top_ip_filename { src_file } {
   set props [list_property $file_obj]
   # get the hierarchical top level ip file name if parent comp file is defined
   if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
-    set top_ip_file [usf_find_top_level_ip_file $src_file]
+    set top_ip_file [xcs_find_top_level_ip_file $src_file]
   }
   return $top_ip_file
 }
@@ -2394,37 +2394,6 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set orig_src_file $dst_cip_file
   }
   return $orig_src_file
-}
-
-proc usf_find_top_level_ip_file { src_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set comp_file $src_file
-  #puts "-----\n  +$src_file"
-  set MAX_PARENT_COMP_LEVELS 10
-  set count 0
-  while (1) {
-    incr count
-    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
-    if { {} == $file_obj } {
-      # try from filename
-      set file_name [file tail $comp_file]
-      set file_obj [lindex [get_files -all "$file_name"] 0]
-      set comp_file $file_obj
-    }
-    set props [list_property $file_obj]
-    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
-      break
-    }
-    set comp_file [get_property parent_composite_file -quiet $file_obj]
-    #puts "  +$comp_file"
-  }
-  #puts "  +[file root [file tail $comp_file]]"
-  #puts "-----\n"
-  return $comp_file
 }
 
 proc usf_is_bd_file { src_file bd_file_arg } {
