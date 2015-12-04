@@ -217,3 +217,19 @@ proc xcs_is_static_ip_lib { library ip_static_libs } {
   }
   return false
 }
+
+proc xcs_uniquify_cmd_str { cmd_strs } {
+  # Summary: Removes exact duplicate files (same file path)
+  # Argument Usage:
+  # Return Value:
+
+  set cmd_str_set   [list]
+  set uniq_cmd_strs [list]
+  foreach str $cmd_strs {
+    if { [lsearch -exact $cmd_str_set $str] == -1 } {
+      lappend cmd_str_set $str
+      lappend uniq_cmd_strs $str
+    }
+  }
+  return $uniq_cmd_strs
+}

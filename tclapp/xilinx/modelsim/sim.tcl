@@ -146,7 +146,7 @@ proc usf_modelsim_setup_simulation { args } {
   # fetch design files
   set global_files_str {}
   set ::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) \
-     [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+     [xcs_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
 
   # create setup file
   #usf_modelsim_write_setup_files

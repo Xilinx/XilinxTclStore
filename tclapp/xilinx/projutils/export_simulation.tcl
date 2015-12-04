@@ -888,7 +888,7 @@ proc xps_process_cmd_str { simulator dir } {
       set b_lang_updated 1
     }
   }
-  set a_sim_vars(l_design_files) [xps_uniquify_cmd_str [xps_get_files $simulator $dir]]
+  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
   if { $b_lang_updated } {
     set_property simulator_language $curr_lang [current_project]
   }
@@ -1607,22 +1607,6 @@ proc xps_find_file_from_compile_order { ip_name src_file } {
   }
   #puts out_file=$src_file
   return $src_file
-}
-
-proc xps_uniquify_cmd_str { cmd_strs } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set cmd_str_set   [list]
-  set uniq_cmd_strs [list]
-  foreach str $cmd_strs {
-    if { [lsearch -exact $cmd_str_set $str] == -1 } {
-      lappend cmd_str_set $str
-      lappend uniq_cmd_strs $str
-    }
-  }
-  return $uniq_cmd_strs
 }
 
 proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilog_incl_dirs_arg files_arg compile_order_files_arg } {
@@ -3677,7 +3661,7 @@ proc xps_get_compile_order_files { } {
   # Summary:
   # Argument Usage:
   # Return Value:
-  return [xps_uniquify_cmd_str $::tclapp::xilinx::projutils::l_compile_order_files]
+  return [xcs_uniquify_cmd_str $::tclapp::xilinx::projutils::l_compile_order_files]
 }
  
 proc xps_contains_system_verilog {} {

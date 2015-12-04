@@ -524,27 +524,11 @@ proc usf_xport_data_files { } {
   }
 }
 
-proc usf_uniquify_cmd_str { cmd_strs } {
-  # Summary: Removes exact duplicate files (same file path)
-  # Argument Usage:
-  # Return Value:
-
-  set cmd_str_set   [list]
-  set uniq_cmd_strs [list]
-  foreach str $cmd_strs {
-    if { [lsearch -exact $cmd_str_set $str] == -1 } {
-      lappend cmd_str_set $str
-      lappend uniq_cmd_strs $str
-    }
-  }
-  return $uniq_cmd_strs
-}
-
 proc usf_get_compile_order_files { } {
   # Summary:
   # Argument Usage:
   # Return Value:
-  return [usf_uniquify_cmd_str $::tclapp::xilinx::questa::l_compile_order_files]
+  return [xcs_uniquify_cmd_str $::tclapp::xilinx::questa::l_compile_order_files]
 }
 
 proc usf_get_top_library { } {

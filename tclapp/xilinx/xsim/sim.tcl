@@ -190,7 +190,7 @@ proc usf_xsim_setup_simulation { args } {
   # fetch design files
   set global_files_str {}
   set ::tclapp::xilinx::xsim::a_sim_vars(l_design_files) \
-     [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
+     [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
 

@@ -146,7 +146,7 @@ proc usf_ies_setup_simulation { args } {
   # fetch design files
   set global_files_str {}
   set ::tclapp::xilinx::ies::a_sim_vars(l_design_files) \
-     [::tclapp::xilinx::ies::usf_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
+     [xcs_uniquify_cmd_str [::tclapp::xilinx::ies::usf_get_files_for_compilation global_files_str]]
 
   # create setup file
   usf_ies_write_setup_files
