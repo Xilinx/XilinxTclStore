@@ -2934,7 +2934,7 @@ proc usf_get_dynamic_sim_file_core_container { src_file } {
     set ip_dir [file join [file dirname $xcix_file] $core_name]
   } else {
     set top_ip_file_name {}
-    set ip_dir [usf_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+    set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
   }
   set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
   set repo_src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $core_name $hdl_dir_file $filename]
@@ -2958,7 +2958,7 @@ proc usf_get_dynamic_sim_file_core_classic { src_file } {
   set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
 
   set top_ip_file_name {}
-  set ip_dir [usf_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+  set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
   set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
 
   set top_ip_name [file root [file tail $top_ip_file_name]]
@@ -2973,38 +2973,6 @@ proc usf_get_dynamic_sim_file_core_classic { src_file } {
     return $repo_src_file
   }
   return $src_file
-}
-
-proc usf_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $top_ip_file_name_arg top_ip_file_name
-  set comp_file $src_file
-  set MAX_PARENT_COMP_LEVELS 10
-  set count 0
-  while (1) {
-    incr count
-    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
-    set props [list_property $file_obj]
-    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
-      break
-    }
-    set comp_file [get_property parent_composite_file -quiet $file_obj]
-    #puts "+comp_file=$comp_file"
-  }
-  set top_ip_name [file root [file tail $comp_file]]
-  set top_ip_file_name $comp_file
-
-  set root_comp_file_type [get_property file_type [lindex [get_files -all [list "$comp_file"]] 0]]
-  if { ({Block Designs} == $root_comp_file_type) || ({DSP Design Sources} == $root_comp_file_type) } {
-    set ip_output_dir [file dirname $comp_file]
-  } else {
-    set ip_output_dir [get_property ip_output_dir [get_ips -all $top_ip_name]]
-  }
-  return $ip_output_dir
 }
 
 proc usf_fetch_header_from_dynamic { vh_file b_is_bd } {

@@ -126,6 +126,38 @@ proc xcs_find_top_level_ip_file { src_file } {
   return $comp_file
 }
 
+proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $top_ip_file_name_arg top_ip_file_name
+  set comp_file $src_file
+  set MAX_PARENT_COMP_LEVELS 10
+  set count 0
+  while (1) {
+    incr count
+    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
+    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    set props [list_property $file_obj]
+    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+      break
+    }
+    set comp_file [get_property parent_composite_file -quiet $file_obj]
+    #puts "+comp_file=$comp_file"
+  }
+  set top_ip_name [file root [file tail $comp_file]]
+  set top_ip_file_name $comp_file
+
+  set root_comp_file_type [get_property file_type [lindex [get_files -all [list "$comp_file"]] 0]]
+  if { ({Block Designs} == $root_comp_file_type) || ({DSP Design Sources} == $root_comp_file_type) } {
+    set ip_output_dir [file dirname $comp_file]
+  } else {
+    set ip_output_dir [get_property ip_output_dir [get_ips -all $top_ip_name]]
+  }
+  return $ip_output_dir
+}
+
 proc xcs_get_relative_file_path { file_path_to_convert relative_to } {
   # Summary:
   # Argument Usage:
