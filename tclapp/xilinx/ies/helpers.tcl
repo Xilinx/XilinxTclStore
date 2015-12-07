@@ -580,7 +580,11 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
         if { $b_is_bd } {
           set vh_file [usf_fetch_ipi_static_file $vh_file]
         } else {
-          set vh_file [usf_fetch_ip_static_file $vh_file $vh_file_obj]
+          if { $a_sim_vars(b_use_static_lib) } {
+            set vh_file $vh_file
+          } else {
+            set vh_file [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir)]
+          }
         }
       }
     }
@@ -2818,55 +2822,6 @@ proc usf_is_bd_file { src_file bd_file_arg } {
     set bd_file $comp_file
   }
   return $b_is_bd
-}
-
-proc usf_fetch_ip_static_file { file vh_file_obj } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  if { $a_sim_vars(b_use_static_lib) } {
-    return $file
-  }
-
-  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
-  set src_ip_file $file
-  set src_ip_file [string map {\\ /} $src_ip_file]
-  #puts src_ip_file=$src_ip_file
-
-  # get parent composite file path dir
-  set comp_file [get_property parent_composite_file -quiet $vh_file_obj] 
-  set comp_file_dir [file dirname $comp_file]
-  set comp_file_dir [string map {\\ /} $comp_file_dir]
-  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2
-  #puts comp_file_dir=$comp_file_dir
-
-  # strip parent dir from file path dir
-  set lib_file_path {}
-  # axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
-
-  set src_file_dirs  [file split [file normalize $src_ip_file]]
-  set comp_file_dirs [file split [file normalize $comp_file_dir]]
-  set src_file_len [llength $src_file_dirs]
-  set comp_dir_len [llength $comp_file_dir]
-
-  set index 1
-  #puts src_file_dirs=$src_file_dirs
-  #puts com_file_dirs=$comp_file_dirs
-  while { [lindex $src_file_dirs $index] == [lindex $comp_file_dirs $index] } {
-    incr index
-    if { ($index == $src_file_len) || ($index == $comp_dir_len) } {
-      break;
-    }
-  }
-  set lib_file_path [join [lrange $src_file_dirs $index end] "/"]
-  #puts lib_file_path=$lib_file_path
-
-  set dst_cip_file [file join $a_sim_vars(ipstatic_dir) $lib_file_path]
-  # /tmp/tp/tp.ip_user_files/ipstatic/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
-  #puts dst_cip_file=$dst_cip_file
-  return $dst_cip_file
 }
 
 proc usf_fetch_ipi_static_file { file } {
