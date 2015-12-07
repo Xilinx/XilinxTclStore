@@ -146,7 +146,7 @@ proc usf_modelsim_setup_simulation { args } {
   # fetch design files
   set global_files_str {}
   set ::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) \
-     [::tclapp::xilinx::modelsim::usf_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
+     [xcs_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
 
   # create setup file
   #usf_modelsim_write_setup_files
@@ -441,6 +441,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_ip_static_libs
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
@@ -493,7 +494,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
       set b_default_lib true
     }
     set lib_path "msim/$lib"
-    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       continue
     }
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
@@ -514,7 +515,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # no op
     } else {
       if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
