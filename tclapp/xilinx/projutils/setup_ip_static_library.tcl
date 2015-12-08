@@ -38,6 +38,12 @@ proc isl_init_vars {} {
 
   variable l_valid_ip_extns         [list]
   set l_valid_ip_extns              [list ".xci" ".bd" ".slx"]
+
+  # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
+  if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
+    variable home
+    source -notrace [file join $home "common" "utils.tcl"]
+  }
 }
 
 proc setup_ip_static_library {args} {
@@ -224,7 +230,7 @@ proc isl_export_ip { obj } {
   set ip_name [file root [file tail $obj]]
   set ip_info "${ip_name}#xci"
   set ip_extn [file extension $obj]
-  set b_container [isl_is_core_container $ip_name]
+  set b_container [xcs_is_core_container ${ip_name}.xci]
   #puts $ip_name=$b_container
 
   set l_static_files [list]
@@ -246,7 +252,7 @@ proc isl_export_ip { obj } {
       set parent_ip_name [file root [file tail $parent_comp_file]]
       set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
       set src_ip_file_dir [file dirname $src_ip_file]
-      set lib_dir [isl_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+      set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
       set target_extract_dir [file normalize [file join $a_isl_vars(ipstatic_dir) $lib_dir]]
       set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
     }
@@ -254,9 +260,10 @@ proc isl_export_ip { obj } {
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set library [get_property "LIBRARY" $file_obj]
       set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
-      set ip_file_path "[isl_get_relative_file_path $extracted_file $a_isl_vars(ipstatic_dir)/$library]"
+      set ip_file_path "[xcs_get_relative_file_path $extracted_file $a_isl_vars(ipstatic_dir)/$library]"
       # is this verilog header? strip prefixed library name
       if { {verilog header} == $file_type } {
+        set file_type "verilog_header"
         set comps [lrange [split $ip_file_path "/"] 0 end]
         set lib_comps [lrange [split $ip_file_path "/"] 1 end]
         set library [lindex $comps 0]
@@ -278,12 +285,13 @@ proc isl_export_ip { obj } {
 
     # is this verilog header? extract it and strip prefixed library name
     if { {verilog header} == $file_type } {
+      set file_type "verilog_header"
       set ip_static_dir [file normalize [file join $a_isl_vars(ipstatic_dir)]]
     
       # extract dynamic header file into static lib
       set extracted_file [extract_files -base_dir $ip_static_dir -no_ip_dir -force -files $dynamic_file]
       set library [get_property "LIBRARY" $file_obj]
-      set ip_file_path "[isl_get_relative_file_path $extracted_file $a_isl_vars(ipstatic_dir)/$library]"
+      set ip_file_path "[xcs_get_relative_file_path $extracted_file $a_isl_vars(ipstatic_dir)/$library]"
 
       set comps [lrange [split $ip_file_path "/"] 0 end]
       set lib_comps [lrange [split $ip_file_path "/"] 1 end]
@@ -294,28 +302,6 @@ proc isl_export_ip { obj } {
     }
   }
   isl_update_compile_order_data $ip_data
-}
-
-proc isl_get_sub_file_path { src_file_path dir_path_to_remove } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set src_path_comps [file split [file normalize $src_file_path]]
-  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
-
-  set src_path_len [llength $src_path_comps]
-  set dir_path_len [llength $dir_path_comps]
-
-  set index 1
-  while { [lindex $src_path_comps $index] == [lindex $dir_path_comps $index] } {
-    incr index
-    if { ($index == $src_path_len) || ($index == $dir_path_len) } {
-      break;
-    }
-  }
-  set sub_file_path [join [lrange $src_path_comps $index end] "/"]
-  return $sub_file_path
 }
 
 proc isl_export_bd { obj } {
@@ -398,9 +384,10 @@ proc isl_export_bd { obj } {
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set library [get_property "LIBRARY" $file_obj]
       set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
-      set ip_file_path "[isl_get_relative_file_path $dst_file $a_isl_vars(ipstatic_dir)/$library]"
+      set ip_file_path "[xcs_get_relative_file_path $dst_file $a_isl_vars(ipstatic_dir)/$library]"
       # is this verilog header? strip prefixed library name
       if { {verilog header} == $file_type } {
+        set file_type "verilog_header"
         #set comps [lrange [split $ip_file_path "/"] 0 end]
         #set lib_comps [lrange [split $ip_file_path "/"] 1 end]
         #set library [lindex $comps 0]
@@ -459,23 +446,6 @@ proc isl_fetch_compile_order_data {} {
   }
 
   return 0
-}
-
-proc isl_is_core_container { ip_name } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set b_is_container 1
-  if { [get_property sim.use_central_dir_for_ips [current_project]] } {
-    return $b_is_container
-  }
-
-  set value [string trim [get_property core_container [get_files -all -quiet ${ip_name}.xci]]]
-  if { {} == $value } {
-    set b_is_container 0
-  }
-  return $b_is_container
 }
 
 proc isl_update_compile_order_data { ip_data } {
@@ -654,7 +624,7 @@ proc isl_fetch_all_static_include_files { data static_incl_data_arg dynamic_incl
       lappend dynamic_incl_data $line
       continue
     }
-    if { {verilog header} == $file_type } {
+    if { {verilog_header} == $file_type } {
       set str "$library#$file_path"
       lappend incl_files $str
     }
@@ -715,7 +685,7 @@ proc isl_copy_static_include_files { data } {
     set file_path [string trim [lindex $file_str 1]]
     set file_type [string tolower [string trim [lindex $file_str 2]]]
     
-    if { {verilog header} == $file_type } {
+    if { {verilog_header} == $file_type } {
       lappend static_vh_filelist "$library#$file_path"
       lappend static_vh_libraries "$library"
     }
@@ -731,7 +701,7 @@ proc isl_copy_static_include_files { data } {
     set filename  [file tail $file_path]
     set file_type [string tolower [string trim [lindex $file_str 2]]]
     
-    if { {verilog header} == $file_type } {
+    if { {verilog_header} == $file_type } {
       continue
     }
     
@@ -994,7 +964,7 @@ proc isl_extract_install_files { } {
               }
             }
           }
-          set data "$library,$file_path,$type"
+          set data "$library,$file_path,$type,static"
           lappend file_paths "$file_path,$type"
           isl_add_to_compile_order $library $data
           isl_copy_static_source $ip_dir $library $file_path 
@@ -1056,7 +1026,7 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
             }
           }
         }
-        set data "$library,$file_path,$type"
+        set data "$library,$file_path,$type,static"
         lappend file_paths "$file_path,$type"
         isl_add_to_compile_order $library $data
         isl_copy_static_source $ip_dir $library $file_path 
@@ -1095,16 +1065,17 @@ proc isl_write_compile_order { } {
   }
 
   set b_pre_add_lib 0
+  set fifo_lib {}
   foreach data $compile_order_data {
     set data [string trim $data]
     if { [string length $data] == 0 } { continue; }
     set comps [split $data {,}]
     set library [lindex $comps 0]
-    if { {lib_fifo_v1_0_4} == $library } { continue }
-    if { {axi_pcie_v2_7_1} == $library } {
+    if { [regexp {^lib_fifo_v} $library] } { set fifo_lib $library;continue }
+    if { [regexp {^axi_pcie_v} $library] } {
       if { ! $b_pre_add_lib } {
-        puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/async_fifo_fg.vhd,vhdl"
-        puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/sync_fifo_fg.vhd,vhdl"
+        puts $fh "$fifo_lib,hdl/src/vhdl/async_fifo_fg.vhd,vhdl"
+        puts $fh "$fifo_lib,hdl/src/vhdl/sync_fifo_fg.vhd,vhdl"
         set b_pre_add_lib 1
       }
     }
@@ -1143,7 +1114,7 @@ proc isl_post_processing { ip_libs_arg } {
         set vh_file "hdl/verilog/axi_infrastructure_v1_1_0_header.vh"
       }
 
-      lappend file_paths $vh_file
+      lappend file_paths "$vh_file,verilog_header"
 
       set src_ip_dir [file join $a_isl_vars(ipstatic_dir) $src_lib]
       set dst_ip_dir [file join $a_isl_vars(ipstatic_dir) "$lib"]
@@ -1151,6 +1122,54 @@ proc isl_post_processing { ip_libs_arg } {
       isl_copy_file_path $vh_file $src_ip_dir $dst_ip_dir
       isl_create_incl_file $dst_ip_dir $file_paths
     }
+  }
+
+  # copy referenced include files from other libraries 
+  set file_name "cs_ver_inc.v"
+  set src_lib "labtools_general_components_lib_v2_0_0"
+  set dst_lib "labtools_xsdb_master_lib_v3_0_0"
+  set src_file "hdl/verilog/$file_name"
+  set incl_file [file join $a_isl_vars(ipstatic_dir) "$dst_lib" "include.h"]
+  set fh 0
+  if { [file exists $incl_file] } {
+    if {[catch {open $incl_file a} fh]} {
+      send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for append ($incl_file)\n"
+      return
+    }
+    isl_copy_header $fh $src_lib $src_file $file_name $dst_lib
+    close $fh
+  }
+
+  # copy referenced include files from other libraries 
+  set file_name "labtools_xsdb_slave_lib_v3_0_7_chipscope_icon2xsdb_mstrbr_ver_inc.v"
+  set src_lib "labtools_xsdb_slave_lib_v3_0_7"
+  set dst_lib "labtools_ibert_lib_v3_0_8"
+  set src_file "hdl/verilog/$file_name"
+  set incl_file [file join $a_isl_vars(ipstatic_dir) "$dst_lib" "include.h"]
+  set fh 0
+  if { [file exists $incl_file] } {
+    if {[catch {open $incl_file a} fh]} {
+      send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for append ($incl_file)\n"
+      return
+    }
+    isl_copy_header $fh $src_lib $src_file $file_name $dst_lib
+    close $fh
+  }
+
+  # copy referenced include files from other libraries 
+  set file_name "xsdbs_v1_0_2_icon2xsdb_inc.v"
+  set src_lib "xsdbs_v1_0_2"
+  set dst_lib "ibert_lib_v1_0_2"
+  set src_file "hdl/verilog/$file_name"
+  set incl_file [file join $a_isl_vars(ipstatic_dir) "$dst_lib" "include.h"]
+  set fh 0
+  if { [file exists $incl_file] } {
+    if {[catch {open $incl_file a} fh]} {
+      send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for append ($incl_file)\n"
+      return
+    }
+    isl_copy_header $fh $src_lib $src_file $file_name $dst_lib
+    close $fh
   }
 }
 
@@ -1341,82 +1360,6 @@ proc isl_filter { file } {
     }
   }
   return $b_filter
-}
-
-proc isl_get_relative_file_path { file_path_to_convert relative_to } {
-  # Summary:
-  # Argument Usage:
-  # file_path_to_convert:
-  # Return Value:
-
-  # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
-  if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
-    set relative_to [file dirname $relative_to]
-  }
-  set cwd [file normalize [pwd]]
-  if { [file pathtype $file_path_to_convert] eq "relative" } {
-    # is relative_to path same as cwd?, just return this path, no further processing required
-    if { [string equal $relative_to $cwd] } {
-      return $file_path_to_convert
-    }
-    # the specified path is "relative" but something else, so make it absolute wrt current working dir
-    set file_path_to_convert [file join $cwd $file_path_to_convert]
-  }
-  # is relative_to "relative"? convert to absolute as well wrt cwd
-  if { [file pathtype $relative_to] eq "relative" } {
-    set relative_to [file join $cwd $relative_to]
-  }
-  # normalize
-  set file_path_to_convert [file normalize $file_path_to_convert]
-  set relative_to          [file normalize $relative_to]
-  set file_path $file_path_to_convert
-  set file_comps        [file split $file_path]
-  set relative_to_comps [file split $relative_to]
-  set found_match false
-  set index 0
-  set fc_comps_len [llength $file_comps]
-  set rt_comps_len [llength $relative_to_comps]
-  # compare each dir element of file_to_convert and relative_to, set the flag and
-  # get the final index till these sub-dirs matched
-  while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
-    if { !$found_match } { set found_match true }
-    incr index
-    if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
-      break;
-    }
-  }
-  # any common dirs found? convert path to relative
-  if { $found_match } {
-    set parent_dir_path ""
-    set rel_index $index
-    # keep traversing the relative_to dirs and build "../" levels
-    while { [lindex $relative_to_comps $rel_index] != "" } {
-      set parent_dir_path "../$parent_dir_path"
-      incr rel_index
-    }
-    #
-    # at this point we have parent_dir_path setup with exact number of sub-dirs to go up
-    #
-    # now build up part of path which is relative to matched part
-    set rel_path ""
-    set rel_index $index
-    while { [lindex $file_comps $rel_index] != "" } {
-      set comps [lindex $file_comps $rel_index]
-      if { $rel_path == "" } {
-        # first dir
-        set rel_path $comps
-      } else {
-        # append remaining dirs
-        set rel_path "${rel_path}/$comps"
-      }
-      incr rel_index
-    }
-    # prepend parent dirs, this is the complete resolved path now
-    set resolved_path "${parent_dir_path}${rel_path}"
-    return $resolved_path
-  }
-  # no common dirs found, just return the normalized path
-  return $file_path
 }
 
 }

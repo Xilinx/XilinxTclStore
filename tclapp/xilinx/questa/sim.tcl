@@ -146,7 +146,7 @@ proc usf_questa_setup_simulation { args } {
   # fetch design files
   set global_files_str {}
   set ::tclapp::xilinx::questa::a_sim_vars(l_design_files) \
-     [::tclapp::xilinx::questa::usf_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
+     [xcs_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
 
   # create setup file
   #usf_questa_write_setup_files
@@ -439,6 +439,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_ip_static_libs
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
@@ -491,7 +492,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
       set b_default_lib true
     }
     set lib_path "msim/$lib"
-    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       continue
     }
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
@@ -512,7 +513,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    if { $a_sim_vars(b_use_static_lib) && ([usf_is_static_ip_lib $lib]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # no op
     } else {
       if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
@@ -1172,7 +1173,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             # remove "lib" from prefix and ".so" extension
             set file_name [string range $file_name 3 end-3]
             set final_file_name "-l$file_name"
-            set file_dir "[usf_get_relative_file_path $file_dir $dir]"
+            set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
           }
 
           if { {Shared Library} == [get_property FILE_TYPE $file] } {
