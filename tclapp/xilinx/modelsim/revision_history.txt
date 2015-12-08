@@ -1,2 +1,3 @@
+2.82 refactored procs in utils.tcl
 2.81 source utils.tcl with notrace
 2.80 re-structured common helper procedures in utils
