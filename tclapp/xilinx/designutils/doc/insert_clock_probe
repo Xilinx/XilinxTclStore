@@ -12,8 +12,6 @@
      If -diff_port is used instead of -port then a differential port is created and
      driven through a OBUFDS.
    
-     It is recommended to use the command on an unplaced design.
-
   Example:
      ::xilinx::designutils::insert_clock_probe -pin bufg/O -port probe -iostandard HSTL
      ::xilinx::designutils::insert_clock_probe -pin bufg/O -diff_port probe -iostandard LVDS

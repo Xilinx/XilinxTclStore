@@ -4,8 +4,6 @@
 
      Remove a buffer or any 2-pins cell.
 
-     This command should be preferably run on an unplaced design.
-
   Example:
   
      ::xilinx::designutils::remove_buffer -cell [get_cells ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.buf]

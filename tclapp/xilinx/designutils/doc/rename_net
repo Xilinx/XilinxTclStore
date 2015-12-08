@@ -2,9 +2,7 @@
 
   Description: 
 
-     Rename a local net name.
-
-     This command should be preferably run on an unplaced design.
+     Rename a local net segment.
 
   Example:
   

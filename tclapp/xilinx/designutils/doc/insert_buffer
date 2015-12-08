@@ -4,7 +4,10 @@
 
      Insert a buffer or any 2-pins cell on a net or a pin.
 
-     This command should be preferably run on an unplaced design.
+     Hierarchical pins are not supported (-pin/-name).
+    
+     -name: if name matches a net, then the buffer insertion is done on the net. If not,
+     the buffer insertion is done on matching pin.
 
   Example:
   
