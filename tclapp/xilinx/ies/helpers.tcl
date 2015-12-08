@@ -575,7 +575,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
       set b_is_bd [usf_is_bd_file $vh_file bd_file]
       set used_in_values [get_property "USED_IN" $vh_file_obj]
       if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
-        set vh_file [usf_fetch_header_from_dynamic $vh_file $b_is_bd]
+        set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(dynamic_repo_dir)]
       } else {
         if { $b_is_bd } {
           set vh_file [usf_fetch_ipi_static_file $vh_file]
@@ -2911,42 +2911,6 @@ proc usf_get_dynamic_sim_file_core_classic { src_file } {
     return $repo_src_file
   }
   return $src_file
-}
-
-proc usf_fetch_header_from_dynamic { vh_file b_is_bd } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  #puts vh_file=$vh_file
-  set ip_file [xcs_get_top_ip_filename $vh_file]
-  if { {} == $ip_file } {
-    return $vh_file
-  }
-  set ip_name [file root [file tail $ip_file]]
-  #puts ip_name=$ip_name
-
-  # if not core-container (classic), return original source file from project
-  set file_extn [file extension $ip_file]
-  if { ![xcs_is_core_container ${ip_name}${file_extn}] } {
-    return $vh_file
-  }
-
-  set vh_filename   [file tail $vh_file]
-  set vh_file_dir   [file dirname $vh_file]
-  set output_dir    [get_property IP_OUTPUT_DIR [lindex [get_ips -all $ip_name] 0]]
-  set sub_file_path [xcs_get_sub_file_path $vh_file_dir $output_dir]
-
-  # construct full repo dynamic file path
-  set sub_dir "ip"
-  if { $b_is_bd } {
-    set sub_dir "bd"
-  }
-  set vh_file [file join $a_sim_vars(dynamic_repo_dir) $sub_dir $ip_name $sub_file_path $vh_filename]
-  #puts vh_file=$vh_file
-
-  return $vh_file
 }
 
 proc usf_find_file_from_compile_order { ip_name src_file } {

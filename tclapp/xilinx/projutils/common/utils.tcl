@@ -58,6 +58,41 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   return $b_verilog_srcs
 }
 
+proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  #puts vh_file=$vh_file
+  set ip_file [xcs_get_top_ip_filename $vh_file]
+  if { {} == $ip_file } {
+    return $vh_file
+  }
+  set ip_name [file root [file tail $ip_file]]
+  #puts ip_name=$ip_name
+
+  # if not core-container (classic), return original source file from project
+  set file_extn [file extension $ip_file]
+  if { ![xcs_is_core_container ${ip_name}${file_extn}] } {
+    return $vh_file
+  }
+
+  set vh_filename   [file tail $vh_file]
+  set vh_file_dir   [file dirname $vh_file]
+  set output_dir    [get_property IP_OUTPUT_DIR [lindex [get_ips -all $ip_name] 0]]
+  set sub_file_path [xcs_get_sub_file_path $vh_file_dir $output_dir]
+
+  # construct full repo dynamic file path
+  set sub_dir "ip"
+  if { $b_is_bd } {
+    set sub_dir "bd"
+  }
+  set vh_file [file join $dynamic_repo_dir $sub_dir $ip_name $sub_file_path $vh_filename]
+  #puts vh_file=$vh_file
+
+  return $vh_file
+}
+
 proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
   # Summary:
   # Argument Usage:
