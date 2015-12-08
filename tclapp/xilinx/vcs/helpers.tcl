@@ -606,13 +606,6 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   return $dir_names
 }
 
-proc usf_get_compile_order_files { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  return [xcs_uniquify_cmd_str $::tclapp::xilinx::vcs::l_compile_order_files]
-}
-
 proc usf_get_top_library { } {
   # Summary:
   # Argument Usage:
@@ -620,6 +613,7 @@ proc usf_get_top_library { } {
 
   variable a_sim_vars
   variable l_valid_ip_extns
+  variable l_compile_order_files
 
   set flow    $a_sim_vars(s_simulation_flow)
   set tcl_obj $a_sim_vars(sp_tcl_obj)
@@ -641,7 +635,7 @@ proc usf_get_top_library { } {
   # 3. get the library associated with the last file in compile order
   set co_top_library {}
   if { ({behav_sim} == $flow) } {
-    set filelist [usf_get_compile_order_files]
+    set filelist [xcs_uniquify_cmd_str $l_compile_order_files]
     if { [llength $filelist] > 0 } {
       set file_list [get_files -all [list "[lindex $filelist end]"]]
       if { [llength $file_list] > 0 } {
@@ -2867,6 +2861,7 @@ proc usf_find_file_from_compile_order { ip_name src_file } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_compile_order_files
   #puts src_file=$src_file
   set file [string map {\\ /} $src_file]
 
@@ -2884,7 +2879,7 @@ proc usf_find_file_from_compile_order { ip_name src_file } {
   regsub -all $str_to_replace $file_path_str $str_replace_with file_path_str
   #puts file_path_str=$file_path_str
 
-  foreach file [usf_get_compile_order_files] {
+  foreach file [xcs_uniquify_cmd_str $l_compile_order_files] {
     set file [string map {\\ /} $file]
     #puts +co_file=$file
     if { [string match  *$file_path_str $file] } {
