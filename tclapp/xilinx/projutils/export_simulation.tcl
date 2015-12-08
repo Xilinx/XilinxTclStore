@@ -1425,7 +1425,7 @@ proc xps_fetch_header_from_dynamic { vh_file b_is_bd } {
 
   variable a_sim_vars
   #puts vh_file=$vh_file
-  set ip_file [xps_cache_result {xps_get_top_ip_filename $vh_file}]
+  set ip_file [xps_cache_result {xcs_get_top_ip_filename $vh_file}]
   if { {} == $ip_file } {
     return $vh_file
   }
@@ -1590,7 +1590,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compi
   if { $b_skip_file_obj_access } {
     #
   } else {
-    set ip_file [xps_cache_result {xps_get_top_ip_filename $src_file}]
+    set ip_file [xps_cache_result {xcs_get_top_ip_filename $src_file}]
     set b_static_ip_file 0
     if { $a_sim_vars(b_xport_src_files) } {
       # no-op
@@ -1685,33 +1685,6 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
   }
   return [join $resolved_file_paths " "]
 } 
-
-proc xps_get_top_ip_filename { src_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set top_ip_file {}
-
-  # find file by full path
-  set file_obj [lindex [get_files -all -quiet $src_file] 0]
-
-  # not found, try from source filename
-  if { {} == $file_obj } {
-    set file_obj [lindex [get_files -all -quiet [file tail $src_file]] 0]
-  }
-  
-  if { {} == $file_obj } {
-    return $top_ip_file
-  }
-  
-  set props [list_property $file_obj]
-  # get the hierarchical top level ip file name if parent comp file is defined
-  if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
-    set top_ip_file [xps_cache_result {xcs_find_top_level_ip_file $src_file}]
-  }
-  return $top_ip_file
-}
 
 proc xps_get_file_type_category { file_type } {
   # Summary:
@@ -1823,7 +1796,7 @@ proc xps_export_data_files { data_files export_dir } {
         {.hwh} -
         {.hwdef} -
         {.xml} {
-          if { {} != [xps_cache_result {xps_get_top_ip_filename $file}] } {
+          if { {} != [xps_cache_result {xcs_get_top_ip_filename $file}] } {
             continue
           }
         }

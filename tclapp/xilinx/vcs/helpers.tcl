@@ -1788,7 +1788,7 @@ proc usf_export_data_files { data_files } {
         {.hwh} -
         {.hwdef} -
         {.xml} {
-          if { {} != [usf_get_top_ip_filename $file] } {
+          if { {} != [xcs_get_top_ip_filename $file] } {
             continue
           }
         }
@@ -2381,7 +2381,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
     }
   }
 
-  set ip_file  [usf_get_top_ip_filename $file]
+  set ip_file  [xcs_get_top_ip_filename $file]
   set b_static_ip_file 0
   set file [usf_get_ip_file_from_repo $ip_file $file $associated_library $dir b_static_ip_file]
 
@@ -2409,32 +2409,6 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
 
   set cmd_str "$type|$file_type|$associated_library|$file_str|\"$file\"|$b_static_ip_file"
   return $cmd_str
-}
-
-proc usf_get_top_ip_filename { src_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set top_ip_file {}
-
-  # find file by full path
-  set file_obj [lindex [get_files -all -quiet $src_file] 0]
-
-  # not found, try from source filename
-  if { {} == $file_obj } {
-    set file_obj [lindex [get_files -all -quiet [file tail $src_file]] 0]
-  }
-
-  if { {} == $file_obj } {
-    return $top_ip_file
-  }
-  set props [list_property $file_obj]
-  # get the hierarchical top level ip file name if parent comp file is defined
-  if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
-    set top_ip_file [xcs_find_top_level_ip_file $src_file]
-  }
-  return $top_ip_file
 }
 
 proc usf_get_file_type_category { file_type } {
@@ -2945,7 +2919,7 @@ proc usf_fetch_header_from_dynamic { vh_file b_is_bd } {
 
   variable a_sim_vars
   #puts vh_file=$vh_file
-  set ip_file [usf_get_top_ip_filename $vh_file]
+  set ip_file [xcs_get_top_ip_filename $vh_file]
   if { {} == $ip_file } {
     return $vh_file
   }

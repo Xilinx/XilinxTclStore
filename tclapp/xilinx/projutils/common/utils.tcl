@@ -301,6 +301,32 @@ proc xcs_get_sub_file_path { src_file_path dir_path_to_remove } {
   return $sub_file_path
 }
 
+proc xcs_get_top_ip_filename { src_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set top_ip_file {}
+
+  # find file by full path
+  set file_obj [lindex [get_files -all -quiet $src_file] 0]
+
+  # not found, try from source filename
+  if { {} == $file_obj } {
+    set file_obj [lindex [get_files -all -quiet [file tail $src_file]] 0]
+  }
+
+  if { {} == $file_obj } {
+    return $top_ip_file
+  }
+  set props [list_property $file_obj]
+  # get the hierarchical top level ip file name if parent comp file is defined
+  if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
+    set top_ip_file [xcs_find_top_level_ip_file $src_file]
+  }
+  return $top_ip_file
+}
+
 proc xcs_is_core_container { ip_file_name } {
   # Summary:
   # Argument Usage:
