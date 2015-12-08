@@ -629,7 +629,7 @@ proc usf_ies_write_elaborate_script {} {
     set b_compile_unifast [get_property "unifast" $fs_obj]
   }
 
-  if { ([::tclapp::xilinx::ies::usf_contains_vhdl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-libname" "unifast"]
     }

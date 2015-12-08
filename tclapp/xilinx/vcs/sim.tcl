@@ -297,7 +297,7 @@ proc usf_vcs_write_setup_files {} {
     set b_compile_unifast [get_property "unifast" $fs_obj]
   }
 
-  if { ([::tclapp::xilinx::vcs::usf_contains_vhdl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       puts $fh "unifast : $lib_map_path/unifast"
     }

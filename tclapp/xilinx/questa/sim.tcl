@@ -806,7 +806,7 @@ proc usf_questa_get_elaboration_cmdline {} {
     set b_compile_unifast [get_property "unifast" $fs_obj]
   }
 
-  if { ([::tclapp::xilinx::questa::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_vhdl $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast"]
     }

@@ -58,6 +58,32 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   return $b_verilog_srcs
 }
 
+proc xcs_contains_vhdl { design_files {flow "NULL"} {s_netlist_file {}} } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_vhdl_srcs 0
+  foreach file $design_files {
+    set type [lindex [split $file {|}] 0]
+    switch $type {
+      {VHDL} -
+      {VHDL 2008} {
+        set b_vhdl_srcs 1
+      }
+    }
+  }
+
+  if { (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && (!$b_vhdl_srcs) } {
+    set extn [file extension $s_netlist_file]
+    if { {.vhd} == $extn } {
+      set b_vhdl_srcs 1
+    }
+  }
+
+  return $b_vhdl_srcs
+}
+
 proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
   # Summary:
   # Argument Usage:

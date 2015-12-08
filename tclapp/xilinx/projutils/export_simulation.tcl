@@ -414,7 +414,7 @@ proc xps_invalid_flow_options { simulator } {
   switch $simulator {
     "questa" -
     "vcs" {
-      if { ($a_sim_vars(b_single_step)) && ([xps_contains_vhdl]) } {
+      if { ($a_sim_vars(b_single_step)) && ([xcs_contains_vhdl $a_sim_vars(l_design_files)]) } {
         send_msg_id exportsim-Tcl-008 ERROR \
           "Design contains VHDL sources. The single step simulation flow is not applicable for '$simulator' simulator. Please remove the '-single_step' switch and try again.\n"
         return 1
@@ -2104,7 +2104,7 @@ proc xps_write_single_step { simulator fh_unix launch_dir srcs_dir } {
       puts $fh_unix "  XILINX_VIVADO=$::env(XILINX_VIVADO)"
       puts $fh_unix "  export XILINX_VIVADO"
       set b_verilog_only 0
-      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] && ![xps_contains_vhdl] } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] && ![xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
         set b_verilog_only 1
       }
       xps_append_config_opts arg_list "ies" "irun"
@@ -2287,7 +2287,7 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
       set arg_list [list]
       xps_append_config_opts arg_list "xsim" "xvhdl"
       if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-m64"] }
-      if { [xps_contains_vhdl] } {
+      if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
         puts $fh_unix "  opts_vhd=\"[join $arg_list " "]\""
       }
     }
@@ -2325,7 +2325,7 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
       if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         puts $fh_unix "  xvlog \$opts_ver -prj vlog.prj $redirect"
       }
-      if { [xps_contains_vhdl] } {
+      if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
         puts $fh_unix "  xvhdl \$opts_vhd -prj vhdl.prj $redirect"
       }
       xps_write_xsim_prj $launch_dir $srcs_dir
@@ -3477,27 +3477,6 @@ proc xps_contains_system_verilog {} {
   return $b_sys_verilog_srcs 
 }
 
-proc xps_contains_vhdl {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set design_files $a_sim_vars(l_design_files)
-  set b_vhdl_srcs 0
-  foreach file $design_files {
-    set type [lindex [split $file {|}] 0]
-    switch $type {
-      {VHDL} -
-      {VHDL 2008} {
-        set b_vhdl_srcs 1
-      }
-    }
-  }
-
-  return $b_vhdl_srcs
-}
-
 proc xps_append_generics { generic_list opts_arg } {
   # Summary:
   # Argument Usage:
@@ -3863,7 +3842,7 @@ proc xps_write_xsim_prj { dir srcs_dir } {
     xps_write_prj $dir $file "VERILOG" $srcs_dir
   }
 
-  if { [xps_contains_vhdl] } {
+  if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
     set filename "vhdl.prj"
     set file [file normalize [file join $dir $filename]]
     xps_write_prj $dir $file "VHDL" $srcs_dir
