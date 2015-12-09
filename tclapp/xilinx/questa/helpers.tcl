@@ -2536,6 +2536,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   # Return Value:
 
   variable a_sim_vars
+  variable l_compile_order_files
   upvar $b_is_static_arg b_is_static
   upvar $b_is_dynamic_arg b_is_dynamic
 
@@ -2559,7 +2560,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #puts ip_file=$ip_file
   set ip_name [file root [file tail $ip_file]] 
 
-  set full_src_file_path [usf_find_file_from_compile_order $ip_name $src_file]
+  set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file $l_compile_order_files]
   #puts ful_file=$full_src_file_path
   set full_src_file_obj [lindex [get_files -all [list "$full_src_file_path"]] 0]
   #puts ip_name=$ip_name
@@ -2793,42 +2794,6 @@ proc usf_get_dynamic_sim_file_core_classic { src_file } {
   if { [file exists $repo_src_file] } {
     return $repo_src_file
   }
-  return $src_file
-}
-
-proc usf_find_file_from_compile_order { ip_name src_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_compile_order_files
-  #puts src_file=$src_file
-  set file [string map {\\ /} $src_file]
-
-  set sub_dirs [list]
-  set comps [lrange [split $file "/"] 1 end]
-  foreach comp $comps {
-    if { {.} == $comp } continue;
-    if { {..} == $comp } continue;
-    lappend sub_dirs $comp
-  }
-  set file_path_str [join $sub_dirs "/"]
-
-  set str_to_replace "/{$ip_name}/"
-  set str_replace_with "/${ip_name}/"
-  regsub -all $str_to_replace $file_path_str $str_replace_with file_path_str
-  #puts file_path_str=$file_path_str
-
-  foreach file [xcs_uniquify_cmd_str $l_compile_order_files] {
-    set file [string map {\\ /} $file]
-    #puts +co_file=$file
-    if { [string match  *$file_path_str $file] } {
-      set src_file $file
-      break
-    }
-  }
-  #puts out_file=$src_file
   return $src_file
 }
 }

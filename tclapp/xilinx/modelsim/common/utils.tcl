@@ -13,24 +13,6 @@
 
 variable _xcs_defined 1
 
-proc xcs_find_comp { comps_arg index_arg to_match } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $comps_arg comps
-  upvar $index_arg index
-  set index 0
-  set b_found false
-  foreach comp $comps {
-    incr index
-    if { $to_match != $comp } continue;
-    set b_found true
-    break
-  }
-  return $b_found
-}
-
 proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   # Summary:
   # Argument Usage:
@@ -179,6 +161,57 @@ proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
   # /tmp/tp/tp.ip_user_files/ipstatic/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
   #puts dst_cip_file=$dst_cip_file
   return $dst_cip_file
+}
+
+proc xcs_find_comp { comps_arg index_arg to_match } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $comps_arg comps
+  upvar $index_arg index
+  set index 0
+  set b_found false
+  foreach comp $comps {
+    incr index
+    if { $to_match != $comp } continue;
+    set b_found true
+    break
+  }
+  return $b_found
+}
+
+proc xcs_find_file_from_compile_order { ip_name src_file compile_order_files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set file [string map {\\ /} $src_file]
+
+  set sub_dirs [list]
+  set comps [lrange [split $file "/"] 1 end]
+  foreach comp $comps {
+    if { {.} == $comp } continue;
+    if { {..} == $comp } continue;
+    lappend sub_dirs $comp
+  }
+  set file_path_str [join $sub_dirs "/"]
+
+  set str_to_replace "/{$ip_name}/"
+  set str_replace_with "/${ip_name}/"
+  regsub -all $str_to_replace $file_path_str $str_replace_with file_path_str
+  #puts file_path_str=$file_path_str
+
+  foreach file [xcs_uniquify_cmd_str $compile_order_files] {
+    set file [string map {\\ /} $file]
+    #puts +co_file=$file
+    if { [string match  *$file_path_str $file] } {
+      set src_file $file
+      break
+    }
+  }
+  #puts out_file=$src_file
+  return $src_file
 }
 
 proc xcs_find_ipstatic_file_path { src_ip_file parent_comp_file ipstatic_dir} {
