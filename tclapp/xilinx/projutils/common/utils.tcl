@@ -310,6 +310,38 @@ proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir } {
   return $src_file
 }
 
+proc xcs_get_dynamic_sim_file_core_container { src_file dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set filename  [file tail $src_file]
+  set file_dir  [file dirname $src_file]
+  set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
+  set xcix_file [get_property core_container $file_obj]
+  set core_name [file root [file tail $xcix_file]]
+
+  set parent_comp_file      [get_property parent_composite_file -quiet $file_obj]
+  set parent_comp_file_type [get_property file_type [lindex [get_files -all [list "$parent_comp_file"]] 0]]
+
+  set ip_dir {}
+  if { ({Block Designs} == $parent_comp_file_type) || ({DSP Design Sources} == $parent_comp_file_type) } {
+    set ip_dir [file join [file dirname $xcix_file] $core_name]
+  } else {
+    set top_ip_file_name {}
+    set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+  }
+  set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
+  set repo_src_file [file join $dynamic_repo_dir "ip" $core_name $hdl_dir_file $filename]
+
+  if { [file exists $repo_src_file] } {
+    return $repo_src_file
+  }
+
+  #send_msg_id exportsim-Tcl-024 WARNING "Corresponding IP user file does not exist:'$repo_src_file'!, using default:'$src_file'"
+  return $src_file
+}
+
 proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg } {
   # Summary:
   # Argument Usage:
