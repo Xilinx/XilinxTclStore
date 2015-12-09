@@ -84,6 +84,24 @@ proc xcs_contains_vhdl { design_files {flow "NULL"} {s_netlist_file {}} } {
   return $b_vhdl_srcs
 }
 
+proc xcs_copy_glbl_file { run_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set target_glbl_file [file normalize [file join $run_dir "glbl.v"]]
+  if { [file exists $target_glbl_file] } {
+    return
+  }
+
+  set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
+  set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
+
+  if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
+    send_msg_id USF-IES-097 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+  }
+}
+
 proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
   # Summary:
   # Argument Usage:

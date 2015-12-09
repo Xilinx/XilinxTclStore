@@ -815,6 +815,8 @@ proc xps_gen_mem_files { run_dir } {
   }
 }
 
+# TODO: The xcs_copy_glbl_file should be a drop-in replacement, but this algorithm
+#       checks that the l_design_files contains_verilog, which is different so leaving for now.
 proc xps_copy_glbl { run_dir } {
   # Summary:
   # Argument Usage:

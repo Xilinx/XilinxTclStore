@@ -694,27 +694,6 @@ proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
   return 0
 }
 
-proc usf_copy_glbl_file {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set run_dir $a_sim_vars(s_launch_dir)
-
-  set target_glbl_file [file normalize [file join $run_dir "glbl.v"]]
-  if { [file exists $target_glbl_file] } {
-    return
-  }
-
-  set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-  set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
-
-  if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
-    send_msg_id USF-ModelSim-105 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
-  }
-}
-
 proc usf_create_do_file { simulator do_filename } {
   # Summary:
   # Argument Usage:

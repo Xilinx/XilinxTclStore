@@ -511,7 +511,7 @@ proc usf_vcs_write_compile_script {} {
       if { {work} != $top_lib } {
         set work_lib_sw "-work $top_lib "
       }
-      ::tclapp::xilinx::vcs::usf_copy_glbl_file
+      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set file_str "${work_lib_sw}\"glbl.v\""
       puts $fh_scr "\n# compile glbl module"
       if { {} != $tool_path } {
@@ -531,7 +531,7 @@ proc usf_vcs_write_compile_script {} {
         if { {work} != $top_lib } {
           set work_lib_sw "-work $top_lib "
         }
-        ::tclapp::xilinx::vcs::usf_copy_glbl_file
+        xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set file_str "${work_lib_sw}\"glbl.v\""
         puts $fh_scr "\n# compile glbl module"
         if { {} != $tool_path } {

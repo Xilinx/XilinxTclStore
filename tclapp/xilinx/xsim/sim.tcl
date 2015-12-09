@@ -411,7 +411,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
       if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] } {
         set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
-        ::tclapp::xilinx::xsim::usf_copy_glbl_file
+        xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set file_str "$top_lib \"glbl.v\""
         puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
       }
@@ -422,7 +422,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           # This is not supported, netlist will be verilog always
         } else {
           set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
-          ::tclapp::xilinx::xsim::usf_copy_glbl_file
+          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
           set file_str "$top_lib \"glbl.v\""
           puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
         }

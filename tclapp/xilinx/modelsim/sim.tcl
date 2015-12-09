@@ -633,7 +633,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   if { {behav_sim} == $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
     if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
-      ::tclapp::xilinx::modelsim::usf_copy_glbl_file
+      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
       set file_str "-work $top_lib \"glbl.v\""
       puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
@@ -644,7 +644,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
       if { ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
-        ::tclapp::xilinx::modelsim::usf_copy_glbl_file
+        xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set top_lib [::tclapp::xilinx::modelsim::usf_get_top_library]
         set file_str "-work $top_lib \"glbl.v\""
         puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
