@@ -9,7 +9,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ## 
-## Version:        04/25/2014
+## Version:        2015.12.09
 ## Tool Version:   Vivado 2013.1
 ## Description:    This package provides a simple way to handle formatted tables
 ##
@@ -252,6 +252,14 @@ namespace eval ::tclapp::xilinx::designutils {
 ########################################################################################
 
 ########################################################################################
+## 2015.12.09 - Expanded syntax for 'sort' method to be able to sort columns of different
+##              types
+##            - Added -verbose to 'export' method for CSV format
+## 2014.11.04 - Added proc 'lrevert' to avoid dependency
+## 2014.07.19 - Added support for a new 'lean' table format to the 'print' 
+##              and 'export' methods
+##            - Added support for left/right text alignment in table cells
+## 2014.04.25 - Changed version format to 2014.04.25 to be compatible with 'package' command
 ## 04/25/2014 - Fixed typo inside exportToCSV
 ##            - Added -help to prettyTable
 ##            - Added -noheader/-notitle to method print
@@ -301,7 +309,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable {
   variable n 0 
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
   variable params [list indent 0 maxNumRows -1 maxNumRowsToDisplay -1 title {} columnsToDisplay {} ]
-  variable version {04/25/2014}
+  variable version {2015.12.09}
 } ]
 
 #------------------------------------------------------------------------
@@ -531,6 +539,25 @@ proc ::tclapp::xilinx::designutils::prettyTable::lshift {inputlist} {
 }
 
 #------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::lrevert
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Reverse a list
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::lrevert L {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+   for {set res {}; set i [llength $L]} {$i>0} {#see loop} {
+       lappend res [lindex $L [incr i -1]]
+   }
+   set res
+}
+
+#------------------------------------------------------------------------
 # ::tclapp::xilinx::designutils::prettyTable::list2csv
 #------------------------------------------------------------------------
 # **INTERNAL**
@@ -671,6 +698,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToCSV {self args} {
   array set defaults [list \
       -delimiter {,} \
       -return_var {} \
+      -verbose 0 \
     ]
   array set options [array get defaults]
   array set options $args
@@ -701,12 +729,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::exportToCSV {self args} {
     }
   }
 #   append res "# title${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv [list $params(title)] $sepChar]\n"
-  append res "# header${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $header $sepChar]\n"
-  append res "# indent${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(indent) $sepChar]\n"
-  append res "# limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRows) $sepChar]\n"
-  append res "# display_limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRowsToDisplay) $sepChar]\n"
-  append res "# display_columns${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv [list $params(columnsToDisplay)] $sepChar]\n"
-  append res "[::tclapp::xilinx::designutils::prettyTable::list2csv $header $sepChar]\n"
+  if {$options(-verbose)} {
+  	# Additional header information are hidden by default
+    append res "# header${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $header $sepChar]\n"
+    append res "# indent${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(indent) $sepChar]\n"
+    append res "# limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRows) $sepChar]\n"
+    append res "# display_limit${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv $params(maxNumRowsToDisplay) $sepChar]\n"
+    append res "# display_columns${sepChar}[::tclapp::xilinx::designutils::prettyTable::list2csv [list $params(columnsToDisplay)] $sepChar]\n"
+    append res "[::tclapp::xilinx::designutils::prettyTable::list2csv $header $sepChar]\n"
+  }
   set count 0
   foreach row $table {
     incr count
@@ -1134,6 +1165,44 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sizeof {ns args} {
 #------------------------------------------------------------------------
 # Return the printed table
 #------------------------------------------------------------------------
+# 
+# Sample of 'classic' table 
+# =========================
+# 
+#   +-------------------------------------------------------------------------------------+
+#   | Pin Slack                                                                           |
+#   +-------------------------------------+---------+----------+-------------+------------+
+#   | NAME                                | IS_LEAF | IS_CLOCK | SETUP_SLACK | HOLD_SLACK |
+#   +-------------------------------------+---------+----------+-------------+------------+
+#   | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+#   | or1200_mult_mac/p_1_out__2_i_9/I2   | 1       | 0        | 9.998       | 1.024      |
+#   | or1200_wbmux/muxreg_reg[3]_i_52/I1  | 1       | 0        | 9.993       | 2.924      |
+#   | or1200_wbmux/muxreg_reg[14]_i_41/I2 | 1       | 0        | 9.990       | 3.925      |
+#   | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+#   +-------------------------------------+---------+----------+-------------+------------+
+#   | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+#   | or1200_wbmux/muxreg_reg[4]_i_45/I5  | 1       | 0        | 10.000      | 3.266      |
+#   +-------------------------------------+---------+----------+-------------+------------+
+# 
+# Sample of 'lean' table 
+# ======================
+# 
+#   +--------------------------------------------------------------------------
+#   | Pin Slack                                                                
+#   +--------------------------------------------------------------------------
+# 
+#   NAME                                 IS_LEAF  IS_CLOCK  SETUP_SLACK  HOLD_SLACK 
+#   -----------------------------------  -------  --------  -----------  ---------- 
+#   or1200_wbmux/muxreg_reg[4]_i_45/I5   1        0         10.000       3.266      
+#   or1200_mult_mac/p_1_out__2_i_9/I2    1        0         9.998        1.024      
+#   or1200_wbmux/muxreg_reg[3]_i_52/I1   1        0         9.993        2.924      
+#   or1200_wbmux/muxreg_reg[14]_i_41/I2  1        0         9.990        3.925      
+#   or1200_wbmux/muxreg_reg[4]_i_45/I5   1        0         10.000       3.266      
+#   -----------------------------------  -------  --------  -----------  ---------- 
+#   or1200_wbmux/muxreg_reg[4]_i_45/I5   1        0         10.000       3.266      
+#   or1200_wbmux/muxreg_reg[4]_i_45/I5   1        0         10.000       3.266      
+# 
+#------------------------------------------------------------------------
 proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   # Summary :
   # Argument Usage:
@@ -1155,6 +1224,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   set startRow 0
   set printHeader 1
   set printTitle 1
+  set align {-} ; # '-' for left cell alignment and '' for right cell alignment
+  set format {classic} ; # table format: classic|lean
   set append 0
   set returnVar {}
   set columnsToDisplay $params(columnsToDisplay)
@@ -1181,6 +1252,23 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       }
       -noheader {
            set printHeader 0
+      }
+      -left -
+      -align_left {
+           set align {-}
+      }
+      -right -
+      -align_right {
+           set align {}
+      }
+      -lean {
+           set format {lean}
+      }
+      -classic {
+           set format {classic}
+      }
+      -format {
+           set format [lshift args]
       }
       -notitle {
            set printTitle 0
@@ -1209,6 +1297,9 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
               [-return_var <tcl_var_name>]
               [-columns <list_of_columns_to_display>]
               [-from <start_row_number>]
+              [-align_left|-left]
+              [-align_right|-right]
+              [-format classic|lean][-lean][-classic]
               [-noheader]
               [-notitle]
               [-help|-h]
@@ -1223,6 +1314,16 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
 } ]
     # HELP -->
     return {}
+  }
+  
+  switch $format {
+    lean -
+    classic {
+    }
+    default {
+      puts " -E- invalid format '$format'. The valid formats are: classic|lean"
+      incr error
+    }
   }
   
   if {$error} {
@@ -1274,35 +1375,85 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   }
   # Create the row separator string
   set indentString [string repeat " " $indent]
-  set separator "${indentString}+"
+  switch $format {
+    lean {
+      set separator "${indentString}"
+    }
+    classic {
+      set separator "${indentString}+"
+    }
+  }
   # Build the separator string based on the list of columns to be displayed
 #   foreach max $maxs { append separator "-[string repeat - $max]-+" }
   for {set index 0} {$index < $numCols} {incr index} {
     if {[lsearch $columnsToDisplay $index] == -1} { continue }
-    append separator "-[string repeat - [lindex $maxs $index]]-+"
+    switch $format {
+      lean {
+        append separator "[string repeat - [lindex $maxs $index]]  "
+      }
+      classic {
+        append separator "-[string repeat - [lindex $maxs $index]]-+"
+      }
+    }
   }
   if {$printTitle} {
     # Generate the title
     if {$params(title) ne {}} {
       # The upper separator should something like +----...----+
-      append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]+\n"
+      switch $format {
+        lean {
+          append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]\n"
+        }
+        classic {
+          append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]+\n"
+        }
+      }
       # Support multi-lines title
       foreach line [split $params(title) \n] {
         append res "${indentString}| "
         append res [format "%-[expr [string length $separator] - [string length $indentString] -4]s" $line]
-        append res " |\n"
+        switch $format {
+          lean {
+            append res " \n"
+          }
+          classic {
+            append res " |\n"
+          }
+        }
+      }
+      switch $format {
+        lean {
+          append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]\n\n"
+        }
+        classic {
+#           append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]+\n\n"
+        }
       }
     }
   }
   if {$printHeader} {
     # Generate the table header
-    append res "${separator}\n"
-    append res "${indentString}|"
+    switch $format {
+      lean {
+        append res "${indentString}"
+      }
+      classic {
+        append res "${separator}\n"
+        append res "${indentString}|"
+      }
+    }
     # Generate the table header based on the list of columns to be displayed
   #   foreach item $header max $maxs {append res [format " %-${max}s |" $item]}
     for {set index 0} {$index < $numCols} {incr index} {
       if {[lsearch $columnsToDisplay $index] == -1} { continue }
-      append res [format " %-[lindex $maxs $index]s |" [lindex $header $index]]
+      switch $format {
+        lean {
+          append res [format "%-[lindex $maxs $index]s  " [lindex $header $index]]
+        }
+        classic {
+          append res [format " %-[lindex $maxs $index]s |" [lindex $header $index]]
+        }
+      }
     }
     append res "\n"
   }
@@ -1315,12 +1466,26 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
         # Did we reach the maximum of rows to be displayed?
         break
       }
-      append res "${indentString}|"
+      switch $format {
+        lean {
+          append res "${indentString}"
+        }
+        classic {
+          append res "${indentString}|"
+        }
+      }
       # Build the row string based on the list of columns to be displayed
 #       foreach item $row max $maxs {append res [format " %-${max}s |" $item]}
        for {set index 0} {$index < $numCols} {incr index} {
          if {[lsearch $columnsToDisplay $index] == -1} { continue }
-         append res [format " %-[lindex $maxs $index]s |" [lindex $row $index]]
+         switch $format {
+           lean {
+             append res [format "%${align}[lindex $maxs $index]s  " [lindex $row $index]]
+           }
+           classic {
+             append res [format " %${align}[lindex $maxs $index]s |" [lindex $row $index]]
+           }
+         }
        }
       append res \n
       # Check if a separator has been assigned to this row number and add a separator
@@ -1332,7 +1497,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   # Add table footer only if the last row does not have a separator defined, otherwise the separator
   # is printed twice
   if {[lsearch $separators $count] == -1} {
-    append res $separator
+    switch $format {
+      lean {
+      }
+      classic {
+        append res $separator
+      }
+    }
   }
   if {($count > $maxNumRowsToDisplay) && ($maxNumRowsToDisplay != -1)} {
     # Did we reach the maximum of rows to be displayed?
@@ -1442,7 +1613,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
       }
     }
     # Save the column and direction for each column
-    lappend indexes [list $index $direction]
+    lappend indexes [list $index $direction $sortType]
     # Reset default direction and column
     set direction {-increasing}
     set column {}
@@ -1458,18 +1629,24 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
               
   Description: Sort the table based on one or multiple column headers.
   
+    -real/-integer/-dictionary are sticky and apply to the column(s)
+    specified afterward. They can be used multiple times to sort columns
+    of different types.
+  
   Example:
      <prettyTableObject> sort +SLACK
      <prettyTableObject> sort -integer -FANOUT
      <prettyTableObject> sort -integer -2 +1 -SLACK
+     <prettyTableObject> sort -integer -2 -dictionary +1 -real -SLACK
      <prettyTableObject> sort +SETUP_SLACK -HOLD_SLACK
 } ]
     # HELP -->
     return {}
   }
 
-  foreach item [lreverse $indexes] {
-    foreach {index direction} $item { break }
+#   foreach item [lrevert $indexes] {}
+  foreach item [::tclapp::xilinx::designutils::prettyTable::lrevert $indexes] {
+    foreach {index direction sortType} $item { break }
     if {$command == {}} {
       set command "lsort $direction $sortType -index $index \$table"
     } else {
@@ -1728,10 +1905,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
 
   set error 0
   set help 0
+  set verbose 0
   set filename {}
   set append 0
   set returnVar {}
   set format {table}
+  set tableFormat {classic}
   set csvDelimiter {,}
   set columnsToDisplay $params(columnsToDisplay)
   if {[llength $args] == 0} { incr help }
@@ -1761,6 +1940,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
       -columns {
            set columnsToDisplay [lshift args]
       }
+      -table {
+           set tableFormat [lshift args]
+      }
+      -v -
+      -verbose {
+           set verbose 1
+      }
       -h -
       -help {
            set help 1
@@ -1781,15 +1967,19 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
     puts [format {
   Usage: <prettyTableObject> export
               -format table|csv|tcl|list
+              [-table classic|lean]
               [-delimiter <csv_delimiter>] 
               [-file <filename>]
               [-append]
               [-return_var <tcl_var_name>]
               [-columns <list_of_columns_to_display>]
+              [-verbose|-v]
               [-help|-h]
               
   Description: Export table content. The -columns argument is only available for the
                'list' and 'table' export formats.
+  
+    -verbose: applicable with -format csv. Add some configuration information as comment
   
   Example:
      <prettyTableObject> export -format csv
@@ -1800,13 +1990,23 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
     return {}
   }
   
+  switch $tableFormat {
+    lean -
+    classic {
+    }
+    default {
+      puts " -E- invalid table format '$tableFormat'. The valid formats are: classic|lean"
+      incr error
+    }
+  }
+  
   if {$error} {
     error " -E- some error(s) happened. Cannot continue"
   }
   
   # No header has been defined
   if {[lsearch [list {table} {tcl} {csv} {list}] $format] == -1} {
-    error " -E- invalid format '$format'. The valid format are: table | csv | tcl | list"
+    error " -E- invalid format '$format'. The valid formats are: table | csv | tcl | list"
   }
 
   # The -return_var option provides the variable name from the caller's environment
@@ -1820,16 +2020,16 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   switch $format {
     table {
       if {$returnVar != {}} {
-        $self print -return_var res -columns $columnsToDisplay
+        $self print -return_var res -columns $columnsToDisplay -format $tableFormat
       } else {
-        set res [$self print -columns $columnsToDisplay]
+        set res [$self print -columns $columnsToDisplay -format $tableFormat]
       }
     }
     csv {
       if {$returnVar != {}} {
-        ::tclapp::xilinx::designutils::prettyTable::exportToCSV $self -delimiter $csvDelimiter -return_var res
+        ::tclapp::xilinx::designutils::prettyTable::exportToCSV $self -delimiter $csvDelimiter -return_var res -verbose $verbose
       } else {
-        set res [::tclapp::xilinx::designutils::prettyTable::exportToCSV $self -delimiter $csvDelimiter]
+        set res [::tclapp::xilinx::designutils::prettyTable::exportToCSV $self -delimiter $csvDelimiter -verbose $verbose]
       }
     }
     tcl {
