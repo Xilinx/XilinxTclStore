@@ -1,1 +1,2 @@
+1.26 Enhancements to prettyTable
 1.25 Robustness and runtime improvement for insert_buffer.tcl
