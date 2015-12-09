@@ -1746,7 +1746,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
     set vh_file [usf_xtract_file $vh_file]
     if { [get_param project.enableCentralSimRepo] } {
       set bd_file {}
-      set b_is_bd [usf_is_bd_file $vh_file bd_file]
+      set b_is_bd [xcs_is_bd_file $vh_file bd_file]
       set used_in_values [get_property "USED_IN" $vh_file_obj]
       if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(dynamic_repo_dir)]
@@ -2579,7 +2579,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   set b_is_dynamic 1
   set bd_file {}
-  set b_is_bd_ip [usf_is_bd_file $full_src_file_path bd_file]
+  set b_is_bd_ip [xcs_is_bd_file $full_src_file_path bd_file]
   set bd_filename [file tail $bd_file]
 
   # is static ip file? set flag and return
@@ -2651,35 +2651,6 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set orig_src_file $dst_cip_file
   }
   return $orig_src_file
-}
-
-proc usf_is_bd_file { src_file bd_file_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $bd_file_arg bd_file
-  set b_is_bd 0
-  set comp_file $src_file
-  set MAX_PARENT_COMP_LEVELS 10
-  set count 0
-  while (1) {
-    incr count
-    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
-    set props [list_property $file_obj]
-    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
-      break
-    }
-    set comp_file [get_property parent_composite_file -quiet $file_obj]
-  }
-
-  # got top-most file whose parent-comp is empty ... is this BD?
-  if { {.bd} == [file extension $comp_file] } {
-    set b_is_bd 1
-    set bd_file $comp_file
-  }
-  return $b_is_bd
 }
 
 proc usf_fetch_ipi_static_file { file } {

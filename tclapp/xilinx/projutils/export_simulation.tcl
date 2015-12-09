@@ -1282,27 +1282,8 @@ proc xps_is_bd_file { src_file bd_file_arg } {
     return $a_sim_cache_is_bd_file($s_hash) 
   }
 
-  set b_is_bd 0
-  set comp_file $src_file
-  set MAX_PARENT_COMP_LEVELS 10
-  set count 0
-  while (1) {
-    incr count
-    if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
-    set props [list_property $file_obj]
-    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
-      break
-    }
-    set comp_file [get_property parent_composite_file -quiet $file_obj]
-  }
-
-  # got top-most file whose parent-comp is empty ... is this BD?
-  if { {.bd} == [file extension $comp_file] } {
-    set b_is_bd 1
-    set bd_file $comp_file
-    set a_sim_cache_is_bd_file("${s_hash}-bd_file") $bd_file
-  }
+  set b_is_bd [xcs_is_bd_file $src_file bd_file]
+  set a_sim_cache_is_bd_file("${s_hash}-bd_file") $bd_file
   return [set a_sim_cache_is_bd_file($s_hash) $b_is_bd]
 }
 
