@@ -588,6 +588,35 @@ proc xcs_is_static_ip_lib { library ip_static_libs } {
   return false
 }
 
+proc xcs_resolve_incl_dir_property_value { incl_dirs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set resolved_path {}
+  set incl_dirs [string map {\\ /} $incl_dirs]
+  set path_elem {} 
+  set comps [split $incl_dirs { }]
+  foreach elem $comps {
+    # path element starts slash (/)? or drive (c:/)?
+    if { [string match "/*" $elem] || [regexp {^[a-zA-Z]:} $elem] } {
+      if { {} != $path_elem } {
+        # previous path is complete now, add hash and append to resolved path string
+        set path_elem "$path_elem|"
+        append resolved_path $path_elem
+      }
+      # setup new path
+      set path_elem "$elem"
+    } else {
+      # sub-dir with space, append to current path
+      set path_elem "$path_elem $elem"
+    }
+  }
+  append resolved_path $path_elem
+
+  return $resolved_path
+}
+
 proc xcs_uniquify_cmd_str { cmd_strs } {
   # Summary: Removes exact duplicate files (same file path)
   # Argument Usage:

@@ -800,7 +800,7 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
 
   # include_dirs
   set unique_incl_dirs [list]
-  set incl_dir_str [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $fs_obj]]]
+  set incl_dir_str [xcs_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $fs_obj]]]
   foreach incl_dir [split $incl_dir_str "|"] {
     if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
       lappend unique_incl_dirs $incl_dir
@@ -817,7 +817,7 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
   set linked_src_set [get_property "SOURCE_SET" [get_filesets $fs_obj]]
   if { {} != $linked_src_set } {
     set src_fs_obj [get_filesets $linked_src_set]
-    set incl_dir_str [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $src_fs_obj]]]
+    set incl_dir_str [xcs_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $src_fs_obj]]]
     foreach incl_dir [split $incl_dir_str "|"] {
       if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
         lappend unique_incl_dirs $incl_dir
@@ -2068,35 +2068,6 @@ proc usf_get_rdi_bin_path {} {
   set rdi_path $::env(RDI_BINROOT)
   set rdi_path [string map {/ \\\\} $rdi_path]
   return $rdi_path
-}
-
-proc usf_resolve_incl_dir_property_value { incl_dirs } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set resolved_path {}
-  set incl_dirs [string map {\\ /} $incl_dirs]
-  set path_elem {} 
-  set comps [split $incl_dirs { }]
-  foreach elem $comps {
-    # path element starts slash (/)? or drive (c:/)?
-    if { [string match "/*" $elem] || [regexp {^[a-zA-Z]:} $elem] } {
-      if { {} != $path_elem } {
-        # previous path is complete now, add hash and append to resolved path string
-        set path_elem "$path_elem|"
-        append resolved_path $path_elem
-      }
-      # setup new path
-      set path_elem "$elem"
-    } else {
-      # sub-dir with space, append to current path
-      set path_elem "$path_elem $elem"
-    }
-  }
-  append resolved_path $path_elem
-
-  return $resolved_path
 }
 
 proc usf_find_files { src_files_arg filter } {
