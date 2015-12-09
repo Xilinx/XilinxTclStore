@@ -283,6 +283,33 @@ proc xcs_find_top_level_ip_file { src_file } {
   return $comp_file
 }
 
+proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set filename  [file tail $src_file]
+  set file_dir  [file dirname $src_file]
+  set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
+
+  set top_ip_file_name {}
+  set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+  set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
+
+  set top_ip_name [file root [file tail $top_ip_file_name]]
+  set extn [file extension $top_ip_file_name]
+  set repo_src_file {}
+  set sub_dir "ip"
+  if { {.bd} == $extn } {
+    set sub_dir "bd"
+  }
+  set repo_src_file [file join $dynamic_repo_dir $sub_dir $top_ip_name $hdl_dir_file $filename]
+  if { [file exists $repo_src_file] } {
+    return $repo_src_file
+  }
+  return $src_file
+}
+
 proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg } {
   # Summary:
   # Argument Usage:

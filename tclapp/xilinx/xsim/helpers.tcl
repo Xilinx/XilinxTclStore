@@ -2244,7 +2244,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     if { [xcs_is_core_container ${ip_name}${file_extn}] } {
       set dst_cip_file [usf_get_dynamic_sim_file_core_container $full_src_file_path]
     } else {
-      set dst_cip_file [usf_get_dynamic_sim_file_core_classic $full_src_file_path]
+      set dst_cip_file [xcs_get_dynamic_sim_file_core_classic $full_src_file_path $a_sim_vars(dynamic_repo_dir)]
     }
   }
 
@@ -2440,35 +2440,6 @@ proc usf_get_dynamic_sim_file_core_container { src_file } {
   #send_msg_id exportsim-Tcl-024 WARNING "Corresponding IP user file does not exist:'$repo_src_file'!, using default:'$src_file'"
   return $src_file
 }
-
-proc usf_get_dynamic_sim_file_core_classic { src_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set filename  [file tail $src_file]
-  set file_dir  [file dirname $src_file]
-  set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
-
-  set top_ip_file_name {}
-  set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
-  set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
-
-  set top_ip_name [file root [file tail $top_ip_file_name]]
-  set extn [file extension $top_ip_file_name]
-  set repo_src_file {}
-  set sub_dir "ip"
-  if { {.bd} == $extn } {
-    set sub_dir "bd"
-  }
-  set repo_src_file [file join $a_sim_vars(dynamic_repo_dir) $sub_dir $top_ip_name $hdl_dir_file $filename]
-  if { [file exists $repo_src_file] } {
-    return $repo_src_file
-  }
-  return $src_file
-}
-
 }
 
 #
