@@ -5101,7 +5101,13 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
       set b_is_bd [xps_is_bd_file $vh_file bd_file]
       set used_in_values [get_property "USED_IN" $vh_file_obj]
       if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
-        set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(dynamic_repo_dir)]
+        # TODO: dynamic_repo_dir was referenced in the old local version of fetch_header_from_dynamic
+        #       However, it is undefined here.  To not change functionality I am adding this check:
+        set dynamic_repo_dir ""
+        if { [info exists a_sim_vars(dynamic_repo_dir)] } {
+          set dynamic_repo_dir $a_sim_vars(dynamic_repo_dir)
+        }
+        set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $dynamic_repo_dir]
       } else {
         if { $b_is_bd } {
           set vh_file [xps_fetch_ipi_static_file $vh_file]
