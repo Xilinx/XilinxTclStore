@@ -1448,7 +1448,7 @@ proc xps_fetch_header_from_dynamic { vh_file b_is_bd } {
   if { $b_is_bd } {
     set sub_dir "bd"
   }
-  set vh_file [file join $a_sim_vars(dynamic_repo_dir) $sub_dir $ip_name $sub_file_path $vh_filename]
+  set vh_file [file join $a_sim_vars(s_ip_user_files_dir) $sub_dir $ip_name $sub_file_path $vh_filename]
   #puts vh_file=$vh_file
 
   return $vh_file
