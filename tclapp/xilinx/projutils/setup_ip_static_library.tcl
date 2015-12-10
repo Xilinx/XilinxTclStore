@@ -21,12 +21,17 @@ proc isl_init_vars {} {
   variable a_isl_vars
   set a_isl_vars(ipstatic_dir)      [file normalize "ipstatic"]
   set a_isl_vars(b_dir_specified)   0
+  set a_isl_vars(b_ip_specified)    0
   set a_isl_vars(b_project_mode)    0
   set a_isl_vars(b_install_mode)    0
   set a_isl_vars(b_locked_ip)       0
+  set a_isl_vars(b_force)           0
   set a_isl_vars(co_file_list)      ""
 
   variable compile_order_data       [list]
+
+  variable l_ips
+  set l_ips                         [list]
 
   variable l_static_files
   set l_static_files                [list]
@@ -51,9 +56,11 @@ proc setup_ip_static_library {args} {
   # Extract static files from the IPs for prepare it for compile_simlib Tcl command
   # Argument Usage:
   # [-directory <arg>]: Extract static files in the specified directory
+  # [-ip <arg>]: Extract static files for this IP
   # [-project]: Extract static files for the current project
   # [-install]: Extract static files for the IP catalog
   # [-locked_ip]: Extract static files for locked IPs only
+  # [-force]: Overwrite static files
 
   # Return Value:
   # None
@@ -62,7 +69,7 @@ proc setup_ip_static_library {args} {
 
   variable a_isl_vars
   variable l_static_files
-
+  variable l_ips
   isl_init_vars
 
   set a_isl_vars(options) [split $args " "]
@@ -70,9 +77,11 @@ proc setup_ip_static_library {args} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
       "-directory" { incr i;set a_isl_vars(ipstatic_dir) [lindex $args $i];set a_isl_vars(b_dir_specified) 1 }
-      "-project" { set a_isl_vars(b_project_mode) 1 }
-      "-install" { set a_isl_vars(b_install_mode) 1 }
+      "-ip"        { incr i;set l_ips [lindex $args $i];set a_isl_vars(b_ip_specified) 1 }
+      "-project"   { set a_isl_vars(b_project_mode) 1 }
+      "-install"   { set a_isl_vars(b_install_mode) 1 }
       "-locked_ip" { set a_isl_vars(b_locked_ip) 1 }
+      "-force"     { set a_isl_vars(b_force) 1 }
       default {
         if { [regexp {^-} $option] } {
           send_msg_id setup_ip_static_library-Tcl-001 ERROR "Unknown option '$option', please type 'setup_ip_static_library -help' for usage info.\n"
@@ -114,18 +123,20 @@ proc setup_ip_static_library {args} {
   }
   set a_isl_vars(co_file_list) [file join $a_isl_vars(ipstatic_dir) "compile_order.txt"]
     
-  #if { [file exists $a_isl_vars(ipstatic_dir)] } {
-  #  foreach file_path [glob -nocomplain -directory $a_isl_vars(ipstatic_dir) *] {
-  #    if {[catch {file delete -force $file_path} error_msg] } {
-  #      [catch {send_msg_id setup_ip_static_library-Tcl-006 ERROR "failed to delete file ($a_isl_vars(file_path)): $error_msg\n"} err]
-  #      return
-  #    }
-  #  }
-  #}
+  if { $a_isl_vars(b_force) } {
+    if { [file exists $a_isl_vars(ipstatic_dir)] } {
+      foreach file_path [glob -nocomplain -directory $a_isl_vars(ipstatic_dir) *] {
+        if {[catch {file delete -force $file_path} error_msg] } {
+          [catch {send_msg_id setup_ip_static_library-Tcl-006 ERROR "failed to delete file ($a_isl_vars(file_path)): $error_msg\n"} err]
+          return
+        }
+      }
+    }
 
-  if {[catch {file mkdir $a_isl_vars(ipstatic_dir)} error_msg] } {
-    send_msg_id setup_ip_static_library-Tcl-007 ERROR "failed to create the directory ($a_isl_vars(ipstatic_dir)): $error_msg\n"
-    return 1
+    if {[catch {file mkdir $a_isl_vars(ipstatic_dir)} error_msg] } {
+      send_msg_id setup_ip_static_library-Tcl-007 ERROR "failed to create the directory ($a_isl_vars(ipstatic_dir)): $error_msg\n"
+      return 1
+    }
   }
 
   if { $a_isl_vars(b_project_mode) } {
@@ -897,7 +908,7 @@ proc isl_extract_install_files { } {
 
   variable a_isl_vars
   variable l_static_files
-
+  variable l_ips
   set l_static_files [list]
 
   create_project -in_memory
@@ -916,15 +927,24 @@ proc isl_extract_install_files { } {
     return 1
   }
 
+
   #send_msg_id setup_ip_static_library-Tcl-021 INFO "Extracting static files from IP catalog...(this may take a while, please wait)..."
   set compile_order_data [list]
   set ip_libs [list]
   set count 0
   set ip_count 0
   foreach ip $ips {
-    incr ip_count
     set vlnv    [get_property vlnv $ip]
     set ip_def  [get_ipdefs -all -vlnv $vlnv]
+    set ip_def_comps [split $ip_def {:}]
+    set ip_def_name  [lindex $ip_def_comps 2]
+    if { $a_isl_vars(b_ip_specified) } {
+      if { [lsearch $l_ips $ip_def_name] == -1 } {
+        continue
+      }
+    }
+    if { [xcs_skip_ip $ip_def] } { continue }
+    incr ip_count
     set ip_xml  [get_property xml_file_name $ip_def]
     set ip_dir  [file dirname $ip_xml]
     set ip_comp [ipx::open_core $ip_xml]
@@ -1064,19 +1084,31 @@ proc isl_write_compile_order { } {
     return 1
   }
 
-  set b_pre_add_lib 0
-  set fifo_lib {}
+  set b_pre_add_fifo_lib   0
+  set b_pre_add_axi_sg_lib 0
+
   foreach data $compile_order_data {
     set data [string trim $data]
     if { [string length $data] == 0 } { continue; }
     set comps [split $data {,}]
     set library [lindex $comps 0]
-    if { [regexp {^lib_fifo_v} $library] } { set fifo_lib $library;continue }
-    if { [regexp {^axi_pcie_v} $library] } {
-      if { ! $b_pre_add_lib } {
-        puts $fh "$fifo_lib,hdl/src/vhdl/async_fifo_fg.vhd,vhdl"
-        puts $fh "$fifo_lib,hdl/src/vhdl/sync_fifo_fg.vhd,vhdl"
-        set b_pre_add_lib 1
+    if { [regexp {^lib_fifo_v} $library] } { continue }
+    if { [regexp {^lib_srl_fifo_v} $library] } { continue }
+
+    if { [regexp {^blk_mem_gen} $library] } {
+      if { ! $b_pre_add_fifo_lib } {
+        puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/async_fifo_fg.vhd,vhdl,static"
+        puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/sync_fifo_fg.vhd,vhdl,static"
+        set b_pre_add_fifo_lib 1
+      }
+    }
+    if { [regexp {^axi_sg_v} $library] } {
+      if { ! $b_pre_add_axi_sg_lib } {
+        puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/cntr_incr_decr_addn_f.vhd,vhdl,static"
+        puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/dynshreg_f.vhd,vhdl,static"
+        puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/srl_fifo_rbu_f.vhd,vhdl,static"
+        puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/srl_fifo_f.vhd,vhdl,static"
+        set b_pre_add_axi_sg_lib 1
       }
     }
     puts $fh $data
@@ -1361,5 +1393,4 @@ proc isl_filter { file } {
   }
   return $b_filter
 }
-
 }

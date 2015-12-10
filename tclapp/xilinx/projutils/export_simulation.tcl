@@ -93,6 +93,12 @@ proc export_simulation {args} {
     return
   }
 
+  if { $a_sim_vars(b_use_static_lib) } {
+    if { [xcs_contains_unsupported_ipdefs_for_pre_compile] } {
+      set a_sim_vars(b_use_static_lib) 0
+      send_msg_id exportsim-Tcl-003 "CRITICAL WARNING" "Found IPs that are currently not supported for the pre-compiled IP static files flow, turning off pre-compiled flow.\n"
+    }
+  }
 
   xps_set_target_simulator
 
