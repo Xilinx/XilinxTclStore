@@ -2011,15 +2011,12 @@ proc usf_get_relative_file_path { file_path_to_convert relative_to } {
   if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
     set relative_to [file dirname $relative_to]
   }
-  set cwd [file normalize [pwd]]
+
   if { [file pathtype $file_path_to_convert] eq "relative" } {
-    # is relative_to path same as cwd?, just return this path, no further processing required
-    if { [string equal $relative_to $cwd] } {
-      return $file_path_to_convert
-    }
-    # the specified path is "relative" but something else, so make it absolute wrt current working dir
-    set file_path_to_convert [file join $cwd $file_path_to_convert]
+    return $file_path_to_convert
   }
+
+  set cwd [file normalize [pwd]]
   # is relative_to "relative"? convert to absolute as well wrt cwd
   if { [file pathtype $relative_to] eq "relative" } {
     set relative_to [file join $cwd $relative_to]
@@ -2723,6 +2720,12 @@ proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
       set b_static_ip_file 1
       lappend l_ip_static_libs [string tolower $library]
     }
+  }
+
+  if { $a_sim_vars(b_absolute_path) } {
+    set src_file "[usf_resolve_file_path $src_file]"
+  } else {
+    set src_file "\$origin_dir/[usf_get_relative_file_path $src_file $launch_dir]"
   }
 
   return $src_file
