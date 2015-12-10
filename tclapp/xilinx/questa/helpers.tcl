@@ -2251,29 +2251,9 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
   }
 
   set file_str [join $arg_list " "]
-  set type [usf_get_file_type_category $file_type]
+  set type [xcs_get_file_type_category $file_type]
   set cmd_str "$type|$file_type|$associated_library|$file_str|\"$file\"|$b_static_ip_file"
   return $cmd_str
-}
-
-proc usf_get_file_type_category { file_type } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set type {UNKNOWN}
-  switch $file_type {
-    {VHDL} -
-    {VHDL 2008} {
-      set type {VHDL}
-    }
-    {Verilog} -
-    {SystemVerilog} -
-    {Verilog Header} {
-      set type {VERILOG}
-    }
-  }
-  return $type
 }
 
 proc usf_get_netlist_writer_cmd_args { extn } {

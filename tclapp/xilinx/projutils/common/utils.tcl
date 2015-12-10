@@ -342,6 +342,26 @@ proc xcs_get_dynamic_sim_file_core_container { src_file dynamic_repo_dir } {
   return $src_file
 }
 
+proc xcs_get_file_type_category { file_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set type {UNKNOWN}
+  switch $file_type {
+    {VHDL} -
+    {VHDL 2008} {
+      set type {VHDL}
+    }
+    {Verilog} -
+    {SystemVerilog} -
+    {Verilog Header} {
+      set type {VERILOG}
+    }
+  }
+  return $type
+}
+
 proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg } {
   # Summary:
   # Argument Usage:

@@ -1475,7 +1475,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compi
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   }
   set file_str [join $arg_list " "]
-  set type [xps_get_file_type_category $file_type]
+  set type [xcs_get_file_type_category $file_type]
 
 
   set cmd_str "$type|$file_type|$associated_library|$src_file|$file_str|$ip_file|\"$file\"|$b_static_ip_file"
@@ -1536,26 +1536,6 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
   }
   return [join $resolved_file_paths " "]
 } 
-
-proc xps_get_file_type_category { file_type } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set type {UNKNOWN}
-  switch $file_type {
-    {VHDL} -
-    {VHDL 2008} {
-      set type {VHDL}
-    }
-    {Verilog} -
-    {SystemVerilog} -
-    {Verilog Header} {
-      set type {VERILOG}
-    }
-  }
-  return $type
-}
 
 proc xps_get_design_libs {} {
   # Summary:
