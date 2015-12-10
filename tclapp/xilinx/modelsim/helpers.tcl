@@ -1478,7 +1478,7 @@ proc usf_export_data_files { data_files } {
   variable l_target_simulator
   set export_dir $a_sim_vars(s_launch_dir)
   if { [llength $data_files] > 0 } {
-    set data_files [usf_remove_duplicate_files $data_files]
+    set data_files [xcs_remove_duplicate_files $data_files]
     foreach file $data_files {
       set extn [file extension $file]
       switch -- $extn {
@@ -1581,7 +1581,7 @@ proc usf_get_files_from_block_filesets { filter_type } {
     foreach fs_obj $fs_objs {
       set fs_name [get_property "NAME" $fs_obj]
       send_msg_id USF-ModelSim-077 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
-      #set files [usf_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]]
+      #set files [xcs_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]]
       set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]
       if { [llength $files] == 0 } {
         send_msg_id USF-ModelSim-078 INFO "No files found in '$fs_name'\n"
@@ -1594,23 +1594,6 @@ proc usf_get_files_from_block_filesets { filter_type } {
     }
   }
   return $file_list
-}
-
-proc usf_remove_duplicate_files { compile_order_files } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set file_list [list]
-  set compile_order [list]
-  foreach file $compile_order_files {
-    set normalized_file_path [file normalize [string map {\\ /} $file]]
-    if { [lsearch -exact $file_list $normalized_file_path] == -1 } {
-      lappend file_list $normalized_file_path
-      lappend compile_order $file
-    }
-  }
-  return $compile_order
 }
 
 proc usf_get_include_dirs { } {

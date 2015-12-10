@@ -759,6 +759,23 @@ proc xcs_make_file_executable { file } {
   }
 }
 
+proc xcs_remove_duplicate_files { compile_order_files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set file_list [list]
+  set compile_order [list]
+  foreach file $compile_order_files {
+    set normalized_file_path [file normalize [string map {\\ /} $file]]
+    if { [lsearch -exact $file_list $normalized_file_path] == -1 } {
+      lappend file_list $normalized_file_path
+      lappend compile_order $file
+    }
+  }
+  return $compile_order
+}
+
 proc xcs_resolve_incl_dir_property_value { incl_dirs } {
   # Summary:
   # Argument Usage:

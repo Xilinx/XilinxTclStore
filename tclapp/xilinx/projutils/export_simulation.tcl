@@ -1616,7 +1616,7 @@ proc xps_export_data_files { data_files export_dir } {
   variable a_sim_vars
   variable l_target_simulator
   if { [llength $data_files] > 0 } {
-    set data_files [xps_remove_duplicate_files $data_files]
+    set data_files [xcs_remove_duplicate_files $data_files]
     foreach file $data_files {
       set extn [file extension $file]
       switch -- $extn {
@@ -2343,23 +2343,6 @@ proc xps_write_run_steps { simulator fh_unix } {
     puts $fh_unix "  simulate"
   }
   puts $fh_unix "\}\n"
-}
-
-proc xps_remove_duplicate_files { compile_order_files } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set file_list [list]
-  set compile_order [list]
-  foreach file $compile_order_files {
-    set normalized_file_path [file normalize [string map {\\ /} $file]]
-    if { [lsearch -exact $file_list $normalized_file_path] == -1 } {
-      lappend file_list $normalized_file_path
-      lappend compile_order $file
-    }
-  }
-  return $compile_order
 }
 
 proc xps_set_initial_cmd { simulator fh cmd_str src_file file_type lib opts_str prev_file_type_arg prev_lib_arg log_arg } {
