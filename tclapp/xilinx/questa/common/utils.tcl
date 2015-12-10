@@ -283,6 +283,57 @@ proc xcs_find_top_level_ip_file { src_file } {
   return $comp_file
 }
 
+proc xcs_generate_ip_netlist { comp_file runs_to_launch_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $runs_to_launch_arg runs_to_launch
+  set comp_file_obj [get_files [list "$comp_file"]]
+  set comp_file_fs  [get_property "FILESET_NAME" $comp_file_obj]
+  if { ![get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file_obj] } {
+    send_msg_id USF-IES-084 INFO "Generate synth checkpoint is 'false':$comp_file\n"
+    # if synth checkpoint read-only, return
+    if { [get_property "IS_IP_SYNTH_CHECKPOINT_READONLY" $comp_file_obj] } {
+      send_msg_id USF-IES-085 WARNING "Synth checkpoint property is 'readonly' ... skipping:$comp_file\n"
+      return
+    }
+    # set property to create a DCP/structural simulation file
+    send_msg_id USF-IES-086 INFO "Setting synth checkpoint for generating simulation netlist:$comp_file\n"
+    set_property "GENERATE_SYNTH_CHECKPOINT" true $comp_file_obj
+  } else {
+    send_msg_id USF-IES-087 INFO "Generate synth checkpoint is set:$comp_file\n"
+  }
+  # block fileset name is based on the basename of the IP
+  set src_file [file normalize $comp_file]
+  set ip_basename [file root [file tail $src_file]]
+  # block-fileset may not be created at this point, so quiet if not found
+  set block_fs_obj [get_filesets -quiet $ip_basename]
+  # "block fileset" exists? if not create it
+  if { {} == $block_fs_obj } {
+    create_fileset -blockset "$ip_basename"
+    set block_fs_obj [get_filesets $ip_basename]
+    send_msg_id USF-IES-088 INFO "Block-fileset created:$block_fs_obj"
+    # set fileset top
+    set comp_file_top [get_property "IP_TOP" $comp_file_obj]
+    set_property "TOP" $comp_file_top [get_filesets $ip_basename]
+    # move sub-design to block-fileset
+    send_msg_id USF-IES-089 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
+    move_files -fileset [get_filesets $ip_basename] [get_files -of_objects [get_filesets $comp_file_fs] $src_file] 
+  }
+  if { {BlockSrcs} != [get_property "FILESET_TYPE" $block_fs_obj] } {
+    send_msg_id USF-IES-090 ERROR "Given source file is not associated with a design source fileset.\n"
+    return 1
+  }
+  # construct block-fileset run for the netlist
+  set run_name $ip_basename;append run_name "_synth_1"
+  if { ![get_property "IS_INITIALIZED" [get_runs $run_name]] } {
+    reset_run $run_name
+  }
+  lappend runs_to_launch $run_name
+  send_msg_id USF-IES-091 INFO "Run scheduled for '$ip_basename':$run_name\n"
+}
+
 proc xcs_get_bin_path { tool_name path_sep } {
   # Summary:
   # Argument Usage:
