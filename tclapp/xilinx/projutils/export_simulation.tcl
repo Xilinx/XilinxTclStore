@@ -1352,7 +1352,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilo
 
   #send_msg_id exportsim-Tcl-024 INFO "Finding block fileset files..."
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
-  foreach file [xps_get_files_from_block_filesets $vhdl_filter] {
+  foreach file [xcs_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set compiler [xps_get_compiler $simulator $file_type]
     set l_other_compiler_opts [list]
@@ -1364,7 +1364,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilo
     }
   }
   set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
-  foreach file [xps_get_files_from_block_filesets $verilog_filter] {
+  foreach file [xcs_get_files_from_block_filesets $verilog_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set compiler [xps_get_compiler $simulator $file_type]
     set l_other_compiler_opts [list]
@@ -1375,29 +1375,6 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilo
       lappend compile_order_files $file
     }
   }
-}
-
-proc xps_get_files_from_block_filesets { filter_type } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set file_list [list]
-  set filter "FILESET_TYPE == \"BlockSrcs\""
-  set used_in_val "simulation"
-  set fs_objs [get_filesets -filter $filter]
-  if { [llength $fs_objs] > 0 } {
-    foreach fs_obj $fs_objs {
-      set fs_name [get_property "NAME" $fs_obj]
-      set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]
-      if { [llength $files] > 0 } {
-        foreach file $files {
-          lappend file_list $file
-        }
-      }
-    }
-  }
-  return $file_list
 }
 
 proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compiler_opts_arg  l_incl_dirs_opts_arg {b_skip_file_obj_access 0} } {

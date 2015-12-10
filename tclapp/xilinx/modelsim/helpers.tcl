@@ -1178,7 +1178,7 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
   upvar $compile_order_files_arg compile_order_files
 
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
-  foreach file [usf_get_files_from_block_filesets $vhdl_filter] {
+  foreach file [xcs_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
     if { {} != $cmd_str } {
@@ -1187,7 +1187,7 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
     }
   }
   set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
-  foreach file [usf_get_files_from_block_filesets $verilog_filter] {
+  foreach file [xcs_get_files_from_block_filesets $verilog_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set cmd_str [usf_get_file_cmd_str $file $file_type $global_files_str l_incl_dirs_opts]
     if { {} != $cmd_str } {
@@ -1565,35 +1565,6 @@ proc usf_export_fs_non_hdl_data_files {} {
     lappend data_files $file
   }
   usf_export_data_files $data_files
-}
-
-proc usf_get_files_from_block_filesets { filter_type } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set file_list [list]
-  set filter "FILESET_TYPE == \"BlockSrcs\""
-  set used_in_val "simulation"
-  set fs_objs [get_filesets -filter $filter]
-  if { [llength $fs_objs] > 0 } {
-    send_msg_id USF-ModelSim-113 INFO "Finding block fileset files..."
-    foreach fs_obj $fs_objs {
-      set fs_name [get_property "NAME" $fs_obj]
-      send_msg_id USF-ModelSim-077 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
-      #set files [xcs_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]]
-      set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]
-      if { [llength $files] == 0 } {
-        send_msg_id USF-ModelSim-078 INFO "No files found in '$fs_name'\n"
-        continue
-      } else {
-        foreach file $files {
-          lappend file_list $file
-        }
-      }
-    }
-  }
-  return $file_list
 }
 
 proc usf_get_include_dirs { } {

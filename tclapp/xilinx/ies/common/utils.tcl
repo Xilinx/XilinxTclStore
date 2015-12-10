@@ -483,6 +483,35 @@ proc xcs_get_file_type_category { file_type } {
   return $type
 }
 
+proc xcs_get_files_from_block_filesets { filter_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set file_list [list]
+  set filter "FILESET_TYPE == \"BlockSrcs\""
+  set used_in_val "simulation"
+  set fs_objs [get_filesets -filter $filter]
+  if { [llength $fs_objs] > 0 } {
+    send_msg_id USF-IES-101 INFO "Finding block fileset files..."
+    foreach fs_obj $fs_objs {
+      set fs_name [get_property "NAME" $fs_obj]
+      send_msg_id USF-IES-070 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
+      #set files [xcs_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]]
+      set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]
+      if { [llength $files] == 0 } {
+        send_msg_id USF-IES-071 INFO "No files found in '$fs_name'\n"
+        continue
+      } else {
+        foreach file $files {
+          lappend file_list $file
+        }
+      }
+    }
+  }
+  return $file_list
+}
+
 proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg } {
   # Summary:
   # Argument Usage:
