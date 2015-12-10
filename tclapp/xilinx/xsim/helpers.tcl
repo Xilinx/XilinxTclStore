@@ -1906,23 +1906,6 @@ proc usf_get_testbench_files_from_ip { file_type_filter } {
   return $tb_filelist
 }
 
-proc usf_get_bin_path { tool_name path_sep } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set path_value $::env(PATH)
-  set bin_path {}
-  foreach path [split $path_value $path_sep] {
-    set exe_file [file normalize [file join $path $tool_name]]
-    if { [file exists $exe_file] } {
-      set bin_path $path
-      break
-    }
-  }
-  return $bin_path
-}
-
 proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   # Summary:
   # Argument Usage:

@@ -283,6 +283,23 @@ proc xcs_find_top_level_ip_file { src_file } {
   return $comp_file
 }
 
+proc xcs_get_bin_path { tool_name path_sep } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set path_value $::env(PATH)
+  set bin_path {}
+  foreach path [split $path_value $path_sep] {
+    set exe_file [file normalize [file join $path $tool_name]]
+    if { [file exists $exe_file] } {
+      set bin_path $path
+      break
+    }
+  }
+  return $bin_path
+}
+
 proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir } {
   # Summary:
   # Argument Usage:
