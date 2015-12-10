@@ -729,6 +729,22 @@ proc xcs_is_static_ip_lib { library ip_static_libs } {
   return false
 }
 
+proc xcs_make_file_executable { file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if {$::tcl_platform(platform) == "unix"} {
+    if {[catch {exec chmod a+x $file} error_msg] } {
+      send_msg_id USF-XSim-069 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+    }
+  } else {
+    if {[catch {exec attrib /D -R $file} error_msg] } {
+      send_msg_id USF-XSim-070 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+    }
+  }
+}
+
 proc xcs_resolve_incl_dir_property_value { incl_dirs } {
   # Summary:
   # Argument Usage:

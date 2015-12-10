@@ -1035,6 +1035,6 @@ proc usf_ies_create_setup_script {} {
   puts $fh_scr "setup \$1"
   close $fh_scr
 
-  usf_make_file_executable $scr_file
+  xcs_make_file_executable $scr_file
 }
 }

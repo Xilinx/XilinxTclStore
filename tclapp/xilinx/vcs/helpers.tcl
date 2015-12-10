@@ -1391,7 +1391,7 @@ proc usf_launch_script { simulator step } {
   set run_dir $a_sim_vars(s_launch_dir)
 
   set shell_script_file [file normalize [file join $run_dir $scr_file]]
-  usf_make_file_executable $shell_script_file
+  xcs_make_file_executable $shell_script_file
 
   if { $a_sim_vars(b_scripts_only) } {
     send_msg_id USF-VCS-061 INFO "Script generated:[file normalize [file join $run_dir $scr_file]]"
@@ -2106,22 +2106,6 @@ proc usf_append_other_options { tool file_type global_files_str opts_arg } {
   variable a_sim_vars
   set dir $a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
-}
-
-proc usf_make_file_executable { file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  if {$::tcl_platform(platform) == "unix"} {
-    if {[catch {exec chmod a+x $file} error_msg] } {
-      send_msg_id USF-VCS-071 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
-    }
-  } else {
-    if {[catch {exec attrib /D -R $file} error_msg] } {
-      send_msg_id USF-VCS-072 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
-    }
-  }
 }
 
 proc usf_get_global_include_file_cmdstr { incl_files_arg } {
