@@ -2235,33 +2235,6 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
   send_msg_id USF-IES-091 INFO "Run scheduled for '$ip_basename':$run_name\n"
 }
 
-proc usf_get_testbench_files_from_ip { file_type_filter } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set tb_filelist [list]
-  set ip_filter "FILE_TYPE == \"IP\""
-  foreach ip [get_files -all -quiet -filter $ip_filter] {
-    set ip_name [file tail $ip]
-    set tb_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $file_type_filter]
-    if { [llength $tb_files] > 0 } {
-      foreach tb $tb_files {
-        set tb_file_obj [lindex [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] $tb] 0]
-        if { {simulation testbench} == [get_property "USED_IN" $tb_file_obj] } {
-          if { [lsearch -exact [list_property $tb_file_obj] {IS_USER_DISABLED}] != -1 } {
-            if { [get_property {IS_USER_DISABLED} $tb_file_obj] } {
-              continue;
-            }
-          }
-          lappend tb_filelist $tb
-        }
-      }
-    }
-  }
-  return $tb_filelist
-}
-
 proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   # Summary:
   # Argument Usage:
@@ -2705,25 +2678,55 @@ proc usf_fetch_ipi_static_file { file } {
 
 }
 
-#
-# not used currently
-#
-namespace eval ::tclapp::xilinx::ies {
-proc usf_get_top { top_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
+######################
+# not used currently #
+######################
 
-  upvar $top_arg top
-  set fs_obj [get_filesets $a_sim_vars(s_simset)]
-  set fs_name [get_property "NAME" $fs_obj]
-  set top [get_property "TOP" $fs_obj]
-  if { {} == $top } {
-    send_msg_id USF-IES-092 ERROR "Top module not set for fileset '$fs_name'. Please ensure that a valid \
-       value is provided for 'top'. The value for 'top' can be set/changed using the 'Top Module Name' field under\
-       'Project Settings', or using the 'set_property top' Tcl command (e.g. set_property top <name> \[current_fileset\])."
-    return 1
-  }
-  return 0
-}
-}
+#namespace eval ::tclapp::xilinx::ies {
+#proc usf_get_testbench_files_from_ip { file_type_filter } {
+#  # Summary:
+#  # Argument Usage:
+#  # Return Value:
+#
+#  set tb_filelist [list]
+#  set ip_filter "FILE_TYPE == \"IP\""
+#  foreach ip [get_files -all -quiet -filter $ip_filter] {
+#    set ip_name [file tail $ip]
+#    set tb_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $file_type_filter]
+#    if { [llength $tb_files] > 0 } {
+#      foreach tb $tb_files {
+#        set tb_file_obj [lindex [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] $tb] 0]
+#        if { {simulation testbench} == [get_property "USED_IN" $tb_file_obj] } {
+#          if { [lsearch -exact [list_property $tb_file_obj] {IS_USER_DISABLED}] != -1 } {
+#            if { [get_property {IS_USER_DISABLED} $tb_file_obj] } {
+#              continue;
+#            }
+#          }
+#          lappend tb_filelist $tb
+#        }
+#      }
+#    }
+#  }
+#  return $tb_filelist
+#}
+#}
+
+#namespace eval ::tclapp::xilinx::ies {
+#proc usf_get_top { top_arg } {
+#  # Summary:
+#  # Argument Usage:
+#  # Return Value:
+#
+#  upvar $top_arg top
+#  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+#  set fs_name [get_property "NAME" $fs_obj]
+#  set top [get_property "TOP" $fs_obj]
+#  if { {} == $top } {
+#    send_msg_id USF-IES-092 ERROR "Top module not set for fileset '$fs_name'. Please ensure that a valid \
+#       value is provided for 'top'. The value for 'top' can be set/changed using the 'Top Module Name' field under\
+#       'Project Settings', or using the 'set_property top' Tcl command (e.g. set_property top <name> \[current_fileset\])."
+#    return 1
+#  }
+#  return 0
+#}
+#}
