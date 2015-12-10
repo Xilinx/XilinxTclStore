@@ -700,6 +700,20 @@ proc xcs_is_fileset { tcl_obj } {
   return 0
 }
 
+proc xcs_is_global_include_file { global_files_str file_to_find } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  foreach g_file [split $global_files_str { }] {
+    set g_file [string trim $g_file {\"}]
+    if { [string compare $g_file $file_to_find] == 0 } {
+      return true
+    }
+  }
+  return false
+}
+
 proc xcs_is_ip { tcl_obj valid_ip_extns } {
   # Summary:
   # Argument Usage:

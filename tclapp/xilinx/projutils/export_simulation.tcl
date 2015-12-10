@@ -991,7 +991,7 @@ proc xps_get_files { simulator launch_dir } {
     if { {All} == $src_mgmt_mode } {
       #send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$target_obj'..."
       foreach fs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
-        if { [xps_is_global_include_file $fs_file_obj] } { continue }
+        if { [xcs_is_global_include_file $fs_file_obj $a_sim_vars(global_files_str)] } { continue }
         set file_type [get_property "FILE_TYPE" $fs_file_obj]
         set compiler [xps_get_compiler $simulator $file_type]
         set l_other_compiler_opts [list]
@@ -5245,20 +5245,6 @@ proc xps_get_global_include_file_cmdstr { simulator launch_dir incl_files_arg } 
     lappend file_str "\"$file\""
   }
   return [join $file_str "|"]
-}
-
-proc xps_is_global_include_file { file_to_find } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  variable a_sim_vars
-  foreach g_file [split $a_sim_vars(global_files_str) {|}] {
-    set g_file [string trim $g_file {\"}]
-    if { [string compare $g_file $file_to_find] == 0 } {
-      return true
-    }
-  }
-  return false
 }
 
 proc xps_xtract_file { file } {

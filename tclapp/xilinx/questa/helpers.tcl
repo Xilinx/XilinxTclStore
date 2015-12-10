@@ -978,7 +978,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     if { {All} == $src_mgmt_mode } {
       send_msg_id USF-Questa-109 INFO "Fetching design files from '$target_obj'..."
       foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
-        if { [usf_is_global_include_file $global_files_str $file] } { continue }
+        if { [xcs_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         set g_files $global_files_str
@@ -1191,20 +1191,6 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
       lappend compile_order_files $file
     }
   }
-}
-
-proc usf_is_global_include_file { global_files_str file_to_find } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  foreach g_file [split $global_files_str { }] {
-    set g_file [string trim $g_file {\"}]
-    if { [string compare $g_file $file_to_find] == 0 } {
-      return true
-    }
-  }
-  return false
 }
 
 proc usf_launch_script { simulator step } {
