@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>donot filter IPs for export</revision_history>
+      <revision_history>do not filter IPs for export ip user files</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
