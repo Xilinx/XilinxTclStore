@@ -18,7 +18,7 @@ proc export_simulation {args} {
   # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
   # Argument Usage:
   # [-simulator <arg> = all]: Simulator for which the simulation script will be created (value=all|xsim|modelsim|questa|ies|vcs|riviera|activehdl)
-  # [-language <arg> = mixed]: simulator language (value=mixed|verilog|vhdl)
+  # [-language <arg> = mixed]: Simulator language (value=mixed|verilog|vhdl)
   # [-of_objects <arg> = None]: Export simulation script for the specified object
   # [-ip_user_files_dir <arg> = Empty]: Directory path to exported IP user files (for dynamic and other IP non static files)
   # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP static files
@@ -30,10 +30,12 @@ proc export_simulation {args} {
   # [-generic <arg> = Empty]: Read vhdl generics from the list specified with this switch
   # [-include <arg> = Empty]: Read include directory paths from the list specified with this switch
   # [-xpm_library <arg> = Empty]: Read XPM libraries from the list specified with this switch
+  # [-default_library <arg> = xil_defaultlib]: Set the specified default library
   # [-use_ipstatic_library]: Reference pre-compiled IP static library during compilation
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-single_step]: Generate script to launch all steps in one step
   # [-ip_netlist]: Select the netlist file for IP(s) in the project or the selected object (-of_objects) for the specified simulator language (default:verilog)
+  # [-managed_ip]: Generate scripts for managed IP project
   # [-export_source_files]: Copy design files to output directory
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
@@ -62,6 +64,7 @@ proc export_simulation {args} {
     switch -regexp -- $option {
       "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
       "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)        [lindex $args $i]                                                         }
+      "-default_library"          { incr i;set a_sim_vars(default_lib)           [lindex $args $i]                                                         }
       "-of_objects"               { incr i;set a_sim_vars(sp_of_objects)         [lindex $args $i];set a_sim_vars(b_of_objects_specified)                1 }
       "-ip_user_files_dir"        { incr i;set a_sim_vars(s_ip_user_files_dir)   [lindex $args $i];set a_sim_vars(b_ip_user_files_dir_specified)         1 }
       "-ipstatic_source_dir"      { incr i;set a_sim_vars(s_ipstatic_source_dir) [lindex $args $i];set a_sim_vars(b_ipstatic_source_dir_specified)       1 }
@@ -78,6 +81,7 @@ proc export_simulation {args} {
       "-use_ipstatic_library"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
       "-single_step"              { set a_sim_vars(b_single_step)                                                                                        1 }
       "-ip_netlist"               { set a_sim_vars(b_ip_netlist)                                                                                         1 }
+      "-managed_ip"               { set a_sim_vars(b_managed_ip)                                                                                         1 }
       "-export_source_files"      { set a_sim_vars(b_xport_src_files)                                                                                    1 }
       "-force"                    { set a_sim_vars(b_overwrite)                                                                                          1 }
       default {
@@ -91,13 +95,6 @@ proc export_simulation {args} {
 
   if { [xps_invalid_options] } {
     return
-  }
-
-  if { $a_sim_vars(b_use_static_lib) } {
-    if { [xcs_contains_unsupported_ipdefs_for_pre_compile] } {
-      set a_sim_vars(b_use_static_lib) 0
-      send_msg_id exportsim-Tcl-003 "CRITICAL WARNING" "Found IPs that are currently not supported for the pre-compiled IP static files flow, turning off pre-compiled flow.\n"
-    }
   }
 
   xps_set_target_simulator
@@ -195,7 +192,7 @@ proc xps_init_vars {} {
   set a_sim_vars(fs_obj)              [current_fileset -simset]
   set a_sim_vars(sp_tcl_obj)          ""
   set a_sim_vars(s_top)               ""
-  set a_sim_vars(b_managed_ip)        [get_property managed_ip [current_project]]
+  set a_sim_vars(b_managed_ip)        0
   set a_sim_vars(s_install_path)      {}
   set a_sim_vars(b_scripts_only)      0
   set a_sim_vars(global_files_str)    {}
@@ -928,7 +925,6 @@ proc xps_get_files { simulator launch_dir } {
   if { ([xcs_is_fileset $a_sim_vars(sp_tcl_obj)]) && ({SimulationSrcs} == [get_property fileset_type $a_sim_vars(fs_obj)]) } {
     set linked_src_set [get_property "SOURCE_SET" $a_sim_vars(fs_obj)]
   }
-  set target_lang     [get_property "TARGET_LANGUAGE" [current_project]]
   set src_mgmt_mode   "All"
   set incl_file_paths [list]
   set incl_files      [list]
@@ -4566,7 +4562,6 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   variable a_sim_vars
   variable l_generics
 
-  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set args [list]
   switch -regexp -- $simulator {
     "modelsim" {

@@ -131,13 +131,6 @@ proc export_ip_user_files {args} {
     return
   }
 
-  if { $a_vars(b_use_static_lib) } {
-    if { [xcs_contains_unsupported_ipdefs_for_pre_compile] } {
-      set a_vars(b_use_static_lib) 0
-      send_msg_id export_ip_user_files-Tcl-003 WARNING "Found IPs that are currently not supported for the pre-compiled IP static files flow, turning off pre-compiled flow.\n"
-    }
-  }
-
   xif_create_central_dirs
 
   # no -of_objects specified
