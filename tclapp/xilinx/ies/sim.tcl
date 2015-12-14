@@ -494,7 +494,7 @@ proc usf_ies_write_compile_script {} {
   if { {behav_sim} == $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
     if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)] } {
-      ::tclapp::xilinx::ies::usf_copy_glbl_file
+      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
       set file_str "-work $top_lib \"glbl.v\""
       puts $fh_scr "\n# compile glbl module"
@@ -510,7 +510,7 @@ proc usf_ies_write_compile_script {} {
       if { ({timing} == $::tclapp::xilinx::ies::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
-        ::tclapp::xilinx::ies::usf_copy_glbl_file
+        xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
         set file_str "-work $top_lib \"glbl.v\""
         puts $fh_scr "\n# compile glbl module"
@@ -629,7 +629,7 @@ proc usf_ies_write_elaborate_script {} {
     set b_compile_unifast [get_property "unifast" $fs_obj]
   }
 
-  if { ([::tclapp::xilinx::ies::usf_contains_vhdl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-libname" "unifast"]
     }
@@ -1035,6 +1035,6 @@ proc usf_ies_create_setup_script {} {
   puts $fh_scr "setup \$1"
   close $fh_scr
 
-  usf_make_file_executable $scr_file
+  xcs_make_file_executable $scr_file
 }
 }

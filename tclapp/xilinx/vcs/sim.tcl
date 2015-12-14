@@ -297,7 +297,7 @@ proc usf_vcs_write_setup_files {} {
     set b_compile_unifast [get_property "unifast" $fs_obj]
   }
 
-  if { ([::tclapp::xilinx::vcs::usf_contains_vhdl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       puts $fh "unifast : $lib_map_path/unifast"
     }
@@ -511,7 +511,7 @@ proc usf_vcs_write_compile_script {} {
       if { {work} != $top_lib } {
         set work_lib_sw "-work $top_lib "
       }
-      ::tclapp::xilinx::vcs::usf_copy_glbl_file
+      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set file_str "${work_lib_sw}\"glbl.v\""
       puts $fh_scr "\n# compile glbl module"
       if { {} != $tool_path } {
@@ -531,7 +531,7 @@ proc usf_vcs_write_compile_script {} {
         if { {work} != $top_lib } {
           set work_lib_sw "-work $top_lib "
         }
-        ::tclapp::xilinx::vcs::usf_copy_glbl_file
+        xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set file_str "${work_lib_sw}\"glbl.v\""
         puts $fh_scr "\n# compile glbl module"
         if { {} != $tool_path } {
@@ -1013,6 +1013,6 @@ proc usf_vcs_create_setup_script {} {
   puts $fh_scr "setup \$1"
   close $fh_scr
 
-  usf_make_file_executable $scr_file
+  xcs_make_file_executable $scr_file
 }
 }
