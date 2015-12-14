@@ -974,6 +974,9 @@ proc isl_extract_install_files { } {
           set ip_file [lindex $file_entry 3]
           set type [isl_get_file_type $file_group $ip_file]
           set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+          if { {} == $library } {
+            send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
+          }
           if { [lsearch $ip_libs $library] == -1 } {
             lappend ip_libs $library
             # <ipstatic_dir>/<library>
@@ -1014,6 +1017,8 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
   upvar $ip_libs_arg ip_libs
   set vlnv    $ip
   set ip_def  [get_ipdefs -all -vlnv $vlnv]
+  set ip_def_comps [split $ip_def {:}]
+  set ip_def_name  [lindex $ip_def_comps 2]
   set ip_xml  [get_property xml_file_name $ip_def]
   set ip_dir  [file dirname $ip_xml]
   set ip_comp [ipx::open_core $ip_xml]
@@ -1036,6 +1041,9 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
         set ip_file [lindex $file_entry 3]
         set type [isl_get_file_type $file_group $ip_file]
         set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+        if { {} == $library } {
+          send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
+        }
         if { [lsearch $ip_libs $library] == -1 } {
           lappend ip_libs $library
           # <ipstatic_dir>/<library>
@@ -1084,33 +1092,24 @@ proc isl_write_compile_order { } {
     return 1
   }
 
-  set b_pre_add_fifo_lib   0
-  set b_pre_add_axi_sg_lib 0
+  puts $fh "fifo_generator_v13_0_1,simulation/fifo_generator_vhdl_beh.vhd,vhdl,static"
+  puts $fh "fifo_generator_v13_0_1,hdl/fifo_generator_v13_0_rfs.vhd,vhdl,static"
+
+  puts $fh "lib_pkg_v1_0_2,hdl/src/vhdl/lib_pkg.vhd,vhdl,static"
+
+  puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/cntr_incr_decr_addn_f.vhd,vhdl,static"
+  puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/dynshreg_f.vhd,vhdl,static"
+  puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/srl_fifo_rbu_f.vhd,vhdl,static"
+  puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/srl_fifo_f.vhd,vhdl,static"
 
   foreach data $compile_order_data {
     set data [string trim $data]
     if { [string length $data] == 0 } { continue; }
     set comps [split $data {,}]
     set library [lindex $comps 0]
-    if { [regexp {^lib_fifo_v} $library] } { continue }
-    if { [regexp {^lib_srl_fifo_v} $library] } { continue }
-
-    if { [regexp {^blk_mem_gen} $library] } {
-      if { ! $b_pre_add_fifo_lib } {
-        puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/async_fifo_fg.vhd,vhdl,static"
-        puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/sync_fifo_fg.vhd,vhdl,static"
-        set b_pre_add_fifo_lib 1
-      }
-    }
-    if { [regexp {^axi_sg_v} $library] } {
-      if { ! $b_pre_add_axi_sg_lib } {
-        puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/cntr_incr_decr_addn_f.vhd,vhdl,static"
-        puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/dynshreg_f.vhd,vhdl,static"
-        puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/srl_fifo_rbu_f.vhd,vhdl,static"
-        puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/srl_fifo_f.vhd,vhdl,static"
-        set b_pre_add_axi_sg_lib 1
-      }
-    }
+    if { [regexp {^fifo_generator_v13_0_1} $library] ||
+         [regexp {^lib_pkg_v1_0_2}         $library] ||
+         [regexp {^lib_srl_fifo_v}         $library] } { continue }
     puts $fh $data
   }
   close $fh

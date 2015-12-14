@@ -181,7 +181,7 @@ proc export_ip_user_files {args} {
     # -of_objects not specified? generate sim scripts for all ips/bds
     if { !$a_vars(b_of_objects_specified) } {
       foreach ip_file [get_files -quiet -norecurse -pattern *.xci -pattern *.bd] {
-        export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force
+        export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -ip_user_files_dir $a_vars(base_dir) -ipstatic_source_dir $a_vars(ipstatic_dir) -force
       }
     }
   }
@@ -905,7 +905,7 @@ proc xif_set_dirs {} {
   }
 
   if { {} == $dir } {
-    set base_dir $a_vars(s_xport_dir)
+    set dir $a_vars(s_xport_dir)
   }
   set a_vars(base_dir) [file normalize $dir]
 
