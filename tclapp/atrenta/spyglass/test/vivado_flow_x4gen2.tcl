@@ -8,7 +8,7 @@ set proj_dir vivado_proj_1
 ########################################
 
 # Project Settings
-open_project "$test_dir/${proj_dir}/vfifo_controller_base_x4_gen2.xpr"
+open_project -read_only "$test_dir/${proj_dir}/vfifo_controller_base_x4_gen2.xpr"
 #set_property top ${top} [current_fileset]
 #set_property verilog_define { {RDS=1} {PCIEx4=1} {GEN2_CAP=1} {USE_KC705=1} {USE_DDR3_FIFO=1} {USE_7SERIES=1} } [current_fileset]
 
