@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.2
+package require ::tclapp::aldec::common::helpers 1.3
 
-package provide ::tclapp::aldec::common::sim 1.2
+package provide ::tclapp::aldec::common::sim 1.3
 
 namespace eval ::tclapp::aldec::common {
 
@@ -30,7 +30,7 @@ proc setup { args } {
   usf_setup_args $args
 
   # perform initial simulation tasks
-  if { [usf_setup_simulation] } {
+  if { [usf_aldec_setup_simulation] } {
     return 1
   }
   return 0
@@ -43,10 +43,10 @@ proc compile { args } {
   # Return Value:
   # none
   
-  set simulatorName [::tclapp::aldec::common::helpers::usf_getSimulatorName]
+  set simulatorName [::tclapp::aldec::common::helpers::usf_aldec_getSimulatorName]
 
-  send_msg_id USF-${simulatorName}-75 INFO "${simulatorName}::Compile design"
-  usf_write_compile_script
+  send_msg_id USF-${simulatorName}-81 INFO "${simulatorName}::Compile design"
+  usf_aldec_write_compile_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -70,9 +70,9 @@ proc simulate { args } {
 
   set dir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
   
-  set simulatorName [::tclapp::aldec::common::helpers::usf_getSimulatorName]
+  set simulatorName [::tclapp::aldec::common::helpers::usf_aldec_getSimulatorName]
 
-  send_msg_id USF-${simulatorName}-76 INFO "${simulatorName}::Simulate design"
+  send_msg_id USF-${simulatorName}-82 INFO "${simulatorName}::Simulate design"
   usf_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
@@ -83,7 +83,7 @@ proc simulate { args } {
     set fh 0
     set file [file normalize [file join $dir "simulate.log"]]
     if {[catch {open $file w} fh]} {
-      send_msg_id USF-${simulatorName}-77 ERROR "Failed to open file to write ($file)\n"
+      send_msg_id USF-${simulatorName}-83 ERROR "Failed to open file to write ($file)\n"
     } else {
       puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
       close $fh
@@ -94,29 +94,29 @@ proc simulate { args } {
 
 namespace eval ::tclapp::aldec::common::sim {
 
-proc usf_getPropertyName { property } {
+proc usf_aldec_getPropertyName { property } {
   switch -- [get_property target_simulator [current_project]] {
     Riviera { return "RIVIERA.$property" }
     ActiveHDL { return "ACTIVEHDL.$property" }
   }
 }
 
-proc usf_getSimulatorName {} {
+proc usf_aldec_getSimulatorName {} {
   # Summary:
   # Argument Usage:
   # Return Value:
   
-  return [::tclapp::aldec::common::helpers::usf_getSimulatorName]
+  return [::tclapp::aldec::common::helpers::usf_aldec_getSimulatorName]
 }
 
-proc usf_setup_simulation { args } {
+proc usf_aldec_setup_simulation { args } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
 
-  ::tclapp::aldec::common::helpers::usf_set_simulator_path
+  ::tclapp::aldec::common::helpers::usf_aldec_set_simulator_path
 
   # set the simulation flow
   ::tclapp::aldec::common::helpers::usf_set_simulation_flow
@@ -132,14 +132,9 @@ proc usf_setup_simulation { args } {
   # prepare IP's for simulation
   ::tclapp::aldec::common::helpers::usf_prepare_ip_for_simulation
 
-  # generate mem files
-  #::tclapp::aldec::common::helpers::usf_generate_mem_files_for_simulation
-
-  # find/copy modelsim.ini file into run dir
-  #usf_verify_compiled_lib ;#[BS] do we need this?
-
   # fetch the compile order for the specified object
-  ::tclapp::aldec::common::helpers::usf_get_compile_order_for_obj
+  ::tclapp::aldec::common::helpers::usf_xport_data_files
+
 
   # fetch design files
   set global_files_str {}
@@ -147,7 +142,7 @@ proc usf_setup_simulation { args } {
      [::tclapp::aldec::common::helpers::usf_uniquify_cmd_str [::tclapp::aldec::common::helpers::usf_get_files_for_compilation global_files_str]]
 
   # create setup file
-  usf_write_setup_files
+  usf_aldec_write_setup_files
 
   return 0
 }
@@ -176,7 +171,6 @@ proc usf_setup_args { args } {
 
   set args [string trim $args "\}\{"]
 
-  #[BS] do we need care about these switches? which can be removed?
   # process options
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
@@ -195,7 +189,7 @@ proc usf_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id USF-[usf_getSimulatorName]-78 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
+          send_msg_id USF-[usf_aldec_getSimulatorName]-84 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
           return 1
         }
       }
@@ -203,79 +197,8 @@ proc usf_setup_args { args } {
   }
 }
 
-proc usf_verify_compiled_lib {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
 
-  variable a_sim_vars
-  set b_scripts_only $::tclapp::aldec::common::helpers::a_sim_vars(b_scripts_only)
-
-  set ini_file "modelsim.ini"
-  set compiled_lib_dir {}
-
-  send_msg_id USF-[usf_getSimulatorName]-79 INFO "Finding pre-compiled libraries...\n"
-
-  # 1. find in project default dir (<project>/<project>.cache/compile_simlib
-  set dir [get_property "COMPXLIB.COMPILED_LIBRARY_DIR" [current_project]]
-  set file [file normalize [file join $dir $ini_file]]
-  if { [file exists $file] } {
-    set compiled_lib_dir $dir
-  }
-  # 1a. find modelsim.ini from current working directory
-  if { {} == $compiled_lib_dir } {
-    set dir [file normalize [pwd]]
-    set file [file normalize [file join $dir $ini_file]]
-    if { [file exists $file] } {
-      set compiled_lib_dir $dir
-    }
-  }
-  # 2. not found? check MODELSIM
-  if { {} == $compiled_lib_dir } {
-    if { [info exists ::env(MODELSIM)] } {
-      set file [file normalize $::env(MODELSIM)]
-      if { {} != $file } {
-        set compiled_lib_dir [file dirname $file]
-      }
-    }
-  }
-  # 3. not found? check MGC_WD
-  if { {} == $compiled_lib_dir } {
-    if { [info exists ::env(MGC_WD)] } {
-      set file_dir [file normalize $::env(MGC_WD)]
-      if { {} != $file_dir } {
-        set compiled_lib_dir $file_dir
-      }
-    }
-  }
-  # 4. not found? finally check in run dir
-  if { {} == $compiled_lib_dir } {
-    set file [file normalize [file join $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir) $ini_file]]
-    if { ! [file exists $file] } {
-      if { $b_scripts_only } {
-        send_msg_id USF-[usf_getSimulatorName]-80 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
-      } else {
-        send_msg_id USF-[usf_getSimulatorName]-81 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
-      }
-      send_msg_id USF-[usf_getSimulatorName]-82 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
-                                             - set the 'COMPXLIB.COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim/QuestaSim, or\n\
-                                             - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
-                                             - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
-    }
-  } else {
-    # 5. copy to run dir
-    set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
-    if { [file exists $ini_file_path] } {
-      if {[catch {file copy -force $ini_file_path $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)} error_msg] } {
-        send_msg_id USF-[usf_getSimulatorName]-83 ERROR "Failed to copy file ($ini_file): $error_msg\n"
-      } else {
-        send_msg_id USF-[usf_getSimulatorName]-84 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)'\n"
-      }
-    }
-  }
-}
-
-proc usf_write_setup_files {} {
+proc usf_aldec_write_setup_files {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -287,18 +210,13 @@ proc usf_write_setup_files {} {
   set lib_dir [file normalize [file join $dir "msim"]]
   if { [file exists $lib_dir] } {
     if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id USF-[usf_getSimulatorName]-85 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-85 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
       return 1
     }
   }
-
-  #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id USF-[usf_getSimulatorName]-86 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
-  #  return 1
-  #}
 }
 
-proc usf_write_compile_script {} {
+proc usf_aldec_write_compile_script {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -312,29 +230,12 @@ proc usf_write_compile_script {} {
   set do_filename $top;append do_filename "_compile.do"
   set do_file [file normalize [file join $dir $do_filename]]
 
-  send_msg_id USF-[usf_getSimulatorName]-87 INFO "Creating automatic 'do' files...\n"
+  send_msg_id USF-[usf_aldec_getSimulatorName]-86 INFO "Creating automatic 'do' files...\n"
 
-  usf_create_do_file_for_compilation $do_file
+  usf_aldec_create_do_file_for_compilation $do_file
 
   # write compile.sh/.bat
-  usf_write_driver_shell_script $do_filename "compile"
-}
-
-proc usf_write_elaborate_script {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set top $::tclapp::aldec::common::helpers::a_sim_vars(s_sim_top)
-  set dir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
-  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
-  set do_filename {}
-  set do_filename $top;append do_filename "_elaborate.do"
-  set do_file [file normalize [file join $dir $do_filename]]
-  usf_create_do_file_for_elaboration $do_file
-
-  # write elaborate.sh/.bat
-  usf_write_driver_shell_script $do_filename "elaborate"
+  usf_aldec_write_driver_shell_script $do_filename "compile"
 }
 
 proc usf_write_simulate_script {} {
@@ -348,10 +249,10 @@ proc usf_write_simulate_script {} {
   set do_filename {}
   set do_filename $top;append do_filename "_simulate.do"
   set do_file [file normalize [file join $dir $do_filename]]
-  usf_create_do_file_for_simulation $do_file
+  usf_aldec_create_do_file_for_simulation $do_file
 
   # write elaborate.sh/.bat
-  usf_write_driver_shell_script $do_filename "simulate"
+  usf_aldec_write_driver_shell_script $do_filename "simulate"
 }
 
 proc usf_create_udo_file { file } {
@@ -365,88 +266,49 @@ proc usf_create_udo_file { file } {
   }
   set fh 0
   if {[catch {open $file w} fh]} {
-    send_msg_id USF-[usf_getSimulatorName]-88 ERROR "Failed to open file to write ($file)\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-87 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
-  usf_write_header $fh $file
+  usf_aldec_write_header $fh $file
   close $fh
 }
 
-proc usf_createDesignIfNeeded { out } {
+proc usf_aldec_create_do_file_for_compilation { do_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
-  if { [get_property target_simulator [current_project]] != "ActiveHDL" } {
-    return
-  }
-  
-  set designName [current_project]
-  set targetDir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
-  
-  puts $out "createdesign \{$designName\} \{$targetDir\}"
-  puts $out "opendesign \{${targetDir}/${designName}/${designName}.adf\}"
-}
-
-proc usf_getQuitCmd {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
-    return "quit"
-  } else {
-    return "quit -force"
-  }  
-}
-
-proc usf_getGlblPath {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
-    return $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)/glbl.v
-  } else {
-    return glbl.v
-  }
-}
-
-proc usf_create_do_file_for_compilation { do_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  send_msg_id USF-[usf_getSimulatorName]-89 INFO "$do_file\n"
+  send_msg_id USF-[usf_aldec_getSimulatorName]-88 INFO "$do_file\n"
 
   set top $::tclapp::aldec::common::helpers::a_sim_vars(s_sim_top)
   set dir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::aldec::common::helpers::a_sim_vars(b_absolute_path)
-  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+  set target_simulator [get_property target_simulator [current_project]]
+  if { $target_simulator == "ActiveHDL" } {
     set b_absolute_path 1
   }  
 
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-[usf_getSimulatorName]-90 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-89 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
-  usf_write_header $fh $do_file
-  usf_add_quit_on_error $fh "compile"
+  usf_aldec_write_header $fh $do_file
+  usf_aldec_add_quit_on_error $fh "compile"
 
-  usf_createDesignIfNeeded $fh
+  usf_aldec_createDesignIfNeeded $fh
 
   puts $fh "vlib work\n"
 
-  set design_libs [usf_get_design_libs $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)]
+  set design_libs [usf_aldec_get_design_libs $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
   # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
 
-  set libraryPrefix [::tclapp::aldec::common::helpers::usf_getLibraryPrefix]
+  set libraryPrefix [::tclapp::aldec::common::helpers::usf_aldec_getLibraryPrefix]
   
   set b_default_lib false
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
@@ -472,15 +334,15 @@ proc usf_create_do_file_for_compilation { do_file } {
   }
 
   set vlog_arg_list [list]
-  set vlog_syntax [get_property [usf_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj]
+  set vlog_syntax [get_property [usf_aldec_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj]
   lappend vlog_arg_list "-$vlog_syntax"
-  if { [get_property [usf_getPropertyName COMPILE.DEBUG] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.DEBUG] $fs_obj] } {
     lappend vlog_arg_list "-dbg"
   }
-  if { [get_property [usf_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
     lappend vlog_arg_list "-incr"
   }
-  set more_vlog_options [string trim [get_property [usf_getPropertyName COMPILE.VLOG.MORE_OPTIONS] $fs_obj]]
+  set more_vlog_options [string trim [get_property [usf_aldec_getPropertyName COMPILE.VLOG.MORE_OPTIONS] $fs_obj]]
   if { {} != $more_vlog_options } {
     set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
   }
@@ -488,18 +350,18 @@ proc usf_create_do_file_for_compilation { do_file } {
   puts $fh "null \[set vlog_opts \{$vlog_cmd_str\}\]"
 
   set vcom_arg_list [list]
-  set vhdl_syntax [get_property [usf_getPropertyName COMPILE.VHDL_SYNTAX] $fs_obj]
+  set vhdl_syntax [get_property [usf_aldec_getPropertyName COMPILE.VHDL_SYNTAX] $fs_obj]
   lappend vcom_arg_list "-$vhdl_syntax"
-  if { [get_property [usf_getPropertyName COMPILE.VHDL_RELAX] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.VHDL_RELAX] $fs_obj] } {
     lappend vcom_arg_list "-relax"
   }
-  if { [get_property [usf_getPropertyName COMPILE.DEBUG] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.DEBUG] $fs_obj] } {
     lappend vcom_arg_list "-dbg"
   }
-  if { [get_property [usf_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
     lappend vcom_arg_list "-incr"
   }
-  set more_vcom_options [string trim [get_property [usf_getPropertyName COMPILE.VCOM.MORE_OPTIONS] $fs_obj]]
+  set more_vcom_options [string trim [get_property [usf_aldec_getPropertyName COMPILE.VCOM.MORE_OPTIONS] $fs_obj]]
   if { {} != $more_vcom_options } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
   }
@@ -509,56 +371,31 @@ proc usf_create_do_file_for_compilation { do_file } {
   puts $fh ""
 
   foreach file $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files) {
-    set fargs    [split $file {#}]
-    
-    set type     [lindex $fargs 0]
-    set lib      [lindex $fargs 1]
-    set cmd_str  [lindex $fargs 2]
-    set src_file [lindex $fargs 3]
+    set fargs       [split $file {|}]
+    set type        [lindex $fargs 0]
+    set file_type   [lindex $fargs 1]
+    set lib         [lindex $fargs 2]
+    set cmd_str     [lindex $fargs 3]
+    set src_file    [lindex $fargs 4]
+    set b_static_ip [lindex $fargs 5]
     
     puts $fh "eval $cmd_str $src_file"
   }
 
   # compile glbl file
-  set b_load_glbl [get_property [usf_getPropertyName COMPILE.LOAD_GLBL] [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]]
-  if { [::tclapp::aldec::common::helpers::usf_compile_glbl_file $b_load_glbl $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)] } {
+  set b_load_glbl [get_property [usf_aldec_getPropertyName COMPILE.LOAD_GLBL] [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]]
+  if { [::tclapp::aldec::common::helpers::usf_compile_glbl_file $target_simulator $b_load_glbl $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)] } {
     ::tclapp::aldec::common::helpers::usf_copy_glbl_file
     set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
-    set file_str "-work $top_lib \"[usf_getGlblPath]\""
+    set file_str "-work $top_lib \"[usf_aldec_getGlblPath]\""
     puts $fh "\n# compile glbl module\nvlog $file_str"
   }
 
-  puts $fh "\n[usf_getQuitCmd]"
+  puts $fh "\n[usf_aldec_getQuitCmd]"
   close $fh
 }
 
-proc usf_create_do_file_for_elaboration { do_file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set top $::tclapp::aldec::common::helpers::a_sim_vars(s_sim_top)
-  set dir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
-  set b_batch $::tclapp::aldec::common::helpers::a_sim_vars(b_batch)
-  set b_scripts_only $::tclapp::aldec::common::helpers::a_sim_vars(b_scripts_only)
-
-  set fh 0
-  if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-[usf_getSimulatorName]-91 ERROR "Failed to open file to write ($do_file)\n"
-    return 1
-  }
-
-  usf_write_header $fh $do_file
-  usf_add_quit_on_error $fh "elaborate"
-
-  set cmd_str [usf_get_elaboration_cmdline]
-  puts $fh "$cmd_str"
-  puts $fh "\n[usf_getQuitCmd]"
-
-  close $fh
-}
-
-proc usf_get_elaboration_cmdline {} {
+proc usf_aldec_get_elaboration_cmdline {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -573,9 +410,9 @@ proc usf_get_elaboration_cmdline {} {
 
   set arg_list [list]
 
-  if { [get_property [usf_getPropertyName ELABORATE.ACCESS] $fs_obj]
-    || [get_property [usf_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
-    || [get_property [usf_getPropertyName SIMULATE.SAIF] $fs_obj] != {} } {
+  if { [get_property [usf_aldec_getPropertyName ELABORATE.ACCESS] $fs_obj]
+    || [get_property [usf_aldec_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
+    || [get_property [usf_aldec_getPropertyName SIMULATE.SAIF] $fs_obj] != {} } {
     lappend arg_list "+access +r"
   } else {
     lappend arg_list "+access +r +m+$top"
@@ -605,7 +442,7 @@ proc usf_get_elaboration_cmdline {} {
   }
 
   # behavioral simulation
-  set b_compile_unifast [get_property [usf_getPropertyName ELABORATE.UNIFAST] $fs_obj]
+  set b_compile_unifast [get_property [usf_aldec_getPropertyName ELABORATE.UNIFAST] $fs_obj]
 
   if { ([::tclapp::aldec::common::helpers::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
@@ -625,7 +462,7 @@ proc usf_get_elaboration_cmdline {} {
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
   # add design libraries
-  set design_libs [usf_get_design_libs $design_files]
+  set design_libs [usf_aldec_get_design_libs $design_files]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend arg_list "-L"
@@ -639,7 +476,7 @@ proc usf_get_elaboration_cmdline {} {
   return $cmd_str
 }
 
-proc usf_get_simulation_cmdline {} {
+proc usf_aldec_get_simulation_cmdline {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -659,19 +496,19 @@ proc usf_get_simulation_cmdline {} {
     lappend arg_list "-asdb"
   }
 
-  lappend arg_list [usf_get_elaboration_cmdline]
+  lappend arg_list [usf_aldec_get_elaboration_cmdline]
   
-  if { [get_property [usf_getPropertyName SIMULATE.VERILOG_ACCELERATION] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.VERILOG_ACCELERATION] $fs_obj] } {
     lappend arg_list "-O5"
   } else {
     lappend arg_list "-O2"
   }
   
-  if { [get_property [usf_getPropertyName SIMULATE.DEBUG] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.DEBUG] $fs_obj] } {
     lappend arg_list "-dbg"
   }  
 
-  set more_sim_options [string trim [get_property [usf_getPropertyName SIMULATE.ASIM.MORE_OPTIONS] $fs_obj]]
+  set more_sim_options [string trim [get_property [usf_aldec_getPropertyName SIMULATE.ASIM.MORE_OPTIONS] $fs_obj]]
   if { {} != $more_sim_options } {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
@@ -682,7 +519,7 @@ proc usf_get_simulation_cmdline {} {
     if { {} != $simulator_lib } {
       set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
     } else {
-      send_msg_id USF-[usf_getSimulatorName]-92 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+      send_msg_id USF-[usf_aldec_getSimulatorName]-90 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
     }
   }
 
@@ -698,7 +535,7 @@ proc usf_get_simulation_cmdline {} {
   return $cmd_str
 }
 
-proc usf_setSimulationPrerequisites { out } {
+proc usf_aldec_setSimulationPrerequisites { out } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -714,7 +551,7 @@ proc usf_setSimulationPrerequisites { out } {
   puts $out "set SIM_WORKING_FOLDER \$dsn/.."
 }
 
-proc usf_getDefaultDatasetName {} {
+proc usf_aldec_getDefaultDatasetName {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -725,7 +562,7 @@ proc usf_getDefaultDatasetName {} {
   }  
 }
 
-proc usf_create_do_file_for_simulation { do_file } {
+proc usf_aldec_create_do_file_for_simulation { do_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -737,19 +574,19 @@ proc usf_create_do_file_for_simulation { do_file } {
   set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
-    send_msg_id USF-[usf_getSimulatorName]-93 ERROR "Failed to open file to write ($do_file)\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-91 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
 
-  usf_write_header $fh $do_file
-  usf_add_quit_on_error $fh "simulate"
+  usf_aldec_write_header $fh $do_file
+  usf_aldec_add_quit_on_error $fh "simulate"
 
-  usf_setSimulationPrerequisites $fh
+  usf_aldec_setSimulationPrerequisites $fh
 
-  puts $fh [usf_get_simulation_cmdline]
+  puts $fh [usf_aldec_get_simulation_cmdline]
   puts $fh ""
 
-  set b_log_all_signals [get_property [usf_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
+  set b_log_all_signals [get_property [usf_aldec_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
   if { $b_log_all_signals } {
     puts $fh "log -rec *"
     if { [::tclapp::aldec::common::helpers::usf_contains_verilog $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)] } {
@@ -757,13 +594,13 @@ proc usf_create_do_file_for_simulation { do_file } {
     }
   }
   
-  set uut [get_property [usf_getPropertyName SIMULATE.UUT] $fs_obj]
+  set uut [get_property [usf_aldec_getPropertyName SIMULATE.UUT] $fs_obj]
   if { {} == $uut } {
     set uut "/$top/uut"
   }
  
   # generate saif file for power estimation
-  set saif [get_property [usf_getPropertyName SIMULATE.SAIF] $fs_obj]
+  set saif [get_property [usf_aldec_getPropertyName SIMULATE.SAIF] $fs_obj]
   if { !$b_log_all_signals } {
     if { {} != $saif } {
       set rec ""
@@ -776,7 +613,7 @@ proc usf_create_do_file_for_simulation { do_file } {
 
   puts $fh "wave *"
 
-  set rt [string trim [get_property [usf_getPropertyName SIMULATE.RUNTIME] $fs_obj]]
+  set rt [string trim [get_property [usf_aldec_getPropertyName SIMULATE.RUNTIME] $fs_obj]]
   if { {} == $rt } {
     # no runtime specified
     puts $fh "\nrun"
@@ -803,7 +640,7 @@ proc usf_create_do_file_for_simulation { do_file } {
     if { $::tclapp::aldec::common::helpers::a_sim_vars(s_mode) != {behavioral} } {
       set rec "-rec"
     }
-    puts $fh "asdb2saif -internal -scope $rec ${uut}/* [usf_getDefaultDatasetName] \{$saif\}"
+    puts $fh "asdb2saif -internal -scope $rec ${uut}/* [usf_aldec_getDefaultDatasetName] \{$saif\}"
   }
 
   # add TCL sources
@@ -820,12 +657,12 @@ proc usf_create_do_file_for_simulation { do_file } {
 
   if { $b_batch || $b_scripts_only } {
     puts $fh "\nendsim"
-    puts $fh "\n[usf_getQuitCmd]"
+    puts $fh "\n[usf_aldec_getQuitCmd]"
   }
   close $fh
 }
 
-proc usf_write_header { fh filename } {
+proc usf_aldec_write_header { fh filename } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -848,7 +685,7 @@ proc usf_write_header { fh filename } {
   puts $fh "######################################################################"
 }
 
-proc usf_writeWindowsExecutableCmdLine { out batch_sw do_filename log_filename } {
+proc usf_aldec_writeWindowsExecutableCmdLine { out batch_sw do_filename log_filename } {
   if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
   
     puts $out "call \"%bin_path%/avhdl\" -do \"do -tcl \{$do_filename\}\""
@@ -872,7 +709,7 @@ proc usf_writeWindowsExecutableCmdLine { out batch_sw do_filename log_filename }
   }
 }
 
-proc usf_write_driver_shell_script { do_filename step } {
+proc usf_aldec_write_driver_shell_script { do_filename step } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -885,7 +722,7 @@ proc usf_write_driver_shell_script { do_filename step } {
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
-    send_msg_id USF-[usf_getSimulatorName]-94 ERROR "Failed to open file to write ($scr_file)\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-92 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
 
@@ -915,7 +752,7 @@ proc usf_write_driver_shell_script { do_filename step } {
     }
 
     puts $fh_scr "set bin_path=$::tclapp::aldec::common::helpers::a_sim_vars(s_tool_bin_path)"
-    usf_writeWindowsExecutableCmdLine $fh_scr $batch_sw $do_filename $log_filename
+    usf_aldec_writeWindowsExecutableCmdLine $fh_scr $batch_sw $do_filename $log_filename
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
@@ -926,15 +763,17 @@ proc usf_write_driver_shell_script { do_filename step } {
   close $fh_scr
 }
 
-proc usf_get_design_libs { files } {
+proc usf_aldec_get_design_libs { files } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set libs [list]
   foreach file $files {
-    set type    [lindex [split $file {#}] 0]
-    set library [lindex [split $file {#}] 1]
+    set fargs     [split $file {|}]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set library   [lindex $fargs 2]
     if { {} == $library } {
       continue;
     }
@@ -945,23 +784,7 @@ proc usf_get_design_libs { files } {
   return $libs
 }
 
-proc usf_set_initial_cmd { fh_scr cmd_str src_file type lib prev_type_arg prev_lib_arg } {
-  # Summary: Print compiler command line and store previous file type and library information
-  # Argument Usage:
-  # Return Value:
-  # None
-
-  upvar $prev_type_arg prev_type
-  upvar $prev_lib_arg  prev_lib
-
-  puts $fh_scr "eval $cmd_str \\"
-  puts $fh_scr "$src_file \\"
-
-  set prev_type $type
-  set prev_lib  $lib
-}
-
-proc usf_add_quit_on_error { fh step } {
+proc usf_aldec_add_quit_on_error { fh step } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -979,19 +802,59 @@ proc usf_add_quit_on_error { fh step } {
   }  
 
   if { ({compile} == $step) || ({elaborate} == $step) } {
-    puts $fh "onbreak \{[usf_getQuitCmd]\}"
-    puts $fh "onerror \{[usf_getQuitCmd]\}\n"
+    puts $fh "onbreak \{[usf_aldec_getQuitCmd]\}"
+    puts $fh "onerror \{[usf_aldec_getQuitCmd]\}\n"
   } elseif { ({simulate} == $step) } {
     if { !$noQuitOnError } {
-      puts $fh "onbreak \{[usf_getQuitCmd]\}"
-      puts $fh "onerror \{[usf_getQuitCmd]\}\n"
+      puts $fh "onbreak \{[usf_aldec_getQuitCmd]\}"
+      puts $fh "onerror \{[usf_aldec_getQuitCmd]\}\n"
     } 
 
     # quit on error always for batch/scripts only and when param is true
     if { ($b_batch || $b_scripts_only) && $noQuitOnError } {
-      puts $fh "onbreak \{[usf_getQuitCmd]\}"
-      puts $fh "onerror \{[usf_getQuitCmd]\}\n"
+      puts $fh "onbreak \{[usf_aldec_getQuitCmd]\}"
+      puts $fh "onerror \{[usf_aldec_getQuitCmd]\}\n"
     }
+  }
+}
+
+proc usf_aldec_createDesignIfNeeded { out } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  if { [get_property target_simulator [current_project]] != "ActiveHDL" } {
+    return
+  }
+  
+  set designName [current_project]
+  set targetDir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
+  
+  puts $out "createdesign \{$designName\} \{$targetDir\}"
+  puts $out "opendesign \{${targetDir}/${designName}/${designName}.adf\}"
+}
+
+proc usf_aldec_getQuitCmd {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+    return "quit"
+  } else {
+    return "quit -force"
+  }  
+}
+
+proc usf_aldec_getGlblPath {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+    return $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)/glbl.v
+  } else {
+    return glbl.v
   }
 }
 
