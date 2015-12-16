@@ -55,7 +55,7 @@ proc export_simulation {args} {
   variable l_defines
   variable l_generics
   variable l_include_dirs
-  variable l_xpm_files
+  variable l_xpm_libraries
   xps_init_vars
   set a_sim_vars(options) [split $args " "]
 
@@ -75,7 +75,7 @@ proc export_simulation {args} {
       "-define"                   { incr i;set l_defines                         [lindex $args $i];set a_sim_vars(b_define_specified)                    1 }
       "-generic"                  { incr i;set l_generics                        [lindex $args $i];set a_sim_vars(b_generic_specified)                   1 }
       "-include"                  { incr i;set l_include_dirs                    [lindex $args $i];set a_sim_vars(b_include_specified)                   1 }
-      "-xpm_library"              { incr i;set l_xpm_files                       [lindex $args $i];set a_sim_vars(b_xpm_specified)                       1 }
+      "-xpm_library"              { incr i;set l_xpm_libraries                   [lindex $args $i];set a_sim_vars(b_xpm_specified)                       1 }
       "-32bit"                    { set a_sim_vars(b_32bit)                                                                                              1 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)                                                                                      1 }
       "-use_ipstatic_library"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
