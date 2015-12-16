@@ -871,16 +871,15 @@ proc xcs_skip_ip { ip_def } {
   # Argument Usage:
   # Return Value:
 
+  #     [regexp -nocase {sem_ultra}            $ip_def] ||
   set b_skip 0
-  if { [regexp -nocase {sem_ultra}            $ip_def] ||
-       [regexp -nocase {g709_rs_decoder}      $ip_def] ||
+  if { [regexp -nocase {g709_rs_decoder}      $ip_def] ||
        [regexp -nocase {g709_fec}             $ip_def] ||
        [regexp -nocase {hdcp}                 $ip_def] ||
        [regexp -nocase {ibert_lib}            $ip_def] ||
        [regexp -nocase {ieee802d3_25g_rs_fec} $ip_def] ||
        [regexp -nocase {labtools_ibert_lib}   $ip_def] ||
        [regexp -nocase {pci32}                $ip_def] ||
-       [regexp -nocase {pci64}                $ip_def] ||
        [regexp -nocase {pci64}                $ip_def] ||
        [regexp -nocase {microblaze_mcs}       $ip_def] ||
        [regexp -nocase {displayport}          $ip_def] } {

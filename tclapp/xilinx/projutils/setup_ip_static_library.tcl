@@ -977,6 +977,7 @@ proc isl_extract_install_files { } {
           if { {} == $library } {
             send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
           }
+          if { {xil_defaultlib} == $library } { continue }
           if { [lsearch $ip_libs $library] == -1 } {
             lappend ip_libs $library
             # <ipstatic_dir>/<library>
@@ -1044,6 +1045,7 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
         if { {} == $library } {
           send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
         }
+        if { {xil_defaultlib} == $library } { continue }
         if { [lsearch $ip_libs $library] == -1 } {
           lappend ip_libs $library
           # <ipstatic_dir>/<library>
