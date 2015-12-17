@@ -82,5 +82,7 @@ tclapp::xilinx::profiler::write_report
 if { [ file exists .profile.csv ] } { error "Found the .profile.csv, this file should've been cleaned up" } 
 if { ! [ file exists profile.out ] } { error "Failed to find the profile.out" } 
 
+file delete -force profile.out
+
 puts "Done."
 
