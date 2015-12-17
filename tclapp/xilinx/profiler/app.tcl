@@ -267,11 +267,16 @@ proc init {} {
   set initialized 1
 }
 
-#
-# prints a stack trace
-#
 proc print_stack { } {
-  
+  # Summary:
+  # Prints a stack trace
+
+  # Argument Usage: 
+   
+  # Return Value:
+    
+  # Categories: xilinxtclstore, profiler
+
   set this_location_in_stack 2
   set start_frame 2
   # stack size will change with 'for' and 'foreach' loops, but because the levels 1 
