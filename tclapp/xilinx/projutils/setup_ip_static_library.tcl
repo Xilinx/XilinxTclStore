@@ -968,6 +968,8 @@ proc isl_extract_install_files { } {
         }
         set ip_lib_dir {}
         set file_paths [list]
+        set pcore_libs [list]
+        set mcs_lib_name {}
         foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
           set file_entry [split $static_file { }]
           lassign $file_entry file_key comp_ref file_group_name file_path
@@ -978,9 +980,16 @@ proc isl_extract_install_files { } {
             send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
           }
           if { {sem_ultra_v3_0_1} == $library} { continue }
+          #if { {axi_lite_ipif_v3_0} == $library} { continue }
+          #if { {iomodule_v3_0} == $library} { continue }
           if { {xil_defaultlib} == $library } { continue }
           if { [lsearch $ip_libs $library] == -1 } {
             lappend ip_libs $library
+            if { [regexp {microblaze_mcs_v} $library] } {
+              set mcs_lib_name $library
+            } else {
+              lappend pcore_libs $library
+            }
             # <ipstatic_dir>/<library>
             set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $library]
             if { ![file exists $ip_lib_dir] } {
@@ -994,8 +1003,22 @@ proc isl_extract_install_files { } {
           isl_add_to_compile_order $library $data
           isl_copy_static_source $ip_dir $library $file_path 
         }
-        isl_create_vao_file $ip_lib_dir $file_paths
-        isl_create_incl_file $ip_lib_dir $file_paths
+        
+        # for microblaze_mcs, create vao file for each pcore library and then for microblaze_mcs
+        if { {microblaze_mcs} == $ip_def_name } {
+          foreach pcore_lib $pcore_libs {
+            set dir [file join $a_isl_vars(ipstatic_dir) $pcore_lib]
+            isl_create_vao_file_pcore $dir $file_paths $pcore_lib
+            isl_create_incl_file_pcore $dir $file_paths $pcore_lib
+          }
+          # now create vao file for microblaze_mcs
+          set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $mcs_lib_name]
+          isl_create_vao_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
+          isl_create_incl_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
+        } else {
+          isl_create_vao_file $ip_lib_dir $file_paths
+          isl_create_incl_file $ip_lib_dir $file_paths
+        }
       }
     }
 
@@ -1037,6 +1060,8 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
       }
       set ip_lib_dir {}
       set file_paths [list]
+      set pcore_libs [list]
+      set mcs_lib_name {}
       foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
         set file_entry [split $static_file { }]
         lassign $file_entry file_key comp_ref file_group_name file_path
@@ -1047,9 +1072,16 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
           send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
         }
         if { {sem_ultra_v3_0_1} == $library} { continue }
+        #if { {axi_lite_ipif_v3_0} == $library} { continue }
+        #if { {iomodule_v3_0} == $library} { continue }
         if { {xil_defaultlib} == $library } { continue }
         if { [lsearch $ip_libs $library] == -1 } {
           lappend ip_libs $library
+          if { [regexp {microblaze_mcs_v} $library] } {
+            set mcs_lib_name $library
+          } else {
+            lappend pcore_libs $library
+          }
           # <ipstatic_dir>/<library>
           set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $library]
           if { ![file exists $ip_lib_dir] } {
@@ -1063,8 +1095,22 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
         isl_add_to_compile_order $library $data
         isl_copy_static_source $ip_dir $library $file_path 
       }
-      isl_create_vao_file $ip_lib_dir $file_paths
-      isl_create_incl_file $ip_lib_dir $file_paths
+
+      # for microblaze_mcs, create vao file for each pcore library and then for microblaze_mcs
+      if { {microblaze_mcs} == $ip_def_name } {
+        foreach pcore_lib $pcore_libs {
+          set dir [file join $a_isl_vars(ipstatic_dir) $pcore_lib]
+          isl_create_vao_file_pcore $dir $file_paths $pcore_lib
+          isl_create_incl_file_pcore $dir $file_paths $pcore_lib
+        }
+        # now create vao file for microblaze_mcs
+        set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $mcs_lib_name]
+        isl_create_vao_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
+        isl_create_incl_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
+      } else {
+        isl_create_vao_file $ip_lib_dir $file_paths
+        isl_create_incl_file $ip_lib_dir $file_paths
+      }
     }
   }
 }
@@ -1110,11 +1156,16 @@ proc isl_write_compile_order { } {
     set data [string trim $data]
     if { [string length $data] == 0 } { continue; }
     set comps [split $data {,}]
-    set library [lindex $comps 0]
+    set library [string trim [lindex $comps 0]]
     if { [regexp {^fifo_generator_v13_0_1} $library] ||
          [regexp {^lib_pkg_v1_0_2}         $library] ||
+         [regexp {^g709_rs_decoder_v}      $library] ||
          [regexp {^lib_srl_fifo_v}         $library] } { continue }
     puts $fh $data
+    if { [regexp {^g709_rs_encoder_v} $library] } {
+      puts $fh "g709_rs_decoder_v2_2_2,hdl/g709_rs_decoder_v2_2_vh_rfs.vhd,vhdl,static"
+      puts $fh "g709_rs_decoder_v2_2_2,hdl/g709_rs_decoder_v2_2.vhd,vhdl,static"
+    }
   }
   close $fh
 }
@@ -1266,7 +1317,74 @@ proc isl_create_vao_file { ip_lib_dir file_paths } {
   }
 }
 
+proc isl_create_vao_file_pcore { ip_lib_dir file_paths pcore_lib } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set filelist [list]
+  foreach line $file_paths {
+    set tokens [split $line {,}]
+    set path [lindex $tokens 0]
+    set type [lindex $tokens 1]
+    if { {vhdl} == $type } {
+      # for microblaze_mcs_v library, filter pcore specific files (handled in else block)
+      if { ([regexp {^microblaze_mcs_v} $pcore_lib]) } {
+        if { [regexp {^pcores} $line] } { continue }
+        lappend filelist $path
+      } else {
+        # bucket pcore specific files only from the file_paths list
+        if { [regexp $pcore_lib $line] } {
+          lappend filelist $path
+        }
+      }
+    }
+  }
+
+  if { [llength $filelist] > 0 } {
+    set fh 0
+    set file [file join $ip_lib_dir "vhdl_analyze_order"]
+    if {[catch {open $file w} fh]} {
+      send_msg_id setup_ip_static_library-Tcl-027 ERROR "failed to open file for write ($file)\n"
+      return
+    }
+    foreach file $filelist {
+      puts $fh $file
+    }
+    close $fh
+  }
+}
+
 proc isl_create_incl_file { ip_lib_dir file_paths } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set filelist [list]
+  foreach line $file_paths {
+    set tokens [split $line {,}]
+    set path [lindex $tokens 0]
+    set type [lindex $tokens 1]
+    if { {verilog_header} == $type } {
+      lappend filelist $path
+    }
+  }
+
+  if { [llength $filelist] > 0 } {
+    set fh 0
+    set file [file join $ip_lib_dir "include.h"]
+    if {[catch {open $file w} fh]} {
+      send_msg_id setup_ip_static_library-Tcl-028 ERROR "failed to open file for write ($file)\n"
+      return
+    }
+    foreach file $filelist {
+      puts $fh $file
+    }
+    close $fh
+  }
+}
+
+proc isl_create_incl_file_pcore { ip_lib_dir file_paths pcore_lib } {
   # Summary:
   # Argument Usage:
   # Return Value:
