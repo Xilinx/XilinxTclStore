@@ -42,12 +42,15 @@ namespace export start
 namespace export stop
 namespace export write_report
 
+}; # end ::tclapp::xilinx::profiler
+
+
 ####################################################################################################
 # section: generic setters and getters
 ####################################################################################################
-proc set_out_file { file } {
+proc ::tclapp::xilinx::profiler::set_out_file { file } {
   # Summary:
-  # Sets output file that will be consumed by kcachegrind (.out).
+  # Sets output file that will be consumed by kcachegrind (.out)
 
   # Argument Usage: 
   #   file : The output file.
@@ -63,9 +66,9 @@ proc set_out_file { file } {
 }
 
 
-proc get_out_file {} {
+proc ::tclapp::xilinx::profiler::get_out_file {} {
   # Summary:
-  # Get output file that will be consumed by kcachegrind (.out).
+  # Get output file that will be consumed by kcachegrind (.out)
 
   # Argument Usage: 
    
@@ -79,10 +82,10 @@ proc get_out_file {} {
 }
 
 
-proc set_csv_file { file } {
+proc ::tclapp::xilinx::profiler::set_csv_file { file } {
   # Summary:
   # Sets output file name that will be used to capture profile (.csv).
-  # This file is normally hidden and the user should not need to use this file.
+  # This file is normally hidden and the user should not need to use this file
 
   # Argument Usage: 
   #   file : File name of profile csv file.
@@ -115,10 +118,10 @@ proc set_csv_file { file } {
 }
 
 
-proc get_csv_file {} {
+proc ::tclapp::xilinx::profiler::get_csv_file {} {
   # Summary:
   # Get output file name that will be used to capture profile (.csv).
-  # This file is normally hidden and the user should not need to use this file.
+  # This file is normally hidden and the user should not need to use this file
 
   # Argument Usage: 
    
@@ -135,9 +138,9 @@ proc get_csv_file {} {
 ####################################################################################################
 # section: Profiling
 ####################################################################################################
-proc start {} {
+proc ::tclapp::xilinx::profiler::start {} {
   # Summary:
-  # Start profiling.
+  # Start profiling
 
   # Argument Usage: 
    
@@ -165,9 +168,9 @@ proc start {} {
 }
 
 
-proc stop {} {
+proc ::tclapp::xilinx::profiler::stop {} {
   # Summary:
-  # Stop profiling.
+  # Stop profiling
 
   # Argument Usage: 
    
@@ -194,9 +197,9 @@ proc stop {} {
 }
 
 
-proc write_report {} {
+proc ::tclapp::xilinx::profiler::write_report {} {
   # Summary:
-  # Write the profiling report.
+  # Write the profiling report
 
   # Argument Usage: 
    
@@ -219,9 +222,9 @@ proc write_report {} {
 }
 
 
-proc add_commands commands {
+proc ::tclapp::xilinx::profiler::add_commands commands {
   # Summary:
-  # Add commands to profile.
+  # Add commands to profile
 
   # Argument Usage: 
   #   cmds : List of commands to profiler
@@ -246,9 +249,9 @@ proc add_commands commands {
 ####################################################################################################
 # section: Private - Profiling
 ####################################################################################################
-proc init {} {
+proc ::tclapp::xilinx::profiler::init {} {
   # Summary:
-  # Initialize profiler app.
+  # Initialize profiler app
 
   # Argument Usage: 
    
@@ -267,7 +270,7 @@ proc init {} {
   set initialized 1
 }
 
-proc print_stack { } {
+proc ::tclapp::xilinx::profiler::print_stack { } {
   # Summary:
   # Prints a stack trace
 
@@ -311,10 +314,10 @@ proc print_stack { } {
   catch { puts " Print Location Command at Line: [ dict get $last_source_frame line ]  In File: [ dict get $last_source_frame file ]" }
 }
 
-proc capture args {
+proc ::tclapp::xilinx::profiler::capture args {
   # Summary:
   # Takes a snapshot of current time in profiling units, currently: us (microseconds)
-  # Generally called by trace for the 'enter' and 'leave' of a proc. 
+  # Generally called by trace for the 'enter' and 'leave' of a proc
 
   # Argument Usage: 
   #   file : File name of profile csv file.
@@ -341,7 +344,7 @@ proc capture args {
 ####################################################################################################
 # section: Private - Converting CSV to Out
 ####################################################################################################
-proc convert_csv_to_out {} {
+proc ::tclapp::xilinx::profiler::convert_csv_to_out {} {
   # Summary:
   # Converts CSV to OUT file for kcachgrind
 
@@ -358,13 +361,12 @@ proc convert_csv_to_out {} {
 }
 
 
-proc sum_totals {arcs} {
+proc ::tclapp::xilinx::profiler::sum_totals {arcs} {
   # Summary:
-  # Sums all provided calls, each arc represents a single call.
+  # Sums all provided calls, each arc represents a single call
 
   # Argument Usage: 
-  #   arcs : Should be from [<graph> arc attr total -arcs <arcs>]
-  #          Which has the form {arc1 arc1_total arc2 arc2_total ...}
+  #   arcs : Should be from [<graph> arc attr total -arcs <arcs>] Which has the form {arc1 arc1_total arc2 arc2_total ...}
    
   # Return Value:
   #   total : The sum total of all the arc totals
@@ -381,9 +383,9 @@ proc sum_totals {arcs} {
 }
 
 
-proc write_node_to_out {node out_fd} {
+proc ::tclapp::xilinx::profiler::write_node_to_out {node out_fd} {
   # Summary:
-  # Recursively writes out the node and it's children in kcachegrind compatible format.
+  # Recursively writes out the node and it's children in kcachegrind compatible format
 
   # Argument Usage: 
   #   node : The node to write the output for
@@ -432,9 +434,9 @@ proc write_node_to_out {node out_fd} {
   }
 }
 
-proc convert_graph_to_out {} {
+proc ::tclapp::xilinx::profiler::convert_graph_to_out {} {
   # Summary:
-  # Convert the in-memory graph to the kcachegrind output format.
+  # Convert the in-memory graph to the kcachegrind output format
 
   # Argument Usage: 
    
@@ -462,7 +464,7 @@ proc convert_graph_to_out {} {
 }
 
 
-proc parse_csv_to_graph {} {
+proc ::tclapp::xilinx::profiler::parse_csv_to_graph {} {
   # Summary:
   # Convert the CSV file from profiling into the in-memory graph
 
@@ -540,9 +542,9 @@ proc parse_csv_to_graph {} {
 }
 
 
-proc reset_profile_graph {} {
+proc ::tclapp::xilinx::profiler::reset_profile_graph {} {
   # Summary:
-  # Clears the profile graph, the node stack, and the arc stack.
+  # Clears the profile graph, the node stack, and the arc stack
 
   # Argument Usage: 
    
@@ -563,9 +565,9 @@ proc reset_profile_graph {} {
 }
 
 
-proc is_root_node { graph node } {
+proc ::tclapp::xilinx::profiler::is_root_node { graph node } {
   # Summary:
-  # Gets the top-most root node of the profile graph.
+  # Gets the top-most root node of the profile graph
 
   # Argument Usage: 
    
@@ -576,7 +578,4 @@ proc is_root_node { graph node } {
 
   return [ expr [ $graph node degree -in $node ] == 0 ]
 }
-
-
-}; # end ::tclapp::xilinx::profiler
 

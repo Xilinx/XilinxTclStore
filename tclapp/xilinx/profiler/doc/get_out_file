@@ -2,5 +2,5 @@
 Example:
 
   # Get the output file
-  set output_file [ tclapp::xilinx::profiler::get_out_file ]
+  set output_file [ xilinx::profiler::get_out_file ]
 

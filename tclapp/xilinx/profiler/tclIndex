@@ -6,21 +6,10 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
-set auto_index(::tclapp::xilinx::profiler::set_out_file) [list source [file join $dir app.tcl]]
+
+set auto_index(::tclapp::xilinx::profiler::add_commands) [list source [file join $dir app.tcl]]
 set auto_index(::tclapp::xilinx::profiler::get_out_file) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::set_csv_file) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::get_csv_file) [list source [file join $dir app.tcl]]
+set auto_index(::tclapp::xilinx::profiler::set_out_file) [list source [file join $dir app.tcl]]
 set auto_index(::tclapp::xilinx::profiler::start) [list source [file join $dir app.tcl]]
 set auto_index(::tclapp::xilinx::profiler::stop) [list source [file join $dir app.tcl]]
 set auto_index(::tclapp::xilinx::profiler::write_report) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::add_commands) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::init) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::print_stack) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::capture) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::convert_csv_to_out) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::sum_totals) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::write_node_to_out) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::convert_graph_to_out) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::parse_csv_to_graph) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::reset_profile_graph) [list source [file join $dir app.tcl]]
-set auto_index(::tclapp::xilinx::profiler::is_root_node) [list source [file join $dir app.tcl]]

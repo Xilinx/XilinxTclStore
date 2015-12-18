@@ -2,13 +2,13 @@
 Example:
   
   To add all procs from a namespace for profiling
-  tclapp::xilinx::profiler::add_commands [ info proc ::test::* ]
+  xilinx::profiler::add_commands [ info proc ::test::* ]
   
   To add individual procs:
-  tclapp::xilinx::profiler::add_commands [ info proc ::test::first ]
-  tclapp::xilinx::profiler::add_commands [ info proc ::test::second ]
-  tclapp::xilinx::profiler::add_commands [ info proc ::test::main ]
+  xilinx::profiler::add_commands [ info proc ::test::first ]
+  xilinx::profiler::add_commands [ info proc ::test::second ]
+  xilinx::profiler::add_commands [ info proc ::test::main ]
 
   To add individual commands:
-  tclapp::xilinx::profiler::add_commands [ info command get_files ]
+  xilinx::profiler::add_commands [ info command get_files ]
   

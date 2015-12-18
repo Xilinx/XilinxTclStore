@@ -4,8 +4,6 @@
     <app>
       <revision_history>Added Tcl Profiler app</revision_history>
       <name>profiler</name>
-      <pkg_require>Vivado 2014.1</pkg_require>
-      <author>Nik Cimino</author>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
       <summary>The Profiler App creates a .out file for a set of specified Tcl procs and Tcl commands which contains profiling data that can be consumed by kcachegrind.</summary>
@@ -13,27 +11,27 @@
       <procs>
         <proc>
           <name>add_commands</name>
-          <summary>Add commands to profile.</summary>
+          <summary>Add commands to profile</summary>
         </proc>
         <proc>
           <name>get_out_file</name>
-          <summary>Get output file that will be consumed by kcachegrind (.out).</summary>
+          <summary>Get output file that will be consumed by kcachegrind (.out)</summary>
         </proc>
         <proc>
           <name>set_out_file</name>
-          <summary>Sets output file that will be consumed by kcachegrind (.out).</summary>
+          <summary>Sets output file that will be consumed by kcachegrind (.out)</summary>
         </proc>
         <proc>
           <name>start</name>
-          <summary>Start profiling.</summary>
+          <summary>Start profiling</summary>
         </proc>
         <proc>
           <name>stop</name>
-          <summary>Stop profiling.</summary>
+          <summary>Stop profiling</summary>
         </proc>
         <proc>
           <name>write_report</name>
-          <summary>Write the profiling report.</summary>
+          <summary>Write the profiling report</summary>
         </proc>
       </procs>
     </app>
