@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::rename_net -net bufg_O_net -name newlocalname
-     ::tclapp::xilinx::designutils::rename_net -net bufg_O_net -name bufg_clk -force
+     ::xilinx::designutils::rename_net -net bufg_O_net -name newlocalname
+     ::xilinx::designutils::rename_net -net bufg_O_net -name bufg_clk -force

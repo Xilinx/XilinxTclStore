@@ -9,7 +9,7 @@
   Example:
   
     The following example clone the cell and returns the cloned cell:
-     set clone [::tclapp::xilinx::designutils::clone_cell ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1 ]
+     set clone [::xilinx::designutils::clone_cell ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1 ]
 
     The following example add a suffix to the cloned cell name:
-     set clone [::tclapp::xilinx::designutils::clone_cell ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1 {_clone}]
+     set clone [::xilinx::designutils::clone_cell ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1 {_clone}]

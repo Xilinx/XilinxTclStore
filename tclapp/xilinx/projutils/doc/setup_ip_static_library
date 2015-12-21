@@ -1,0 +1,39 @@
+
+Description:
+
+  Retrieve static simulation files for IPs from the current project or the Xilinx IP catalog and setup
+  source library for compile_simlib. The compile_simlib tcl task will use this library for compiling the
+  IP files for the specified simulator.
+
+Arguments:
+
+  -directory - (Optional) Directory path to the static library. By default, if this switch is not specified
+               then this command will build the library in the directory named "static_compiled_lib" in the
+               current working directory. 
+
+  -project   - (Optional) Extract and prepare static source library for the current project
+
+  -install   - (Optional) Extract and prepare static source library for the IP catalog
+
+  -quiet - (Optional) Execute the command quietly, ignoring any command line errors and returning no
+  messages. The command also returns TCL_OK regardless of any errors encountered during execution.
+
+  -verbose - (Optional) Temporarily override any message limits and return all messages from this command.
+
+  Note: Message limits can be defined with the set_msg_config command.
+
+Examples:
+
+  The following command will build static library for all the IPs in the current project in ./static_compiled_lib,
+
+  % setup_ip_static_library -project
+
+  The following command will build static library in /work/simlib. The command will create the /work/simlib directory,
+  if it does not exist.
+
+  % setup_ip_static_library -directory /work/simlib -project
+
+See Also:
+
+   *  get_ips
+   *  compile_simlib

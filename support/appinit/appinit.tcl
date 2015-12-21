@@ -89,6 +89,8 @@ proc ::tclapp::support::appinit::load_app {repo app {ns ""}} {
     interp delete $slave
 
     # Now register the exported app procs with Vivado
+    # Need to forget the package first in case version conflict
+    package forget $app
     package require $app
 
     foreach p $procs {

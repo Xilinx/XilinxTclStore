@@ -1,0 +1,9 @@
+
+
+  Description: 
+
+     Reports clock buffer information related to type, IP relation, frequency, and loading.
+
+  Example:
+  
+     ::xilinx::designutils::report_clock_buffers

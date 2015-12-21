@@ -6,7 +6,10 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
+
 set auto_index(::tclapp::xilinx::incrcompile::analyze_critical_path) [list source [file join $dir analyze_critical_path.tcl]]
+set auto_index(::tclapp::xilinx::incrcompile::disable_auto_incremental_compile) [list source [file join $dir disable_auto_incremental_compile.tcl]]
+set auto_index(::tclapp::xilinx::incrcompile::enable_auto_incremental_compile) [list source [file join $dir enable_auto_incremental_compile.tcl]]
 set auto_index(::tclapp::xilinx::incrcompile::get_non_reused) [list source [file join $dir get_non_reused.tcl]]
 set auto_index(::tclapp::xilinx::incrcompile::get_reused) [list source [file join $dir get_reused.tcl]]
 set auto_index(::tclapp::xilinx::incrcompile::highlight_non_reused) [list source [file join $dir highlight_non_reused.tcl]]

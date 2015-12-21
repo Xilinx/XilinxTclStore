@@ -10,15 +10,26 @@ puts "== Unit Test name: $unit_test"
 set name [file rootname [file tail [info script]]]
 
 # Create a new Manage IP project
-create_project -ip $name -part xcvu125-flvc2104-2-e-es2 -in_memory
+create_project -ip -part xcvu125-flvc2104-2-e ${name}_ex/proj_ip_${name}
 
-# Create MIG IP instance
-create_ip -name mig -vendor xilinx.com -library ip -module_name mig_0
+# Check which version of Vivado is being run
+if {[package vcompare [package require Vivado] "1.2015.3"]>=0} {
+    # Create DDR4 IP instance
+    create_ip -name ddr4 -vendor xilinx.com -library ip -module_name mig_0
+	# Convert IP to Classic
+	#convert_ips [get_files mig_0.xci] ## Remove since Core Container is now off by default
+} else {
+    # Create MIG IP instance
+    create_ip -name mig -vendor xilinx.com -library ip -module_name mig_0
+}
 
 # Run the Create Combined MIG design script
-if {[catch { ::tclapp::xilinx::designutils::create_combined_mig_io_design -project_name "projtest_$name" -out_dir "." [get_ips mig_0] } catchErrorString]} {
+if {[catch { ::tclapp::xilinx::designutils::create_combined_mig_io_design -project_name "proj_$name" -out_dir "./${name}_ex" [get_ips mig_0] } catchErrorString]} {
+   # Close the two projects
     close_project
-	file delete -force "./projtest_$name"
+    close_project
+	file delete -force "./ip_user_files"
+	file delete -force "./${name}_ex"
     error [format " -E- Unit test $name failed: %s" $catchErrorString]
 }
 
@@ -31,10 +42,12 @@ if {[catch { ::tclapp::xilinx::designutils::create_combined_mig_io_design -proje
 #	error error [format " -E- Unit test $name failed: %s" "synth_1 failed"]
 #}
 
-# Close the project
+# Close the two projects
+close_project
 close_project
 
 # Delete the project on disk
-file delete -force "./projtest_$name"
+file delete -force "./${name}_ex"
+file delete -force "./ip_user_files"
 
 return 0

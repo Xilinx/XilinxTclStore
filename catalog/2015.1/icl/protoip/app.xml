@@ -2,9 +2,9 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Adds detailed documentation (FPGA, IP and user function level) about resources and power consumption during all the design phases.  Enables Xilinx Vivado and Matlab mixed design flow</revision_history>
+      <revision_history>Bugs fixed: tcp/ip communication on server side, load xsdk workspace with ip_prototype_load_debug, download bitstream load</revision_history>
       <name>protoip</name>
-      <pkg_require>Vivado 2014.4</pkg_require>
+      <pkg_require>Vivado 2015.1</pkg_require>
       <author>asuardi https://github.com/asuardi/</author>
       <company>icl</company>
       <company_display>Imperial College London</company_display>

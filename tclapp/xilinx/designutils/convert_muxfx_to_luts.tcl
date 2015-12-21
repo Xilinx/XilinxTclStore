@@ -9,6 +9,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts {args} {
 
 	# Argument Usage:
 	# [-cell <arg> = current_instance]: Root of the design to process the MUXFX replacement. If not specified, runs on current_instance
+	# [-of_objects <arg>]: List of objects of which to remap to LUT3
 	# [-only_muxf8]: Replaces only MUXF8 cells
 	# [-usage]: Usage information
 
@@ -45,6 +46,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		## Check for the option name in the regular expression
 		switch -regexp -- $optionName {
 			{-c(e(l(l)?)?)?$}                          { set opts(-cell)       [lshift args]}
+			{-o(f(_(o(b(j(e(c(t(s)?)?)?)?)?)?)?)?)?$}  { set opts(-of_objects) [lshift args]}
 			{-o(n(l(y(_(m(u(x(f(8)?)?)?)?)?)?)?)?)?$}  { set opts(-only_muxf8) 1}
             {-h(e(l(p)?)?)?$}                          { set opts(-help)       1}
             {-u(s(a(g(e)?)?)?)?$}                      { set opts(-help)       1}			
@@ -68,6 +70,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
         puts "  -------------------------------"
         puts "  \[-cell\]             Given cell hierarchy for processing."
         puts "                      Default: \[current_instance .\]"
+		puts "  \[-of_objects\]       List of objects of which to remap to LUT3."
         puts "  \[-only_muxf8\]       Replaces only MUXF8 cells."
         puts ""
         puts "Description:"
@@ -108,21 +111,32 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		}
 	}	
 	
-	## Check if the -only_muxf8 option was used, add only the MUXF8 to cell list if yes
-	if {[info exists opts(-only_muxf8)]} {
-		## Get the list of the MUXF8 cells in the design
-		set cellList [get_cells -quiet -hier -filter {REF_NAME==MUXF8}]	
+	if {[info exists opts(-of_objects)]} {
+		## Parse the object list to ensure that only cell objects exist
+		set objectList [parse_object_list -objects $opts(-of_objects) -klasses {cell}]
+		
+		## Check if the -only_muxf8 option was used,
+		if {[info exists opts(-only_muxf8)]} {
+			## Filter the object list based on the muxf8 option
+			set objectList [filter $objectList "REF_NAME==MUXF8"]
+		}
 	} else {
-		## Get the list of all the MUXFX cells in the design
-		set cellList [get_cells -quiet -hier -filter {REF_NAME==MUXF7 || REF_NAME==MUXF8}]
+		## Check if the -only_muxf8 option was used, add only the MUXF8 to cell list if yes
+		if {[info exists opts(-only_muxf8)]} {
+			## Get the list of the MUXF8 cells in the design
+			set objectList [get_cells -quiet -hier -filter {REF_NAME==MUXF8}]	
+		} else {
+			## Get the list of all the MUXFX cells in the design
+			set objectList [get_cells -quiet -hier -filter {REF_NAME==MUXF7 || REF_NAME==MUXF8}]
+		}
 	}
 	
 	## Check that at least one cell exists in the list
-	if {[llength $cellList]==0} {
+	if {[llength $objectList]==0} {
 		puts "INFO: \[convert_mux_cells_to_luts\] No MUXFX cells found in the design from level [current_instance -quiet .]."
 		return
 	} else {
-		puts "INFO: \[convert_mux_cells_to_luts\] Found [llength $cellList] MUX cells in the design from level [current_instance -quiet .]."
+		puts "INFO: \[convert_mux_cells_to_luts\] Found [llength $objectList] MUX cells in the design from level [current_instance -quiet .]."
 	}
 	
 	## Reset the current instance back to the top-level scope to properly create and connect objects
@@ -137,7 +151,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 	set cellCount 0
 	
 	## Get the total count of MUXFX cells in the list
-	set totalCount [llength $cellList]
+	set totalCount [llength $objectList]
 	
 	## Initialize change count variable
 	set changeCount 0
@@ -147,7 +161,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 	set creationErrorCellCount 0
 	
 	## Loop through each cell object in the list
-	foreach cellObj $cellList {
+	foreach cellObj $objectList {
 		## Increment the cell count for the Progress Bar
 		incr cellCount 1
 		
@@ -338,7 +352,7 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 		puts [join $criticalWarningList "\n"];
 	}
 	
-	puts "INFO: \[convert_mux_cells_to_luts\] Remapped $changeCount of [llength $cellList] MUXFX cells to LUT cells."
+	puts "INFO: \[convert_mux_cells_to_luts\] Remapped $changeCount of [llength $objectList] MUXFX cells to LUT cells."
 	
 	## Check if the MACRO cell count is greater than 0
 	if {$macroCellCount>0} {
@@ -351,9 +365,9 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::convert_muxfx_to_luts
 	}
 	
 	## Set the variable to count other remapping errors
-	set otherErrorCount [expr [llength $cellList]-$changeCount-$macroCellCount-$creationErrorCellCount]
+	set otherErrorCount [expr [llength $objectList]-$changeCount-$macroCellCount-$creationErrorCellCount]
 	
-	## Check if any other errors occured during remapping
+	## Check if any other errors occurred during remapping
 	if {$otherErrorCount>0} {
 		puts "INFO: \[convert_mux_cells_to_luts\] $otherErrorCount unchanged due to other remapping failure."
 	}
@@ -426,4 +440,75 @@ proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::progressBar {totalsiz
         flush stdout
         set prevPC -1
     }
+}
+
+#######################################################################
+# Name:  parse_object_list
+# Usage: parse_object_list -klasses {cell pin} -objects [get_cells]
+# Descr: Parses the object list to only return objects of the specified 
+#        class type
+#######################################################################
+proc ::tclapp::xilinx::designutils::convert_muxfx_to_luts::parse_object_list {args} {
+    # Summary :
+
+    # Argument Usage:
+
+    # Return Value:
+    # 
+
+    # Categories: xilinxtclstore, designutils
+	
+    ## Set Default option values
+    array set opts {-help 0}
+
+    ## Parse arguments from option command line
+    while {[string match -* [lindex $args 0]]} {
+        ## Set the name of the first level option
+        set optionName [lshift args]
+        ## Check for the option name in the regular expression
+        switch -regexp -- $optionName {
+            -k(l(a(s(s(e(s)?)?)?)?)?)?     { set opts(-klasses)     [lshift args]}
+            -o(b(j(e(c(t(s)?)?)?)?)?)?     { set opts(-objects)     [lshift args]}
+            -h(e(l(p)?)?)?                 { set opts(-help)        1}
+            default {
+                return -code error "ERROR: \[parse_object_list\] Unknown option '[lindex $args 0]', please type 'parse_object_list -help' for usage info."
+            }
+        }
+    }
+
+    ## Display help information
+    if {$opts(-help) == 1} {
+        return
+    }
+
+    ## Initialize Object List variable
+    set objectList [list]
+
+    ## Loop through each object passed as an argument option
+    foreach optionObj $opts(-objects) {
+        ## Get the Class name of the object
+        set klassName [get_property CLASS $optionObj]
+        ## Search to check if object klass is of a supported type
+        if {[lsearch $opts(-klasses) $klassName]>-1} {
+            lappend objectList $optionObj
+        } else {
+            ## Count the number of unsupported klasses
+            incr klassArray($klassName) 1
+        }
+    }
+
+    ##
+    if {[array exists klassArray]} {
+        ## Get all found unsupported klass names
+        set klassList [array names klassArray]
+
+        foreach klassName [array names klassArray] {
+            incr klassCount $klassArray($klassName)
+        }
+
+        puts "CRITICAL WARNING: \[convert_muxfx_to_luts\] list of objects specified contains $klassCount object(s) of types '([join $klassList ", "])' other than the types '([join $opts(-klasses) ", "])' supported by the constraint.\n"
+    }
+
+    ## Return the supported object list
+    return $objectList
 }

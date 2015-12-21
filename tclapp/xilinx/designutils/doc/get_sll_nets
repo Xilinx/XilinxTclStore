@@ -2,12 +2,11 @@
 
   Description: 
 
-     Get routed inter-SLR nets that have a VLONG12 cost and over 100 wire shapes on at least one of its nodes.
+     Returns all the SLL nets. Support 7-Serie and UltraScale devices.
 
-     This command must be run on an implemented design.
+     This command must be run on a routed design.
 
   Example:
   
-     set nets [::tclapp::xilinx::designutils::get_sll_nets]
-     set nets [::tclapp::xilinx::designutils::get_sll_nets [get_nets ingressLoop[0].ingressFifo/reset_*]]
+     set nets [::xilinx::designutils::get_sll_nets]
 

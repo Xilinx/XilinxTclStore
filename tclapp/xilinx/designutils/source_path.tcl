@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::source_path {script search_path} {
-  # Summary : source a script from a choice of paths
+  # Summary : Source a script from a choice of paths
 
   # Argument Usage:
   # script : Name of file to source

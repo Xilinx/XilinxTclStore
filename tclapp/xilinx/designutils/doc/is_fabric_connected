@@ -8,5 +8,5 @@
 
   Example:
   
-     set flag [::tclapp::xilinx::designutils::is_fabric_connected [get_pins ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1/Q]]
+     set flag [::xilinx::designutils::is_fabric_connected [get_pins ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1/Q]]
 

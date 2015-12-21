@@ -10,7 +10,7 @@
   
      set FH [open myreport.rpt r]
      while {![eof $FH]} {
-       set status [::tclapp::xilinx::designutils::gets_regexp $FH {Cell:} line]
+       set status [::xilinx::designutils::gets_regexp $FH {Cell:} line]
        if {$status == 0} { 
          # Process one-by-one, all the lines that matched the pattern: Cell:
        }

@@ -8,6 +8,6 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::report_cells_loc
-     ::tclapp::xilinx::designutils::report_cells_loc ingressLoop[6].ingressFifo/buffer_fifo/*
+     ::xilinx::designutils::report_cells_loc
+     ::xilinx::designutils::report_cells_loc ingressLoop[6].ingressFifo/buffer_fifo/*
 

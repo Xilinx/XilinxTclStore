@@ -10,7 +10,7 @@ namespace eval ::tclapp::xilinx::designutils {
 # Proc to export
 #------------------------------------------------------------------------
 proc ::tclapp::xilinx::designutils::get_leaf_cells { {pattern *} } {
-  # Summary : get all the leave cells below an instance
+  # Summary : Get all the leave cells below an instance
   
   # Argument Usage:
   # [pattern = *] : Hierarchical instance name pattern

@@ -9,7 +9,7 @@
   Example:
   
     The following example generate all possible combination of runs (phys_opt_design is not run):
-     ::tclapp::xilinx::designutils::generate_runs 0
+     ::xilinx::designutils::generate_runs 0
 
     The following example generate all possible combination of runs (phys_opt_design is run):
-     ::tclapp::xilinx::designutils::generate_runs 1
+     ::xilinx::designutils::generate_runs 1

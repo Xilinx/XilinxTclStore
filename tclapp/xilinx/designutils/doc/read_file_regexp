@@ -8,7 +8,7 @@
 
   Example:
   
-     foreach line [::tclapp::xilinx::designutils::read_file_regexp myreport.rpt {Cell:}] {
+     foreach line [::xilinx::designutils::read_file_regexp myreport.rpt {Cell:}] {
        # Process one-by-one, all the lines that matched the pattern: Cell:
      }
 

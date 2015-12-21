@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::get_data_through_pins [lindex [get_timing_paths] 0]
+     ::xilinx::designutils::get_data_through_pins [lindex [get_timing_paths] 0]
 

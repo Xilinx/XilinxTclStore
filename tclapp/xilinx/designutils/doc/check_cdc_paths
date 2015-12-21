@@ -9,5 +9,5 @@
   Example:
   
     The following example reports issues for all the CDC paths:
-     ::tclapp::xilinx::designutils::check_cdc_paths
+     ::xilinx::designutils::check_cdc_paths
 

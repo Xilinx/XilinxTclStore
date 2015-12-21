@@ -1,0 +1,15 @@
+Description:
+
+  Create a testbench for an IP Integrator design and optionally add it to the current project
+
+Example:
+
+  The following example creates a VHDL testbench based on the current_bd_design and adds it to the
+  project:
+
+    write_ip_integrator_testbench -addToProject
+
+  This example creates a Verilog testbench based on the given input file and sets the output files
+  path and name:
+
+    write_ip_integrator_testbench -verilog -output \"c:/vipi/testbenches/tb_mydesign.v\" \"c:/vipi/sources/mydesign.v\"

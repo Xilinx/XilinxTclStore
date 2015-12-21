@@ -6,7 +6,6 @@ namespace eval ::tclapp::xilinx::incrcompile {
 
 proc ::tclapp::xilinx::incrcompile::analyze_critical_path {objects window_name {color "green"}} {
   # Summary : highlight reused pins of given timing paths given by 'get_timing_paths' command
-  #           Example: analyze_critical_path [get_timing_paths -max_paths 5] result1
 
   # Argument Usage:
   #  objects : Return value of get_timing_paths command
