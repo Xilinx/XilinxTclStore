@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated create_combined_mig_io_design to add files to the new project.</revision_history>
+      <revision_history>Runtime improvement for get_inter_slr_nets</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -12,11 +12,11 @@
       <procs>
         <proc>
           <name>bisect_pblock</name>
-          <summary>bisect a P block</summary>
+          <summary>Bisect a PBlock</summary>
         </proc>
         <proc>
           <name>check_cdc_paths</name>
-          <summary>checks all the Cross Domain Crossing paths for typical issues</summary>
+          <summary>Checks all the Cross Domain Crossing paths for typical issues</summary>
         </proc>
         <proc>
           <name>clone_cell</name>
@@ -56,51 +56,51 @@
         </proc>
         <proc>
           <name>get_host_platform</name>
-          <summary>return the host platform (windows|unix)</summary>
+          <summary>Return the host platform (windows|unix)</summary>
         </proc>
         <proc>
           <name>get_inter_slr_nets</name>
-          <summary>get all the inter-SLR nets</summary>
+          <summary>Get all inter-SLR nets</summary>
         </proc>
         <proc>
           <name>get_leaf_cells</name>
-          <summary>get all the leave cells below an instance</summary>
+          <summary>Get all the leave cells below an instance</summary>
         </proc>
         <proc>
           <name>get_mem</name>
-          <summary>queries the kernel for current heap memory of Vivado session</summary>
+          <summary>Queries the kernel for current heap memory of Vivado session</summary>
         </proc>
         <proc>
           <name>get_pid_mem</name>
-          <summary>queries the kernel for the heap memory of a specific process</summary>
+          <summary>Queries the kernel for the heap memory of a specific process</summary>
         </proc>
         <proc>
           <name>get_sll_nets</name>
-          <summary>get routed inter-SLR nets that have a VLONG12 cost and over 100 wire shapes on at least one of its nodes</summary>
+          <summary>Get the SLL nets on a routed design</summary>
         </proc>
         <proc>
           <name>get_sll_nodes</name>
-          <summary>returns all the sll node objects in the device for matching SLRs</summary>
+          <summary>Get the SLL nodes on a routed design</summary>
         </proc>
         <proc>
           <name>gets_regexp</name>
-          <summary>returns the next line that matches occurrence of a regular expression in the file</summary>
+          <summary>Returns the next line that matches occurrence of a regular expression in the file</summary>
         </proc>
         <proc>
           <name>highlight_enable_signal_sites</name>
-          <summary>highlight the destination sites of the enable signals reported by report_control_set command</summary>
+          <summary>Highlight the destination sites of the enable signals reported by report_control_set command</summary>
         </proc>
         <proc>
           <name>insert_buffer</name>
-          <summary>insert a buffer or any 2-pins cell on a net or a pin</summary>
+          <summary>Insert a buffer or any 2-pins cell on a net or a pin</summary>
         </proc>
         <proc>
           <name>insert_buffer_chain</name>
-          <summary>insert a chain of buffers or any 2-pins cells on a net or a pin</summary>
+          <summary>Insert a chain of buffers or any 2-pins cells on a net or a pin</summary>
         </proc>
         <proc>
           <name>insert_clock_probe</name>
-          <summary>insert a clock probe to the design and connect the probe to an output port. The output should not exist and is created by the command</summary>
+          <summary>Insert a clock probe to the design and connect the probe to an output port. The output should not exist and is created by the command</summary>
         </proc>
         <proc>
           <name>is_fabric_connected</name>
@@ -108,23 +108,23 @@
         </proc>
         <proc>
           <name>prettyTable</name>
-          <summary>utility to easily create and print tables</summary>
+          <summary>Utility to easily create and print tables</summary>
         </proc>
         <proc>
           <name>read_file_regexp</name>
-          <summary>returns all lines that match occurrence of a regular expression in the file</summary>
+          <summary>Returns all lines that match occurrence of a regular expression in the file</summary>
         </proc>
         <proc>
           <name>reapply_iostandard</name>
-          <summary>this command queries the tool-chosen defaults from implementation &#10;and &quot;apply&quot; them so it looks like the user did it from the beginning. &#10;This complies with the bit export restriction that all ios be LOCd and &#10;explicitly set to an IO Standard</summary>
+          <summary>This command queries the tool-chosen defaults from implementation &#10;and &quot;apply&quot; them so it looks like the user did it from the beginning. &#10;This complies with the bit export restriction that all ios be LOCd and &#10;explicitly set to an IO Standard</summary>
         </proc>
         <proc>
           <name>remove_buffer</name>
-          <summary>remove a buffer or any 2-pins cell</summary>
+          <summary>Remove a buffer or any 2-pins cell</summary>
         </proc>
         <proc>
           <name>rename_net</name>
-          <summary>rename a local net name</summary>
+          <summary>Rename a local net name</summary>
         </proc>
         <proc>
           <name>replicate_high_fanout_registers</name>
@@ -132,31 +132,35 @@
         </proc>
         <proc>
           <name>report_all_primitives</name>
-          <summary>reports all primitives (LIB_CELL) in the design</summary>
+          <summary>Reports all primitives (LIB_CELL) in the design</summary>
         </proc>
         <proc>
           <name>report_cells_fanout</name>
-          <summary>report the fanout of cells matching a REF_NAME pattern</summary>
+          <summary>Report the fanout of cells matching a REF_NAME pattern</summary>
         </proc>
         <proc>
           <name>report_cells_loc</name>
-          <summary>report the location of cells matching a REF_NAME pattern</summary>
+          <summary>Report the location of cells matching a REF_NAME pattern</summary>
+        </proc>
+        <proc>
+          <name>report_clock_buffers</name>
+          <summary>Gathers clock buffer information and displays report</summary>
         </proc>
         <proc>
           <name>report_critical_hfn</name>
-          <summary>report timing critical high fanout nets based on fanout and slack</summary>
+          <summary>Report timing critical high fanout nets based on fanout and slack</summary>
         </proc>
         <proc>
           <name>report_hier_util</name>
-          <summary>report the cell utilization below hierarchical instances</summary>
+          <summary>Report the cell utilization below hierarchical instances</summary>
         </proc>
         <proc>
           <name>report_parts</name>
-          <summary>report all the available parts that match a pattern</summary>
+          <summary>Report all the available parts that match a pattern</summary>
         </proc>
         <proc>
           <name>source_path</name>
-          <summary>source a script from a choice of paths</summary>
+          <summary>Source a script from a choice of paths</summary>
         </proc>
         <proc>
           <name>timing_report_to_verilog</name>
@@ -167,12 +171,20 @@
           <summary>Convert a Verilog formatted number into an integer</summary>
         </proc>
         <proc>
+          <name>write_ip_integrator_testbench</name>
+          <summary>Create a testbench for an IP Integrator design and optionally add it to the current project</summary>
+        </proc>
+        <proc>
+          <name>write_loc_constraints</name>
+          <summary>Creates a constraints file with the specified design LOCs</summary>
+        </proc>
+        <proc>
           <name>write_slr_pblock_xdc</name>
           <summary>Exports the current SLR placement to pblock constraints in an XDC file</summary>
         </proc>
         <proc>
           <name>write_template</name>
-          <summary>generates a Verilog/VHDL stub or instanciation template for the current design in memory (current_instance)</summary>
+          <summary>Generates a Verilog/VHDL stub or instantiation template for the current design in memory (current_instance)</summary>
         </proc>
       </procs>
     </app>

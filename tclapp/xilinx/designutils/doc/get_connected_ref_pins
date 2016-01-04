@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::get_connected_ref_pins [get_pins ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1/Q]
+     ::xilinx::designutils::get_connected_ref_pins [get_pins ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.full_reg_i_1/Q]
 

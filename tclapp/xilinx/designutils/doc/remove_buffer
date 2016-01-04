@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::remove_buffer -cell [get_cells ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.buf]
-     ::tclapp::xilinx::designutils::remove_buffer -cell [get_selected_objects]
+     ::xilinx::designutils::remove_buffer -cell [get_cells ingressLoop[6].ingressFifo/buffer_fifo/infer_fifo.buf]
+     ::xilinx::designutils::remove_buffer -cell [get_selected_objects]

@@ -8,6 +8,6 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::report_parts
-     ::tclapp::xilinx::designutils::report_parts xc*-2
+     ::xilinx::designutils::report_parts
+     ::xilinx::designutils::report_parts xc*-2
 

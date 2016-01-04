@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::bisect_pblock <PblockName> {top} {right}
+     ::xilinx::designutils::bisect_pblock <PblockName> {top} {right}
 

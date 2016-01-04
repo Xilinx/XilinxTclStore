@@ -15,5 +15,5 @@
      It is recommended to use the command on an unplaced design.
 
   Example:
-     ::tclapp::xilinx::designutils::insert_clock_probe -pin bufg/O -port probe -iostandard HSTL
-     ::tclapp::xilinx::designutils::insert_clock_probe -pin bufg/O -diff_port probe -iostandard LVDS
+     ::xilinx::designutils::insert_clock_probe -pin bufg/O -port probe -iostandard HSTL
+     ::xilinx::designutils::insert_clock_probe -pin bufg/O -diff_port probe -iostandard LVDS

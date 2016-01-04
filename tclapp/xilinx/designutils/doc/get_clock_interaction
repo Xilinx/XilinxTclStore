@@ -9,5 +9,5 @@
   Example:
   
     The following example gets the WNS between clocks clk0 and clk1:
-     set WNS [::tclapp::xilinx::designutils::get_clock_interaction clk0 clk1 {wns}]
+     set WNS [::xilinx::designutils::get_clock_interaction clk0 clk1 {wns}]
 

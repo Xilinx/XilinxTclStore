@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::write_template {args} {
-  # Summary : generates a Verilog/VHDL stub or instanciation template for the current design in memory (current_instance)
+  # Summary : Generates a Verilog/VHDL stub or instantiation template for the current design in memory (current_instance)
 
   # Argument Usage:
   # [-type <arg> = stub]: Type of template to create: stub or template

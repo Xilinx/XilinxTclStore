@@ -91,6 +91,8 @@ proc convert_ngc args {
     }
   }
 
+  send_msg_id Vivado-projutils-322 INFO "The convert_ngc command does not support encrypted NGC files. If an encrypted NGC is converted, then the output netlist will have all LUTs set to zero."
+
   # end of business logic 
 
   # perform conversion

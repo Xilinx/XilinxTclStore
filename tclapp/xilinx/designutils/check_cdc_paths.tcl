@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::check_cdc_paths {args} {
-  # Summary : checks all the Cross Domain Crossing paths for typical issues
+  # Summary : Checks all the Cross Domain Crossing paths for typical issues
   
   # Argument Usage: 
   # [-no_reset_paths] : Set this parameter if you want to skip asynchronous reset paths from the analysis.
@@ -25,7 +25,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::check_cdc_paths {
 } ]
 
 proc ::tclapp::xilinx::designutils::check_cdc_paths::check_cdc_paths {args} {
-  # Summary: checks all the CDC paths for typical issues
+  # Summary: Checks all the CDC paths for typical issues
   
   # Argument Usage:
     

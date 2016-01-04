@@ -202,6 +202,7 @@ if {$error==0} {
 			
 			set command_name "|xsdk -workspace "
 			append command_name $target_dir
+			append command_name "/workspace1"
 
 			set sdk_p [open $command_name r]
 			

@@ -1,0 +1,43 @@
+
+Description:
+
+  Export IP user files repository with static, dynamic, netlist, verilog/vhdl stubs and memory initializaton files.
+
+Arguments:
+
+  -of_objects - (Optional) Specify the target object for which the IP static and dynamic files needs to be exported.
+
+  -ip_user_files_dir - (Optional) Directory path to IP user files base directory (for dynamic and other IP non static files).
+                     By default, if this switch is not specified then this command will use the path specified with the
+                     "IP.USER_FILES_DIR" project property value.
+
+  -ipstatic_source_dir - (Optional)  Directory path to the static IP files
+                     By default, if this switch is not specified then this command will use the path specified with the
+                     "SIM.IPSTATIC_SOURCE_DIR" project property value.
+
+  NOTE:- If the -ip_user_files_dir switch is specified, by default the IP static files will be exported under the sub-directory
+         with the name "ipstatic". If this switch is specified in conjunction with -ipstatic_source_dir, then the IP static
+         files will be exported in the path specified with the -ipstatic_source_dir switch. 
+
+  -clean_dir - (Optional) Delete all files from central directory (including static, dynamic and other files)
+
+  -quiet - (Optional) Execute the command quietly, ignoring any command line errors and returning no
+  messages. The command also returns TCL_OK regardless of any errors encountered during execution.
+
+  -verbose - (Optional) Temporarily override any message limits and return all messages from this command.
+
+  Note: Message limits can be defined with the set_msg_config command.
+
+Examples:
+
+  The following command will export,
+
+   'char_fifo' IP dynamic files to '<project>/<project>.ip_user_files/ip/char_fifo' directory
+   'char_fifo' IP static files to '<project>/<project>.ip_user_files/ipstatic' directory
+
+  % export_ip_user_files -of_objects [get_ips char_fifo]
+
+See Also:
+
+   *  get_files
+   *  get_ips

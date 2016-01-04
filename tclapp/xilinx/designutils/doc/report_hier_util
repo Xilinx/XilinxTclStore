@@ -8,6 +8,6 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::report_hier_util
-     ::tclapp::xilinx::designutils::report_hier_util ingressLoop[6].ingressFifo/buffer_fifo/*
+     ::xilinx::designutils::report_hier_util
+     ::xilinx::designutils::report_hier_util ingressLoop[6].ingressFifo/buffer_fifo/*
 

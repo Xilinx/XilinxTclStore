@@ -6,6 +6,6 @@
 
   Example:
   
-     set tbl [::tclapp::xilinx::designutils::prettyTable]
+     set tbl [::xilinx::designutils::prettyTable]
      $tbl ?
 

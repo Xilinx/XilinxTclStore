@@ -4,4 +4,4 @@ Example:
   The following example will create a new project called my_example_design
   with two instances of the mig_0 IP and one instance of mig_1.
 
-  ::tclapp::xilinx::designutils::create_combined_mig_io_design -project_name my_example_design [get_ips mig_0 mig_0 mig_1]
+  ::xilinx::designutils::create_combined_mig_io_design -project_name my_example_design [get_ips mig_0 mig_0 mig_1]

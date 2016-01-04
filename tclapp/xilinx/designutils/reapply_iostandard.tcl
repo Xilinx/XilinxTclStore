@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::reapply_iostandard {} {
-  # Summary : this command queries the tool-chosen defaults from implementation
+  # Summary : This command queries the tool-chosen defaults from implementation
   # and "apply" them so it looks like the user did it from the beginning.
   # This complies with the bit export restriction that all ios be LOCd and 
   # explicitly set to an IO Standard

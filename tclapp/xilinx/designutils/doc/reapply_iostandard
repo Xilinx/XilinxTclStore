@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::reapply_iostandard
+     ::xilinx::designutils::reapply_iostandard
 

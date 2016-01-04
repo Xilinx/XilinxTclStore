@@ -7,4 +7,4 @@ namespace eval ::tclapp::xilinx::incrcompile {
     }
 
 }
-package provide ::tclapp::xilinx::incrcompile 1.1
+package provide ::tclapp::xilinx::incrcompile 1.2

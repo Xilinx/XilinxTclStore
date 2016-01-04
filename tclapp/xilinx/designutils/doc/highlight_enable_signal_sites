@@ -8,5 +8,5 @@
 
   Example:
   
-     ::tclapp::xilinx::designutils::highlight_enable_signal_sites
+     ::xilinx::designutils::highlight_enable_signal_sites
 

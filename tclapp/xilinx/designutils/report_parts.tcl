@@ -5,7 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::report_parts { {pattern *} } {
-  # Summary : report all the available parts that match a pattern
+  # Summary : Report all the available parts that match a pattern
 
   # Argument Usage:
   # [pattern = *] : Pattern for part names
