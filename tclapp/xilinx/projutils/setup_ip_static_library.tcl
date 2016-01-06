@@ -1177,7 +1177,7 @@ proc isl_post_processing { ip_libs_arg } {
 
   variable a_isl_vars
   upvar $ip_libs_arg ip_libs
-  set ips [list "axi_register_slice_v2_1_7"    \
+  set ips [list "axi_register_slice_v2_1_8"    \
                 "axi_mm2s_mapper_v1_1_6"       \
                 "axis_register_slice_v1_1_7"   \
                 "axis_data_fifo_v1_1_8"        \
