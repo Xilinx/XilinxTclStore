@@ -866,6 +866,7 @@ proc usf_vcs_create_setup_script {} {
   # Return Value:
 
   variable a_sim_vars
+  variable l_ip_static_libs
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set filename "setup";append filename [::tclapp::xilinx::vcs::usf_get_script_extn]

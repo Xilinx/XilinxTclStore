@@ -3035,7 +3035,7 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
       }
     }
     "vlogan" {
-      lappend opts "\$vlogan_opts_ver"
+      lappend opts "\$vlogan_opts"
       if { [string equal -nocase $file_type "verilog"] } {
         lappend opts "+v2k"
       } elseif { [string equal -nocase $file_type "systemverilog"] } {

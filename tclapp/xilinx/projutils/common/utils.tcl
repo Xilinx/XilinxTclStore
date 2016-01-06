@@ -875,8 +875,7 @@ proc xcs_skip_ip { ip_def } {
   if { [regexp -nocase {hdcp}                 $ip_def] ||
        [regexp -nocase {ibert_lib}            $ip_def] ||
        [regexp -nocase {ieee802d3_25g_rs_fec} $ip_def] ||
-       [regexp -nocase {labtools_ibert_lib}   $ip_def] ||
-       [regexp -nocase {displayport}          $ip_def] } {
+       [regexp -nocase {labtools_ibert_lib}   $ip_def] } {
     set b_skip 1
   }
   return $b_skip
