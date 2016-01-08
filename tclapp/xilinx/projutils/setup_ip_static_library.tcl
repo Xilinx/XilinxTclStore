@@ -30,8 +30,9 @@ proc isl_init_vars {} {
 
   variable compile_order_data       [list]
 
-  variable l_ips
-  set l_ips                         [list]
+  variable l_ip_repo_paths
+  set l_ip_repo_paths               [list]
+  set a_isl_vars(b_ip_repo_paths_specified)     0
 
   variable l_static_files
   set l_static_files                [list]
@@ -56,7 +57,7 @@ proc setup_ip_static_library {args} {
   # Extract static files from the IPs for prepare it for compile_simlib Tcl command
   # Argument Usage:
   # [-directory <arg>]: Extract static files in the specified directory
-  # [-ip <arg>]: Extract static files for this IP
+  # [-ip_repo_path <arg>]: Extract static files from the specified IP repository path
   # [-project]: Extract static files for the current project
   # [-install]: Extract static files for the IP catalog
   # [-locked_ip]: Extract static files for locked IPs only
@@ -69,7 +70,7 @@ proc setup_ip_static_library {args} {
 
   variable a_isl_vars
   variable l_static_files
-  variable l_ips
+  variable l_ip_repo_paths
   isl_init_vars
 
   set a_isl_vars(options) [split $args " "]
@@ -77,7 +78,7 @@ proc setup_ip_static_library {args} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
       "-directory" { incr i;set a_isl_vars(ipstatic_dir) [lindex $args $i];set a_isl_vars(b_dir_specified) 1 }
-      "-ip"        { incr i;set l_ips [lindex $args $i];set a_isl_vars(b_ip_specified) 1 }
+      "-ip_repo_path" { incr i;set l_ip_repo_paths [lindex $args $i];set a_isl_vars(b_ip_repo_paths_specified)  1 }
       "-project"   { set a_isl_vars(b_project_mode) 1 }
       "-install"   { set a_isl_vars(b_install_mode) 1 }
       "-locked_ip" { set a_isl_vars(b_locked_ip) 1 }
@@ -92,24 +93,22 @@ proc setup_ip_static_library {args} {
 
   if { $a_isl_vars(b_project_mode) && $a_isl_vars(b_install_mode) } {
     [catch {send_msg_id setup_ip_static_library-Tcl-002 ERROR \
-     "Invalid options specified! Please specify either -project or -install.\n"} err]
+     "Invalid options specified! Please specify either -project or -install\n"} err]
     return
   }
 
-  if { (!$a_isl_vars(b_project_mode)) && (!$a_isl_vars(b_install_mode)) } {
+  if { (!$a_isl_vars(b_project_mode)) && (!$a_isl_vars(b_install_mode)) && (!$a_isl_vars(b_ip_repo_paths_specified)) } {
     [catch {send_msg_id setup_ip_static_library-Tcl-003 ERROR \
-     "No target source specified! Please specify either -project or -install.\n"} err]
+     "No target source specified! Please specify either -project or -install or -ip_repo_path.\n"} err]
     return
   }
 
-  #if { $a_isl_vars(b_install_mode) } {
-  #  send_msg_id setup_ip_static_library-Tcl-004 INFO \
-  #    "The -install switch is not supported currently. Please use the project mode for setting up static library using the -project switch.\n"
-  #  return
-  #}
-     
   if { $a_isl_vars(b_project_mode) } {
-    # do not check for the current project
+    if { {} == [current_project -quiet] } {
+      [catch {send_msg_id setup_ip_static_library-Tcl-005 ERROR \
+       "No open project. Please create or open a project before executing this command.\n"} err]
+      return
+    }
   } else {
     if { {} != [current_project -quiet] } {
       [catch {send_msg_id setup_ip_static_library-Tcl-005 ERROR \
@@ -144,6 +143,8 @@ proc setup_ip_static_library {args} {
     send_msg_id setup_ip_static_library-Tcl-008 INFO "Library created:$a_isl_vars(ipstatic_dir)\n"
   } elseif { $a_isl_vars(b_install_mode) } {
     isl_extract_install_files
+  } elseif { $a_isl_vars(b_ip_repo_paths_specified) } {
+    isl_extract_repo_static_files
   }
 
   return
@@ -901,147 +902,182 @@ proc isl_update_static_include_with_dynamic_header_files { data v_filelist } {
   } 
 }
 
-proc isl_extract_install_files { } {
+proc isl_extract_repo_static_files { } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_isl_vars
+  variable l_ip_repo_paths
   variable l_static_files
-  variable l_ips
   set l_static_files [list]
 
   create_project -in_memory
   #send_msg_id setup_ip_static_library-Tcl-018 INFO "Updating IP catalog..."
-  if { ! [update_ip_catalog -quiet] } {
-    close_project
-    return 1
-  }
-
-  #send_msg_id setup_ip_static_library-Tcl-019 INFO "Finding IP definitions..."
-  puts -nonewline "."
-  set ips [list]
-  set ips [ipx::get_cores -all -from catalog]
-  if { [llength $ips] == 0 } {
-    send_msg_id setup_ip_static_library-Tcl-020 ERROR "No IP components found from the catalog!\n"
-    return 1
-  }
-
-
-  #send_msg_id setup_ip_static_library-Tcl-021 INFO "Extracting static files from IP catalog...(this may take a while, please wait)..."
+  #if { ! [update_ip_catalog -quiet] } {
+  #  close_project
+  #  return 1
+  #}
   set compile_order_data [list]
   set ip_libs [list]
   set count 0
   set ip_count 0
-  foreach ip $ips {
-    set vlnv    [get_property vlnv $ip]
-    set ip_def  [get_ipdefs -all -vlnv $vlnv]
-    set ip_def_comps [split $ip_def {:}]
-    set ip_def_name  [lindex $ip_def_comps 2]
-    if { $a_isl_vars(b_ip_specified) } {
-      if { [lsearch $l_ips $ip_def_name] == -1 } {
-        continue
+  puts -nonewline "."
+  foreach ip_repo_path $l_ip_repo_paths {
+    foreach ip_xml [isl_find_ip_comp_xml_files $ip_repo_path] {
+      set ip_dir  [file dirname $ip_xml]
+      incr ip_count
+      set ip_comp [ipx::open_core $ip_xml]
+      set ip_def_name [get_property name $ip_comp]
+      set vlnv    [get_property vlnv $ip_comp]
+      puts -nonewline "."
+      if { $count > 100 } {
+        puts ""
+        set count -2
       }
-    }
-    if { [xcs_skip_ip $ip_def] } { continue }
-    incr ip_count
-    set ip_xml  [get_property xml_file_name $ip_def]
-    set ip_dir  [file dirname $ip_xml]
-    set ip_comp [ipx::open_core $ip_xml]
-    puts -nonewline "."
-    if { $count > 100 } {
-      puts ""
-      set count -2
-    }
-    incr count
-    foreach file_group [ipx::get_file_groups -of $ip_comp] {
-      set type [get_property type $file_group]
-      if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
-        set sub_lib_cores [get_property component_subcores $file_group]
-        set ordered_sub_cores [list]
-        foreach sub_lib $sub_lib_cores {
-          set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_lib]
-        } 
-
-        foreach sub_lib $ordered_sub_cores {
-          isl_extract_sub_cores $sub_lib ip_libs
-        }
-        set ip_lib_dir {}
-        set file_paths [list]
-        set pcore_libs [list]
-        set mcs_lib_name {}
-        foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
-          set file_entry [split $static_file { }]
-          lassign $file_entry file_key comp_ref file_group_name file_path
-          set ip_file [lindex $file_entry 3]
-          set type [isl_get_file_type $file_group $ip_file]
-          set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
-          if { {} == $library } {
-            send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
+      incr count
+      foreach file_group [ipx::get_file_groups -of $ip_comp] {
+        set type [get_property type $file_group]
+        if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
+          set sub_lib_cores [get_property component_subcores $file_group]
+          set ordered_sub_cores [list]
+          foreach vlnv $sub_lib_cores {
+            set ordered_sub_cores [linsert $ordered_sub_cores 0 $vlnv]
+          } 
+          foreach vlnv $ordered_sub_cores {
+            isl_extract_repo_sub_core_static_files $vlnv ip_libs
           }
-          if { {sem_ultra_v3_0_1} == $library} { continue }
-          #if { {axi_lite_ipif_v3_0} == $library} { continue }
-          #if { {iomodule_v3_0} == $library} { continue }
-          if { {xil_defaultlib} == $library } { continue }
-          if { [lsearch $ip_libs $library] == -1 } {
-            lappend ip_libs $library
-            if { [regexp {microblaze_mcs_v} $library] } {
-              set mcs_lib_name $library
-            } else {
-              lappend pcore_libs $library
+          set ip_lib_dir {}
+          set file_paths [list]
+          set pcore_libs [list]
+          set mcs_lib_name {}
+          foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
+            set file_entry [split $static_file { }]
+            lassign $file_entry file_key comp_ref file_group_name file_path
+            set ip_file [lindex $file_entry 3]
+            set type [isl_get_file_type $file_group $ip_file]
+            set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+            if { {} == $library } {
+              #send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' (ip_def_name)\n"
             }
-            # <ipstatic_dir>/<library>
-            set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $library]
-            if { ![file exists $ip_lib_dir] } {
-              if {[catch {file mkdir $ip_lib_dir} error_msg] } {
-                send_msg_id setup_ip_static_library-Tcl-022 ERROR "failed to create the directory ($ip_lib_dir)): $error_msg\n"
+            if { {sem_ultra_v3_0_1} == $library} { continue }
+            if { {xil_defaultlib} == $library } { continue }
+            if { [lsearch $ip_libs $library] == -1 } {
+              lappend ip_libs $library
+              if { [regexp {microblaze_mcs_v} $library] } {
+                set mcs_lib_name $library
+              } else {
+                lappend pcore_libs $library
+              }
+              # <ipstatic_dir>/<library>
+              set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $library]
+              if { ![file exists $ip_lib_dir] } {
+                if {[catch {file mkdir $ip_lib_dir} error_msg] } {
+                  send_msg_id setup_ip_static_library-Tcl-022 ERROR "failed to create the directory ($ip_lib_dir)): $error_msg\n"
+                }
               }
             }
+            set data "$library,$file_path,$type,static"
+            lappend file_paths "$file_path,$type"
+            isl_add_to_compile_order $library $data
+            isl_copy_static_source $ip_dir $library $file_path 
           }
-          set data "$library,$file_path,$type,static"
-          lappend file_paths "$file_path,$type"
-          isl_add_to_compile_order $library $data
-          isl_copy_static_source $ip_dir $library $file_path 
-        }
-        
-        # for microblaze_mcs, create vao file for each pcore library and then for microblaze_mcs
-        if { {microblaze_mcs} == $ip_def_name } {
-          foreach pcore_lib $pcore_libs {
-            set dir [file join $a_isl_vars(ipstatic_dir) $pcore_lib]
-            isl_create_vao_file_pcore $dir $file_paths $pcore_lib
-            isl_create_incl_file_pcore $dir $file_paths $pcore_lib
+
+          # for microblaze_mcs, create vao file for each pcore library and then for microblaze_mcs
+          if { {microblaze_mcs} == $ip_def_name } {
+            foreach pcore_lib $pcore_libs {
+              set dir [file join $a_isl_vars(ipstatic_dir) $pcore_lib]
+              isl_create_vao_file_pcore $dir $file_paths $pcore_lib
+              isl_create_incl_file_pcore $dir $file_paths $pcore_lib
+            }
+            # now create vao file for microblaze_mcs
+            set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $mcs_lib_name]
+            isl_create_vao_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
+            isl_create_incl_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
+          } else {
+            isl_create_vao_file $ip_lib_dir $file_paths
+            isl_create_incl_file $ip_lib_dir $file_paths
           }
-          # now create vao file for microblaze_mcs
-          set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $mcs_lib_name]
-          isl_create_vao_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
-          isl_create_incl_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
-        } else {
-          isl_create_vao_file $ip_lib_dir $file_paths
-          isl_create_incl_file $ip_lib_dir $file_paths
         }
       }
+      ipx::unload_core $ip_comp
     }
-
-    ipx::unload_core $ip_comp
   }
   isl_write_compile_order
   isl_post_processing ip_libs
   close_project
   puts ""
-  send_msg_id setup_ip_static_library-Tcl-023 INFO "Library created. Inspected $ip_count IPs from catalog repository.\n\n"
+  send_msg_id setup_ip_static_library-Tcl-023 INFO "Static IP library created. Inspected $ip_count IPs from repository.\n\n"
   #send_msg_id setup_ip_static_library-Tcl-023 INFO "Files extracted in '$a_isl_vars(ipstatic_dir)'"
   return 0
 }
 
-proc isl_extract_sub_cores { ip ip_libs_arg } {
+proc isl_find_ip_comp_xml_files { ip_repo_path } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { ({} == $ip_repo_path)               ||
+       (![file isdirectory $ip_repo_path]) ||
+       (![file readable $ip_repo_path]) } {
+    return
+  }
+
+  set l_xml_file_paths [list]
+  set file_to_search "component.xml"
+
+  isl_find_files_recursive $ip_repo_path $file_to_search l_xml_file_paths
+
+  return $l_xml_file_paths
+}
+
+proc isl_find_files_recursive { dir file_to_search l_file_paths_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $l_file_paths_arg l_file_paths
+  if { [file isdirectory $dir] } {
+    foreach file [glob -nocomplain -directory $dir *] {
+      if { [file isdirectory $file] } {
+        isl_find_files_recursive $file $file_to_search l_file_paths
+      } else {
+        if { $file_to_search == [file tail $file] } {
+          lappend l_file_paths $file
+        }
+      }
+    }
+  } else {
+    if { $file_to_search == [file tail $dir] } {
+      lappend l_file_paths $dir
+    }
+  }
+}
+
+proc isl_extract_install_files { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_ip_repo_paths
+
+  # for -install, append default Vivado install IP repository from data tree
+  set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
+  set ip_repo_dir [file normalize [file join $data_dir "ip/xilinx"]]
+
+  lappend l_ip_repo_paths $ip_repo_dir
+
+  isl_extract_repo_static_files
+}
+
+proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_isl_vars
   upvar $ip_libs_arg ip_libs
-  set vlnv    $ip
-  set ip_def  [get_ipdefs -all -vlnv $vlnv]
+  set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
   set ip_def_comps [split $ip_def {:}]
   set ip_def_name  [lindex $ip_def_comps 2]
   set ip_xml  [get_property xml_file_name $ip_def]
@@ -1052,11 +1088,11 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
     if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
       set sub_lib_cores [get_property component_subcores $file_group]
       set ordered_sub_cores [list]
-      foreach sub_lib $sub_lib_cores {
-        set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_lib]
+      foreach vlnv $sub_lib_cores {
+        set ordered_sub_cores [linsert $ordered_sub_cores 0 $vlnv]
       } 
-      foreach sub_lib $ordered_sub_cores {
-        isl_extract_sub_cores $sub_lib ip_libs
+      foreach vlnv $ordered_sub_cores {
+        isl_extract_repo_sub_core_static_files $vlnv ip_libs
       }
       set ip_lib_dir {}
       set file_paths [list]
@@ -1069,11 +1105,9 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
         set type [isl_get_file_type $file_group $ip_file]
         set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
         if { {} == $library } {
-          send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
+          #send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
         }
         if { {sem_ultra_v3_0_1} == $library} { continue }
-        #if { {axi_lite_ipif_v3_0} == $library} { continue }
-        #if { {iomodule_v3_0} == $library} { continue }
         if { {xil_defaultlib} == $library } { continue }
         if { [lsearch $ip_libs $library] == -1 } {
           lappend ip_libs $library
@@ -1095,7 +1129,6 @@ proc isl_extract_sub_cores { ip ip_libs_arg } {
         isl_add_to_compile_order $library $data
         isl_copy_static_source $ip_dir $library $file_path 
       }
-
       # for microblaze_mcs, create vao file for each pcore library and then for microblaze_mcs
       if { {microblaze_mcs} == $ip_def_name } {
         foreach pcore_lib $pcore_libs {
@@ -1144,6 +1177,8 @@ proc isl_write_compile_order { } {
 
   puts $fh "fifo_generator_v13_0_1,simulation/fifo_generator_vhdl_beh.vhd,vhdl,static"
   puts $fh "fifo_generator_v13_0_1,hdl/fifo_generator_v13_0_rfs.vhd,vhdl,static"
+  puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/async_fifo_fg.vhd,vhdl,static"
+  puts $fh "lib_fifo_v1_0_4,hdl/src/vhdl/sync_fifo_fg.vhd,vhdl,static"
 
   puts $fh "lib_pkg_v1_0_2,hdl/src/vhdl/lib_pkg.vhd,vhdl,static"
 
@@ -1152,16 +1187,22 @@ proc isl_write_compile_order { } {
   puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/srl_fifo_rbu_f.vhd,vhdl,static"
   puts $fh "lib_srl_fifo_v1_0_2,hdl/src/vhdl/srl_fifo_f.vhd,vhdl,static"
 
+  puts $fh "lib_cdc_v1_0_2,hdl/src/vhdl/cdc_sync.vhd,vhdl,static"
+
   foreach data $compile_order_data {
     set data [string trim $data]
     if { [string length $data] == 0 } { continue; }
     set comps [split $data {,}]
     set library [string trim [lindex $comps 0]]
     if { [regexp {^fifo_generator_v13_0_1} $library] ||
-         [regexp {^lib_pkg_v1_0_2}         $library] ||
-         [regexp {^g709_rs_decoder_v}      $library] ||
-         [regexp {^lib_srl_fifo_v}         $library] } { continue }
+         [regexp {^lib_fifo_v}         $library] ||
+         [regexp {^lib_pkg_v1_0_2}     $library] ||
+         [regexp {^g709_rs_decoder_v}  $library] ||
+         [regexp {^lib_cdc_v}          $library] ||
+         [regexp {^lib_srl_fifo_v}     $library] } { continue }
+
     puts $fh $data
+
     if { [regexp {^g709_rs_encoder_v} $library] } {
       puts $fh "g709_rs_decoder_v2_2_2,hdl/g709_rs_decoder_v2_2_vh_rfs.vhd,vhdl,static"
       puts $fh "g709_rs_decoder_v2_2_2,hdl/g709_rs_decoder_v2_2.vhd,vhdl,static"
@@ -1195,7 +1236,7 @@ proc isl_post_processing { ip_libs_arg } {
       set src_lib "axis_infrastructure_v1_1_0"
       set vh_file "hdl/verilog/axis_infrastructure_v1_1_0_axis_infrastructure.vh"
 
-      if { ({axi_register_slice_v2_1_7} == $lib) || ({axi_mm2s_mapper_v1_1_6} == $lib) } {
+      if { ({axi_register_slice_v2_1_8} == $lib) || ({axi_mm2s_mapper_v1_1_6} == $lib) } {
         set src_lib "axi_infrastructure_v1_1_0"
         set vh_file "hdl/verilog/axi_infrastructure_v1_1_0_header.vh"
       }

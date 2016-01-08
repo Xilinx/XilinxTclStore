@@ -849,34 +849,3 @@ proc xcs_uniquify_cmd_str { cmd_strs } {
   }
   return $uniq_cmd_strs
 }
-
-proc xcs_contains_unsupported_ipdefs_for_pre_compile { ip_def } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set b_launch_pre_compiled_flow 1
-  foreach ip [get_ips -all -quiet] {
-    set ipdef [get_property ipdef $ip]
-    if { [xcs_skip_ip $ipdef] } {
-      set b_launch_pre_compiled_flow 0
-      break
-    }
-  }
-  return $b_launch_pre_compiled_flow
-}
-
-proc xcs_skip_ip { ip_def } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set b_skip 0
-  if { [regexp -nocase {hdcp}                 $ip_def] ||
-       [regexp -nocase {ibert_lib}            $ip_def] ||
-       [regexp -nocase {ieee802d3_25g_rs_fec} $ip_def] ||
-       [regexp -nocase {labtools_ibert_lib}   $ip_def] } {
-    set b_skip 1
-  }
-  return $b_skip
-}
