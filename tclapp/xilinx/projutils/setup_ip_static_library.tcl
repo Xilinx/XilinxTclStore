@@ -1197,6 +1197,7 @@ proc isl_write_compile_order { } {
     if { [regexp {^fifo_generator_v13_0_1} $library] ||
          [regexp {^lib_fifo_v}         $library] ||
          [regexp {^lib_pkg_v1_0_2}     $library] ||
+         [regexp {^rs_toolbox_v}       $library] ||
          [regexp {^g709_rs_decoder_v}  $library] ||
          [regexp {^lib_cdc_v}          $library] ||
          [regexp {^lib_srl_fifo_v}     $library] } { continue }
@@ -1204,6 +1205,7 @@ proc isl_write_compile_order { } {
     puts $fh $data
 
     if { [regexp {^g709_rs_encoder_v} $library] } {
+      puts $fh "rs_toolbox_v9_0_2,hdl/rs_toolbox_v9_0_vh_rfs.vhd,vhdl,static"
       puts $fh "g709_rs_decoder_v2_2_2,hdl/g709_rs_decoder_v2_2_vh_rfs.vhd,vhdl,static"
       puts $fh "g709_rs_decoder_v2_2_2,hdl/g709_rs_decoder_v2_2.vhd,vhdl,static"
     }
