@@ -31,7 +31,7 @@ proc export_simulation {args} {
   # [-include <arg> = Empty]: Read include directory paths from the list specified with this switch
   # [-xpm_library <arg> = Empty]: Read XPM libraries from the list specified with this switch
   # [-default_library <arg> = xil_defaultlib]: Set the specified default library
-  # [-use_ipstatic_library]: Reference pre-compiled IP static library during compilation
+  # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-single_step]: Generate script to launch all steps in one step
   # [-ip_netlist]: Select the netlist file for IP(s) in the project or the selected object (-of_objects) for the specified simulator language (default:verilog)
@@ -78,7 +78,7 @@ proc export_simulation {args} {
       "-xpm_library"              { incr i;set l_xpm_libraries                   [lindex $args $i];set a_sim_vars(b_xpm_specified)                       1 }
       "-32bit"                    { set a_sim_vars(b_32bit)                                                                                              1 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)                                                                                      1 }
-      "-use_ipstatic_library"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
+      "-use_ip_compiled_libs"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
       "-single_step"              { set a_sim_vars(b_single_step)                                                                                        1 }
       "-ip_netlist"               { set a_sim_vars(b_ip_netlist)                                                                                         1 }
       "-managed_ip"               { set a_sim_vars(b_managed_ip)                                                                                         1 }
