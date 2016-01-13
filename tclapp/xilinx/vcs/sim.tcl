@@ -287,7 +287,6 @@ proc usf_vcs_write_setup_files {} {
   if { {} == $lib_map_path } {
     set lib_map_path "?"
   }
-  puts $fh "OTHERS=$lib_map_path/$filename"
   set libs [list]
 
   # unifast
@@ -342,6 +341,7 @@ proc usf_vcs_write_setup_files {} {
   if { $a_sim_vars(b_use_static_lib) } {
     usf_vcs_map_pre_compiled_libs $fh
   }
+  puts $fh "OTHERS=$lib_map_path/$filename"
   close $fh
 
   # create setup file

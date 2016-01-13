@@ -3468,13 +3468,6 @@ proc xps_write_libs_unix { simulator fh_unix } {
         puts $fh_unix "  fi"
       }
     }
-    "vcs" {
-      set file "synopsys_sim.setup"
-      puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
-      puts $fh_unix "    incl_ref=\"OTHERS=\$lib_map_path/$file\""
-      puts $fh_unix "    echo \$incl_ref >> \$file"
-      puts $fh_unix "  fi"
-    }
   }
 
   switch -regexp -- $simulator {
@@ -3500,8 +3493,14 @@ proc xps_write_libs_unix { simulator fh_unix } {
       puts $fh_unix "      echo \$mapping >> \$file"
       puts $fh_unix "    fi"
       puts $fh_unix "  done"
-      puts $fh_unix "\}"
+
+      set file "synopsys_sim.setup"
+      puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
+      puts $fh_unix "    incl_ref=\"OTHERS=\$lib_map_path/$file\""
+      puts $fh_unix "    echo \$incl_ref >> \$file"
+      puts $fh_unix "  fi"
       puts $fh_unix ""
+      puts $fh_unix "\}"
     }
   }
 }
