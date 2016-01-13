@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>process single and multiple core libraries in 2 steps</revision_history>
+      <revision_history>Process IP static files for single and multi cores separately</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
