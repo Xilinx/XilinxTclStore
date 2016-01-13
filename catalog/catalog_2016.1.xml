@@ -75,8 +75,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>3873e80e19b071ae3663f15154aef5f1a327b726</commit_id>
-      <revision>3.120</revision>
+      <commit_id>4902770f4169d5efff77686ba7bd9a24ef2ca059</commit_id>
+      <revision>3.121</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -123,8 +123,8 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>0a2967d5275a340c113ee561cf39efb44d29dfae</commit_id>
-      <revision>2.77</revision>
+      <commit_id>4902770f4169d5efff77686ba7bd9a24ef2ca059</commit_id>
+      <revision>2.78</revision>
     </app>
     <app>
       <name>xsim</name>

@@ -1,3 +1,4 @@
+3.121 reference synopsys_sim.setup from install at the end
 3.120 Process IP static files for single and multi cores separately
 3.119 export all IP include files into incl dir
 3.117 support for ip repo path

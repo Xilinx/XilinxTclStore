@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference synopsys_sim.setup from install last</revision_history>
+      <revision_history>reference synopsys_sim.setup from install at the end</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
