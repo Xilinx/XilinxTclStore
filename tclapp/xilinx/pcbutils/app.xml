@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Initial version</revision_history>
+      <name>pcbutils</name>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to help interfacing with PCB.</summary>
+      <display>PCB Utilities</display>
+      <procs>
+      </procs>
+    </app>
+  </apps>
+</catalog>
