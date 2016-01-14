@@ -114,13 +114,9 @@ proc export_simulation {args} {
     }
   }
 
-  # check ip user files static dir
+  # set ipstatic dir
   if { $a_sim_vars(b_ipstatic_source_dir_specified) } {
     set a_sim_vars(s_ipstatic_source_dir) [file normalize $a_sim_vars(s_ipstatic_source_dir)]
-    if { ![file exists $a_sim_vars(s_ipstatic_source_dir)] } {
-      send_msg_id exportsim-Tcl-000 ERROR "Directory path specified with the '-ipstatic_source_dir' does not exist:'$a_sim_vars(s_ipstatic_source_dir)'\n"
-      return
-    }
   }
 
   # no -of_objects specified
@@ -1417,11 +1413,11 @@ proc xps_get_cmdstr { simulator launch_dir file file_type compiler l_other_compi
   set src_file $file
 
   set ip_file {}
+  set b_static_ip_file 0
   if { $b_skip_file_obj_access } {
     #
   } else {
     set ip_file [xps_cache_result {xcs_get_top_ip_filename $src_file}]
-    set b_static_ip_file 0
     if { $a_sim_vars(b_xport_src_files) } {
       # no-op
     } else {
