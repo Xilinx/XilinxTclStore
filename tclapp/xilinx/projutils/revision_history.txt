@@ -1,3 +1,4 @@
+3.123 do not check for ipstatic dir
 3.122 fixed setup file generation bug
 3.121 reference synopsys_sim.setup from install at the end
 3.120 Process IP static files for single and multi cores separately
