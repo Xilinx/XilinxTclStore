@@ -942,7 +942,6 @@ proc usf_vcs_create_setup_script {} {
 
   set file "synopsys_sim.setup"
   puts $fh_scr "  incl_ref=\"OTHERS=\$lib_map_path/$file\""
-  puts $fh_scr "  echo \$incl_ref >> \$file"
   puts $fh_scr "  for (( i=0; i<\$\{#libs\[*\]\}; i++ )); do"
   puts $fh_scr "    lib=\"\$\{libs\[i\]\}\""
   puts $fh_scr "    lib_dir=\"\$dir/\$lib\""
@@ -952,6 +951,7 @@ proc usf_vcs_create_setup_script {} {
   puts $fh_scr "      echo \$mapping >> \$file"
   puts $fh_scr "    fi"
   puts $fh_scr "  done"
+  puts $fh_scr "  echo \$incl_ref >> \$file"
   puts $fh_scr "\}"
   puts $fh_scr ""
   puts $fh_scr "# Delete generated files from the previous run"
