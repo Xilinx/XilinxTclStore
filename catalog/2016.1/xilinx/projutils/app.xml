@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not check for ipstatic dir</revision_history>
+      <revision_history>generate dump file for IP</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -28,7 +28,7 @@
         </proc>
         <proc>
           <name>setup_ip_static_library</name>
-          <summary>Extract static files from the IPs for prepare it for compile_simlib Tcl command</summary>
+          <summary>Extract IP static files from the project or repository and prepare it for compile_simlib</summary>
         </proc>
         <proc>
           <name>write_project_tcl</name>
