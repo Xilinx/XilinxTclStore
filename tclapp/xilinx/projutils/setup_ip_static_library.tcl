@@ -913,24 +913,6 @@ proc isl_extract_repo_static_files { } {
   variable l_ip_repo_paths
 
   create_project -in_memory
-  #send_msg_id setup_ip_static_library-Tcl-018 INFO "Updating IP catalog..."
-  #if { ! [update_ip_catalog -quiet] } {
-  #  close_project
-  #  return 1
-  #}
-
-  # open dump file
-  set dump_file [file join $a_isl_vars(ipstatic_dir) "dump.txt"]
-  if { [file exists $dump_file] } {
-    file delete -force $dump_file
-  }
-
-  set fh_dmp 0
-  if {[catch {open $dump_file w} fh_dmp]} {
-    send_msg_id populate_sim_repo-Tcl-011 ERROR "failed to open file for write ($dump_file)\n"
-    return 1
-  }
-
   set compile_order_data [list]
   set ip_libs [list]
   set ip_count 0
@@ -945,23 +927,22 @@ proc isl_extract_repo_static_files { } {
 
   # process single core library
   set b_extract_sub_cores "false"
-  set current_index [isl_build_static_library $b_extract_sub_cores $ip_component_filelist $fh_dmp ip_libs 0]
+  set current_index [isl_build_static_library $b_extract_sub_cores $ip_component_filelist ip_libs 0]
 
   # process multi core library
   set b_extract_sub_cores "true"
-  set current_index [isl_build_static_library $b_extract_sub_cores $ip_component_filelist $fh_dmp ip_libs $current_index]
+  set current_index [isl_build_static_library $b_extract_sub_cores $ip_component_filelist ip_libs $current_index]
 
   isl_write_compile_order
 
   close_project
  
-  close $fh_dmp
   puts ""
   send_msg_id setup_ip_static_library-Tcl-023 INFO "Static IP library created. Inspected $ip_count IPs from repository.\n\n"
   return 0
 }
 
-proc isl_build_static_library { b_extract_sub_cores ip_component_filelist fh_dmp ip_libs_arg coloumn_length } {
+proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_libs_arg coloumn_length } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -985,7 +966,6 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist fh_dmp
     set ip_comp [ipx::open_core $ip_xml]
     set ip_def_name [get_property name $ip_comp]
     set vlnv    [get_property vlnv $ip_comp]
-    puts $fh_dmp "$vlnv"
     puts -nonewline "."
     incr current_index
     
@@ -1002,21 +982,14 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist fh_dmp
       set type [get_property type $file_group]
       if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
         set sub_lib_cores [get_property component_subcores $file_group]
-        if { [llength $sub_lib_cores] > 0 } {
-          if { ! $b_extract_sub_cores } {
-            if { [regexp {lib_fifo} $vlnv] } {
-              # process lib_fifo
-            } else {
-              continue
-            }
-          }
-        }
+        set sub_core_len [llength $sub_lib_cores]
+        if { ($sub_core_len > 0) && (!$b_extract_sub_cores) } { continue }
         set ordered_sub_cores [list]
         foreach vlnv $sub_lib_cores {
           set ordered_sub_cores [linsert $ordered_sub_cores 0 $vlnv]
         } 
         foreach vlnv $ordered_sub_cores {
-          isl_extract_repo_sub_core_static_files $vlnv $fh_dmp $ip_libs
+          isl_extract_repo_sub_core_static_files $vlnv $ip_libs
         }
 
         set ip_lib_dir {}
@@ -1077,7 +1050,7 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist fh_dmp
   return $current_index
 }
 
-proc isl_extract_repo_sub_core_static_files { vlnv fh_dmp ip_libs_arg } {
+proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1091,7 +1064,6 @@ proc isl_extract_repo_sub_core_static_files { vlnv fh_dmp ip_libs_arg } {
   set ip_xml  [get_property xml_file_name $ip_def]
   set ip_dir  [file dirname $ip_xml]
   set ip_comp [ipx::open_core $ip_xml]
-  puts $fh_dmp " +sub_core:$vlnv"
   foreach file_group [ipx::get_file_groups -of $ip_comp] {
     set type [get_property type $file_group]
     if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
@@ -1101,7 +1073,7 @@ proc isl_extract_repo_sub_core_static_files { vlnv fh_dmp ip_libs_arg } {
         set ordered_sub_cores [linsert $ordered_sub_cores 0 $vlnv]
       } 
       foreach vlnv $ordered_sub_cores {
-        isl_extract_repo_sub_core_static_files $vlnv $fh_dmp $ip_libs
+        isl_extract_repo_sub_core_static_files $vlnv $ip_libs
       }
       set ip_lib_dir {}
       set file_paths [list]
@@ -1169,6 +1141,13 @@ proc isl_write_compile_order { } {
     send_msg_id populate_sim_repo-Tcl-011 ERROR "failed to open file for append ($a_isl_vars(co_file_list))\n"
     return 1
   }
+  foreach data $compile_order_data {
+    set data [string trim $data]
+    if { [string length $data] == 0 } { continue; }
+    puts $fh $data
+  }
+  close $fh
+  return
 
   set fifo_gen_data [list]
   set lib_fifo_data [list]
