@@ -1005,7 +1005,6 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
           if { {} == $library } {
             #send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' (ip_def_name)\n"
           }
-          if { {sem_ultra_v3_0_1} == $library} { continue }
           if { {xil_defaultlib} == $library } { continue }
           if { [lsearch $ip_libs $library] == -1 } {
             lappend ip_libs $library
@@ -1088,7 +1087,6 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
         if { {} == $library } {
           #send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
         }
-        if { {sem_ultra_v3_0_1} == $library} { continue }
         if { {xil_defaultlib} == $library } { continue }
         if { [lsearch $ip_libs $library] == -1 } {
           lappend ip_libs $library
@@ -1144,47 +1142,6 @@ proc isl_write_compile_order { } {
   foreach data $compile_order_data {
     set data [string trim $data]
     if { [string length $data] == 0 } { continue; }
-    puts $fh $data
-  }
-  close $fh
-  return
-
-  set fifo_gen_data [list]
-  set lib_fifo_data [list]
-  set lib_pkg_data  [list]
-  set lib_srl_data  [list]
-  set lib_cdc_data  [list]
-
-  foreach data $compile_order_data {
-    set data [string trim $data]
-    if { [string length $data] == 0 } { continue; }
-    set comps [split $data {,}]
-    set library [string trim [lindex $comps 0]]
-    if { [regexp {^fifo_generator_v13_0_1} $library] } { lappend fifo_gen_data $data }
-    if { [regexp {^lib_fifo_v}             $library] } { lappend lib_fifo_data $data }
-    if { [regexp {^lib_pkg_v}              $library] } { lappend lib_pkg_data  $data }
-    if { [regexp {^lib_srl_fifo_v}         $library] } { lappend lib_srl_data  $data }
-    if { [regexp {^lib_cdc_v}              $library] } { lappend lib_cdc_data  $data }
-  }
-
-  foreach data $compile_order_data {
-    set data [string trim $data]
-    if { [string length $data] == 0 } { continue; }
-    set comps [split $data {,}]
-    set library [string trim [lindex $comps 0]]
-    if { [regexp {^fifo_generator_v13_0_1} $library] ||
-         [regexp {^lib_fifo_v}             $library] ||
-         [regexp {^lib_pkg_v}              $library] ||
-         [regexp {^lib_srl_fifo_v}         $library] ||
-         [regexp {^lib_cdc_v}              $library] } { continue }
-
-    if { [regexp {^axi_sg_v} $library] } {
-      foreach line $fifo_gen_data { puts $fh $line }
-      foreach line $lib_fifo_data { puts $fh $line }
-      foreach line $lib_pkg_data  { puts $fh $line }
-      foreach line $lib_srl_data  { puts $fh $line }
-      foreach line $lib_cdc_data  { puts $fh $line }
-    }
     puts $fh $data
   }
   close $fh
