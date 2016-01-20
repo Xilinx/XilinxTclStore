@@ -1,3 +1,4 @@
+2.80 control IP pre-compiled flow via param
 2.79 reference synopsys_sim.setup from install at the end in setup script
 2.78 reference synopsys_sim.setup from install at the end
 2.77 define ipstatic variable

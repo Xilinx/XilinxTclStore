@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference synopsys_sim.setup from install at the end in setup script</revision_history>
+      <revision_history>control IP pre-compiled flow via param</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
