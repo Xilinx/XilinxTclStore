@@ -97,6 +97,9 @@ proc export_simulation {args} {
     return
   }
 
+  # control precompile flow
+  xcs_control_pre_compile_flow a_sim_vars(b_use_static_lib)
+
   xps_set_target_simulator
 
   set objs $a_sim_vars(sp_of_objects)

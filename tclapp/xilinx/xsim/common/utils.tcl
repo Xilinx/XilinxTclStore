@@ -13,6 +13,23 @@
 
 variable _xcs_defined 1
 
+proc xcs_control_pre_compile_flow { b_static_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $b_static_arg b_static
+
+  set val [string tolower [get_param "project.overrideIPStaticPrecompile"]]
+  if { {na} == $val } { return }
+
+  if { ({force} == $val) && (!$b_static) } {
+    set b_static 1
+  } elseif { ({disable} == $val) && ($b_static) } {
+    set b_static 0
+  }
+}
+
 proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   # Summary:
   # Argument Usage:

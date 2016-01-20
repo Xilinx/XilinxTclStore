@@ -25,6 +25,10 @@ proc setup { args } {
   # initialize global variables
   ::tclapp::xilinx::ies::usf_init_vars
 
+  # control precompile flow
+  variable a_sim_vars
+  xcs_control_pre_compile_flow a_sim_vars(b_use_static_lib)
+
   # read simulation command line args and set global variables
   usf_ies_setup_args $args
 
