@@ -6,5 +6,4 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
-
-set auto_index(::tclapp::xilinx::pcbutils::add_probe) [list source [file join $dir add_probe.tcl]]
+set auto_index(::tclapp::xilinx::pcbutils::export_symbol) [list source [file join $dir export_symbol.tcl]]
