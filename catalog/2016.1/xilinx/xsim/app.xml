@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>use compxlib compiled library directory for precompiled flow</revision_history>
+      <revision_history>support for the new verilog header type</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

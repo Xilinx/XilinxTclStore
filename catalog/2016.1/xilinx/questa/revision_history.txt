@@ -1,3 +1,4 @@
+1.77 support for the new verilog header type
 1.76 control IP pre-compiled flow via param
 1.75 moved procs to utils.tcl
 1.74 refactored procs in utils.tcl
