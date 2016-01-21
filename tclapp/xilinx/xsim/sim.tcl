@@ -188,6 +188,11 @@ proc usf_xsim_setup_simulation { args } {
   # generate mem files
   ::tclapp::xilinx::xsim::usf_generate_mem_files_for_simulation
 
+  # find/copy xsim.ini file into run dir
+  if { $a_sim_vars(b_use_static_lib) } {
+    if {[usf_xsim_verify_compiled_lib]} { return 1 }
+  }
+
   # fetch the compile order for the specified object
   ::tclapp::xilinx::xsim::usf_xport_data_files
 
@@ -197,20 +202,6 @@ proc usf_xsim_setup_simulation { args } {
      [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
-
-  # create setup file
-  #usf_xsim_write_setup_files
-  if { $a_sim_vars(b_use_static_lib) } {
-    # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      if { [file exists $a_sim_vars(s_lib_map_path)] } {
-        usf_xsim_copy_pre_compiled_setup_file
-      } else {
-        send_msg_id USF-XSim-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
-      }
-    }
-  }
 
   return 0
 }
@@ -273,35 +264,71 @@ proc usf_xsim_setup_args { args } {
   }
 }
 
-proc usf_xsim_write_setup_files {} {
+proc usf_xsim_verify_compiled_lib {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
-  set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+  set b_scripts_only $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only)
 
-  set filename "xsim.ini"
-  set file [file normalize [file join $dir $filename]]
-  set fh 0
+  set ini_file "xsim.ini"
+  set compiled_lib_dir {}
 
-  if {[catch {open $file w} fh]} {
-    send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($file)\n"
-    return 1
+  send_msg_id USF-XSim-007 INFO "Finding pre-compiled libraries...\n"
+
+  # 1. find default install location
+  set dir [get_property "COMPXLIB.XSIM_COMPILED_LIBRARY_DIR" [current_project]]
+  set file [file normalize [file join $dir $ini_file]]
+  if { [file exists $file] } {
+    set compiled_lib_dir $dir
   }
 
-  set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} { continue; }
-    puts $fh "$lib=xsim.dir/$lib"
-  }
-  
+  # 2. check -lib_map_path
   if { $a_sim_vars(b_use_static_lib) } {
-    usf_xsim_map_pre_compiled_libs $fh
+    # is -lib_map_path specified and point to valid location?
+    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+      if { [file exists $a_sim_vars(s_lib_map_path)] } {
+        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+      } else {
+          send_msg_id USF-XSim-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
+      }
+    }
   }
 
-  close $fh
+  # 3. not found? find xsim.ini from current working directory
+  if { {} == $compiled_lib_dir } {
+    set dir [file normalize [pwd]]
+    set file [file normalize [file join $dir $ini_file]]
+    if { [file exists $file] } {
+      set compiled_lib_dir $dir
+    }
+  }
+
+  # 4. not found? finally check in run dir
+  if { {} == $compiled_lib_dir } {
+    set file [file normalize [file join $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) $ini_file]]
+    if { ! [file exists $file] } {
+      if { $b_scripts_only } {
+        send_msg_id USF-XSim-024 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+      } else {
+        send_msg_id USF-XSim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+      }
+      send_msg_id USF-XSim-009 INFO " Recommendation:- Please set the 'COMPXLIB.XSIM_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for XSim\n"
+    }
+  } else {
+    # 5. copy to run dir
+    set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
+    if { [file exists $ini_file_path] } {
+      if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)} error_msg] } {
+        send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
+      } else {
+        send_msg_id USF-XSim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
+      }
+    }
+  }
+  return 0
 }
 
 proc usf_xsim_copy_pre_compiled_setup_file {} {
