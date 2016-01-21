@@ -188,11 +188,6 @@ proc usf_xsim_setup_simulation { args } {
   # generate mem files
   ::tclapp::xilinx::xsim::usf_generate_mem_files_for_simulation
 
-  # find/copy xsim.ini file into run dir
-  if { $a_sim_vars(b_use_static_lib) } {
-    if {[usf_xsim_verify_compiled_lib]} { return 1 }
-  }
-
   # fetch the compile order for the specified object
   ::tclapp::xilinx::xsim::usf_xport_data_files
 
@@ -202,6 +197,13 @@ proc usf_xsim_setup_simulation { args } {
      [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
+
+  # find/copy xsim.ini file into run dir
+  if { $a_sim_vars(b_use_static_lib) } {
+    if {[usf_xsim_verify_compiled_lib]} { return 1 }
+  } else {
+    usf_xsim_write_setup_file
+  }
 
   return 0
 }
@@ -329,6 +331,34 @@ proc usf_xsim_verify_compiled_lib {} {
     }
   }
   return 0
+}
+
+proc usf_xsim_write_setup_file {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
+  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+
+  set filename "xsim.ini"
+  set file [file normalize [file join $dir $filename]]
+  set fh 0
+
+  if {[catch {open $file w} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($file)\n"
+    return 1
+  }
+
+  set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    set lib_name [string tolower $lib]
+    puts $fh "$lib=xsim.dir/$lib_name"
+  }
+  
+  close $fh
 }
 
 proc usf_xsim_copy_pre_compiled_setup_file {} {

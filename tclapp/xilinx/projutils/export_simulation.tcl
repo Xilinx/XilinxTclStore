@@ -223,7 +223,7 @@ proc xps_init_vars {} {
   set s_non_hdl_data_files_filter \
                "FILE_TYPE != \"Verilog\"                      && \
                 FILE_TYPE != \"SystemVerilog\"                && \
-                FILE_TYPE != \"Verilog Header\"               && \
+                FILE_TYPE != \"Verilog/SystemVerilog Header\" && \
                 FILE_TYPE != \"Verilog Template\"             && \
                 FILE_TYPE != \"VHDL\"                         && \
                 FILE_TYPE != \"VHDL 2008\"                    && \
@@ -2961,7 +2961,7 @@ proc xps_get_compiler { simulator file_type } {
       "ies"      { set compiler "ncvhdl" }
       "vcs"      { set compiler "vhdlan" }
     }
-  } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) } {
+  } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog/SystemVerilog Header} == $file_type) } {
     switch -regexp -- $simulator {
       "xsim"     {
         set compiler "verilog"
@@ -4895,7 +4895,7 @@ proc xps_get_incl_files_from_ip { launch_dir tcl_obj } {
   variable a_sim_vars
   set incl_files [list]
   set ip_name [file tail $tcl_obj]
-  set filter "FILE_TYPE == \"Verilog Header\""
+  set filter "FILE_TYPE == \"Verilog/SystemVerilog Header\""
   set vh_files [get_files -quiet -all -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
     lappend incl_files $file
@@ -4917,7 +4917,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
   if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
     set vh_files [xps_get_incl_files_from_ip $launch_dir $tcl_obj]
   } else {
-    set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
+    set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog/SystemVerilog Header\""
     set vh_files [get_files -all -quiet -filter $filter]
   }
 
@@ -5097,7 +5097,7 @@ proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
   variable a_sim_vars
   set ip_name [file tail $tcl_obj]
   set incl_dirs [list]
-  set filter "FILE_TYPE == \"Verilog Header\""
+  set filter "FILE_TYPE == \"Verilog/SystemVerilog Header\""
   set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
     # set file [extract_files -files [list "[file tail $file]"] -base_dir $launch_dir/ip_files]
@@ -5169,7 +5169,7 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
     lappend filesets $linked_src_set
   }
   lappend filesets $a_sim_vars(fs_obj)
-  set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog Template\""
+  set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog/SystemVerilog Header\" || FILE_TYPE == \"Verilog Template\""
   foreach fs_obj $filesets {
     set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach file $vh_files {

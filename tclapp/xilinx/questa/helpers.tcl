@@ -80,7 +80,7 @@ proc usf_init_vars {} {
   set s_non_hdl_data_files_filter \
                "FILE_TYPE != \"Verilog\"                      && \
                 FILE_TYPE != \"SystemVerilog\"                && \
-                FILE_TYPE != \"Verilog Header\"               && \
+                FILE_TYPE != \"Verilog/SystemVerilog Header\" && \
                 FILE_TYPE != \"Verilog Template\"             && \
                 FILE_TYPE != \"VHDL\"                         && \
                 FILE_TYPE != \"VHDL 2008\"                    && \
@@ -1107,7 +1107,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   #    lappend l_compile_order_files $file
   #  }
   #}
-  ##set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\""
+  ##set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog/SystemVerilog Header\""
   #set verilog_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\")"
   #foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
   #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
@@ -1675,7 +1675,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
   set dir $a_sim_vars(s_launch_dir)
 
   # setup the filter to include only header types enabled for simulation
-  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog/SystemVerilog Header\""
   set vh_files [get_files -all -quiet -filter $filter]
   foreach vh_file $vh_files {
     set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
@@ -1737,7 +1737,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
     lappend filesets $linked_src_set
   }
   lappend filesets $simset_obj
-  set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog Template\""
+  set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog/SystemVerilog Header\" || FILE_TYPE == \"Verilog Template\""
   foreach fs_obj $filesets {
     set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach vh_file $vh_files {
@@ -1783,7 +1783,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   set launch_dir $a_sim_vars(s_launch_dir)
   set ip_name [file tail $tcl_obj]
   set incl_dirs [list]
-  set filter "FILE_TYPE == \"Verilog Header\""
+  set filter "FILE_TYPE == \"Verilog/SystemVerilog Header\""
   set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach file $vh_files {
     # set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
@@ -1866,7 +1866,7 @@ proc usf_get_compiler_name { file_type } {
   set compiler ""
   if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } {
     set compiler "vcom"
-  } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) } {
+  } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog/SystemVerilog Header} == $file_type) } {
     set compiler "vlog"
   }
   return $compiler

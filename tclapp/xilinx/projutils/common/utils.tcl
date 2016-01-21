@@ -493,7 +493,7 @@ proc xcs_get_file_type_category { file_type } {
     }
     {Verilog} -
     {SystemVerilog} -
-    {Verilog Header} {
+    {Verilog/SystemVerilog Header} {
       set type {VERILOG}
     }
   }
