@@ -1,3 +1,4 @@
+2.83 use compxlib compiled library directory for precompiled flow
 2.82 control IP pre-compiled flow via param
 2.81 moved procs to utils.tcl
 2.80 add pwd to LD_LIBRARY_PATH
