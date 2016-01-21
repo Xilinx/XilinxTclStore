@@ -9,34 +9,26 @@ puts "== Unit Test name: $unit_test"
 # Set the Name to the name of the script
 set name [file rootname [file tail [info script]]]
 
-open_checkpoint $file_dir/test.dcp
+set part_list [list xc7vx485tffg1761-2 xc7k70tfbg676-3 xc7a200tfbg676-2L xc7z045ffg900-1 \
+                    xcvu095-ffvb1760-1L-i-es2 xcku040-ffva1156-1L-i \
+                    xcvu9p-flva2104-2LV-e-es1 xcku9p-ffve900-2LV-e-es1 xczu9eg-ffvb1156-2LV-e-es1]
 
-# Run the export_symbol and verify that no error was reported
-if {[catch { ::tclapp::xilinx::pcbutils::export_symbol -net inst_1/tmp_q[0] -loc H10 -port myprobe1 -iostandard LVCMOS18} catchErrorString]} {
+foreach part $part_list {
+  regexp {xc(vu|ku|zu|7vx|7k|7a|7z)(\d+)(t|p|eg|)} $part mtch fam siz ext
+  set prj_name ${fam}${siz}${ext}
+  file mkdir ./build/$prj_name
+  cd ./build/$prj_name
+  create_project -force -part $part ./$prj_name
+  set_property design_mode PinPlanning [current_fileset]
+  open_io_design -name io_1
+
+  if {[catch { ::tclapp::xilinx::pcbutils::export_symbol -file symbol_${prj_name}.csv} catchErrorString]} {
     close_design
     error [format " -E- Unit test $name failed: %s" $catchErrorString]   
+  }
+
+  close_project
+  cd ../../
 }
-
-if {[catch { ::tclapp::xilinx::pcbutils::export_symbol -net inst_1/tmp_q[1] -loc H10 -port myprobe1} catchErrorString]} {
-    close_design
-    error [format " -E- Unit test $name failed: %s" $catchErrorString]   
-}
-
-# if {[catch { ::tclapp::xilinx::pcbutils::export_symbol -net inst_1/tmp_q[0] -loc E12 -port rst_n} catchErrorString]} {
-#     close_design
-#     error [format " -E- Unit test $name failed: %s" $catchErrorString]   
-# }
-# 
-# if {[catch { ::tclapp::xilinx::pcbutils::export_symbol -net inst_1/tmp_q[1] -loc H10 -port myprobe} catchErrorString]} {
-#     close_design
-#     error [format " -E- Unit test $name failed: %s" $catchErrorString]   
-# }
-# 
-# if {[catch { ::tclapp::xilinx::pcbutils::export_symbol -net inst_1/tmp_q[1] -loc H9 -port myprobe1} catchErrorString]} {
-#     close_design
-#     error [format " -E- Unit test $name failed: %s" $catchErrorString]   
-# }
-
-close_design
 
 return 0
