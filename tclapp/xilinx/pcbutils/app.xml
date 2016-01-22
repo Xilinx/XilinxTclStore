@@ -11,7 +11,7 @@
       <procs>
         <proc>
           <name>export_symbol</name>
-          <summary>Export_symbol information</summary>
+          <summary>Export symbol information</summary>
         </proc>
       </procs>
     </app>
