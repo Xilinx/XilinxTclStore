@@ -1,3 +1,4 @@
+2.85 replace data dir env with the compiled library path in xsim.ini
 2.84 support for the new verilog header type
 2.83 use compxlib compiled library directory for precompiled flow
 2.82 control IP pre-compiled flow via param

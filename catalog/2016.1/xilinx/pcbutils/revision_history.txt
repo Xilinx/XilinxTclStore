@@ -1,1 +1,1 @@
-1.0 &lt;revision history&gt;
+1.0 <revision history>
