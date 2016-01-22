@@ -1,5 +1,5 @@
 #
-# pcbutils.tcl (allow Tcl to find tclindex and provide package version 1.0)
+# pcbutils.tcl (allow Tcl to find tclindex and provide package)
 # 
 
 namespace eval ::tclapp::xilinx::pcbutils {
@@ -10,4 +10,4 @@ namespace eval ::tclapp::xilinx::pcbutils {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::pcbutils 1.0
+package provide ::tclapp::xilinx::pcbutils 1.1
