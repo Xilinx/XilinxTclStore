@@ -327,10 +327,81 @@ proc usf_xsim_verify_compiled_lib {} {
         send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
       } else {
         send_msg_id USF-XSim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
+        usf_process_data_dir_env $compiled_lib_dir 
       }
     }
   }
   return 0
+}
+
+proc usf_process_data_dir_env { compiled_lib_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+
+  # remove "xsim" sub-dir from path since it is already part of path in xsim.ini copied from specified location (compxlib.xsim_compiled_library_dir)
+  set compiled_lib_dir [file dirname $compiled_lib_dir]
+
+  set filename "xsim.ini"
+  set ini_file [file normalize [file join $dir $filename]]
+  if { ![file exists $ini_file] } {
+    return
+  }
+  # read xsim.ini contents
+  set fh 0
+  if {[catch {open $ini_file r} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($ini_file)\n"
+    return 1
+  }
+  set data [read $fh]
+  close $fh
+
+  # check if data dir env specified, if not, return, else replace data dir env with path
+  set b_data_dir_env false
+  set data [split $data "\n"]
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp "RDI_DATADIR" $line] } {
+      set b_data_dir_env true
+      break
+    }
+  }
+  if { !$b_data_dir_env } { return }
+
+  # first make back up
+  set ini_file_bak ${ini_file}.bak
+  [catch {file copy -force $ini_file $ini_file_bak} error_msg]
+
+  # delete ini file
+  [catch {file delete -force $ini_file} error_msg]
+
+  # create fresh copy
+  set fh 0
+  if {[catch {open $ini_file w} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($ini_file)\n"
+    # revert backup ini file
+    [catch {file copy -force $ini_file_bak $ini_file} error_msg]
+    if { [file exists $ini_file_bak] } {
+      [catch {file delete -force $ini_file_bak} error_msg]
+    }
+    return 1
+  }
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp "RDI_DATADIR" $line] } {
+      regsub -all {\$RDI_DATADIR} $line "$compiled_lib_dir" line
+    }
+    puts $fh $line
+  }
+  close $fh
+  if { [file exists $ini_file_bak] } {
+    [catch {file delete -force $ini_file_bak} error_msg]
+  }
 }
 
 proc usf_xsim_write_setup_file {} {
