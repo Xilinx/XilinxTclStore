@@ -14,10 +14,13 @@
 ##    changes to the CSV file exported. 
 ##
 ## Author: Tony Scarangella
-## Version Number: 1.0
+## Version Number: 1.1
 ## Version Change History
 ## Version 1.0 - Initial release
-## Version 1.1 - Move set ouput outside if statement. Update Categories to pcbutils, Summary: edit, return_string fix
+## Version 1.1 - Move set output outside if statement
+##             - Update Categories to pcbutils 
+##             - Edit Summary: 
+##             - return_string fix
 ## --------------------------------------------------------------------- 
 package require Vivado 1.2014.1
 

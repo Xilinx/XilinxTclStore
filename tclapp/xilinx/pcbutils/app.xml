@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>&lt;revision history&gt;</revision_history>
+      <revision_history>Revision update 1.1</revision_history>
       <name>pcbutils</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
