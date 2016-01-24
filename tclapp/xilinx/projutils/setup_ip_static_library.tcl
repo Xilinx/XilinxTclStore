@@ -176,8 +176,6 @@ proc isl_extract_proj_files { } {
       continue
     }
   }
-  isl_add_vao_file
-  isl_add_incl_file
   return
 }
 
@@ -240,6 +238,8 @@ proc isl_export_ip { obj } {
 
   variable a_isl_vars
   variable l_valid_data_file_extns
+  set file_paths [list]
+  set ip_libs [list]
 
   set ip_name [file root [file tail $obj]]
   set ip_info "${ip_name}#xci"
@@ -273,48 +273,18 @@ proc isl_export_ip { obj } {
 
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set library [get_property "LIBRARY" $file_obj]
-      set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
-      set ip_file_path "[xcs_get_relative_file_path $extracted_file $a_isl_vars(ipstatic_dir)/$library]"
-      # is this verilog header? strip prefixed library name
-      if { {verilog header} == $file_type } {
-        set file_type "verilog_header"
-        set comps [lrange [split $ip_file_path "/"] 0 end]
-        set lib_comps [lrange [split $ip_file_path "/"] 1 end]
-        set library [lindex $comps 0]
-        set ip_file_path [join $lib_comps "/"]
+      if { [lsearch $ip_libs $library] == -1 } {
+        lappend ip_libs $library
       }
+      set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
+      set ip_file_path $extracted_file
       set data "$library,$ip_file_path,$file_type,static"
+      lappend file_paths $ip_file_path,$file_type
       lappend ip_data $data
     }
   }
-
-  # extract dynamic verilog header files if any that may be referenced by static ips
-  foreach dynamic_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
-    if { [lsearch $l_static_files $dynamic_file] != -1 } { continue }
-    if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file]] >= 0 } { continue }
-
-    set file_obj [lindex [get_files -all [list "$dynamic_file"]] 0]
-    if { {} == $file_obj } { continue }
-    set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
-
-    # is this verilog header? extract it and strip prefixed library name
-    if { {verilog header} == $file_type } {
-      set file_type "verilog_header"
-      set ip_static_dir [file normalize [file join $a_isl_vars(ipstatic_dir)]]
-    
-      # extract dynamic header file into static lib
-      set extracted_file [extract_files -base_dir $ip_static_dir -no_ip_dir -force -files $dynamic_file]
-      set library [get_property "LIBRARY" $file_obj]
-      set ip_file_path "[xcs_get_relative_file_path $extracted_file $a_isl_vars(ipstatic_dir)/$library]"
-
-      set comps [lrange [split $ip_file_path "/"] 0 end]
-      set lib_comps [lrange [split $ip_file_path "/"] 1 end]
-      set library_name [lindex $comps 0]
-      set ip_file_path [join $lib_comps "/"]
-      set data "$library_name,$ip_file_path,$file_type,dynamic"
-      lappend ip_data $data
-    }
-  }
+  isl_create_order_file $ip_data $ip_libs
+  isl_copy_incl_file $file_paths
   isl_update_compile_order_data $ip_data
 }
 
@@ -324,6 +294,9 @@ proc isl_export_bd { obj } {
   # Return Value:
 
   variable a_isl_vars
+
+  set file_paths [list]
+  set ip_libs [list]
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
@@ -362,6 +335,9 @@ proc isl_export_bd { obj } {
     if { {} != $library } {
       set ip_lib_dir_name $library
     }
+    if { [lsearch $ip_libs $ip_lib_dir_name] == -1 } {
+      lappend ip_libs $ip_lib_dir_name
+    }
 
     # create target library dir
     set target_ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $ip_lib_dir_name]
@@ -398,19 +374,15 @@ proc isl_export_bd { obj } {
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set library [get_property "LIBRARY" $file_obj]
       set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
-      set ip_file_path "[xcs_get_relative_file_path $dst_file $a_isl_vars(ipstatic_dir)/$library]"
-      # is this verilog header? strip prefixed library name
-      if { {verilog header} == $file_type } {
-        set file_type "verilog_header"
-        #set comps [lrange [split $ip_file_path "/"] 0 end]
-        #set lib_comps [lrange [split $ip_file_path "/"] 1 end]
-        #set library [lindex $comps 0]
-        #set ip_file_path [join $lib_comps "/"]
-      }
+      #set ip_file_path "[xcs_get_relative_file_path $dst_file $a_isl_vars(ipstatic_dir)/$library]"
+      set ip_file_path $dst_file
       set data "$library,$ip_file_path,$file_type,static"
+      lappend file_paths $ip_file_path,$file_type
       lappend ip_data $data
     }
   }
+  isl_create_order_file $ip_data $ip_libs
+  isl_copy_incl_file $file_paths
   isl_update_compile_order_data $ip_data
 }
 
@@ -1006,6 +978,7 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
             #send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' (ip_def_name)\n"
           }
           if { {xil_defaultlib} == $library } { continue }
+          set full_ip_file_path [file normalize [file join $ip_dir $ip_file]]
           if { [lsearch $ip_libs $library] == -1 } {
             lappend ip_libs $library
             if { [regexp {microblaze_mcs_v} $library] } {
@@ -1021,10 +994,9 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
               }
             }
           }
-          set data "$library,$file_path,$type,static"
-          lappend file_paths "$file_path,$type"
+          set data "$library,$full_ip_file_path,$type,static"
+          lappend file_paths "$full_ip_file_path,$type"
           isl_add_to_compile_order $library $data
-          isl_copy_static_source $ip_dir $library $file_path 
         }
 
         # for microblaze_mcs, create vao file for each pcore library and then for microblaze_mcs
@@ -1032,15 +1004,15 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
           foreach pcore_lib $pcore_libs {
             set dir [file join $a_isl_vars(ipstatic_dir) $pcore_lib]
             isl_create_vao_file_pcore $dir $file_paths $pcore_lib
-            isl_copy_incl_file $dir $file_paths
+            isl_copy_incl_file $file_paths
           }
           # now create vao file for microblaze_mcs
           set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $mcs_lib_name]
           isl_create_vao_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
-          isl_copy_incl_file $ip_lib_dir $file_paths
+          isl_copy_incl_file $file_paths
         } else {
           isl_create_vao_file $ip_lib_dir $file_paths
-          isl_copy_incl_file $ip_lib_dir $file_paths
+          isl_copy_incl_file $file_paths
         }
       }
     }
@@ -1088,6 +1060,7 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
           #send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
         }
         if { {xil_defaultlib} == $library } { continue }
+        set full_ip_file_path [file normalize [file join $ip_dir $ip_file]]
         if { [lsearch $ip_libs $library] == -1 } {
           lappend ip_libs $library
           if { [regexp {microblaze_mcs_v} $library] } {
@@ -1103,25 +1076,24 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
             }
           }
         }
-        set data "$library,$file_path,$type,static"
-        lappend file_paths "$file_path,$type"
+        set data "$library,$full_ip_file_path,$type,static"
+        lappend file_paths "$full_ip_file_path,$type"
         isl_add_to_compile_order $library $data
-        isl_copy_static_source $ip_dir $library $file_path 
       }
       # for microblaze_mcs, create vao file for each pcore library and then for microblaze_mcs
       if { {microblaze_mcs} == $ip_def_name } {
         foreach pcore_lib $pcore_libs {
           set dir [file join $a_isl_vars(ipstatic_dir) $pcore_lib]
           isl_create_vao_file_pcore $dir $file_paths $pcore_lib
-          isl_copy_incl_file $dir $file_paths
+          isl_copy_incl_file $file_paths
         }
         # now create vao file for microblaze_mcs
         set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $mcs_lib_name]
         isl_create_vao_file_pcore $ip_lib_dir $file_paths $mcs_lib_name
-        isl_copy_incl_file $ip_lib_dir $file_paths
+        isl_copy_incl_file $file_paths
       } else {
         isl_create_vao_file $ip_lib_dir $file_paths
-        isl_copy_incl_file $ip_lib_dir $file_paths
+        isl_copy_incl_file $file_paths
       }
     }
   }
@@ -1254,27 +1226,63 @@ proc isl_create_vao_file { ip_lib_dir file_paths } {
   # Argument Usage:
   # Return Value:
 
-  set filelist [list]
+  set vhdl_filelist [list]
+  set verilog_filelist [list]
+
   foreach line $file_paths {
     set tokens [split $line {,}]
     set path [lindex $tokens 0]
     set type [lindex $tokens 1]
     if { {vhdl} == $type } {
-      lappend filelist $path
+      lappend vhdl_filelist $path
+    } elseif { {verilog} == $type } {
+      lappend verilog_filelist $path
     }
   }
 
-  if { [llength $filelist] > 0 } {
+  if { [llength $vhdl_filelist] > 0 } {
     set fh 0
     set file [file join $ip_lib_dir "vhdl_analyze_order"]
     if {[catch {open $file w} fh]} {
       send_msg_id setup_ip_static_library-Tcl-027 ERROR "failed to open file for write ($file)\n"
       return
     }
-    foreach file $filelist {
-      puts $fh $file
-    }
+    foreach file $vhdl_filelist { puts $fh $file }
     close $fh
+  }
+
+  if { [llength $verilog_filelist] > 0 } {
+    set fh 0
+    set file [file join $ip_lib_dir "verilog_analyze_order"]
+    if {[catch {open $file w} fh]} {
+      send_msg_id setup_ip_static_library-Tcl-027 ERROR "failed to open file for write ($file)\n"
+      return
+    }
+    foreach file $verilog_filelist { puts $fh $file }
+    close $fh
+  }
+}
+
+proc isl_create_order_file { ip_data ip_libs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_isl_vars
+  foreach library $ip_libs {
+    set ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $library]
+    set file_paths [list]
+    foreach data $ip_data {
+      set values [split $data {,}]
+      set lib_name  [lindex $values 0]
+      set file_path [lindex $values 1]
+      set file_type [lindex $values 2]
+
+      if { $lib_name == $library } {
+        lappend file_paths $file_path,$file_type 
+      }
+    } 
+    isl_create_vao_file $ip_lib_dir $file_paths
   }
 }
 
@@ -1283,7 +1291,9 @@ proc isl_create_vao_file_pcore { ip_lib_dir file_paths pcore_lib } {
   # Argument Usage:
   # Return Value:
 
-  set filelist [list]
+  set vhdl_filelist [list]
+  set verilog_filelist [list]
+
   foreach line $file_paths {
     set tokens [split $line {,}]
     set path [lindex $tokens 0]
@@ -1292,31 +1302,58 @@ proc isl_create_vao_file_pcore { ip_lib_dir file_paths pcore_lib } {
       # for microblaze_mcs_v library, filter pcore specific files (handled in else block)
       if { ([regexp {^microblaze_mcs_v} $pcore_lib]) } {
         if { [regexp {^pcores} $line] } { continue }
-        lappend filelist $path
+        lappend vhdl_filelist $path
       } else {
         # bucket pcore specific files only from the file_paths list
         if { [regexp $pcore_lib $line] } {
-          lappend filelist $path
+          lappend vhdl_filelist $path
         }
       }
     }
   }
 
-  if { [llength $filelist] > 0 } {
+  foreach line $file_paths {
+    set tokens [split $line {,}]
+    set path [lindex $tokens 0]
+    set type [lindex $tokens 1]
+    if { {verilog} == $type } {
+      # for microblaze_mcs_v library, filter pcore specific files (handled in else block)
+      if { ([regexp {^microblaze_mcs_v} $pcore_lib]) } {
+        if { [regexp {^pcores} $line] } { continue }
+        lappend verilog_filelist $path
+      } else {
+        # bucket pcore specific files only from the file_paths list
+        if { [regexp $pcore_lib $line] } {
+          lappend verilog_filelist $path
+        }
+      }
+    }
+  }
+
+  if { [llength $vhdl_filelist] > 0 } {
     set fh 0
     set file [file join $ip_lib_dir "vhdl_analyze_order"]
     if {[catch {open $file w} fh]} {
       send_msg_id setup_ip_static_library-Tcl-027 ERROR "failed to open file for write ($file)\n"
       return
     }
-    foreach file $filelist {
-      puts $fh $file
+    foreach file $vhdl_filelist { puts $fh $file }
+    close $fh
+  }
+
+  if { [llength $verilog_filelist] > 0 } {
+    set fh 0
+    set file [file join $ip_lib_dir "verilog_analyze_order"]
+    if {[catch {open $file w} fh]} {
+      send_msg_id setup_ip_static_library-Tcl-027 ERROR "failed to open file for write ($file)\n"
+      return
     }
+    foreach file $verilog_filelist { puts $fh $file }
     close $fh
   }
 }
 
-proc isl_copy_incl_file { ip_lib_dir file_paths } {
+proc isl_copy_incl_file { file_paths } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1330,7 +1367,7 @@ proc isl_copy_incl_file { ip_lib_dir file_paths } {
     set filename [file tail $file_path]
     set type [lindex $tokens 1]
     if { {verilog_header} == $type } {
-      set src_file_path [file normalize [file join $ip_lib_dir $file_path]]
+      set src_file_path [file normalize $file_path]
       if { [file exists $src_file_path] } {
         set dst_file [file normalize [file join $a_isl_vars(ip_incl_dir) $filename]]
         if { ![file exists $dst_file] } {
@@ -1341,19 +1378,6 @@ proc isl_copy_incl_file { ip_lib_dir file_paths } {
       }
     }
   }
-}
-
-proc isl_copy_static_source { src_ip_dir library file_path } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_isl_vars
-  set hdl_dir_file [string map {\\ /} $file_path]
-  set target_ip_lib_dir [file join $a_isl_vars(ipstatic_dir) $library]
-  set dst_file [file join $target_ip_lib_dir $hdl_dir_file]
-
-  isl_copy_file_path $hdl_dir_file $src_ip_dir $target_ip_lib_dir
 }
 
 proc isl_get_file_type { file_group file } {
