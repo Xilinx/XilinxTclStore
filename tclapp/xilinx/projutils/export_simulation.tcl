@@ -1860,7 +1860,7 @@ proc xps_write_main_driver_procs { simulator fh_unix launch_dir } {
   xps_write_header $simulator $fh_unix
   xps_write_main $simulator $fh_unix $launch_dir
   #xps_write_glbl $fh_unix
-  xps_write_libs_unix $simulator $fh_unix
+  xps_write_libs_unix $simulator $fh_unix $launch_dir
 }
 
 proc xps_write_simulator_procs { simulator fh_unix launch_dir srcs_dir } { 
@@ -3309,7 +3309,7 @@ proc xps_print_usage { fh_unix } {
   puts $fh_unix ""
 }
 
-proc xps_write_libs_unix { simulator fh_unix } {
+proc xps_write_libs_unix { simulator fh_unix launch_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -3396,6 +3396,8 @@ proc xps_write_libs_unix { simulator fh_unix } {
         puts $fh_unix "    echo -e \"ERROR: Compiled simulation library directory path not specified or does not exist (type \"./top.sh -help\" for more information)\\n\""
         puts $fh_unix "  fi"
       }
+    } else {
+      xps_write_xsim_setup_file $launch_dir
     }
   } elseif { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
     # no op
@@ -3545,6 +3547,29 @@ proc xps_create_ies_vcs_do_file { simulator dir } {
     }
   }
   close $fh_do
+}
+
+proc xps_write_xsim_setup_file { launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set top $a_sim_vars(s_top)
+  set filename "xsim.ini"
+  set file [file normalize [file join $launch_dir $filename]]
+  set fh 0
+  if {[catch {open $file w} fh]} {
+    send_msg_id exportsim-Tcl-049 "Failed to open file to write ($file)\n"
+    return 1
+  }
+  set design_libs [xps_get_design_libs] 
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    set lib_name [string tolower $lib]
+    puts $fh "$lib=xsim.dir/$lib_name"
+  }
+  close $fh
 }
 
 proc xps_write_xsim_prj { dir srcs_dir } {
