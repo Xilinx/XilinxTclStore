@@ -14,9 +14,13 @@
 ##    changes to the CSV file exported. 
 ##
 ## Author: Tony Scarangella
-## Version Number: 1.0
+## Version Number: 1.1
 ## Version Change History
 ## Version 1.0 - Initial release
+## Version 1.1 - Move set output outside if statement
+##             - Update Categories to pcbutils 
+##             - Edit Summary: 
+##             - return_string fix
 ## --------------------------------------------------------------------- 
 package require Vivado 1.2014.1
 
@@ -26,7 +30,7 @@ namespace eval ::tclapp::xilinx::pcbutils {
 }
 
 proc tclapp::xilinx::pcbutils::export_symbol { args } {
-  # Summary: Export_symbol information
+  # Summary: Export symbol information
 
   # Argument Usage:
   # [-verbose]: Verbose mode
@@ -40,7 +44,7 @@ proc tclapp::xilinx::pcbutils::export_symbol { args } {
   # Return Value:
   # return report if -return_string is used, otherwise 0. If any error occur TCL_ERROR is returned
 
-  # Categories: xilinxtclstore, projutils
+  # Categories: xilinxtclstore, pcbutils
 
   #-------------------------------------------------------
   # Process command line arguments
@@ -59,6 +63,7 @@ proc tclapp::xilinx::pcbutils::export_symbol { args } {
   set returnString 0
   set verbose 0
   set single_bank 0
+
   while {[llength $args]} {
     set name [lshift args]
     switch -regexp -- $name {
@@ -143,8 +148,9 @@ proc tclapp::xilinx::pcbutils::export_symbol { args } {
     error " -E- some error(s) happened. Cannot continue"
   }
 
+  set output [list]
+  
   if {$filename !={}} {
-    set output [list]
     set device [get_property part [current_project]]
     set start [clock seconds] 
     set systemTime [clock seconds]      ; # capture current time
@@ -449,6 +455,9 @@ proc tclapp::xilinx::pcbutils::export_symbol { args } {
     }
 		}
 
+  lappend output ""
+  set output [concat $output]
+
   if {$filename !={}} {
     set FH [open $filename $mode]
     puts $FH [join $output \n]
@@ -462,5 +471,8 @@ proc tclapp::xilinx::pcbutils::export_symbol { args } {
   if {$returnString} {
     return [join $output \n]
   }
+
+  return 0
+
 }
 
