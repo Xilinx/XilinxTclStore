@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>&lt;revision history&gt;</revision_history>
+      <revision_history>Version 1.1 - Move set output outside if statement,Update Categories,Edit Summary, return_string fix</revision_history>
       <name>pcbutils</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
@@ -11,7 +11,7 @@
       <procs>
         <proc>
           <name>export_symbol</name>
-          <summary>Export_symbol information</summary>
+          <summary>Export symbol information</summary>
         </proc>
       </procs>
     </app>
