@@ -31,4 +31,7 @@ foreach part $part_list {
   cd ../../
 }
 
+# DELETE TEMP BUILD DIRECTORY
+file delete -force ./build
+
 return 0

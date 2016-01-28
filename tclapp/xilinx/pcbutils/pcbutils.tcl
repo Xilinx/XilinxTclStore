@@ -10,4 +10,4 @@ namespace eval ::tclapp::xilinx::pcbutils {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::pcbutils 1.1
+package provide ::tclapp::xilinx::pcbutils 1.2
