@@ -69,8 +69,8 @@
     <app>
       <name>pcbutils</name>
       <company>xilinx</company>
-      <commit_id>bed8b1c1456fb220cf9dd6648f0b5b7880c8c41b</commit_id>
-      <revision>1.1</revision>
+      <commit_id>243fa2742f06b712c1f53914b6b0183490934a84</commit_id>
+      <revision>1.2</revision>
     </app>
     <app>
       <name>profiler</name>
