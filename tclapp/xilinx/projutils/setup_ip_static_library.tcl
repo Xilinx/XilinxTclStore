@@ -35,6 +35,9 @@ proc isl_init_vars {} {
   set l_ip_repo_paths               [list]
   set a_isl_vars(b_ip_repo_paths_specified)     0
 
+  set l_ips                          [list]
+  set a_isl_vars(b_ips_specified)    0
+
   variable l_static_files
   set l_static_files                [list]
 
@@ -59,6 +62,7 @@ proc setup_ip_static_library {args} {
   # Argument Usage:
   # [-directory <arg>]: Extract static files in the specified directory
   # [-ip_repo_path <arg>]: Extract static files from the specified IP repository path
+  # [-ips <arg> = Empty]: Extract static files for the specified IPs only
   # [-project]: Extract static files for the current project
   # [-install]: Extract static files for the IP catalog
   # [-force]: Overwrite static files
@@ -71,6 +75,7 @@ proc setup_ip_static_library {args} {
   variable a_isl_vars
   variable l_static_files
   variable l_ip_repo_paths
+  variable l_ips
   isl_init_vars
 
   set a_isl_vars(options) [split $args " "]
@@ -79,6 +84,7 @@ proc setup_ip_static_library {args} {
     switch -regexp -- $option {
       "-directory" { incr i;set a_isl_vars(ipstatic_dir) [lindex $args $i];set a_isl_vars(b_dir_specified) 1 }
       "-ip_repo_path" { incr i;set l_ip_repo_paths [lindex $args $i];set a_isl_vars(b_ip_repo_paths_specified)  1 }
+      "-ips"       { incr i;set l_ips [lindex $args $i];set a_isl_vars(b_ips_specified)                    1 }
       "-project"   { set a_isl_vars(b_project_mode) 1;set a_isl_vars(b_project_switch)  1 }
       "-install"   { set a_isl_vars(b_install_mode) 1 }
       "-force"     { set a_isl_vars(b_force) 1 }
@@ -160,12 +166,25 @@ proc isl_extract_proj_files { } {
   # Return Value:
 
   variable a_isl_vars
+  variable l_ips
   if { [isl_fetch_compile_order_data] } {
     return
   }
   send_msg_id setup_ip_static_library-Tcl-009 INFO "Creating static source library for compile_simlib...\n"
-  foreach obj [get_ips -quiet] {
-    set b_locked false
+  set ips [get_ips -quiet]
+  if { $a_isl_vars(b_ips_specified) } {
+    if { [llength $l_ips] > 0 } {
+      set ips [list]
+      foreach ip $l_ips {
+        set ip_name [file root [file tail $ip]]
+        lappend ips [get_ips $ip_name]
+      }
+    } else {
+      send_msg_id setup_ip_static_library-Tcl-009 INFO "No IPs found.\n"
+      return
+    }
+  } 
+  foreach obj $ips {
     set file_extn [file extension $obj]
     if { {} != $file_extn } {
       if { [lsearch -exact $l_valid_ip_extns ${file_extn}] == -1 } {

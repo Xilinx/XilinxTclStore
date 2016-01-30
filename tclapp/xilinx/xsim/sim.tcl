@@ -163,6 +163,7 @@ proc usf_xsim_setup_simulation { args } {
   # Return Value:
 
   variable a_sim_vars
+  set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
  
   # set the simulation flow
   ::tclapp::xilinx::xsim::usf_set_simulation_flow
@@ -201,6 +202,15 @@ proc usf_xsim_setup_simulation { args } {
   # find/copy xsim.ini file into run dir
   if { $a_sim_vars(b_use_static_lib) } {
     if {[usf_xsim_verify_compiled_lib]} { return 1 }
+    set filename "xsim.ini"
+    set fh 0
+    set file [file join $run_dir $filename]
+    if {[catch {open $file a} fh]} {
+      send_msg_id USF-XSim-011 ERROR "Failed to open file to append ($file)\n"
+      return
+    }
+    usf_xsim_map_pre_compiled_libs $fh
+    close $fh
   } else {
     usf_xsim_write_setup_file
   }
@@ -1470,49 +1480,46 @@ proc usf_xsim_map_pre_compiled_libs { fh } {
   # Return Value:
 
   variable a_sim_vars
-  if { $a_sim_vars(b_use_static_lib) } {
-    set static_libs [get_property sim.ipstatic.precompiled_libs [current_project]]
-    if { [llength $static_libs] > 0 } {
-      foreach lib_path $static_libs {
-        set lib_path [string trim $lib_path]
-        if { [string length $lib_path] == 0 } { continue; }
-        set ini_file [file join $lib_path "xsim.ini"]
-        if { [file exists $ini_file] } {
-          set fh_ini 0
-          if { [catch {open $ini_file r} fh_ini] } {
-            send_msg_id USF-XSim-099 WARNING "Failed to open file for read ($ini_file)\n"
-            continue
-          }
-          set ini_data [read $fh_ini]
-          close $fh_ini
-          set ini_data [split $ini_data "\n"]
-          set b_lib_start false
-          foreach line $ini_data {
-            set line [string trim $line]
-            if { [string length $line] == 0 } { continue; }
-            if { [regexp "^secureip" $line] } {
-              set b_lib_start true
-            }
-            if { $b_lib_start } {
-              if { [regexp "^secureip" $line] ||
-                   [regexp "^unisim" $line] ||
-                   [regexp "^simprim" $line] ||
-                   [regexp "^unifast" $line] ||
-                   [regexp "^unimacro" $line] } {
-                continue
-              }
-              if { ([regexp {^--} $line]) } {
-                set b_lib_start false
-                continue
-              }
-              if { [regexp "=" $line] } {
-                puts $fh "$line"
-              }
-            }
-          }
-        } else {
-          send_msg_id USF-XSim-103 WARNING "The specified pre-compiled IP static library '$lib_path' does not exist. Library will be ignored."
-        }
+  if { !$a_sim_vars(b_use_static_lib) } {
+    return
+  }
+
+  set lib_path [get_property sim.ipstatic.compiled_library_dir [current_project]]
+  set ini_file [file join $lib_path "xsim.ini"]
+  if { ![file exists $ini_file] } {
+    return
+  }
+
+  set fh_ini 0
+  if { [catch {open $ini_file r} fh_ini] } {
+    send_msg_id USF-XSim-099 WARNING "Failed to open file for read ($ini_file)\n"
+    return
+  }
+  set ini_data [read $fh_ini]
+  close $fh_ini
+
+  set ini_data [split $ini_data "\n"]
+  set b_lib_start false
+  foreach line $ini_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp "^secureip" $line] } {
+      set b_lib_start true
+    }
+    if { $b_lib_start } {
+      if { [regexp "^secureip" $line] ||
+           [regexp "^unisim" $line] ||
+           [regexp "^simprim" $line] ||
+           [regexp "^unifast" $line] ||
+           [regexp "^unimacro" $line] } {
+        continue
+      }
+      if { ([regexp {^--} $line]) } {
+        set b_lib_start false
+        continue
+      }
+      if { [regexp "=" $line] } {
+        puts $fh "$line"
       }
     }
   }

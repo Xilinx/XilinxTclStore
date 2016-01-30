@@ -841,49 +841,46 @@ proc usf_ies_map_pre_compiled_libs { fh } {
   # Return Value:
 
   variable a_sim_vars
-  if { $a_sim_vars(b_use_static_lib) } {
-    set static_libs [get_property sim.ipstatic.precompiled_libs [current_project]]
-    if { [llength $static_libs] > 0 } {
-      foreach lib_path $static_libs {
-        set lib_path [string trim $lib_path]
-        if { [string length $lib_path] == 0 } { continue; }
-        set ini_file [file join $lib_path "cds.lib"]
-        if { [file exists $ini_file] } {
-          set fh_ini 0
-          if { [catch {open $ini_file r} fh_ini] } {
-            send_msg_id USF-IES-099 WARNING "Failed to open file for read ($ini_file)\n"
-            continue
-          }
-          set ini_data [read $fh_ini]
-          close $fh_ini
-          set ini_data [split $ini_data "\n"]
-          set b_lib_start false
-          foreach line $ini_data {
-            set line [string trim $line]
-            if { [string length $line] == 0 } { continue; }
-            if { [regexp "^DEFINE secureip" $line] } {
-              set b_lib_start true
-            }
-            if { $b_lib_start } {
-              if { [regexp "^DEFINE secureip" $line] ||
-                   [regexp "^DEFINE unisim" $line] ||
-                   [regexp "^DEFINE simprim" $line] ||
-                   [regexp "^DEFINE unifast" $line] ||
-                   [regexp "^DEFINE unimacro" $line] } {
-                continue
-              }
-              if { ([regexp {^#} $line]) || ([regexp {^--} $line]) } {
-                set b_lib_start false
-                continue
-              }
-              if { [regexp "^DEFINE" $line] } {
-                puts $fh "$line"
-              }
-            }
-          }
-        } else {
-          send_msg_id USF-IES-103 WARNING "The specified pre-compiled IP static library '$lib_path' does not exist. Library will be ignored."
-        }
+  if { !$a_sim_vars(b_use_static_lib) } {
+    return
+  }
+
+  set lib_path [get_property sim.ipstatic.compiled_library_dir [current_project]]
+  set ini_file [file join $lib_path "cds.lib"]
+  if { ![file exists $ini_file] } {
+    return
+  }
+
+  set fh_ini 0
+  if { [catch {open $ini_file r} fh_ini] } {
+    send_msg_id USF-IES-099 WARNING "Failed to open file for read ($ini_file)\n"
+    return
+  }
+  set ini_data [read $fh_ini]
+  close $fh_ini
+
+  set ini_data [split $ini_data "\n"]
+  set b_lib_start false
+  foreach line $ini_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp "^DEFINE secureip" $line] } {
+      set b_lib_start true
+    }
+    if { $b_lib_start } {
+      if { [regexp "^DEFINE secureip" $line] ||
+           [regexp "^DEFINE unisim" $line] ||
+           [regexp "^DEFINE simprim" $line] ||
+           [regexp "^DEFINE unifast" $line] ||
+           [regexp "^DEFINE unimacro" $line] } {
+        continue
+      }
+      if { ([regexp {^#} $line]) || ([regexp {^--} $line]) } {
+        set b_lib_start false
+        continue
+      }
+      if { [regexp "^DEFINE" $line] } {
+        puts $fh "$line"
       }
     }
   }
