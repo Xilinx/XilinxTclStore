@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for extracting static files for the specified ips in project mode</revision_history>
+      <revision_history>support for referencing old ips from previous projects</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
