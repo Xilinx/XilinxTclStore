@@ -1,0 +1,32 @@
+Description:
+
+  Copies a preexisting run.
+
+Arguments:
+
+  -name <arg> - (Required) Specify the name for the new run.
+
+  -parent_run <arg> - (Optional) Specify the synthesis run for the new 
+  implementation run. Can be either the run name or the run object.
+
+  -verbose - (Optional) Print detailed information as the copy progresses.
+
+  <run> - (Required) The run to be copied. . Can be either the run name or the 
+  run object.
+
+Examples:
+
+  The following example will copy synth_1 run into a new synth_2 run:-
+  
+  % copy_run -name synth_2 [get_runs synth_1] 
+  
+  The following example will copy impl_1 run into a new impl_2 run, and it 
+  will set the copied run's parent run to synth_2:-
+  
+  % copy_run -name impl_3 [get_runs impl_1] -parent_run synth_2
+
+See Also:
+
+   *  create_runs
+   *  current_run
+   *  get_runs
