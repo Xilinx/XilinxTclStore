@@ -76,7 +76,7 @@ proc convert_ngc args {
   }
 
   # verify that the output dir can be created, exists after creating, is a dir, and is writable
-  if { [ string length $m_options(sOutputDir) ] != 0 } {
+  if { [ string length "$m_options(sOutputDir)" ] != 0 } {
     if { ! [ file exists $m_options(sOutputDir) ] } {
       file mkdir $m_options(sOutputDir)
       if { ! [ file exists $m_options(sOutputDir) ] } {
