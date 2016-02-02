@@ -32,8 +32,8 @@ proc copy_run args {
   # Categories: xilinxtclstore, projutils
 
   # member variables
-  variable m_options
-  init_vars_
+  variable m_cpr_options
+  init_cpr_vars_
  
   # process options
   set runs_specified [list]
@@ -42,8 +42,8 @@ proc copy_run args {
     # NOTE: get_runs here handles invalid run string / object nicely
     switch -regexp -- $option {
       "-parent_run"   { incr index; set parent_run [ lindex $args $index ] }
-      "-name"         { incr index; set m_options(name) [ lindex $args $index ] }
-      "-verbose"      { set m_options(verbose) 1 }
+      "-name"         { incr index; set m_cpr_options(name) [ lindex $args $index ] }
+      "-verbose"      { set m_cpr_options(verbose) 1 }
       default {
         # is incorrect switch specified?
         if { [ regexp {^-} $option ] } {
@@ -60,15 +60,15 @@ proc copy_run args {
 
   # business logic
   if { [ llength $runs_specified ] != 1 } {
-    send_msg_id Vivado-projutils-402 ERROR "Expected one run received [ llength $m_options(run_to_copy) ] ('[ join $m_options(run_to_copy) ',\ ' ]'), type 'copy_run -help' for usage info.\n"
+    send_msg_id Vivado-projutils-402 ERROR "Expected one run received [ llength $m_cpr_options(run_to_copy) ] ('[ join $m_cpr_options(run_to_copy) ',\ ' ]'), type 'copy_run -help' for usage info.\n"
     return 1
   }
-  if { [ string length $m_options(name) ] == 0} {
+  if { [ string length $m_cpr_options(name) ] == 0} {
     send_msg_id Vivado-projutils-403 ERROR "The run name (-name) is required yet it was not specified, type 'copy_run -help' for usage info.\n"
     return 1
   }
-  if { [ llength [ get_runs -quiet $m_options(name) ] ] != 0} {
-    send_msg_id Vivado-projutils-413 ERROR "A run already exists with the name '$m_options(name)', type 'copy_run -help' for usage info.\n"
+  if { [ llength [ get_runs -quiet $m_cpr_options(name) ] ] != 0} {
+    send_msg_id Vivado-projutils-413 ERROR "A run already exists with the name '$m_cpr_options(name)', type 'copy_run -help' for usage info.\n"
     return 1
   }
   # NOTE: current_project handles no project open nicely
@@ -84,7 +84,7 @@ proc copy_run args {
       send_msg_id Vivado-projutils-412 ERROR "The run object '${specified_run}' does not exist, type 'copy_run -help' for usage info.\n"
       return 1
     }
-    set m_options(run_to_copy) $run_object
+    set m_cpr_options(run_to_copy) $run_object
   }
   if { [ info exists parent_run ] } {
     set parent_object [ get_runs -quiet $parent_run ]
@@ -92,15 +92,15 @@ proc copy_run args {
       send_msg_id Vivado-projutils-411 ERROR "The parent run object '${parent_run}' does not exist, type 'copy_run -help' for usage info.\n"
       return 1
     }
-    set m_options(parent_run) $parent_object
+    set m_cpr_options(parent_run) $parent_object
   }
 
   # copy run
-  if { $m_options(verbose) } { 
+  if { $m_cpr_options(verbose) } { 
     send_msg_id Vivado-projutils-414 INFO "Starting to copy run..."
   }
   set return_run [ copy_run_ ]
-  if { $m_options(verbose) } { 
+  if { $m_cpr_options(verbose) } { 
     send_msg_id Vivado-projutils-415 INFO "Copy run completed successfully."
   }
   return $return_run
@@ -113,7 +113,7 @@ proc copy_run args {
 ##########
 
 
-proc init_vars_ {} {
+proc init_cpr_vars_ {} {
   # Summary:
   # Initialize all member variables
 
@@ -124,13 +124,13 @@ proc init_vars_ {} {
   # None
   
   # member variables
-  variable m_options
+  variable m_cpr_options
   
-  array unset m_options
-  set m_options(name)           ""
-  set m_options(parent_run)     {}
-  set m_options(run_to_copy)    {}
-  set m_options(verbose)        0
+  array unset m_cpr_options
+  set m_cpr_options(name)           ""
+  set m_cpr_options(parent_run)     {}
+  set m_cpr_options(run_to_copy)    {}
+  set m_cpr_options(verbose)        0
 }
 
 
@@ -144,41 +144,41 @@ proc copy_run_ {} {
   # Return Value:
   # The new run object
 
-  variable m_options
+  variable m_cpr_options
 
   set create_run_cmd create_run
 
-  lappend create_run_cmd $m_options(name)
+  lappend create_run_cmd $m_cpr_options(name)
   
   lappend create_run_cmd "-constrset"
-  lappend create_run_cmd [ get_property CONSTRSET $m_options(run_to_copy) ]
+  lappend create_run_cmd [ get_property CONSTRSET $m_cpr_options(run_to_copy) ]
   
   lappend create_run_cmd "-flow"
-  lappend create_run_cmd [ get_property FLOW $m_options(run_to_copy) ]
+  lappend create_run_cmd [ get_property FLOW $m_cpr_options(run_to_copy) ]
   
   lappend create_run_cmd "-part"
-  lappend create_run_cmd [ get_property PART $m_options(run_to_copy) ]
+  lappend create_run_cmd [ get_property PART $m_cpr_options(run_to_copy) ]
   
   lappend create_run_cmd "-strategy"
-  lappend create_run_cmd [ get_property STRATEGY $m_options(run_to_copy) ]
+  lappend create_run_cmd [ get_property STRATEGY $m_cpr_options(run_to_copy) ]
   
-  if { $m_options(verbose) } {
+  if { $m_cpr_options(verbose) } {
     lappend create_run_cmd "-verbose"
   } else {
     lappend create_run_cmd "-quiet"
   } 
   
-  if { [ get_property IS_IMPLEMENTATION $m_options(run_to_copy) ] } {
+  if { [ get_property IS_IMPLEMENTATION $m_cpr_options(run_to_copy) ] } {
     lappend create_run_cmd "-parent_run"
-    if { $m_options(parent_run) == {} } {
-      lappend create_run_cmd [ get_property PARENT $m_options(run_to_copy) ]
+    if { $m_cpr_options(parent_run) == {} } {
+      lappend create_run_cmd [ get_property PARENT $m_cpr_options(run_to_copy) ]
     } else {
-      lappend create_run_cmd $m_options(parent_run) 
+      lappend create_run_cmd $m_cpr_options(parent_run) 
     }
   }
   
   # create the new run
-  if { $m_options(verbose) } { 
+  if { $m_cpr_options(verbose) } { 
     send_msg_id Vivado-projutils-407 INFO "Creating run: ${create_run_cmd}\n"
   }
   set new_run [ eval $create_run_cmd ]
@@ -192,30 +192,30 @@ proc copy_run_ {} {
   # these should all be read-only == false (that's all we set)
   set ignore_properties     { ADD_STEP CONSTRSET DESCRIPTION FLOW NAME NEEDS_REFRESH PARENT PART SRCSET STRATEGY }
 
-  if { $m_options(verbose) } { 
+  if { $m_cpr_options(verbose) } { 
     send_msg_id Vivado-projutils-409 INFO "Copying properties: ${all_property_names}\n"
   }
 
   foreach property_name $all_property_names {
     
     if { [ lsearch -nocase $ignore_properties $property_name ] != -1 } {
-      if { $m_options(verbose) } {
+      if { $m_cpr_options(verbose) } {
         send_msg_id Vivado-projutils-410 INFO "'${property_name}' is ignored.\n" 
       }
       continue; # property is in ignore list, skipping
     }
 
     set default_value [ list_property_value -default $property_name $new_run ]
-    set old_value     [ get_property $property_name $m_options(run_to_copy) ]
+    set old_value     [ get_property $property_name $m_cpr_options(run_to_copy) ]
 
     if { [ string equal $default_value $old_value ] } {
-      if { $m_options(verbose) } { 
+      if { $m_cpr_options(verbose) } { 
         send_msg_id Vivado-projutils-405 INFO "'${property_name}' is default and will not be updated ('${default_value}').\n" 
       }
       continue; # property is default, skipping
     }
   
-    if { $m_options(verbose) } { 
+    if { $m_cpr_options(verbose) } { 
       send_msg_id Vivado-projutils-406 INFO "'${property_name}' will be updated to '${old_value}'.\n" 
     }
     lappend property_value_pairs $property_name
@@ -224,7 +224,7 @@ proc copy_run_ {} {
   }; # foreach
   
   if { [ llength $property_value_pairs ] != 0 } {
-    if { $m_options(verbose) } { 
+    if { $m_cpr_options(verbose) } { 
       send_msg_id Vivado-projutils-408 INFO "The dictionary being used to set the new run's properties is: '${property_value_pairs}'\n"
     }
     set_property -dict $property_value_pairs $new_run

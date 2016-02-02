@@ -57,6 +57,12 @@ if { "[ get_runs synth_1 ]" != "synth_1" } { error "\nERROR: Default project con
 if { "[ get_runs impl_1 ]" != "impl_1" } { error "\nERROR: Default project configuration did not have the impl_1 run as expected" }
 
 
+puts " = Read-only projects"
+set_property IS_READONLY 1 [ current_project ]
+if { ! [ catch { copy_run -verbose synth_1 -name synth_1_readonly } ] } { error "\nERROR: Didn't receive expected error with: read-only project copy_run should fail" }
+set_property IS_READONLY 0 [ current_project ]
+
+
 puts " = Validating business rules"
 if { ! [ catch { copy_run -verbose } ] } { error "\nERROR: Didn't receive expected error with: no run specified" }
 if { ! [ catch { copy_run -verbose synth_1 } ] } { error "\nERROR: Didn't receive expected error with: no name specified" }
@@ -130,11 +136,6 @@ foreach step_property $step_properties {
 
 set impl_2_copy_1 [ copy_run -verbose impl_2 -name impl_2_copy_1 ]
 compare_runs [ get_runs impl_2 ] $impl_2_copy_1
-
-
-puts " = Read-only projects"
-set_property IS_READONLY 1 [ current_project ]
-if { ! [ catch { copy_run -verbose synth_1 -name synth_1_readonly } ] } { error "\nERROR: Didn't receive expected error with: read-only project copy_run should fail" }
 
 
 # cleanup if we didn't error
