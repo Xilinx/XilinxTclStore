@@ -556,7 +556,7 @@ proc xif_export_bd { obj } {
   #
   # static files
   #
-  set l_static_files [list]
+  set l_static_files [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*ipstatic*"}]
   if { $a_vars(b_use_static_lib) } {
     # cleanup and do not export static files for pre-compiled lib
     foreach file [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
@@ -567,7 +567,6 @@ proc xif_export_bd { obj } {
     #
     # static files
     #
-    set l_static_files [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*ipstatic*"}]
     foreach src_ip_file $l_static_files {
       set src_ip_file [string map {\\ /} $src_ip_file]
       # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 

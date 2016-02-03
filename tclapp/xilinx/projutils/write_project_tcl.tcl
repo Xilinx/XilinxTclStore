@@ -461,6 +461,12 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
   set type "file"
   foreach tcl_obj $filesets {
 
+    # Is this a IP block fileset for a proxy IP that is owned by another composite file?
+    # If so, we don't want to write it out as an independent file. The parent will take care of it.
+    if { [is_proxy_ip_fileset $tcl_obj] } {
+      continue
+    }
+
     set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
 
     # is this a IP block fileset? if yes, do not create block fileset, but create for a pure HDL based fileset (no IP's)
@@ -1857,6 +1863,27 @@ proc is_ip_fileset { fileset } {
   }
   return false
 }
+
+proc is_proxy_ip_fileset { fileset } {
+  # Summary: Determine if the fileset is an OOC run for a proxy IP that has a parent composite
+  # Argument Usage:
+  # fileset: fileset name
+  # Return Value:
+  # true (1) if the fileset contains an IP at its root with a parent composite, false (0) otherwise
+
+  # make sure fileset is block fileset type
+  if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
+    return false
+  }
+
+  set ip_with_parent_filter "FILE_TYPE == IP && PARENT_COMPOSITE_FILE != \"\""
+  if {[llength [get_files -norecurse -quiet -of_objects [get_filesets $fileset] -filter $ip_with_parent_filter]] == 1} {
+    return true
+  }
+
+  return false
+}
+
 
 proc is_ip_run { run } {
   # Summary: Find IP's if any from the fileset linked with the block fileset run
