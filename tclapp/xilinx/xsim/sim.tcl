@@ -1267,14 +1267,12 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   if { {} != $saif } {
     set uut [get_property "XSIM.SIMULATE.UUT" $fs_obj]
     puts $fh_scr "\nopen_saif \"$saif\""
-    if { {} == $uut } {
-      set uut "/$top/uut"
+    if { {} != $uut } {
+      set uut_name [::tclapp::xilinx::xsim::usf_resolve_uut_name_with_scope uut]
+      puts $fh_scr "set curr_xsim_wave_scope \[current_scope\]"
+      puts $fh_scr "current_scope $uut_name"
     }
 
-    set uut_name [::tclapp::xilinx::xsim::usf_resolve_uut_name_with_scope uut]
-
-    puts $fh_scr "set curr_xsim_wave_scope \[current_scope\]"
-    puts $fh_scr "current_scope $uut_name"
     if { $b_post_sim } {
       puts $fh_scr "log_saif \[get_objects -r *\]"
     } else {
@@ -1285,8 +1283,10 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
         puts $fh_scr "log_saif \[get_objects $filter *\]"
       }
     }
-    puts $fh_scr "current_scope \$curr_xsim_wave_scope"
-    puts $fh_scr "unset curr_xsim_wave_scope"
+    if { {} != $uut } {
+      puts $fh_scr "current_scope \$curr_xsim_wave_scope"
+      puts $fh_scr "unset curr_xsim_wave_scope"
+    }
   }
 
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
