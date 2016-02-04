@@ -1982,7 +1982,11 @@ proc xps_write_ref_dir { fh_unix launch_dir srcs_dir } {
     if { $a_sim_vars(b_xport_src_files) } {
       puts $fh_unix "ref_dir=\"srcs\""
     } else {
-      puts $fh_unix "ref_dir=\".\""
+      puts $fh_unix "ref_dir=\".\"\n"
+      puts $fh_unix "# Override directory with 'export_sim_ref_dir' env path value if set in the shell"
+      puts $fh_unix "if \[\[ (! -z \"\$export_sim_ref_dir\") && (\$export_sim_ref_dir != \"\") \]\]; then"
+      puts $fh_unix "  ref_dir=\"\$export_sim_ref_dir\""
+      puts $fh_unix "fi"
     }
   }
   puts $fh_unix ""
