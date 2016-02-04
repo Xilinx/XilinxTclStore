@@ -51,8 +51,8 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>71c9ecfc18e01f0cd253500732a2afe169ad260a</commit_id>
-      <revision>2.86</revision>
+      <commit_id>2a9824e50ea449eff383a269270569ee9f7edac3</commit_id>
+      <revision>2.87</revision>
     </app>
     <app>
       <name>myapp</name>
@@ -81,8 +81,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>478ce7589fde75a8783d75183655d7decf714887</commit_id>
-      <revision>3.132</revision>
+      <commit_id>2a9824e50ea449eff383a269270569ee9f7edac3</commit_id>
+      <revision>3.133</revision>
     </app>
     <app>
       <name>protoip</name>

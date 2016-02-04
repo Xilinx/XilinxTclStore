@@ -1,3 +1,4 @@
+3.133 fetch xpm libs from project property
 3.132 single-step default support for IES and copy run tcl command
 3.131 support for referencing old ips from previous projects
 3.130 generate xsim.ini for the design libs
