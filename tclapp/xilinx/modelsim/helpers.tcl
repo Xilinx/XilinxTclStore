@@ -1157,7 +1157,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
-      if { ({VHDL} == $file_type) || ({VHDL} == $file_type) } { set g_files {} }
+      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str

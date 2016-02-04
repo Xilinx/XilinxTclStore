@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>single-step default support for IES and copy run tcl command</revision_history>
+      <revision_history>fetch xpm libs from project property</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

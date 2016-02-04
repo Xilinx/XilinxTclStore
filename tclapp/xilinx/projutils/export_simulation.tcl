@@ -22,13 +22,12 @@ proc export_simulation {args} {
   # [-ip_user_files_dir <arg> = Empty]: Directory path to exported IP user files (for dynamic and other IP non static files)
   # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP static files
   # [-lib_map_path <arg> = Empty]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
-  # [-script_name <arg> = top_module.sh/.bat]: Output shell script filename. If not specified, then file with a default name will be created.
+  # [-script_name <arg> = top_module.sh]: Output shell script filename. If not specified, then file with a default name will be created.
   # [-directory <arg> = export_sim]: Directory where the simulation script will be exported
   # [-runtime <arg> = Empty]: Run simulation for this time (default:full simulation run or until a logical break or finish condition)
   # [-define <arg> = Empty]: Read verilog defines from the list specified with this switch
   # [-generic <arg> = Empty]: Read vhdl generics from the list specified with this switch
   # [-include <arg> = Empty]: Read include directory paths from the list specified with this switch
-  # [-xpm_library <arg> = Empty]: Read XPM libraries from the list specified with this switch
   # [-default_library <arg> = xil_defaultlib]: Set the specified default library
   # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
@@ -51,7 +50,6 @@ proc export_simulation {args} {
   variable l_defines
   variable l_generics
   variable l_include_dirs
-  variable l_xpm_libraries
   xps_init_vars
   set a_sim_vars(options) [split $args " "]
 
@@ -70,7 +68,6 @@ proc export_simulation {args} {
       "-define"                   { incr i;set l_defines                         [lindex $args $i];set a_sim_vars(b_define_specified)                    1 }
       "-generic"                  { incr i;set l_generics                        [lindex $args $i];set a_sim_vars(b_generic_specified)                   1 }
       "-include"                  { incr i;set l_include_dirs                    [lindex $args $i];set a_sim_vars(b_include_specified)                   1 }
-      "-xpm_library"              { incr i;set l_xpm_libraries                   [lindex $args $i];set a_sim_vars(b_xpm_specified)                       1 }
       "-32bit"                    { set a_sim_vars(b_32bit)                                                                                              1 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)                                                                                      1 }
       "-use_ip_compiled_libs"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
@@ -231,7 +228,6 @@ proc xps_init_vars {} {
   variable l_include_dirs  [list]
   variable l_defines       [list]
   variable l_generics      [list]
-  variable l_xpm_libraries [list]
   
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
@@ -438,7 +434,6 @@ proc xps_readme { dir } {
   puts $fh "To simulate design, cd to the simulator directory and execute the script.\n"
   puts $fh "For example:-\n"
   puts $fh "% cd questa"
-  set extn ".bat"
   set lib_path "c:\\design\\questa\\clibs"
   set sep "\\"
   set drive {c:}
@@ -811,7 +806,6 @@ proc xps_get_files { simulator launch_dir } {
 
   variable a_sim_vars
   variable l_compile_order_files
-  variable l_xpm_libraries
   variable l_valid_ip_extns
   set files          [list]
   set l_compile_order_files [list]
@@ -863,7 +857,7 @@ proc xps_get_files { simulator launch_dir } {
       "SimulationSrcs" { set used_in_val "simulation"}
       "BlockSrcs"      { set used_in_val "synthesis" }
     }
-    foreach library $l_xpm_libraries {
+    foreach library [get_property xpm_libraries [current_project]] {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set compiler [xps_get_compiler $simulator $file_type]
@@ -3439,72 +3433,6 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
   }
 
   if { {VERILOG} == $ft } {
-    puts $fh "\nverilog [xps_get_top_library] \"glbl.v\""
-  }
-  puts $fh "\nnosort"
-
-  close $fh
-}
-
-proc xps_write_prj_single_step { dir srcs_dir} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  variable a_sim_vars
-  set filename "run.prj"
-  set file [file normalize [file join $dir $filename]]
-  set fh 0
-  if {[catch {open $file w} fh]} {
-    send_msg_id exportsim-Tcl-052 "Failed to open file to write ($file)\n"
-    return 1
-  }
-
-  set opts [list]
-  xps_get_xsim_verilog_options $dir opts
-  set verilog_opts_str [join $opts " "]
-
-  foreach file $a_sim_vars(l_design_files) {
-    set fargs         [split $file {|}]
-    set type          [lindex $fargs 0]
-    set file_type     [lindex $fargs 1] 
-    set lib           [lindex $fargs 2] 
-    set proj_src_file [lindex $fargs 3]
-    set cmd_str       [lindex $fargs 4]
-    set ip_file       [lindex $fargs 5]
-    set src_file      [lindex $fargs 6]
-
-    set proj_src_filename [file tail $proj_src_file]
-    if { $a_sim_vars(b_xport_src_files) } {
-      set target_dir $srcs_dir
-      if { {} != $ip_file } {
-        set ip_name [file rootname [file tail $ip_file]]
-        set proj_src_filename "ip/$ip_name/$proj_src_filename"
-        set ip_dir [file join $srcs_dir "ip" $ip_name] 
-        if { ![file exists $ip_dir] } {
-          if {[catch {file mkdir $ip_dir} error_msg] } {
-            send_msg_id exportsim-Tcl-053 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
-            return 1
-          }
-        }
-        set target_dir $ip_dir
-      } else {
-        if { $a_sim_vars(b_absolute_path) } {
-          set src_file "$srcs_dir/$proj_src_filename"
-        } else {
-          set proj_src_filename "srcs/$proj_src_filename"
-        }
-      }
-      if {[catch {file copy -force $proj_src_file $target_dir} error_msg] } {
-        send_msg_id exportsim-Tcl-054 WARNING "failed to copy file '$proj_src_file' to '$srcs_dir' : $error_msg\n"
-      }
-    }
-    if { {VERILOG} == $type } {
-      puts $fh "$cmd_str $src_file ${verilog_opts_str}"
-    } else {
-      puts $fh "$cmd_str $src_file"
-    }
-  }
-  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     puts $fh "\nverilog [xps_get_top_library] \"glbl.v\""
   }
   puts $fh "\nnosort"
