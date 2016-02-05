@@ -1,3 +1,4 @@
+2.88 support for verilog header
 2.87 fixed bug with vhdl 2008
 2.86 support for referencing old ips from previous projects
 2.85 support for the new verilog header type
