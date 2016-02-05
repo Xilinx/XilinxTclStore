@@ -337,7 +337,7 @@ proc usf_xsim_verify_compiled_lib {} {
         send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
       } else {
         send_msg_id USF-XSim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
-        usf_process_data_dir_env $compiled_lib_dir 
+        #usf_process_data_dir_env $compiled_lib_dir 
       }
     }
   }
