@@ -421,10 +421,13 @@ proc xcs_get_bin_path { tool_name path_sep } {
   return $bin_path
 }
 
-proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir } {
+proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir b_found_in_repo_arg repo_src_file_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  upvar $b_found_in_repo_arg b_found_in_repo
+  upvar $repo_src_file_arg repo_src_file
 
   set filename  [file tail $src_file]
   set file_dir  [file dirname $src_file]
@@ -443,15 +446,19 @@ proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir } {
   }
   set repo_src_file [file join $dynamic_repo_dir $sub_dir $top_ip_name $hdl_dir_file $filename]
   if { [file exists $repo_src_file] } {
+    set b_found_in_repo 1
     return $repo_src_file
   }
   return $src_file
 }
 
-proc xcs_get_dynamic_sim_file_core_container { src_file dynamic_repo_dir } {
+proc xcs_get_dynamic_sim_file_core_container { src_file dynamic_repo_dir b_found_in_repo_arg repo_src_file_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
+  
+  upvar $b_found_in_repo_arg b_found_in_repo
+  upvar $repo_src_file_arg repo_src_file
 
   set filename  [file tail $src_file]
   set file_dir  [file dirname $src_file]
@@ -473,10 +480,9 @@ proc xcs_get_dynamic_sim_file_core_container { src_file dynamic_repo_dir } {
   set repo_src_file [file join $dynamic_repo_dir "ip" $core_name $hdl_dir_file $filename]
 
   if { [file exists $repo_src_file] } {
+    set b_found_in_repo 1
     return $repo_src_file
   }
-
-  #send_msg_id exportsim-Tcl-024 WARNING "Corresponding IP user file does not exist:'$repo_src_file'!, using default:'$src_file'"
   return $src_file
 }
 

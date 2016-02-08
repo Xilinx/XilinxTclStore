@@ -1680,7 +1680,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
   set dir $a_sim_vars(s_launch_dir)
 
   # setup the filter to include only header types enabled for simulation
-  set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\ || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
+  set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
   set vh_files [get_files -all -quiet -filter $filter]
   foreach vh_file $vh_files {
     set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
@@ -2303,10 +2303,15 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   # is dynamic?
   if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
     set file_extn [file extension $ip_file]
+    set b_found_in_repo 0
+    set repo_src_file {}
     if { [xcs_is_core_container ${ip_name}${file_extn}] } {
-      set dst_cip_file [xcs_get_dynamic_sim_file_core_container $full_src_file_path $a_sim_vars(dynamic_repo_dir)]
+      set dst_cip_file [xcs_get_dynamic_sim_file_core_container $full_src_file_path $a_sim_vars(dynamic_repo_dir) b_found_in_repo repo_src_file]
     } else {
-      set dst_cip_file [xcs_get_dynamic_sim_file_core_classic $full_src_file_path $a_sim_vars(dynamic_repo_dir)]
+      set dst_cip_file [xcs_get_dynamic_sim_file_core_classic $full_src_file_path $a_sim_vars(dynamic_repo_dir) b_found_in_repo repo_src_file]
+    }
+    if { !$b_found_in_repo } {
+      #send_msg_id USF-ModelSim-024 WARNING "Expected IP user file does not exist:'$repo_src_file'!, using from default location:'$full_src_file_path'"
     }
   }
 
