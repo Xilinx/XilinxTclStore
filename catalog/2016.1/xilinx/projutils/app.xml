@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>print warning if file not found from repo</revision_history>
+      <revision_history>update catalog for specified repo unless -donot_update_catalog specified</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
