@@ -756,6 +756,16 @@ if {$error==0} {
 		[::tclapp::icl::protoip::make_template::make_build_sdk_project_tcl]
 		[::tclapp::icl::protoip::make_template::make_run_fpga_prototype_tcl]
 		
+		#added by Bulat
+		[::tclapp::icl::protoip::make_template::soc_make_main_c]
+		[::tclapp::icl::protoip::make_template::soc_make_echo_c $project_name]
+		[::tclapp::icl::protoip::make_template::soc_make_FPGAserver_h $project_name]
+		
+		[::tclapp::icl::protoip::make_template::make_foo_function_wrapped $project_name]
+		[::tclapp::icl::protoip::make_template::make_soc_user $project_name]		
+		
+		#end added by Bulat
+		
 		} else {
 
 			set tmp_str ""
@@ -6963,3 +6973,1362 @@ close $file
 return -code ok
 
 }
+
+
+
+#added by Bulat
+
+# ########################################################################################
+# make soc_prototype/src/main.c file
+
+proc ::tclapp::icl::protoip::make_template::soc_make_main_c {} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories:
+
+
+set file [open soc_prototype/src/main.c w]
+
+
+#add license_c header
+[::tclapp::icl::protoip::make_template::license_c $file]
+
+puts $file ""
+puts $file "#include <stdio.h>"
+puts $file ""
+puts $file "trial sequence"
+
+
+close $file
+return -code ok
+
+}
+
+# ########################################################################################
+# make soc_prototype/src/echo.c file
+proc ::tclapp::icl::protoip::make_template::soc_make_echo_c {args} {
+
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories:
+
+
+set project_name [lindex $args 0]
+
+#load configuration parameters
+set  file_name ""
+append file_name ".metadata/" $project_name "_configuration_parameters.dat"
+set fp [open $file_name r]
+set file_data [read $fp]
+close $fp
+set data [split $file_data "\n"]
+
+set num_input_vectors [lindex $data 3]
+set num_output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 1]]
+set input_vectors {}
+set input_vectors_length {}
+set input_vectors_type {}
+set input_vectors_integer_length {}
+set input_vectors_fraction_length {}
+set output_vectors {}
+set output_vectors_length {}
+set output_vectors_type {}
+set output_vectors_integer_length {}
+set output_vectors_fraction_length {}
+
+for {set i 0} {$i < $num_input_vectors} {incr i} {
+    lappend input_vectors [lindex $data [expr 4 + ($i * 5)]]
+	lappend input_vectors_length [lindex $data [expr 5 + ($i * 5)]]
+	lappend input_vectors_type [lindex $data [expr 6 + ($i * 5)]]
+	lappend input_vectors_integer_length [lindex $data [expr 7 + ($i * 5)]]
+	lappend input_vectors_fraction_length [lindex $data [expr 8 + ($i * 5)]]
+}
+for {set i 0} {$i < $num_output_vectors} {incr i} {
+    lappend output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 2 + ($i * 5)]]
+	lappend output_vectors_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 3 + ($i * 5)]]
+	lappend output_vectors_type [lindex $data [expr ($num_input_vectors * 5) + 4 + 4 + ($i * 5)]]
+	lappend output_vectors_integer_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 5 + ($i * 5)]]
+	lappend output_vectors_fraction_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 6 + ($i * 5)]]
+}
+
+set fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
+set FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
+set board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
+set type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
+set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
+set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
+set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+
+
+
+set file [open soc_prototype/src/echo.c w]
+
+
+#add license_c header
+[::tclapp::icl::protoip::make_template::license_c $file]
+
+
+puts $file "#include <stdio.h>"
+puts $file "#include <string.h>"
+puts $file ""
+puts $file "#include \"lwip/err.h\""
+puts $file "#include \"lwip/tcp.h\""
+puts $file "#include \"lwip/udp.h\""
+puts $file "#ifdef __arm__"
+puts $file "#include \"xil_printf.h\""
+puts $file "#endif"
+puts $file "#include <stdint.h>"
+puts $file ""
+puts $file "#include \"xil_cache.h\""
+puts $file "#include \"xparameters.h\""
+puts $file "#include \"xparameters_ps.h\"	/* defines XPAR values */"
+puts $file "#include \"xstatus.h\""
+puts $file "#include \"xil_io.h\""
+puts $file "#include \"xscutimer.h\""
+puts $file "#include \"platform_config.h\""
+puts $file ""
+puts $file "#include \"xfoo.h\""
+puts $file "#include \"FPGAserver.h\""
+puts $file ""
+
+puts $file "#define TIMER_DEVICE_ID		XPAR_XSCUTIMER_0_DEVICE_ID"
+puts $file "#define TIMER_LOAD_VALUE	0xFFFFFFE"
+puts $file "#define TIMER_RES_DIVIDER 	40"
+puts $file "#define NSECS_PER_SEC 		667000000/2"
+puts $file "#define EE_TICKS_PER_SEC 	(NSECS_PER_SEC / TIMER_RES_DIVIDER)"
+puts $file ""
+puts $file "typedef uint32_t           Xint32;     /**< signed 32-bit */"
+puts $file ""
+puts $file ""
+puts $file "//define as global variables"
+puts $file "XFoo xcore;"
+puts $file "XFoo_Config config;"
+puts $file "XScuTimer Timer;"
+puts $file ""
+puts $file "unsigned int CntValue1 = 0;"
+puts $file "unsigned int CntValue2 = 0;"
+puts $file ""
+
+foreach i $input_vectors {
+
+	set tmp_line ""
+	append tmp_line "Xint32 *" $i "_in_ptr_ddr = (Xint32 *)" $i "_IN_DEFINED_MEM_ADDRESS;"
+	puts $file $tmp_line
+}
+
+foreach i $output_vectors {
+
+	set tmp_line ""
+	append tmp_line "Xint32 *" $i "_out_ptr_ddr = (Xint32 *)" $i "_OUT_DEFINED_MEM_ADDRESS;"
+	puts $file $tmp_line
+}
+
+puts $file ""
+puts $file "/* Variables used for handling the packet */"
+puts $file "uint8_t *payload_ptr;		/* Payload pointer */"
+puts $file "Xint32   payload_temp;		/* 32-bit interpretation of payload */"
+puts $file "uint8_t *payload_temp_char = (uint8_t *)&payload_temp;  /* Char interpretation of payload */"
+puts $file ""
+puts $file "Xint32 inputvec\[ETH_PACKET_LENGTH\];"
+puts $file "Xint32 outvec\[ETH_PACKET_LENGTH\];"
+puts $file "int32_t inputvec_fix\[ETH_PACKET_LENGTH\];"
+puts $file "int32_t outvec_fix\[ETH_PACKET_LENGTH\];"
+puts $file ""
+puts $file "unsigned int write_offset;"
+puts $file "int packet_internal_ID_previous;"
+puts $file ""
+puts $file ""
+puts $file "int transfer_data() \{"
+puts $file "	return 0;"
+puts $file "\}"
+puts $file ""
+puts $file ""
+
+puts $file "void print_app_header()"
+puts $file "\{"
+puts $file "	xil_printf(\"\\n\\r\");"
+puts $file "	xil_printf(\"\\n\\r\");"
+puts $file "	xil_printf(\"---------------------------- ICL::PROTOIP-----------------------------------\\n\\r\");"
+puts $file "	xil_printf(\"------------------- (FPGA UPD/IP and TCP/IP server) ------------------------\\n\\r\");"
+puts $file "	xil_printf(\"----------------- asuardi <https://github.com/asuardi> ---------------------\\n\\r\");"
+puts $file "	xil_printf(\"-------------------------------- v1.0 --------------------------------------\\n\\r\");"
+puts $file "	xil_printf(\"\\n\\r\");"
+puts $file "	xil_printf(\"\\n\\r\");"
+puts $file "	if (TYPE_ETH==1)"
+puts $file "		xil_printf(\"Starting TCP/IP server ...\\n\\r\");"
+puts $file "	if (TYPE_ETH==0)"
+puts $file "		xil_printf(\"Starting UDP/IP server ...\\n\\r\");"
+puts $file "	xil_printf(\"\\n\\r\");"
+puts $file "	xil_printf(\"\\n\\r\");"
+puts $file "\}"
+puts $file ""
+puts $file ""
+puts $file "inline static void get_payload()\{"
+puts $file "	payload_temp_char\[0\] = *payload_ptr++;"
+puts $file "	payload_temp_char\[1\] = *payload_ptr++;"
+puts $file "	payload_temp_char\[2\] = *payload_ptr++;"
+puts $file "	payload_temp_char\[3\] = *payload_ptr++;"
+puts $file "\}"
+puts $file ""
+puts $file ""
+puts $file "unsigned int IpTimer(unsigned int TimerIntrId,unsigned short Mode)"
+puts $file ""
+puts $file "\{"
+puts $file ""
+puts $file "    int                 Status;"
+puts $file "    XScuTimer_Config    *ConfigPtr;"
+puts $file "    volatile unsigned int     CntValue  = 0;"
+puts $file "    XScuTimer           *TimerInstancePtr = &Timer;"
+puts $file ""
+puts $file ""
+puts $file "    if (Mode == 0) \{"
+puts $file ""
+puts $file "      // Initialize the Private Timer so that it is ready to use"
+puts $file ""
+puts $file "      ConfigPtr = XScuTimer_LookupConfig(TimerIntrId);"
+puts $file ""
+puts $file "      Status = XScuTimer_CfgInitialize(TimerInstancePtr, ConfigPtr,"
+puts $file "                     ConfigPtr->BaseAddr);"
+puts $file ""
+puts $file "      if (Status != XST_SUCCESS) \{"
+puts $file "          return XST_FAILURE; \}"
+puts $file ""
+puts $file "      // Load the timer prescaler register."
+puts $file ""
+puts $file "      XScuTimer_SetPrescaler(TimerInstancePtr, TIMER_RES_DIVIDER);"
+puts $file ""
+puts $file "      // Load the timer counter register."
+puts $file ""
+puts $file "      XScuTimer_LoadTimer(TimerInstancePtr, TIMER_LOAD_VALUE);"
+puts $file ""
+puts $file "      // Start the timer counter and read start value"
+puts $file ""
+puts $file "      XScuTimer_Start(TimerInstancePtr);"
+puts $file "      CntValue = XScuTimer_GetCounterValue(TimerInstancePtr);"
+puts $file ""
+puts $file "    \}"
+puts $file ""
+puts $file "    else \{"
+puts $file ""
+puts $file "       //  Read stop value and stop the timer counter"
+puts $file ""
+puts $file "       CntValue = XScuTimer_GetCounterValue(TimerInstancePtr);"
+puts $file "       XScuTimer_Stop(TimerInstancePtr);"
+puts $file ""
+puts $file ""
+puts $file "    \}"
+puts $file ""
+puts $file "    return CntValue;"
+puts $file ""
+puts $file "\}"
+
+
+puts $file ""
+puts $file ""
+puts $file "void udp_server_function(void *arg, struct udp_pcb *pcb,"
+puts $file "		struct pbuf *p, struct ip_addr *addr, u16_t port)\{"
+puts $file ""
+puts $file ""
+puts $file "	struct pbuf pnew;"
+puts $file "	int k1;"
+puts $file "	int k;"
+puts $file "	int i;"
+puts $file ""
+puts $file "	int packet_type;"
+puts $file "	int packet_internal_ID;"
+puts $file "	int packet_internal_ID_offset;"
+puts $file ""
+puts $file "	int timer=0;"
+puts $file ""
+puts $file "	float tmp_float;"
+puts $file ""
+puts $file "	XScuTimer_Config *ConfigPtr;"
+puts $file "	XScuTimer *TimerInstancePtr = &Timer;"
+puts $file ""
+puts $file ""
+puts $file "	xcore.Bus_a_BaseAddress = 0x43c00000;"
+puts $file "	xcore.IsReady = XIL_COMPONENT_IS_READY;"
+puts $file ""
+puts $file ""
+puts $file ""
+puts $file "	// Only respond when the packet is the correct length"
+puts $file "		if (p->len == (ETH_PACKET_LENGTH)*sizeof(int32_t))\{"
+puts $file ""
+puts $file ""
+puts $file "			/* Pick up a pointer to the payload */"
+puts $file "			payload_ptr = (unsigned char *)p->payload;"
+puts $file ""
+puts $file "			//Free the packet buffer"
+puts $file "			pbuf_free(p);"
+puts $file ""
+puts $file "			// Get the payload out"
+puts $file "			for(k1=0;k1<ETH_PACKET_LENGTH;k1++)\{"
+puts $file "				get_payload();"
+puts $file "				inputvec\[k1\] = payload_temp;"
+puts $file "			\}"
+puts $file ""
+puts $file "				//extract informations form the input packet"
+puts $file "				tmp_float=*(float*)&inputvec\[ETH_PACKET_LENGTH-2\];"
+puts $file "				packet_type=(int)tmp_float & 0x0000FFFF;"
+puts $file "				packet_internal_ID=((int)tmp_float & 0xFFFF0000) >> 16; //if write packet_type, packet_num is the data vector ID"
+puts $file ""
+puts $file "				tmp_float=*(float*)&inputvec\[ETH_PACKET_LENGTH-1\];"
+puts $file "				packet_internal_ID_offset=(int)tmp_float; //if write packet_type, packet_num is the data vector ID"
+puts $file ""
+puts $file "			if (DEBUG)\{"
+puts $file "				printf(\"\\n\");"
+puts $file "				printf(\"Received packet:\\n\");"
+puts $file "				printf(\"packet_type=%x\\n\",packet_type);"
+puts $file "				printf(\"packet_internal_ID=%x\\n\",packet_internal_ID);"
+puts $file "				printf(\"packet_internal_ID_offset=%x\\n\",packet_internal_ID_offset);"
+puts $file "			\}"
+puts $file ""
+puts $file ""
+puts $file "			if (packet_type==1) //reset IP"
+puts $file "						\{"
+puts $file ""
+puts $file "							if (DEBUG)"
+puts $file "								printf(\"Reset IP ...\\n\");"
+puts $file ""
+puts $file "							if (XFoo_IsIdle(&xcore)==1)"
+puts $file "							\{"
+puts $file "								if (DEBUG)\{"
+puts $file "									printf(\"The core is ready to be used\\n\");"
+puts $file "								\}"
+puts $file "							\}"
+puts $file "							else"
+puts $file "								printf(\"ERROR: reprogram the FPGA !\\n\"); //should be added the IP reset procedure"
+puts $file ""
+puts $file "						\}"
+puts $file "					else if (packet_type==2) //start IP"
+puts $file "							\{"
+puts $file ""
+puts $file "								if (DEBUG)"
+puts $file "									printf(\"Start IP ...\\n\");"
+puts $file ""
+foreach i $input_vectors {
+
+	set tmp_line ""
+	append tmp_line "								XFoo_Set_byte_" $i "_in_offset(&xcore," $i "_IN_DEFINED_MEM_ADDRESS);"
+	puts $file $tmp_line
+
+}
+foreach i $output_vectors {
+
+	set tmp_line ""
+	append tmp_line "								XFoo_Set_byte_" $i "_out_offset(&xcore," $i "_OUT_DEFINED_MEM_ADDRESS);"
+	puts $file $tmp_line
+
+}
+puts $file ""
+puts $file "								//Start timer"
+puts $file "								CntValue1 = IpTimer(TIMER_DEVICE_ID,0);"
+puts $file ""
+puts $file "								//Start IP core"
+puts $file "								XFoo_Start(&xcore);"
+puts $file ""
+puts $file "								//wait until the IP has finished. If an Ethernet read request arrive, it will be served only when the IP will finish. FPGAclientAPI has a timeout of 1 day."
+puts $file "								while (XFoo_IsIdle(&xcore)!=1)"
+puts $file "								\{"
+puts $file "									if (DEBUG)"
+puts $file "										printf(\"Wait until the IP has finished ...\\n\");"
+puts $file "								\}"
+puts $file ""
+puts $file "								//Stop timer"
+puts $file "								CntValue2 = IpTimer(TIMER_DEVICE_ID,1);"
+puts $file ""
+puts $file "								if (DEBUG)"
+puts $file "								\{"
+puts $file "									printf (\"IP Timer: beginning of the counter is : %d \\n\", CntValue1);"
+puts $file "									printf (\"IP Timer: end of the counter is : %d \\n\", CntValue2);"
+puts $file "								\}"
+puts $file ""
+puts $file "					\}"
+puts $file "					else if (packet_type==3) //write data DDR"
+puts $file "					\{"
+puts $file ""
+puts $file "						if (DEBUG)"
+puts $file "						printf(\"Write data to DDR ...\\n\");"
+puts $file ""
+puts $file "						switch (packet_internal_ID)"
+puts $file "						\{"
+
+
+set m 0
+foreach i $input_vectors {
+
+	set tmp_line ""
+	append tmp_line "							case " $m ": //" $i "_in"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							if (DEBUG)"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "									printf(\"write " $i "_in\\n\\r\");"
+	puts $file $tmp_line
+	
+puts $file ""
+set tmp_line ""	
+append tmp_line "							if (FLOAT_FIX_" [string toupper $i] "_IN==1) \{"
+puts $file $tmp_line
+
+set tmp_line ""	
+append tmp_line "								for (i=0; i<ETH_PACKET_LENGTH-2; i++)"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "								\{"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "									tmp_float=*(float*)&inputvec\[i\];"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "									inputvec_fix\[i\]=(int32_t)(tmp_float*pow(2," [string toupper $i] "_IN_FRACTIONLENGTH));"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "								\}"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "								memcpy(" $i "_in_ptr_ddr+(ETH_PACKET_LENGTH-2)*packet_internal_ID_offset,inputvec_fix,(ETH_PACKET_LENGTH-2)*4);"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "							\} else \{ //floating-point"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "								memcpy(" $i "_in_ptr_ddr+(ETH_PACKET_LENGTH-2)*packet_internal_ID_offset,inputvec,(ETH_PACKET_LENGTH-2)*4);"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "							\}"
+puts $file $tmp_line
+
+	
+	
+	
+	set tmp_line ""
+	append tmp_line "							break;"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							"
+	puts $file $tmp_line
+	
+	incr m
+}
+
+puts $file "							default:"
+puts $file "							break;"
+puts $file "						\}"
+puts $file ""
+puts $file "					\}"
+puts $file ""
+puts $file "					else if (packet_type==4) //read data from DDR"
+puts $file "					\{"
+puts $file "						"
+puts $file "						tmp_float=((float)CntValue1-(float)CntValue2) / (float)EE_TICKS_PER_SEC;"
+puts $file "						if (DEBUG)"
+puts $file "							printf(\"IP time = %f \[s\]\\n\",tmp_float);"
+puts $file ""
+puts $file "						outvec\[ETH_PACKET_LENGTH_RECV-1\]=*(Xint32*)&tmp_float;  //time"
+puts $file ""
+puts $file ""
+puts $file "						//Initialise output vector"
+puts $file "						for(i=0;i<ETH_PACKET_LENGTH_RECV-2;i++)"
+puts $file "						\{"
+puts $file "							tmp_float=1.0;"
+puts $file "							outvec\[i\]=*(Xint32*)&tmp_float;"
+puts $file "						\}"
+puts $file "						"
+puts $file "						"
+puts $file "						switch (packet_internal_ID)"
+puts $file "						\{"
+
+
+set m 0
+foreach i $output_vectors {
+
+	set tmp_line ""
+	append tmp_line "							case " $m ": //" $i "_in"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							if (DEBUG)"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "								printf(\"read " $i "_out\\n\\r\");"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							memcpy(outvec_fix," $i "_out_ptr_ddr+(ETH_PACKET_LENGTH_RECV-2)*packet_internal_ID_offset,(ETH_PACKET_LENGTH_RECV-2)*4);"
+	puts $file $tmp_line
+	
+	
+set tmp_line ""
+append tmp_line "							for (i=0; i<ETH_PACKET_LENGTH_RECV-2; i++)"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "							\{"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "								if (FLOAT_FIX_" [string toupper $i] "_OUT==1) \{ //fixed-point"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "									tmp_float=((float)outvec_fix\[i\])/pow(2," [string toupper $i] "_OUT_FRACTIONLENGTH);"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "									outvec\[i\]=*(Xint32*)&tmp_float;"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "								\} else \{ //floating point"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "									outvec\[i\]=outvec_fix\[i\];"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "								\}"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "							\}"
+puts $file $tmp_line
+
+	set tmp_line ""
+	append tmp_line "							break;"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							"
+	puts $file $tmp_line
+	
+	incr m
+}
+
+puts $file "							default:"
+puts $file "							break;"
+puts $file "						\}"
+puts $file "						"
+puts $file "						"
+puts $file ""						
+puts $file "						// send back the payload"
+puts $file "						// We now need to return the result"
+puts $file "						pnew.next = NULL;"
+puts $file "						pnew.payload = (unsigned char *)outvec;"
+puts $file "						pnew.len = ETH_PACKET_LENGTH*sizeof(Xint32);"
+puts $file "						pnew.type = PBUF_RAM;"
+puts $file "						pnew.tot_len = pnew.len;"
+puts $file "						pnew.ref = 1;"
+puts $file "						pnew.flags = 0;"
+puts $file ""
+puts $file ""
+puts $file "						udp_sendto(pcb, &pnew, addr, port);"
+puts $file ""
+puts $file "					\}"
+puts $file "					else if (packet_type==5) //read data from DDR"
+puts $file "					\{"
+puts $file ""
+puts $file "						//Initialise output vector"
+puts $file "						for(i=0;i<ETH_PACKET_LENGTH;i++)"
+puts $file "						\{"
+puts $file "							tmp_float=1.0;"
+puts $file "							outvec\[i\]=*(Xint32*)&tmp_float;"
+puts $file "						\}"
+puts $file "						"
+puts $file "						// send back the payload"
+puts $file "						// We now need to return the result"
+puts $file "						pnew.next = NULL;"
+puts $file "						pnew.payload = (unsigned char *)outvec;"
+puts $file "						pnew.len = ETH_PACKET_LENGTH*sizeof(Xint32);"
+puts $file "						pnew.type = PBUF_RAM;"
+puts $file "						pnew.tot_len = pnew.len;"
+puts $file "						pnew.ref = 1;"
+puts $file "						pnew.flags = 0;"
+puts $file ""
+puts $file "						udp_sendto(pcb, &pnew, addr, port);"
+puts $file ""
+puts $file "					\}"
+puts $file ""
+puts $file "				\}"
+puts $file "				/* free the received pbuf */"
+puts $file "				pbuf_free(p);"
+puts $file ""
+puts $file "				return ERR_OK;"
+puts $file ""
+puts $file "	//printf(\"Time was: %d\\n\", tval);"
+puts $file "\}"
+puts $file ""
+puts $file ""
+
+puts $file "err_t tcp_server_function(void *arg, struct tcp_pcb *tpcb,"
+puts $file "                               struct pbuf *p, err_t err)"
+puts $file ""
+puts $file "\{"
+puts $file ""
+puts $file "	int k1;"
+puts $file "	int i;"
+puts $file "	int len;"
+puts $file ""
+puts $file "	int packet_type;"
+puts $file "	int packet_internal_ID;"
+puts $file "	int packet_internal_ID_offset;"
+puts $file ""
+puts $file "	int timer=0;"
+puts $file ""
+puts $file "	float tmp_float;"
+puts $file ""
+puts $file ""
+puts $file "	XScuTimer_Config *ConfigPtr;"
+puts $file "	XScuTimer *TimerInstancePtr = &Timer;"
+puts $file ""
+puts $file ""
+puts $file "	xcore.Bus_a_BaseAddress = 0x43c00000;"
+puts $file "	xcore.IsReady = XIL_COMPONENT_IS_READY;"
+puts $file ""
+puts $file ""
+puts $file ""
+
+
+puts $file "	// indicate that the packet has been received"
+puts $file "	tcp_recved(tpcb, p->len);"
+puts $file ""
+puts $file "	// Only respond when the packet is the correct length"
+puts $file "	if (p->len == (ETH_PACKET_LENGTH)*sizeof(int32_t))\{"
+puts $file ""
+puts $file ""
+puts $file "		/* Pick up a pointer to the payload */"
+puts $file "		payload_ptr = (unsigned char *)p->payload;"
+puts $file ""
+puts $file "			//Free the packet buffer"
+puts $file "			pbuf_free(p);"
+puts $file ""
+puts $file "			// Get the payload out"
+puts $file "			for(k1=0;k1<ETH_PACKET_LENGTH;k1++)\{"
+puts $file "				get_payload();"
+puts $file "				inputvec\[k1\] = payload_temp;"
+puts $file "			\}"
+puts $file ""
+puts $file "				//extract informations form the input packet"
+puts $file "				tmp_float=*(float*)&inputvec\[ETH_PACKET_LENGTH-2\];"
+puts $file "				packet_type=(int)tmp_float & 0x0000FFFF;"
+puts $file "				packet_internal_ID=((int)tmp_float & 0xFFFF0000) >> 16; //if write packet_type, packet_num is the data vector ID"
+puts $file ""
+puts $file "				tmp_float=*(float*)&inputvec\[ETH_PACKET_LENGTH-1\];"
+puts $file "				packet_internal_ID_offset=(int)tmp_float; //if write packet_type, packet_num is the data vector ID"
+puts $file ""
+puts $file "			if (DEBUG)\{"
+puts $file "				printf(\"\\n\");"
+puts $file "				printf(\"Received packet:\\n\");"
+puts $file "				printf(\"packet_type=%x\\n\",packet_type);"
+puts $file "				printf(\"packet_internal_ID=%x\\n\",packet_internal_ID);"
+puts $file "				printf(\"packet_internal_ID_offset=%x\\n\",packet_internal_ID_offset);"
+puts $file "			\}"
+puts $file ""
+puts $file ""
+puts $file "			if (packet_type==1) //reset IP"
+puts $file "						\{"
+puts $file ""
+puts $file "							if (DEBUG)"
+puts $file "								printf(\"Reset IP ...\\n\");"
+puts $file ""
+puts $file "							if (XFoo_IsIdle(&xcore)==1)"
+puts $file "							\{"
+puts $file "								if (DEBUG)\{"
+puts $file "									printf(\"The core is ready to be used\\n\");"
+puts $file "								\}"
+puts $file "							\}"
+puts $file "							else"
+puts $file "								printf(\"ERROR: reprogram the FPGA !\\n\"); //should be added the IP reset procedure"
+puts $file ""
+puts $file "						\}"
+puts $file "					else if (packet_type==2) //start IP"
+puts $file "							\{"
+puts $file ""
+puts $file "								if (DEBUG)"
+puts $file "									printf(\"Start IP ...\\n\");"
+puts $file ""
+foreach i $input_vectors {
+
+	set tmp_line ""
+	append tmp_line "								XFoo_Set_byte_" $i "_in_offset(&xcore," $i "_IN_DEFINED_MEM_ADDRESS);"
+	puts $file $tmp_line
+
+}
+foreach i $output_vectors {
+
+	set tmp_line ""
+	append tmp_line "								XFoo_Set_byte_" $i "_out_offset(&xcore," $i "_OUT_DEFINED_MEM_ADDRESS);"
+	puts $file $tmp_line
+
+}
+puts $file ""
+puts $file "								//Start timer"
+puts $file "								CntValue1 = IpTimer(TIMER_DEVICE_ID,0);"
+puts $file ""
+puts $file "								//Start IP core"
+puts $file "								XFoo_Start(&xcore);"
+puts $file ""
+puts $file "								//wait until the IP has finished. If an Ethernet read request arrive, it will be served only when the IP will finish. FPGAclientAPI has a timeout of 1 day."
+puts $file "								while (XFoo_IsIdle(&xcore)!=1)"
+puts $file "								\{"
+puts $file "									if (DEBUG)"
+puts $file "										printf(\"Wait until the IP has finished ...\\n\");"
+puts $file "								\}"
+puts $file ""
+puts $file "								//Stop timer"
+puts $file "								CntValue2 = IpTimer(TIMER_DEVICE_ID,1);"
+puts $file ""
+puts $file "								if (DEBUG)"
+puts $file "								\{"
+puts $file "									printf (\"IP Timer: beginning of the counter is : %d \\n\", CntValue1);"
+puts $file "									printf (\"IP Timer: end of the counter is : %d \\n\", CntValue2);"
+puts $file "								\}"
+puts $file ""
+puts $file "					\}"
+puts $file "					else if (packet_type==3) //write data DDR"
+puts $file "					\{"
+puts $file ""
+puts $file "						if (DEBUG)"
+puts $file "						printf(\"Write data to DDR ...\\n\");"
+puts $file ""
+puts $file "						switch (packet_internal_ID)"
+puts $file "						\{"
+
+
+set m 0
+foreach i $input_vectors {
+
+	set tmp_line ""
+	append tmp_line "							case " $m ": //" $i "_in"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							if (DEBUG)"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "									printf(\"write " $i "_in\\n\\r\");"
+	puts $file $tmp_line
+	
+puts $file ""
+set tmp_line ""	
+append tmp_line "							if (FLOAT_FIX_" [string toupper $i] "_IN==1) \{"
+puts $file $tmp_line
+
+set tmp_line ""	
+append tmp_line "								for (i=0; i<ETH_PACKET_LENGTH-2; i++)"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "								\{"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "									tmp_float=*(float*)&inputvec\[i\];"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "									inputvec_fix\[i\]=(int32_t)(tmp_float*pow(2," [string toupper $i] "_IN_FRACTIONLENGTH));"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "								\}"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "								memcpy(" $i "_in_ptr_ddr+(ETH_PACKET_LENGTH-2)*packet_internal_ID_offset,inputvec_fix,(ETH_PACKET_LENGTH-2)*4);"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "							\} else \{ //floating-point"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "								memcpy(" $i "_in_ptr_ddr+(ETH_PACKET_LENGTH-2)*packet_internal_ID_offset,inputvec,(ETH_PACKET_LENGTH-2)*4);"
+puts $file $tmp_line
+set tmp_line ""	
+append tmp_line "							\}"
+puts $file $tmp_line
+
+	
+	
+	
+	set tmp_line ""
+	append tmp_line "							break;"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							"
+	puts $file $tmp_line
+	
+	incr m
+}
+
+puts $file "							default:"
+puts $file "							break;"
+puts $file "						\}"
+puts $file ""
+puts $file "					\}"
+puts $file ""
+puts $file "					else if (packet_type==4) //read data from DDR"
+puts $file "					\{"
+puts $file "						"
+puts $file "						tmp_float=((float)CntValue1-(float)CntValue2) / (float)EE_TICKS_PER_SEC;"
+puts $file "						if (DEBUG)"
+puts $file "							printf(\"IP time = %f \[s\]\\n\",tmp_float);"
+puts $file ""
+puts $file "						outvec\[ETH_PACKET_LENGTH_RECV-1\]=*(Xint32*)&tmp_float;  //time"
+puts $file ""
+puts $file ""
+puts $file "						//Initialise output vector"
+puts $file "						for(i=0;i<ETH_PACKET_LENGTH_RECV-2;i++)"
+puts $file "						\{"
+puts $file "							tmp_float=1.0;"
+puts $file "							outvec\[i\]=*(Xint32*)&tmp_float;"
+puts $file "						\}"
+puts $file "						"
+puts $file "						"
+puts $file "						switch (packet_internal_ID)"
+puts $file "						\{"
+
+
+set m 0
+foreach i $output_vectors {
+
+	set tmp_line ""
+	append tmp_line "							case " $m ": //" $i "_in"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							if (DEBUG)"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "								printf(\"read " $i "_out\\n\\r\");"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							memcpy(outvec_fix," $i "_out_ptr_ddr+(ETH_PACKET_LENGTH_RECV-2)*packet_internal_ID_offset,(ETH_PACKET_LENGTH_RECV-2)*4);"
+	puts $file $tmp_line
+	
+	
+set tmp_line ""
+append tmp_line "							for (i=0; i<ETH_PACKET_LENGTH_RECV-2; i++)"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "							\{"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "								if (FLOAT_FIX_" [string toupper $i] "_OUT==1) \{ //fixed-point"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "									tmp_float=((float)outvec_fix\[i\])/pow(2," [string toupper $i] "_OUT_FRACTIONLENGTH);"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "									outvec\[i\]=*(Xint32*)&tmp_float;"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "								\} else \{ //floating point"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "									outvec\[i\]=outvec_fix\[i\];"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "								\}"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "							\}"
+puts $file $tmp_line
+
+	set tmp_line ""
+	append tmp_line "							break;"
+	puts $file $tmp_line
+	
+	set tmp_line ""
+	append tmp_line "							"
+	puts $file $tmp_line
+	
+	incr m
+}
+
+puts $file "							default:"
+puts $file "							break;"
+puts $file "						\}"
+puts $file "						"
+puts $file "						"
+
+puts $file ""
+puts $file "			// send back the payload"
+puts $file "			err = tcp_write(tpcb, outvec, ETH_PACKET_LENGTH*sizeof(Xint32), TCP_WRITE_FLAG_MORE);"
+puts $file "			tcp_output(tpcb); //send data now"
+puts $file ""
+puts $file "		\}"
+puts $file "					else if (packet_type==5) //read data from DDR"
+puts $file "					\{"
+puts $file ""
+puts $file "						//Initialise output vector"
+puts $file "						for(i=0;i<ETH_PACKET_LENGTH;i++)"
+puts $file "						\{"
+puts $file "							tmp_float=1.0;"
+puts $file "							outvec\[i\]=*(Xint32*)&tmp_float;"
+puts $file "						\}"
+puts $file ""
+puts $file "			// send back the payload"
+puts $file "			err = tcp_write(tpcb, outvec, ETH_PACKET_LENGTH*sizeof(Xint32), TCP_WRITE_FLAG_MORE);"
+puts $file "			tcp_output(tpcb); //send data now"
+puts $file ""
+puts $file "		\}"
+puts $file ""
+puts $file "	\}"
+puts $file ""
+puts $file "	/* free the received pbuf */"
+puts $file "	pbuf_free(p);"
+puts $file ""
+puts $file "	return ERR_OK;"
+puts $file "\}"
+puts $file ""
+puts $file ""
+puts $file "err_t tcp_accept_callback(void *arg, struct tcp_pcb *newpcb, err_t err)"
+puts $file "\{"
+puts $file "	static int connection = 1;"
+puts $file ""
+puts $file ""
+puts $file "		/* set the receive callback for this connection */"
+puts $file "		tcp_recv(newpcb, tcp_server_function);"
+puts $file ""
+puts $file ""
+puts $file "	/* increment for subsequent accepted connections */"
+puts $file "	connection++;"
+puts $file ""
+puts $file "	return ERR_OK;"
+puts $file "\}"
+puts $file ""
+puts $file ""
+puts $file "int start_application()"
+puts $file "\{"
+puts $file ""
+puts $file "	err_t err;"
+puts $file "	unsigned port = 2007;"
+puts $file ""
+puts $file ""
+puts $file "	// bind to specified @port"
+puts $file "if (TYPE_ETH==1)\{ //TCP interface"
+puts $file "		struct tcp_pcb *pcb;"
+puts $file "		pcb = tcp_new();"
+puts $file ""
+puts $file ""
+puts $file "		//create new TCP PCB structure */"
+puts $file "		if (!pcb) \{"
+puts $file "			xil_printf(\"Error creating PCB. Out of Memory\\n\\r\");"
+puts $file "			return -1;"
+puts $file "		\}"
+puts $file ""
+puts $file "		err = tcp_bind(pcb, IP_ADDR_ANY, port);"
+puts $file ""
+puts $file "		if (err != ERR_OK) \{"
+puts $file "			xil_printf(\"Unable to bind to port %d: err = %d\", port, err);"
+puts $file "			return -2;"
+puts $file "		\}"
+puts $file ""
+puts $file "		/* we do not need any arguments to callback functions */"
+puts $file "		//tcp_arg(pcb, NULL);"
+puts $file ""
+puts $file "		/* listen for connections */"
+puts $file "		pcb = tcp_listen(pcb);"
+puts $file "		if (!pcb) \{"
+puts $file "			xil_printf(\"Out of memory while tcp_listen\\n\\r\");"
+puts $file "			return -3;"
+puts $file "		\}"
+puts $file ""
+puts $file "		//xil_printf(\"Got here: start_application\\n\\r\");"
+puts $file ""
+puts $file "		/* specify callback to use for incoming connections */"
+puts $file "		tcp_accept(pcb, tcp_accept_callback);"
+puts $file ""
+puts $file "		xil_printf(\"TCP/IP  FPGA interface framework server started @ port %d\\n\\r\", port);"
+puts $file ""
+puts $file "\}"
+puts $file ""
+puts $file "else //UDP interface"
+puts $file "\{"
+puts $file ""
+puts $file "		struct udp_pcb *pcb;"
+puts $file "		pcb = udp_new();"
+puts $file ""
+puts $file "		//create new TCP PCB structure"
+puts $file "		if (!pcb) \{"
+puts $file "			xil_printf(\"Error creating PCB. Out of Memory\\n\\r\");"
+puts $file "			return -1;"
+puts $file "		\}"
+puts $file ""
+puts $file "		err = udp_bind(pcb, IP_ADDR_ANY, port);"
+puts $file ""
+puts $file "		if (err != ERR_OK) \{"
+puts $file "			xil_printf(\"Unable to bind to port %d: err = %d\", port, err);"
+puts $file "			return -2;"
+puts $file "		\}"
+puts $file ""
+puts $file "		// specify callback to use for incoming connections"
+puts $file "		udp_recv(pcb, udp_server_function, NULL);"
+puts $file ""
+puts $file "		xil_printf(\"UDP/IP FPGA interface framework server started @ port %d\\n\\r\", port);"
+puts $file ""
+puts $file "\}"
+puts $file ""
+puts $file "	return 0;"
+puts $file "\}"
+
+
+
+close $file
+return -code ok
+}
+
+
+
+# ########################################################################################
+# make soc_prototype/src/FPGAserver.h file
+
+proc ::tclapp::icl::protoip::make_template::soc_make_FPGAserver_h {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories:
+  
+set project_name [lindex $args 0]
+
+
+#load configuration parameters
+set  file_name ""
+append file_name ".metadata/" $project_name "_configuration_parameters.dat"
+set fp [open $file_name r]
+set file_data [read $fp]
+close $fp
+set data [split $file_data "\n"]
+
+set num_input_vectors [lindex $data 3]
+set num_output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 1]]
+set input_vectors {}
+set input_vectors_length {}
+set input_vectors_type {}
+set input_vectors_integer_length {}
+set input_vectors_fraction_length {}
+set output_vectors {}
+set output_vectors_length {}
+set output_vectors_type {}
+set output_vectors_integer_length {}
+set output_vectors_fraction_length {}
+
+for {set i 0} {$i < $num_input_vectors} {incr i} {
+    lappend input_vectors [lindex $data [expr 4 + ($i * 5)]]
+	lappend input_vectors_length [lindex $data [expr 5 + ($i * 5)]]
+	lappend input_vectors_type [lindex $data [expr 6 + ($i * 5)]]
+	lappend input_vectors_integer_length [lindex $data [expr 7 + ($i * 5)]]
+	lappend input_vectors_fraction_length [lindex $data [expr 8 + ($i * 5)]]
+}
+for {set i 0} {$i < $num_output_vectors} {incr i} {
+    lappend output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 2 + ($i * 5)]]
+	lappend output_vectors_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 3 + ($i * 5)]]
+	lappend output_vectors_type [lindex $data [expr ($num_input_vectors * 5) + 4 + 4 + ($i * 5)]]
+	lappend output_vectors_integer_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 5 + ($i * 5)]]
+	lappend output_vectors_fraction_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 6 + ($i * 5)]]
+}
+
+set fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
+set FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
+set board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
+set type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
+set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
+set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
+set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+
+if ($type_test!=0) {
+	set mem_base_address 0
+}
+
+set file [open soc_prototype/src/FPGAserver.h w]
+
+
+#add license_c header
+[::tclapp::icl::protoip::make_template::license_c $file]
+
+
+
+
+puts $file "////////////////////////////////////////////////////////////"
+puts $file "#define DEBUG 0 //1 to enable debug printf, 0 to disable debug printf"
+puts $file ""
+puts $file ""
+puts $file "////////////////////////////////////////////////////////////"
+puts $file "// Define FLOAT_FIX_VECTOR_NAME=1 to enable  fixed-point (up to 32 bits word length) arithmetic precision or "
+puts $file "// FLOAT_FIX_VECTOR_NAME=0 to enable floating-point single arithmetic precision."
+
+set m 0
+foreach i $input_vectors {
+	set tmp_line ""
+	if { [lindex $input_vectors_type $m] == 1} {  
+		append tmp_line "#define FLOAT_FIX_[string toupper $i]_IN 1"
+	} else {  
+		append tmp_line "#define FLOAT_FIX_[string toupper $i]_IN 0"
+	}
+	puts $file $tmp_line
+	incr m
+}
+
+set m 0
+foreach i $output_vectors {
+	set tmp_line ""
+	if { [lindex $output_vectors_type $m] == 1} {  
+		append tmp_line "#define FLOAT_FIX_[string toupper $i]_OUT 1"
+	} else {  
+		append tmp_line "#define FLOAT_FIX_[string toupper $i]_OUT 0"
+	}
+	puts $file $tmp_line
+	incr m
+}
+
+
+
+puts $file ""
+puts $file "//Input vectors FRACTIONLENGTH:"
+set m 0
+foreach i $input_vectors {
+	set tmp_line ""
+	append tmp_line "#define [string toupper $i]_IN_FRACTIONLENGTH [lindex $input_vectors_fraction_length $m]"
+	puts $file $tmp_line
+	incr m
+}
+puts $file "//Output vectors FRACTIONLENGTH:"
+set m 0
+foreach i $output_vectors {
+	set tmp_line ""
+	append tmp_line "#define [string toupper $i]_OUT_FRACTIONLENGTH [lindex $output_vectors_fraction_length $m]"
+	puts $file $tmp_line
+	incr m
+}
+puts $file ""
+
+
+
+puts $file "////////////////////////////////////////////////////////////"
+puts $file "//FPGA vectors memory maps"
+
+set address_store [expr ($mem_base_address/256)*256]
+set m 0
+foreach i $input_vectors_length {
+	set tmp_line ""
+	append tmp_line "#define " [lindex $input_vectors $m] "_IN_DEFINED_MEM_ADDRESS " $address_store
+	puts $file $tmp_line 
+	set address_store [expr ($i*4) + $address_store]
+	incr m
+}
+set m 0
+foreach i $output_vectors_length {
+	set tmp_line ""
+	append tmp_line "#define " [lindex $output_vectors $m] "_OUT_DEFINED_MEM_ADDRESS " $address_store
+	puts $file $tmp_line 
+	set address_store [expr ($i*4) + $address_store]
+	incr m
+}
+
+
+
+
+puts $file ""
+puts $file ""
+puts $file "////////////////////////////////////////////////////////////"
+puts $file "//Ethernet interface configuration:"
+if { $type_eth == 1} { 
+puts $file "#define TYPE_ETH 1 //1 for TCP, 0 for UDP"
+} elseif  { $type_eth == 0} { 
+puts $file "#define TYPE_ETH 0 //1 for TCP, 0 for UDP"
+}
+puts $file "#define FPGA_IP \"192.168.1.10\" //FPGA IP"
+puts $file "#define FPGA_NM \"255.255.255.0\" //Netmask"
+puts $file "#define FPGA_GW \"192.168.1.1\" //Gateway"
+puts $file "#define FPGA_PORT 2007"
+puts $file ""
+puts $file ""
+puts $file "///////////////////////////////////////////////////////////////"
+puts $file "//////////////////DO NOT EDIT HERE BELOW///////////////////////"
+puts $file "//FPGA interface data specification:"
+puts $file "#define ETH_PACKET_LENGTH 256+2 //Ethernet packet length in double words (32 bits) (from Matlab to  FPGA)"
+puts $file "#define ETH_PACKET_LENGTH_RECV 64+2 //Ethernet packet length in double words (32 bits) (from FPGA to Matlab)"
+puts $file ""
+puts $file ""
+
+
+close $file
+return -code ok
+
+}
+
+# ########################################################################################
+# make soc_prototype/src/foo_function_wrapped.c file
+# make soc_prototype/src/foo_function_wrapped.h file
+
+proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
+	  # Summary :
+	  # Argument Usage:
+	  # Return Value:
+	  # Categories:
+	  
+	set project_name [lindex $args 0]
+
+
+	#load configuration parameters
+	set  file_name ""
+	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
+	set fp [open $file_name r]
+	set file_data [read $fp]
+	close $fp
+	set data [split $file_data "\n"]
+
+	set num_input_vectors [lindex $data 3]
+	set num_output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 1]]
+	set input_vectors {}
+	set input_vectors_length {}
+	set input_vectors_type {}
+	set input_vectors_integer_length {}
+	set input_vectors_fraction_length {}
+	set output_vectors {}
+	set output_vectors_length {}
+	set output_vectors_type {}
+	set output_vectors_integer_length {}
+	set output_vectors_fraction_length {}
+
+	for {set i 0} {$i < $num_input_vectors} {incr i} {
+		lappend input_vectors [lindex $data [expr 4 + ($i * 5)]]
+		lappend input_vectors_length [lindex $data [expr 5 + ($i * 5)]]
+		lappend input_vectors_type [lindex $data [expr 6 + ($i * 5)]]
+		lappend input_vectors_integer_length [lindex $data [expr 7 + ($i * 5)]]
+		lappend input_vectors_fraction_length [lindex $data [expr 8 + ($i * 5)]]
+	}
+	for {set i 0} {$i < $num_output_vectors} {incr i} {
+		lappend output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 2 + ($i * 5)]]
+		lappend output_vectors_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 3 + ($i * 5)]]
+		lappend output_vectors_type [lindex $data [expr ($num_input_vectors * 5) + 4 + 4 + ($i * 5)]]
+		lappend output_vectors_integer_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 5 + ($i * 5)]]
+		lappend output_vectors_fraction_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 6 + ($i * 5)]]
+	}
+
+	set fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
+	set FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
+	set board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
+	set type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
+	set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
+	set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
+	set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+
+	if ($type_test!=0) {
+		set mem_base_address 0
+	}
+	
+	#create foo_function_wrapped.h
+	set file [open soc_prototype/src/foo_function_wrapped.h w]
+	#add license_c header
+	[::tclapp::icl::protoip::make_template::license_c $file]
+
+	puts $file "#define ETH_ to Matlab)"
+	puts $file ""
+	puts $file ""
+
+	close $file
+	
+	#create foo_function_wrapped.c
+	set file [open soc_prototype/src/foo_function_wrapped.c w]
+	#add license_c header
+	[::tclapp::icl::protoip::make_template::license_c $file]
+
+	puts $file "#define ETH_ to Matlab  frtrr)"
+	puts $file ""
+	puts $file ""
+
+	close $file
+	
+	return -code ok
+
+}
+
+# ########################################################################################
+# make soc_prototype/src/soc_user.c file
+# make soc_prototype/src/soc_user.h file
+
+proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
+	  # Summary :
+	  # Argument Usage:
+	  # Return Value:
+	  # Categories:
+	  
+	set project_name [lindex $args 0]
+
+
+	#load configuration parameters
+	set  file_name ""
+	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
+	set fp [open $file_name r]
+	set file_data [read $fp]
+	close $fp
+	set data [split $file_data "\n"]
+
+	set num_input_vectors [lindex $data 3]
+	set num_output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 1]]
+	set input_vectors {}
+	set input_vectors_length {}
+	set input_vectors_type {}
+	set input_vectors_integer_length {}
+	set input_vectors_fraction_length {}
+	set output_vectors {}
+	set output_vectors_length {}
+	set output_vectors_type {}
+	set output_vectors_integer_length {}
+	set output_vectors_fraction_length {}
+
+	for {set i 0} {$i < $num_input_vectors} {incr i} {
+		lappend input_vectors [lindex $data [expr 4 + ($i * 5)]]
+		lappend input_vectors_length [lindex $data [expr 5 + ($i * 5)]]
+		lappend input_vectors_type [lindex $data [expr 6 + ($i * 5)]]
+		lappend input_vectors_integer_length [lindex $data [expr 7 + ($i * 5)]]
+		lappend input_vectors_fraction_length [lindex $data [expr 8 + ($i * 5)]]
+	}
+	for {set i 0} {$i < $num_output_vectors} {incr i} {
+		lappend output_vectors [lindex $data [expr ($num_input_vectors * 5) + 4 + 2 + ($i * 5)]]
+		lappend output_vectors_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 3 + ($i * 5)]]
+		lappend output_vectors_type [lindex $data [expr ($num_input_vectors * 5) + 4 + 4 + ($i * 5)]]
+		lappend output_vectors_integer_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 5 + ($i * 5)]]
+		lappend output_vectors_fraction_length [lindex $data [expr ($num_input_vectors * 5) + 4 + 6 + ($i * 5)]]
+	}
+
+	set fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
+	set FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
+	set board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
+	set type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
+	set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
+	set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
+	set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
+
+	if ($type_test!=0) {
+		set mem_base_address 0
+	}
+	
+	#create soc_user.h
+	set file [open soc_prototype/src/soc_user.h w]
+	#add license_c header
+	[::tclapp::icl::protoip::make_template::license_c $file]
+
+	puts $file "#define ETH_ to Matlab)"
+	puts $file ""
+	puts $file ""
+
+	close $file
+	
+	#create soc_user.c
+	set file [open soc_prototype/src/soc_user.c w]
+	#add license_c header
+	[::tclapp::icl::protoip::make_template::license_c $file]
+
+	puts $file "#define ETH_ to Matlab  frtrryt)"
+	puts $file ""
+	puts $file ""
+
+	close $file
+	
+	return -code ok
+
+}
+
+
+#end Added by Bulat
