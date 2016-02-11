@@ -92,6 +92,13 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
 	set str_fix "fix"
 	set str_float "float"
 	
+	#added by Bulat
+	set soc_input_vectors {}
+	set soc_input_vectors_length {}
+	set soc_output_vectors {}
+	set soc_output_vectors_length {}
+	#end added by Bulat
+	
     while {[llength $args]} {
       set name [lshift args]
       switch -regexp -- $name {
@@ -446,6 +453,29 @@ if {$help==0} {
 				}
 				incr m
 			}
+			
+			#added by Bulat
+			set new_num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
+			set new_soc_input_vectors {}
+			set new_soc_input_vectors_length {}
+			
+			for {set i 0} {$i < $new_num_soc_input_vectors} {incr i} {
+				lappend new_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
+				lappend new_soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
+			}		
+			
+			
+			set new_num_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 1 ]]
+			set new_soc_output_vectors {}
+			set new_soc_output_vectors_length {}
+			
+			for {set i 0} {$i < $new_num_soc_output_vectors} {incr i} {
+				lappend new_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
+				lappend new_soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
+			}
+			#end added by Bulat
+			
+			
 		
 		
 			set num_input_vectors $new_num_input_vectors
@@ -462,6 +492,17 @@ if {$help==0} {
 			set output_vectors_fraction_length $new_output_vectors_fraction_length 
 			set type_template $new_type_template
 			set type_design_flow $new_type_design_flow
+			
+			#added by Bulat
+			set num_soc_input_vectors $new_num_soc_input_vectors
+			set soc_input_vectors $new_soc_input_vectors
+			set soc_input_vectors_length $new_soc_input_vectors_length
+			
+			set num_soc_output_vectors $new_num_soc_output_vectors
+			set soc_output_vectors $new_soc_output_vectors
+			set soc_output_vectors_length $new_soc_output_vectors_length
+			
+			#end added by Bulat
 
 		} 	
 	}
@@ -618,6 +659,13 @@ if {$error==0} {
 	file mkdir ip_prototype/test/prj
 	file mkdir ip_prototype/test/results/$project_name
 	file mkdir ip_prototype/build/prj
+	
+	#added by Bulat
+	file mkdir soc_prototype/src
+	file mkdir soc_prototype/test/prj
+	file mkdir soc_prototype/test/results
+	
+	#end added by Bulat
 
 	
 	
@@ -634,7 +682,11 @@ if {$error==0} {
 	
 
 	#make project configuration parameters file
-	[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow]
+	[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow $soc_input_vectors $soc_input_vectors_length $soc_output_vectors $soc_output_vectors_length]
+	
+	#added by Bulat (above)
+	
+	
 	##make configuration parameters readme
 	[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 	
@@ -885,6 +937,15 @@ set type_test [lindex $args 17]
 set type_template [lindex $args 18]
 set type_design_flow [lindex $args 19]
 
+#added by Bulat
+set soc_input_vectors [lindex $args 20]
+set soc_input_vectors_length [lindex $args 21]
+
+set soc_output_vectors [lindex $args 22]
+set soc_output_vectors_length [lindex $args 23]
+
+#end added by Bulat
+
 
 
 set str_fix "fix"
@@ -1007,6 +1068,59 @@ puts $file $type_template
 #type_design_flow:
 puts $file "#type_design_flow"
 puts $file $type_design_flow
+
+#added by Bulat
+
+#soc_inputs:
+puts $file "#soc_Input"
+
+set count 0
+foreach i $soc_input_vectors {
+	incr count
+}
+
+#Number of SOC inputs vectors
+puts $file $count
+set count 0
+
+foreach i $soc_input_vectors {
+	#Vector name
+	puts $file $i
+	#Number of elements
+	puts $file [lindex $soc_input_vectors_length $count]
+	puts $file 0
+	puts $file 0
+	puts $file 0
+	
+	incr count
+}
+
+
+#soc_outputs:
+puts $file "#soc_Output"
+
+set count 0
+foreach i $soc_output_vectors {
+	incr count
+}
+
+#Number of SOC output vectors
+puts $file $count
+set count 0
+
+foreach i $soc_output_vectors {
+	#Vector name
+	puts $file $i
+	#Number of elements
+	puts $file [lindex $soc_output_vectors_length $count]
+	puts $file 0
+	puts $file 0
+	puts $file 0
+	
+	incr count
+}
+
+#end added by Bulat
 
 
 
