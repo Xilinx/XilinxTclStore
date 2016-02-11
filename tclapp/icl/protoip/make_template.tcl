@@ -7061,7 +7061,26 @@ set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output
 set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
 set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
 
-
+#added by Bulat
+set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
+set soc_input_vectors {}
+set soc_input_vectors_length {}
+		
+for {set i 0} {$i < $num_soc_input_vectors} {incr i} {
+	lappend soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
+	lappend soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
+}		
+			
+			
+set num_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 1 ]]
+set soc_output_vectors {}
+set soc_output_vectors_length {}
+			
+for {set i 0} {$i < $num_soc_output_vectors} {incr i} {
+	lappend soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
+	lappend soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
+}
+#end added by Bulat
 
 set file [open soc_prototype/src/echo.c w]
 
@@ -7104,7 +7123,7 @@ puts $file ""
 puts $file ""
 puts $file "//define as global variables"
 puts $file "XFoo xcore;"
-puts $file "XFoo_Config config;"
+puts $file "//XFoo_Config config;"
 puts $file "XScuTimer Timer;"
 puts $file ""
 puts $file "unsigned int CntValue1 = 0;"
@@ -7135,6 +7154,22 @@ puts $file "Xint32 inputvec\[ETH_PACKET_LENGTH\];"
 puts $file "Xint32 outvec\[ETH_PACKET_LENGTH\];"
 puts $file "int32_t inputvec_fix\[ETH_PACKET_LENGTH\];"
 puts $file "int32_t outvec_fix\[ETH_PACKET_LENGTH\];"
+puts $file ""
+#added by Bulat
+foreach i $soc_input_vectors {
+	set tmp_line ""
+	append tmp_line "float soc_$i\_in\[SOC_[string toupper $i]_IN_VECTOR_LENGTH\]"
+	puts $file $tmp_line
+}
+puts $file ""
+foreach i $soc_output_vectors {
+	set tmp_line ""
+	append tmp_line "float soc_$i\_out\[SOC_[string toupper $i]_OUT_VECTOR_LENGTH\]"
+	puts $file $tmp_line
+}
+
+
+#end added by Bulat
 puts $file ""
 puts $file "unsigned int write_offset;"
 puts $file "int packet_internal_ID_previous;"
@@ -8039,6 +8074,27 @@ if ($type_test!=0) {
 	set mem_base_address 0
 }
 
+#added by Bulat
+set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
+set soc_input_vectors {}
+set soc_input_vectors_length {}
+		
+for {set i 0} {$i < $num_soc_input_vectors} {incr i} {
+	lappend soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
+	lappend soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
+}		
+			
+			
+set num_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 1 ]]
+set soc_output_vectors {}
+set soc_output_vectors_length {}
+			
+for {set i 0} {$i < $num_soc_output_vectors} {incr i} {
+	lappend soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
+	lappend soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
+}
+#end added by Bulat
+
 set file [open soc_prototype/src/FPGAserver.h w]
 
 
@@ -8100,6 +8156,47 @@ foreach i $output_vectors {
 	incr m
 }
 puts $file ""
+
+#added by Bulat
+
+puts $file ""
+puts $file "//IP interface arrays lengths:"
+set m 0
+foreach i $input_vectors {
+	set tmp_line ""
+	append tmp_line "#define [string toupper $i]_IN_VECTOR_LENGTH [lindex $input_vectors_length $m]"
+	puts $file $tmp_line
+	incr m
+}
+puts $file ""
+set m 0
+foreach i $output_vectors {
+	set tmp_line ""
+	append tmp_line "#define [string toupper $i]_OUT_VECTOR_LENGTH [lindex $output_vectors_length $m]"
+	puts $file $tmp_line
+	incr m
+}
+
+puts $file ""
+puts $file "//SOC interface arrays lengths:"
+set m 0
+foreach i $soc_input_vectors {
+	set tmp_line ""
+	append tmp_line "#define SOC_[string toupper $i]_IN_VECTOR_LENGTH [lindex $soc_input_vectors_length $m]"
+	puts $file $tmp_line
+	incr m
+}
+puts $file ""
+set m 0
+foreach i $soc_output_vectors {
+	set tmp_line ""
+	append tmp_line "#define SOC_[string toupper $i]_OUT_VECTOR_LENGTH [lindex $soc_output_vectors_length $m]"
+	puts $file $tmp_line
+	incr m
+}
+
+
+#end added by Bulat
 
 
 
