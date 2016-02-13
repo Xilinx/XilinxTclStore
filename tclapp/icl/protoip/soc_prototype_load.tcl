@@ -5,11 +5,11 @@
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
-    namespace export ip_prototype_load
+    namespace export soc_prototype_load
 }
 
 
-proc ::tclapp::icl::protoip::ip_prototype_load {args} {
+proc ::tclapp::icl::protoip::soc_prototype_load {args} {
 
 	  # Summary: Build the FPGA Ethernet server application using SDK according to the specification in [WORKING DIRECTORY]/design_parameters.tcl and program the FPGA. A connected evaluation board is required.
 
@@ -26,11 +26,11 @@ proc ::tclapp::icl::protoip::ip_prototype_load {args} {
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
- uplevel [concat ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load $args]
+ uplevel [concat ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load $args]
 }
 
 # Trick to silence the linter
-eval [list namespace eval ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load {
+eval [list namespace eval ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load {
   variable version {20/11/2014}
 } ]	  
 
@@ -42,7 +42,7 @@ eval [list namespace eval ::tclapp::icl::protoip::ip_prototype_load::ip_prototyp
 # #******************************************************************************# #
 #**********************************************************************************#
 
-proc ::tclapp::icl::protoip::ip_prototype_load::ip_prototype_load { args } {
+proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -334,16 +334,15 @@ if {$error==0} {
 			[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 			
 			# update ip_design/src/FPGAclientAPI.h file
-			[::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h  $project_name]
-			# update directives
-			[::tclapp::icl::protoip::make_template::make_echo_c $project_name]
-			[::tclapp::icl::protoip::make_template::make_FPGAserver_h $project_name]
+			#::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h  $project_name]
+			#[::tclapp::icl::protoip::make_template::soc_make_echo_c $project_name]
+			#[::tclapp::icl::protoip::make_template::soc_make_FPGAserver_h $project_name]
 		
 			set target_dir ""
-			append target_dir "ip_prototype/test/prj/" $project_name "." $board_name
+			append target_dir "soc_prototype/test/prj/" $project_name "." $board_name
 			
 			set source_file ""
-			append source_file "../../../build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
+			append source_file "../../../../ip_prototype/build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
 		
 			#export to SDK
 			file delete -force $target_dir
@@ -351,14 +350,14 @@ if {$error==0} {
 			cd $target_dir
 			file copy -force $source_file design_1_wrapper.hdf
 			
-			file copy -force ../../../../.metadata/build_sdk_project.tcl build_sdk_project.tcl
+			file copy -force ../../../../.metadata/build_soc_sdk_project.tcl build_soc_sdk_project.tcl
 			file copy -force ../../../../.metadata/run_fpga_prototype.tcl run_fpga_prototype.tcl
 			
 			
 			# Create SDK Project
 			puts "Calling SDK to build the software project ..."
 
-			set sdk_p [open "|xsct build_sdk_project.tcl" r]
+			set sdk_p [open "|xsct build_soc_sdk_project.tcl" r]
 			while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
 			close $sdk_p
 			

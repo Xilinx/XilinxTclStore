@@ -764,6 +764,8 @@ if {$error==0} {
 		[::tclapp::icl::protoip::make_template::make_foo_function_wrapped $project_name]
 		[::tclapp::icl::protoip::make_template::make_soc_user $project_name]		
 		
+		[::tclapp::icl::protoip::make_template::make_build_soc_sdk_project_tcl]
+		
 		#end added by Bulat
 		
 		} else {
@@ -6991,13 +6993,200 @@ proc ::tclapp::icl::protoip::make_template::soc_make_main_c {} {
 set file [open soc_prototype/src/main.c w]
 
 
+
+
 #add license_c header
 [::tclapp::icl::protoip::make_template::license_c $file]
 
 puts $file ""
 puts $file "#include <stdio.h>"
 puts $file ""
-puts $file "trial sequence"
+puts $file "#include \"xparameters.h\""
+puts $file ""
+puts $file "#include \"netif/xadapter.h\""
+puts $file ""
+puts $file "#include \"platform.h\""
+puts $file "#include \"platform_config.h\""
+puts $file "#include \"lwipopts.h\""
+puts $file "#ifdef __arm__"
+puts $file "#include \"xil_printf.h\""
+puts $file "#endif"
+puts $file ""
+puts $file ""
+puts $file ""
+puts $file "#define INVALID 0"
+puts $file ""
+puts $file "#include\"FPGAserver.h\""
+puts $file ""
+puts $file "/* defined by each RAW mode application */"
+puts $file "void print_app_header();"
+puts $file "int start_application();"
+puts $file "int transfer_data();"
+puts $file "void platform_enable_interrupts();"
+puts $file "/* missing declaration in lwIP */"
+puts $file "void lwip_init();"
+puts $file ""
+puts $file ""
+puts $file "static struct netif server_netif;"
+puts $file "struct netif *echo_netif;"
+puts $file ""
+puts $file ""
+puts $file ""
+puts $file "void print_ip(char *msg, struct ip_addr *ip) "
+puts $file "\{"
+puts $file "	printf(msg);"
+puts $file "	printf(\"%d.%d.%d.%d\\\n\\r\", ip4_addr1(ip), ip4_addr2(ip), "
+puts $file "			ip4_addr3(ip), ip4_addr4(ip));"
+puts $file "\}"
+puts $file ""
+puts $file "void print_ip_settings(struct ip_addr *ip, struct ip_addr *mask, struct ip_addr *gw)"
+puts $file "\{"
+puts $file ""
+puts $file "	print_ip(\"Board IP: \", ip);"
+puts $file "	print_ip(\"Netmask : \", mask);"
+puts $file "	print_ip(\"Gateway : \", gw);"
+puts $file "\}"
+puts $file ""
+puts $file ""
+puts $file ""
+puts $file ""
+puts $file "unsigned int ip_to_int (const char * ip, unsigned int  *a1, unsigned int  *a2, unsigned int  *a3, unsigned int  *a4)"
+puts $file "\{"
+puts $file "    /* The return value. */"
+puts $file "   unsigned v = 0;"
+puts $file "   /* The count of the number of bytes processed. */"
+puts $file "    int i;"
+puts $file "    /* A pointer to the next digit to process. */"
+puts $file "    const char * start;"
+puts $file ""
+puts $file "    start = ip;"
+puts $file "    for (i = 0; i < 4; i++) \{"
+puts $file "        /* The digit being processed. */"
+puts $file "        char c;"
+puts $file "        /* The value of this byte. */"
+puts $file "        int n = 0;"
+puts $file "        while (1) \{"
+puts $file "           c = * start;"
+puts $file "           start++;"
+puts $file "            if (c >= '0' && c <= '9') \{"
+puts $file "               n *= 10;"
+puts $file "                n += c - '0';"
+puts $file "           \}"
+puts $file "            /* We insist on stopping at \".\" if we are still parsing"
+puts $file "               the first, second, or third numbers. If we have reached"
+puts $file "               the end of the numbers, we will allow any character. */"
+puts $file "           else if ((i < 3 && c == '.') || i == 3) \{"
+puts $file "                break;"
+puts $file "            \}"
+puts $file "            else \{"
+puts $file "                return INVALID;"
+puts $file "            \}"
+puts $file "       \}"
+puts $file "        if (n >= 256) \{"
+puts $file "            return INVALID;"
+puts $file "        \}"
+puts $file "        v *= 256;"
+puts $file "        v += n;"
+puts $file "    \}"
+puts $file ""
+puts $file ""
+puts $file "	*a1=(unsigned int )(v & 0x000000FF);"
+puts $file "	*a2=(unsigned int )((v & 0x0000FF00)>>8);"
+puts $file "	*a3=(unsigned int )((v & 0x00FF0000)>>16);"
+puts $file "	*a4=(unsigned int )((v & 0xFF000000)>>24);"
+puts $file ""
+puts $file ""
+puts $file "   return v;"
+puts $file "\}"
+puts $file ""
+puts $file ""
+puts $file ""
+puts $file "int main()"
+puts $file "\{"
+puts $file ""
+puts $file "	struct ip_addr ipaddr, netmask, gw;"
+puts $file "	unsigned FPGA_port_number;"
+puts $file "	char *FPGA_ip_address;"
+puts $file "	char *FPGA_netmask;"
+puts $file "	char *FPGA_gateway;"
+puts $file "	unsigned integer_ip;"
+puts $file ""
+puts $file "	unsigned int  FPGA_ip_address_a1,FPGA_ip_address_a2,FPGA_ip_address_a3,FPGA_ip_address_a4;"
+puts $file "	unsigned int  FPGA_netmask_a1,FPGA_netmask_a2,FPGA_netmask_a3,FPGA_netmask_a4;"
+puts $file "	unsigned int  FPGA_gateway_a1,FPGA_gateway_a2,FPGA_gateway_a3,FPGA_gateway_a4;"
+puts $file ""
+puts $file "	//EXAMPLE: set FPGA IP and port number"
+puts $file "	FPGA_ip_address=FPGA_IP;"
+puts $file "	FPGA_netmask=FPGA_NM;"
+puts $file "	FPGA_gateway=FPGA_GW;"
+puts $file "	FPGA_port_number=FPGA_PORT;"
+puts $file ""
+puts $file "	//extract FPGA IP address from string"
+puts $file "	if (ip_to_int (FPGA_ip_address,&FPGA_ip_address_a1,&FPGA_ip_address_a2,&FPGA_ip_address_a3,&FPGA_ip_address_a4) == INVALID) \{"
+puts $file "		printf (\"'%s' is not a valid IP address for FPGA server.\\n\", FPGA_ip_address);"
+puts $file "		return 1;"
+puts $file "	\}"
+puts $file ""
+puts $file "	//extract FPGA netmask address from string"
+puts $file "	if (ip_to_int (FPGA_netmask,&FPGA_netmask_a1,&FPGA_netmask_a2,&FPGA_netmask_a3,&FPGA_netmask_a4) == INVALID) \{"
+puts $file "		printf (\"'%s' is not a valid netmask address for FPGA server.\\n\", FPGA_netmask);"
+puts $file "		return 1;"
+puts $file "	\}"
+puts $file ""
+puts $file "	//extract FPGA gateway address from string"
+puts $file "	if (ip_to_int (FPGA_gateway,&FPGA_gateway_a1,&FPGA_gateway_a2,&FPGA_gateway_a3,&FPGA_gateway_a4) == INVALID) \{"
+puts $file "		printf (\"'%s' is not a valid gateway address for FPGA server.\\n\", FPGA_gateway);"
+puts $file "		return 1;"
+puts $file "	\}"
+puts $file ""
+puts $file "	/* the mac address of the board. this should be unique per board */"
+puts $file "	unsigned char mac_ethernet_address\[\] ="
+puts $file "	\{ 0x00, 0x0a, 0x35, 0x00, 0x01, 0x02 \};"
+puts $file ""
+puts $file "	echo_netif = &server_netif;"
+puts $file ""
+puts $file "	init_platform();"
+puts $file "	Xil_DCacheDisable();"
+puts $file ""
+puts $file "	/* initliaze IP addresses to be used */"
+puts $file "	IP4_ADDR(&ipaddr,  FPGA_ip_address_a4, FPGA_ip_address_a3,   FPGA_ip_address_a2, FPGA_ip_address_a1);"
+puts $file "	IP4_ADDR(&netmask, FPGA_netmask_a4, FPGA_netmask_a3, FPGA_netmask_a2,  FPGA_netmask_a1);"
+puts $file "	IP4_ADDR(&gw,      FPGA_gateway_a4, FPGA_gateway_a3,   FPGA_gateway_a2,  FPGA_gateway_a1);"
+puts $file "	print_app_header();"
+puts $file "	print_ip_settings(&ipaddr, &netmask, &gw);"
+puts $file "	lwip_init();"
+puts $file ""
+puts $file ""
+puts $file ""
+puts $file "  	/* Add network interface to the netif_list, and set it as default */"
+puts $file "	if (!xemac_add(echo_netif, &ipaddr, &netmask,&gw, mac_ethernet_address,PLATFORM_EMAC_BASEADDR)) \{"
+puts $file "		xil_printf(\"Error adding N/W interface\\n\\r\");"
+puts $file "		return -1;"
+puts $file "	\}"
+puts $file "	netif_set_default(echo_netif);"
+puts $file ""
+puts $file "	/* specify that the network if is up */"
+puts $file "	netif_set_up(echo_netif);"
+puts $file ""
+puts $file "	/* now enable interrupts */"
+puts $file "	platform_enable_interrupts();"
+puts $file ""
+puts $file ""
+puts $file "	/* start the application (web server, rxtest, txtest, etc..) */"
+puts $file "	start_application();"
+puts $file ""
+puts $file "	/* receive and process packets */"
+puts $file "	while (1) \{"
+puts $file "		xemacif_input(echo_netif);"
+puts $file "		transfer_data();"
+puts $file "	\}"
+puts $file "  "
+puts $file "	/* never reached */"
+puts $file "	cleanup_platform();"
+puts $file ""
+puts $file "	return 0;"
+puts $file "\}"
+puts $file ""
 
 
 close $file
@@ -7110,6 +7299,8 @@ puts $file "#include \"platform_config.h\""
 puts $file ""
 puts $file "#include \"xfoo.h\""
 puts $file "#include \"FPGAserver.h\""
+puts $file "#include \"soc_user.h\""
+puts $file "#include \"foo_function_wrapped.h\""
 puts $file ""
 
 puts $file "#define TIMER_DEVICE_ID		XPAR_XSCUTIMER_0_DEVICE_ID"
@@ -7158,13 +7349,13 @@ puts $file ""
 #added by Bulat
 foreach i $soc_input_vectors {
 	set tmp_line ""
-	append tmp_line "float soc_$i\_in\[SOC_[string toupper $i]_IN_VECTOR_LENGTH\]"
+	append tmp_line "float soc_$i\_in\[SOC_[string toupper $i]_IN_VECTOR_LENGTH\];"
 	puts $file $tmp_line
 }
 puts $file ""
 foreach i $soc_output_vectors {
 	set tmp_line ""
-	append tmp_line "float soc_$i\_out\[SOC_[string toupper $i]_OUT_VECTOR_LENGTH\]"
+	append tmp_line "float soc_$i\_out\[SOC_[string toupper $i]_OUT_VECTOR_LENGTH\];"
 	puts $file $tmp_line
 }
 
@@ -7267,7 +7458,7 @@ puts $file "		struct pbuf *p, struct ip_addr *addr, u16_t port)\{"
 puts $file ""
 puts $file ""
 puts $file "	struct pbuf pnew;"
-#puts $file "	int k1;" #Bulat
+puts $file "	int k1;" 
 puts $file "	int k;"
 puts $file "	int i;"
 puts $file ""
@@ -8449,6 +8640,49 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	close $file
 	
 	return -code ok
+
+}
+
+# ########################################################################################
+# make soc_prototype/src/build_soc_sdk_project.tcl file
+
+proc ::tclapp::icl::protoip::make_template::make_build_soc_sdk_project_tcl {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories:
+
+set file [open  .metadata/build_soc_sdk_project.tcl w]
+
+
+#add license_tcl header
+[::tclapp::icl::protoip::make_template::license_tcl $file]
+
+
+puts $file ""
+
+puts $file "set workspace_name \"workspace1\""
+puts $file "set hdf \"design_1_wrapper.hdf\""
+puts $file ""
+puts $file "sdk set_workspace \$workspace_name"
+puts $file "sdk create_hw_project -name design_1_wrapper_hw_platform_1 -hwspec \$hdf"
+puts $file "sdk create_app_project -name test_fpga -proc ps7_cortexa9_0 -hwproject design_1_wrapper_hw_platform_1 -lang C  -app {lwIP Echo Server}"
+puts $file ""
+puts $file "file copy -force ../../../src/echo.c workspace1/test_fpga/src"
+puts $file "file copy -force ../../../src/main.c workspace1/test_fpga/src"
+puts $file "file copy -force ../../../src/FPGAserver.h workspace1/test_fpga/src"
+puts $file "file copy -force ../../../src/soc_user.h workspace1/test_fpga/src"
+puts $file "file copy -force ../../../src/soc_user.c workspace1/test_fpga/src"
+puts $file "file copy -force ../../../src/foo_function_wrapped.h workspace1/test_fpga/src"
+puts $file "file copy -force ../../../src/foo_function_wrapped.c workspace1/test_fpga/src"
+puts $file ""
+puts $file "sdk build_project -type all"
+
+
+
+close $file
+
+return -code ok
 
 }
 
