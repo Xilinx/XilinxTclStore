@@ -8368,25 +8368,83 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 		set mem_base_address 0
 	}
 	
+	#added by Bulat
+	set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
+	set soc_input_vectors {}
+	set soc_input_vectors_length {}
+			
+	for {set i 0} {$i < $num_soc_input_vectors} {incr i} {
+		lappend soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
+		lappend soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
+	}		
+				
+				
+	set num_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 1 ]]
+	set soc_output_vectors {}
+	set soc_output_vectors_length {}
+				
+	for {set i 0} {$i < $num_soc_output_vectors} {incr i} {
+	lappend soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
+	lappend soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
+	}
+	#end added by Bulat
+	
+	#create soc_user.c
+	set file [open soc_prototype/src/soc_user.c w]
+	#add license_c header
+	#[::tclapp::icl::protoip::make_template::license_c $file]
+	set tmp_line "#include \"FPGAserver.h\""
+	puts $file $tmp_line
+	
+	set tmp_line "//#include \"foo_function_wrapped.h\""
+	puts $file $tmp_line
+	
+	set tmp_line "#include <math.h>"
+	puts $file $tmp_line
+	puts ""
+	
+	
+	set tmp_line "void soc_user("
+	foreach i $soc_input_vectors {
+		append tmp_line "float "
+		append tmp_line "soc_$i\_in\[\],"
+
+	}
+	foreach i $soc_output_vectors {
+		append tmp_line "float "
+		append tmp_line "soc_$i\_out\[\],"
+	}
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line ")"
+	puts $file $tmp_line
+	
+	set tmp_line "\{"
+	puts $file $tmp_line
+	
+	set tmp_line "\}"
+	puts $file $tmp_line
+	
+
+	close $file
+	
 	#create soc_user.h
 	set file [open soc_prototype/src/soc_user.h w]
 	#add license_c header
 	[::tclapp::icl::protoip::make_template::license_c $file]
 
-	puts $file "#define ETH_ to Matlab)"
-	puts $file ""
-	puts $file ""
+	set tmp_line "void soc_user("
+	foreach i $soc_input_vectors {
+		append tmp_line "float "
+		append tmp_line "soc_$i\_in\[\],"
 
-	close $file
-	
-	#create soc_user.c
-	set file [open soc_prototype/src/soc_user.c w]
-	#add license_c header
-	[::tclapp::icl::protoip::make_template::license_c $file]
-
-	puts $file "#define ETH_ to Matlab  frtrryt)"
-	puts $file ""
-	puts $file ""
+	}
+	foreach i $soc_output_vectors {
+		append tmp_line "float "
+		append tmp_line "soc_$i\_out\[\],"
+	}
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line ");"
+	puts $file $tmp_line
 
 	close $file
 	
