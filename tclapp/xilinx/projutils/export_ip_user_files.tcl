@@ -336,8 +336,8 @@ proc xif_export_ip { obj } {
     }
 
     lappend l_static_files $src_ip_file
-    # is already extracted?
-    if { {} != $extracted_static_file_path } {
+    # not extracted yet? extract it
+    if { {} == $extracted_static_file_path } {
       set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
     }
   }
