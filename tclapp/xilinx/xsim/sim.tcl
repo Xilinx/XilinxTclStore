@@ -198,6 +198,7 @@ proc usf_xsim_setup_simulation { args } {
   ::tclapp::xilinx::xsim::usf_xport_data_files
 
   # fetch design files
+  variable l_local_design_libraries 
   set global_files_str {}
   set ::tclapp::xilinx::xsim::a_sim_vars(l_design_files) \
      [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
@@ -216,11 +217,66 @@ proc usf_xsim_setup_simulation { args } {
     }
     usf_xsim_map_pre_compiled_libs $fh
     close $fh
+
+    # re-align local libraries for the ones that were not found in compiled library
+    usf_realign_local_mappings $file l_local_design_libraries
+
   } else {
     usf_xsim_write_setup_file
   }
 
   return 0
+}
+
+proc usf_realign_local_mappings { ini_file l_local_design_libraries_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $l_local_design_libraries_arg l_local_libraries
+
+  if { ![file exists $ini_file] } {
+    return
+  }
+
+  # read xsim.ini contents
+  set fh 0
+  if {[catch {open $ini_file r} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($ini_file)\n"
+    return 1
+  }
+  set data [split [read $fh] "\n"]
+  close $fh
+  set l_updated_mappings [list]
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set library [string trim [lindex [split $line "="] 0]]
+    if { [lsearch -exact $l_local_libraries $library] != -1 } {
+      set line "$library=xsim.dir/$library"
+    }
+    lappend l_updated_mappings $line
+  }
+
+  # first make back up
+  set ini_file_bak ${ini_file}.bak
+  [catch {file copy -force $ini_file $ini_file_bak} error_msg]
+
+  # delete ini file
+  [catch {file delete -force $ini_file} error_msg]
+
+  # create fresh updated copy
+  set fh 0
+  if {[catch {open $ini_file w} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($ini_file)\n"
+    # revert backup ini file
+    [catch {file copy -force $ini_file_bak $ini_file} error_msg]
+    return
+  }
+  foreach line $l_updated_mappings {
+    puts $fh $line
+  }
+  close $fh
 }
 
 proc usf_xsim_init_simulation_vars {} {
