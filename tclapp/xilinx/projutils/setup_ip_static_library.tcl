@@ -989,11 +989,13 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
       if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
         set sub_lib_cores [get_property component_subcores $file_group]
         set sub_core_len [llength $sub_lib_cores]
+        if { ($sub_core_len == 0) && ($b_extract_sub_cores) } { continue }
         if { ($sub_core_len > 0) && (!$b_extract_sub_cores) } { continue }
         set ordered_sub_cores [list]
         foreach sub_vlnv $sub_lib_cores {
           set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_vlnv]
         } 
+        #puts "$vlnv=$ordered_sub_cores"
         foreach sub_vlnv $ordered_sub_cores {
           isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs
         }
@@ -1080,6 +1082,7 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
       foreach sub_vlnv $sub_lib_cores {
         set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_vlnv]
       } 
+      #puts " +$vlnv=$ordered_sub_cores"
       foreach sub_vlnv $ordered_sub_cores {
         isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs
       }

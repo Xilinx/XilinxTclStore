@@ -139,6 +139,11 @@ proc usf_ies_setup_simulation { args } {
   # prepare IP's for simulation
   #::tclapp::xilinx::ies::usf_prepare_ip_for_simulation
 
+  variable l_compiled_libraries
+  if { $a_sim_vars(b_use_static_lib) } {
+    set l_compiled_libraries [xcs_get_compiled_libraries]
+  }
+
   # generate mem files
   ::tclapp::xilinx::ies::usf_generate_mem_files_for_simulation 
 

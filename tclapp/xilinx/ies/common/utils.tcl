@@ -873,3 +873,36 @@ proc xcs_uniquify_cmd_str { cmd_strs } {
   }
   return $uniq_cmd_strs
 }
+
+proc xcs_get_compiled_libraries {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set l_libs [list]
+  set simulator [string tolower [get_property target_simulator [current_project]]]
+  set clibs_dir [get_property compxlib.${simulator}_compiled_library_dir [current_project]]
+  set file [file normalize [file join $clibs_dir ".cxl.stat"]]
+  if { ![file exists $file] } {
+    return $l_libs
+  }
+
+  set fh 0
+  if {[catch {open $file r} fh]} {
+    return $l_libs
+  }
+  set lib_data [split [read $fh] "\n"]
+  close $fh
+
+  foreach line $lib_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^#} $line] } { continue; }
+    
+    set tokens [split $line {,}]
+    set library [lindex $tokens 0]
+
+    lappend l_libs $library
+  }
+  return $l_libs
+}

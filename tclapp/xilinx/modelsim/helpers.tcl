@@ -55,7 +55,7 @@ proc usf_init_vars {} {
   # fileset compile order
   variable l_compile_order_files     [list]
   variable l_design_files            [list]
-
+  variable l_compiled_libraries      [list]
   # ip static libraries
   variable l_ip_static_libs          [list]
 
@@ -1699,10 +1699,13 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
         if { $b_is_bd } {
           set vh_file [usf_fetch_ipi_static_file $vh_file]
         } else {
+          set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
-            set vh_file $vh_file
+            if { [file exists $vh_file_path] } {
+              set vh_file $vh_file_path
+            }
           } else {
-            set vh_file [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir)]
+            set vh_file $vh_file_path
           }
         }
       }
@@ -2251,7 +2254,7 @@ proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
     set src_file [usf_get_source_from_repo $ip_file $src_file $launch_dir b_is_static b_is_dynamic]
     set b_static_ip_file $b_is_static
     if { (!$b_is_static) && (!$b_is_dynamic) } {
-      send_msg_id USF-ModelSim-056 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
+      #send_msg_id USF-ModelSim-056 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
     }
     # phase-2
     if { $b_is_static } {
@@ -2270,6 +2273,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   variable a_sim_vars
   variable l_compile_order_files
+  variable l_compiled_libraries
   upvar $b_is_static_arg b_is_static
   upvar $b_is_dynamic_arg b_is_dynamic
 
@@ -2300,6 +2304,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   set dst_cip_file $full_src_file_path
   set used_in_values [get_property "USED_IN" $full_src_file_obj]
+  set library [get_property "LIBRARY" $full_src_file_obj]
   # is dynamic?
   if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
     set file_extn [file extension $ip_file]
@@ -2328,13 +2333,20 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   }
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
-    set b_is_static 1
+    set b_is_static 0
     set b_is_dynamic 0
     set dst_cip_file $ip_static_file
 
+    set b_process_file 1
     if { $a_sim_vars(b_use_static_lib) } {
       # use pre-compiled lib
-    } else {
+      if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
+        set b_process_file 0
+        set b_is_static 1
+      }
+    }
+
+    if { $b_process_file } {
       if { $b_is_bd_ip } {
         set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
       } else {

@@ -57,6 +57,7 @@ proc xif_init_vars {} {
   set s_mem_filter                    "FILE_TYPE==\"Data Files\" || FILE_TYPE==\"Memory Initialization Files\" || FILE_TYPE==\"Coefficient Files\""
 
   variable l_libraries                [list]
+  variable l_compiled_libraries       [list]
 
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
@@ -92,6 +93,7 @@ proc export_ip_user_files {args} {
   variable a_vars
   variable l_libraries
   variable l_valid_ip_extns
+  variable l_compiled_libraries
   xif_init_vars
 
   set a_vars(options) [split $args " "]
@@ -132,6 +134,9 @@ proc export_ip_user_files {args} {
   }
 
   xif_create_central_dirs
+  if { $a_vars(b_use_static_lib) } {
+    set l_compiled_libraries [xcs_get_compiled_libraries]
+  }
 
   # no -of_objects specified
   if { ({} == $a_vars(sp_of_objects)) || ([llength $a_vars(sp_of_objects)] == 1) } {
@@ -285,6 +290,7 @@ proc xif_export_ip { obj } {
 
   variable a_vars
   variable l_valid_data_file_extns
+  variable l_compiled_libraries
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
@@ -292,60 +298,58 @@ proc xif_export_ip { obj } {
   #puts $ip_name=$b_container
 
   set l_static_files [list]
-  if { $a_vars(b_use_static_lib) } {
-    # cleanup and do not export static files for pre-compiled lib
-    foreach file [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
-      [catch {file delete -force $file} error_msg]
+  set l_static_files_to_delete [list]
+  #
+  # static files
+  #
+  set ip_data [list]
+  foreach src_ip_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
+    set filename [file tail $src_ip_file]
+    set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+    if { {} == $file_obj } { continue; }
+    if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
+      if { [get_property {IS_USER_DISABLED} $file_obj] } {
+        continue;
+      }
     }
-    [catch {file delete -force $a_vars(ipstatic_dir)} error_msg]
-  } else {
-    #
-    # static files
-    #
-    set ip_data [list]
-    foreach src_ip_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
-      set filename [file tail $src_ip_file]
-      set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
-      if { {} == $file_obj } { continue; }
-      if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
-        if { [get_property {IS_USER_DISABLED} $file_obj] } {
-          continue;
+
+    set extracted_static_file_path {}
+
+    if { $a_vars(b_use_static_lib) } {
+      set file_type {}
+      if { [lsearch -exact [list_property $file_obj] {FILE_TYPE}] != -1 } {
+        set file_type [get_property file_type $file_obj]
+      }
+      if { ({Verilog Header} == $file_type) || ({Verilog/SystemVerilog Header} == $file_type) } {
+        # consider verilog header files always for pre-compile flow
+      } else {
+        # is compiled library available from clibs? continue, else extract to ip_user_files dir
+        if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+          set library [get_property library $file_obj]
+          if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
+            set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
+            lappend l_static_files_to_delete $extracted_static_file_path
+            continue
+          }
         }
       }
-      lappend l_static_files $src_ip_file
+    }
 
-      # get the parent composite file for this static file
-      set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$src_ip_file"]] 0]]
+    lappend l_static_files $src_ip_file
+    # is already extracted?
+    if { {} != $extracted_static_file_path } {
+      set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
+    }
+  }
 
-      # calculate destination path
-      set ipstatic_file_path [xcs_find_ipstatic_file_path $src_ip_file $parent_comp_file $a_vars(ipstatic_dir)]
-
-      # skip if file exists
-      if { ({} != $ipstatic_file_path) && ([file exists $ipstatic_file_path]) } {
-        continue
-      }
-
-      # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be 
-      # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
-      if { {} == $parent_comp_file } {
-        set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
-        #puts extracted_file_no_pc=$extracted_file
+  # delete pre-compiled static files from ip_user_files
+  foreach static_file $l_static_files_to_delete {
+    set repo_file [file normalize $static_file]
+    if { [file exists $repo_file] } {
+      if { [catch {file delete -force $repo_file} _error] } {
+        send_msg_id export_ip_user_files-Tcl-003 INFO "Failed to remove static simulation file (${repo_file}): $_error\n"
       } else {
-        # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
-        set parent_ip_name [file root [file tail $parent_comp_file]]
-        set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
-        #puts src_ip_file=$src_ip_file
-	
-        # get the source ip file dir
-        set src_ip_file_dir [file dirname $src_ip_file]
-
-        # strip the ip_output_dir path from source ip file and prepend static dir 
-        set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
-        set target_extract_dir [file normalize [file join $a_vars(ipstatic_dir) $lib_dir]]
-        #puts target_extract_dir=$target_extract_dir
-	
-        set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
-        #puts extracted_file_with_pc=$extracted_file
+        #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted static file:$repo_file\n"
       }
     }
   }
@@ -477,6 +481,55 @@ proc xif_export_ip { obj } {
   xif_export_mem_init_files_for_ip $obj
 
   return 0
+}
+
+proc xif_get_extracted_static_file_path { src_ip_file } { 
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+
+  set ipstatic_file_path {}
+
+  # get the parent composite file for this static file
+  set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$src_ip_file"]] 0]]
+
+  # calculate destination path
+  set ipstatic_file_path [xcs_find_ipstatic_file_path $src_ip_file $parent_comp_file $a_vars(ipstatic_dir)]
+
+  # skip if file exists
+  if { ({} != $ipstatic_file_path) && ([file exists $ipstatic_file_path]) } {
+    return $ipstatic_file_path
+  }
+
+  # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be 
+  # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
+  if { {} == $parent_comp_file } {
+    set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
+    #puts extracted_file_no_pc=$extracted_file
+    set ipstatic_file_path $extracted_file
+  } else {
+    # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
+    set parent_ip_name [file root [file tail $parent_comp_file]]
+    set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
+    #puts src_ip_file=$src_ip_file
+	
+    # get the source ip file dir
+    set src_ip_file_dir [file dirname $src_ip_file]
+
+    # strip the ip_output_dir path from source ip file and prepend static dir 
+    set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+    set target_extract_dir [file normalize [file join $a_vars(ipstatic_dir) $lib_dir]]
+    #puts target_extract_dir=$target_extract_dir
+	
+    set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
+    #puts extracted_file_with_pc=$extracted_file
+
+    set ipstatic_file_path $extracted_file
+  }
+
+  return $ipstatic_file_path
 }
 
 proc xif_delete_ip_inst_dir { dir ip_name } {
