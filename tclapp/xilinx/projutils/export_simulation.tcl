@@ -58,7 +58,7 @@ proc export_simulation {args} {
     switch -regexp -- $option {
       "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
       "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)        [lindex $args $i]                                                         }
-      "-default_library"          { incr i;set a_sim_vars(default_lib)           [lindex $args $i]                                                         }
+      "-default_library"          { incr i;set a_sim_vars(default_lib)           [lindex $args $i];set a_sim_vars(b_default_lib_specified)               1 }
       "-of_objects"               { incr i;set a_sim_vars(sp_of_objects)         [lindex $args $i];set a_sim_vars(b_of_objects_specified)                1 }
       "-ip_user_files_dir"        { incr i;set a_sim_vars(s_ip_user_files_dir)   [lindex $args $i];set a_sim_vars(b_ip_user_files_dir_specified)         1 }
       "-ipstatic_source_dir"      { incr i;set a_sim_vars(s_ipstatic_source_dir) [lindex $args $i];set a_sim_vars(b_ipstatic_source_dir_specified)       1 }
@@ -156,6 +156,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_generic_specified) 0
   set a_sim_vars(b_include_specified) 0
   set a_sim_vars(b_xpm_specified) 0
+  set a_sim_vars(b_default_lib_specified) 0
   set a_sim_vars(ip_filename)         ""
   set a_sim_vars(s_ip_file_extn)      ".xci"
   set a_sim_vars(b_extract_ip_sim_files) 0
@@ -1060,10 +1061,15 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   # is dynamic?
   if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
     set file_extn [file extension $ip_file]
+    set b_found_in_repo 0
+    set repo_src_file {}
     if { [xps_cache_result {xcs_is_core_container ${ip_name}${file_extn}}] } {
-      set dst_cip_file [xcs_get_dynamic_sim_file_core_container $full_src_file_path $a_sim_vars(s_ip_user_files_dir)]
+      set dst_cip_file [xcs_get_dynamic_sim_file_core_container $full_src_file_path $a_sim_vars(s_ip_user_files_dir) b_found_in_repo repo_src_file]
     } else {
-      set dst_cip_file [xcs_get_dynamic_sim_file_core_classic $full_src_file_path $a_sim_vars(s_ip_user_files_dir)]
+      set dst_cip_file [xcs_get_dynamic_sim_file_core_classic $full_src_file_path $a_sim_vars(s_ip_user_files_dir) b_found_in_repo repo_src_file]
+    }
+    if { !$b_found_in_repo } {
+      send_msg_id exportsim-Tcl-024 WARNING "Expected IP user file does not exist:'$repo_src_file'!, using from default location:'$full_src_file_path'"
     }
   }
 
@@ -1664,7 +1670,12 @@ proc xps_write_script { simulator dir filename } {
   if { [xps_check_script $dir $filename] } {
     return 1
   }
-  
+
+  # set user specified default lib 
+  if { ($a_sim_vars(b_default_lib_specified)) && ($a_sim_vars(default_lib) != "xil_defaultlib") } {
+    set_property default_lib $a_sim_vars(default_lib) [current_project]
+  }
+
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
   
   xps_write_simulation_script $simulator $dir
@@ -2341,7 +2352,7 @@ proc xps_write_compile_order { simulator fh launch_dir srcs_dir } {
     if { $a_sim_vars(b_single_step) } { 
       switch -regexp -- $simulator {
         "ies" {
-          puts $fh "-makelib ies/xil_defaultlib \\"
+          puts $fh "-makelib ies/$a_sim_vars(default_lib) \\"
           puts $fh "  glbl.v"
           puts $fh "-endlib"
         }
@@ -2881,7 +2892,7 @@ proc xps_get_top_library { } {
     return $co_top_library
   }
 
-  return "xil_defaultlib"
+  return $a_sim_vars(default_lib)
 }
 
 proc xps_contains_system_verilog {} {
