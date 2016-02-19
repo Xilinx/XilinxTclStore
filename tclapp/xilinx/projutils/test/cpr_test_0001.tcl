@@ -137,6 +137,20 @@ foreach step_property $step_properties {
 set impl_2_copy_1 [ copy_run -verbose impl_2 -name impl_2_copy_1 ]
 compare_runs [ get_runs impl_2 ] $impl_2_copy_1
 
+close_project
+
+
+puts " = Check RTL projects work for copying impl runs (i.e. without a parent)"
+
+create_project -dir [ file join $result_dir tp_gatelvl ] tp_gatelvl
+set_property design_mode GateLvl [current_fileset]
+set impl_1_gatelvl [ copy_run -verbose impl_1 -name impl_1_gatelvl ]
+set parent_is_now [ get_property PARENT $impl_1_gatelvl ]
+if { "${parent_is_now}" != "" } {
+  error "The parent of run impl_1 was not empty!! It should be empty, this is an gate-level project, it was set to '${parent_is_now}'."
+}
+
+
 
 # cleanup if we didn't error
 file delete -force $result_dir

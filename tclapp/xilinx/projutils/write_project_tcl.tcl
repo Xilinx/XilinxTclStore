@@ -398,6 +398,16 @@ proc wr_create_project { proj_dir name } {
   lappend l_script_data ""
   lappend l_script_data "# Set the directory path for the new project"
   lappend l_script_data "set proj_dir \[get_property directory \[current_project\]\]"
+
+  lappend l_script_data ""
+  lappend l_script_data "# Reconstruct message rules"
+
+  set msg_control_rules [ debug::get_msg_control_rules -as_tcl ]
+  if { [string length $msg_control_rules] > 0 } {
+    lappend l_script_data "${msg_control_rules}"
+  } else {
+    lappend l_script_data "# None"
+  }
   lappend l_script_data ""
 }
 
