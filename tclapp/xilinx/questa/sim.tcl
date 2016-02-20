@@ -873,7 +873,7 @@ proc usf_questa_get_simulation_cmdline {} {
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   set tool "vsim"
-  set arg_list [list "$tool" "-t 1ps"]
+  set arg_list [list "$tool"]
 
   set more_sim_options [string trim [get_property "QUESTA.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {

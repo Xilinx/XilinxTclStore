@@ -786,19 +786,24 @@ proc usf_create_do_file { simulator do_filename } {
       puts $fh_do "power $uut"
       puts $fh_do "power -enable"
     }
-    puts $fh_do "add_wave /$top/*"
-    #puts $fh_do "dump -add * -depth 0"
+
+    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
+      # no op in batch mode
+    } else {
+      puts $fh_do "add_wave /$top/*"
+      #puts $fh_do "dump -add * -depth 0"
+    }
 
     set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]
     if { {} == $rt } {
       # no runtime specified
-      puts $fh_do "\nrun"
+      puts $fh_do "run"
     } else {
       set rt_value [string tolower $rt]
       if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-        puts $fh_do "\nrun"
+        puts $fh_do "run"
       } else {
-        puts $fh_do "\nrun $rt"
+        puts $fh_do "run $rt"
       }
     }
 
@@ -817,11 +822,9 @@ proc usf_create_do_file { simulator do_filename } {
     set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
     ::tclapp::xilinx::vcs::usf_find_files tcl_src_files $filter
     if {[llength $tcl_src_files] > 0} {
-      puts $fh_do ""
       foreach file $tcl_src_files {
         puts $fh_do "source \{$file\}"
       }
-      puts $fh_do ""
     }
 
     if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {

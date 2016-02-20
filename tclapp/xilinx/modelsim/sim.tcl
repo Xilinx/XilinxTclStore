@@ -868,7 +868,7 @@ proc usf_modelsim_get_simulation_cmdline {} {
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   set tool "vsim"
-  set arg_list [list "$tool" "-t 1ps"]
+  set arg_list [list "$tool"]
 
   set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
@@ -911,7 +911,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   set tool "vsim"
-  set arg_list [list "-voptargs=\"+acc\"" "-t 1ps"]
+  set arg_list [list "-voptargs=\"+acc\""]
 
   set path_delay 0
   set int_delay 0

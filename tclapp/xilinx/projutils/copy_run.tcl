@@ -60,7 +60,7 @@ proc copy_run args {
 
   # business logic
   if { [ llength $runs_specified ] != 1 } {
-    send_msg_id Vivado-projutils-402 ERROR "Expected one run received [ llength $m_cpr_options(run_to_copy) ] ('[ join $m_cpr_options(run_to_copy) ',\ ' ]'), type 'copy_run -help' for usage info.\n"
+    send_msg_id Vivado-projutils-402 ERROR "Expected one run, received [ llength $m_cpr_options(run_to_copy) ]: '[ join $m_cpr_options(run_to_copy) ',\ ' ]', type 'copy_run -help' for usage info.\n"
     return 1
   }
   if { [ string length $m_cpr_options(name) ] == 0} {
@@ -169,10 +169,14 @@ proc copy_run_ {} {
   } 
   
   if { [ get_property IS_IMPLEMENTATION $m_cpr_options(run_to_copy) ] } {
-    lappend create_run_cmd "-parent_run"
     if { $m_cpr_options(parent_run) == {} } {
-      lappend create_run_cmd [ get_property PARENT $m_cpr_options(run_to_copy) ]
+      set impl_parent [ get_property PARENT $m_cpr_options(run_to_copy) ]
+      if { [ string length $impl_parent ] != 0 } {
+        lappend create_run_cmd "-parent_run"
+        lappend create_run_cmd $impl_parent
+      }
     } else {
+      lappend create_run_cmd "-parent_run"
       lappend create_run_cmd $m_cpr_options(parent_run) 
     }
   }

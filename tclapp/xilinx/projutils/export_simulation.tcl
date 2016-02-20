@@ -111,6 +111,8 @@ proc export_simulation {args} {
     set a_sim_vars(s_ipstatic_source_dir) [file normalize $a_sim_vars(s_ipstatic_source_dir)]
   }
 
+  xps_set_webtalk_data
+
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
     if { [xps_xport_simulation $objs] } {
@@ -276,6 +278,21 @@ proc xps_set_target_simulator {} {
 
   if { ([llength $l_target_simulator] == 1) && ({xsim} == [lindex $l_target_simulator 0]) } {
     set a_sim_vars(b_xsim_specified) 1
+  }
+}
+
+proc xps_set_webtalk_data {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_target_simulator
+  set proj_obj [current_project]
+  foreach simulator $l_target_simulator {
+    set prop "webtalk.${simulator}_export_sim" 
+    set curr_val [get_property $prop $proj_obj]
+    incr curr_val
+    [catch {set_property $prop $curr_val $proj_obj} err]
   }
 }
 

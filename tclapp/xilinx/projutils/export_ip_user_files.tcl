@@ -327,8 +327,9 @@ proc xif_export_ip { obj } {
         if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
           set library [get_property library $file_obj]
           if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
-            set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
-            lappend l_static_files_to_delete $extracted_static_file_path
+            # This is causing performance issues (in case the file was present in ipstatic dir from previous run)
+            #set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
+            #lappend l_static_files_to_delete $extracted_static_file_path
             continue
           }
         }
@@ -352,6 +353,10 @@ proc xif_export_ip { obj } {
         #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted static file:$repo_file\n"
       }
     }
+  }
+
+  if { $a_vars(b_use_static_lib) } {
+    xif_delete_empty_dirs $a_vars(ipstatic_dir)
   }
 
   # set ip instance dir <ip_user_files>/ip/<ip_instance>
@@ -601,80 +606,86 @@ proc xif_export_bd { obj } {
 
   variable a_vars
   variable l_valid_data_file_extns
+  variable l_compiled_libraries
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
   set bd_file [get_files -quiet ${ip_name}.bd]
 
+  set l_static_files_to_delete [list]
   #
   # static files
   #
   set l_static_files [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*ipstatic*"}]
-  if { $a_vars(b_use_static_lib) } {
-    # cleanup and do not export static files for pre-compiled lib
-    foreach file [glob -nocomplain -directory $a_vars(ipstatic_dir) *] {
-      [catch {file delete -force $file} error_msg]
-    }
-    [catch {file delete -force $a_vars(ipstatic_dir)} error_msg]
-  } else {
-    #
-    # static files
-    #
-    foreach src_ip_file $l_static_files {
-      set src_ip_file [string map {\\ /} $src_ip_file]
-      # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
-      #puts src_ip_file=$src_ip_file
-  
-      set comps [lrange [split $src_ip_file "/"] 0 end]
-      set to_match "xilinx.com"
-      set index 0
-      set b_found [xcs_find_comp comps index $to_match]
-      if { !$b_found } {
-        set to_match "user_company"
-        set b_found [xcs_find_comp comps index $to_match]
-      }
-      if { !$b_found } {
+  foreach src_ip_file $l_static_files {
+    set filename [file tail $src_ip_file]
+    set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+    if { {} == $file_obj } { continue; }
+    if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
+      if { [get_property {IS_USER_DISABLED} $file_obj] } {
         continue;
       }
+    }
+
+    set src_ip_file [string map {\\ /} $src_ip_file]
+    # /ipshared/xilinx.com/xbip_utils_v3_0/4f162624/hdl/xbip_utils_v3_0_vh_rfs.vhd 
+    #puts src_ip_file=$src_ip_file
   
-      set file_path_str [join [lrange $comps 0 $index] "/"]
-      set ip_lib_dir "$file_path_str"
-      # /demo/ipshared/xilinx.com/xbip_utils_v3_0
-      #puts ip_lib_dir=$ip_lib_dir
-      set ip_lib_dir_name [file tail $ip_lib_dir]
-   
-      # create target library dir
-      set target_ip_lib_dir [file join $a_vars(ipstatic_dir) $ip_lib_dir_name]
-      if { ![file exists $target_ip_lib_dir] } {
-        if {[catch {file mkdir $target_ip_lib_dir} error_msg] } {
-          send_msg_id export_ip_user_files-Tcl-012 ERROR "Failed to create the directory ($target_ip_lib_dir): $error_msg\n"
-          continue
+    set comps [lrange [split $src_ip_file "/"] 0 end]
+    set to_match "xilinx.com"
+    set index 0
+    set b_found [xcs_find_comp comps index $to_match]
+    if { !$b_found } {
+      set to_match "user_company"
+      set b_found [xcs_find_comp comps index $to_match]
+    }
+    if { !$b_found } {
+      continue;
+    }
+
+    set extracted_static_file_path {}
+
+    if { $a_vars(b_use_static_lib) } {
+      set file_type {}
+      if { [lsearch -exact [list_property $file_obj] {FILE_TYPE}] != -1 } {
+        set file_type [get_property file_type $file_obj]
+      }
+      if { ({Verilog Header} == $file_type) || ({Verilog/SystemVerilog Header} == $file_type) } {
+        # consider verilog header files always for pre-compile flow
+      } else {
+        # is compiled library available from clibs? continue, else extract to ip_user_files dir
+        if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+          set library [get_property library $file_obj]
+          if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
+            # This is causing performance issues (in case the file was present in ipstatic dir from previous run)
+            #set extracted_static_file_path [xif_get_extracted_static_file_path_bd $comps $index]
+            #lappend l_static_files_to_delete $extracted_static_file_path
+            continue
+          }
         }
       }
-      # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0
-      #puts target_ip_lib_dir=$target_ip_lib_dir
-  
-      # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
-      set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
-      set ip_hdl_dir "$ip_hdl_dir"
-      # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
-      #puts ip_hdl_dir=$ip_hdl_dir
-      incr index
-  
-      set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
-      # /hdl/xbip_utils_v3_0_vh_rfs.vhd
-      #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
-  
-      set dst_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
-      # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
-      #puts dst_file=$dst_file
-  
-      if { [file exists $dst_file] } {
-        # skip  
-      } else { 
-        xif_copy_files_recursive $ip_hdl_dir $target_ip_lib_dir
+    }
+
+    # not extracted yet? extract it
+    if { {} == $extracted_static_file_path } {
+      set extracted_static_file_path [xif_get_extracted_static_file_path_bd $comps $index]
+    }
+  }
+
+  # delete pre-compiled static files from ip_user_files
+  foreach static_file $l_static_files_to_delete {
+    set repo_file [file normalize $static_file]
+    if { [file exists $repo_file] } {
+      if { [catch {file delete -force $repo_file} _error] } {
+        send_msg_id export_ip_user_files-Tcl-003 INFO "Failed to remove static simulation file (${repo_file}): $_error\n"
+      } else {
+        #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted static file:$repo_file\n"
       }
     }
+  }
+
+  if { $a_vars(b_use_static_lib) } {
+    xif_delete_empty_dirs $a_vars(ipstatic_dir)
   }
 
   # set bd instance dir <ip_user_files>/bd/<ip_instance>
@@ -751,6 +762,112 @@ proc xif_export_bd { obj } {
   xif_export_mem_init_files_for_bd $obj
 
   return 0
+}
+
+proc xif_get_extracted_static_file_path_bd { comps index } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+
+  set file_path_str [join [lrange $comps 0 $index] "/"]
+  set ip_lib_dir "$file_path_str"
+
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0
+  puts ip_lib_dir=$ip_lib_dir
+  set ip_lib_dir_name [file tail $ip_lib_dir]
+   
+  # create target library dir
+  set target_ip_lib_dir [file join $a_vars(ipstatic_dir) $ip_lib_dir_name]
+  if { ![file exists $target_ip_lib_dir] } {
+    if {[catch {file mkdir $target_ip_lib_dir} error_msg] } {
+      send_msg_id export_ip_user_files-Tcl-012 ERROR "Failed to create the directory ($target_ip_lib_dir): $error_msg\n"
+      continue
+    }
+  }
+  # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0
+  #puts target_ip_lib_dir=$target_ip_lib_dir
+
+  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
+  set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
+  set ip_hdl_dir "$ip_hdl_dir"
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
+  #puts ip_hdl_dir=$ip_hdl_dir
+  incr index
+
+  set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
+  # /hdl/xbip_utils_v3_0_vh_rfs.vhd
+  #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
+
+  set dst_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
+  # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
+  #puts dst_file=$dst_file
+
+  if { [file exists $dst_file] } {
+    # skip  
+  } else { 
+    xif_copy_files_recursive $ip_hdl_dir $target_ip_lib_dir
+  }
+  return $dst_file
+}
+
+proc xif_delete_empty_dirs { root_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set dir_files [glob -nocomplain -directory $root_dir *]
+  if { [llength $dir_files] == 0 } {
+    [catch {file delete -force $root_dir} error_msg]
+    return
+  }
+
+  set b_empty true
+  # find and delete empty dirs
+  foreach dir $dir_files {
+    if { [xif_is_empty_dir $dir] } {
+      if { [catch {file delete -force $dir} _error] } {
+        send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove dirrectory:($dir): $_error\n"
+      }
+    } else {
+      if { $b_empty } {
+        set b_empty false
+      }
+    }
+  }
+
+  if { $b_empty } {
+    # just in case something is present, cleanup
+    foreach file [glob -nocomplain -directory $root_dir *] {
+      [catch {file delete -force $file} error_msg]
+    }
+    [catch {file delete -force $root_dir} error_msg]
+  }
+}
+
+proc xif_is_empty_dir { dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { [file isdirectory $dir] } {
+    set files [glob -nocomplain -directory $dir *]
+
+    # any files in this dir?
+    if { [llength $files] == 0 } {
+      return true
+    }
+
+    foreach file $files {
+      if { [file isdirectory $file] } {
+        return [xif_is_empty_dir $file]
+      } else {
+        return false
+      }
+    }
+  }
+  return true 
 }
 
 proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_dir_arg target_ip_lib_dir_arg } {
