@@ -69,5 +69,6 @@ set auto_index(::tclapp::icl::protoip::make_template::soc_make_FPGAserver_h) [li
 set auto_index(::tclapp::icl::protoip::make_template::make_foo_function_wrapped) [list source [file join $dir make_template.tcl]]
 set auto_index(::tclapp::icl::protoip::make_template::make_soc_user) [list source [file join $dir make_template.tcl]]
 set auto_index(::tclapp::icl::protoip::make_template::make_build_soc_sdk_project_tcl) [list source [file join $dir make_template.tcl]]
+set auto_index(::tclapp::icl::protoip::make_template::make_soc_FPGAclientAPI_h) [list source [file join $dir make_template.tcl]]
 set auto_index(::tclapp::icl::protoip::soc_prototype_load) [list source [file join $dir soc_prototype_load.tcl]]
 set auto_index(::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load) [list source [file join $dir soc_prototype_load.tcl]]
