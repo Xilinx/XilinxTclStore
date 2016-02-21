@@ -2411,10 +2411,6 @@ proc usf_fetch_ipi_static_file { file } {
   variable a_sim_vars
   set src_ip_file $file
 
-  if { $a_sim_vars(b_use_static_lib) } {
-    return $src_ip_file
-  }
-
   set comps [lrange [split $src_ip_file "/"] 0 end]
   set to_match "xilinx.com"
   set index 0

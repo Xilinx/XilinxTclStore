@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add wave for batch flow only</revision_history>
+      <revision_history>fetch IPI static files for old IP definitions</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
