@@ -1,3 +1,4 @@
+2.92 fetch IPI static files for old IP definitions
 2.91 removed timescale switch for vsim
 2.90 export and compile static files for the older IP libraries
 2.89 print warning if file not found from repo
