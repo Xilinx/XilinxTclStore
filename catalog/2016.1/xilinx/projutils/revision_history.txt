@@ -1,3 +1,4 @@
+3.141 print warning for missing library and xil_defaultlib
 3.140 improved copy_run to also support gate-level implementation runs
 3.139 extract static file is not extracted for compiled lib flow
 3.138 export and compile static files for the older IP libraries
