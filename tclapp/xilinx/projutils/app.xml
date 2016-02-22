@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>print warning for missing library and xil_defaultlib</revision_history>
+      <revision_history>print ip def name for missing library</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
