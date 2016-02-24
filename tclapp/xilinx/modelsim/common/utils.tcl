@@ -901,8 +901,9 @@ proc xcs_get_compiled_libraries {} {
     
     set tokens [split $line {,}]
     set library [lindex $tokens 0]
-
-    lappend l_libs $library
+    if { [lsearch -exact $l_libs $library] == -1] } {
+      lappend l_libs $library
+    }
   }
   return $l_libs
 }

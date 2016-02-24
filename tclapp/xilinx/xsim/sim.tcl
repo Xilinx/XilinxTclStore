@@ -393,6 +393,13 @@ proc usf_xsim_verify_compiled_lib {} {
   } else {
     # 5. copy to run dir
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
+    if { $a_sim_vars(b_use_static_lib) } {
+      # check from build area
+      set ini_ip_file [file join $lib_path "ip" "xsim_ip.ini"]
+      if { [file exists $ini_ip_file] } {
+        set ini_file_path $ini_ip_file
+      }
+    }
     if { [file exists $ini_file_path] } {
       if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)} error_msg] } {
         send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
