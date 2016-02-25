@@ -1,3 +1,4 @@
+1.85 fixed tcl syntax error while fetching libraries
 1.84 check for null file object before checking for used in property
 1.83 fetch IPI static files for old IP definitions
 1.82 removed timescale switch for vsim

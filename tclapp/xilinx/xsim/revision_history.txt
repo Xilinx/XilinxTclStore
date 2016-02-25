@@ -1,3 +1,4 @@
+2.94 fixed tcl syntax error while fetching libraries
 2.93 check for null file object before checking for used in property
 2.92 fetch IPI static files for old IP definitions
 2.91 localize undefined IP libraries in xsim initialization file
