@@ -392,20 +392,31 @@ proc usf_xsim_verify_compiled_lib {} {
     }
   } else {
     # 5. copy to run dir
+    set b_copy_default_ini_file true
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
     if { $a_sim_vars(b_use_static_lib) } {
       # check from build area
-      set ini_ip_file [file join $lib_path "ip" "xsim_ip.ini"]
+      set ini_ip_file [file join $compiled_lib_dir "ip" "xsim_ip.ini"]
       if { [file exists $ini_ip_file] } {
-        set ini_file_path $ini_ip_file
+        set target_ini_file [file join $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) "xsim.ini"]
+        if {[catch {file copy -force $ini_ip_file $target_ini_file} error_msg] } {
+          send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_ip_file): $error_msg\n"
+        } else {
+          send_msg_id USF-XSim-011 INFO "File '$ini_ip_file' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
+          set b_copy_default_ini_file false
+          #usf_process_data_dir_env $compiled_lib_dir 
+        }
       }
     }
-    if { [file exists $ini_file_path] } {
-      if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)} error_msg] } {
-        send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
-      } else {
-        send_msg_id USF-XSim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
-        #usf_process_data_dir_env $compiled_lib_dir 
+
+    if { $b_copy_default_ini_file } {
+      if { [file exists $ini_file_path] } {
+        if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)} error_msg] } {
+          send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
+        } else {
+          send_msg_id USF-XSim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
+          #usf_process_data_dir_env $compiled_lib_dir 
+        }
       }
     }
   }

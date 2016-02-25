@@ -775,7 +775,7 @@ proc xif_get_extracted_static_file_path_bd { comps index } {
   set ip_lib_dir "$file_path_str"
 
   # /demo/ipshared/xilinx.com/xbip_utils_v3_0
-  puts ip_lib_dir=$ip_lib_dir
+  #puts ip_lib_dir=$ip_lib_dir
   set ip_lib_dir_name [file tail $ip_lib_dir]
    
   # create target library dir
@@ -804,11 +804,8 @@ proc xif_get_extracted_static_file_path_bd { comps index } {
   # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
   #puts dst_file=$dst_file
 
-  if { [file exists $dst_file] } {
-    # skip  
-  } else { 
-    xif_copy_files_recursive $ip_hdl_dir $target_ip_lib_dir
-  }
+  xif_copy_bd_static_files_recursive $ip_hdl_dir $target_ip_lib_dir
+
   return $dst_file
 }
 
@@ -925,11 +922,12 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   return [set a_cache_get_dynamic_sim_file_bd($s_hash) $repo_file]
 }
 
-proc xif_copy_files_recursive { src dst } {
+proc xif_copy_bd_static_files_recursive { src dst } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  variable a_vars
   if { [file isdirectory $src] } {
     set files [glob -nocomplain -directory $src *]
     foreach file $files {
@@ -941,7 +939,7 @@ proc xif_copy_files_recursive { src dst } {
             send_msg_id export_ip_user_files-Tcl-015 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
           }
         }
-        xif_copy_files_recursive $file $dst_dir
+        xif_copy_bd_static_files_recursive $file $dst_dir
       } else {
         set filename [file tail $file]
         set dst_file [file join $dst $filename]
@@ -950,14 +948,15 @@ proc xif_copy_files_recursive { src dst } {
             send_msg_id export_ip_user_files-Tcl-016 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
           }
         }
-        if { ![file exist $dst_file] } {
-          if { [xif_filter $file] } {
-            # filter these files
-          } else {
+
+        if { [xif_filter $file] } {
+          # filter these files
+        } else {
+          if { (![file exist $dst_file]) || $a_vars(b_force) } {
             if {[catch {file copy -force $file $dst} error_msg] } {
               send_msg_id export_ip_user_files-Tcl-017 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
             } else {
-              #send_msg_id export_ip_user_files-Tcl-018 STATUS " + Exported file (dynamic):'$dst'\n"
+              #send_msg_id export_ip_user_files-Tcl-018 STATUS " + Exported file:'$dst_file'\n"
             }
           }
         }
@@ -969,11 +968,11 @@ proc xif_copy_files_recursive { src dst } {
     if { [xif_filter $src] } {
       # filter these files
     } else {
-      if { ![file exist $dst_file] } {
+      if { (![file exist $dst_file]) || $a_vars(b_force) } {
         if {[catch {file copy -force $src $dst} error_msg] } {
-          #send_msg_id export_ip_user_files-Tcl-019 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
+          send_msg_id export_ip_user_files-Tcl-019 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
         } else {
-        #send_msg_id export_ip_user_files-Tcl-020 STATUS " + Exported file (dynamic):'$dst'\n"
+          #send_msg_id export_ip_user_files-Tcl-020 STATUS " + Exported file:'$dst_file'\n"
         }
       }
     }

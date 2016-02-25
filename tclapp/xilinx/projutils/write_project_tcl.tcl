@@ -239,7 +239,7 @@ proc write_project_tcl_script {} {
   }
 
   # writer helpers
-  wr_create_project $proj_dir $proj_name
+  wr_create_project $proj_dir $proj_name $part_name
   wr_project_properties $proj_dir $proj_name
   wr_filesets $proj_dir $proj_name
   wr_runs $proj_dir $proj_name
@@ -293,7 +293,7 @@ proc write_project_tcl_script {} {
   return 0
 }
 
-proc wr_create_project { proj_dir name } {
+proc wr_create_project { proj_dir name part_name } {
   # Summary: write create project command 
   # This helper command is used to script help.
   # Argument Usage: 
@@ -374,15 +374,15 @@ proc wr_create_project { proj_dir name } {
   # set target project directory path if specified. If not, create project dir in current dir.
   set target_dir $a_global_vars(s_target_proj_dir)
   if { {} == $target_dir } {
-    set tcl_cmd "create_project $name ./$name"
+    set tcl_cmd "create_project $name ./$name -part $part_name"
   } else {
     # is specified target proj dir == current dir? 
     set cwd [file normalize [string map {\\ /} [pwd]]]
     set dir [file normalize [string map {\\ /} $target_dir]]
     if { [string equal $cwd $dir] } {
-      set tcl_cmd "create_project $name"
+      set tcl_cmd "create_project $name -part $part_name"
     } else {
-      set tcl_cmd "create_project $name \"$target_dir\""
+      set tcl_cmd "create_project $name \"$target_dir\" -part $part_name"
     }
   }
       
@@ -1858,7 +1858,7 @@ proc is_ip_fileset { fileset } {
     return false
   }
 
-  set ip_filter "FILE_TYPE == \"IP\""
+  set ip_filter "FILE_TYPE == \"IP\" || FILE_TYPE==\"Block Designs\""
   set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
   set b_found false
   foreach ip $ips {
