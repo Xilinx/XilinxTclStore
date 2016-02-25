@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>tk_tunnel: Close cmd when tclsh exits</revision_history>
+      <name>tk_tunnel</name>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>The Tk_tunnel app can be used to launch a Tcl/Tk 8.5 server outside of Vivado using a standalone Tcl shell, and pass commands from Vivado console to the Tk shell. One of the benefits of this app is to provide a bridge for simple Tk-based GUI.</summary>
+      <display>Tk Tunnel</display>
+      <procs>
+        <proc>
+          <name>accept_connection</name>
+          <summary>This proc is the callback function when the server receives a connection request &#10;Tk / Server command</summary>
+        </proc>
+        <proc>
+          <name>ask</name>
+          <summary>Opens a simple yes/no dialog</summary>
+        </proc>
+        <proc>
+          <name>ask_or_cancel</name>
+          <summary>Opens a simple yes/no/cancel dialog</summary>
+        </proc>
+        <proc>
+          <name>broadcast</name>
+          <summary>This command broadcasts a command / response to all clients from the server &#10;Tk / Server command</summary>
+        </proc>
+        <proc>
+          <name>choose_color</name>
+          <summary>Opens a simple &apos;Choose Color&apos; dialog</summary>
+        </proc>
+        <proc>
+          <name>choose_dir</name>
+          <summary>Opens a simple &apos;Choose Directory&apos; dialog</summary>
+        </proc>
+        <proc>
+          <name>connect_to_server</name>
+          <summary>This proc is called to connect a client to a server, it will wait until it is connected &#10;Tk / Client command</summary>
+        </proc>
+        <proc>
+          <name>exec_push_return</name>
+          <summary>Executes a command locally and broadcasts the return to the client (called by rexec_wait) &#10;Tk / Server command</summary>
+        </proc>
+        <proc>
+          <name>failed</name>
+          <summary>Opens a simple retry/cancel dialog</summary>
+        </proc>
+        <proc>
+          <name>hide_server_start</name>
+          <summary>Hides the Tk default window manager (opens via `package require Tk`)</summary>
+        </proc>
+        <proc>
+          <name>launch_server</name>
+          <summary>Starts the server that the Tk commands will be sent to (launched from client) &#10;The user can bypass calling this proc and launch the server with a custom command, like: &#10;exec xterm -iconic -e /usr/local/tclsh ./custom_start_server.tcl &amp; &#10;User / Client command</summary>
+        </proc>
+        <proc>
+          <name>msg</name>
+          <summary>Opens a simple info dialog</summary>
+        </proc>
+        <proc>
+          <name>ok</name>
+          <summary>Opens a simple ok/cancel dialog</summary>
+        </proc>
+        <proc>
+          <name>open_file</name>
+          <summary>Opens a simple &apos;Open File&apos; dialog</summary>
+        </proc>
+        <proc>
+          <name>rexec</name>
+          <summary>Executes a command on the Tk server (remote exec) &#10;User / Client command</summary>
+        </proc>
+        <proc>
+          <name>rexec_wait</name>
+          <summary>Executes a command on the Tk server (remote exec), and waits for the response/return &#10;User / Client command</summary>
+        </proc>
+        <proc>
+          <name>save_file</name>
+          <summary>Opens a simple &apos;Save File&apos; dialog</summary>
+        </proc>
+        <proc>
+          <name>socket_event</name>
+          <summary>This proc is called when a socket event occurs &#10;Tk / Client command</summary>
+        </proc>
+        <proc>
+          <name>start_client</name>
+          <summary>Starts the client that will be sending the Tk commands &#10;User / Client command</summary>
+        </proc>
+        <proc>
+          <name>start_server</name>
+          <summary>This command launches the listening service on the server &#10;User / Server command (normally called from the start_server.tcl script)</summary>
+        </proc>
+        <proc>
+          <name>stdin_event</name>
+          <summary>This proc is called when a stdin event occurs &#10;Tk / Server command</summary>
+        </proc>
+        <proc>
+          <name>wait</name>
+          <summary>This proc will wait for a specified time &#10;Tk / Client command</summary>
+        </proc>
+        <proc>
+          <name>wait_for_response</name>
+          <summary>Waits for client_return to be set (called by rexec_wait) &#10;Tk / Client command</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
