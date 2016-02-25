@@ -456,7 +456,7 @@ proc xcs_get_dynamic_sim_file_core_container { src_file dynamic_repo_dir b_found
   # Summary:
   # Argument Usage:
   # Return Value:
-  
+
   upvar $b_found_in_repo_arg b_found_in_repo
   upvar $repo_src_file_arg repo_src_file
 
@@ -901,8 +901,9 @@ proc xcs_get_compiled_libraries {} {
     
     set tokens [split $line {,}]
     set library [lindex $tokens 0]
-
-    lappend l_libs $library
+    if { [lsearch -exact $l_libs $library] == -1] } {
+      lappend l_libs $library
+    }
   }
   return $l_libs
 }

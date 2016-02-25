@@ -1011,9 +1011,14 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
           set type [isl_get_file_type $file_group $ip_file]
           set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
           if { {} == $library } {
-            #send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' (ip_def_name)\n"
+            puts ""
+            send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name,$vlnv)\n"
           }
-          if { {xil_defaultlib} == $library } { continue }
+          if { {xil_defaultlib} == $library } {
+            puts ""
+            send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library incorrectly set to $library for '$ip_file' ($ip_def_name,$vlnv)\n"
+            continue
+          }
           set full_ip_file_path [file normalize [file join $ip_dir $ip_file]]
           if { [lsearch $ip_libs $library] == -1 } {
             lappend ip_libs $library
@@ -1097,9 +1102,14 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
         set type [isl_get_file_type $file_group $ip_file]
         set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
         if { {} == $library } {
-          #send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name)\n"
+          puts ""
+          send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library not defined for '$ip_file' ($ip_def_name,$vlnv)\n"
         }
-        if { {xil_defaultlib} == $library } { continue }
+        if { {xil_defaultlib} == $library } {
+          puts ""
+          send_msg_id setup_ip_static_library-Tcl-022 WARNING "Associated library incorrectly set to '$library' for '$ip_file' ($ip_def_name,$vlnv)\n"
+          continue
+        }
         set full_ip_file_path [file normalize [file join $ip_dir $ip_file]]
         if { [lsearch $ip_libs $library] == -1 } {
           lappend ip_libs $library

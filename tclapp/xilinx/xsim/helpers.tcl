@@ -1967,7 +1967,10 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file $l_compile_order_files]
   #puts ful_file=$full_src_file_path
-  set full_src_file_obj [lindex [get_files -all [list "$full_src_file_path"]] 0]
+  set full_src_file_obj [lindex [get_files -quiet -all [list "$full_src_file_path"]] 0]
+  if { {} == $full_src_file_obj } {
+    return $orig_src_file
+  }
   #puts ip_name=$ip_name
 
   set dst_cip_file $full_src_file_path
