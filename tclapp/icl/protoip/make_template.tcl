@@ -7713,7 +7713,7 @@ foreach i $soc_output_vectors {
 	append tmp_line "									break;"
 	puts $file $tmp_line
 	set tmp_line ""
-	append tmp_line "								outvec\[i\]=*(Xint32*)&soc_$i\_out\[i+(ETH_PACKET_LENGTH-2)*packet_internal_ID_offset\];"
+	append tmp_line "								outvec\[i\]=*(Xint32*)&soc_$i\_out\[i+(ETH_PACKET_LENGTH_RECV-2)*packet_internal_ID_offset\];"
 	puts $file $tmp_line
 	set tmp_line ""
 	append tmp_line "							\}"

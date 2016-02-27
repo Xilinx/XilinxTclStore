@@ -334,9 +334,9 @@ if {$error==0} {
 			[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
 			
 			# update ip_design/src/FPGAclientAPI.h file
-			#::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h  $project_name]
-			#[::tclapp::icl::protoip::make_template::soc_make_echo_c $project_name]
-			#[::tclapp::icl::protoip::make_template::soc_make_FPGAserver_h $project_name]
+			[::tclapp::icl::protoip::make_template::make_soc_FPGAclientAPI_h $project_name]
+			[::tclapp::icl::protoip::make_template::soc_make_echo_c $project_name]
+			[::tclapp::icl::protoip::make_template::soc_make_FPGAserver_h $project_name]
 		
 			set target_dir ""
 			append target_dir "soc_prototype/test/prj/" $project_name "." $board_name
