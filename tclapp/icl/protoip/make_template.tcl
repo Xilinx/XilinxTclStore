@@ -5888,6 +5888,7 @@ set file [open  .metadata/run_fpga_prototype.tcl w]
 puts $file ""
 
 puts $file "connect arm hw"
+puts $file "rst"
 puts $file "source workspace1/design_1_wrapper_hw_platform_1/ps7_init.tcl"
 puts $file "ps7_init"
 puts $file "fpga -f workspace1/design_1_wrapper_hw_platform_1/design_1_wrapper.bit"
@@ -8357,7 +8358,6 @@ foreach i $input_vectors {
 	puts $file $tmp_line
 	incr m
 }
-puts $file ""
 set m 0
 foreach i $output_vectors {
 	set tmp_line ""
@@ -8365,6 +8365,16 @@ foreach i $output_vectors {
 	puts $file $tmp_line
 	incr m
 }
+
+#calculate maximum vector lengths for IP interface
+set tmp_line ""
+append tmp_line "#define IP_MAX_IN_VECTOR_LENGTH [lindex [lsort -decreasing $input_vectors_length] 0]"
+puts $file $tmp_line
+set tmp_line ""
+append tmp_line "#define IP_MAX_OUT_VECTOR_LENGTH [lindex [lsort -decreasing $output_vectors_length] 0]"
+puts $file $tmp_line
+
+
 
 puts $file ""
 puts $file "//SOC interface arrays lengths:"
@@ -8503,14 +8513,50 @@ proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
 		set mem_base_address 0
 	}
 	
+	#added by Bulat
+	set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
+	set soc_input_vectors {}
+	set soc_input_vectors_length {}
+		
+	for {set i 0} {$i < $num_soc_input_vectors} {incr i} {
+		lappend soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
+		lappend soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
+	}		
+			
+			
+	set num_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 1 ]]
+	set soc_output_vectors {}
+	set soc_output_vectors_length {}
+			
+	for {set i 0} {$i < $num_soc_output_vectors} {incr i} {
+		lappend soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
+		lappend soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
+	}
+	#end added by Bulat
+	
 	#create foo_function_wrapped.h
 	set file [open soc_prototype/src/foo_function_wrapped.h w]
 	#add license_c header
 	[::tclapp::icl::protoip::make_template::license_c $file]
-
-	puts $file "#define ETH_ to Matlab)"
-	puts $file ""
-	puts $file ""
+	
+	set tmp_line "void foo_start("
+	foreach i $input_vectors {
+		append tmp_line "float "
+		append tmp_line "$i\_in\[\],"
+	}
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line ");"
+	puts $file $tmp_line
+	
+	set tmp_line "void foo_read("
+	foreach i $output_vectors {
+		append tmp_line "float "
+		append tmp_line "$i\_out\[\],"
+	}
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line ");"
+	puts $file $tmp_line
+	
 
 	close $file
 	
@@ -8518,15 +8564,175 @@ proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
 	set file [open soc_prototype/src/foo_function_wrapped.c w]
 	#add license_c header
 	[::tclapp::icl::protoip::make_template::license_c $file]
-
-	puts $file "#define ETH_ to Matlab  frtrr)"
+	
+	
+	#generating code for foo_start function
+	puts $file "#include \"FPGAserver.h\""
+	puts $file "#include \"xfoo.h\""
+	puts $file "#include <stdio.h>"
+	puts $file "#include <math.h>"
 	puts $file ""
+	puts $file "typedef uint32_t           Xint32;"
 	puts $file ""
+	puts $file "XFoo xcore;"
+	puts $file ""
+	
+	set tmp_line "void foo_start("
+	foreach i $input_vectors {
+		append tmp_line "float "
+		append tmp_line "$i\_in\[\],"
+	}
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line ")"
+	puts $file $tmp_line
+	puts $file "\{"
+	puts $file "	int i;"
+	puts $file ""
+	puts $file "	//define input  pointers"
+	
+	foreach i $input_vectors {
+		set tmp_line "	Xint32 *"
+		append tmp_line "$i\_in_ptr_ddr = (Xint32 *)$i\_IN_DEFINED_MEM_ADDRESS;"
+	}
+	puts $file $tmp_line
+	puts $file ""
+	puts $file "	xcore.Bus_a_BaseAddress = 0x43c00000;"
+	puts $file "	xcore.IsReady = XIL_COMPONENT_IS_READY;"
+	puts $file ""
+	
+	#figure out the maximum input vector length
+	
+	puts $file "	int32_t inputvec_fix\[IP_MAX_IN_VECTOR_LENGTH\];"
+	puts $file ""
+	
+	foreach i $input_vectors {
+		set tmp_line "	//write $i\_in to DDR"
+		puts $file $tmp_line
+		set tmp_line "	if (FLOAT_FIX_[string toupper $i]_IN == 1)"
+		puts $file $tmp_line
+		set tmp_line "	{"
+		puts $file $tmp_line
+		set tmp_line "		for(i = 0; i < [string toupper $i]\_IN_VECTOR_LENGTH; i++) // convert fixed point to floating"
+		puts $file $tmp_line
+		set tmp_line "		{"
+		puts $file $tmp_line
+		set tmp_line "			inputvec_fix\[i\] = (int32_t)($i\_in\[i\]*pow(2, [string toupper $i]\_IN_FRACTIONLENGTH));"
+		puts $file $tmp_line
+		set tmp_line "		}"
+		puts $file $tmp_line
+		set tmp_line "		memcpy($i\_in_ptr_ddr, inputvec_fix, [string toupper $i]\_IN_VECTOR_LENGTH*4);"
+		puts $file $tmp_line
+		set tmp_line "	}"
+		puts $file $tmp_line
+		set tmp_line "	else { //floating point"
+		puts $file $tmp_line
+		set tmp_line "		memcpy($i\_in_ptr_ddr, $i\_in, [string toupper $i]\_IN_VECTOR_LENGTH*4);"
+		puts $file $tmp_line
+		set tmp_line "	}"
+		puts $file $tmp_line
+		
+	}
+	
+	set tmp_line ""
+	puts $file $tmp_line
+	
+	foreach i $input_vectors {
+		set tmp_line "	XFoo_Set_byte_"
+		append tmp_line $i
+		append tmp_line "_in_offset(&xcore,"
+		append tmp_line $i
+		append tmp_line "_IN_DEFINED_MEM_ADDRESS);"
+		puts $file $tmp_line
+	}
+	
+	foreach i $output_vectors {
+		set tmp_line "	XFoo_Set_byte_"
+		append tmp_line $i
+		append tmp_line "_out_offset(&xcore,"
+		append tmp_line $i
+		append tmp_line "_OUT_DEFINED_MEM_ADDRESS);"
+		puts $file $tmp_line
+	}
+	
+	set tmp_line ""
+	puts $file $tmp_line
+	
+	set tmp_line "	XFoo_Start(&xcore);"
+	puts $file $tmp_line
+	set tmp_line "	while (XFoo_IsIdle(&xcore)!=1)"
+	puts $file $tmp_line
+	set tmp_line "	\{"
+	puts $file $tmp_line
+	set tmp_line "		if (DEBUG)"
+	puts $file $tmp_line
+	
+	
+	
+	set tmp_line "		printf(\"Wait until the IP has finished ...\\n\");"
+	puts $file $tmp_line
+	set tmp_line "	\}"
+	puts $file $tmp_line
+	
+	
+	set tmp_line ""
+	puts $file $tmp_line
+	
+	set tmp_line "\}"
+	puts $file $tmp_line
+	
+	#generating code for foo_read function
+	set tmp_line "void foo_read("
+	foreach i $output_vectors {
+		append tmp_line "float "
+		append tmp_line "$i\_out\[\],"
+	}			
 
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line ")"
+	puts $file $tmp_line
+	set tmp_line "\{"
+	puts $file $tmp_line
+	puts $file ""
+	puts $file "	int i;"	
+	
+	puts $file "	//define output pointers"
+		foreach i $output_vectors {
+		set tmp_line "	Xint32 *"
+		append tmp_line "$i\_out_ptr_ddr = (Xint32 *)$i\_OUT_DEFINED_MEM_ADDRESS;"
+	}
+	puts $file $tmp_line
+	
+	puts $file ""
+	
+	puts $file "	int32_t outputvec_fix\[IP_MAX_OUT_VECTOR_LENGTH\];"
+	
+	foreach i $output_vectors {
+		set tmp_line "	//read $i\_out from DDR"
+		puts $file $tmp_line
+		set tmp_line "	memcpy(outputvec_fix,$i\_out_ptr_ddr,  [string toupper $i]\_OUT_VECTOR_LENGTH*4);"
+		puts $file $tmp_line
+		set tmp_line "	for(i = 0; i < [string toupper $i]\_OUT_VECTOR_LENGTH; i++)"
+		puts $file $tmp_line
+		puts $file "	\{"
+		set tmp_line "		if (FLOAT_FIX_[string toupper $i]_OUT == 1) \{ //fixed point"
+		puts $file $tmp_line
+		set tmp_line "			$i\_out\[i\] = ((float)outputvec_fix\[i\]/pow(2, [string toupper $i]\_OUT_FRACTIONLENGTH));"
+		puts $file $tmp_line
+		set tmp_line "		\} else \{ //floating point"
+		puts $file $tmp_line
+		set tmp_line "			$i\_out\[i\] = outputvec_fix\[i\];"
+		puts $file $tmp_line
+		set tmp_line "		\}"
+		puts $file $tmp_line
+		set tmp_line "	\}"
+		puts $file $tmp_line
+		set tmp_line "\}"
+		puts $file $tmp_line
+	}
+	
 	close $file
 	
 	return -code ok
-
 }
 
 # ########################################################################################
@@ -8618,7 +8824,7 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	set tmp_line "#include \"FPGAserver.h\""
 	puts $file $tmp_line
 	
-	set tmp_line "//#include \"foo_function_wrapped.h\""
+	set tmp_line "#include \"foo_function_wrapped.h\""
 	puts $file $tmp_line
 	
 	set tmp_line "#include <math.h>"
@@ -8641,6 +8847,52 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	puts $file $tmp_line
 	
 	set tmp_line "\{"
+	puts $file $tmp_line
+	set tmp_line "	// decalre input and output interfaces arrays"
+	puts $file $tmp_line
+	set tmp_line "	float "
+	foreach i $input_vectors {
+	append tmp_line "$i\_in\[[string toupper $i]\_IN_VECTOR_LENGTH\],"
+	}
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line "\;"
+	puts $file $tmp_line
+	
+	set tmp_line "	float "
+	foreach i $output_vectors {
+	append tmp_line "$i\_out\[[string toupper $i]\_OUT_VECTOR_LENGTH\],"
+	}
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line "\;"
+	puts $file $tmp_line
+	
+	
+	
+	set tmp_line "	// code for processing system goes here (1)"
+	puts $file $tmp_line
+	set tmp_line ""
+	puts $file $tmp_line
+	set tmp_line "	// call harware acceleator"
+	puts $file $tmp_line
+	set tmp_line "	foo_start("
+	foreach i $input_vectors {
+	append tmp_line "$i\_in,"
+	}
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line ")\;"
+	puts $file $tmp_line
+	
+	set tmp_line "	foo_read("
+	foreach i $output_vectors {
+	append tmp_line "$i\_out,"
+	}
+	set tmp_line [string trim $tmp_line ","]
+	append tmp_line ")\;"
+	puts $file $tmp_line
+	
+	
+	
+	set tmp_line "	// code for processing system goes here (2)"
 	puts $file $tmp_line
 	
 	set tmp_line "\}"
