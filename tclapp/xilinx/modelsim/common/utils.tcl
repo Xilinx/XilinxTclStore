@@ -57,6 +57,33 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   return $b_verilog_srcs
 }
 
+proc xcs_contains_system_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_system_verilog_srcs 0
+  foreach file $design_files {
+    set type [lindex [split $file {|}] 1]
+    switch $type {
+      {SystemVerilog} {
+        set b_system_verilog_srcs 1
+      }
+    }
+  }
+
+  if { $flow != "NULL" } {
+    if { (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && (!$b_system_verilog_srcs) } {
+      set extn [file extension $s_netlist_file]
+      if { {.sv} == $extn } {
+        set b_system_verilog_srcs 1
+      }
+    }
+  }
+
+  return $b_system_verilog_srcs
+}
+
 proc xcs_contains_vhdl { design_files {flow "NULL"} {s_netlist_file {}} } {
   # Summary:
   # Argument Usage:

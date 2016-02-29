@@ -16,6 +16,7 @@ namespace eval ::tclapp::xilinx::projutils {
 proc export_simulation {args} {
   # Summary:
   # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
+
   # Argument Usage:
   # [-simulator <arg> = all]: Simulator for which the simulation script will be created (value=all|xsim|modelsim|questa|ies|vcs|riviera|activehdl)
   # [-of_objects <arg> = None]: Export simulation script for the specified object
@@ -28,9 +29,9 @@ proc export_simulation {args} {
   # [-define <arg> = Empty]: Read verilog defines from the list specified with this switch
   # [-generic <arg> = Empty]: Read vhdl generics from the list specified with this switch
   # [-include <arg> = Empty]: Read include directory paths from the list specified with this switch
-  # [-default_library <arg> = xil_defaultlib]: Set the specified default library
   # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
+  # [-single_step]: Generate script to launch all steps in one step
   # [-export_source_files]: Copy design files to output directory
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
@@ -58,7 +59,6 @@ proc export_simulation {args} {
     switch -regexp -- $option {
       "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
       "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)        [lindex $args $i]                                                         }
-      "-default_library"          { incr i;set a_sim_vars(default_lib)           [lindex $args $i];set a_sim_vars(b_default_lib_specified)               1 }
       "-of_objects"               { incr i;set a_sim_vars(sp_of_objects)         [lindex $args $i];set a_sim_vars(b_of_objects_specified)                1 }
       "-ip_user_files_dir"        { incr i;set a_sim_vars(s_ip_user_files_dir)   [lindex $args $i];set a_sim_vars(b_ip_user_files_dir_specified)         1 }
       "-ipstatic_source_dir"      { incr i;set a_sim_vars(s_ipstatic_source_dir) [lindex $args $i];set a_sim_vars(b_ipstatic_source_dir_specified)       1 }
@@ -70,6 +70,7 @@ proc export_simulation {args} {
       "-include"                  { incr i;set l_include_dirs                    [lindex $args $i];set a_sim_vars(b_include_specified)                   1 }
       "-32bit"                    { set a_sim_vars(b_32bit)                                                                                              1 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)                                                                                      1 }
+      "-single_step"              { set a_sim_vars(b_single_flow_step)                                                                                   1 }
       "-use_ip_compiled_libs"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
       "-export_source_files"      { set a_sim_vars(b_xport_src_files)                                                                                    1 }
       "-force"                    { set a_sim_vars(b_overwrite)                                                                                          1 }
@@ -112,6 +113,15 @@ proc export_simulation {args} {
   }
 
   xps_set_webtalk_data
+
+  if { $a_sim_vars(b_single_flow_step) } {
+    variable l_target_simulator
+    if { ([llength $l_target_simulator] == 1) && ({ies} == [lindex $l_target_simulator 0]) } {
+      send_msg_id exportsim-Tcl-040 WARNING "The '-single_step' switch is not supported anymore. By default, a single-step script will be generated for 'IES' simulator.\n"
+    } else {
+      send_msg_id exportsim-Tcl-040 WARNING "The '-single_step' switch is not supported anymore. The script will be generated for a multi-step flow.\n"
+    }
+  }
 
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
@@ -158,7 +168,6 @@ proc xps_init_vars {} {
   set a_sim_vars(b_generic_specified) 0
   set a_sim_vars(b_include_specified) 0
   set a_sim_vars(b_xpm_specified) 0
-  set a_sim_vars(b_default_lib_specified) 0
   set a_sim_vars(ip_filename)         ""
   set a_sim_vars(s_ip_file_extn)      ".xci"
   set a_sim_vars(b_extract_ip_sim_files) 0
@@ -168,6 +177,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_is_fs_object_specified)      0
   set a_sim_vars(b_absolute_path)     0             
   set a_sim_vars(b_single_step)       0             
+  set a_sim_vars(b_single_flow_step)  0             
   set a_sim_vars(b_xport_src_files)   0             
   set a_sim_vars(b_overwrite)         0
   set a_sim_vars(b_of_objects_specified)        0
@@ -1691,11 +1701,6 @@ proc xps_write_script { simulator dir filename } {
     return 1
   }
 
-  # set user specified default lib 
-  if { ($a_sim_vars(b_default_lib_specified)) && ($a_sim_vars(default_lib) != "xil_defaultlib") } {
-    set_property default_lib $a_sim_vars(default_lib) [current_project]
-  }
-
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
   
   xps_write_simulation_script $simulator $dir
@@ -1809,8 +1814,6 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   xps_append_config_opts arg_list "ies" "irun"
   if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list end "-64bit"] }
 
-  set install_path $::env(XILINX_VIVADO)
-
   lappend arg_list  "-timescale 1ps/1ps"
   set opts [list]
   if { [llength $l_defines] > 0 } {
@@ -1828,16 +1831,19 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   lappend arg_list  "-top $a_sim_vars(s_top)" \
                     "-f $filename"
   if { $b_verilog_only } {
-    lappend arg_list   "-f $install_path/data/secureip/secureip_cell.list.vf"
+    lappend arg_list   "-f \$XILINX_VIVADO/data/secureip/secureip_cell.list.vf"
   }
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     lappend arg_list "-top glbl"
     lappend arg_list "glbl.v"
   }
+  if { [xcs_contains_system_verilog $a_sim_vars(l_design_files)] } {
+    lappend arg_list "-sv"
+  }
   if { $b_verilog_only } {
-    lappend arg_list   "-y $install_path/data/verilog/src/retarget/" \
+    lappend arg_list   "-y \$XILINX_VIVADO/data/verilog/src/retarget/" \
                        "+libext+.v" \
-                       "-y $install_path/data/verilog/src/unisims/" \
+                       "-y \$XILINX_VIVADO/data/verilog/src/unisims/" \
                        "+libext+.v"
   }
   if { $a_sim_vars(b_xport_src_files) } {
@@ -3179,8 +3185,14 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     "xsim" {
       if { $a_sim_vars(b_use_static_lib) } {
         puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
-        puts $fh_unix "    src_file=\"\$lib_map_path/\$file\""
-        puts $fh_unix "    cp \$src_file ."
+        puts $fh_unix "    ip_file=\"xsim_ip.ini\""
+        puts $fh_unix "    src_file=\"\$lib_map_path/ip/\$ip_file\""
+        puts $fh_unix "    if \[\[ -e \$src_file \]\]; then"
+        puts $fh_unix "      cp \$src_file \$file"
+        puts $fh_unix "    else"
+        puts $fh_unix "      src_file=\"\$lib_map_path/\$file\""
+        puts $fh_unix "      cp \$src_file ."
+        puts $fh_unix "    fi"
         puts $fh_unix "  fi"
         puts $fh_unix "\}\n"
       }
