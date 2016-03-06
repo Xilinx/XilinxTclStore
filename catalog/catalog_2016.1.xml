@@ -33,8 +33,8 @@
     <app>
       <name>ies</name>
       <company>xilinx</company>
-      <commit_id>6e8581099ff0c72aa89c8b3d9a9fa5f001e52c9c</commit_id>
-      <revision>2.84</revision>
+      <commit_id>f222928c1d156f300e3a2534ad73d8e3ac58976a</commit_id>
+      <revision>2.85</revision>
     </app>
     <app>
       <name>incrcompile</name>
@@ -81,8 +81,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>6e8581099ff0c72aa89c8b3d9a9fa5f001e52c9c</commit_id>
-      <revision>3.145</revision>
+      <commit_id>f222928c1d156f300e3a2534ad73d8e3ac58976a</commit_id>
+      <revision>3.146</revision>
     </app>
     <app>
       <name>protoip</name>
