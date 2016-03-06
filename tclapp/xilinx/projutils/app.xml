@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass -sv switch for single step IES flow and determine if system verilog source in compile order</revision_history>
+      <revision_history>compile static files locally if not compiled from clibs</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

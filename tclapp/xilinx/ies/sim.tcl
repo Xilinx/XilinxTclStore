@@ -569,7 +569,7 @@ proc usf_ies_write_elaborate_script {} {
 
   set tool "ncelab"
   set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
-  set arg_list [list "-relax -access +rwc"]
+  set arg_list [list "-relax -access +rwc -namemap_mixgen"]
 
   set path_delay 0
   set int_delay 0

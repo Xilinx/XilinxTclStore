@@ -123,6 +123,11 @@ proc export_simulation {args} {
     }
   }
 
+  variable l_compiled_libraries
+  if { $a_sim_vars(b_use_static_lib) } {
+    set l_compiled_libraries [xcs_get_compiled_libraries]
+  }
+
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
     if { [xps_xport_simulation $objs] } {
@@ -198,6 +203,8 @@ proc xps_init_vars {} {
 
   variable l_compile_order_files      [list]
   variable l_design_files             [list]
+  variable l_compiled_libraries       [list]
+  variable l_local_design_libraries   [list]
 
   # ip static libraries
   variable l_ip_static_libs           [list]
@@ -1000,7 +1007,7 @@ proc xps_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
     set src_file [xps_get_source_from_repo $src_file $dst_cip_file $b_add_ref $b_wrap_in_quotes $launch_dir]
     set b_static_ip_file $b_is_static
     if { (!$b_is_static) && (!$b_is_dynamic) } {
-      send_msg_id exportsim-Tcl-056 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
+      #send_msg_id exportsim-Tcl-056 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
     }
     # phase-2
     if { $b_is_static } {
@@ -1038,6 +1045,8 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   variable a_sim_cache_extract_source_from_repo
   variable a_sim_vars
   variable l_compile_order_files
+  variable l_compiled_libraries
+  variable l_local_design_libraries
   upvar $b_is_static_arg b_is_static
   upvar $b_is_dynamic_arg b_is_dynamic
   upvar $b_add_ref_arg b_add_ref
@@ -1088,6 +1097,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
 
   set dst_cip_file $full_src_file_path
   set used_in_values [get_property "USED_IN" $full_src_file_obj]
+  set library [get_property "LIBRARY" $full_src_file_obj]
   # is dynamic?
   if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
     set file_extn [file extension $ip_file]
@@ -1118,15 +1128,27 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   }
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
-    set b_is_static 1
+    set b_is_static 0
     set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") $b_is_static
     set b_is_dynamic 0
     set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") $b_is_dynamic
     set dst_cip_file $ip_static_file 
 
+    set b_process_file 1
     if { $a_sim_vars(b_use_static_lib) } {
       # use pre-compiled lib
-    } else {
+      if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
+        set b_process_file 0
+        set b_is_static 1
+      } else {
+        # add this library to have the new mapping
+        if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
+          lappend l_local_design_libraries $library
+        }
+      }
+    }
+
+    if { $b_process_file } {
       if { $b_is_bd_ip } {
         set dst_cip_file [xps_fetch_ipi_static_file $ip_static_file] 
       } else {
@@ -1220,10 +1242,6 @@ proc xps_fetch_ipi_static_file { file } {
 
   variable a_sim_vars
   set src_ip_file $file
-
-  if { $a_sim_vars(b_use_static_lib) } {
-    return $src_ip_file
-  }
 
   set comps [lrange [split $src_ip_file "/"] 0 end]
   set to_match "xilinx.com"
@@ -1701,6 +1719,7 @@ proc xps_write_script { simulator dir filename } {
     return 1
   }
 
+  variable l_local_design_libraries
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
   
   xps_write_simulation_script $simulator $dir
@@ -4569,10 +4588,13 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
         if { $b_is_bd } {
           set vh_file [xps_fetch_ipi_static_file $vh_file]
         } else {
+          set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
-            set vh_file $vh_file
+            if { [file exists $vh_file_path] } {
+              set vh_file $vh_file_path
+            }
           } else {
-            set vh_file [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir)]
+            set vh_file $vh_file_path
           }
         }
       }

@@ -944,7 +944,7 @@ proc isl_extract_repo_static_files { } {
   close_project
  
   puts ""
-  send_msg_id setup_ip_static_library-Tcl-023 INFO "Static IP library created. Inspected $ip_count IPs from repository.\n\n"
+  send_msg_id setup_ip_static_library-Tcl-023 INFO "Data extracted from repository. Inspected $ip_count IP libraries.\n\n"
   return 0
 }
 

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>define proc to return true if system verilog source found</revision_history>
+      <revision_history>map vhdl generics to verilog parameters with namemap_mixgen for ncelab</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
