@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>compile static files locally if not compiled from clibs</revision_history>
+      <revision_history>print info message when fileset contains ips and compiled ips is enabled</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

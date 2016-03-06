@@ -123,6 +123,10 @@ proc export_simulation {args} {
     }
   }
 
+  if { ($a_sim_vars(b_use_static_lib)) && [xps_fileset_contain_ips] } {
+    send_msg_id exportsim-Tcl-040 INFO "Using compiled simulation libraries for IPs\n"
+  }
+
   variable l_compiled_libraries
   if { $a_sim_vars(b_use_static_lib) } {
     set l_compiled_libraries [xcs_get_compiled_libraries]
@@ -1109,7 +1113,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
       set dst_cip_file [xcs_get_dynamic_sim_file_core_classic $full_src_file_path $a_sim_vars(s_ip_user_files_dir) b_found_in_repo repo_src_file]
     }
     if { !$b_found_in_repo } {
-      send_msg_id exportsim-Tcl-024 WARNING "Expected IP user file does not exist:'$repo_src_file'!, using from default location:'$full_src_file_path'"
+      #send_msg_id exportsim-Tcl-024 WARNING "Expected IP user file does not exist:'$repo_src_file'!, using from default location:'$full_src_file_path'"
     }
   }
 
@@ -5010,5 +5014,18 @@ proc xps_cache_result {args} {
   if { [info exists a_sim_cache_result($cache_hash)] } { return $a_sim_cache_result($cache_hash) }
 
   return [set a_sim_cache_result($cache_hash) [uplevel eval $args]]
+}
+
+proc xps_fileset_contain_ips {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set filter "FILE_TYPE == \"IP\" || FILE_TYPE == \"IPX\" || FILE_TYPE == \"DSP Design Sources\" || FILE_TYPE == \"Block Designs\""
+  set ip_files [get_files -quiet -all -of_objects [current_fileset] -filter $filter]
+  if { [llength $ip_files] > 0 } {
+    return true
+  }
+  return false
 }
 }
