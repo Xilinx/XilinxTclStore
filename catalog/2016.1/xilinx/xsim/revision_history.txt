@@ -1,3 +1,4 @@
+2.96 set absolute path for glbl.v if absolute_path switch specified
 2.95 define proc to return true if system verilog source found
 2.94 fixed tcl syntax error while fetching libraries
 2.93 check for null file object before checking for used in property
