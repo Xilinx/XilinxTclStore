@@ -68,7 +68,7 @@ Arguments:
   -directory - (Required) Specify the directory path where the script file will be exported.
 
   -simulator - (Required) Specify the target simulator name for the simulation script. The valid
-  simulators names are "xsim" "modelsim" "questa" "ies" and "vcs" (or "vcs_mx").
+  simulators names are "xsim" "modelsim" "questa" "ies" "vcs" (or "vcs_mx") "riviera" and "activehdl".
 
   -quiet - (Optional) Execute the command quietly, ignoring any command line errors and returning no
   messages. The command also returns TCL_OK regardless of any errors encountered during execution.

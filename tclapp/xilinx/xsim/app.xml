@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>define proc to return true if system verilog source found</revision_history>
+      <revision_history>set absolute path for glbl.v if absolute_path switch specified</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

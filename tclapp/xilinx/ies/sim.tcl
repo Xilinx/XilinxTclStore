@@ -499,13 +499,18 @@ proc usf_ies_write_compile_script {} {
     }
   }
 
+  set glbl_file "glbl.v"
+  if { $::tclapp::xilinx::ies::a_sim_vars(b_absolute_path) } {
+    set glbl_file [file normalize [file join $dir $glbl_file]]
+  }
+
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
     if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
-      set file_str "-work $top_lib \"glbl.v\""
+      set file_str "-work $top_lib \"${glbl_file}\""
       puts $fh_scr "\n# compile glbl module"
       if { {} != $tool_path } {
         puts $fh_scr "\$bin_path/ncvlog \$ncvlog_opts $file_str"
@@ -521,7 +526,7 @@ proc usf_ies_write_compile_script {} {
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
-        set file_str "-work $top_lib \"glbl.v\""
+        set file_str "-work $top_lib \"${glbl_file}\""
         puts $fh_scr "\n# compile glbl module"
         if { {} != $tool_path } {
           puts $fh_scr "\$bin_path/ncvlog \$ncvlog_opts $file_str"

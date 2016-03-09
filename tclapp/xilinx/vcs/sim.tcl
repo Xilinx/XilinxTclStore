@@ -511,6 +511,11 @@ proc usf_vcs_write_compile_script {} {
     }
   }
 
+  set glbl_file "glbl.v"
+  if { $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) } {
+    set glbl_file [file normalize [file join $dir $glbl_file]]
+  }
+
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
@@ -521,7 +526,7 @@ proc usf_vcs_write_compile_script {} {
         set work_lib_sw "-work $top_lib "
       }
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set file_str "${work_lib_sw}\"glbl.v\""
+      set file_str "${work_lib_sw}\"${glbl_file}\""
       puts $fh_scr "\n# compile glbl module"
       if { {} != $tool_path } {
         puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
@@ -541,7 +546,7 @@ proc usf_vcs_write_compile_script {} {
           set work_lib_sw "-work $top_lib "
         }
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set file_str "${work_lib_sw}\"glbl.v\""
+        set file_str "${work_lib_sw}\"${glbl_file}\""
         puts $fh_scr "\n# compile glbl module"
         if { {} != $tool_path } {
           puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"

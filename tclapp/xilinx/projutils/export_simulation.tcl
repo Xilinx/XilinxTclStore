@@ -3218,6 +3218,38 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
         puts $fh_unix "    fi"
         puts $fh_unix "  fi"
         puts $fh_unix "\}\n"
+
+        # physically copy file to run dir for windows
+        if {$::tcl_platform(platform) == "windows"} {
+          if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+            set ip_file [file join $a_sim_vars(s_lib_map_path) "ip" "xsim_ip.ini"]
+            set target_file [file join $launch_dir "xsim.ini"]
+            if { [file exists $ip_file] } {
+              if {[catch {file copy -force $ip_file $target_file} error_msg] } {
+                send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
+              }
+            } else {
+              set ip_file [file join $a_sim_vars(s_lib_map_path) "xsim.ini"]
+              if { [file exists $ip_file] } {
+                if {[catch {file copy -force $ip_file $target_file} error_msg] } {
+                  send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
+                }
+              }
+            }
+          }
+        }
+      } else {
+        if {$::tcl_platform(platform) == "windows"} {
+          if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+            set ip_file [file join $a_sim_vars(s_lib_map_path) "xsim.ini"]
+            set target_file [file join $launch_dir "xsim.ini"]
+            if { [file exists $ip_file] } {
+              if {[catch {file copy -force $ip_file $target_file} error_msg] } {
+                send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
+              }
+            }
+          }
+        }
       }
     }
     "riviera" -
@@ -3229,6 +3261,19 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       puts $fh_unix "    cp \$src_file ."
       puts $fh_unix "  fi"
       puts $fh_unix "\}\n"
+
+      # physically copy modelsim.ini file to run dir for windows
+      if {$::tcl_platform(platform) == "windows"} {
+        if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+          set ini_file [file join $a_sim_vars(s_lib_map_path) "modelsim.ini"]
+          set target_file [file join $launch_dir "modelsim.ini"]
+          if { [file exists $ini_file] } {
+            if {[catch {file copy -force $ini_file $target_file} error_msg] } {
+              send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ini_file' to '$launch_dir' : $error_msg\n"
+            }
+          }
+        }
+      }
     }
     "ies" {
       set file "cds.lib"
@@ -4019,10 +4064,10 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   variable l_defines
   variable l_generics
   variable l_include_dirs
-  set args [list "xelab"]
+  set args [list]
   xps_append_config_opts args "xsim" "xelab"
-  lappend args "-wto [get_property ID [current_project]]"
-  if { !$a_sim_vars(b_32bit) } { lappend args "-m64" }
+  #lappend args "-wto [get_property ID [current_project]]"
+  #if { !$a_sim_vars(b_32bit) } { lappend args "-m64" }
   #set prefix_ref_dir "false"
   #foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $prefix_ref_dir] {
   #  set dir [string map {\\ /} $incl_dir]
@@ -4080,7 +4125,20 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
     }
   }
   lappend args "-log elaborate.log"
-  puts $fh_unix "  [join $args " "]"
+ 
+  set args_str [join $args " "]
+
+  if {$::tcl_platform(platform) == "windows"} {
+    set fh_win 0 
+    set file [file join $launch_dir "elab.opt"]
+    if { [catch {open $file w} fh_win] } {
+      send_msg_id exportsim-Tcl-063 ERROR "Failed to open file to write ($file)\n"
+    } else {
+      puts $fh_win $args_str 
+      close $fh_win
+    }
+  }
+  puts $fh_unix "  xelab $args_str"
 }
 
 proc xps_write_xsim_cmdline { fh_unix dir } {

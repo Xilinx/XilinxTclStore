@@ -636,13 +636,18 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     }
   }
 
+  set glbl_file "glbl.v"
+  if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+    set glbl_file [file normalize [file join $dir $glbl_file]]
+  }
+
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]]
     if { [::tclapp::xilinx::questa::usf_compile_glbl_file "questa" $b_load_glbl $::tclapp::xilinx::questa::a_sim_vars(l_design_files)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
-      set file_str "-work $top_lib \"glbl.v\""
+      set file_str "-work $top_lib \"${glbl_file}\""
       puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
     }
   } else {
@@ -653,7 +658,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
-        set file_str "-work $top_lib \"glbl.v\""
+        set file_str "-work $top_lib \"${glbl_file}\""
         puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
       }
     }

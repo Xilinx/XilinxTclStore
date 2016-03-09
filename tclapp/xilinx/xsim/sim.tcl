@@ -627,13 +627,19 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         {VERILOG} { puts $fh_vlog $cmd_str }
       }
     }
+
+    set glbl_file "glbl.v"
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) } {
+      set glbl_file [file normalize [file join $dir $glbl_file]]
+    }
+
     # compile glbl file for behav
     if { {behav_sim} == $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow) } {
       set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
       if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] } {
         set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set file_str "$top_lib \"glbl.v\""
+        set file_str "$top_lib \"${glbl_file}\""
         puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
       }
     } else {
@@ -644,7 +650,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         } else {
           set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
           xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-          set file_str "$top_lib \"glbl.v\""
+          set file_str "$top_lib \"${glbl_file}\""
           puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
         }
       }
