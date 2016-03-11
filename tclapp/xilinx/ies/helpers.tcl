@@ -68,7 +68,7 @@ proc usf_init_vars {} {
  
   # data file extension types 
   variable s_data_files_filter
-  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
+  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
 
   # embedded file extension types 
   variable s_embedded_files_filter
@@ -1396,7 +1396,11 @@ proc usf_launch_script { simulator step } {
   set faulty_run 0
   set cwd [pwd]
   cd $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
-  send_msg_id USF-IES-063 INFO "Executing '[string toupper $step]' step in '$run_dir'"
+  set display_step [string toupper $step]
+  if { "$display_step" == "COMPILE" } {
+    set display_step "${display_step} and ANALYZE"
+  }
+  send_msg_id USF-IES-063 INFO "Executing '${display_step}' step in '$run_dir'"
   set results_log {}
   switch $step {
     {compile} -

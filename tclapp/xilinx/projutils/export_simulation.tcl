@@ -58,7 +58,7 @@ proc export_simulation {args} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
       "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
-      "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)        [lindex $args $i]                                                         }
+      "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)        [lindex $args $i];set a_sim_vars(b_lib_map_path_specified)              1 }
       "-of_objects"               { incr i;set a_sim_vars(sp_of_objects)         [lindex $args $i];set a_sim_vars(b_of_objects_specified)                1 }
       "-ip_user_files_dir"        { incr i;set a_sim_vars(s_ip_user_files_dir)   [lindex $args $i];set a_sim_vars(b_ip_user_files_dir_specified)         1 }
       "-ipstatic_source_dir"      { incr i;set a_sim_vars(s_ipstatic_source_dir) [lindex $args $i];set a_sim_vars(b_ipstatic_source_dir_specified)       1 }
@@ -89,6 +89,31 @@ proc export_simulation {args} {
 
   # control precompile flow
   xcs_control_pre_compile_flow a_sim_vars(b_use_static_lib)
+
+  set b_print_compiled_simlib_msg 1
+
+  # print cw for 3rd party simulator when -lib_map_path is not specified
+  if { {all} != $a_sim_vars(s_simulator) } {
+    if { {xsim} == $a_sim_vars(s_simulator) } {
+      # no op
+    } else {
+      # is pre-compile flow with design containing IPs for a 3rd party simulator?
+      if { ($a_sim_vars(b_use_static_lib)) && [xps_fileset_contain_ips] } {
+        # is -lib_map_path not specified?
+        if { !$a_sim_vars(b_lib_map_path_specified) } {
+          send_msg_id exportsim-Tcl-056 "CRITICAL WARNING" \
+           "Library mapping is not provided. The scripts will not be aware of pre-compiled libraries. It is highly recommended to use the -lib_map_path switch and point to the relevant simulator library mapping file path.\n"
+          set b_print_compiled_simlib_msg 0
+        }
+      }
+    }
+  }
+
+  if { ($a_sim_vars(b_use_static_lib)) && [xps_fileset_contain_ips] } {
+    if { $b_print_compiled_simlib_msg } {
+      send_msg_id exportsim-Tcl-040 INFO "Using compiled simulation libraries for IPs\n"
+    }
+  }
 
   xps_set_target_simulator
 
@@ -123,9 +148,6 @@ proc export_simulation {args} {
     }
   }
 
-  if { ($a_sim_vars(b_use_static_lib)) && [xps_fileset_contain_ips] } {
-    send_msg_id exportsim-Tcl-040 INFO "Using compiled simulation libraries for IPs\n"
-  }
 
   variable l_compiled_libraries
   if { $a_sim_vars(b_use_static_lib) } {
@@ -168,6 +190,7 @@ proc xps_init_vars {} {
   set a_sim_vars(s_xport_dir)         "export_sim"
   set a_sim_vars(s_simulator_name)    ""
   set a_sim_vars(b_xsim_specified)    0
+  set a_sim_vars(b_lib_map_path_specified) 0
   set a_sim_vars(s_lib_map_path)      ""
   set a_sim_vars(b_script_specified)  0
   set a_sim_vars(s_script_filename)   ""
@@ -222,7 +245,7 @@ proc xps_init_vars {} {
   set l_valid_ip_extns                [list ".xci" ".bd" ".slx"]
 
   variable s_data_files_filter
-  set s_data_files_filter             "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
+  set s_data_files_filter             "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
 
   variable s_embedded_files_filter
   set s_embedded_files_filter         "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ElF\""
@@ -1654,7 +1677,10 @@ proc xps_write_sim_script { run_dir data_files filename } {
       set a_sim_vars(s_top) [get_property top [get_filesets $tcl_obj]]
       #send_msg_id exportsim-Tcl-027 INFO "Inspecting design source files for '$a_sim_vars(s_top)' in fileset '$tcl_obj'...\n"
       if {[string length $a_sim_vars(s_top)] == 0} {
-        set a_sim_vars(s_top) "unknown"
+        send_msg_id exportsim-Tcl-070 ERROR \
+        "A simulation top was not set. Before running export_simulation a top must be set on the simulation\
+        fileset. The top can be set on the simulation fileset by running: set_property top <top_module> \[current_fileset -simset\]\n"
+        #set a_sim_vars(s_top) "unknown"
       }
       if {[xps_write_script $simulator $dir $filename]} {
         return 1
@@ -1851,7 +1877,7 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
       lappend arg_list  "$opt_str"
     }
   }
-  lappend arg_list  "-top $a_sim_vars(s_top)" \
+  lappend arg_list  "-top $a_sim_vars(default_lib).$a_sim_vars(s_top)" \
                     "-f $filename"
   if { $b_verilog_only } {
     lappend arg_list   "-f \$XILINX_VIVADO/data/secureip/secureip_cell.list.vf"
@@ -1881,7 +1907,7 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
       }
     }
   }
-  lappend arg_list   "-l run.log"
+  #lappend arg_list   "-l run.log"
 
   set cmd_str [join $arg_list " \\\n       "]
   puts $fh_unix "  irun $cmd_str"
