@@ -1,3 +1,4 @@
+2.87 updated progress message for compile step
 2.86 set absolute path for glbl.v if absolute_path switch specified
 2.85 map vhdl generics to verilog parameters with namemap_mixgen for ncelab
 2.84 define proc to return true if system verilog source found
