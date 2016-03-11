@@ -25,7 +25,9 @@ package require ::tclapp::${appName}
 # Start the unit tests
 puts "script is invoked from $test_dir"
 # All the unit test scripts should be sourced now such as:
-if {[catch {source -notrace [file join $test_dir vivado_flow_x4gen2.tcl]} errorstring]} {
+# ALOKE: 3/10/2016: Run a simpler test provided by Ravi
+#if {[catch {source -notrace [file join $test_dir vivado_flow_x4gen2.tcl]} errorstring]} {
+if {[catch {source -notrace [file join $test_dir spyglass_tclapp_test.tcl]} errorstring]} {
   catch { close_project }
 }
 
@@ -33,7 +35,7 @@ if {[catch {source -notrace [file join $test_dir vivado_flow_x4gen2.tcl]} errors
 
 # Cleaning
 close_project
-file delete $test_dir/spy_run.prj
+#file delete $test_dir/spy_run.prj
 #file delete -force $test_dir/vivado_proj_1
 
 # Uninstall the app if it was not already installed when starting the script

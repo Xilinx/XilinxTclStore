@@ -123,9 +123,9 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   puts $sg_fh "set_option libhdlfiles unimacro $vivado_dir/data/vhdl/src/unimacro/unimacro_VCOMP.vhd\n"
 
   if {[regexp {virtexu|kintexu} $arch_name]} {
-    puts $sg_fh "read_file -type gateslib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name/$arch_name.lib\n"
+    puts $sg_fh "read_file -type gateslib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name/devint/$arch_name.lib\n"
   } else {
-    puts $sg_fh "read_file -type gateslib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib\n"
+    puts $sg_fh "read_file -type gateslib $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name.lib\n"
   }
 
   ## Blackbox unisims - get_lib_cells appears to work only in certain context so commenting it out
