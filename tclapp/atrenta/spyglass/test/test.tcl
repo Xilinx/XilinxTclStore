@@ -5,7 +5,8 @@ set listInstalledApps [::tclapp::list_apps]
 set test_dir [file normalize [file dirname [info script]]]
 puts "== Test directory: $test_dir"
 
-set design_top vfifo_controller
+# ALOKE: 3/12/2016
+#set design_top vfifo_controller
 
 set tclapp_repo [file normalize [file join $test_dir .. .. ..]]
 puts "== Application directory: $tclapp_repo"
@@ -31,7 +32,8 @@ if {[catch {source -notrace [file join $test_dir spyglass_tclapp_test.tcl]} erro
   catch { close_project }
 }
 
-::tclapp::atrenta::spyglass::write_spyglass_script $design_top $test_dir/spy_run.prj
+# ALOKE: 3/12/2016: Already part of the above simple test
+#::tclapp::atrenta::spyglass::write_spyglass_script $design_top $test_dir/spy_run.prj
 
 # Cleaning
 close_project

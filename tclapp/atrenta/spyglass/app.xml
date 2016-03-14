@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history> Updated write_spyglass_script.tcl to correct usage of get_property in some cases. </revision_history>
+      <revision_history> Updated write_spyglass_script.tcl to correct the path for the device libraries. Added the option read_protected_envelope to handle encrypted models. Replaced the exiisting test with a simpler test. </revision_history>
       <name>spyglass</name>
       <pkg_require>Vivado 2015.1</pkg_require>
       <company>atrenta</company>

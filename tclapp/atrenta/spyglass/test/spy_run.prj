@@ -47,6 +47,7 @@ set_option disable_hdllibdu_lexical_checks yes
 set_option top wave_gen
 #set_option prefer_tech_lib yes
 set_option enable_auto_infer_bus_pins yes
+set_option read_protected_envelope yes
 set_option enable_fpga yes
 
 
