@@ -1,3 +1,5 @@
+3.150 added deprecation message for single step help
+3.149 print critical warning if library mapping not specified for 3rd party simulators
 3.148 copy ini files to run directory if lib_map_path specified
 3.147 print info message when fileset contains ips and compiled ips is enabled
 3.146 compile static files locally if not compiled from clibs

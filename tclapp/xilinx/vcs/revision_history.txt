@@ -1,3 +1,4 @@
+2.92 updated progress message for compile step
 2.91 set absolute path for glbl.v if absolute_path switch specified
 2.90 define proc to return true if system verilog source found
 2.89 fixed tcl syntax error while fetching libraries
