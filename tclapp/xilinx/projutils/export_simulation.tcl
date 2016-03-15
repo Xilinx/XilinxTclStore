@@ -3033,6 +3033,9 @@ proc xps_verify_ip_status {} {
       # is user-disabled? or auto_disabled? continue
       set ip_file [get_files -quiet -all ${ip}.xci]
       if { [llength $ip_file] == 0 } {
+        set ip_file [get_files -quiet -all ${ip}.xco]
+      }
+      if { [llength $ip_file] == 0 } {
         continue
       }
       if { ({0} == [get_property is_enabled $ip_file]) ||
