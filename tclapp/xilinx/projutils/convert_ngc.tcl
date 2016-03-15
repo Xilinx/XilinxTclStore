@@ -33,18 +33,18 @@ proc convert_ngc args {
   # Categories: xilinxtclstore, projutils
 
   # member variables
-  variable m_options
-  init_vars_
+  variable m_ngc_options
+  init_ngc_vars_
  
   # process options
   for { set index 0 } { $index < [ llength $args ] } { incr index } {
     set option [ string trim [ lindex $args $index ] ]
     switch -regexp -- $option {
-      "-output_dir"           { incr index; set m_options(sOutputDir) [ lindex $args $index ] }
-      "-format"               { incr index; set m_options(sFormat)    [ lindex $args $index ] }
-      "-add_to_project"       { set m_options(bAddToProject) 1 }
-      "-force"                { set m_options(bForce) 1 }
-      "-verbose"              { set m_options(bVerbose) 1 }
+      "-output_dir"           { incr index; set m_ngc_options(sOutputDir) [ lindex $args $index ] }
+      "-format"               { incr index; set m_ngc_options(sFormat)    [ lindex $args $index ] }
+      "-add_to_project"       { set m_ngc_options(bAddToProject) 1 }
+      "-force"                { set m_ngc_options(bForce) 1 }
+      "-verbose"              { set m_ngc_options(bVerbose) 1 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -53,19 +53,19 @@ proc convert_ngc args {
         }
         # positional
         foreach file $option {
-          lappend m_options(files) $file
+          lappend m_ngc_options(files) $file
         }
       }
     }
   }
 
   # all files must exist
-  if { [ llength $m_options(files) ] == 0 } {
+  if { [ llength $m_ngc_options(files) ] == 0 } {
     send_msg_id Vivado-projutils-302 ERROR "Missing value for option 'files', please type 'convert_ngc -help' for usage info.\n"
     return 1
   }
   set bFilesAreMissing 0
-  foreach file $m_options(files) {
+  foreach file $m_ngc_options(files) {
     if { ! [ file exists $file ] } {
       send_msg_id Vivado-projutils-303 {CRITICAL WARNING} "Specified file does not exist: '${file}'\n"
       set bFilesAreMissing 1
@@ -76,18 +76,18 @@ proc convert_ngc args {
   }
 
   # verify that the output dir can be created, exists after creating, is a dir, and is writable
-  if { [ string length $m_options(sOutputDir) ] != 0 } {
-    if { ! [ file exists $m_options(sOutputDir) ] } {
-      file mkdir $m_options(sOutputDir)
-      if { ! [ file exists $m_options(sOutputDir) ] } {
-        send_msg_id Vivado-projutils-305 ERROR "Unable to create directory: '$m_options(sOutputDir)'"
+  if { [ string length $m_ngc_options(sOutputDir) ] != 0 } {
+    if { ! [ file exists $m_ngc_options(sOutputDir) ] } {
+      file mkdir $m_ngc_options(sOutputDir)
+      if { ! [ file exists $m_ngc_options(sOutputDir) ] } {
+        send_msg_id Vivado-projutils-305 ERROR "Unable to create directory: '$m_ngc_options(sOutputDir)'"
       }
     }
-    if { ! [ file isdirectory $m_options(sOutputDir) ] } {
-      send_msg_id Vivado-projutils-306 ERROR "The '-output_dir' must point to a directory, this is not a directory: '$m_options(sOutputDir)'"
+    if { ! [ file isdirectory $m_ngc_options(sOutputDir) ] } {
+      send_msg_id Vivado-projutils-306 ERROR "The '-output_dir' must point to a directory, this is not a directory: '$m_ngc_options(sOutputDir)'"
     }
-    if { ! [ file writable $m_options(sOutputDir) ] } {
-      send_msg_id Vivado-projutils-307 ERROR "The '-output_dir' specified is not writable: '$m_options(sOutputDir)'"
+    if { ! [ file writable $m_ngc_options(sOutputDir) ] } {
+      send_msg_id Vivado-projutils-307 ERROR "The '-output_dir' specified is not writable: '$m_ngc_options(sOutputDir)'"
     }
   }
 
@@ -96,14 +96,14 @@ proc convert_ngc args {
   # end of business logic 
 
   # perform conversion
-  if { [ string match -nocase "$m_options(sFormat)" "verilog" ] } {
+  if { [ string match -nocase "$m_ngc_options(sFormat)" "verilog" ] } {
     send_msg_id Vivado-projutils-320 INFO "Converting NGC files to Verilog..."
-    convert_ngcs_to_verilog_ $m_options(files) $m_options(sOutputDir) $m_options(bAddToProject) $m_options(bForce) $m_options(bVerbose)
-  } elseif { [ string match -nocase "$m_options(sFormat)" "edif" ] } {
+    convert_ngcs_to_verilog_ $m_ngc_options(files) $m_ngc_options(sOutputDir) $m_ngc_options(bAddToProject) $m_ngc_options(bForce) $m_ngc_options(bVerbose)
+  } elseif { [ string match -nocase "$m_ngc_options(sFormat)" "edif" ] } {
     send_msg_id Vivado-projutils-319 INFO "Converting NGC files to EDIF..."
-    convert_ngcs_to_edif_ $m_options(files) $m_options(sOutputDir) $m_options(bAddToProject) $m_options(bForce) $m_options(bVerbose)
+    convert_ngcs_to_edif_ $m_ngc_options(files) $m_ngc_options(sOutputDir) $m_ngc_options(bAddToProject) $m_ngc_options(bForce) $m_ngc_options(bVerbose)
   } else {
-    send_msg_id Vivado-projutils-318 ERROR "Unknown value '$m_options(sFormat)' provided for switch -format, expected 'EDIF' or 'Verilog'"
+    send_msg_id Vivado-projutils-318 ERROR "Unknown value '$m_ngc_options(sFormat)' provided for switch -format, expected 'EDIF' or 'Verilog'"
   }
 
 }
@@ -115,7 +115,7 @@ proc convert_ngc args {
 ##########
 
 
-proc init_vars_ {} {
+proc init_ngc_vars_ {} {
   # Summary: 
   # Initialize all member variables
 
@@ -126,19 +126,19 @@ proc init_vars_ {} {
   # None
   
   # member variables
-  variable m_options
+  variable m_ngc_options
   variable m_sEdifExt
   variable m_sVerilogExt
   variable m_sLogExt
   variable m_bDebugLogs
   
-  array unset m_options
-  set m_options(sOutputDir)     {}
-  set m_options(sFormat)        "EDIF"
-  set m_options(bAddToProject)  0 
-  set m_options(bForce)         0
-  set m_options(bVerbose)       0
-  set m_options(files)          {}
+  array unset m_ngc_options
+  set m_ngc_options(sOutputDir)     ""
+  set m_ngc_options(sFormat)        "EDIF"
+  set m_ngc_options(bAddToProject)  0 
+  set m_ngc_options(bForce)         0
+  set m_ngc_options(bVerbose)       0
+  set m_ngc_options(files)          [list]
 
   # static
   set m_sVerilogExt             ".v"

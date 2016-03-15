@@ -1,0 +1,21 @@
+
+Example:
+
+  # Add the commands to profile
+  xilinx::profiler::add_commands ...
+
+  # Profile proc1
+  xilinx::profiler::start
+  test::proc1
+  xilinx::profiler::stop
+  
+  # Don't profile this call to proc2, even if it was added with add_commands
+  test::proc2
+
+  # Profile proc3 and merge with previous profile data
+  xilinx::profiler::start
+  test::proc3
+  xilinx::profiler::stop
+  
+  # Generate the profile.out file
+  xilinx::profiler::write_report

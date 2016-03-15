@@ -25,6 +25,10 @@ proc setup { args } {
   # initialize global variables
   ::tclapp::xilinx::xsim::usf_init_vars
 
+  # control precompile flow
+  variable a_sim_vars
+  xcs_control_pre_compile_flow a_sim_vars(b_use_static_lib)
+
   # read simulation command line args and set global variables
   usf_xsim_setup_args $args
 
@@ -159,6 +163,7 @@ proc usf_xsim_setup_simulation { args } {
   # Return Value:
 
   variable a_sim_vars
+  set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
  
   # set the simulation flow
   ::tclapp::xilinx::xsim::usf_set_simulation_flow
@@ -181,6 +186,11 @@ proc usf_xsim_setup_simulation { args } {
   # prepare IP's for simulation
   #::tclapp::xilinx::xsim::usf_prepare_ip_for_simulation
 
+  variable l_compiled_libraries
+  if { $a_sim_vars(b_use_static_lib) } {
+    set l_compiled_libraries [xcs_get_compiled_libraries]
+  }
+
   # generate mem files
   ::tclapp::xilinx::xsim::usf_generate_mem_files_for_simulation
 
@@ -188,27 +198,85 @@ proc usf_xsim_setup_simulation { args } {
   ::tclapp::xilinx::xsim::usf_xport_data_files
 
   # fetch design files
+  variable l_local_design_libraries 
   set global_files_str {}
   set ::tclapp::xilinx::xsim::a_sim_vars(l_design_files) \
-     [::tclapp::xilinx::xsim::usf_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
+     [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
 
-  # create setup file
-  #usf_xsim_write_setup_files
+  # find/copy xsim.ini file into run dir
   if { $a_sim_vars(b_use_static_lib) } {
-    # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      if { [file exists $a_sim_vars(s_lib_map_path)] } {
-        usf_xsim_copy_pre_compiled_setup_file
-      } else {
-        send_msg_id USF-XSim-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
-      }
+    if {[usf_xsim_verify_compiled_lib]} { return 1 }
+    set filename "xsim.ini"
+    set fh 0
+    set file [file join $run_dir $filename]
+    if {[catch {open $file a} fh]} {
+      send_msg_id USF-XSim-011 ERROR "Failed to open file to append ($file)\n"
+      return
     }
+    usf_xsim_map_pre_compiled_libs $fh
+    close $fh
+
+    # re-align local libraries for the ones that were not found in compiled library
+    usf_realign_local_mappings $file l_local_design_libraries
+
+  } else {
+    usf_xsim_write_setup_file
   }
 
   return 0
+}
+
+proc usf_realign_local_mappings { ini_file l_local_design_libraries_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $l_local_design_libraries_arg l_local_libraries
+
+  if { ![file exists $ini_file] } {
+    return
+  }
+
+  # read xsim.ini contents
+  set fh 0
+  if {[catch {open $ini_file r} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($ini_file)\n"
+    return 1
+  }
+  set data [split [read $fh] "\n"]
+  close $fh
+  set l_updated_mappings [list]
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    set library [string trim [lindex [split $line "="] 0]]
+    if { [lsearch -exact $l_local_libraries $library] != -1 } {
+      set line "$library=xsim.dir/$library"
+    }
+    lappend l_updated_mappings $line
+  }
+
+  # first make back up
+  set ini_file_bak ${ini_file}.bak
+  [catch {file copy -force $ini_file $ini_file_bak} error_msg]
+
+  # delete ini file
+  [catch {file delete -force $ini_file} error_msg]
+
+  # create fresh updated copy
+  set fh 0
+  if {[catch {open $ini_file w} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($ini_file)\n"
+    # revert backup ini file
+    [catch {file copy -force $ini_file_bak $ini_file} error_msg]
+    return
+  }
+  foreach line $l_updated_mappings {
+    puts $fh $line
+  }
+  close $fh
 }
 
 proc usf_xsim_init_simulation_vars {} {
@@ -269,11 +337,168 @@ proc usf_xsim_setup_args { args } {
   }
 }
 
-proc usf_xsim_write_setup_files {} {
+proc usf_xsim_verify_compiled_lib {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+  set b_scripts_only $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only)
+
+  set ini_file "xsim.ini"
+  set compiled_lib_dir {}
+
+  send_msg_id USF-XSim-007 INFO "Finding pre-compiled libraries...\n"
+
+  # 1. find default install location
+  set dir [get_property "COMPXLIB.XSIM_COMPILED_LIBRARY_DIR" [current_project]]
+  set file [file normalize [file join $dir $ini_file]]
+  if { [file exists $file] } {
+    set compiled_lib_dir $dir
+  }
+
+  # 2. check -lib_map_path
+  if { $a_sim_vars(b_use_static_lib) } {
+    # is -lib_map_path specified and point to valid location?
+    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+      if { [file exists $a_sim_vars(s_lib_map_path)] } {
+        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+      } else {
+          send_msg_id USF-XSim-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
+      }
+    }
+  }
+
+  # 3. not found? find xsim.ini from current working directory
+  if { {} == $compiled_lib_dir } {
+    set dir [file normalize [pwd]]
+    set file [file normalize [file join $dir $ini_file]]
+    if { [file exists $file] } {
+      set compiled_lib_dir $dir
+    }
+  }
+
+  # 4. not found? finally check in run dir
+  if { {} == $compiled_lib_dir } {
+    set file [file normalize [file join $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) $ini_file]]
+    if { ! [file exists $file] } {
+      if { $b_scripts_only } {
+        send_msg_id USF-XSim-024 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+      } else {
+        send_msg_id USF-XSim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
+      }
+      send_msg_id USF-XSim-009 INFO " Recommendation:- Please set the 'COMPXLIB.XSIM_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for XSim\n"
+    }
+  } else {
+    # 5. copy to run dir
+    set b_copy_default_ini_file true
+    set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
+    if { $a_sim_vars(b_use_static_lib) } {
+      # check from build area
+      set ini_ip_file [file join $compiled_lib_dir "ip" "xsim_ip.ini"]
+      if { [file exists $ini_ip_file] } {
+        set target_ini_file [file join $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) "xsim.ini"]
+        if {[catch {file copy -force $ini_ip_file $target_ini_file} error_msg] } {
+          send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_ip_file): $error_msg\n"
+        } else {
+          send_msg_id USF-XSim-011 INFO "File '$ini_ip_file' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
+          set b_copy_default_ini_file false
+          #usf_process_data_dir_env $compiled_lib_dir 
+        }
+      }
+    }
+
+    if { $b_copy_default_ini_file } {
+      if { [file exists $ini_file_path] } {
+        if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)} error_msg] } {
+          send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
+        } else {
+          send_msg_id USF-XSim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
+          #usf_process_data_dir_env $compiled_lib_dir 
+        }
+      }
+    }
+  }
+  return 0
+}
+
+proc usf_process_data_dir_env { compiled_lib_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+
+  # remove "xsim" sub-dir from path since it is already part of path in xsim.ini copied from specified location (compxlib.xsim_compiled_library_dir)
+  set compiled_lib_dir [file dirname $compiled_lib_dir]
+
+  set filename "xsim.ini"
+  set ini_file [file normalize [file join $dir $filename]]
+  if { ![file exists $ini_file] } {
+    return
+  }
+  # read xsim.ini contents
+  set fh 0
+  if {[catch {open $ini_file r} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($ini_file)\n"
+    return 1
+  }
+  set data [read $fh]
+  close $fh
+
+  # check if data dir env specified, if not, return, else replace data dir env with path
+  set b_data_dir_env false
+  set data [split $data "\n"]
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp "RDI_DATADIR" $line] } {
+      set b_data_dir_env true
+      break
+    }
+  }
+  if { !$b_data_dir_env } { return }
+
+  # first make back up
+  set ini_file_bak ${ini_file}.bak
+  [catch {file copy -force $ini_file $ini_file_bak} error_msg]
+
+  # delete ini file
+  [catch {file delete -force $ini_file} error_msg]
+
+  # create fresh copy
+  set fh 0
+  if {[catch {open $ini_file w} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($ini_file)\n"
+    # revert backup ini file
+    [catch {file copy -force $ini_file_bak $ini_file} error_msg]
+    if { [file exists $ini_file_bak] } {
+      [catch {file delete -force $ini_file_bak} error_msg]
+    }
+    return 1
+  }
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp "RDI_DATADIR" $line] } {
+      regsub -all {\$RDI_DATADIR} $line "$compiled_lib_dir" line
+    }
+    puts $fh $line
+  }
+  close $fh
+  if { [file exists $ini_file_bak] } {
+    [catch {file delete -force $ini_file_bak} error_msg]
+  }
+}
+
+proc usf_xsim_write_setup_file {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
@@ -289,8 +514,10 @@ proc usf_xsim_write_setup_files {} {
   set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    puts $fh "$lib=xsim.dir/$lib"
+    set lib_name [string tolower $lib]
+    puts $fh "$lib=xsim.dir/$lib_name"
   }
+  
   close $fh
 }
 
@@ -299,6 +526,7 @@ proc usf_xsim_copy_pre_compiled_setup_file {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path)
   set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
@@ -309,6 +537,16 @@ proc usf_xsim_copy_pre_compiled_setup_file {} {
       send_msg_id USF-XSim-Tcl-051 WARNING "failed to copy file '$ini_file' to '$run_dir' : $error_msg\n"
     } else {
       send_msg_id USF-XSim-Tcl-051 INFO "Copied xsim.ini from '$lib_dir'\n"
+      if { $a_sim_vars(b_use_static_lib) } {
+        set fh 0
+        set file [file join $run_dir $filename]
+        if {[catch {open $file a} fh]} {
+          send_msg_id USF-XSim-011 ERROR "Failed to open file to append ($file)\n"
+          return
+        }
+        usf_xsim_map_pre_compiled_libs $fh
+        close $fh
+      }
     }
   }
 }
@@ -328,8 +566,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
   set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
 
-  set b_contain_verilog_srcs [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
-  set b_contain_vhdl_srcs    [::tclapp::xilinx::xsim::usf_contains_vhdl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
+  set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+  set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
 
   # set param to force nosort (default is false)
   set nosort_param [get_param "simulation.donotRecalculateCompileOrderForXSim"] 
@@ -389,24 +627,30 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         {VERILOG} { puts $fh_vlog $cmd_str }
       }
     }
+
+    set glbl_file "glbl.v"
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) } {
+      set glbl_file [file normalize [file join $dir $glbl_file]]
+    }
+
     # compile glbl file for behav
     if { {behav_sim} == $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow) } {
       set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
       if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] } {
         set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
-        ::tclapp::xilinx::xsim::usf_copy_glbl_file
-        set file_str "$top_lib \"glbl.v\""
+        xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
+        set file_str "$top_lib \"${glbl_file}\""
         puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
       }
     } else {
       # for post* compile glbl if design contain verilog and netlist is vhdl
-      if { [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] && ({VHDL} == $target_lang) } {
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang) } {
         if { ({timing} == $::tclapp::xilinx::xsim::a_sim_vars(s_type)) } {
           # This is not supported, netlist will be verilog always
         } else {
           set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
-          ::tclapp::xilinx::xsim::usf_copy_glbl_file
-          set file_str "$top_lib \"glbl.v\""
+          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
+          set file_str "$top_lib \"${glbl_file}\""
           puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
         }
       }
@@ -515,7 +759,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           # remove "lib" from prefix and ".so" extension 
           set file_name [string range $file_name 3 end-3]
           set final_file_name "-l$file_name"
-          set file_dir "[usf_get_relative_file_path $file_dir $dir]"
+          set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
         }
         
         if { {Shared Library} == [get_property FILE_TYPE $file] } {
@@ -679,7 +923,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
         set file_dir [file dirname $file] 
         set file_name [file tail $file] 
         if { $file_type == "Shared Library" } {
-          set file_dir "[usf_get_relative_file_path $file_dir $dir]"
+          set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
           if {[info exists a_shared_lib_dirs($file_dir)] == 0} {
             set a_shared_lib_dirs($file_dir) $file_dir
             lappend args_list "$file_dir"
@@ -688,7 +932,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
       }
       if {[llength $args_list] != 0} {
         set cmd_args [join $args_list ":"]
-        puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$LD_LIBRARY_PATH\n"
+        puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$PWD:\$LD_LIBRARY_PATH\n"
       }
     }
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $b_batch]
@@ -745,6 +989,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
 
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
@@ -823,7 +1069,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     if {$::tcl_platform(platform) == "unix"} {
       foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
         if { {Shared Library} == [get_property FILE_TYPE $file] } {
-          lappend args_list "--sv_root \".\/\" -sv_lib libsls"
+          lappend args_list "--sv_root \".\/\" -sv_lib libsls.so"
           break
         }
       }
@@ -879,7 +1125,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   # add simulation libraries
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    if { [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] || ({Verilog} == $target_lang) } {
+    if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         lappend args_list "-L simprims_ver"
       } else {
@@ -894,14 +1140,14 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { ([get_param "simulation.addUnifastLibraryForVhdl"]) && ({vhdl} == $simulator_language) } {
     set b_compile_unifast [get_property "unifast" $fs_obj]
   }
-  if { ([::tclapp::xilinx::xsim::usf_contains_vhdl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       lappend args_list "-L unifast"
     }
   }
 
   set b_compile_unifast [get_property "unifast" $fs_obj]
-  if { ([::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast } {
       lappend args_list "-L unifast_ver"
     }
@@ -957,6 +1203,9 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
+
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
   upvar $opts_arg opts 
   set sim_flow $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow)
@@ -978,7 +1227,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_top_level_glbl_inst_set 1
   }
 
-  if { [::tclapp::xilinx::xsim::usf_contains_verilog $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] || $b_verilog_sim_netlist } {
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $b_verilog_sim_netlist } {
     if { {behav_sim} == $sim_flow } {
       set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" $fs_obj]
       if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
@@ -1103,14 +1352,12 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   if { {} != $saif } {
     set uut [get_property "XSIM.SIMULATE.UUT" $fs_obj]
     puts $fh_scr "\nopen_saif \"$saif\""
-    if { {} == $uut } {
-      set uut "/$top/uut"
+    if { {} != $uut } {
+      set uut_name [::tclapp::xilinx::xsim::usf_resolve_uut_name_with_scope uut]
+      puts $fh_scr "set curr_xsim_wave_scope \[current_scope\]"
+      puts $fh_scr "current_scope $uut_name"
     }
 
-    set uut_name [::tclapp::xilinx::xsim::usf_resolve_uut_name_with_scope uut]
-
-    puts $fh_scr "set curr_xsim_wave_scope \[current_scope\]"
-    puts $fh_scr "current_scope $uut_name"
     if { $b_post_sim } {
       puts $fh_scr "log_saif \[get_objects -r *\]"
     } else {
@@ -1121,8 +1368,10 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
         puts $fh_scr "log_saif \[get_objects $filter *\]"
       }
     }
-    puts $fh_scr "current_scope \$curr_xsim_wave_scope"
-    puts $fh_scr "unset curr_xsim_wave_scope"
+    if { {} != $uut } {
+      puts $fh_scr "current_scope \$curr_xsim_wave_scope"
+      puts $fh_scr "unset curr_xsim_wave_scope"
+    }
   }
 
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
@@ -1308,6 +1557,57 @@ proc usf_xsim_get_design_libs { design_files } {
     }
   }
   return $libs
+}
+
+proc usf_xsim_map_pre_compiled_libs { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  if { !$a_sim_vars(b_use_static_lib) } {
+    return
+  }
+
+  set lib_path [get_property sim.ipstatic.compiled_library_dir [current_project]]
+  set ini_file [file join $lib_path "xsim.ini"]
+  if { ![file exists $ini_file] } {
+    return
+  }
+
+  set fh_ini 0
+  if { [catch {open $ini_file r} fh_ini] } {
+    send_msg_id USF-XSim-099 WARNING "Failed to open file for read ($ini_file)\n"
+    return
+  }
+  set ini_data [read $fh_ini]
+  close $fh_ini
+
+  set ini_data [split $ini_data "\n"]
+  set b_lib_start false
+  foreach line $ini_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp "^secureip" $line] } {
+      set b_lib_start true
+    }
+    if { $b_lib_start } {
+      if { [regexp "^secureip" $line] ||
+           [regexp "^unisim" $line] ||
+           [regexp "^simprim" $line] ||
+           [regexp "^unifast" $line] ||
+           [regexp "^unimacro" $line] } {
+        continue
+      }
+      if { ([regexp {^--} $line]) } {
+        set b_lib_start false
+        continue
+      }
+      if { [regexp "=" $line] } {
+        puts $fh "$line"
+      }
+    }
+  }
 }
 
 proc usf_xsim_include_xvhdl_log {} {

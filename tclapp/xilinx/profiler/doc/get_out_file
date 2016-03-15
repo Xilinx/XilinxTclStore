@@ -1,0 +1,6 @@
+
+Example:
+
+  # Get the output file
+  set output_file [ xilinx::profiler::get_out_file ]
+
