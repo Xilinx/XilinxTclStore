@@ -3031,8 +3031,12 @@ proc xps_verify_ip_status {} {
   } else {
     foreach ip [get_ips -all -quiet] {
       # is user-disabled? or auto_disabled? continue
-      if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip}.xci]]) ||
-           ({1} == [get_property is_auto_disabled [get_files -quiet -all ${ip}.xci]]) } {
+      set ip_file [get_files -quiet -all ${ip}.xci]
+      if { [llength $ip_file] == 0 } {
+        continue
+      }
+      if { ({0} == [get_property is_enabled $ip_file]) ||
+           ({1} == [get_property is_auto_disabled $ip_file]) } {
         continue
       }
       dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -all -quiet $ip]]
