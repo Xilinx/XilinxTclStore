@@ -43,7 +43,7 @@ proc xif_init_vars {} {
   set a_vars(b_ips_locked)            0
   set a_vars(b_ips_upto_date)         1
   set a_vars(b_is_managed)            [get_property managed_ip [current_project]]
-  set a_vars(b_use_static_lib)        [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  set a_vars(b_use_static_lib)        [get_property sim.use_ip_compiled_libs [current_project]]
   set a_vars(fs_obj)                  [current_fileset -simset]
 
   variable compile_order_data         [list]
@@ -206,8 +206,22 @@ proc xif_export_simulation { ip_file } {
   variable a_vars
   # -of_objects specified? generate sim scripts for the specified object
   if { $a_vars(b_of_objects_specified) && (!$a_vars(b_no_script)) } {
+    set additional_switches [list]
+    if { $a_vars(b_use_static_lib) } {
+      lappend additional_switches -use_ip_compiled_libs
+    }
+    set ip_user_files_dir [get_property ip.user_files_dir [current_project]]
+    if { [string length $ip_user_files_dir] != 0 } {
+      lappend additional_switches -ip_user_files_dir
+      lappend additional_switches $ip_user_files_dir
+    }
+    set ipstatic_source_dir [get_property sim.ipstatic.source_dir [current_project]]
+    if { [string length $ipstatic_source_dir] != 0 } {
+      lappend additional_switches -ipstatic_source_dir
+      lappend additional_switches $ipstatic_source_dir
+    }
     # TODO: speedup
-    export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force
+    eval export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force $additional_switches
   }
 }
 
