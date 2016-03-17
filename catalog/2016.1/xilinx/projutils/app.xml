@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added deprecation message for single step help</revision_history>
+      <revision_history>pass clibs directory while checking for compiled libraries</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
