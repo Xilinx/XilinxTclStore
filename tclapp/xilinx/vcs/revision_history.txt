@@ -1,3 +1,5 @@
+2.94 set absolute path for xpm files
+2.93 pass clibs directory while checking for compiled libraries
 2.92 updated progress message for compile step
 2.91 set absolute path for glbl.v if absolute_path switch specified
 2.90 define proc to return true if system verilog source found

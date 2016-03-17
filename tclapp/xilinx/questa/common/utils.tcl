@@ -901,14 +901,12 @@ proc xcs_uniquify_cmd_str { cmd_strs } {
   return $uniq_cmd_strs
 }
 
-proc xcs_get_compiled_libraries {} {
+proc xcs_get_compiled_libraries { clibs_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set l_libs [list]
-  set simulator [string tolower [get_property target_simulator [current_project]]]
-  set clibs_dir [get_property compxlib.${simulator}_compiled_library_dir [current_project]]
   set file [file normalize [file join $clibs_dir ".cxl.stat"]]
   if { ![file exists $file] } {
     return $l_libs

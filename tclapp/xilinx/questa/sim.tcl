@@ -140,7 +140,8 @@ proc usf_questa_setup_simulation { args } {
 
   variable l_compiled_libraries
   if { $a_sim_vars(b_use_static_lib) } {
-    set l_compiled_libraries [xcs_get_compiled_libraries]
+    set clibs_dir [get_property compxlib.questa_compiled_library_dir [current_project]]
+    set l_compiled_libraries [xcs_get_compiled_libraries $clibs_dir]
   }
 
   # generate mem files

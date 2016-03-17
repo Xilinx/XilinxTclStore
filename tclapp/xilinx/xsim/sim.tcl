@@ -188,7 +188,8 @@ proc usf_xsim_setup_simulation { args } {
 
   variable l_compiled_libraries
   if { $a_sim_vars(b_use_static_lib) } {
-    set l_compiled_libraries [xcs_get_compiled_libraries]
+    usf_set_compiled_lib_dir
+    set l_compiled_libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir)]
   }
 
   # generate mem files
@@ -204,28 +205,62 @@ proc usf_xsim_setup_simulation { args } {
      [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
-
-  # find/copy xsim.ini file into run dir
+ 
+  set b_create_default_ini 1
   if { $a_sim_vars(b_use_static_lib) } {
-    if {[usf_xsim_verify_compiled_lib]} { return 1 }
     set filename "xsim.ini"
-    set fh 0
     set file [file join $run_dir $filename]
-    if {[catch {open $file a} fh]} {
-      send_msg_id USF-XSim-011 ERROR "Failed to open file to append ($file)\n"
-      return
+
+    # at this point the ini file must exist in run for pre-compile flow, if not create default
+    # for user design libraries since the static files will be exported for these libraries
+    if { [file exists $file] } {
+      # re-align local libraries for the ones that were not found in compiled library
+      usf_realign_local_mappings $file l_local_design_libraries
+      set b_create_default_ini 0
     }
-    usf_xsim_map_pre_compiled_libs $fh
-    close $fh
+  }
 
-    # re-align local libraries for the ones that were not found in compiled library
-    usf_realign_local_mappings $file l_local_design_libraries
-
-  } else {
+  if { $b_create_default_ini } {
     usf_xsim_write_setup_file
   }
 
   return 0
+}
+
+proc usf_set_compiled_lib_dir { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+
+  set filename "xsim.ini"
+  set file [file join $run_dir $filename]
+
+  # delete xsim.ini from run dir
+  if { [file exists $file] } {
+    [catch {file delete -force $file} error_msg]
+  }
+
+  # find/copy xsim.ini file into run dir
+  if { [usf_xsim_verify_compiled_lib] } {
+    return
+  }
+
+  if { ![file exists $file] } {
+    return
+  }
+
+  set fh 0
+  if {[catch {open $file a} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to append ($file)\n"
+    return
+  }
+  usf_xsim_map_pre_compiled_libs $fh
+  close $fh
+
+  return
 }
 
 proc usf_realign_local_mappings { ini_file l_local_design_libraries_arg } {
@@ -343,154 +378,96 @@ proc usf_xsim_verify_compiled_lib {} {
   # Return Value:
 
   variable a_sim_vars
-  set b_scripts_only $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only)
+  set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
-  set ini_file "xsim.ini"
-  set compiled_lib_dir {}
-
+  set filename "xsim.ini"
   send_msg_id USF-XSim-007 INFO "Finding pre-compiled libraries...\n"
 
-  # 1. find default install location
+  # 1. is -lib_map_path specified and point to valid location?
+  if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+    set ini_file [file normalize [file join $a_sim_vars(s_lib_map_path) $filename]]
+    if { [file exists $ini_file] } {
+      if { [usf_copy_ini_file $a_sim_vars(s_lib_map_path)] } {
+        return 1
+      }  
+      set a_sim_vars(compiled_library_dir) $a_sim_vars(s_lib_map_path)
+      return 0
+    } else {
+      usf_print_compiled_lib_msg
+      return 1
+    }
+  }
+
+  # 2. if empty property (default), calculate default install location
   set dir [get_property "COMPXLIB.XSIM_COMPILED_LIBRARY_DIR" [current_project]]
-  set file [file normalize [file join $dir $ini_file]]
+  if { {} == $dir } {
+    set dir $::env(XILINX_VIVADO)
+    set dir [file normalize [file join $dir "data/xsim"]]
+  }
+  set file [file normalize [file join $dir $filename]]
   if { [file exists $file] } {
-    set compiled_lib_dir $dir
-  }
-
-  # 2. check -lib_map_path
-  if { $a_sim_vars(b_use_static_lib) } {
-    # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      if { [file exists $a_sim_vars(s_lib_map_path)] } {
-        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
-      } else {
-          send_msg_id USF-XSim-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
-      }
+    if { [usf_copy_ini_file $dir] } {
+     return 1
     }
-  }
-
-  # 3. not found? find xsim.ini from current working directory
-  if { {} == $compiled_lib_dir } {
-    set dir [file normalize [pwd]]
-    set file [file normalize [file join $dir $ini_file]]
-    if { [file exists $file] } {
-      set compiled_lib_dir $dir
-    }
-  }
-
-  # 4. not found? finally check in run dir
-  if { {} == $compiled_lib_dir } {
-    set file [file normalize [file join $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) $ini_file]]
-    if { ! [file exists $file] } {
-      if { $b_scripts_only } {
-        send_msg_id USF-XSim-024 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
-      } else {
-        send_msg_id USF-XSim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
-      }
-      send_msg_id USF-XSim-009 INFO " Recommendation:- Please set the 'COMPXLIB.XSIM_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for XSim\n"
-    }
+    set a_sim_vars(compiled_library_dir) $dir
+    return 0
   } else {
-    # 5. copy to run dir
-    set b_copy_default_ini_file true
-    set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
-    if { $a_sim_vars(b_use_static_lib) } {
-      # check from build area
-      set ini_ip_file [file join $compiled_lib_dir "ip" "xsim_ip.ini"]
-      if { [file exists $ini_ip_file] } {
-        set target_ini_file [file join $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) "xsim.ini"]
-        if {[catch {file copy -force $ini_ip_file $target_ini_file} error_msg] } {
-          send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_ip_file): $error_msg\n"
-        } else {
-          send_msg_id USF-XSim-011 INFO "File '$ini_ip_file' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
-          set b_copy_default_ini_file false
-          #usf_process_data_dir_env $compiled_lib_dir 
-        }
-      }
-    }
-
-    if { $b_copy_default_ini_file } {
-      if { [file exists $ini_file_path] } {
-        if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)} error_msg] } {
-          send_msg_id USF-XSim-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
-        } else {
-          send_msg_id USF-XSim-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
-          #usf_process_data_dir_env $compiled_lib_dir 
-        }
-      }
-    }
+    usf_print_compiled_lib_msg
+    return 1
   }
-  return 0
+
+  return 1
 }
 
-proc usf_process_data_dir_env { compiled_lib_dir } {
+proc usf_print_compiled_lib_msg {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
-  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+  set b_scripts_only $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only)
 
-  # remove "xsim" sub-dir from path since it is already part of path in xsim.ini copied from specified location (compxlib.xsim_compiled_library_dir)
-  set compiled_lib_dir [file dirname $compiled_lib_dir]
-
-  set filename "xsim.ini"
-  set ini_file [file normalize [file join $dir $filename]]
-  if { ![file exists $ini_file] } {
-    return
+  if { $b_scripts_only } {
+    send_msg_id USF-XSim-024 WARNING "The compiled IP simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
+  } else {
+    send_msg_id USF-XSim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library. IPs will be compiled locally as part of the simulation.\n"
   }
-  # read xsim.ini contents
-  set fh 0
-  if {[catch {open $ini_file r} fh]} {
-    send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($ini_file)\n"
-    return 1
-  }
-  set data [read $fh]
-  close $fh
+}
 
-  # check if data dir env specified, if not, return, else replace data dir env with path
-  set b_data_dir_env false
-  set data [split $data "\n"]
-  foreach line $data {
-    set line [string trim $line]
-    if { [string length $line] == 0 } { continue; }
-    if { [regexp "RDI_DATADIR" $line] } {
-      set b_data_dir_env true
-      break
+proc usf_copy_ini_file { dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+
+  # check from install area (xsim/ip/xsim_ip.ini)
+  set file [file join $dir "ip" "xsim_ip.ini"]
+  if { [file exists $file] } {
+    set target_file [file join $run_dir "xsim.ini"]
+    if { [catch {file copy -force $file $target_file} error_msg] } {
+      send_msg_id USF-XSim-010 ERROR "Failed to copy file ($file): $error_msg\n"
+      return 1
+    } else {
+      send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$run_dir'\n"
+      return 0
     }
   }
-  if { !$b_data_dir_env } { return }
 
-  # first make back up
-  set ini_file_bak ${ini_file}.bak
-  [catch {file copy -force $ini_file $ini_file_bak} error_msg]
-
-  # delete ini file
-  [catch {file delete -force $ini_file} error_msg]
-
-  # create fresh copy
-  set fh 0
-  if {[catch {open $ini_file w} fh]} {
-    send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($ini_file)\n"
-    # revert backup ini file
-    [catch {file copy -force $ini_file_bak $ini_file} error_msg]
-    if { [file exists $ini_file_bak] } {
-      [catch {file delete -force $ini_file_bak} error_msg]
+  # now copy the default xsim.ini
+  set file [file join $dir "xsim.ini"]
+  if { [file exists $file] } {
+    if { [catch {file copy -force $file $run_dir} error_msg] } {
+      send_msg_id USF-XSim-010 ERROR "Failed to copy file ($file): $error_msg\n"
+      return 1
+    } else {
+      send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$run_dir'\n"
+      return 0
     }
-    return 1
   }
-  foreach line $data {
-    set line [string trim $line]
-    if { [string length $line] == 0 } { continue; }
-    if { [regexp "RDI_DATADIR" $line] } {
-      regsub -all {\$RDI_DATADIR} $line "$compiled_lib_dir" line
-    }
-    puts $fh $line
-  }
-  close $fh
-  if { [file exists $ini_file_bak] } {
-    [catch {file delete -force $ini_file_bak} error_msg]
-  }
+  return 0
 }
 
 proc usf_xsim_write_setup_file {} {
@@ -519,36 +496,6 @@ proc usf_xsim_write_setup_file {} {
   }
   
   close $fh
-}
-
-proc usf_xsim_copy_pre_compiled_setup_file {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path)
-  set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
-
-  set filename "xsim.ini"
-  set ini_file [file normalize [file join $lib_dir $filename]]
-  if { [file exists $ini_file] } {
-    if {[catch {file copy -force $ini_file $run_dir} error_msg] } {
-      send_msg_id USF-XSim-Tcl-051 WARNING "failed to copy file '$ini_file' to '$run_dir' : $error_msg\n"
-    } else {
-      send_msg_id USF-XSim-Tcl-051 INFO "Copied xsim.ini from '$lib_dir'\n"
-      if { $a_sim_vars(b_use_static_lib) } {
-        set fh 0
-        set file [file join $run_dir $filename]
-        if {[catch {open $file a} fh]} {
-          send_msg_id USF-XSim-011 ERROR "Failed to open file to append ($file)\n"
-          return
-        }
-        usf_xsim_map_pre_compiled_libs $fh
-        close $fh
-      }
-    }
-  }
 }
 
 proc usf_xsim_write_compile_script { scr_filename_arg } {
@@ -1565,9 +1512,6 @@ proc usf_xsim_map_pre_compiled_libs { fh } {
   # Return Value:
 
   variable a_sim_vars
-  if { !$a_sim_vars(b_use_static_lib) } {
-    return
-  }
 
   set lib_path [get_property sim.ipstatic.compiled_library_dir [current_project]]
   set ini_file [file join $lib_path "xsim.ini"]
