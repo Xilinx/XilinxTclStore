@@ -148,12 +148,6 @@ proc export_simulation {args} {
     }
   }
 
-
-  variable l_compiled_libraries
-  if { $a_sim_vars(b_use_static_lib) } {
-    set l_compiled_libraries [xcs_get_compiled_libraries]
-  }
-
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
     if { [xps_xport_simulation $objs] } {
@@ -1653,9 +1647,11 @@ proc xps_write_sim_script { run_dir data_files filename } {
   variable a_sim_vars
   variable l_target_simulator
   variable l_valid_ip_extns
-
+  variable l_compiled_libraries
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   foreach simulator $l_target_simulator {
+    # initialize and fetch compiled libraries for precompile flow
+    set l_compiled_libraries [xps_get_compiled_libraries $simulator]
     set simulator_name [xps_get_simulator_pretty_name $simulator] 
     #puts ""
     send_msg_id exportsim-Tcl-035 INFO \
@@ -1703,6 +1699,37 @@ proc xps_write_sim_script { run_dir data_files filename } {
     }
   }
   return 0
+}
+
+proc xps_get_compiled_libraries { simulator } { 
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  variable l_target_simulator
+  set libraries [list]
+
+  if { !$a_sim_vars(b_use_static_lib) } {
+    return $libraries
+  }
+
+  set clibs_dir {}
+  # default for xsim
+  if { {xsim} == $simulator } {
+    set dir $::env(XILINX_VIVADO)
+    set clibs_dir [file normalize [file join $dir "data/xsim"]]
+  }
+
+  # in case -lib_map_path specified and simulator specified, pick that
+  if { ([llength $l_target_simulator] == 1) && ([string length $a_sim_vars(s_lib_map_path)] > 0) } {
+    set clibs_dir [file normalize $a_sim_vars(s_lib_map_path)]
+  }
+
+  if { {} != $clibs_dir } {
+    set libraries [xcs_get_compiled_libraries $clibs_dir]
+  }
+  return $libraries
 }
 
 proc xps_check_script { dir filename } {
@@ -3031,8 +3058,15 @@ proc xps_verify_ip_status {} {
   } else {
     foreach ip [get_ips -all -quiet] {
       # is user-disabled? or auto_disabled? continue
-      if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip}.xci]]) ||
-           ({1} == [get_property is_auto_disabled [get_files -quiet -all ${ip}.xci]]) } {
+      set ip_file [get_files -quiet -all ${ip}.xci]
+      if { [llength $ip_file] == 0 } {
+        set ip_file [get_files -quiet -all ${ip}.xco]
+      }
+      if { [llength $ip_file] == 0 } {
+        continue
+      }
+      if { ({0} == [get_property is_enabled $ip_file]) ||
+           ({1} == [get_property is_auto_disabled $ip_file]) } {
         continue
       }
       dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -all -quiet $ip]]
@@ -3173,28 +3207,34 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
 
   if { {xsim} == $simulator } {
     if { $a_sim_vars(b_use_static_lib) } {
-      set compiled_lib_dir {}
-      set b_path_exist false
+
+      # default dir
+      set xil_dir $::env(XILINX_VIVADO)
+      set compiled_lib_dir [file normalize [file join $xil_dir "data/xsim"]]
+
       # is -lib_map_path specified and point to valid location?
       if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
         set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
         set compiled_lib_dir $a_sim_vars(s_lib_map_path)
-        if { [file exists $compiled_lib_dir] } {
-          set b_path_exist true
+        if { ![file exists $compiled_lib_dir] } {
+          [catch {send_msg_id exportsim-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
+          puts $fh_unix "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
+          puts $fh_unix "  if \[\[ (\$1 != \"\" && -e \$1) \]\]; then"
+          puts $fh_unix "    lib_map_path=\"\$1\""
+          puts $fh_unix "  else"
+          puts $fh_unix "    echo -e \"ERROR: Compiled simulation library directory path not specified or does not exist (type \"./top.sh -help\" for more information)\\n\""
+          puts $fh_unix "  fi"
+        } else {
           puts $fh_unix "  if \[\[ (\$1 != \"\") \]\]; then"
           puts $fh_unix "    lib_map_path=\"\$1\""
           puts $fh_unix "  else"
           puts $fh_unix "    lib_map_path=\"$compiled_lib_dir\""
           puts $fh_unix "  fi"
         }
-      }
-      
-      if { ! $b_path_exist } {
-        puts $fh_unix "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
-        puts $fh_unix "  if \[\[ (\$1 != \"\" && -e \$1) \]\]; then"
+      } else {
+        puts $fh_unix "  lib_map_path=\"$compiled_lib_dir\""
+        puts $fh_unix "  if \[\[ (\$1 != \"\") \]\]; then"
         puts $fh_unix "    lib_map_path=\"\$1\""
-        puts $fh_unix "  else"
-        puts $fh_unix "    echo -e \"ERROR: Compiled simulation library directory path not specified or does not exist (type \"./top.sh -help\" for more information)\\n\""
         puts $fh_unix "  fi"
       }
     } else {

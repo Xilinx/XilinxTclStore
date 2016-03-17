@@ -38,6 +38,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_absolute_path)    0
   set a_sim_vars(s_install_path)     {}
   set a_sim_vars(s_lib_map_path)     {}
+  set a_sim_vars(compiled_library_dir) {}
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
