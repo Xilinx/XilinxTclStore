@@ -1,3 +1,4 @@
+2.99 set absolute path for xpm files
 2.98 pass clibs directory while checking for compiled libraries
 2.97 updated progress message for compile step
 2.96 set absolute path for glbl.v if absolute_path switch specified
