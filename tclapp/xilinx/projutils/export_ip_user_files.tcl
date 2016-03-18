@@ -220,13 +220,13 @@ proc xif_export_simulation { ip_file } {
     set ip_user_files_dir [get_property ip.user_files_dir [current_project]]
     if { [string length $ip_user_files_dir] > 0 } {
       lappend opt_args "-ip_user_files_dir"
-      lappend opt_args "\"$ip_user_files_dir\""
+      lappend opt_args "$ip_user_files_dir"
     }
     
     set ipstatic_source_dir [get_property sim.ipstatic.source_dir [current_project]]
     if { [string length $ipstatic_source_dir] > 0 } {
       lappend opt_args -ipstatic_source_dir
-      lappend opt_args "\"$ipstatic_source_dir\""
+      lappend opt_args "$ipstatic_source_dir"
     }
     # TODO: speedup
     eval export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force $opt_args

@@ -5111,10 +5111,13 @@ proc xps_fileset_contain_ips {} {
   # Argument Usage:
   # Return Value:
 
-  set filter "FILE_TYPE == \"IP\" || FILE_TYPE == \"IPX\" || FILE_TYPE == \"DSP Design Sources\" || FILE_TYPE == \"Block Designs\""
-  set ip_files [get_files -quiet -all -of_objects [current_fileset] -filter $filter]
-  if { [llength $ip_files] > 0 } {
-    return true
+  set fs_filter "FILESET_TYPE == \"SimulationSrcs\" || FILESET_TYPE == \"DesignSrcs\" || FILESET_TYPE == \"BlockSrcs\""
+  set file_filter "FILE_TYPE == \"IP\" || FILE_TYPE == \"IPX\" || FILE_TYPE == \"DSP Design Sources\" || FILE_TYPE == \"Block Designs\""
+  foreach fs_obj [get_filesets -quiet -filter $fs_filter] {
+    set ip_files [get_files -quiet -all -of_objects $fs_obj -filter $file_filter]
+    if { [llength $ip_files] > 0 } {
+      return true
+    }
   }
   return false
 }
