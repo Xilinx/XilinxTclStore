@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set absolute path for xpm files</revision_history>
+      <revision_history>add block fileset to check for ip files to fix a critical warning</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
