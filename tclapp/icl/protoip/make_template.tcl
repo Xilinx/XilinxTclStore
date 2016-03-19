@@ -8659,19 +8659,7 @@ proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
 	
 	set tmp_line "	XFoo_Start(&xcore);"
 	puts $file $tmp_line
-	set tmp_line "	while (XFoo_IsIdle(&xcore)!=1)"
-	puts $file $tmp_line
-	set tmp_line "	\{"
-	puts $file $tmp_line
-	set tmp_line "		if (DEBUG)"
-	puts $file $tmp_line
 	
-	
-	
-	set tmp_line "		printf(\"Wait until the IP has finished ...\\n\");"
-	puts $file $tmp_line
-	set tmp_line "	\}"
-	puts $file $tmp_line
 	
 	
 	set tmp_line ""
@@ -8693,6 +8681,21 @@ proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
 	set tmp_line "\{"
 	puts $file $tmp_line
 	puts $file ""
+	
+	set tmp_line "	while (XFoo_IsIdle(&xcore)!=1)"
+	puts $file $tmp_line
+	set tmp_line "	\{"
+	puts $file $tmp_line
+	set tmp_line "		if (DEBUG)"
+	puts $file $tmp_line
+	
+	
+	
+	set tmp_line "		printf(\"Wait until the IP has finished ...\\n\");"
+	puts $file $tmp_line
+	set tmp_line "	\}"
+	puts $file $tmp_line
+	
 	puts $file "	int i;"	
 	
 	puts $file "	//define output pointers"
@@ -8709,26 +8712,27 @@ proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
 	foreach i $output_vectors {
 		set tmp_line "	//read $i\_out from DDR"
 		puts $file $tmp_line
-		set tmp_line "	memcpy(outputvec_fix,$i\_out_ptr_ddr,  [string toupper $i]\_OUT_VECTOR_LENGTH*4);"
+		set tmp_line "	if (FLOAT_FIX_[string toupper $i]_OUT == 1) \{ //fixed point"
 		puts $file $tmp_line
-		set tmp_line "	for(i = 0; i < [string toupper $i]\_OUT_VECTOR_LENGTH; i++)"
+		set tmp_line "		memcpy(outputvec_fix,$i\_out_ptr_ddr,  [string toupper $i]\_OUT_VECTOR_LENGTH*4);"
 		puts $file $tmp_line
-		puts $file "	\{"
-		set tmp_line "		if (FLOAT_FIX_[string toupper $i]_OUT == 1) \{ //fixed point"
+		set tmp_line "		for(i = 0; i < [string toupper $i]\_OUT_VECTOR_LENGTH; i++)"
 		puts $file $tmp_line
+		puts $file "		\{"
 		set tmp_line "			$i\_out\[i\] = ((float)outputvec_fix\[i\]/pow(2, [string toupper $i]\_OUT_FRACTIONLENGTH));"
-		puts $file $tmp_line
-		set tmp_line "		\} else \{ //floating point"
-		puts $file $tmp_line
-		set tmp_line "			$i\_out\[i\] = outputvec_fix\[i\];"
 		puts $file $tmp_line
 		set tmp_line "		\}"
 		puts $file $tmp_line
+		set tmp_line "	\} else \{ //floating point"
+		puts $file $tmp_line
+		set tmp_line "		memcpy($i\_out,$i\_out_ptr_ddr,  [string toupper $i]\_OUT_VECTOR_LENGTH*4);"
+		puts $file $tmp_line
 		set tmp_line "	\}"
-		puts $file $tmp_line
-		set tmp_line "\}"
-		puts $file $tmp_line
+		puts $file $tmp_line		
 	}
+	
+	set tmp_line "\}"
+		puts $file $tmp_line
 	
 	close $file
 	
