@@ -38,6 +38,7 @@ proc xif_init_vars {} {
   set a_vars(b_is_fs_object_specified)  0
   set a_vars(b_no_script)             0
   set a_vars(b_sync)                  0
+  set a_vars(b_reset)                 0
   set a_vars(b_force)                 0
   set a_vars(s_ip_file_extn)          ".xci"
   set a_vars(b_ips_locked)            0
@@ -83,6 +84,7 @@ proc export_ip_user_files {args} {
   # [-ipstatic_source_dir <arg>]: Directory path to the static IP files
   # [-no_script]: Do not export simulation scripts
   # [-sync]: Delete IP/IPI dynamic and simulation script files
+  # [-reset]: Delete all IP/IPI static, dynamic and simulation script files
   # [-force]: Overwrite files 
 
   # Return Value:
@@ -105,6 +107,7 @@ proc export_ip_user_files {args} {
       "-ipstatic_source_dir" { incr i;set a_vars(ipstatic_source_dir) [lindex $args $i];set a_vars(b_ipstatic_source_dir) 1 }
       "-no_script"           { set a_vars(b_no_script) 1 }
       "-sync"                { set a_vars(b_sync) 1 }
+      "-reset"               { set a_vars(b_reset) 1 }
       "-force"               { set a_vars(b_force) 1 }
       default {
         if { [regexp {^-} $option] } {
@@ -363,6 +366,17 @@ proc xif_export_ip { obj } {
     if { {} == $extracted_static_file_path } {
       set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
     }
+
+    # if reset requested, delete IP file from ipstatic
+    if { $a_vars(b_reset) } {
+      if { [file exists $extracted_static_file_path] } {
+        if { [catch {file delete -force $extracted_static_file_path} _error] } {
+          #send_msg_id export_ip_user_files-Tcl-003 INFO "Failed to remove static simulation file (${extracted_static_file_path}): $_error\n"
+        } else {
+          #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted static file:$extracted_static_file_path\n"
+        }
+      }
+    }
   }
 
   # delete pre-compiled static files from ip_user_files
@@ -434,7 +448,7 @@ proc xif_export_ip { obj } {
   }
 
   # if sync requested delete ip/<ip_instance> and sim_scipts/<ip_instance>
-  if { $a_vars(b_sync) } {
+  if { $a_vars(b_sync) || $a_vars(b_reset) } {
     xif_delete_ip_inst_dir $ip_inst_dir $ip_name
 
     # delete core-container ip inst dir
@@ -465,47 +479,52 @@ proc xif_export_ip { obj } {
   #
   # dynamic files
   #
-  foreach dynamic_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
-    if { [lsearch $l_static_files $dynamic_file_obj] != -1 } { continue }
-    if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file_obj]] >= 0 } { continue }
-    set file $dynamic_file_obj
-    if { $b_container } {
-      set ip_name [xif_get_dynamic_core_container_ip_name $dynamic_file_obj $ip_name]
-      set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
+  if { $a_vars(b_reset) } {
+    # no op (for reset, we don't want to refetch the dynamic files. These files will be fetched by generate target or export_ip_user_files flow.)
+  } else {
+    # for default and sync flow, the dynamic files will be fetched always
+    foreach dynamic_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
+      if { [lsearch $l_static_files $dynamic_file_obj] != -1 } { continue }
+      if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file_obj]] >= 0 } { continue }
+      set file $dynamic_file_obj
+      if { $b_container } {
+        set ip_name [xif_get_dynamic_core_container_ip_name $dynamic_file_obj $ip_name]
+        set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
+        if { $a_vars(b_force) } {
+          set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $dynamic_file_obj]
+        } else {
+          set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $dynamic_file_obj]
+        }
+      } else {
+        #set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $dynamic_file_obj]
+        set bd_file {}
+        if { [xif_is_bd_ip_file $dynamic_file_obj bd_file] } {
+          # do not delete classic bd file
+        } else {
+          # cleanup dynamic files for classic ip
+          #if { [file exists $file] } {
+          #  if {[catch {file delete -force $file} error_msg] } {
+          #    send_msg_id export_ip_user_files-Tcl-011 ERROR "Failed to delete file ($dynamic_file_obj): $error_msg\n"
+          #    return 1
+          #  }
+          #}
+        }
+      }
+    }
+
+    # templates
+    foreach template_file [get_files -quiet -all -of [get_ips -all -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
+      if { [lsearch $l_static_files $template_file] != -1 } { continue }
+      set file {}
       if { $a_vars(b_force) } {
-        set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $dynamic_file_obj]
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $template_file]
       } else {
-        set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $dynamic_file_obj]
-      }
-    } else {
-      #set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $dynamic_file_obj]
-      set bd_file {}
-      if { [xif_is_bd_ip_file $dynamic_file_obj bd_file] } {
-        # do not delete classic bd file
-      } else {
-        # cleanup dynamic files for classic ip
-        #if { [file exists $file] } {
-        #  if {[catch {file delete -force $file} error_msg] } {
-        #    send_msg_id export_ip_user_files-Tcl-011 ERROR "Failed to delete file ($dynamic_file_obj): $error_msg\n"
-        #    return 1
-        #  }
-        #}
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $template_file]
       }
     }
-  }
 
-  # templates
-  foreach template_file [get_files -quiet -all -of [get_ips -all -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
-    if { [lsearch $l_static_files $template_file] != -1 } { continue }
-    set file {}
-    if { $a_vars(b_force) } {
-      set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $template_file]
-    } else {
-      set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $template_file]
-    }
+    xif_export_mem_init_files_for_ip $obj
   }
-
-  xif_export_mem_init_files_for_ip $obj
 
   return 0
 }
@@ -692,6 +711,17 @@ proc xif_export_bd { obj } {
     if { {} == $extracted_static_file_path } {
       set extracted_static_file_path [xif_get_extracted_static_file_path_bd $comps $index]
     }
+
+    # if reset requested, delete IPI file from ipstatic
+    if { $a_vars(b_reset) } {
+      if { [file exists $extracted_static_file_path] } {
+        if { [catch {file delete -force $extracted_static_file_path} _error] } {
+          #send_msg_id export_ip_user_files-Tcl-003 INFO "Failed to remove static simulation file (${extracted_static_file_path}): $_error\n"
+        } else {
+          #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted static file:$extracted_static_file_path\n"
+        }
+      }
+    }
   }
 
   # delete pre-compiled static files from ip_user_files
@@ -714,7 +744,7 @@ proc xif_export_bd { obj } {
   set bd_inst_dir [file normalize [file join $a_vars(bd_base_dir) $ip_name]]
 
   # if sync requested delete bd/<bd_instance> and sim_scipts/<bd_instance>
-  if { $a_vars(b_sync) } {
+  if { $a_vars(b_sync) || $a_vars(b_reset) } {
     if { [catch {file delete -force $bd_inst_dir} _error] } {
       send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove BD instance dirrectory:(${bd_inst_dir}): $_error\n"
     } else {
@@ -744,44 +774,49 @@ proc xif_export_bd { obj } {
   #
   # dynamic files
   #
-  foreach dynamic_file [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*simulation*"}] {
-    if { [lsearch $l_static_files $dynamic_file] != -1 } { continue }
-    if { {.xci} == [file extension $dynamic_file] } { continue }
-    if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file]] >= 0 } { continue }
-    set dynamic_file [string map {\\ /} $dynamic_file]
-    #puts dynamic_file=$dynamic_file
-
-    set hdl_dir_file {}
-    set ip_lib_dir {}
-    set target_ip_lib_dir {}
-    set repo_file [xif_get_dynamic_sim_file_bd $ip_name $dynamic_file hdl_dir_file ip_lib_dir target_ip_lib_dir]
-
-    # iterate over the hdl_dir_file comps and copy to target
-    set comps [lrange [split $hdl_dir_file "/"] 1 end]
-    set src   $ip_lib_dir
-    set dst   $target_ip_lib_dir
-    foreach comp $comps {
-      append src "/";append src $comp
-      append dst "/";append dst $comp
-      #puts src=$src
-      #puts dst=$dst
-      if { [file isdirectory $src] } {
-        if { ![file exists $dst] } {
-          if {[catch {file mkdir $dst} error_msg] } {
-            send_msg_id export_ip_user_files-Tcl-013 ERROR "Failed to create the directory ($dst): $error_msg\n"
-            return 1
+  if { $a_vars(b_reset) } {
+    # no op (for reset, we don't want to refetch the dynamic files. These files will be fetched by generate target or export_ip_user_files flow.)
+  } else {
+    # for default and sync flow, the dynamic files will be fetched always
+    foreach dynamic_file [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*simulation*"}] {
+      if { [lsearch $l_static_files $dynamic_file] != -1 } { continue }
+      if { {.xci} == [file extension $dynamic_file] } { continue }
+      if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file]] >= 0 } { continue }
+      set dynamic_file [string map {\\ /} $dynamic_file]
+      #puts dynamic_file=$dynamic_file
+  
+      set hdl_dir_file {}
+      set ip_lib_dir {}
+      set target_ip_lib_dir {}
+      set repo_file [xif_get_dynamic_sim_file_bd $ip_name $dynamic_file hdl_dir_file ip_lib_dir target_ip_lib_dir]
+  
+      # iterate over the hdl_dir_file comps and copy to target
+      set comps [lrange [split $hdl_dir_file "/"] 1 end]
+      set src   $ip_lib_dir
+      set dst   $target_ip_lib_dir
+      foreach comp $comps {
+        append src "/";append src $comp
+        append dst "/";append dst $comp
+        #puts src=$src
+        #puts dst=$dst
+        if { [file isdirectory $src] } {
+          if { ![file exists $dst] } {
+            if {[catch {file mkdir $dst} error_msg] } {
+              send_msg_id export_ip_user_files-Tcl-013 ERROR "Failed to create the directory ($dst): $error_msg\n"
+              return 1
+            }
           }
-        }
-      } else {
-        set dst_dir [file dirname $dst]
-         if {[catch {file copy -force $src $dst_dir} error_msg] } {
-          send_msg_id export_ip_user_files-Tcl-014 WARNING "Failed to copy file '$src' to '$dst_dir' : $error_msg\n"
+        } else {
+          set dst_dir [file dirname $dst]
+           if {[catch {file copy -force $src $dst_dir} error_msg] } {
+            send_msg_id export_ip_user_files-Tcl-014 WARNING "Failed to copy file '$src' to '$dst_dir' : $error_msg\n"
+          }
         }
       }
     }
+  
+    xif_export_mem_init_files_for_bd $obj
   }
-
-  xif_export_mem_init_files_for_bd $obj
 
   return 0
 }
