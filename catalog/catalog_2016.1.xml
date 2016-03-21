@@ -105,8 +105,8 @@
     <app>
       <name>spyglass</name>
       <company>atrenta</company>
-      <commit_id>1633320bfb92cb15f583a0ae725254682cce9ca9</commit_id>
-      <revision>1.4</revision>
+      <commit_id>7a1f7ccbd6e0062d4ae46144f55a379bc4013e09</commit_id>
+      <revision>1.5</revision>
     </app>
     <app>
       <name>template</name>
