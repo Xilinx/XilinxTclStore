@@ -12,8 +12,15 @@
 #  * Fixed the path for the device libraries (with gateslib option)
 #  * Added the option 'set_option read_protected_envelope yes'
 #
+# rev 1.3 3/17/2016
+#  * If the vhdl library is not blk_mem_gen then get ready to 
+#  * prepare for precompilation of this library.
+#  * If it is blk_mem_gen then do not do anything. Let this be a true
+#  * blackbox. Create the corresponding sgdc file for this blackbox.
+#
+#  * Remove the use of the 'synth_fileset' variable
+#
 ###############################################################################
-
 package require Vivado 1.2015.1
 
 namespace eval ::tclapp::atrenta::spyglass {
@@ -57,7 +64,6 @@ proc ::tclapp::atrenta::spyglass::uniquify_lib {lib lang num} {
   return $new_lib
 }
 
-    
 proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
 
   # Summary : This proc generates the spyglass project file
@@ -90,6 +96,11 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
     puts "INFO: Writing Spyglass compile script to file $outfile"
   }
 
+# ------------------------
+# ALOKE: Create a list of sgdc files for each blk_mem_gen blackbox found
+# ------------------------
+  set sgdc_file_list ""
+
   set found_top 0
   foreach t [find_top] {
     if {[string match $t $top_module]} {
@@ -103,16 +114,20 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   }
 
   set arch_name [get_property ARCHITECTURE [get_parts [get_property PART [current_project]]]]
-  ## Identify synthesis fileset
-  set synth_fileset [lindex [get_filesets * -filter {FILESET_TYPE == "DesignSrcs"}] 0]
-  if {[string match $synth_fileset ""]} {
-    puts stderr "ERROR: Could not find any synthesis fileset"
-    set rc 5
-    return $rc
-  } else {
-    puts "INFO: Found synthesis fileset $synth_fileset"
-  }
-  update_compile_order -fileset $synth_fileset
+# ------------------------------------------------------------------------
+# ALOKE 3/17/2016: In some initial version, synth_fileset variable was used. 
+#       Now this is not used any more. Commenting out the following lines
+# ------------------------------------------------------------------------
+# ## Identify synthesis fileset
+# set synth_fileset [lindex [get_filesets * -filter {FILESET_TYPE == "DesignSrcs"}] 0]
+# if {[string match $synth_fileset ""]} {
+#   puts stderr "ERROR: Could not find any synthesis fileset"
+#   set rc 5
+#   return $rc
+# } else {
+#   puts "INFO: Found synthesis fileset $synth_fileset"
+# }
+# update_compile_order -fileset $synth_fileset
   
   ###### Read in Xilinx lib cells 
   ###### Lists the unisim and unimacro library files related to a Vivado release
@@ -181,7 +196,7 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
     } else {
       set ip_name $top_module
       set ip_ref  $top_module
-      set files [get_files -norecurse -compile_order sources -used_in synthesis]
+      set files [get_files  -norecurse -compile_order sources -used_in synthesis]
       puts "INFO: Collecting files for Top level"
     }
 
@@ -196,10 +211,10 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
     foreach f $files {
       #set f1 [lindex [get_files -of [get_filesets $synth_fileset] $f] 0]
       incr num_files
-      set fn [get_property NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-      set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-      set fs [get_property FILESET_NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-      set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+      set fn [get_property NAME [lindex [get_files -all  $f] 0]]
+      set ft [get_property FILE_TYPE [lindex [get_files -all  $f] 0]]
+      set fs [get_property FILESET_NAME [lindex [get_files -all $f] 0]]
+      set lib [get_property LIBRARY [lindex [get_files -all  $f] 0]]
 
       puts "INFO: File= $fn Library= $lib File_type= $ft Fileset= $fs"
       if {$prev_lib == ""} {
@@ -239,8 +254,8 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
         array set incdir_ar {}
         if {[regexp {Verilog} $lang]} {
           foreach f [split $lib_file_array($lib)] {
-            set is_include [get_property IS_GLOBAL_INCLUDE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-            set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+            set is_include [get_property IS_GLOBAL_INCLUDE [lindex [get_files -all  $f] 0]]
+            set ft [get_property FILE_TYPE [lindex [get_files -all  $f] 0]]
             if {$is_include == 1 || [string match $ft "Verilog Header"]} {
               set file_dir [file dirname $f]
               if {![info exists incdir_ar($file_dir)]} {
@@ -255,21 +270,45 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
           }
         }
         regsub ":.*" $lib {} lib_no_num
+
+# --------------------------------------------
+# ALOKE: Create the sgdc file for blk_mem_gen
+# --------------------------------------------
+        if {[regexp {^blk_mem_gen_v\d+_\d+.*$} $lib_no_num] } {
+           set sgdc_file "$lib_no_num.sgdc"
+           if { [catch {open $sgdc_file w} result] } {
+              puts stderr "ERROR: Could not open $sgdc_file for writing\n$result"
+              set rc 1
+              return $rc
+           } else {
+              set sg_sgdc_fh $result
+              puts "INFO: Writing blk_mem_gen constraints to file $sgdc_file"
+              puts $sg_sgdc_fh "current_design $top_module"
+              puts $sg_sgdc_fh "abstract_port -module $lib_no_num -ports douta[0:17] -clock clka"
+              puts $sg_sgdc_fh "abstract_port -module $lib_no_num -ports doutb[0:17] -clock clkb"
+            close $sg_sgdc_fh
+          }
+          lappend sgdc_file_list $sgdc_file
+        }
+#
         if {[string match $lang "VHDL"]} {
-          puts $sg_fh "set_option lib $lib_no_num $lib_no_num"
-          puts $sg_fh "set_option libhdlfiles $lib_no_num { \\"
+          if {![regexp {^blk_mem_gen_v\d+_\d+.*$} $lib] } {
+            puts $sg_fh "set_option lib $lib_no_num $lib_no_num"
+            puts $sg_fh "set_option libhdlfiles $lib_no_num { \\"
           foreach f [split $lib_file_array($lib)] {
-            if {[string match [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0] ] "VHDL"]} {
+            set f_type [get_property FILE_TYPE [lindex [get_files -all  $f] 0]]
+            if {[string match $f_type "VHDL"]} {
               if {![regexp {^blk_mem_gen_v\d+_\d+$} $lib] || ([regexp {^blk_mem_gen_v\d+_\d+$} $lib] && [regexp {/blk_mem_gen_v\d+_\d+\.v} $f]) } {
                 puts $sg_fh "  $f \\"
               }
             }
           }
-          puts $sg_fh "}\n"
+            puts $sg_fh "}\n"
+            }
         } elseif {[string match $lang "Verilog"] || [string match $lang "SystemVerilog"]} {
 #_satrajit          puts $sg_fh "read_file -type verilog { \\"
           foreach f [split $lib_file_array($lib)] {
-            set f_type [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+            set f_type [get_property FILE_TYPE [lindex [get_files -all  $f] 0]]
             if {[string match $f_type "Verilog"] || [string match $f_type "SystemVerilog"]} {
               if {![regexp {^blk_mem_gen_v\d+_\d+$} $lib] || ([regexp {^blk_mem_gen_v\d+_\d+$} $lib] && [regexp {/blk_mem_gen_v\d+_\d+\.v} $f]) } {
                 puts $sg_fh "read_file -type verilog $f "
@@ -338,6 +377,14 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   puts $sg_fh "current_goal cdc/cdc_setup"
   puts $sg_fh "set_goal_option addrules Setup_blackbox01\n"
 
+  puts $sg_fh "current_goal cdc/cdc_verify_struct"
+  if {[llength $sgdc_file_list] != 0} {
+    puts $sg_fh "read_file -type sgdc { \\"
+    foreach sgdc_file $sgdc_file_list {
+      puts $sg_fh "    $sgdc_file \\"
+    }
+    puts $sg_fh "}\n"  
+  }
   
   close $sg_fh
   return $rc

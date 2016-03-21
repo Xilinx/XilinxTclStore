@@ -56,3 +56,4 @@ current_methodology $SPYGLASS_HOME/GuideWare2.0/block/rtl_handoff
 current_goal cdc/cdc_setup
 set_goal_option addrules Setup_blackbox01
 
+current_goal cdc/cdc_verify_struct
