@@ -1,0 +1,6 @@
+   $GIT_EXEC_PATH/../../bin/git clone https://atrenta-us@github.com/atrenta-us/XilinxTclStore.git
+   cd XilinxTclStore
+   $GIT_EXEC_PATH/../../bin/git remote add upstream https://atrenta-us@github.com/Xilinx/XilinxTclStore.git
+   $GIT_EXEC_PATH/../../bin/git fetch upstream
+   $GIT_EXEC_PATH/../../bin/git checkout 2015.4
+   $GIT_EXEC_PATH/../../bin/git push -u origin 2015.4
