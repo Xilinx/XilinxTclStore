@@ -912,7 +912,8 @@ proc xps_get_files { simulator launch_dir } {
       "DesignSrcs"     { set used_in_val "synthesis" }
       "SimulationSrcs" { set used_in_val "simulation"}
       "BlockSrcs"      { set used_in_val "synthesis" }
-    }
+    }    
+    set b_using_xpm_libraries false
     foreach library [get_property xpm_libraries [current_project]] {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
@@ -920,6 +921,23 @@ proc xps_get_files { simulator launch_dir } {
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type true $compiler l_other_compiler_opts l_incl_dirs_opts 1]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file
+          set b_using_xpm_libraries true
+        }
+      }
+    }
+    if { $b_using_xpm_libraries } {
+      set xpm_library [xcs_get_common_xpm_library]
+      set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
+      foreach file $common_xpm_vhdl_files {
+        set file_type "VHDL"
+        set compiler [xps_get_compiler $simulator $file_type]
+        set l_other_compiler_opts [list]
+        set b_is_xpm true
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $b_is_xpm $compiler l_other_compiler_opts l_incl_dirs_opts 1 $xpm_library]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -1341,7 +1359,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilo
   }
 }
 
-proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other_compiler_opts_arg  l_incl_dirs_opts_arg {b_skip_file_obj_access 0} } {
+proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other_compiler_opts_arg  l_incl_dirs_opts_arg {b_skip_file_obj_access 0} {xpm_library {}}} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1353,7 +1371,9 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
   set associated_library $a_sim_vars(default_lib);
   set srcs_dir [file normalize [file join $launch_dir "srcs"]]
   if { $b_skip_file_obj_access } {
-    #
+    if { ($b_xpm) && ([string length $xpm_library] != 0)} {
+      set associated_library $xpm_library
+    }
   } else {
     set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
     if { {} != $file_obj } {

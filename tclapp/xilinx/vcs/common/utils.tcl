@@ -932,3 +932,30 @@ proc xcs_get_compiled_libraries { clibs_dir } {
   }
   return $l_libs
 }
+
+proc xcs_get_common_xpm_library {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  return "xpm"
+}
+
+proc xcs_get_common_xpm_vhdl_files {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set files [list]
+  lappend files [xcs_get_path_from_data "ip/xpm/xpm_VCOMP.vhd"]
+  return $files
+}
+
+proc xcs_get_path_from_data {path_from_data} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set data_dir [rdi::get_data_dir -quiet -datafile $path_from_data]
+  return [file normalize [file join $data_dir $path_from_data]]
+}
