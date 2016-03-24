@@ -1,3 +1,4 @@
+3.154 support for the reset switch for deleting ip instance files
 3.153 add block fileset to check for ip files to fix a critical warning
 3.152 set absolute path for xpm files
 3.151 pass clibs directory while checking for compiled libraries
