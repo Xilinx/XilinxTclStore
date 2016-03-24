@@ -1,3 +1,4 @@
+2.90 add VCOM VHDL file for XPM simulation, CR:947555
 2.89 set absolute path for xpm files
 2.88 pass clibs directory while checking for compiled libraries
 2.87 updated progress message for compile step
