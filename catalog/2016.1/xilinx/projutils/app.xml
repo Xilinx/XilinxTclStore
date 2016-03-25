@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add VCOM VHDL file for XPM simulation, CR:947555</revision_history>
+      <revision_history>do not refetch ipstatic file while iterating over files already returned from get_files</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

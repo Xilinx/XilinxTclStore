@@ -1,3 +1,4 @@
+3.156 do not refetch ipstatic file while iterating over files already returned from get_files
 3.155 add VCOM VHDL file for XPM simulation, CR:947555
 3.154 support for the reset switch for deleting ip instance files
 3.153 add block fileset to check for ip files to fix a critical warning
