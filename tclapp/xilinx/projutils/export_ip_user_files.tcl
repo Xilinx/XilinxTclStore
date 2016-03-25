@@ -660,7 +660,7 @@ proc xif_export_bd { obj } {
   set l_static_files [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*ipstatic*"}]
   foreach src_ip_file $l_static_files {
     set filename [file tail $src_ip_file]
-    set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+    set file_obj $src_ip_file
     if { {} == $file_obj } { continue; }
     if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file_obj] } {
