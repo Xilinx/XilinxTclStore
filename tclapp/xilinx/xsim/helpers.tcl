@@ -908,6 +908,35 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   set other_ver_opts [list]
   usf_get_other_verilog_options $global_files_str other_ver_opts
 
+  set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
+  set b_using_xpm_libraries false
+  foreach library $xpm_libraries {
+    foreach file [rdi::get_xpm_files -library_name $library] {
+      set file_type "SystemVerilog"
+      set g_files $global_files_str
+      set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files other_ver_opts]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $file
+        set b_using_xpm_libraries true
+      }
+    }
+  }
+  if { $b_using_xpm_libraries } {
+    set xpm_library [xcs_get_common_xpm_library]
+    set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
+    foreach file $common_xpm_vhdl_files {
+      set file_type "VHDL"
+      set g_files {}
+      set b_is_xpm true
+      set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files other_ver_opts $xpm_library]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $file
+      }
+    }
+  }
+
   # prepare command line args for fileset files
   if { [xcs_is_fileset $target_obj] } {
     set used_in_val "simulation"
@@ -916,34 +945,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       "SimulationSrcs" { set used_in_val "simulation"}
       "BlockSrcs"      { set used_in_val "synthesis" }
     }
-    set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
-    set b_using_xpm_libraries false
-    foreach library $xpm_libraries {
-      foreach file [rdi::get_xpm_files -library_name $library] {
-        set file_type "SystemVerilog"
-        set g_files $global_files_str
-        set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files other_ver_opts]
-        if { {} != $cmd_str } {
-          lappend files $cmd_str
-          lappend l_compile_order_files $file
-          set b_using_xpm_libraries true
-        }
-      }
-    }
-    if { $b_using_xpm_libraries } {
-      set xpm_library [xcs_get_common_xpm_library]
-      set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
-      foreach file $common_xpm_vhdl_files {
-        set file_type "VHDL"
-        set g_files {}
-        set b_is_xpm true
-        set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files other_ver_opts $xpm_library]
-        if { {} != $cmd_str } {
-          lappend files $cmd_str
-          lappend l_compile_order_files $file
-        }
-      }
-    }
+
     set b_add_sim_files 1
     # add files from block filesets
     if { {} != $linked_src_set } {

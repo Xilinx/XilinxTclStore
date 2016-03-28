@@ -906,44 +906,47 @@ proc xps_get_files { simulator launch_dir } {
       }
     }
   }
+
+  set b_using_xpm_libraries false
+  foreach library [get_property xpm_libraries [current_project]] {
+    foreach file [rdi::get_xpm_files -library_name $library] {
+      set file_type "SystemVerilog"
+      set compiler [xps_get_compiler $simulator $file_type]
+      set l_other_compiler_opts [list]
+      xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
+      set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type true $compiler l_other_compiler_opts l_incl_dirs_opts 1]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $file
+        set b_using_xpm_libraries true
+      }
+    }
+  }
+  if { $b_using_xpm_libraries } {
+    set xpm_library [xcs_get_common_xpm_library]
+    set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
+    foreach file $common_xpm_vhdl_files {
+      set file_type "VHDL"
+      set compiler [xps_get_compiler $simulator $file_type]
+      set l_other_compiler_opts [list]
+      set b_is_xpm true
+      xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
+      set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $b_is_xpm $compiler l_other_compiler_opts l_incl_dirs_opts 1 $xpm_library]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $file
+      }
+    }
+  }
+
   if { [xcs_is_fileset $target_obj] } {
     set used_in_val "simulation"
     switch [get_property "FILESET_TYPE" [get_filesets $target_obj]] {
       "DesignSrcs"     { set used_in_val "synthesis" }
       "SimulationSrcs" { set used_in_val "simulation"}
       "BlockSrcs"      { set used_in_val "synthesis" }
-    }    
-    set b_using_xpm_libraries false
-    foreach library [get_property xpm_libraries [current_project]] {
-      foreach file [rdi::get_xpm_files -library_name $library] {
-        set file_type "SystemVerilog"
-        set compiler [xps_get_compiler $simulator $file_type]
-        set l_other_compiler_opts [list]
-        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
-        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type true $compiler l_other_compiler_opts l_incl_dirs_opts 1]
-        if { {} != $cmd_str } {
-          lappend files $cmd_str
-          lappend l_compile_order_files $file
-          set b_using_xpm_libraries true
-        }
-      }
     }
-    if { $b_using_xpm_libraries } {
-      set xpm_library [xcs_get_common_xpm_library]
-      set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
-      foreach file $common_xpm_vhdl_files {
-        set file_type "VHDL"
-        set compiler [xps_get_compiler $simulator $file_type]
-        set l_other_compiler_opts [list]
-        set b_is_xpm true
-        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
-        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $b_is_xpm $compiler l_other_compiler_opts l_incl_dirs_opts 1 $xpm_library]
-        if { {} != $cmd_str } {
-          lappend files $cmd_str
-          lappend l_compile_order_files $file
-        }
-      }
-    }
+
     set b_add_sim_files 1
     if { {} != $linked_src_set } {
       if { [get_param project.addBlockFilesetFilesForUnifiedSim] } {
@@ -1736,7 +1739,10 @@ proc xps_get_compiled_libraries { simulator } {
   set clibs_dir {}
   # default for xsim
   if { {xsim} == $simulator } {
-    set dir $::env(XILINX_VIVADO)
+    set dir {}
+    if { [info exists ::env(XILINX_VIVADO)] } {
+      set dir $::env(XILINX_VIVADO)
+    }
     set clibs_dir [file normalize [file join $dir "data/xsim"]]
   }
 
@@ -1900,7 +1906,11 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
 
   set filename "run.f"
   set arg_list [list]
-  puts $fh_unix "  XILINX_VIVADO=$::env(XILINX_VIVADO)"
+  set xv_dir {}
+  if { [info exists ::env(XILINX_VIVADO)] } {
+    set xv_dir $::env(XILINX_VIVADO)
+  }
+  puts $fh_unix "  XILINX_VIVADO=$xv_dir"
   puts $fh_unix "  export XILINX_VIVADO"
   set b_verilog_only 0
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] && ![xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
@@ -3192,34 +3202,15 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     if { $a_sim_vars(b_use_static_lib) } {
 
       # default dir
-      set xil_dir $::env(XILINX_VIVADO)
-      set compiled_lib_dir [file normalize [file join $xil_dir "data/xsim"]]
-
-      # is -lib_map_path specified and point to valid location?
-      if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-        set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
-        if { ![file exists $compiled_lib_dir] } {
-          [catch {send_msg_id exportsim-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
-          puts $fh_unix "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
-          puts $fh_unix "  if \[\[ (\$1 != \"\" && -e \$1) \]\]; then"
-          puts $fh_unix "    lib_map_path=\"\$1\""
-          puts $fh_unix "  else"
-          puts $fh_unix "    echo -e \"ERROR: Compiled simulation library directory path not specified or does not exist (type \"./top.sh -help\" for more information)\\n\""
-          puts $fh_unix "  fi"
-        } else {
-          puts $fh_unix "  if \[\[ (\$1 != \"\") \]\]; then"
-          puts $fh_unix "    lib_map_path=\"\$1\""
-          puts $fh_unix "  else"
-          puts $fh_unix "    lib_map_path=\"$compiled_lib_dir\""
-          puts $fh_unix "  fi"
-        }
-      } else {
-        puts $fh_unix "  lib_map_path=\"$compiled_lib_dir\""
-        puts $fh_unix "  if \[\[ (\$1 != \"\") \]\]; then"
-        puts $fh_unix "    lib_map_path=\"\$1\""
-        puts $fh_unix "  fi"
+      set compiled_lib_dir {}
+      if { [info exists ::env(XILINX_VIVADO)] } {
+        set xil_dir $::env(XILINX_VIVADO)
+        set compiled_lib_dir [file normalize [file join $xil_dir "data/xsim"]]
       }
+      puts $fh_unix "  lib_map_path=\"$compiled_lib_dir\""
+      puts $fh_unix "  if \[\[ (\$1 != \"\") \]\]; then"
+      puts $fh_unix "    lib_map_path=\"\$1\""
+      puts $fh_unix "  fi"
     } else {
       xps_write_xsim_setup_file $launch_dir
     }
@@ -3270,21 +3261,28 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
 
         # physically copy file to run dir for windows
         if {$::tcl_platform(platform) == "windows"} {
-          if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-            set ip_file [file join $a_sim_vars(s_lib_map_path) "ip" "xsim_ip.ini"]
+          set dir {}
+          if { [info exists ::env(XILINX_VIVADO)] } {
+            set dir $::env(XILINX_VIVADO)
+          }
+          if { {} != $dir } {
+            set clibs_dir [file normalize [file join $dir "data/xsim"]]
+            set ip_file [file join $clibs_dir "ip" "xsim_ip.ini"]
             set target_file [file join $launch_dir "xsim.ini"]
             if { [file exists $ip_file] } {
               if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                 send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
               }
             } else {
-              set ip_file [file join $a_sim_vars(s_lib_map_path) "xsim.ini"]
+              set ip_file [file join $dir "xsim.ini"]
               if { [file exists $ip_file] } {
                 if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                   send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
                 }
               }
             }
+          } else {
+            send_msg_id exportsim-Tcl-051 WARNING "Failed to get the xsim.ini file from XILINX_VIVADO! Please set XILINX_VIVADO to the install location.\n"
           }
         }
       } else {
@@ -4382,7 +4380,7 @@ proc xps_write_setup { simulator fh_unix } {
   puts $fh_unix "        echo -e \"ERROR: Simulation library directory path not specified (type \\\"./$a_sim_vars(s_script_filename).sh -help\\\" for more information)\\n\""
   puts $fh_unix "        exit 1"
   puts $fh_unix "      fi"
-  puts $fh_unix "      # precompiled simulation library directory path"
+  #puts $fh_unix "      # precompiled simulation library directory path"
   switch -regexp -- $simulator {
     "xsim" {
       if { $a_sim_vars(b_use_static_lib) } {
@@ -4607,7 +4605,10 @@ proc xps_get_bfm_lib { simulator } {
   # Return Value:
 
   set simulator_lib {}
-  set xil           $::env(XILINX_VIVADO)
+  set xil           {}
+  if { [info exists ::env(XILINX_VIVADO)] } {
+    set xil $::env(XILINX_VIVADO)
+  }
   set path_sep      {;}
   set lib_extn      {.dll}
   set platform      [xps_get_plat]
