@@ -1,3 +1,4 @@
+1.92 support for XPM files for -of_objects
 1.91 add VCOM VHDL file for XPM simulation, CR:947555
 1.90 set absolute path for xpm files
 1.89 pass clibs directory while checking for compiled libraries
