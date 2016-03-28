@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add VCOM VHDL file for XPM simulation, CR:947555</revision_history>
+      <revision_history>support for XPM files for -of_objects</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
