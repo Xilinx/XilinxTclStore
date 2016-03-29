@@ -941,6 +941,17 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   set global_incl_files $incl_files
   set global_files_str [usf_get_global_include_file_cmdstr incl_files]
 
+  # verilog incl dir's and verilog headers directory path if any
+  send_msg_id USF-ModelSim-108 INFO "Finding include directories and verilog header directory paths..."
+  set l_incl_dirs_opts [list]
+  set uniq_dirs [list]
+  foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths]] {
+    if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+      lappend uniq_dirs $dir
+      lappend l_incl_dirs_opts "\"+incdir+$dir\""
+    }
+  }
+
   set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
   set b_using_xpm_libraries false
   foreach library $xpm_libraries {
@@ -967,17 +978,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
       }
-    }
-  }
-
-  # verilog incl dir's and verilog headers directory path if any
-  send_msg_id USF-ModelSim-108 INFO "Finding include directories and verilog header directory paths..."
-  set l_incl_dirs_opts [list]
-  set uniq_dirs [list]
-  foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths]] {
-    if { [lsearch -exact $uniq_dirs $dir] == -1 } {
-      lappend uniq_dirs $dir
-      lappend l_incl_dirs_opts "\"+incdir+$dir\""
     }
   }
 
