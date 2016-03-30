@@ -767,8 +767,6 @@ proc xps_gen_mem_files { run_dir } {
     foreach file [glob -nocomplain -directory $a_sim_cache_gen_mem_files($s_hash) *.mem] {
       if { [catch {file copy -force $file $run_dir} error] } {
         send_msg_id exportsim-Tcl-069 ERROR "failed to copy '${file}' to '${run_dir}': $error"
-      } else {
-        generate_mem_files $run_dir
       }
     }
     return
