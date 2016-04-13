@@ -63,8 +63,8 @@
     <app>
       <name>myapp6</name>
       <company>mycompany</company>
-      <commit_id>1633320bfb92cb15f583a0ae725254682cce9ca9</commit_id>
-      <revision>2.14</revision>
+      <commit_id>95510e1ade4feb852de8d29d7e25bba9d7d2f378</commit_id>
+      <revision>2.15</revision>
     </app>
     <app>
       <name>pcbutils</name>
