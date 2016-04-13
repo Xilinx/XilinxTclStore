@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>removed unneeded call to generate_mem_files</revision_history>
+      <revision_history>updated irun flow with more options</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
