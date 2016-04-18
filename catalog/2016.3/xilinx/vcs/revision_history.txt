@@ -1,3 +1,4 @@
+2.97 support for precompiled XPM library
 2.96 support for XPM files for -of_objects
 2.95 add VCOM VHDL file for XPM simulation, CR:947555
 2.94 set absolute path for xpm files
