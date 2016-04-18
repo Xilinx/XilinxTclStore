@@ -952,31 +952,41 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
   }
 
-  set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
-  set b_using_xpm_libraries false
-  foreach library $xpm_libraries {
-    foreach file [rdi::get_xpm_files -library_name $library] {
-      set file_type "SystemVerilog"
-      set g_files $global_files_str
-      set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files l_incl_dirs_opts]
-      if { {} != $cmd_str } {
-        lappend files $cmd_str
-        lappend l_compile_order_files $file
-        set b_using_xpm_libraries true
+  set b_compile_xpm_library 1
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+  if { $b_reference_xpm_library } {
+    set b_compile_xpm_library 0
+  }
+
+  if { $b_compile_xpm_library } {
+    set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
+    set b_using_xpm_libraries false
+    foreach library $xpm_libraries {
+      foreach file [rdi::get_xpm_files -library_name $library] {
+        set file_type "SystemVerilog"
+        set g_files $global_files_str
+        set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files l_incl_dirs_opts]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file
+          set b_using_xpm_libraries true
+        }
       }
     }
-  }
-  if { $b_using_xpm_libraries } {
-    set xpm_library [xcs_get_common_xpm_library]
-    set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
-    foreach file $common_xpm_vhdl_files {
-      set file_type "VHDL"
-      set g_files {}
-      set b_is_xpm true
-      set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files other_ver_opts $xpm_library]
-      if { {} != $cmd_str } {
-        lappend files $cmd_str
-        lappend l_compile_order_files $file
+    if { $b_using_xpm_libraries } {
+      set xpm_library [xcs_get_common_xpm_library]
+      set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
+      foreach file $common_xpm_vhdl_files {
+        set file_type "VHDL"
+        set g_files {}
+        set b_is_xpm true
+        set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files other_ver_opts $xpm_library]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file
+        }
       }
     }
   }
