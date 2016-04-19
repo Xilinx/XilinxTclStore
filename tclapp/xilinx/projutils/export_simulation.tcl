@@ -220,6 +220,8 @@ proc xps_init_vars {} {
   set a_sim_vars(default_lib)         "xil_defaultlib"
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(b_use_static_lib)    0
+  set a_sim_vars(b_is_ies_axi_bfm)    0
+  set a_sim_vars(ies_bfm_lib_name)    {}
 
   variable l_compile_order_files      [list]
   variable l_design_files             [list]
@@ -1876,6 +1878,7 @@ proc xps_write_main_driver_procs { simulator fh_unix launch_dir } {
   xps_write_main $simulator $fh_unix $launch_dir
   #xps_write_glbl $fh_unix
   xps_write_libs_unix $simulator $fh_unix $launch_dir
+  xps_write_lib_dir $simulator $fh_unix $launch_dir
 }
 
 proc xps_write_simulator_procs { simulator fh_unix launch_dir srcs_dir } { 
@@ -1895,6 +1898,7 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
   variable a_sim_vars
   variable l_defines
   variable l_generics
@@ -1904,51 +1908,52 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
 
   set filename "run.f"
   set arg_list [list]
-  set xv_dir {}
-  if { [info exists ::env(XILINX_VIVADO)] } {
-    set xv_dir $::env(XILINX_VIVADO)
-  }
-  puts $fh_unix "  XILINX_VIVADO=$xv_dir"
-  puts $fh_unix "  export XILINX_VIVADO"
   set b_verilog_only 0
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] && ![xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
     set b_verilog_only 1
   }
-  xps_append_config_opts arg_list "ies" "irun"
-  if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list end "-64bit"] }
 
-  lappend arg_list  "-timescale 1ps/1ps"
+  set base_libs [list "unisim" "unisims_ver" "secureip" "unimacro" "unimacro_ver"]
+  if { $a_sim_vars(b_use_static_lib) } {
+    variable l_ip_static_libs
+    foreach lib [xps_get_compile_order_libs] {
+      if {[string length $lib] == 0} { continue; }
+      if { [xcs_is_static_ip_lib $lib $l_ip_static_libs] } {
+        lappend base_libs [string tolower $lib]
+      }
+    }
+  }
+
+  foreach lib $base_libs {
+    lappend arg_list "-reflib \"\$ref_lib_dir/$lib:$lib\""
+  }
+  
+  #lappend arg_list  "-timescale 1ps/1ps"
+
   set opts [list]
   if { [llength $l_defines] > 0 } {
     xps_append_define_generics $l_defines "irun" opts
   }
+
   if { [llength $l_generics] > 0 } {
     xps_append_define_generics $l_generics "irun" opts
   }
+
   if { [llength $opts] > 0 } {
     foreach opt $opts {
       set opt_str [string trim $opt "\{\}"]
       lappend arg_list  "$opt_str"
     }
   }
+
   lappend arg_list  "-top $a_sim_vars(default_lib).$a_sim_vars(s_top)" \
                     "-f $filename"
-  if { $b_verilog_only } {
-    lappend arg_list   "-f \$XILINX_VIVADO/data/secureip/secureip_cell.list.vf"
-  }
+
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     lappend arg_list "-top glbl"
     lappend arg_list "glbl.v"
   }
-  if { [xcs_contains_system_verilog $a_sim_vars(l_design_files)] } {
-    lappend arg_list "-sv"
-  }
-  if { $b_verilog_only } {
-    lappend arg_list   "-y \$XILINX_VIVADO/data/verilog/src/retarget/" \
-                       "+libext+.v" \
-                       "-y \$XILINX_VIVADO/data/verilog/src/unisims/" \
-                       "+libext+.v"
-  }
+
   if { $a_sim_vars(b_xport_src_files) } {
     lappend arg_list "+incdir+\"srcs/incl\""
   } else {
@@ -1961,23 +1966,36 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
       }
     }
   }
-  #lappend arg_list   "-l run.log"
+
+  if { $a_sim_vars(b_is_ies_axi_bfm) } {
+    lappend arg_list "-loadvpi \"\$bfm_lib_dir/$a_sim_vars(ies_bfm_lib_name):xilinx_register_systf\""
+  }
+
+  if { $a_sim_vars(b_runtime_specified) } {
+    if { [xps_create_irun_do_file $launch_dir] } {
+      lappend arg_list "-input $a_sim_vars(do_filename)"
+    }
+  }
 
   set cmd_str [join $arg_list " \\\n       "]
-  puts $fh_unix "  irun $cmd_str"
-  set fh_1 0
+
+  puts $fh_unix "  irun \$irun_opts \\"
+  puts $fh_unix "       $cmd_str"
+
+  set fh_run 0
   set file [file normalize [file join $launch_dir $filename]]
-  if {[catch {open $file w} fh_1]} {
+  if { [catch {open $file w} fh_run] } {
     send_msg_id exportsim-Tcl-038 ERROR "failed to open file to write ($file)\n"
     return 1
   }
 
   set a_sim_vars(b_single_step) 1
-  xps_write_compile_order_for_ies_vcs "ies" $fh_1 $launch_dir $srcs_dir
+  xps_write_compile_order_for_ies_vcs "ies" $fh_run $launch_dir $srcs_dir
   set a_sim_vars(b_single_step) 0
 
-  close $fh_1
+  close $fh_run
   puts $fh_unix "\}\n"
+
   return 0
 }
 
@@ -2089,11 +2107,7 @@ proc xps_append_config_opts { opts_arg simulator tool } {
       if {"qverilog" == $tool} {set opts_str "-incr +acc"}
     }
     "ies" {
-      if {"ncvlog" == $tool} {set opts_str ""}
-      if {"ncvhdl" == $tool} {set opts_str "-V93"}
-      if {"ncelab" == $tool} {set opts_str "-relax -access +rwc -messages"}
-      if {"ncsim"  == $tool} {set opts_str ""}
-      if {"irun"   == $tool} {set opts_str "-V93 -RELAX"}
+      if {"irun"   == $tool} {set opts_str "-v93 -relax -access +rwc -namemap_mixgen"}
     }
     "vcs" {
       if {"vlogan" == $tool} {set opts_str "-timescale=1ps/1ps"}
@@ -2192,7 +2206,11 @@ proc xps_set_initial_cmd { simulator fh cmd_str src_file file_type lib opts_str 
     }
     "ies" {
       if { $a_sim_vars(b_single_step) } {
-        puts $fh "-makelib ies/$lib \\"
+        set opts {}
+        if { {SystemVerilog} == $file_type } {
+          set opts "-sv "
+        }
+        puts $fh "-makelib ies/$lib $opts\\"
         if { $a_sim_vars(b_xport_src_files) } {
           puts $fh "  srcs/$src_file \\"
         } else {
@@ -3160,27 +3178,11 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       puts $fh_unix "\{"
       puts $fh_unix "  file=\"modelsim.ini\""
     }
-    "ies" -
     "vcs" {
-      puts $fh_unix "# Create design library directory paths and define design library mappings in cds.lib"
+      puts $fh_unix "# Define design library mappings"
       puts $fh_unix "create_lib_mappings()"
       puts $fh_unix "\{"
-      set libs [list]
-      foreach lib [xps_get_compile_order_libs] {
-        if {[string length $lib] == 0} { continue; }
-        if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
-        if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
-          # no op
-        } else {
-          lappend libs [string tolower $lib]
-        }
-      }
-      puts $fh_unix "  libs=([join $libs " "])"
-      switch -regexp -- $simulator {
-        "ies"      { puts $fh_unix "  file=\"cds.lib\"" }
-        "vcs"      { puts $fh_unix "  file=\"synopsys_sim.setup\"" }
-      }
-      puts $fh_unix "  dir=\"$simulator\"\n"
+      puts $fh_unix "  file=\"synopsys_sim.setup\""
       puts $fh_unix "  if \[\[ -e \$file \]\]; then"
       puts $fh_unix "    if \[\[ (\$1 == \"\") \]\]; then"
       puts $fh_unix "      return"
@@ -3188,11 +3190,7 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       puts $fh_unix "      rm -rf \$file"
       puts $fh_unix "    fi"
       puts $fh_unix "  fi\n"
-      puts $fh_unix "  if \[\[ -e \$dir \]\]; then"
-      puts $fh_unix "    rm -rf \$dir"
-      puts $fh_unix "  fi"
-      puts $fh_unix ""
-      puts $fh_unix "  touch \$file"
+      puts $fh_unix "  touch \$file\n"
     }
   }
 
@@ -3214,7 +3212,7 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     }
   } elseif { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
     # no op
-  } else {
+  } elseif { ({modelsim} == $simulator) || ({questa} == $simulator) || ({vcs} == $simulator) } {
     # is -lib_map_path specified and point to valid location?
     if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
       set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
@@ -3320,69 +3318,47 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
         }
       }
     }
-    "ies" {
-      set file "cds.lib"
-      if { $a_sim_vars(b_single_step) } {
-        puts $fh_unix ""
-        puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
-        puts $fh_unix "    echo \"DEFINE secureip \$lib_map_path/secureip\" >> \$file"
-        puts $fh_unix "    echo \"DEFINE unisim \$lib_map_path/unisim\" >> \$file"
-        puts $fh_unix "    echo \"DEFINE unimacro \$lib_map_path/unimacro\" >> \$file"
-        puts $fh_unix "    echo \"DEFINE unifast \$lib_map_path/unifast\" >> \$file"
-        puts $fh_unix "    echo \"DEFINE unisims_ver \$lib_map_path/unisims_ver\" >> \$file"
-        puts $fh_unix "    echo \"DEFINE unimacro_ver \$lib_map_path/unimacro_ver\" >> \$file"
-        puts $fh_unix "    echo \"DEFINE unifast_ver \$lib_map_path/unifast_ver\" >> \$file"
-        puts $fh_unix "  fi"
-      } else {
-        puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
-        puts $fh_unix "    incl_ref=\"INCLUDE \$lib_map_path/$file\""
-        puts $fh_unix "    echo \$incl_ref >> \$file"
-        puts $fh_unix "  fi"
-      }
-    }
   }
 
   switch -regexp -- $simulator {
-    "ies" -
     "vcs" {
       puts $fh_unix ""
-      puts $fh_unix "  for (( i=0; i<\$\{#libs\[*\]\}; i++ )); do"
-      puts $fh_unix "    lib=\"\$\{libs\[i\]\}\""
-      puts $fh_unix "    lib_dir=\"\$dir/\$lib\""
-      puts $fh_unix "    if \[\[ ! -e \$lib_dir \]\]; then"
-      puts $fh_unix "      mkdir -p \$lib_dir"
-    }
-  }
-
-  switch -regexp -- $simulator {
-    "ies"      { puts $fh_unix "      mapping=\"DEFINE \$lib \$dir/\$lib\"" }
-    "vcs"      { puts $fh_unix "      mapping=\"\$lib : \$dir/\$lib\"" }
-  }
-
-  switch -regexp -- $simulator {
-    "ies" -
-    "vcs" {
-      puts $fh_unix "      echo \$mapping >> \$file"
-      puts $fh_unix "    fi"
-      puts $fh_unix "  done"
-    }
-  }
-
-  switch -regexp -- $simulator {
-    "vcs" {
+      puts $fh_unix "  for (( i=0; i<\$\{#design_libs\[*\]\}; i++ )); do"
+      puts $fh_unix "    lib=\"\$\{design_libs\[i\]\}\""
+      puts $fh_unix "    mapping=\"\$lib:\$sim_lib_dir/\$lib\""
+      puts $fh_unix "    echo \$mapping >> \$file"
+      puts $fh_unix "  done\n"
       set file "synopsys_sim.setup"
       puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
       puts $fh_unix "    incl_ref=\"OTHERS=\$lib_map_path/$file\""
       puts $fh_unix "    echo \$incl_ref >> \$file"
       puts $fh_unix "  fi"
-      puts $fh_unix ""
+      puts $fh_unix "\}\n"
     }
   }
+}
 
-  switch -regexp -- $simulator {
+proc xps_write_lib_dir { simulator fh_unix launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  switch $simulator {
     "ies" -
     "vcs" {
-      puts $fh_unix "\}"
+      puts $fh_unix "# Create design library directory paths"
+      puts $fh_unix "create_lib_dir()\n\{"
+      puts $fh_unix "  if \[\[ -e \$sim_lib_dir \]\]; then"
+      puts $fh_unix "    rm -rf \$sim_lib_dir"
+      puts $fh_unix "  fi\n"
+      puts $fh_unix "  for (( i=0; i<\$\{#design_libs\[*\]\}; i++ )); do"
+      puts $fh_unix "    lib=\"\$\{design_libs\[i\]\}\""
+      puts $fh_unix "    lib_dir=\"\$sim_lib_dir/\$lib\""
+      puts $fh_unix "    if \[\[ ! -e \$lib_dir \]\]; then"
+      puts $fh_unix "      mkdir -p \$lib_dir"
+      puts $fh_unix "    fi"
+      puts $fh_unix "  done"
+      puts $fh_unix "\}\n"
     }
   }
 }
@@ -3407,6 +3383,27 @@ proc xps_create_vcs_do_file { dir } {
     puts $fh_do "quit"
   }
   close $fh_do
+}
+
+proc xps_create_irun_do_file { dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set do_file [file join $dir $a_sim_vars(do_filename)]
+  set fh_do 0
+  if {[catch {open $do_file w} fh_do]} {
+    send_msg_id exportsim-Tcl-048 ERROR "failed to open file to write ($do_file)\n"
+    return false
+  } else {
+    set runtime "run $a_sim_vars(s_runtime)"
+    puts $fh_do "$runtime"
+    puts $fh_do "exit"
+  }
+  close $fh_do
+  return true
 }
 
 proc xps_write_xsim_setup_file { launch_dir } {
@@ -4031,7 +4028,9 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
     xps_append_generics $l_generics args
   }
   if { [xps_is_axi_bfm_ip] } {
-    set simulator_lib [xps_get_bfm_lib "modelsim"]
+    set lib_name {}
+    set lib_dir  {}
+    set simulator_lib [xps_get_bfm_lib "modelsim" lib_name lib_dir]
     if { {} != $simulator_lib } {
       set args [linsert $args end "-pli \"$simulator_lib\""]
     } else {
@@ -4086,7 +4085,9 @@ proc xps_get_simulation_cmdline_questa {} {
   xps_append_config_opts args "questa" "vsim"
   lappend args "-t 1ps"
   if { [xps_is_axi_bfm_ip] } {
-    set simulator_lib [xps_get_bfm_lib $simulator]
+    set lib_name {}
+    set lib_dir  {}
+    set simulator_lib [xps_get_bfm_lib $simulator lib_name lib_dir]
     if { {} != $simulator_lib } {
       set args [linsert $args end "-pli \"$simulator_lib\""]
     } else {
@@ -4325,7 +4326,7 @@ proc xps_write_reset { simulator fh_unix } {
     }
     "modelsim" -
     "questa" {
-      set file_list [list "compile.log" "simulate.log" "vsim.wlf"]
+      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
       set file_dir_list [list "work" "msim"]
     }
     "riviera" {
@@ -4337,7 +4338,7 @@ proc xps_write_reset { simulator fh_unix } {
       set file_dir_list [list "work" "activehdl"]
     }
     "ies" { 
-      set file_list [list "ncsim.key" "irun.key" "ncvlog.log" "ncvhdl.log" "compile.log" "elaborate.log" "simulate.log" "run.log" "waves.shm"]
+      set file_list [list "ncsim.key" "irun.key" "irun.log" "waves.shm" "irun.history" ".simvision"]
       set file_dir_list [list "INCA_libs"]
     }
     "vcs" {
@@ -4350,7 +4351,7 @@ proc xps_write_reset { simulator fh_unix } {
   set files [join $file_list " "]
   set files_dir [join $file_dir_list " "]
 
-  puts $fh_unix "# Remove generated data from the previous run and re-create setup files/library mappings"
+  puts $fh_unix "# Delete generated data from the previous run"
   puts $fh_unix "reset_run()"
   puts $fh_unix "\{"
   puts $fh_unix "  files_to_remove=($files $files_dir)"
@@ -4360,6 +4361,12 @@ proc xps_write_reset { simulator fh_unix } {
   puts $fh_unix "      rm -rf \$file"
   puts $fh_unix "    fi"
   puts $fh_unix "  done"
+  switch -regexp -- $simulator {
+    "ies" -
+    "vcs" {
+      puts $fh_unix "\n  create_lib_dir"
+    }
+  }
   puts $fh_unix "\}"
   puts $fh_unix ""
 }
@@ -4377,6 +4384,12 @@ proc xps_write_setup { simulator fh_unix } {
   puts $fh_unix "      if \[\[ (\$2 == \"\") \]\]; then"
   puts $fh_unix "        echo -e \"ERROR: Simulation library directory path not specified (type \\\"./$a_sim_vars(s_script_filename).sh -help\\\" for more information)\\n\""
   puts $fh_unix "        exit 1"
+  switch -regexp -- $simulator {
+    "ies" {
+      puts $fh_unix "      else"
+      puts $fh_unix "        ref_lib_dir=\$2"
+    }
+  }
   puts $fh_unix "      fi"
   #puts $fh_unix "      # precompiled simulation library directory path"
   switch -regexp -- $simulator {
@@ -4391,13 +4404,9 @@ proc xps_write_setup { simulator fh_unix } {
     "questa" {
       puts $fh_unix "     copy_setup_file \$2"
     }
-    "ies" -
     "vcs" {
-      puts $fh_unix "     create_lib_mappings \$2"
+      puts $fh_unix "      create_lib_mappings \$2"
     }
-  }
-  switch -regexp -- $simulator {
-    "ies" { puts $fh_unix "     touch hdl.var" }
   }
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     #puts $fh_unix "     copy_glbl_file"
@@ -4424,19 +4433,20 @@ proc xps_write_setup { simulator fh_unix } {
     "questa" {
       puts $fh_unix "     copy_setup_file \$2"
     }
-    "ies" -
     "vcs" {
-      puts $fh_unix "     create_lib_mappings \$2"
+      puts $fh_unix "      create_lib_mappings \$2"
     }
-  }
-  switch -regexp -- $simulator {
-    "ies" { puts $fh_unix "     touch hdl.var" }
   }
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     #puts $fh_unix "     copy_glbl_file"
   }
-  puts $fh_unix "  esac"
-  puts $fh_unix ""
+  puts $fh_unix "  esac\n"
+  switch -regexp -- $simulator {
+    "ies" -
+    "vcs" {
+      puts $fh_unix "  create_lib_dir\n"
+    }
+  }
   puts $fh_unix "  # Add any setup/initialization commands here:-\n"
   puts $fh_unix "  # <user specific commands>\n"
   puts $fh_unix "\}\n"
@@ -4459,6 +4469,8 @@ proc xps_write_main { simulator fh_unix launch_dir } {
   if { ({ies} == $simulator) || ({vcs} == $simulator) } {
     xps_write_ref_dir $fh_unix $launch_dir $srcs_dir
   }
+
+  xps_write_lib_map_path_dir $simulator $fh_unix
 
   if { $a_sim_vars(b_single_step) } {
     # no op
@@ -4490,6 +4502,14 @@ proc xps_write_main { simulator fh_unix launch_dir } {
         }
         puts $fh_unix ""
       }
+      "ies" {
+        set arg_list [list]
+        xps_append_config_opts arg_list "ies" "irun"
+        if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-64bit"] }
+
+        puts $fh_unix "irun_opts=\"[join $arg_list " "]\""
+        puts $fh_unix ""
+      }
       "vcs"   {
         set arg_list [list]
         xps_append_config_opts arg_list "vcs" "vlogan"
@@ -4505,7 +4525,9 @@ proc xps_write_main { simulator fh_unix launch_dir } {
         if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-full64"] }
         # design contains ax-bfm ip? insert bfm library
         if { [xps_is_axi_bfm_ip] } {
-          set simulator_lib [xps_get_bfm_lib $simulator]
+          set lib_name {}
+          set lib_dir  {}
+          set simulator_lib [xps_get_bfm_lib $simulator lib_name lib_dir]
           if { {} != $simulator_lib } {
             set arg_list [linsert $arg_list 0 "-load \"$simulator_lib:xilinx_register_systf\""]
           } else {
@@ -4522,6 +4544,57 @@ proc xps_write_main { simulator fh_unix launch_dir } {
       }
     }
   }
+
+  variable l_ip_static_libs
+  switch $simulator {
+    "ies" -
+    "vcs" {
+      set libs [list]
+      foreach lib [xps_get_compile_order_libs] {
+        if {[string length $lib] == 0} { continue; }
+        if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
+        if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
+          # no op
+        } else {
+          lappend libs [string tolower $lib]
+        }
+      }
+      puts $fh_unix "# Design libraries"
+      puts $fh_unix "design_libs=([join $libs " "])"
+    }
+  }
+
+  switch $simulator {
+    "ies" {
+      # design contains ax-bfm ip? insert bfm library
+      set bfm_lib_name {}
+      set a_sim_vars(b_is_ies_axi_bfm) 0
+      if { [xps_is_axi_bfm_ip] } {
+        set lib_dir {}
+        set simulator_lib [xps_get_bfm_lib "ies" bfm_lib_name lib_dir]
+        if { {} != $simulator_lib } {
+          puts $fh_unix "\n# BFM simulator library directory"
+          puts $fh_unix "bfm_lib_dir=\"$lib_dir\""
+          set a_sim_vars(b_is_ies_axi_bfm) 1
+          set a_sim_vars(ies_bfm_lib_name) $bfm_lib_name
+        } else {
+          send_msg_id exportsim-Tcl-020 "CRITICAL WARNING" \
+             "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
+        }
+      }
+    }
+  }
+
+  switch $simulator {
+    "ies" -
+    "vcs" {
+      puts $fh_unix "\n# Simulation root library directory"
+      puts $fh_unix "sim_lib_dir=\"$simulator\""
+    }
+  }
+
+  puts $fh_unix ""
+
   puts $fh_unix "# Script info"
   puts $fh_unix "echo -e \"$a_sim_vars(s_script_filename).sh - Script generated by export_simulation ($version-id)\\n\"\n"
   xps_write_run_steps $simulator $fh_unix
@@ -4532,6 +4605,31 @@ proc xps_write_main { simulator fh_unix launch_dir } {
   #puts $fh_unix "  echo -e \"ERROR: invalid number of arguments specified\\n\""
   #puts $fh_unix "  usage"
   #puts $fh_unix "fi\n"
+}
+
+proc xps_write_lib_map_path_dir { simulator fh_unix } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  switch -regexp -- $simulator {
+    "ies" {
+      set cds_lib_map_path "."
+      set cds_file {}
+      if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+        set cds_file [file join $a_sim_vars(s_lib_map_path) "cds.lib"]
+        if { [file exist $cds_file] } {
+          set cds_lib_map_path [file normalize $a_sim_vars(s_lib_map_path)]
+        } else {
+          send_msg_id exportsim-Tcl-040 ERROR "Failed to find the 'cds.lib' file from the directory specified with the -lib_map_path switch (${cds_file})\n"
+        }
+      }
+      puts $fh_unix "# Set the compiled library directory"
+      puts $fh_unix "ref_lib_dir=\"$cds_lib_map_path\"\n"
+    }
+  }
 }
 
 proc xps_write_check_args { fh_unix } {
@@ -4550,7 +4648,7 @@ proc xps_write_check_args { fh_unix } {
   puts $fh_unix ""
   puts $fh_unix "  if \[\[ (\$2 == \"-help\" || \$2 == \"-h\") \]\]; then"
   puts $fh_unix "    usage"
-  puts $fh_unix "  fi\n"
+  puts $fh_unix "  fi"
   puts $fh_unix "\}\n"
 }
 
@@ -4597,10 +4695,13 @@ proc xps_get_plat {} {
   return $platform
 }
 
-proc xps_get_bfm_lib { simulator } {
+proc xps_get_bfm_lib { simulator lib_name_arg lib_dir_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  upvar $lib_name_arg lib_name
+  upvar $lib_dir_arg lib_dir
 
   set simulator_lib {}
   set xil           {}
@@ -4630,7 +4731,8 @@ proc xps_get_bfm_lib { simulator } {
     set lib_path {}
     #send_msg_id exportsim-Tcl-116 INFO "Finding simulator library from 'XILINX_VIVADO'..."
     foreach path [split $xil $path_sep] {
-      set file [file normalize [file join $path "lib" $platform $lib_name]]
+      set lib_dir [file normalize [file join $path "lib" $platform]] 
+      set file [file join $lib_dir $lib_name]
       if { [file exists $file] } {
         #send_msg_id exportsim-Tcl-117 INFO "Using library:'$file'"
         set simulator_lib $file
