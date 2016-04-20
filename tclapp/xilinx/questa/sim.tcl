@@ -839,6 +839,13 @@ proc usf_questa_get_elaboration_cmdline {} {
   # add secureip
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+  if { $b_reference_xpm_library } {
+    set arg_list [linsert $arg_list end "-L" "xpm"]
+  }
+
   # add design libraries
   set design_libs [usf_questa_get_design_libs $design_files]
   foreach lib $design_libs {

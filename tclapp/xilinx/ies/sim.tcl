@@ -662,6 +662,13 @@ proc usf_ies_write_elaborate_script {} {
   # add secureip
   set arg_list [linsert $arg_list end "-libname" "secureip"]
 
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+  if { $b_reference_xpm_library } {
+    set arg_list [linsert $arg_list end "-libname" "xpm"]
+  }
+
   # add design libraries
   set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {

@@ -1927,6 +1927,12 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   }
 
   set base_libs [list "unisim" "unisims_ver" "secureip" "unimacro" "unimacro_ver"]
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+  if { $b_reference_xpm_library } {
+    lappend base_libs "xpm"
+  }
   if { $a_sim_vars(b_use_static_lib) } {
     variable l_ip_static_libs
     foreach lib [xps_get_compile_order_libs] {
@@ -3439,6 +3445,31 @@ proc xps_write_xsim_setup_file { launch_dir } {
     set lib_name [string tolower $lib]
     puts $fh "$lib=xsim.dir/$lib_name"
   }
+
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+  if { $b_reference_xpm_library } {
+    set filename "xsim.ini"
+    set lib_name "xpm"
+    set b_mapping_set 0
+    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+      set dir [file normalize $a_sim_vars(s_lib_map_path)]
+      set ini_file [file join $dir $filename]
+      if { [file exists $ini_file] } {
+        puts $fh "$lib_name=${dir}/$lib_name"
+        set b_mapping_set 1
+      }
+    }
+    if { !$b_mapping_set } {
+      set dir $::env(XILINX_VIVADO)
+      set dir [file normalize [file join $dir "data/xsim"]]
+      set ini_file [file normalize [file join $dir $filename]]
+      if { [file exists $ini_file] } {
+        puts $fh "$lib_name=${dir}/$lib_name"
+      }
+    }
+  }
   close $fh
 }
 
@@ -3893,6 +3924,12 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       }
       # add secureip
       set arg_list [linsert $arg_list end "-L" "secureip"]
+      # reference XPM modules from precompiled libs if param is set
+      set b_reference_xpm_library 0
+      [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+      if { $b_reference_xpm_library } {
+        set arg_list [linsert $arg_list end "-L" "xpm"]
+      }
       # add design libraries
       set design_libs [xps_get_design_libs]
       foreach lib $design_libs {
@@ -4058,6 +4095,12 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
     set args [linsert $args end "-L" "unimacro_ver"]
   }
   set args [linsert $args end "-L" "secureip"]
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+  if { $b_reference_xpm_library } {
+    set args [linsert $args end "-L" "xpm"]
+  }
   set design_libs [xps_get_design_libs]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -4175,6 +4218,12 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
     lappend args "-L unimacro_ver"
   }
   lappend args "-L secureip"
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+  if { $b_reference_xpm_library } {
+    lappend args "-L xpm"
+  }
   lappend args "--snapshot [xps_get_snapshot]"
   foreach top [xps_get_tops] {
     lappend args "$top"

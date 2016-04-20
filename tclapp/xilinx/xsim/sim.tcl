@@ -494,6 +494,34 @@ proc usf_xsim_write_setup_file {} {
     set lib_name [string tolower $lib]
     puts $fh "$lib=xsim.dir/$lib_name"
   }
+
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+  if { $b_reference_xpm_library } {
+    set filename "xsim.ini"
+    set lib_name "xpm"
+    set b_mapping_set 0
+    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+      set dir [file normalize $a_sim_vars(s_lib_map_path)]
+      set ini_file [file join $dir $filename]
+      if { [file exists $ini_file] } {
+        puts $fh "$lib_name=${dir}/$lib_name"
+        set b_mapping_set 1
+      }
+    }
+    if { !$b_mapping_set } {
+      set dir [get_property "COMPXLIB.XSIM_COMPILED_LIBRARY_DIR" [current_project]]
+      if { {} == $dir } {
+        set dir $::env(XILINX_VIVADO)
+        set dir [file normalize [file join $dir "data/xsim"]]
+      }
+      set ini_file [file normalize [file join $dir $filename]]
+      if { [file exists $ini_file] } {
+        puts $fh "$lib_name=${dir}/$lib_name"
+      }
+    }
+  }
   
   close $fh
 }
@@ -1104,6 +1132,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   # add secureip
   lappend args_list "-L secureip"
+
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+  if { $b_reference_xpm_library } {
+    lappend args_list "-L xpm"
+  }
 
   # snapshot
   lappend args_list "--snapshot $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)"
