@@ -1,3 +1,4 @@
+2.93 add xpm library for elaborate step
 2.92 support for precompiled XPM library
 2.91 support for XPM files for -of_objects
 2.90 add VCOM VHDL file for XPM simulation, CR:947555

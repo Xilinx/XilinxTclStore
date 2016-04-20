@@ -1,3 +1,4 @@
+3.160 add xpm library for elaborate step
 3.159 support for precompiled XPM library
 3.158 removed unneeded call to generate_mem_files
 3.157 support for XPM files for -of_objects
