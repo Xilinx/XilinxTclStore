@@ -781,7 +781,12 @@ proc usf_create_do_file { simulator do_filename } {
     } 
     # generate saif file for power estimation
     set saif {}
-    set uut [get_property "IES.SIMULATE.UUT" $fs_obj]
+    set uut {}
+    [catch {set uut [get_property -quiet "IES.SIMULATE.UUT" $fs_obj]} msg]
+    set saif_scope [get_property "IES.SIMULATE.SAIF_SCOPE" $fs_obj]
+    if { {} != $saif_scope } {
+      set uut $saif_scope
+    }
     set saif [get_property "IES.SIMULATE.SAIF" $fs_obj]
     if { {} != $saif } {
       if { {} == $uut } {

@@ -44,10 +44,10 @@ proc register_options { simulator } {
     {{elaborate.vopt.more_options} {string} {}                                      {More VOPT elaboration options}}
     {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.log_all_signals}    {bool}   {0}                                     {Log all signals}}
-    {{simulate.uut}                {string} {}                                      {Specify instance name for design under test (default:/uut)}}
     {{simulate.custom_do}          {string} {}                                      {Specify name of the custom do file}}
     {{simulate.custom_udo}         {string} {}                                      {Specify name of the custom user do file}}
     {{simulate.sdf_delay}          {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}
+    {{simulate.saif_scope}         {string} {}                                      {Specify design hierarchy instance name for which power estimation is desired}}
     {{simulate.saif}               {string} {}                                      {Specify SAIF file}}
     {{simulate.vsim.more_options}  {string} {}                                      {More VSIM simulation options}}
   }

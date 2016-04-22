@@ -777,7 +777,12 @@ proc usf_create_do_file { simulator do_filename } {
   } else {
     # generate saif file for power estimation
     set saif {}
-    set uut [get_property "VCS.SIMULATE.UUT" $fs_obj]
+    set uut {}
+    [catch {set uut [get_property -quiet "VCS.SIMULATE.UUT" $fs_obj]} msg]
+    set saif_scope [get_property "VCS.SIMULATE.SAIF_SCOPE" $fs_obj]
+    if { {} != $saif_scope } {
+      set uut $saif_scope
+    }
     set saif [get_property "VCS.SIMULATE.SAIF" $fs_obj]
     if { {} != $saif } {
       if { {} == $uut } {

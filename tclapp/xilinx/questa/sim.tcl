@@ -769,23 +769,6 @@ proc usf_questa_get_elaboration_cmdline {} {
     lappend arg_list "+$acc"
   }
 
-  set path_delay 0
-  set int_delay 0
-  set tpd_prop "TRANSPORT_PATH_DELAY"
-  set tid_prop "TRANSPORT_INT_DELAY"
-  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
-    set path_delay [get_property $tpd_prop $fs_obj]
-  }
-  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
-    set int_delay [get_property $tid_prop $fs_obj]
-  }
-
-  if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
-    lappend arg_list "+transport_int_delays"
-    lappend arg_list "+pulse_r/$path_delay"
-    lappend arg_list "+pulse_int_r/$int_delay"
-  }
-
   set vhdl_generics [list]
   set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
   if { [llength $vhdl_generics] > 0 } {
@@ -879,7 +862,7 @@ proc usf_questa_get_simulation_cmdline {} {
 
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set flow $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow)
+  set sim_flow $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
 
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
@@ -887,6 +870,25 @@ proc usf_questa_get_simulation_cmdline {} {
 
   set tool "vsim"
   set arg_list [list "$tool"]
+
+  set path_delay 0
+  set int_delay 0
+  set tpd_prop "TRANSPORT_PATH_DELAY"
+  set tid_prop "TRANSPORT_INT_DELAY"
+  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+    set path_delay [get_property $tpd_prop $fs_obj]
+  }
+  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+    set int_delay [get_property $tid_prop $fs_obj]
+  }
+
+  if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
+    lappend arg_list "+transport_int_delays"
+    lappend arg_list "+pulse_e/$path_delay"
+    lappend arg_list "+pulse_int_e/$int_delay"
+    lappend arg_list "+pulse_r/$path_delay"
+    lappend arg_list "+pulse_int_r/$int_delay"
+  }
 
   set more_sim_options [string trim [get_property "QUESTA.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
@@ -1011,7 +1013,12 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   # generate saif file for power estimation
   set saif [get_property "QUESTA.SIMULATE.SAIF" $fs_obj] 
   if { {} != $saif } {
-    set uut [get_property "QUESTA.SIMULATE.UUT" $fs_obj] 
+    set uut {}
+    [catch {set uut [get_property -quiet "QUESTA.SIMULATE.UUT" $fs_obj]} msg]
+    set saif_scope [get_property "QUESTA.SIMULATE.SAIF_SCOPE" $fs_obj]
+    if { {} != $saif_scope } {
+      set uut $saif_scope
+    }
     if { {} == $uut } {
       set uut "/$top/uut/*"
     }

@@ -1332,7 +1332,12 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   set saif [get_property "XSIM.SIMULATE.SAIF" $fs_obj]
   set b_all_signals [get_property "XSIM.SIMULATE.SAIF_ALL_SIGNALS" $fs_obj]
   if { {} != $saif } {
-    set uut [get_property "XSIM.SIMULATE.UUT" $fs_obj]
+    set uut {}
+    [catch {set uut [get_property -quiet "XSIM.SIMULATE.UUT" $fs_obj]} msg]
+    set saif_scope [get_property "XSIM.SIMULATE.SAIF_SCOPE" $fs_obj]
+    if { {} != $saif_scope } {
+      set uut $saif_scope
+    }
     puts $fh_scr "\nopen_saif \"$saif\""
     if { {} != $uut } {
       set uut_name [::tclapp::xilinx::xsim::usf_resolve_uut_name_with_scope uut]
