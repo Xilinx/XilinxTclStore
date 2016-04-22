@@ -1,3 +1,4 @@
+2.99 replaced simulator uut with saif_scope
 2.98 add xpm library for elaborate step
 2.97 support for precompiled XPM library
 2.96 support for XPM files for -of_objects
