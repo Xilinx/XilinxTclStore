@@ -283,14 +283,23 @@ proc usf_realign_local_mappings { ini_file l_local_design_libraries_arg } {
   set data [split [read $fh] "\n"]
   close $fh
   set l_updated_mappings [list]
+  set l_local_mappings_found_in_ini [list]
   foreach line $data {
     set line [string trim $line]
     if { [string length $line] == 0 } { continue; }
     set library [string trim [lindex [split $line "="] 0]]
     if { [lsearch -exact $l_local_libraries $library] != -1 } {
       set line "$library=xsim.dir/$library"
+      lappend l_local_mappings_found_in_ini $library
     }
     lappend l_updated_mappings $line
+  }
+
+  # add local libraries not found in ini
+  foreach library $l_local_libraries {
+    if { [lsearch -exact $l_local_mappings_found_in_ini $library] == -1 } {
+      lappend l_updated_mappings "$library=xsim.dir/$library"
+    }
   }
 
   # first make back up

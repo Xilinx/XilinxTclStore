@@ -456,9 +456,9 @@ proc xif_export_ip { obj } {
       if { [lsearch $l_static_files $sim_file_obj] != -1 } { continue }
       if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file_obj]] >= 0 } { continue }
       if { $b_container } {
-        set ip_name [xif_get_dynamic_core_container_ip_name $sim_file_obj $ip_name]
-        set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
-        xif_delete_ip_inst_dir $ip_inst_dir $ip_name
+        set ip_name_cc [xif_get_dynamic_core_container_ip_name $sim_file_obj $ip_name]
+        set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name_cc]]
+        xif_delete_ip_inst_dir $ip_inst_dir $ip_name_cc
       }
     }
 
@@ -488,8 +488,8 @@ proc xif_export_ip { obj } {
       if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file_obj]] >= 0 } { continue }
       set file $dynamic_file_obj
       if { $b_container } {
-        set ip_name [xif_get_dynamic_core_container_ip_name $dynamic_file_obj $ip_name]
-        set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
+        set ip_name_cc [xif_get_dynamic_core_container_ip_name $dynamic_file_obj $ip_name]
+        set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name_cc]]
         if { $a_vars(b_force) } {
           set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $dynamic_file_obj]
         } else {

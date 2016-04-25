@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add xpm library for elaborate step</revision_history>
+      <revision_history>fixed the core container ip name for sync</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
