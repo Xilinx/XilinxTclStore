@@ -2354,8 +2354,8 @@ proc xps_write_compile_order_for_ies_vcs { simulator fh launch_dir srcs_dir } {
       set target_dir $srcs_dir
       if { {} != $ip_file } {
         set ip_name [file rootname [file tail $ip_file]]
-        set proj_src_filename "ip/$ip_name/$proj_src_filename"
-        set ip_dir [file join $srcs_dir "ip" $ip_name] 
+        set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
+        set ip_dir [file join $srcs_dir "ip" $ip_name $lib] 
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
             send_msg_id exportsim-Tcl-040 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -3566,7 +3566,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
         set target_dir $srcs_dir
         if { {} != $ip_file } {
           set ip_name [file rootname [file tail $ip_file]]
-          set ip_dir [file join $srcs_dir "ip" $ip_name] 
+          set ip_dir [file join $srcs_dir "ip" $ip_name $lib] 
           if { ![file exists $ip_dir] } {
             if {[catch {file mkdir $ip_dir} error_msg] } {
               send_msg_id exportsim-Tcl-050 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -3576,7 +3576,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
           if { $a_sim_vars(b_absolute_path) } {
             set proj_src_filename "$ip_dir/$proj_src_filename"
           } else {
-            set proj_src_filename "srcs/ip/$ip_name/$proj_src_filename"
+            set proj_src_filename "srcs/ip/$ip_name/$lib/$proj_src_filename"
           }
           set target_dir $ip_dir
         } else {
@@ -3787,7 +3787,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
         if { {} != $ip_file } {
           set proj_src_filename [file tail $proj_src_file]
           set ip_name [file rootname [file tail $ip_file]]
-          set proj_src_filename "ip/$ip_name/$proj_src_filename"
+          set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
           set source_file "srcs/$proj_src_filename"
         } else {
           set source_file "srcs/[file tail $proj_src_file]"
@@ -3800,7 +3800,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
         if { {} != $ip_file } {
           set proj_src_filename [file tail $proj_src_file]
           set ip_name [file rootname [file tail $ip_file]]
-          set proj_src_filename "ip/$ip_name/$proj_src_filename"
+          set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
           set source_file "srcs/$proj_src_filename"
         } else {
           set source_file "srcs/[file tail $src_file]"
@@ -3823,8 +3823,8 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
       set target_dir $srcs_dir
       if { {} != $ip_file } {
         set ip_name [file rootname [file tail $ip_file]]
-        set proj_src_filename "ip/$ip_name/$proj_src_filename"
-        set ip_dir [file join $srcs_dir "ip" $ip_name] 
+        set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
+        set ip_dir [file join $srcs_dir "ip" $ip_name $lib] 
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
             send_msg_id exportsim-Tcl-056 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
