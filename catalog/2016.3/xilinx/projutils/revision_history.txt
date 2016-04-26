@@ -1,3 +1,4 @@
+3.162 copy ip files into ip library directory for export source files
 3.161 update local mappings not found in xsim.ini
 3.160 add xpm library for elaborate step
 3.159 support for precompiled XPM library
