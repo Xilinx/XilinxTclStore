@@ -969,7 +969,7 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
 
   foreach ip_xml $ip_component_filelist {
     set ip_dir  [file dirname $ip_xml]
-    set ip_comp [ipx::open_core $ip_xml]
+    set ip_comp [ipx::open_core -set_current false $ip_xml]
     set ip_def_name [get_property name $ip_comp]
     set vlnv    [get_property vlnv $ip_comp]
     puts -nonewline "."
@@ -1078,7 +1078,7 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
   set ip_def_name  [lindex $ip_def_comps 2]
   set ip_xml  [get_property xml_file_name $ip_def]
   set ip_dir  [file dirname $ip_xml]
-  set ip_comp [ipx::open_core $ip_xml]
+  set ip_comp [ipx::open_core -set_current false $ip_xml]
   foreach file_group [ipx::get_file_groups -of $ip_comp] {
     set type [get_property type $file_group]
     if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
