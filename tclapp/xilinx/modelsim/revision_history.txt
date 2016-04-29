@@ -1,3 +1,4 @@
+2.106 compile glbl into top library for vhdl netlist
 2.105 replaced simulator uut with saif_scope
 2.104 add xpm library for elaborate step
 2.103 support for precompiled XPM library

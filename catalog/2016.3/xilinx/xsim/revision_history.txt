@@ -1,3 +1,4 @@
+2.106 compile glbl into top library for vhdl netlist
 2.105 update local mappings not found in xsim.ini
 2.104 replaced simulator uut with saif_scope
 2.103 add xpm library for elaborate step
