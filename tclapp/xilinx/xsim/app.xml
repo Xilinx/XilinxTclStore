@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>update local mappings not found in xsim.ini</revision_history>
+      <revision_history>compile glbl into top library for post simulation</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
