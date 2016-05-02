@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>open core with set_current set to false</revision_history>
+      <revision_history>open in-memory project in hidden mode</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

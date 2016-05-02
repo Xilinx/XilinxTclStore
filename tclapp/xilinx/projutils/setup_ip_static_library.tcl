@@ -116,11 +116,11 @@ proc setup_ip_static_library {args} {
       return
     }
   } else {
-    if { {} != [current_project -quiet] } {
-      [catch {send_msg_id setup_ip_static_library-Tcl-005 ERROR \
-       "Detected a project in opened state. Please close this project and re-run this command again.\n"} err]
-      return
-    }
+    #if { {} != [current_project -quiet] } {
+      #[catch {send_msg_id setup_ip_static_library-Tcl-005 ERROR \
+      # "Detected a project in opened state. Please close this project and re-run this command again.\n"} err]
+      #return
+    #}
   }
 
   if { $a_isl_vars(b_dir_specified) } {
@@ -906,7 +906,7 @@ proc isl_extract_repo_static_files { } {
   variable a_isl_vars
   variable l_ip_repo_paths
 
-  create_project -in_memory
+  create_project -in_memory -hide
   if { [llength $l_ip_repo_paths] > 0 } {
     foreach repo_path [split [get_property ip_repo_paths [current_project]] " "] {
       lappend l_ip_repo_paths $repo_path
