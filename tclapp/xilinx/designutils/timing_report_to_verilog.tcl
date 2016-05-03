@@ -10,6 +10,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog {args} {
 	# Argument Usage:
 	# [-filename <arg> = xlnx_strip_model]: Output file name for Verilog, Tcl, and XDC files
 	# [-force]: Overwrite existing file
+	# [-include_route_tree]: Include the full routing tree for the datapath nets"
 	# [-obfuscation]: Creates ambiguious naming for cells, nets, and ports
 	# -of_objects <arg>: Get the timing report specified from the get_timing_paths objects
 	# [-report_string <arg>]: Timing path report as string from report_timing command (Required if -of_objects is not used)
@@ -41,7 +42,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
     # Categories: xilinctclstore, designutils
 	
 	## Set Default option values
-	array set opts {-help 0 -filename xlnx_strip_model -obfuscation 0 -debug 0}
+	array set opts {-help 0 -filename xlnx_strip_model -obfuscation 0 -include_route_tree 0 -include_clock_tree 0 -debug 0}
     
     ## Parse arguments from option command line
 	while {[llength $args]} {
@@ -49,14 +50,16 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
         set optionName [lshift args]
 		## Check for the option name in the regular expression
 		switch -regexp -- $optionName {
-            {-fi(l(e(n(a(m(e)?)?)?)?)?)?$}                        { set opts(-filename)      [lshift args]}
-			{-fo(r(c(e)?)?)?$}                                    { set opts(-force)         1}
-            {-ob(f(u(s(c(a(t(i(o(n)?)?)?)?)?)?)?)?)?$}            { set opts(-obfuscation)   1}
-			{-of(_(o(b(j(e(c(t(s)?)?)?)?)?)?)?)?$}                { set opts(-of_objects)    [lshift args]}
-            {-r(e(p(o(r(t(_(s(t(r(i(n(g)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-report_string) [lshift args]}
-			{-d(e(b(u(g)?)?)?)?$}                                 { set opts(-debug)         1}
-            {-h(e(l(p)?)?)?$}                                     { set opts(-help)          1}
-            {-u(s(a(g(e)?)?)?)?$}                                 { set opts(-help)          1}			
+            {-fi(l(e(n(a(m(e)?)?)?)?)?)?$}                        { set opts(-filename)           [lshift args]}
+			{-fo(r(c(e)?)?)?$}                                    { set opts(-force)              1}
+			{-include_c(l(o(c(k(_(t(r(e(e)?)?)?)?)?)?)?)?)?$}     { set opts(-include_clock_tree) 1}
+			{-include_r(o(u(t(e(_(t(r(e(e)?)?)?)?)?)?)?)?)?$}     { set opts(-include_route_tree) 1}
+            {-ob(f(u(s(c(a(t(i(o(n)?)?)?)?)?)?)?)?)?$}            { set opts(-obfuscation)        1}
+			{-of(_(o(b(j(e(c(t(s)?)?)?)?)?)?)?)?$}                { set opts(-of_objects)         [lshift args]}
+            {-r(e(p(o(r(t(_(s(t(r(i(n(g)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-report_string)      [lshift args]}
+			{-d(e(b(u(g)?)?)?)?$}                                 { set opts(-debug)              1}
+            {-h(e(l(p)?)?)?$}                                     { set opts(-help)               1}
+            {-u(s(a(g(e)?)?)?)?$}                                 { set opts(-help)               1}			
             default {
                 return -code error "ERROR: \[timing_report_to_verilog\] Unknown option '[lindex $args 0]', please type 'timing_report_to_verilog -help' for usage info."
             }
@@ -71,7 +74,8 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
         puts ""
         puts "Syntax:"
         puts "  timing_report_to_verilog \[-filename <arg>\] \[-of_objects <arg>\]"
-		puts "                           \[-obfuscation\] \[-report_string <arg>\]"
+		puts "                           \[-include_route_tree\] \[-obfuscation\]"
+		puts "                           \[-report_string <arg>\]"
         puts ""
         puts "Returns:"
         puts "  Generates a file containing a structured Verilog netlist and associated contraints for the"
@@ -80,16 +84,17 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
         puts "Usage:"
         puts "  Name                Description"
         puts "  -------------------------------"
-        puts "  \[-filename\]         Output file name for Verilog and XDC files."
-        puts "                      Default: xlnx_strip_model"
-        puts "  \[-force\]            Overwrites existing file."
-		puts "  \[-obfuscation\]      Creates ambiguous naming for cells, nets, and ports."
-		puts "                      (Optional)"
-		puts "  \[-of_objects\]       Get the timing report specified from the get_timing_paths"
-        puts "                      objects."
-		puts "                      (Priority over -report_string)"
-        puts "  \[-report_string\]    Timing path report as string from report_timing"
-		puts "                      (Required if not using -of_objects)"
+        puts "  \[-filename\]            Output file name for Verilog and XDC files."
+        puts "                         Default: xlnx_strip_model"
+        puts "  \[-force\]               Overwrites existing file."
+		puts "  \[-include_route_tree\]  Include the full routing tree for the datapath nets"
+		puts "  \[-obfuscation\]         Creates ambiguous naming for cells, nets, and ports."
+		puts "                         (Optional)"
+		puts "  \[-of_objects\]          Get the timing report specified from the get_timing_paths"
+        puts "                         objects."
+		puts "                         (Priority over -report_string)"
+        puts "  \[-report_string\]       Timing path report as string from report_timing"
+		puts "                         (Required if not using -of_objects)"
         puts ""
 		puts "Description:"
 		puts ""
@@ -162,7 +167,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
 	}
 		
 	## Parse the timing report and return the timing path cell data structure objects
-    set timingPathCellsDict [parse_timing_report -report_string $timingReportString -obfuscation $opts(-obfuscation)] 
+    set timingPathCellsDict [parse_timing_report -report_string $timingReportString -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree) -include_clock_tree $opts(-include_clock_tree)] 
 	
 	## Check to ensure at least one timing path dictionary exists before processing
 	if {[llength $timingPathCellsDict]==0} {
@@ -170,21 +175,73 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
 		return -code error
 	} else {
 		## Initialize the Verilog Objects dictionary
-		set verilogObjectsDict [dict create]
+		#set verilogObjectsDict [dict create]
 		
 		## Loop through each path object in the timing path dictionary
-		foreach cellTimingPathDictID [dict keys $timingPathCellsDict] {
+		#foreach cellTimingPathDictID [dict keys $timingPathCellsDict] {
 			## Set the Verilog object dictionary from the path object
-			set verilogDict [path_to_verilog_dict -dict_object [dict get $timingPathCellsDict $cellTimingPathDictID] -verilog_dict $verilogObjectsDict]
+		#	set verilogDict [path_to_verilog_dict -dict_object [dict get $timingPathCellsDict $cellTimingPathDictID] -verilog_dict $verilogObjectsDict]
 			## Store the Verilog object in the Verilog Object dictionary
-			dict set verilogObjectsDict [dict get $verilogDict orig_name] $verilogDict
-		}
+		#	dict set verilogObjectsDict [dict get $verilogDict orig_name] $verilogDict
+		#}
+		
+		## Build the Verilog objects from the timing paths
+		set verilogObjectsDict [build_verilog_objects_from_timing_path_dict -dict $timingPathCellsDict]
 	}
 	
     ## Write the Verilog test case based on the Verilog objects
 	write_verilog_testcase -design_name $opts(-filename) -dict $verilogObjectsDict
 	
 	return 0
+}
+
+# #########################################################
+# build_verilog_objects
+# #########################################################
+proc ::tclapp::xilinx::designutils::timing_report_to_verilog::build_verilog_objects_from_timing_path_dict {args} {
+    # Summary :
+
+    # Argument Usage:
+
+    # Return Value:
+    # 
+
+    # Categories: xilinctclstore, designutils
+	
+	## Set Default option values
+	array set opts {-help 0 -obfuscation 0}
+    
+    ## Parse arguments from option command line
+	while {[string match -* [lindex $args 0]]} {
+		## Set the name of the first level option
+        set optionName [lshift args]
+		## Check for the option name in the regular expression
+        switch -regexp -- $optionName {
+		    {-d(i(c(t)?)?)?$}     { set opts(-dict) [lshift args]}
+            {-h(e(l(p)?)?)?$}     { set opts(-help) 1}
+            default {
+                return -code error "ERROR: \[build_verilog_objects_from_timing_path_dict\] Unknown option '[lindex $args 0]', please type 'build_verilog_objects_from_timing_path_dict -help' for usage info."
+            }
+        }
+    }
+	
+	## Initialize the Verilog Objects dictionary
+	set verilogObjectsDict [dict create]
+	## Initialize the Generated ports dictionary
+	set verilogGeneratedPortsDict [dict create]
+		
+	## Loop through each path object in the timing path dictionary
+	foreach cellTimingPathDictID [dict keys $opts(-dict)] {
+		## Set the Verilog object dictionary from the path object
+		set verilogDict [path_to_verilog_dict -dict_object [dict get $opts(-dict) $cellTimingPathDictID] -verilog_dict $verilogObjectsDict -generated_ports_dict $verilogGeneratedPortsDict]
+		## Store the Verilog object in the Verilog Object dictionary
+		dict set verilogObjectsDict [dict get $verilogDict verilog_object orig_name] [dict get $verilogDict verilog_object]
+		## Update the generated ports dictionary
+		set verilogGeneratedPortsDict [dict get $verilogDict generated_ports]
+	}
+	
+	## Return the Verilog Object dictionary
+	return $verilogObjectsDict
 }
 
 # #########################################################
@@ -493,7 +550,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
     # Categories: xilinctclstore, designutils
 	
 	## Set Default option values
-	array set opts {-help 0 -obfuscation 0}
+	array set opts {-help 0 -obfuscation 0 -include_route_tree 0 -include_clock_tree 0}
     
     ## Parse arguments from option command line
 	while {[string match -* [lindex $args 0]]} {
@@ -501,9 +558,11 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
         set optionName [lshift args]
 		## Check for the option name in the regular expression
         switch -regexp -- $optionName {
-            {-o(b(f(u(s(c(a(t(i(o(n)?)?)?)?)?)?)?)?)?)?$}         { set opts(-obfuscation)   [lshift args]}
-			{-r(e(p(o(r(t(_(s(t(r(i(n(g)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-report_string) [lshift args]}
-            {-h(e(l(p)?)?)?$}                                     { set opts(-help)          1}
+			{-include_c(l(o(c(k(_(t(r(e(e)?)?)?)?)?)?)?)?)?$}     { set opts(-include_clock_tree) [lshift args]}
+			{-include_r(o(u(t(e(_(t(r(e(e)?)?)?)?)?)?)?)?)?$}     { set opts(-include_route_tree) [lshift args]}
+            {-o(b(f(u(s(c(a(t(i(o(n)?)?)?)?)?)?)?)?)?)?$}         { set opts(-obfuscation)        [lshift args]}
+			{-r(e(p(o(r(t(_(s(t(r(i(n(g)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-report_string)      [lshift args]}
+            {-h(e(l(p)?)?)?$}                                     { set opts(-help)               1}
             default {
                 return -code error "ERROR: \[parse_timing_report\] Unknown option '[lindex $args 0]', please type 'parse_timing_report -help' for usage info."
             }
@@ -530,23 +589,23 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 		
 		if {[regexp {Slack.+?--+\s\s\s\s--+(.*?)--+\s\s\s\s--+(.*?)--+\s\s\s\s--+(.*?)\s+clock\spessimism} $pathReport matchString sourceSection dataSection destinationSection]} {		
 			## Parse Source Clock Report Paths and Store necessary data
-			set timingPathCellsDict [parse_timing_report_paths -report_string $sourceSection -name "srcclk[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation)]
+			set timingPathCellsDict [parse_timing_report_paths -report_string $sourceSection -name "srcclk[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree) -include_clock_tree $opts(-include_clock_tree)]
 		
 			## Parse Destination Clock Report Paths and Store necessary data
-			set timingPathCellsDict [parse_timing_report_paths -report_string $destinationSection -name "dstclk[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation)]
+			set timingPathCellsDict [parse_timing_report_paths -report_string $destinationSection -name "dstclk[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree) -include_clock_tree $opts(-include_clock_tree)]
 		
 			## Parse Data Report Paths and Store necessary data
-			set timingPathCellsDict [parse_timing_report_paths -report_string $dataSection -name "datapath[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation)]
+			set timingPathCellsDict [parse_timing_report_paths -report_string $dataSection -name "datapath[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree) -include_clock_tree $opts(-include_clock_tree)]
 			
 		} elseif {[regexp {Slack.+?--+\s\s\s\s--+(.*?)--+\s\s\s\s--+(.*?)\s+clock\spessimism} $pathReport matchString sourceSection dataSection]} {		
 			## Parse Source Clock Report Paths and Store necessary data
-			set timingPathCellsDict [parse_timing_report_paths -report_string $sourceSection -name "srcclk[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation)]
+			set timingPathCellsDict [parse_timing_report_paths -report_string $sourceSection -name "srcclk[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree) -include_clock_tree $opts(-include_clock_tree)]
 		
 			## Parse Data Report Paths and Store necessary data
-			set timingPathCellsDict [parse_timing_report_paths -report_string $dataSection -name "datapath[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation)]
+			set timingPathCellsDict [parse_timing_report_paths -report_string $dataSection -name "datapath[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree) -include_clock_tree $opts(-include_clock_tree)]
 		} elseif {[regexp {Slack.+?--+\s\s\s\s--+(.*?)--+\s\s\s\s--+\s+max\sdelay} $pathReport matchString dataSection]} {
 			## Parse Source Clock Report Paths and Store necessary data
-			set timingPathCellsDict [parse_timing_report_paths -report_string $dataSection -name "datapath[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation)]			
+			set timingPathCellsDict [parse_timing_report_paths -report_string $dataSection -name "datapath[expr $x/2]" -dict $timingPathCellsDict -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree) -include_clock_tree $opts(-include_clock_tree)]			
 	
 		} else {
 			puts "ERROR: \[[get_current_proc_name]\] Unable to parse timing path report."
@@ -572,7 +631,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
     # Categories: xilinctclstore, designutils
 	
 	## Set Default option values
-	array set opts {-help 0 -obfuscation 0}
+	array set opts {-help 0 -obfuscation 0 -include_route_tree 0 -include_clock_tree 0}
     
     ## Parse arguments from option command line
 	while {[string match -* [lindex $args 0]]} {
@@ -580,12 +639,14 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
         set optionName [lshift args]
 		## Check for the option name in the regular expression
         switch -regexp -- $optionName {
-		    {-d(i(c(t)?)?)?$}                            { set opts(-dict)          [lshift args]}
-			{-i(n(d(e(x)?)?)?)?$}                        { set opts(-index)         [lshift args]}
-			{-n(a(m(e)?)?)?$}                            { set opts(-name)          [lshift args]}
-			{-obj(e(c(t(s)?)?)?)?$}                      { set opts(-objects)       [lshift args]}
-            {-obf(u(s(c(a(t(i(o(n)?)?)?)?)?)?)?)?$}      { set opts(-obfuscation)   [lshift args]}
-            {-h(e(l(p)?)?)?$}                            { set opts(-help)          1}
+		    {-d(i(c(t)?)?)?$}                                 { set opts(-dict)               [lshift args]}
+			{-ind(e(x)?)?$}                                   { set opts(-index)              [lshift args]}
+			{-include_c(l(o(c(k(_(t(r(e(e)?)?)?)?)?)?)?)?)?$} { set opts(-include_clock_tree) [lshift args]}
+			{-include_r(o(u(t(e(_(t(r(e(e)?)?)?)?)?)?)?)?)?$} { set opts(-include_route_tree) [lshift args]}			
+			{-n(a(m(e)?)?)?$}                                 { set opts(-name)               [lshift args]}
+			{-obj(e(c(t(s)?)?)?)?$}                           { set opts(-objects)            [lshift args]}
+            {-obf(u(s(c(a(t(i(o(n)?)?)?)?)?)?)?)?$}           { set opts(-obfuscation)        [lshift args]}
+            {-h(e(l(p)?)?)?$}                                 { set opts(-help)               1}
             default {
                 return -code error "ERROR: \[add_timing_report_path\] Unknown option '[lindex $args 0]', please type 'add_timing_report_path -help' for usage info."
             }
@@ -603,6 +664,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 		
 		## Check if the output pin object exists
 		if {[llength $outputPinObj]==0} {
+			dbgVar outputObjectName
 			## Get the port object from the output name
 			set portObj [get_ports -quiet $outputObjectName]
 			
@@ -617,6 +679,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 				} else {
 					## Remove hierarchy from port object
 					set portName [regsub -all {\/} [get_property NAME $portObj] "_"]
+					set portName [regsub -all {\\} $portName "_"]
 					set portName [regsub -all {\[} $portName "_"]
 					set portName [regsub -all {\]} $portName "_"]
 					set portName [regsub -all {\.} $portName "_"]
@@ -635,17 +698,17 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 					
 					## Get any non-generated clock objects on the port
 					set clockObj [get_clocks -quiet -of_objects $portObj -filter {IS_USER_GENERATED || !IS_GENERATED}]
+					dbgVar clockObj
+					
 					## Check if any clock objects exist
 					if {[llength $clockObj]!=0} {
 						## Check if the source pin of the clock object is equal to the current port
-						if {[lsearch [get_property -quiet SOURCE_PINS $clockObj] $portObj]>=0} {
+						if {[lsearch -exact [get_property -quiet SOURCE_PINS $clockObj] $portObj]>=0} {
 							dbg "$opts(-name)$opts(-index): Clock Object $clockObj"
 							## Add the clock object to the port
 							dict set opts(-dict) "$opts(-name)$opts(-index)" clock_object name $clockObj
 						}
 					}
-					
-					dbgVar opts(-dict)
 					
 					## Store the current output value for next iteration
 					set outputNetName $portName
@@ -688,6 +751,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 									
 							## Remove hierarchy from net object
 							set newNetName [regsub -all {\/} [get_property NAME $netObj] "_"]
+							set newNetName [regsub -all {\\} $newNetName "_"]
 							set newNetName [regsub -all {\[} $newNetName "_"]
 							set newNetName [regsub -all {\]} $newNetName "_"]
 							set newNetName [regsub -all {\.} $newNetName "_"]
@@ -703,17 +767,21 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 						dict set previousOutputPinsDict $outputPinObj net_name $newNetName
 						
 						## Get any non-generated clock objects on the output pin
-						set clockObj [get_clocks -quiet -of_objects $outputPinObj -filter {IS_USER_GENERATED || !IS_GENERATED}]
+						#set clockObj [get_clocks -quiet -of_objects $outputPinObj -filter {IS_USER_GENERATED || !IS_GENERATED}]
+						set clockObj [get_clocks -quiet -of_objects $outputPinObj]
+						
+						dbgVar clockObj
+						
 						## Check if any clock objects exist
 						if {[llength $clockObj]!=0} {
 							## Check if the source pin of the clock object is equal to the current output pin
-							if {[lsearch [get_property -quiet SOURCE_PINS $clockObj] $outputPinObj]>=0} {
+							if {[lsearch -exact [get_property -quiet SOURCE_PINS $clockObj] $outputPinObj]>=0} {
 								dbg "$opts(-name)$opts(-index): Clock Object $clockObj"
 								## Add the clock object to the output pin
 								dict set previousOutputPinsDict $outputPinObj clock_object name $clockObj
 								
 								## Check if the clock is user generated
-								if {[get_property -quiet IS_USER_GENERATED $clockObj]} {
+								if {[get_property -quiet IS_GENERATED $clockObj]} {
 									dbg "$opts(-name)$opts(-index): $clockObj found as generated clock"
 									## Determine the updated net name for the source clock pin
 									set sourceClockPinObj [get_pins -quiet [get_property -quiet SOURCE $clockObj]]
@@ -730,6 +798,8 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 
 											## Add the source clock pin net_name to the output pin
 											dict set previousOutputPinsDict $outputPinObj clock_object source_clock_pin "[dict get $sourceClockPathDict instance]/[get_property -quiet REF_PIN_NAME $sourceClockPinObj]"
+											## Add whether the clock is a user generated clock
+											dict set previousOutputPinsDict $outputPinObj clock_object is_user_generated [get_property -quiet IS_USER_GENERATED $clockObj]
 										} else {
 											puts "CRITICAL WARNING: \[add_timing_report_path\] Source clock pin $sourceClockPinObj for generated clock $clockObj not previously found in timing report"
 										}
@@ -765,6 +835,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 				} else {
 					## Remove hierarchy from port object
 					set newCellName [regsub -all {\/} [get_property NAME $cellObj] "_"]
+					set newCellName [regsub -all {\\} $newCellName "_"]
 					set newCellName [regsub -all {\[} $newCellName "_"]
 					set newCellName [regsub -all {\]} $newCellName "_"]
 					set newCellName [regsub -all {\.} $newCellName "_"]
@@ -791,6 +862,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 								
 					## Remove hierarchy from net object
 					set newNetName [regsub -all {\/} [get_property NAME $netObj] "_"]
+					set newNetName [regsub -all {\\} $newNetName "_"]
 					set newNetName [regsub -all {\[} $newNetName "_"]
 					set newNetName [regsub -all {\]} $newNetName "_"]
 					set newNetName [regsub -all {\.} $newNetName "_"]
@@ -804,7 +876,46 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 				dict set outputPinDict $outputPinObj type "pin"
 				dict set outputPinDict $outputPinObj name $outputPinObj
 				dict set outputPinDict $outputPinObj net_name $newNetName
+
+				## Get any clock objects that exist on the output pin
+				set clockObj [get_clocks -quiet -of_objects $outputPinObj]
+				
+				## Check if any clock objects exist
+				if {[llength $clockObj]!=0} {
+					## Check if the source pin of the clock object is equal to the current output pin
+					if {[lsearch [get_property -quiet SOURCE_PINS $clockObj] $outputPinObj]>=0} {
+						dbg "$opts(-name)$opts(-index): Clock Object $clockObj"
+						## Add the clock object to the output pin
+						dict set outputPinDict $outputPinObj clock_object name $clockObj
 						
+						## Check if the clock is user generated
+						if {[get_property -quiet IS_GENERATED $clockObj]} {
+							dbg "$opts(-name)$opts(-index): $clockObj found as generated clock"
+							## Determine the updated net name for the source clock pin
+							set sourceClockPinObj [get_pins -quiet [get_property -quiet SOURCE $clockObj]]
+							## Check if the source clock pin was found
+							if {[llength $sourceClockPinObj]==0} {
+								puts "CRITICAL WARNING: \[add_timing_report_path\] Unable to determine source clock pin for generated clock $clockObj"
+							} else {
+								## Get the source clock pin cell object
+								set sourceClockCellObj [get_cells -quiet -of_objects $sourceClockPinObj]
+								## Check if Cell already exists in Path Dictionary
+								if {[path_cell_name_exists? -dict $opts(-dict) -value $sourceClockCellObj]} {
+									## Get the previous path instance from the Path Dictionary
+									set sourceClockPathDict [get_path_dict_by_cell_name -dict $opts(-dict) -value $sourceClockCellObj]
+
+									## Add the source clock pin net_name to the output pin
+									dict set outputPinDict $outputPinObj clock_object source_clock_pin "[dict get $sourceClockPathDict instance]/[get_property -quiet REF_PIN_NAME $sourceClockPinObj]"
+									## Add whether the clock is a user generated clock
+									dict set outputPinDict $outputPinObj clock_object is_user_generated [get_property -quiet IS_USER_GENERATED $clockObj]
+								} else {
+									puts "CRITICAL WARNING: \[add_timing_report_path\] Source clock pin $sourceClockPinObj for generated clock $clockObj not previously found in timing report"
+								}
+							}
+						}
+					}
+				}				
+				
 				## Add the output pins dictionary to the cell dictionary
 				dict set opts(-dict) "$opts(-name)$opts(-index)" output_pins $outputPinDict
 					
@@ -834,6 +945,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 				} else {
 					## Remove hierarchy from port object
 					set portName [regsub -all {\/} [get_property NAME $portObj] "_"]
+					set portName [regsub -all {\\} $portName "_"]
 					set portName [regsub -all {\[} $portName "_"]
 					set portName [regsub -all {\]} $portName "_"]
 					set portName [regsub -all {\.} $portName "_"]
@@ -877,27 +989,74 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 							
 							## Set the Unique site pins to determine fixed routing constraints
 							set sitePinList [lsort -uniq [get_site_pins -quiet -of_objects $inputPinObj]]
-							## Get the nodes for the specified site pins
-							set nodeList    [get_nodes -quiet -of_objects [get_nets -quiet -of_objects $inputPinObj] -to $sitePinList] 
+								
+							## Check if more than one site pin was returned
+							if {[llength $sitePinList]>1} {
+								## Take only the first site pin
+								set sitePinList [lindex $sitePinList 0]
+							}
 							
-							dbgVar inputPinObj
-							dbgVar sitePinList
-							dbgVar nodeList
-							
-							## Check if any node routing exists
-							if {[llength $nodeList]>0} {
-								## Add the node list to the fixed routing constraint
-								dict set previousInputPinsDict $inputPinObj fixed_route $nodeList
-								## Check if the cell instance is of type LUT
-								if {[regexp {LUT} [get_property -quiet REF_NAME $cellObj]]} {
-									## Get the site pin name for the respective input pin
-									set sitePinName [regsub .*/ [lindex $sitePinList 0] ""]
-									## Set the physical pin location from the site pin name
-									set physicalPinName [regsub {B|C|D|E|F|G|H} $sitePinName "A"]
-									## Add the input and site pins to the LOCK_PINS constraint list
-									dict set previousInputPinsDict $inputPinObj lock_pins "[get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
-											
-									dbg "lock_pins = [get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+							## Check if the option to include the full route tree is used
+							if {$opts(-include_route_tree)} {
+								## Check if net is not part of the clock tree
+								if {![regexp -nocase {CLOCK} [get_property -quiet TYPE [get_nets -quiet -of_objects $inputPinObj]]]} {
+									## Get the route property
+									set routePropertyValue [get_property -quiet ROUTE [get_nets -quiet -of_objects $inputPinObj]]
+									## Check if route property exists
+									if {[llength [concat {*}$routePropertyValue]]>0} {
+										## Get the entire route tree for the net
+										dict set previousInputPinsDict $inputPinObj fixed_route $routePropertyValue
+										
+										## Check if the cell instance is of type LUT
+										if {[regexp {LUT} [get_property -quiet REF_NAME $cellObj]]} {
+											## Get the site pin name for the respective input pin
+											set sitePinName [regsub .*/ $sitePinList ""]
+											## Set the physical pin location from the site pin name
+											set physicalPinName [regsub {B|C|D|E|F|G|H} $sitePinName "A"]
+											## Add the input and site pins to the LOCK_PINS constraint list
+											dict set previousInputPinsDict $inputPinObj lock_pins "[get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+													
+											dbg "lock_pins = [get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+										}
+									}
+								} else {
+									## Get the nodes for the specified site pins
+									set nodeList    [get_nodes -quiet -of_objects [get_nets -quiet -of_objects $inputPinObj] -to $sitePinList] 
+								
+									dbgVar inputPinObj
+									dbgVar sitePinList
+									dbgVar nodeList
+								
+									## Check if any node routing exists
+									if {[llength $nodeList]>0} {
+										## Add the node list to the fixed routing constraint
+										dict set previousInputPinsDict $inputPinObj fixed_route $nodeList
+									}
+								}
+							} else {
+								## Get the nodes for the specified site pins
+								set nodeList    [get_nodes -quiet -of_objects [get_nets -quiet -of_objects $inputPinObj] -to $sitePinList] 
+								
+								dbgVar inputPinObj
+								dbgVar sitePinList
+								dbgVar nodeList
+								
+								## Check if any node routing exists
+								if {[llength $nodeList]>0} {
+									## Add the node list to the fixed routing constraint
+									dict set previousInputPinsDict $inputPinObj fixed_route $nodeList
+									
+									## Check if the cell instance is of type LUT
+									if {[regexp {LUT} [get_property -quiet REF_NAME $cellObj]]} {
+										## Get the site pin name for the respective input pin
+										set sitePinName [regsub .*/ $sitePinList ""]
+										## Set the physical pin location from the site pin name
+										set physicalPinName [regsub {B|C|D|E|F|G|H} $sitePinName "A"]
+										## Add the input and site pins to the LOCK_PINS constraint list
+										dict set previousInputPinsDict $inputPinObj lock_pins "[get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+												
+										dbg "lock_pins = [get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+									}
 								}
 							}
 						} else {
@@ -921,6 +1080,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 				} else {
 					## Remove hierarchy from port object
 					set newCellName [regsub -all {\/} [get_property NAME $cellObj] "_"]
+					set newCellName [regsub -all {\\} $newCellName "_"]
 					set newCellName [regsub -all {\[} $newCellName "_"]
 					set newCellName [regsub -all {\]} $newCellName "_"]
 					set newCellName [regsub -all {\.} $newCellName "_"]
@@ -945,27 +1105,74 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_timing_report_
 					
 					## Set the Unique site pins to determine fixed routing constraints
 					set sitePinList [lsort -uniq [get_site_pins -quiet -of_objects $inputPinObj]]
-					## Get the nodes for the specified site pins
-					set nodeList    [get_nodes -quiet -of_objects [get_nets -quiet -of_objects $inputPinObj] -to $sitePinList] 
+						
+					## Check if more than one site pin was returned
+					if {[llength $sitePinList]>1} {
+						## Take only the first site pin
+						set sitePinList [lindex $sitePinList 0]
+					}
 					
-					dbgVar inputPinObj
-					dbgVar sitePinList
-					dbgVar nodeList
-					
-					## Check if any node routing exists
-					if {[llength $nodeList]>0} {
-						## Add the node list to the fixed routing constraint
-						dict set inputPinDict $inputPinObj fixed_route $nodeList
-						## Check if the cell instance is of type LUT
-						if {[regexp {LUT} [get_property -quiet REF_NAME $cellObj]]} {
-							## Get the site pin name for the respective input pin
-							set sitePinName [regsub .*/ [lindex $sitePinList 0] ""]
-							## Set the physical pin location from the site pin name
-							set physicalPinName [regsub {B|C|D|E|F|G|H} $sitePinName "A"]
-							## Add the input and site pins to the LOCK_PINS constraint list
-							dict set inputPinDict $inputPinObj lock_pins "[get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
-									
-							dbg "LOCK_PINS = [get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+					## Check if the option to include the full route tree is used
+					if {$opts(-include_route_tree)} {
+						## Check if net is not part of the clock tree
+						if {![regexp -nocase {CLOCK} [get_property -quiet TYPE [get_nets -quiet -of_objects $inputPinObj]]]} {
+							## Get the route property
+							set routePropertyValue [get_property -quiet ROUTE [get_nets -quiet -of_objects $inputPinObj]]
+							## Check if route property exists
+							if {[llength [concat {*}$routePropertyValue]]>0} {
+								## Get the entire route tree for the net
+								dict set inputPinDict $inputPinObj fixed_route $routePropertyValue
+								
+								## Check if the cell instance is of type LUT
+								if {[regexp {LUT} [get_property -quiet REF_NAME $cellObj]]} {
+									## Get the site pin name for the respective input pin
+									set sitePinName [regsub .*/ $sitePinList ""]
+									## Set the physical pin location from the site pin name
+									set physicalPinName [regsub {B|C|D|E|F|G|H} $sitePinName "A"]
+									## Add the input and site pins to the LOCK_PINS constraint list
+									dict set inputPinDict $inputPinObj lock_pins "[get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+											
+									dbg "LOCK_PINS = [get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+								}
+							}
+						} else {
+							## Get the nodes for the specified site pins
+							set nodeList    [get_nodes -quiet -of_objects [get_nets -quiet -of_objects $inputPinObj] -to $sitePinList] 
+						
+							dbgVar inputPinObj
+							dbgVar sitePinList
+							dbgVar nodeList
+							
+							## Check if any node routing exists
+							if {[llength $nodeList]>0} {
+								## Add the node list to the fixed routing constraint
+								dict set inputPinDict $inputPinObj fixed_route $nodeList
+							}
+						}
+					} else {		
+						## Get the nodes for the specified site pins
+						set nodeList    [get_nodes -quiet -of_objects [get_nets -quiet -of_objects $inputPinObj] -to $sitePinList] 
+						
+						dbgVar inputPinObj
+						dbgVar sitePinList
+						dbgVar nodeList
+						
+						## Check if any node routing exists
+						if {[llength $nodeList]>0} {
+							## Add the node list to the fixed routing constraint
+							dict set inputPinDict $inputPinObj fixed_route $nodeList
+
+							## Check if the cell instance is of type LUT
+							if {[regexp {LUT} [get_property -quiet REF_NAME $cellObj]]} {
+								## Get the site pin name for the respective input pin
+								set sitePinName [regsub .*/ $sitePinList ""]
+								## Set the physical pin location from the site pin name
+								set physicalPinName [regsub {B|C|D|E|F|G|H} $sitePinName "A"]
+								## Add the input and site pins to the LOCK_PINS constraint list
+								dict set inputPinDict $inputPinObj lock_pins "[get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+										
+								dbg "LOCK_PINS = [get_property -quiet REF_PIN_NAME $inputPinObj]:$physicalPinName"
+							}
 						}
 					}
 					
@@ -995,7 +1202,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
     # Categories: xilinctclstore, designutils
 	
 	## Set Default option values
-	array set opts {-help 0 -obfuscation 0}
+	array set opts {-help 0 -obfuscation 0 -include_route_tree 0 -include_clock_tree 0}
     
     ## Parse arguments from option command line
 	while {[string match -* [lindex $args 0]]} {
@@ -1003,13 +1210,15 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
         set optionName [lshift args]
 		## Check for the option name in the regular expression
         switch -regexp -- $optionName {
-		    {-d(i(c(t)?)?)?$}                                     { set opts(-dict)          [lshift args]}
-			{-n(a(m(e)?)?)?$}                                     { set opts(-name)          [lshift args]}
-            {-o(b(f(u(s(c(a(t(i(o(n)?)?)?)?)?)?)?)?)?)?$}         { set opts(-obfuscation)   [lshift args]}
-			{-r(e(p(o(r(t(_(s(t(r(i(n(g)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-report_string) [lshift args]}
-            {-h(e(l(p)?)?)?$}                                     { set opts(-help)          1}
+		    {-d(i(c(t)?)?)?$}                                     { set opts(-dict)               [lshift args]}
+			{-include_c(l(o(c(k(_(t(r(e(e)?)?)?)?)?)?)?)?)?$}     { set opts(-include_clock_tree) [lshift args]}
+			{-include_r(o(u(t(e(_(t(r(e(e)?)?)?)?)?)?)?)?)?$}     { set opts(-include_route_tree) [lshift args]}
+			{-n(a(m(e)?)?)?$}                                     { set opts(-name)               [lshift args]}
+            {-o(b(f(u(s(c(a(t(i(o(n)?)?)?)?)?)?)?)?)?)?$}         { set opts(-obfuscation)        [lshift args]}
+			{-r(e(p(o(r(t(_(s(t(r(i(n(g)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-report_string)      [lshift args]}
+            {-h(e(l(p)?)?)?$}                                     { set opts(-help)               1}
             default {
-                return -code error "ERROR: \[parse_timing_report\] Unknown option '[lindex $args 0]', please type 'parse_timing_report -help' for usage info."
+                return -code error "ERROR: \[parse_timing_report_paths\] Unknown option '[lindex $args 0]', please type 'parse_timing_report_paths -help' for usage info."
             }
         }
     }
@@ -1035,7 +1244,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 		#dbg "Path $pathIndex: $reportLine"
 		
 		## Check if timing report line is of a Port Object or a datapath_only pin object
-		if {[regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName] || [regexp {^\s*\(.*\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString incrValue pathValue edgeValue tmpInc tmpPath tmpEdge portName] || [regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*\((IN|OUT)\)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName tmpDirection]} {
+		if {[regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName] || [regexp {^\s*\(.*\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString incrValue pathValue edgeValue tmpInc tmpPath tmpEdge portName] || [regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*\((IN|OUT|INOUT)\)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName tmpDirection]} {
 			## Store the Port Object
 			set portObj [get_ports -quiet $portName]
 			
@@ -1056,7 +1265,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 						## Check to ensure that the output pin object exists
 						if {[llength $outputObject]!=0} {
 							## Add the timing report path to the dictionary
-							set opts(-dict) [add_timing_report_path -objects [list $outputObject $pinObj] -dict $opts(-dict) -index $pathIndex -name $opts(-name) -obfuscation $opts(-obfuscation)]
+							set opts(-dict) [add_timing_report_path -objects [list $outputObject $pinObj] -dict $opts(-dict) -index $pathIndex -name $opts(-name) -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree)]
 						} else {
 							## Skip unreported driver for input pin in timing report
 							dbg "Skipping path due to unreferenced output object for input pin object: $pinObj"
@@ -1074,7 +1283,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 						if {[regexp {^(MMCM|PLL)} [get_property -quiet REF_NAME $cellObj]]} {
 							## Add the feedback path for the clock management block
 							## Add the feedback path for the clock management block
-					set opts(-dict) [add_clock_management_block_feedback_path -dict $opts(-dict) -object $outputObject -name $opts(-name) -index $pathIndex -obfuscation $opts(-obfuscation)]
+							set opts(-dict) [add_clock_management_block_feedback_path -dict $opts(-dict) -object $outputObject -name $opts(-name) -index $pathIndex -obfuscation $opts(-obfuscation)]
 						}
 					}
 				}
@@ -1089,7 +1298,11 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 					dbg "Output Port Object: $portObj (IN)"
 					dbg "Pin Pair: $outputObject $portObj"
 					## Add the timing report path to the dictionary
-					set opts(-dict) [add_timing_report_path -objects [list $outputObject $portObj] -dict $opts(-dict) -index $pathIndex -name $opts(-name) -obfuscation $opts(-obfuscation)]
+					set opts(-dict) [add_timing_report_path -objects [list $outputObject $portObj] -dict $opts(-dict) -index $pathIndex -name $opts(-name) -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree)]
+				} elseif {[get_property -quiet DIRECTION $portObj] eq "INOUT"} {
+					dbg "Input/Output Port Object: $portObj (OUT)"
+					## Set the output object to the inout port
+					set outputObject $portObj
 				}
 			}
 			
@@ -1134,7 +1347,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 				dbg "Input Pin Object: $inputPinObj"
 				dbg "Pin Pair: $outputObject $inputPinObj"
 				## Add the timing report path to the dictionary
-				set opts(-dict) [add_timing_report_path -objects [list $outputObject $inputPinObj] -dict $opts(-dict) -index $pathIndex -name $opts(-name) -obfuscation $opts(-obfuscation)]
+				set opts(-dict) [add_timing_report_path -objects [list $outputObject $inputPinObj] -dict $opts(-dict) -index $pathIndex -name $opts(-name) -obfuscation $opts(-obfuscation) -include_route_tree $opts(-include_route_tree)]
 			}
 			
 			## Increment the Path Index
@@ -1221,61 +1434,77 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::add_clock_manageme
 		dbg "Adding CLKFBIN for cell [get_cells -quiet -of_objects $outputPinObj]"
 		## Get the CLKFBIN pin for the cell
 		set feedbackInPinObj [get_pins -quiet -filter {REF_PIN_NAME=="CLKFBIN"} -of_objects $cellObj]
-		## Get the driver of the feedback input pin
-		set feedbackInDriverPinObj [get_pins -quiet -filter {DIRECTION==OUT} -of_objects [get_nets -quiet -of_objects $feedbackInPinObj]]
+		## Get the signal net object on the CLKFBIN pin
+		set feedbackInNetObj [get_nets -quiet -of_objects $feedbackInPinObj -filter {TYPE!="Power" && TYPE!="Ground"}]
 		
-		## Check that the feedback driver exists
-		if {[llength $feedbackInDriverPinObj]==0} {
-			## Check if the driver of the feedback pin is a port
-			set feedbackInPortObj [get_ports -quiet -filter {DIRECTION==IN} -of_objects [get_nets -quiet -of_objects $feedbackInPinObj]]
+		## Check to ensure the feedback pin is connected to a signal
+		if {[llength $feedbackInNetObj]!=0} {
+			## Get the driver of the feedback input pin
+			set feedbackInDriverPinObj [get_pins -quiet -filter {DIRECTION==OUT} -of_objects $feedbackInNetObj]
 			
-			## Check if the feedback driver port exists
-			if {[llength $feedbackInPortObj]==0} {
-				puts "CRITICAL WARNING: \[add_clock_management_block_feedback\] Unable to find Feedback input path for $cellObj"
+			## Check that the feedback driver exists
+			if {[llength $feedbackInDriverPinObj]==0} {
+				## Check if the driver of the feedback pin is a port
+				set feedbackInPortObj [get_ports -quiet -filter {DIRECTION==IN} -of_objects $feedbackInNetObj]
+				
+				## Check if the feedback driver port exists
+				if {[llength $feedbackInPortObj]==0} {
+					puts "CRITICAL WARNING: \[add_clock_management_block_feedback\] Unable to find Feedback input path for $cellObj"
+				} else {
+					dbg "Pin Pair: $feedbackInPortObj $feedbackInPinObj"
+					## Add the feedback path to the dictionary
+					set opts(-dict) [add_timing_report_path -objects [list $feedbackInPortObj $feedbackInPinObj] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
+				}
 			} else {
-				dbg "Pin Pair: $feedbackInPortObj $feedbackInPinObj"
+				dbg "Pin Pair: $feedbackInDriverPinObj $feedbackInPinObj"
 				## Add the feedback path to the dictionary
-				set opts(-dict) [add_timing_report_path -objects [list $feedbackInPortObj $feedbackInPinObj] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
+				set opts(-dict) [add_timing_report_path -objects [list $feedbackInDriverPinObj $feedbackInPinObj] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
 			}
 		} else {
-			dbg "Pin Pair: $feedbackInDriverPinObj $feedbackInPinObj"
-			## Add the feedback path to the dictionary
-			set opts(-dict) [add_timing_report_path -objects [list $feedbackInDriverPinObj $feedbackInPinObj] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
+			dbg "Feedback input not connected to signal on cell $cellObj"
 		}
 		
 		## Get the CLKFBOUT pin of the cell
 		set feedbackOutPinObj [get_pins -quiet -filter {REF_PIN_NAME=="CLKFBOUT"} -of_objects $cellObj]	
-		## Get the feedback load pins
-		set feedbackOutLoadPinList [get_pins -quiet -filter {DIRECTION==IN} -of_objects [get_nets -quiet -of_objects $feedbackOutPinObj]]
+		## Get the net of the CLKFBOUT pin
+		set feedbackOutNetObj [get_nets -quiet -of_objects $feedbackOutPinObj]
 		
-		## Check if any loads were found on the feedback out
-		if {[llength $feedbackOutLoadPinList]==0} {
-			## Check if the load of the feedback pin is a port
-			set feedbackOutPortObj [get_ports -quiet -filter {DIRECTION==OUT} -of_objects [get_nets -quiet -of_objects $feedbackOutPinObj]]
-			
-			## Check if the feedback load port exists
-			if {[llength $feedbackOutPortObj]==0} {
-				puts "CRITICAL WARNING: \[add_clock_management_block_feedback\] Unable to find Feedback output path for $cellObj"
+		## Check to ensure that the CLKfOUT pin is connected to a net
+		if {[llength $feedbackOutNetObj]!=0} {
+			## Get the feedback load pins
+			set feedbackOutLoadPinList [get_pins -quiet -filter {DIRECTION==IN} -of_objects $feedbackOutNetObj]		
+		
+			## Check if any loads were found on the feedback out
+			if {[llength $feedbackOutLoadPinList]==0} {
+				## Check if the load of the feedback pin is a port
+				set feedbackOutPortObj [get_ports -quiet -filter {DIRECTION==OUT} -of_objects $feedbackOutNetObj]
+				
+				## Check if the feedback load port exists
+				if {[llength $feedbackOutPortObj]==0} {
+					puts "CRITICAL WARNING: \[add_clock_management_block_feedback\] Unable to find Feedback output path for $cellObj"
+				} else {
+					## Add the feedback path to the dictionary
+					set opts(-dict) [add_timing_report_path -objects [list $feedbackOutPinObj $feedbackOutPortObj] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
+				}
+			} elseif {[llength $feedbackOutLoadPinList]>1} {
+				## Get Feedback input driver cell
+				set feedbackInDriverCellObj [get_cells -quiet -of_objects $feedbackInDriverPinObj]
+				## Check if the CLKFBOUT load list contains the CLKFBIN driver
+				set feedbackInDriverLoadPinList [get_pins -quiet -filter "NAME=~$feedbackInDriverCellObj/*" -of_objects [get_nets -quiet -of_objects $feedbackOutPinObj]]
+				
+				## Check if CLKFBIN Driver is a load pin for the CLKFBOUT
+				if {[llength $feedbackInDriverLoadPinList]==0} {
+					puts "CRITICAL WARNING: \[add_clock_management_block_feedback\] Too many loads ([llength $feedbackOutLoadPinList]) on Feedback output path for $cellObj"
+				} else {
+					## Add the feedback path to the dictionary
+					set opts(-dict) [add_timing_report_path -objects [list $feedbackOutPinObj $feedbackInDriverLoadPinList] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
+				}
 			} else {
 				## Add the feedback path to the dictionary
-				set opts(-dict) [add_timing_report_path -objects [list $feedbackOutPinObj $feedbackOutPortObj] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
-			}
-		} elseif {[llength $feedbackOutLoadPinList]>1} {
-			## Get Feedback input driver cell
-			set feedbackInDriverCellObj [get_cells -quiet -of_objects $feedbackInDriverPinObj]
-			## Check if the CLKFBOUT load list contains the CLKFBIN driver
-			set feedbackInDriverLoadPinList [get_pins -quiet -filter "NAME=~$feedbackInDriverCellObj/*" -of_objects [get_nets -quiet -of_objects $feedbackOutPinObj]]
-			
-			## Check if CLKFBIN Driver is a load pin for the CLKFBOUT
-			if {[llength $feedbackInDriverLoadPinList]==0} {
-				puts "CRITICAL WARNING: \[add_clock_management_block_feedback\] Too many loads ([llength $feedbackOutLoadPinList]) on Feedback output path for $cellObj"
-			} else {
-				## Add the feedback path to the dictionary
-				set opts(-dict) [add_timing_report_path -objects [list $feedbackOutPinObj $feedbackInDriverLoadPinList] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
+				set opts(-dict) [add_timing_report_path -objects [list $feedbackOutPinObj $feedbackOutLoadPinList] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
 			}
 		} else {
-			## Add the feedback path to the dictionary
-			set opts(-dict) [add_timing_report_path -objects [list $feedbackOutPinObj $feedbackOutLoadPinList] -dict $opts(-dict) -index $opts(-index) -name $opts(-name) -obfuscation $opts(-obfuscation)]
+			dbg "Feedback output not connected to signal on cell $cellObj"
 		}
 	}
 	
@@ -1985,9 +2214,10 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
         set optionName [lshift args]
 		## Check for the option name in the regular expression
         switch -regexp -- $optionName {
-            {-d(i(c(t_(o(b(j(e(c(t)?)?)?)?)?)?)?)?)?$}                                { set opts(-dict_object)        [lshift args]}
-			{-v(e(r(i(l(o(g(_(d(i(c(t)?)?)?)?)?)?)?)?)?)?)?$}                         { set opts(-verilog_dict)       [lshift args]}
-            {-h(e(l(p)?)?)?$}                                                         { set opts(-help)               1}
+            {-d(i(c(t_(o(b(j(e(c(t)?)?)?)?)?)?)?)?)?$}                                        { set opts(-dict_object)          [lshift args]}
+			{-g(e(n(e(r(a(t(e(d(_(p(o(r(t(s(_(d(i(c(t)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-generated_ports_dict) [lshift args]}
+			{-v(e(r(i(l(o(g(_(d(i(c(t)?)?)?)?)?)?)?)?)?)?)?$}                                 { set opts(-verilog_dict)         [lshift args]}
+            {-h(e(l(p)?)?)?$}                                                                 { set opts(-help)                 1}
             default {
                 return -code error "ERROR: \[path_to_verilog\] Unknown option '[lindex $args 0]', please type 'path_to_verilog -help' for usage info."
             }
@@ -2015,6 +2245,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 	## Initialize the input and ports list variables
 	set inputPortsList	{}
     set outputPortsList {}	
+	set inoutPortsList  {}
 
 	## Initialize the count variable for the generated port list
     set generatedPortCount	0
@@ -2032,8 +2263,6 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 	
     ## Unset the persisted Verilog Object
     array unset verilogObj
-
-	#dbgVar opts(-dict_object)
 	
 	## Check if the dictionary object is of type cell
 	if {$objectType eq "cell"} {
@@ -2126,6 +2355,45 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 								dict set retargetOutputPinDict $netPinObj name $netPinObj
 								dict set retargetOutputPinDict $netPinObj net_name [dict get $outputPinDict net_name]
 								
+								## Get any clock objects that exist on the output pin
+								set clockObj [get_clocks -quiet -of_objects $netPinObj]
+								
+								## Check if any clock objects exist
+								if {[llength $clockObj]!=0} {
+									## Check if the source pin of the clock object is equal to the current output pin
+									if {[lsearch [get_property -quiet SOURCE_PINS $clockObj] $netPinObj]>=0} {
+										dbg "[get_property -quiet LIB_CELL $cellObj]: Retargeted Clock Object $clockObj"
+										## Add the clock object to the output pin
+										dict set retargetOutputPinDict $netPinObj clock_object name $clockObj
+										
+										## Check if the clock is user generated
+										if {[get_property -quiet IS_GENERATED $clockObj]} {
+											dbg "[get_property -quiet LIB_CELL $cellObj]: Retargeted $clockObj found as generated clock"
+											## Determine the updated net name for the source clock pin
+											set sourceClockPinObj [get_pins -quiet [get_property -quiet SOURCE $clockObj]]
+											## Check if the source clock pin was found
+											if {[llength $sourceClockPinObj]==0} {
+												puts "CRITICAL WARNING: \[path_to_verilog\] Unable to determine source clock pin for retargeted generated clock $clockObj"
+											} else {
+												## Get the source clock pin cell object
+												set sourceClockCellObj [get_cells -quiet -of_objects $sourceClockPinObj]
+												## Check if Cell already exists in Path Dictionary
+												if {[path_cell_name_exists? -dict $opts(-dict) -value $sourceClockCellObj]} {
+													## Get the previous path instance from the Path Dictionary
+													set sourceClockPathDict [get_path_dict_by_cell_name -dict $opts(-dict) -value $sourceClockCellObj]
+
+													## Add the source clock pin net_name to the output pin
+													dict set retargetOutputPinDict $netPinObj clock_object source_clock_pin "[dict get $sourceClockPathDict instance]/[get_property -quiet REF_PIN_NAME $sourceClockPinObj]"
+													## Add whether the clock is a user generated clock
+													dict set retargetOutputPinDict $netPinObj clock_object is_user_generated [get_property -quiet IS_USER_GENERATED $clockObj]
+												} else {
+													puts "CRITICAL WARNING: \[path_to_verilog\] Source clock pin $sourceClockPinObj for retargeted generated clock $clockObj not previously found in timing report"
+												}
+											}
+										}
+									}
+								}			
+								
 								## Set the Retargeted Cell Object
 								set retargetedCellObj $netCellObj
 								
@@ -2214,6 +2482,8 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
             set inputPortsList [dict get $verilogObjDict input_ports]
 			## Set the cell top-level output ports
 			set outputPortsList [dict get $verilogObjDict output_ports]
+			## Set the cell top-level inout ports
+			set inoutPortsList [dict get $verilogObjDict inout_ports]
 		}
 		
 		## Get the list of pin objects on the cell object
@@ -2225,6 +2495,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 			if [regexp {.+/(\w+)(\[(\d+)\])?} $cellPinObj matchString pinName busString busBit] {
 				## Check if the cell pin already exists in the cell object pins dictionary
 				if {![dictionary_value_exists? -dict $cellObjectPinsDict -key "pin_name" -value $pinName]} {
+					dbg "Adding pin $pinName to dictionary"
 					## Create the dictionary for the cell pin
 					set cellPinDict [dict create]
 					
@@ -2326,42 +2597,108 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 									}									
 								}
 								default {
+									## Get the driver object for the net
+									set netDriverObj [get_pins -quiet -leaf -filter {DIRECTION==OUT} -of_objects $netObj]
+									## Check if driver pin exists
+									if {[llength $netDriverObj]==0} {
+										## Get the driver port object of the net
+										set netDriverObj [get_ports -quiet -filter {DIRECTION==IN || DIRECTION==INOUT} -of_objects $netObj]
+												
+										## Check if the driver port exists
+										if {[llength $netDriverObj]==0} {
+											return -code error "ERROR: \[path_to_verilog_dict\] Unable to determine driver type for pin $cellPinObj"
+										}
+									}
+									
 									## Check if the pin object is a scalar or vector
 									if {[dict get $cellPinDict type] eq "scalar"} {
 										## Check if the signal is already used
 										if {![dict exists $cellPinDict bus_index 0 is_used]} {
-											## Set the scalar pin as bit 0 in the dictionary to input pin
-											dict set cellPinDict bus_index 0 value "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" 
-											## Set the scalar pin as used
-											dict set cellPinDict bus_index 0 is_used 1
-											
-											dbg "Adding Generated Port for $cellPinObj"
-											
-											## Add the newly created port the generated port dictionary
-											dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" name "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
-											dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" type "port"
-											dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" direction "IN"
+											## Check if a generated port already exists for the specified driver object
+											if {[dictionary_value_exists? -dict $opts(-generated_ports_dict) -key "object_name" -value $netDriverObj]} {
+												## Get the dictionary for the generated port
+												set generatedPortDict [get_dictionary_by_key_value -dict $opts(-generated_ports_dict) -key "object_name" -value $netDriverObj]
+												
+												## Set the scalar pin as bit 0 in the dictionary to input pin
+												dict set cellPinDict bus_index 0 value "[dict get $generatedPortDict name]"
+												## Set the scalar pin as used
+												dict set cellPinDict bus_index 0 is_used 1
+											} else {											
+												dbg "Adding Generated Port for $cellPinObj"
+
+												## Set the scalar pin as bit 0 in the dictionary to input pin
+												dict set cellPinDict bus_index 0 value "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" 
+												## Set the scalar pin as used
+												dict set cellPinDict bus_index 0 is_used 1
+												
+												## Add the newly created port the generated port dictionary
+												dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" name "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
+												dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" type "port"
+												
+												## Check if the driver is a port
+												if {[get_property -quiet CLASS $netDriverObj] eq "port"} {
+													## Set the direction for the generated port based on the direction of the port driver
+													dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" direction [get_property -quiet DIRECTION $netDriverObj]
+												} else {
+													## Set the direction of the port for the generated port to an input
+													dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" direction "IN"
+													
+												}
+												
+												## Add the driver object information to the generated port dictionary
+												dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" object_type [get_property -quiet CLASS $netDriverObj]
+												dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" object_name $netDriverObj
 										
-											## Increment the generated port count variable
-											incr generatedPortCount
+												## Add the generated port to the local generated port dictionary
+												dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" [dict get $opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"]
+							
+												## Increment the generated port count variable
+												incr generatedPortCount
+											}
 										}
 									} else {
 										## Check if the signal is already used
 										if {![dict exists $cellPinDict bus_index $busBit is_used]} {
-											## Set the vector bit based on the bit value to the dictionary to an input pin
-											dict set cellPinDict bus_index $busBit value "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
-											## Set the vector bit as used
-											dict set cellPinDict bus_index $busBit is_used 1
-											
-											dbg "Adding Generated Port for $cellPinObj"
-											
-											## Add the newly created port the generated port dictionary
-											dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" name "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
-											dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" type "port"
-											dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" direction "IN"
-										
-											## Increment the generated port count variable
-											incr generatedPortCount
+											## Check if a generated port already exists for the specified driver object
+											if {[dictionary_value_exists? -dict $opts(-generated_ports_dict) -key "object_name" -value $netDriverObj]} {
+												## Get the dictionary for the generated port
+												set generatedPortDict [get_dictionary_by_key_value -dict $opts(-generated_ports_dict) -key "object_name" -value $netDriverObj]
+												
+												## Set the vector bit based on the bit value to the dictionary to an input pin
+												dict set cellPinDict bus_index $busBit value "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
+												## Set the vector bit as used
+												dict set cellPinDict bus_index $busBit is_used 1
+											} else {
+												## Set the vector bit based on the bit value to the dictionary to an input pin
+												dict set cellPinDict bus_index $busBit value "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
+												## Set the vector bit as used
+												dict set cellPinDict bus_index $busBit is_used 1
+												
+												dbg "Adding Generated Port for $cellPinObj"
+
+												## Add the newly created port the generated port dictionary
+												dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" name "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"
+												dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" type "port"
+												
+												## Check if the driver is a port
+												if {[get_property -quiet CLASS $netDriverObj] eq "port"} {
+													## Set the direction for the generated port based on the direction of the port driver
+													dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" direction [get_property -quiet DIRECTION $netDriverObj]
+												} else {
+													## Set the direction of the port for the generated port to an input
+													dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" direction "IN"
+												}
+												
+												## Add the driver object information to the generated port dictionary
+												dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" object_type [get_property -quiet CLASS $netDriverObj]
+												dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" object_name $netDriverObj
+
+												## Add the generated port to the local generated port dictionary
+												dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_input$generatedPortCount" [dict get $opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_input$generatedPortCount"]
+																			
+												## Increment the generated port count variable
+												incr generatedPortCount
+											}
 										}
 									}
 								}
@@ -2380,25 +2717,33 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 						dbgVar outputPinsDict
 						dbgVar cellPinObj
 						
-						## Check if the pin object is a scalar or vector
-						if {[dict get $cellPinDict type] eq "scalar"} {
-							## Set the scalar pin as bit 0 in the dictionary to input pin
-							dict set cellPinDict bus_index 0 value "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" 
-						} else {
-							## Set the vector bit based on the bit value to the dictionary to an input pin
-							dict set cellPinDict bus_index $busBit value "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"
+						## Check to ensure the output pin is connected, leave unconnected signals open
+						if {[get_property -quiet IS_CONNECTED $cellPinObj]} {	
+							## Check if the pin object is a scalar or vector
+							if {[dict get $cellPinDict type] eq "scalar"} {
+								## Set the scalar pin as bit 0 in the dictionary to input pin
+								dict set cellPinDict bus_index 0 value "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" 
+							} else {
+								## Set the vector bit based on the bit value to the dictionary to an input pin
+								dict set cellPinDict bus_index $busBit value "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"
+							}
+							
+							dbg "Adding Generated Port for $cellPinObj"
+							
+							## Set the cell pin dictionary to the cell object pins dictionary
+							dict set cellObjectPinsDict $pinName $cellPinDict
+										
+							## Add the newly created port the generated port dictionary
+							dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" name "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"
+							dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" type "port"
+							dict set opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" direction "OUT"
+							
+							## Add the generated port to the local generated port dictionary
+							dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" [dict get $opts(-generated_ports_dict) "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"]
+							
+							## Increment the generated port count variable
+							incr generatedPortCount
 						}
-						
-						## Set the cell pin dictionary to the cell object pins dictionary
-						dict set cellObjectPinsDict "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"  $cellPinDict
-									
-						## Add the newly created port the generated port dictionary
-						dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" name "[dict get $opts(-dict_object) instance]\_output$generatedPortCount"
-						dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" type "port"
-						dict set generatedPortsDict "[dict get $opts(-dict_object) instance]\_output$generatedPortCount" direction "OUT"
-									
-						## Increment the generated port count variable
-						incr generatedPortCount
 					## Check if cell pin object exists in output pins dictionary
 					} elseif {[dictionary_value_exists? -dict $outputPinsDict -key "name" -value $cellPinObj]} {
 						## Get the output pin dictionary from the output pins dictionary
@@ -2463,28 +2808,14 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
             	return -code error "ERROR: \[path_to_verilog\] Failure to parse [get_property DIRECTION $cellPin] cell pin $cellPinObj."
             }
 		}
-		
-		## Create a list of all the properties to filter from the cell object
-		#set propertyFilter [list "BEL" "IS_BEL_FIXED" "IS_LOC_FIXED" "IS_PARTITION" "LOC" "BUS_NAME" "BUS_INFO" "XILINX_LEGACY_PRIM" "PRIMITIVE_TYPE" "BOX_TYPE" "SOFT_HLUTNM" "__SRVAL" "ASYNC_REG" "IOB" "msgon" "equivalent_register_removal" "XILINX_TRANSFORM_PINMAP" "xc_map"]
-    	## Return all the properties associated with the cell object
-		#set reportProperty [report_property -return_string $cellObj]
-   
-   		## Loop through each attribute in the report property list
-    	#foreach propertyLine [split $reportProperty "\n"] {
-    	#	## Check to ensure the value is visible to the user, if not do not add to the list
-    	#	if {[regexp {^\s*(\S+)\s+(\w+)\s+false\s+true\s+(\S+)} $propertyLine matchString propertyName propertyType propertyValue]} {
-		#		## Check to ensure the attribute is not in the property filter list
-        #		if {[lsearch $propertyFilter $propertyName]<0} {
-		#			## Add the property to the cell property dictionary
-		#			dict set cellPropertyDict $propertyName name $propertyName
-		#			dict set cellPropertyDict $propertyName type $propertyType
-		#			dict set cellPropertyDict $propertyName value $propertyValue
-        #		}	
-        #	}
-    	#}
+
+		## Get the library cell for the cell object
+		set libraryCellObj [get_lib_cells -quiet -retarget -of_objects $cellObj]
         
-        ## Get all the configuration properties from the library cell object
-        set configPropertyList [list_property [get_lib_cells -quiet -of_objects $cellObj] -regexp {^CONFIG\.\w+$}]
+		dbgVar libraryCellObj
+
+		## Get all the configuration properties from the library cell object
+        set configPropertyList [list_property $libraryCellObj -regexp {^CONFIG\.\w+$}]
 		## Remove the CONFIG. prefix to return a list of only the property names
         set propertyList [regsub -all {CONFIG.} $configPropertyList ""]
         
@@ -2494,7 +2825,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
             if {[llength [get_property -quiet $propertyName $cellObj]]!=0} {
 	        	## Add the property to the cell property dictionary
 				dict set cellPropertyDict $propertyName name $propertyName
-				dict set cellPropertyDict $propertyName type [get_property -quiet CONFIG.$propertyName\.TYPE [get_lib_cells -quiet -of_objects $cellObj]]
+				dict set cellPropertyDict $propertyName type [get_property -quiet CONFIG.$propertyName\.TYPE $libraryCellObj]
 				dict set cellPropertyDict $propertyName value [get_property -quiet $propertyName $cellObj]
         	}
         }
@@ -2531,6 +2862,9 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 		} elseif {[dict get $opts(-dict_object) direction] eq "OUT"} {
 			## Append the port name to the output port list
 			lappend outputPortsList [dict get $opts(-dict_object) net_name]
+		} elseif {[dict get $opts(-dict_object) direction] eq "INOUT"} {
+			## Append the port name to the input port list
+			lappend inoutPortsList [dict get $opts(-dict_object) net_name]
 		}
 		
 		## Check if the clock object exists for the cell pin
@@ -2547,69 +2881,6 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 			}
 		}
 	}
-	
-	# ## Check if the clock object exists for the cell pin
-	# if {[dict exists $opts(-dict_object) clock_object]} {
-		# dbg "Adding [dict get $opts(-dict_object) clock_object name] to Clock Dictionary"
-		# ## Add the clock object to the clock object dictionary
-		# dict set clockObjectDict [dict get $opts(-dict_object) clock_object name] source_type $objectType
-		# dict set clockObjectDict [dict get $opts(-dict_object) clock_object name] source_name [dict get $opts(-dict_object) net_name]
-		# ## Check if source pin exists in dictionary
-		# if {[dict exists $opts(-dict_object) clock_object source_clock_pin]} {
-			# ## Add the clock object source clock pin for the generated clock
-			# dict set clockObjectDict [dict get $opts(-dict_object) clock_object name] source_clock_pin [dict get $opts(-dict_object) clock_object source_clock_pin]
-		# }
-	# }
-	
-	
-	
-	# ## Check the first index of the path to create the appropriate timing constraints, if available
-	# if {$pathIndex==2} {
-		# ## Check if the object is a port object
-		# if {$objectType eq "port"} {
-			# ## Get the port object from the object name
-			# set portObj [get_ports -quiet [dict get $opts(-dict_object) name]]
-			
-			# ## Check if the port object exists
-			# if {[llength $portObj]==0} {
-				# return -code error "ERROR: \[path_to_verilog\] Unable to find port object [dict get $opts(-dict_object) name]."
-			# } else {
-				# ## Get the clocks associated from the port object
-				# set clockObject [get_clocks -quiet -of_objects $portObj]
-				
-				# ## Check if clock object exists on the port object
-				# if {[llength $clockObject]!=0} {
-					# ## Add a create_clock constraint to the timing constraints list
-					# lappend timingConstraintsList "create_clock -name [get_property NAME $clockObject] -period [get_property PERIOD $clockObject] -waveform {[get_property WAVEFORM $clockObject]} \[get_ports [dict get $opts(-dict_object) net_name]\]"
-				# } else {
-					# dbg "No Clock Found on Port $portObj."
-				# }
-			# }
-		# ## Ensure that the cell has output pins associated with the timing path
-		# } elseif {($objectType eq "cell") && ([llength $outputPinsDict]!=0)} {
-			# ## Loop through each output pin of the cell to check for a timing constraint
-			# dict for {dictKey dictValue} $outputPinsDict { 
-				# ## Get the output name from associated pin dictionary
-				# set outputFullPinName [get_pins -quiet [dict get $dictValue name]]
-				# ## Get the clocks associated from the output pin object
-				# set clockObject [get_clocks -quiet -of_objects [get_pins -quiet $outputFullPinName]]
-				
-				# ## Check if clock object exists on output pin
-				# if {[llength $clockObject]>0} {
-					# ## Set the name of the pin based on the associated name changes from the script
-					# if {[regexp {.*/(\w+)} $outputFullPinName matchString outputPinName]} {
-						# ## Set the new output pin name based on the associated timing path
-						# set newOutputFullPinName "[dict get $opts(-dict_object) instance]/$outputPinName"
-					# } else {
-						# return -code error "ERROR: \[path_to_verilog\] Unable to parse pin $outputFullPinName to create associated timing constraint.."
-					# }
-					
-					# ## Add a create_clock constraint to the timing constraints list
-					# lappend timingConstraintsList "create_clock -name [get_property NAME $clockObject] -period [get_property PERIOD $clockObject] -waveform {[get_property WAVEFORM $clockObject]} \[get_pins $newOutputFullPinName\]"		
-				# } 
-			# }
-		# }
-	# }
 	
 	## Check if any clock objects have been defined
 	if {[llength $clockObjectDict]>0} {
@@ -2629,7 +2900,8 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 					## Add a create_clock constraint to the timing constraints list
 					lappend timingConstraintsList "create_clock -name [get_property NAME $clockObject] -period [get_property PERIOD $clockObject] -waveform {[get_property WAVEFORM $clockObject]} \[get_pins [dict get $clockObjectDict $clockObjectDictID source_name]\]"		
 				}
-			} elseif {[get_property IS_GENERATED $clockObject]} {
+			## Check if clock is User Generated or is Auto Generated, but the cell has no properties
+			} elseif {[get_property IS_USER_GENERATED $clockObject] || ([get_property IS_GENERATED $clockObject] && [llength $cellPropertyDict]==0)} {
 				## Check if clock object is on a port 
 				if {[dict get $clockObjectDict $clockObjectDictID source_type] eq "port"} {
 					## Add a create generated clock to the timing constraints list
@@ -2655,6 +2927,9 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 		} elseif {[dict get $generatedPortsDict $generatedPortsDictID direction] eq "OUT"} {
 			## Append generated output port to the output ports list
 			lappend outputPortsList [dict get $generatedPortsDict $generatedPortsDictID name]
+		} elseif {[dict get $generatedPortsDict $generatedPortsDictID direction] eq "INOUT"} {
+			## Append generated inout port to the output ports list
+			lappend inoutPortsList [dict get $generatedPortsDict $generatedPortsDictID name]
 		}
 	}
 	
@@ -2693,6 +2968,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 	## Set the input and output ports of the Verilog module
 	dict set verilogObjDict input_ports    $inputPortsList
     dict set verilogObjDict output_ports   $outputPortsList
+	dict set verilogObjDict inout_ports    $inoutPortsList
 	
 	## Set the timing constraints value of the Verilog object dictionary
 	dict set verilogObjDict timing_constraints $timingConstraintsList		
@@ -2703,8 +2979,12 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 	## Set the routing constraints value of the Verilog object dictionary
     dict set verilogObjDict routing_constraints $routingConstraintsList
 
-	## Return Verilog object dictionary
-    return $verilogObjDict
+	## Create return dictionary object with Verilog object dictionary and generated ports dictionary
+	dict set verilogPathDict verilog_object $verilogObjDict
+	dict set verilogPathDict generated_ports $opts(-generated_ports_dict)
+	
+	## Return Verilog path dictionary
+    return $verilogPathDict
 }
 
 # #########################################################
@@ -2815,6 +3095,9 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::write_verilog_test
 		## Append all the ports created for this verilog object to the top-level output ports list
 		lappend outputPortList [dict get $verilogDict output_ports]
 		
+		## Append all the ports created for this verilog object to the top-level inout ports list
+		lappend inoutPortList [dict get $verilogDict inout_ports]
+		
 		## Check if the Verilog object is of type cell
 		if {[dict get $verilogDict type] eq "cell"} {
 			## Write the Verilog instantiation from the Verilog cell dictionary
@@ -2823,12 +3106,21 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::write_verilog_test
 	}
 	
 	## Print the Verilog top-level module declaration to the filehandle channel id
-    puts $opts(-channel_id) "module $opts(-design_name) ([join [concat [concat {*}$inputPortList] [concat {*}$outputPortList]] ", "]);\n"
+    puts $opts(-channel_id) "module $opts(-design_name) ([join [concat [concat {*}$inputPortList] [concat {*}$outputPortList] [concat {*}$inoutPortList]] ", "]);\n"
     
 	## Print the Verilog port declarations to the filehandle channel id
     puts $opts(-channel_id) "\tinput  [join [concat {*}$inputPortList] ", "];\n"
     puts $opts(-channel_id) "\toutput [join [concat {*}$outputPortList] ", "];\n"
-    
+	
+	## Flatten the lists of inout ports
+	set inoutPortList [concat {*}$inoutPortList]
+	
+	## Check if any inout ports exist in the dictionary
+	if {[llength $inoutPortList]>0} {
+		## Print the Verilog inout port declarations to the filehandle channel id
+		puts $opts(-channel_id) "\tinout  [join [concat {*}$inoutPortList] ", "];\n"
+    }
+	
 	## Loop through each Verilog object instantiation
     foreach verilogInstance $verilogInstanceList {
 		## Print the Verilog cell instantiation to the filehandle channel id
@@ -3369,6 +3661,50 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::dictionary_value_e
 	}
 	
 	return $booleanResult
+}
+
+# #########################################################
+# 
+# #########################################################
+proc ::tclapp::xilinx::designutils::timing_report_to_verilog::get_dictionary_by_key_value {args} {
+    # Summary :
+
+    # Argument Usage:
+
+    # Return Value:
+    # 
+
+    # Categories: xilinctclstore, designutils
+	
+	## Set Default option values
+	array set opts {-help 0}
+	
+	## Parse arguments from option command line
+	while {[string match -* [lindex $args 0]]} {
+		## Set the name of the first level option
+        set optionName [lshift args]
+		## Check for the option name in the regular expression
+        switch -regexp -- $optionName {
+			{-d(i(c(t)?)?)?$}         { set opts(-dict)    [lshift args]}
+			{-k(e(y)?)?$}             { set opts(-key)     [lshift args]}
+			{-v(a(l(u(e)?)?)?)?$}     { set opts(-value)   [lshift args]}
+			{-h(e(l(p)?)?)?$}         { set opts(-help)    1}
+            default {
+                return -code error "ERROR: \[dictionary_value_exists?\] Unknown option '[lindex $args 0]', please type 'dictionary_value_exists? -help' for usage info."
+            }
+        }
+    }
+	
+	set dictResult ""
+	
+	dict for {dictKey dictVal} $opts(-dict) { 
+		if {[catch {dict get $dictVal $opts(-key)} keyName] == 0 && $keyName eq $opts(-value)} {
+			set dictResult [dict get $opts(-dict) $dictKey]
+			break
+		}
+	}
+	
+	return $dictResult
 }
 
 # #########################################################
