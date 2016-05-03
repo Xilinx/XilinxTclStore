@@ -1,3 +1,4 @@
+3.01 compile glbl into top library for elaborate
 3.00 compile glbl into top library for vhdl netlist
 2.99 replaced simulator uut with saif_scope
 2.98 add xpm library for elaborate step
