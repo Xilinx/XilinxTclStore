@@ -728,12 +728,6 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
 
   if { $b_add_glbl } {
     set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
-    # for post* top_lib is xil_defaultlib for glbl since it is compiled inside netlist
-    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-      if { $b_verilog_sim_netlist } {
-        set top_lib "xil_defaultlib"
-      }
-    }
     lappend opts "${top_lib}.glbl"
   }
 }
