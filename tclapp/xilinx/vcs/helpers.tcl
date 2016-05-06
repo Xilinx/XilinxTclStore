@@ -796,7 +796,10 @@ proc usf_create_do_file { simulator do_filename } {
       # no op in batch mode
     } else {
       puts $fh_do "add_wave /$top/*"
-      #puts $fh_do "dump -add * -depth 0"
+    }
+    
+    if { [get_property "VCS.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
+      puts $fh_do "dump -add / -depth 0"
     }
 
     set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]

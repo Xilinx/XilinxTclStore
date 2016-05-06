@@ -648,6 +648,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     close $fh_vlog
 
     set xvlog_arg_list [list "$s_plat_sw"]
+    if { [get_property "XSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+      lappend xvlog_arg_list "--incr"
+    }
     if { [get_property "XSIM.COMPILE.XVLOG.RELAX" $fs_obj] } {
       lappend xvlog_arg_list "--relax"
     }
@@ -702,6 +705,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     close $fh_vhdl
 
     set xvhdl_arg_list [list "$s_plat_sw"]
+    if { [get_property "XSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+      lappend xvhdl_arg_list "--incr"
+    }
     if { [get_property "XSIM.COMPILE.XVHDL.RELAX" $fs_obj] } {
       lappend xvhdl_arg_list "--relax"
     }
@@ -996,6 +1002,11 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   } else {
     lappend args_list "-m64"
   } 
+
+  # --incr
+  if { [get_property "XSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+    lappend args_list "--incr"
+  }
 
   # --debug
   set value [get_property "XSIM.ELABORATE.DEBUG_LEVEL" $fs_obj]
@@ -1364,6 +1375,10 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
       puts $fh_scr "current_scope \$curr_xsim_wave_scope"
       puts $fh_scr "unset curr_xsim_wave_scope"
     }
+  }
+
+  if { [get_property "XSIM.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
+    puts $fh_scr "log_wave -r \[get_objects /*\]"
   }
 
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]

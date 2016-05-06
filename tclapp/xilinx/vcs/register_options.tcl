@@ -39,6 +39,7 @@ proc register_options { simulator } {
     {{elaborate.debug_pp}           {bool}   {1}       {Enable post-process debug access}}
     {{elaborate.vcs.more_options}   {string} {}        {More VCS elaboration options}}
     {{simulate.runtime}             {string} {1000ns}  {Specify simulation run time}}
+    {{simulate.log_all_signals}     {bool}   {0}       {Log all signals}}
     {{simulate.saif_scope}          {string} {}        {Specify design hierarchy instance name for which power estimation is desired}}
     {{simulate.saif}                {string} {}        {SAIF filename}}
     {{simulate.vcs.more_options}    {string} {}        {More VCS simulation options}}
