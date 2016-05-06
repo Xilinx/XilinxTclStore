@@ -1,3 +1,4 @@
+2.109 pass pulse_e, pulse_int_e for post impl timing flows
 2.108 support logging all signals
 2.107 compile glbl into top library for elaborate
 2.106 compile glbl into top library for vhdl netlist
