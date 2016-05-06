@@ -589,7 +589,7 @@ proc usf_ies_write_elaborate_script {} {
   }
 
   if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
-    set arg_list [linsert $arg_list end "-pulse_r $path_delay -pulse_int_r $int_delay"]
+    set arg_list [linsert $arg_list end "-pulse_r $path_delay -pulse_int_r $int_delay -pulse_e $path_delay -pulse_int_e $int_delay"]
   }
 
   set arg_list [linsert $arg_list end "-messages -logfile elaborate.log"]

@@ -1179,6 +1179,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-transport_int_delays"
     lappend args_list "-pulse_r $path_delay"
     lappend args_list "-pulse_int_r $int_delay"
+    lappend args_list "-pulse_e $path_delay"
+    lappend args_list "-pulse_int_e $int_delay"
   }
 
   # add top's
