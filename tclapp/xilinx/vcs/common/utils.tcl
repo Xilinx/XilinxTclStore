@@ -890,15 +890,11 @@ proc xcs_uniquify_cmd_str { cmd_strs } {
   # Argument Usage:
   # Return Value:
 
-  set cmd_str_set   [list]
-  set uniq_cmd_strs [list]
+  set cmd_dict [dict create]
   foreach str $cmd_strs {
-    if { [lsearch -exact $cmd_str_set $str] == -1 } {
-      lappend cmd_str_set $str
-      lappend uniq_cmd_strs $str
-    }
+    dict append cmd_dict $str
   }
-  return $uniq_cmd_strs
+  return [dict keys $cmd_dict]
 }
 
 proc xcs_get_compiled_libraries { clibs_dir } {
