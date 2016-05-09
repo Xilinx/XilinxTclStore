@@ -1,3 +1,4 @@
+2.108 refactor uniquify_cmd_str procedure to use dict keys
 2.107 compile glbl into top library for elaborate
 2.106 compile glbl into top library for vhdl netlist
 2.105 replaced simulator uut with saif_scope

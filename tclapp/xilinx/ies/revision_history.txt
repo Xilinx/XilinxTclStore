@@ -1,3 +1,4 @@
+2.99 refactor uniquify_cmd_str procedure to use dict keys
 2.98 pass pulse_e, pulse_int_e for post impl timing flows
 2.97 support logging all signals
 2.96 compile glbl into top library for elaborate

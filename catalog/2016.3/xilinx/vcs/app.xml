@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass pulse_e, pulse_int_e for post impl timing flows</revision_history>
+      <revision_history>refactor uniquify_cmd_str procedure to use dict keys</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
