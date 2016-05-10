@@ -46,6 +46,7 @@ proc xif_init_vars {} {
   set a_vars(b_is_managed)            [get_property managed_ip [current_project]]
   set a_vars(b_use_static_lib)        [get_property sim.use_ip_compiled_libs [current_project]]
   set a_vars(fs_obj)                  [current_fileset -simset]
+  set a_vars(b_lib_map_path_specified) 0
 
   variable compile_order_data         [list]
 
@@ -59,6 +60,7 @@ proc xif_init_vars {} {
 
   variable l_libraries                [list]
   variable l_compiled_libraries       [list]
+  variable l_lib_map_path             [list]
 
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
@@ -82,6 +84,7 @@ proc export_ip_user_files {args} {
   # [-of_objects <arg>]: IP,IPI or a fileset
   # [-ip_user_files_dir <arg>]: Directory path to simulation base directory (for dynamic and other IP non static files)
   # [-ipstatic_source_dir <arg>]: Directory path to the static IP files
+  # [-lib_map_path <arg> = Empty]: Compiled simulation library directory path
   # [-no_script]: Do not export simulation scripts
   # [-sync]: Delete IP/IPI dynamic and simulation script files
   # [-reset]: Delete all IP/IPI static, dynamic and simulation script files
@@ -93,6 +96,7 @@ proc export_ip_user_files {args} {
   # Categories: simulation, xilinxtclstore
 
   variable a_vars
+  variable l_lib_map_path
   variable l_libraries
   variable l_valid_ip_extns
   variable l_compiled_libraries
@@ -102,9 +106,10 @@ proc export_ip_user_files {args} {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-of_objects"          { incr i;set a_vars(sp_of_objects) [lindex $args $i];set a_vars(b_of_objects_specified) 1 }
-      "-ip_user_files_dir"   { incr i;set a_vars(central_dir) [lindex $args $i];set a_vars(b_central_dir_specified) 1 }
-      "-ipstatic_source_dir" { incr i;set a_vars(ipstatic_source_dir) [lindex $args $i];set a_vars(b_ipstatic_source_dir) 1 }
+      "-of_objects"          { incr i;set a_vars(sp_of_objects)       [lindex $args $i];set a_vars(b_of_objects_specified)    1 }
+      "-ip_user_files_dir"   { incr i;set a_vars(central_dir)         [lindex $args $i];set a_vars(b_central_dir_specified)   1 }
+      "-ipstatic_source_dir" { incr i;set a_vars(ipstatic_source_dir) [lindex $args $i];set a_vars(b_ipstatic_source_dir)     1 }
+      "-lib_map_path"        { incr i;set l_lib_map_path              [lindex $args $i];set a_vars(b_lib_map_path_specified)  1 }
       "-no_script"           { set a_vars(b_no_script) 1 }
       "-sync"                { set a_vars(b_sync) 1 }
       "-reset"               { set a_vars(b_reset) 1 }
@@ -194,8 +199,9 @@ proc export_ip_user_files {args} {
   } else {
     # -of_objects not specified? generate sim scripts for all ips/bds
     if { !$a_vars(b_of_objects_specified) } {
+      set lmp_args_str [xif_get_lib_map_path_cmd_str]
       foreach ip_file [get_files -quiet -norecurse -pattern *.xci -pattern *.bd] {
-        export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -ip_user_files_dir $a_vars(base_dir) -ipstatic_source_dir $a_vars(ipstatic_dir) -force
+        export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -ip_user_files_dir $a_vars(base_dir) -ipstatic_source_dir $a_vars(ipstatic_dir) $lmp_args_str -force
       }
     }
   }
@@ -231,8 +237,9 @@ proc xif_export_simulation { ip_file } {
       lappend opt_args -ipstatic_source_dir
       lappend opt_args "$ipstatic_source_dir"
     }
+    set lmp_args_str [xif_get_lib_map_path_cmd_str]
     # TODO: speedup
-    eval export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force $opt_args
+    eval export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) $lmp_args_str -force $opt_args
   }
 }
 
@@ -1353,6 +1360,10 @@ proc xif_cache_result {args} {
 
 
 proc xif_valid_object_types { objs allowedTypes } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
   if { [llength $objs] == 0 } {
     return true; # Zero objects is considered a passing condition
   }
@@ -1373,5 +1384,35 @@ proc xif_valid_object_types { objs allowedTypes } {
     return false
   }
   return true
+}
+
+proc xif_get_lib_map_path_cmd_str {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  variable l_lib_map_path
+
+  set lmp_args_str {}
+  if { !$a_vars(b_lib_map_path_specified) } {
+    return $lmp_args_str
+  }
+  
+  set lmp_len [llength $l_lib_map_path]
+  if { $lmp_len > 0 } {
+    append lmp_args_str "-lib_map_path \[list \{"
+    set n 0
+    foreach lmp $l_lib_map_path {
+      incr n
+      set lmp [string trim $lmp "\{\} "]
+      append lmp_args_str "\{$lmp\}"
+      if { $n < $lmp_len } {
+        append lmp_args_str " "
+      }
+    }
+    append lmp_args_str "\}\]"
+  }
+  return $lmp_args_str
 }
 }

@@ -440,7 +440,7 @@ proc usf_print_compiled_lib_msg {} {
   if { $b_scripts_only } {
     send_msg_id USF-XSim-024 WARNING "The compiled IP simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
   } else {
-    send_msg_id USF-XSim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library. IPs will be compiled locally as part of the simulation.\n"
+    send_msg_id USF-XSim-008 WARNING "Failed to find the pre-compiled simulation library. IPs will be compiled locally as part of the simulation.\n"
   }
 }
 

@@ -48,6 +48,7 @@ proc export_simulation {args} {
   }
 
   variable a_sim_vars
+  variable l_lib_map_path
   variable l_defines
   variable l_generics
   variable l_include_dirs
@@ -58,7 +59,7 @@ proc export_simulation {args} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
       "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
-      "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)        [lindex $args $i];set a_sim_vars(b_lib_map_path_specified)              1 }
+      "-lib_map_path"             { incr i;set l_lib_map_path                    [lindex $args $i];set a_sim_vars(b_lib_map_path_specified)              1 }
       "-of_objects"               { incr i;set a_sim_vars(sp_of_objects)         [lindex $args $i];set a_sim_vars(b_of_objects_specified)                1 }
       "-ip_user_files_dir"        { incr i;set a_sim_vars(s_ip_user_files_dir)   [lindex $args $i];set a_sim_vars(b_ip_user_files_dir_specified)         1 }
       "-ipstatic_source_dir"      { incr i;set a_sim_vars(s_ipstatic_source_dir) [lindex $args $i];set a_sim_vars(b_ipstatic_source_dir_specified)       1 }
@@ -185,7 +186,6 @@ proc xps_init_vars {} {
   set a_sim_vars(s_simulator_name)    ""
   set a_sim_vars(b_xsim_specified)    0
   set a_sim_vars(b_lib_map_path_specified) 0
-  set a_sim_vars(s_lib_map_path)      ""
   set a_sim_vars(b_script_specified)  0
   set a_sim_vars(s_script_filename)   ""
   set a_sim_vars(s_runtime)           ""
@@ -223,6 +223,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_is_ies_axi_bfm)    0
   set a_sim_vars(ies_bfm_lib_name)    {}
 
+  variable l_lib_map_path             [list]
   variable l_compile_order_files      [list]
   variable l_design_files             [list]
   variable l_compiled_libraries       [list]
@@ -1191,6 +1192,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
         set b_process_file 0
         set b_is_static 1
+        set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") $b_is_static
       } else {
         # add this library to have the new mapping
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
@@ -1736,6 +1738,49 @@ proc xps_write_sim_script { run_dir data_files filename } {
   return 0
 }
 
+proc xps_get_lib_map_path { simulator {b_ignore_default_for_xsim 0} } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  variable l_lib_map_path
+  
+  set lmp_value {}
+  if { $a_sim_vars(b_lib_map_path_specified) } {
+    foreach lmp $l_lib_map_path {
+      set lmp [string trim $lmp "\}\{ "]
+      if { {} == $lmp } { continue }
+      if { [regexp {=} $lmp] } {
+        set value [split $lmp {=}]
+        set name [lindex $value 0]
+        set lmp  [lindex $value 1]
+        if { [string equal -nocase $simulator $name] } {
+          if { {} == $lmp } { continue }
+          set lmp_value [file normalize $lmp]
+          break;
+        }
+      } else {
+        set lmp_value [file normalize $lmp]
+      }
+    }
+  }
+
+  if { $b_ignore_default_for_xsim } {
+    # no op
+  } else {
+    # default for xsim
+    if { ({} == $lmp_value) && ({xsim} == $simulator) } {
+      set dir {}
+      if { [info exists ::env(XILINX_VIVADO)] } {
+        set dir $::env(XILINX_VIVADO)
+      }
+      set lmp_value [file normalize [file join $dir "data/xsim"]]
+    }
+  }
+  return $lmp_value
+}
+
 proc xps_get_compiled_libraries { simulator } { 
   # Summary:
   # Argument Usage:
@@ -1749,21 +1794,7 @@ proc xps_get_compiled_libraries { simulator } {
     return $libraries
   }
 
-  set clibs_dir {}
-  # default for xsim
-  if { {xsim} == $simulator } {
-    set dir {}
-    if { [info exists ::env(XILINX_VIVADO)] } {
-      set dir $::env(XILINX_VIVADO)
-    }
-    set clibs_dir [file normalize [file join $dir "data/xsim"]]
-  }
-
-  # in case -lib_map_path specified and simulator specified, pick that
-  if { ([llength $l_target_simulator] == 1) && ([string length $a_sim_vars(s_lib_map_path)] > 0) } {
-    set clibs_dir [file normalize $a_sim_vars(s_lib_map_path)]
-  }
-
+  set clibs_dir [xps_get_lib_map_path $simulator]
   if { {} != $clibs_dir } {
     set libraries [xcs_get_compiled_libraries $clibs_dir]
   }
@@ -3233,9 +3264,9 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     # no op
   } elseif { ({modelsim} == $simulator) || ({questa} == $simulator) || ({vcs} == $simulator) } {
     # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+    set lmp [xps_get_lib_map_path $simulator]
+    if { {} != $lmp } {
+      set compiled_lib_dir $lmp
       if { ![file exists $compiled_lib_dir] } {
         [catch {send_msg_id exportsim-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
         puts $fh_unix "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
@@ -3289,7 +3320,7 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
                 send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
               }
             } else {
-              set ip_file [file join $dir "xsim.ini"]
+              set ip_file [file join $clibs_dir "xsim.ini"]
               if { [file exists $ip_file] } {
                 if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                   send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
@@ -3302,8 +3333,9 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
         }
       } else {
         if {$::tcl_platform(platform) == "windows"} {
-          if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-            set ip_file [file join $a_sim_vars(s_lib_map_path) "xsim.ini"]
+          set lmp [xps_get_lib_map_path $simulator 1]
+          if { {} != $lmp } {
+            set ip_file [file join $lmp "xsim.ini"]
             set target_file [file join $launch_dir "xsim.ini"]
             if { [file exists $ip_file] } {
               if {[catch {file copy -force $ip_file $target_file} error_msg] } {
@@ -3326,8 +3358,9 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
 
       # physically copy modelsim.ini file to run dir for windows
       if {$::tcl_platform(platform) == "windows"} {
-        if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-          set ini_file [file join $a_sim_vars(s_lib_map_path) "modelsim.ini"]
+        set lmp [xps_get_lib_map_path $simulator]
+        if { {} != $lmp } {
+          set ini_file [file join $lmp "modelsim.ini"]
           set target_file [file join $launch_dir "modelsim.ini"]
           if { [file exists $ini_file] } {
             if {[catch {file copy -force $ini_file $target_file} error_msg] } {
@@ -3453,8 +3486,9 @@ proc xps_write_xsim_setup_file { launch_dir } {
     set filename "xsim.ini"
     set lib_name "xpm"
     set b_mapping_set 0
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set dir [file normalize $a_sim_vars(s_lib_map_path)]
+    set lmp [xps_get_lib_map_path "xsim" 1]
+    if { {} != $lmp } {
+      set dir $lmp
       set ini_file [file join $dir $filename]
       if { [file exists $ini_file] } {
         puts $fh "$lib_name=${dir}/$lib_name"
@@ -4675,21 +4709,21 @@ proc xps_write_lib_map_path_dir { simulator fh_unix } {
   # Return Value:
 
   variable a_sim_vars
-
   switch -regexp -- $simulator {
     "ies" {
-      set cds_lib_map_path "."
+      set cds_lmp "."
       set cds_file {}
-      if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-        set cds_file [file join $a_sim_vars(s_lib_map_path) "cds.lib"]
+      set lmp [xps_get_lib_map_path $simulator]
+      if { {} != $lmp } {
+        set cds_file [file join $lmp "cds.lib"]
         if { [file exist $cds_file] } {
-          set cds_lib_map_path [file normalize $a_sim_vars(s_lib_map_path)]
+          set cds_lmp $lmp
         } else {
-          send_msg_id exportsim-Tcl-040 ERROR "Failed to find the 'cds.lib' file from the directory specified with the -lib_map_path switch (${cds_file})\n"
+          #send_msg_id exportsim-Tcl-040 ERROR "Failed to find the 'cds.lib' file from the directory specified with the -lib_map_path switch (${cds_file})\n"
         }
       }
       puts $fh_unix "# Set the compiled library directory"
-      puts $fh_unix "ref_lib_dir=\"$cds_lib_map_path\"\n"
+      puts $fh_unix "ref_lib_dir=\"$cds_lmp\"\n"
     }
   }
 }
