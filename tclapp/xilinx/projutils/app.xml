@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated copy_run so that it correctly works with mode options... CR 951121</revision_history>
+      <revision_history>updated copy_run so it correctly works with more options</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
