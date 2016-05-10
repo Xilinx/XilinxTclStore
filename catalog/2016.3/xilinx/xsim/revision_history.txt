@@ -1,3 +1,4 @@
+2.111 changed to warning from critical warning
 2.110 refactor uniquify_cmd_str procedure to use dict keys
 2.109 pass pulse_e, pulse_int_e for post impl timing flows
 2.108 support logging all signals

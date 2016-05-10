@@ -1,3 +1,4 @@
+3.166 enhanced lib_map_path switch to take list of values
 3.165 refactor uniquify_cmd_str procedure to use dict keys
 3.164 open in-memory project in hidden mode
 3.163 open core with set_current set to false
