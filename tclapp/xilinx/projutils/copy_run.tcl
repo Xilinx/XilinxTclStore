@@ -188,7 +188,7 @@ proc copy_run_ {} {
   set new_run [ eval $create_run_cmd ]
 
   # properties
-  set property_value_pairs  [ list ]
+  set property_value_pairs  [ dict create ]
   set tcl_attr_names        [ rdi::get_attr_specs -object $new_run -filter { (! IS_READONLY) && (IS_TCL) } ]
   set step_property_names   [ lsearch -regexp -all -inline [ list_property $new_run ] "STEPS\\." ] 
   set all_property_names    [ concat $tcl_attr_names $step_property_names ]
@@ -222,8 +222,7 @@ proc copy_run_ {} {
     if { $m_cpr_options(verbose) } { 
       send_msg_id Vivado-projutils-406 INFO "'${property_name}' will be updated to '${old_value}'.\n" 
     }
-    lappend property_value_pairs $property_name
-    lappend property_value_pairs $old_value
+    dict set property_value_pairs $property_name $old_value
 
   }; # foreach
   
@@ -231,7 +230,12 @@ proc copy_run_ {} {
     if { $m_cpr_options(verbose) } { 
       send_msg_id Vivado-projutils-408 INFO "The dictionary being used to set the new run's properties is: '${property_value_pairs}'\n"
     }
-    set_property -dict $property_value_pairs $new_run
+    dict for {name value} $property_value_pairs {
+      if { [ catch { set_property -name $name -value $value -objects $new_run } _error ] } {
+        delete_runs $new_run
+        error $_error
+      }
+    }
   }
 
   return $new_run
