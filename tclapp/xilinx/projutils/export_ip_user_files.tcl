@@ -74,6 +74,9 @@ proc xif_init_vars {} {
 
   variable    a_cache_get_dynamic_sim_file_bd
   array unset a_cache_get_dynamic_sim_file_bd
+
+  variable    a_processed_bd_dir
+  array unset a_processed_bd_dir
 }
 
 
@@ -834,6 +837,7 @@ proc xif_get_extracted_static_file_path_bd { comps index } {
   # Return Value:
 
   variable a_vars
+  variable a_processed_bd_dir
 
   set file_path_str [join [lrange $comps 0 $index] "/"]
   set ip_lib_dir "$file_path_str"
@@ -868,7 +872,11 @@ proc xif_get_extracted_static_file_path_bd { comps index } {
   # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
   #puts dst_file=$dst_file
 
-  xif_copy_bd_static_files_recursive $ip_hdl_dir $target_ip_lib_dir
+  set hash_val "${ip_hdl_dir}_${target_ip_lib_dir}"
+  if { ![info exists a_processed_bd_dir($hash_val)] } { 
+    xif_copy_bd_static_files_recursive $ip_hdl_dir $target_ip_lib_dir
+    set a_processed_bd_dir($hash_val) 'x'
+  }
 
   return $dst_file
 }
@@ -1016,7 +1024,7 @@ proc xif_copy_bd_static_files_recursive { src dst } {
         if { [xif_filter $file] } {
           # filter these files
         } else {
-          if { (![file exist $dst_file]) || $a_vars(b_force) } {
+          if { $a_vars(b_force) || (![file exist $dst_file]) } {
             if {[catch {file copy -force $file $dst} error_msg] } {
               send_msg_id export_ip_user_files-Tcl-017 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
             } else {
