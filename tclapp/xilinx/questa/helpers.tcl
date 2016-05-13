@@ -1704,13 +1704,19 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
   upvar $unique_paths_arg      unique_paths
   upvar $incl_header_paths_arg incl_header_paths
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
   set dir $a_sim_vars(s_launch_dir)
 
   # setup the filter to include only header types enabled for simulation
   set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
   set vh_files [get_files -all -quiet -filter $filter]
   foreach vh_file $vh_files {
-    set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
+    set vh_file_obj {}
+    if { [info exists a_sim_cache_all_design_files_obj($vh_file)] } {
+      set vh_file_obj $a_sim_cache_all_design_files_obj($vh_file)
+    } else {
+      set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
+    }
     if { [get_property "IS_GLOBAL_INCLUDE" $vh_file_obj] } {
       continue
     }
@@ -1762,6 +1768,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
   upvar $incl_file_paths_arg incl_file_paths
   upvar $incl_files_arg      incl_files
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
   set filesets       [list]
   set dir            $a_sim_vars(s_launch_dir)
   set simset_obj     [get_filesets $a_sim_vars(s_simset)]
@@ -1776,13 +1783,19 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
   foreach fs_obj $filesets {
     set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach vh_file $vh_files {
+      set file_obj {}
+      if { [info exists a_sim_cache_all_design_files_obj($vh_file)] } {
+        set file_obj $a_sim_cache_all_design_files_obj($vh_file)
+      } else {
+        set file_obj [lindex [get_files -quiet -all [list "$vh_file"]] 0]
+      }
       # skip if not marked as global include
-      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet -all [list "$vh_file"]] 0]] } {
+      if { ![get_property "IS_GLOBAL_INCLUDE" $file_obj] } {
         continue
       }
 
       # skip if marked user disabled
-      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet -all [list "$vh_file"]] 0]] } {
+      if { [get_property "IS_USER_DISABLED" $file_obj] } {
         continue
       }
 
@@ -2308,6 +2321,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   variable a_sim_vars
   variable l_compile_order_files
   variable l_compiled_libraries
+  variable a_sim_cache_all_design_files_obj
   upvar $b_is_static_arg b_is_static
   upvar $b_is_dynamic_arg b_is_dynamic
 
@@ -2333,7 +2347,12 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file $l_compile_order_files]
   #puts ful_file=$full_src_file_path
-  set full_src_file_obj [lindex [get_files -quiet -all [list "$full_src_file_path"]] 0]
+  set full_src_file_obj {}
+  if { [info exists a_sim_cache_all_design_files_obj($full_src_file_path)] } {
+    set full_src_file_obj $a_sim_cache_all_design_files_obj($full_src_file_path)
+  } else {
+    set full_src_file_obj [lindex [get_files -quiet -all [list "$full_src_file_path"]] 0]
+  }
   if { {} == $full_src_file_obj } {
     return $orig_src_file
   }

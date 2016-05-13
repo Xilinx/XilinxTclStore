@@ -149,6 +149,13 @@ proc export_simulation {args} {
     }
   }
 
+  variable a_sim_cache_all_design_files_obj 
+  # cache all design files
+  foreach file_obj [get_files -quiet -all] {
+    set name [get_property -quiet name $file_obj]
+    set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
+
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
     if { [xps_xport_simulation $objs] } {
@@ -167,6 +174,7 @@ proc export_simulation {args} {
   array unset a_sim_cache_extract_source_from_repo
   array unset a_sim_cache_gen_mem_files
   array unset a_sim_cache_is_bd_file
+  array unset a_sim_cache_all_design_files_obj
 
   return
 }
@@ -1099,6 +1107,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   variable l_compile_order_files
   variable l_compiled_libraries
   variable l_local_design_libraries
+  variable a_sim_cache_all_design_files_obj
   upvar $b_is_static_arg b_is_static
   upvar $b_is_dynamic_arg b_is_dynamic
   upvar $b_add_ref_arg b_add_ref
@@ -1141,7 +1150,12 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
 
   set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file $l_compile_order_files]
   #puts ful_file=$full_src_file_path
-  set full_src_file_obj [lindex [get_files -quiet -all [list "$full_src_file_path"]] 0]  
+  set full_src_file_obj {}
+  if { [info exists a_sim_cache_all_design_files_obj($full_src_file_path)] } {
+    set full_src_file_obj $a_sim_cache_all_design_files_obj($full_src_file_path)
+  } else {
+    set full_src_file_obj [lindex [get_files -quiet -all [list "$full_src_file_path"]] 0]
+  }
   if { {} == $full_src_file_obj } {
     return $orig_src_file
   }
@@ -1379,6 +1393,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
   # Argument Usage:
   # Return Value:
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
   upvar $l_other_compiler_opts_arg l_other_compiler_opts
   upvar $l_incl_dirs_opts_arg l_incl_dirs_opts
   set b_absolute_path $a_sim_vars(b_absolute_path)
@@ -1390,7 +1405,12 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
       set associated_library $xpm_library
     }
   } else {
-    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    set file_obj {}
+    if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    }
     if { {} != $file_obj } {
       if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
         set associated_library [get_property "LIBRARY" $file_obj]
@@ -1685,10 +1705,12 @@ proc xps_write_sim_script { run_dir data_files filename } {
   variable l_target_simulator
   variable l_valid_ip_extns
   variable l_compiled_libraries
+
+  set l_local_ip_libs [xcs_get_libs_from_local_repo]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   foreach simulator $l_target_simulator {
     # initialize and fetch compiled libraries for precompile flow
-    set l_compiled_libraries [xps_get_compiled_libraries $simulator]
+    set l_compiled_libraries [xps_get_compiled_libraries $simulator l_local_ip_libs]
     set simulator_name [xps_get_simulator_pretty_name $simulator] 
     #puts ""
     send_msg_id exportsim-Tcl-035 INFO \
@@ -1781,24 +1803,35 @@ proc xps_get_lib_map_path { simulator {b_ignore_default_for_xsim 0} } {
   return $lmp_value
 }
 
-proc xps_get_compiled_libraries { simulator } { 
+proc xps_get_compiled_libraries { simulator l_local_ip_libs_arg } { 
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  upvar $l_local_ip_libs_arg l_local_ip_libs
   variable a_sim_vars
   variable l_target_simulator
   set libraries [list]
+  set compiled_libraries [list]
 
   if { !$a_sim_vars(b_use_static_lib) } {
-    return $libraries
+    return $compiled_libraries
   }
 
   set clibs_dir [xps_get_lib_map_path $simulator]
   if { {} != $clibs_dir } {
     set libraries [xcs_get_compiled_libraries $clibs_dir]
   }
-  return $libraries
+
+  # filter local ip definitions
+  foreach lib $libraries {
+    if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+      continue
+    } else {
+      lappend compiled_libraries $lib
+    }
+  }
+  return $compiled_libraries
 }
 
 proc xps_check_script { dir filename } {
@@ -4866,7 +4899,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
 
   variable a_sim_vars
   variable l_valid_ip_extns
-
+  variable a_sim_cache_all_design_files_obj
   set dir_names [list]
   set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
@@ -4885,7 +4918,12 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
     }
   }
   foreach vh_file $vh_files {
-    set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
+    set vh_file_obj {}
+    if { [info exists a_sim_cache_all_design_files_obj($vh_file)] } {
+      set vh_file_obj $a_sim_cache_all_design_files_obj($vh_file)
+    } else {
+      set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
+    }
     # set vh_file [extract_files -files [list "[file tail $vh_file]"] -base_dir $launch_dir/ip_files]
     set vh_file [xps_xtract_file $vh_file]
     if { [get_param project.enableCentralSimRepo] } {
@@ -5054,6 +5092,7 @@ proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
   # Return Value:
 
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
   set ip_name [file tail $tcl_obj]
   set incl_dirs [list]
   set filter "FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\""
@@ -5064,7 +5103,12 @@ proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
     set dir [file dirname $file]
     if { [get_param project.enableCentralSimRepo] } {
       set b_static_ip_file 0
-      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+      set file_obj {}
+      if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+        set file_obj $a_sim_cache_all_design_files_obj($file)
+      } else {
+        set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+      }
       set associated_library {}
       if { {} != $file_obj } {
         if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
@@ -5116,6 +5160,7 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
   upvar $incl_files_arg      incl_files
 
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
   set filesets       [list]
   set dir            $launch_dir
   set linked_src_set {}
@@ -5132,12 +5177,19 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
   foreach fs_obj $filesets {
     set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
     foreach file $vh_files {
+      set file_obj {}
+      if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+        set file_obj $a_sim_cache_all_design_files_obj($file)
+      } else {
+        set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+      }
+
       # skip if not marked as global include
-      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet -all [list "$file"]] 0]] } {
+      if { ![get_property "IS_GLOBAL_INCLUDE" $file_obj] } {
         continue
       }
       # skip if marked user disabled
-      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]] } {
+      if { [get_property "IS_USER_DISABLED" $file_obj] } {
         continue
       }
       set file [file normalize [string map {\\ /} $file]]
@@ -5189,8 +5241,15 @@ proc xps_xtract_file { file } {
   # Return Value:
 
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
+  
   if { $a_sim_vars(b_extract_ip_sim_files) } {
-    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    set file_obj {}
+    if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    }
     set xcix_ip_path [get_property core_container $file_obj]
     if { {} != $xcix_ip_path } {
       set ip_name [file root [file tail $xcix_ip_path]]

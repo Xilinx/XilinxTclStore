@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>cache BD ip files directory path while copying to ip_user_files dir</revision_history>
+      <revision_history>cache all design files for reference</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

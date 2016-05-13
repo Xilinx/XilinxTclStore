@@ -189,7 +189,16 @@ proc usf_xsim_setup_simulation { args } {
   variable l_compiled_libraries
   if { $a_sim_vars(b_use_static_lib) } {
     usf_set_compiled_lib_dir
-    set l_compiled_libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir)]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo]
+    set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir)]
+    # filter local ip definitions
+    foreach lib $libraries {
+      if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+        continue
+      } else {
+        lappend l_compiled_libraries $lib
+      }
+    }
   }
 
   # generate mem files
@@ -197,6 +206,16 @@ proc usf_xsim_setup_simulation { args } {
 
   # fetch the compile order for the specified object
   ::tclapp::xilinx::xsim::usf_xport_data_files
+
+  # cache all design files
+  if { [info exists a_sim_cache_all_design_files_obj] } {
+    array unset a_sim_cache_all_design_files_obj
+  }
+  variable a_sim_cache_all_design_files_obj
+  foreach file_obj [get_files -quiet -all] {
+    set name [get_property -quiet name $file_obj]
+    set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
 
   # fetch design files
   variable l_local_design_libraries 

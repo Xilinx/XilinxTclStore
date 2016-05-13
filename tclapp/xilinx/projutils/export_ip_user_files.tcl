@@ -212,6 +212,7 @@ proc export_ip_user_files {args} {
   # clear cache
   array unset a_cache_result
   array unset a_cache_get_dynamic_sim_file_bd
+  array unset a_processed_bd_dir
 
   return
 }

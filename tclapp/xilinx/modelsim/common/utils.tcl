@@ -456,9 +456,17 @@ proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir b_found_i
   upvar $b_found_in_repo_arg b_found_in_repo
   upvar $repo_src_file_arg repo_src_file
 
+  variable a_sim_cache_all_design_files_obj
+
   set filename  [file tail $src_file]
   set file_dir  [file dirname $src_file]
-  set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
+  set file_obj  {}
+
+  if { [info exists a_sim_cache_all_design_files_obj($src_file)] } {
+    set file_obj $a_sim_cache_all_design_files_obj($src_file)
+  } else {
+    set file_obj [lindex [get_files -all [list "$src_file"]] 0]
+  }
 
   set top_ip_file_name {}
   set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
@@ -487,9 +495,18 @@ proc xcs_get_dynamic_sim_file_core_container { src_file dynamic_repo_dir b_found
   upvar $b_found_in_repo_arg b_found_in_repo
   upvar $repo_src_file_arg repo_src_file
 
+  variable a_sim_cache_all_design_files_obj
+
   set filename  [file tail $src_file]
   set file_dir  [file dirname $src_file]
-  set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
+  set file_obj  {}
+
+  if { [info exists a_sim_cache_all_design_files_obj($src_file)] } {
+    set file_obj $a_sim_cache_all_design_files_obj($src_file)
+  } else {
+    set file_obj [lindex [get_files -all [list "$src_file"]] 0]
+  }
+
   set xcix_file [get_property core_container $file_obj]
   set core_name [file root [file tail $xcix_file]]
 
@@ -569,13 +586,19 @@ proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
   # Return Value:
 
   upvar $top_ip_file_name_arg top_ip_file_name
+  variable a_sim_cache_all_design_files_obj
   set comp_file $src_file
   set MAX_PARENT_COMP_LEVELS 10
   set count 0
   while (1) {
     incr count
     if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    set file_obj  {}
+    if { [info exists a_sim_cache_all_design_files_obj($comp_file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($comp_file)
+    } else {
+      set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    }
     set props [list_property $file_obj]
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
@@ -586,7 +609,15 @@ proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
   set top_ip_name [file root [file tail $comp_file]]
   set top_ip_file_name $comp_file
 
-  set root_comp_file_type [get_property file_type [lindex [get_files -all [list "$comp_file"]] 0]]
+
+  set file_obj  {}
+  if { [info exists a_sim_cache_all_design_files_obj($comp_file)] } {
+    set file_obj $a_sim_cache_all_design_files_obj($comp_file)
+  } else {
+    set file_obj [lindex [get_files -all [list "$comp_file"]] 0]
+  }
+
+  set root_comp_file_type [get_property file_type $file_obj]
   if { ({Block Designs} == $root_comp_file_type) || ({DSP Design Sources} == $root_comp_file_type) } {
     set ip_output_dir [file dirname $comp_file]
   } else {
@@ -698,10 +729,17 @@ proc xcs_get_top_ip_filename { src_file } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_design_files_obj
+
   set top_ip_file {}
 
   # find file by full path
-  set file_obj [lindex [get_files -all -quiet $src_file] 0]
+  set file_obj  {}
+  if { [info exists a_sim_cache_all_design_files_obj($src_file)] } {
+    set file_obj $a_sim_cache_all_design_files_obj($src_file)
+  } else {
+    set file_obj [lindex [get_files -all -quiet $src_file] 0]
+  }
 
   # not found, try from source filename
   if { {} == $file_obj } {
@@ -725,6 +763,7 @@ proc xcs_is_bd_file { src_file bd_file_arg } {
   # Return Value:
 
   upvar $bd_file_arg bd_file
+  variable a_sim_cache_all_design_files_obj
   set b_is_bd 0
   set comp_file $src_file
   set MAX_PARENT_COMP_LEVELS 10
@@ -732,7 +771,12 @@ proc xcs_is_bd_file { src_file bd_file_arg } {
   while (1) {
     incr count
     if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    set file_obj  {}
+    if { [info exists a_sim_cache_all_design_files_obj($comp_file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($comp_file)
+    } else {
+      set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    }
     set props [list_property $file_obj]
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
@@ -954,4 +998,49 @@ proc xcs_get_path_from_data {path_from_data} {
 
   set data_dir [rdi::get_data_dir -quiet -datafile $path_from_data]
   return [file normalize [file join $data_dir $path_from_data]]
+}
+
+proc xcs_get_libs_from_local_repo {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # get the xilinx installed ip repo location (IP_HEAD/customer/vivado/data/ip)
+  set install_repo [file normalize [file join [rdi::get_data_dir -quiet -datafile "ip"] "ip"]]
+  set install_comps [split [string map {\\ /} $install_repo] {/}]
+  set index [lsearch -exact $install_comps "IP_HEAD"]
+  if { $index == -1 } {
+    set install_dir $install_repo
+  } else {
+    set install_dir [join [lrange $install_comps $index end] "/"]
+  }
+
+  set lib_dict [dict create]
+  foreach ip_obj [get_ips -all -quiet] {
+    if { {} == $ip_obj } { continue }
+    set ip_def_obj [get_ipdefs -quiet [get_property -quiet ipdef $ip_obj]]
+    if { {} == $ip_def_obj } { continue }
+    
+    # fetch the first repo path currently and get the IP_HEAD sub_dir
+    set local_repo [lindex [get_property -quiet repository $ip_def_obj] 0]
+    if { {} == $local_repo } { continue }
+    set local_repo [string map {\\ /} $local_repo]
+    set local_comps [split $local_repo {/}]
+    set index [lsearch -exact $local_comps "IP_HEAD"]
+    if { $index == -1 } {
+      set local_dir $local_repo
+    } else {
+      set local_dir [join [lrange $local_comps $index end] "/"]
+    }
+
+    # if install ip_head sub-dir doesnot match with local ip repo path, filter libraries for this ip to be processed locally
+    if { [string equal -nocase $install_dir $local_dir] != 1 } {
+      foreach file_obj [get_files -quiet -all -of_objects $ip_obj -filter {USED_IN=~"*ipstatic*"}] {
+        set lib [get_property library $file_obj]
+        if { {xil_defaultlib} == $lib } { continue }
+        dict append lib_dict $lib
+      }
+    }
+  }
+  return [dict keys $lib_dict]
 }
