@@ -1,3 +1,4 @@
+2.109 compile ips from project repository locally having same vlnvr
 2.108 refactor uniquify_cmd_str procedure to use dict keys
 2.107 compile glbl into top library for elaborate
 2.106 compile glbl into top library for vhdl netlist
