@@ -2105,10 +2105,10 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
     "xsim" {
       set redirect "2>&1 | tee compile.log"
       if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-        puts $fh_unix "  xvlog \$xvlog_opts -prj vlog.prj $redirect"
+        puts $fh_unix "  \$xv_path/bin/xvlog \$xvlog_opts -prj vlog.prj $redirect"
       }
       if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
-        puts $fh_unix "  xvhdl \$xvhdl_opts -prj vhdl.prj $redirect"
+        puts $fh_unix "  \$xv_path/bin/xvhdl \$xvhdl_opts -prj vhdl.prj $redirect"
       }
       xps_write_xsim_prj $launch_dir $srcs_dir
     }
@@ -4315,7 +4315,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
       close $fh_win
     }
   }
-  puts $fh_unix "  xelab $args_str"
+  puts $fh_unix "  \$xv_path/bin/xelab $args_str"
 }
 
 proc xps_write_xsim_cmdline { fh_unix dir } {
@@ -4324,7 +4324,8 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
   # Return Value:
 
   variable a_sim_vars
-  set args [list "xsim"]
+  set args [list]
+  lappend args "\$xv_path/bin/xsim"
   xps_append_config_opts args "xsim" "xsim"
   lappend args [xps_get_snapshot]
   lappend args "-key"
@@ -4604,6 +4605,11 @@ proc xps_write_main { simulator fh_unix launch_dir } {
   if { $a_sim_vars(b_single_step) } {
     # no op
   } else {
+    switch -regexp -- $simulator {
+      "xsim" {
+        puts $fh_unix "xv_path=\"$::env(XILINX_VIVADO)\"\n"
+      }
+    }
     switch -regexp -- $simulator {
       "modelsim" -
       "riviera" -
