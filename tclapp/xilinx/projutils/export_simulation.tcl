@@ -1878,7 +1878,6 @@ proc xps_write_script { simulator dir filename } {
     return 1
   }
 
-  variable l_local_design_libraries
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
   
   xps_write_simulation_script $simulator $dir
@@ -3243,6 +3242,7 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
 
   variable a_sim_vars
   variable l_ip_static_libs
+  variable l_local_design_libraries
   switch $simulator {
     "xsim" {
       if { $a_sim_vars(b_use_static_lib) } {
@@ -3335,8 +3335,60 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
         puts $fh_unix "      src_file=\"\$lib_map_path/\$file\""
         puts $fh_unix "      cp \$src_file ."
         puts $fh_unix "    fi"
+
+        if { [llength $l_local_design_libraries] > 0 } {
+          puts $fh_unix "\n    # Map local design libraries to xsim.ini"
+          puts $fh_unix "    map_local_libs\n"
+        }
         puts $fh_unix "  fi"
         puts $fh_unix "\}\n"
+
+        if { [llength $l_local_design_libraries] > 0 } {
+          set local_libs [join $l_local_design_libraries " "]
+          puts $fh_unix "# Map local design libraries"
+          puts $fh_unix "map_local_libs()"
+          puts $fh_unix "\{"
+          puts $fh_unix "  updated_mappings=()"
+          puts $fh_unix "  local_mappings=()\n"
+          puts $fh_unix "  # Local design libraries"
+          puts $fh_unix "  local_libs=($local_libs)\n"
+          puts $fh_unix "  file=\"xsim.ini\""
+          puts $fh_unix "  file_backup=\"xsim.ini.bak\"\n"
+          puts $fh_unix "  if \[\[ -e \$file \]\]; then"
+          puts $fh_unix "    rm -f \$file_backup"
+          puts $fh_unix "    # Create a backup copy of the xsim.ini file"
+          puts $fh_unix "    cp \$file \$file_backup"
+          puts $fh_unix "    # Read libraries from backup file and search in local library collection"
+          puts $fh_unix "    while read -r line"
+          puts $fh_unix "    do"
+          puts $fh_unix "      IN=\$line"
+          puts $fh_unix "      # Split mapping entry with '=' delimiter to fetch library name and mapping"
+          puts $fh_unix "      read lib_name mapping <<<\$(IFS=\"=\"; echo \$IN)"
+          puts $fh_unix "      # If local library found, then construct the local mapping and add to local mapping collection"
+          puts $fh_unix "      if `echo \$\{local_libs\[@\]\} | grep -wq \$lib_name` ; then"
+          puts $fh_unix "        line=\"\$lib_name=xsim.dir/\$lib_name\""
+          puts $fh_unix "        local_mappings+=(\"\$lib_name\")"
+          puts $fh_unix "      fi"
+          puts $fh_unix "      # Add to updated library mapping collection"
+          puts $fh_unix "      updated_mappings+=(\"\$line\")"
+          puts $fh_unix "    done < \"\$file_backup\""
+          puts $fh_unix "    # Append local libraries not found originally from xsim.ini"
+          puts $fh_unix "    for (( i=0; i<\$\{#local_libs\[*\]\}; i++ )); do"
+          puts $fh_unix "      lib_name=\"\$\{local_libs\[i\]\}\""
+          puts $fh_unix "      if `echo \$\{local_mappings\[@\]\} | grep -wvq \$lib_name` ; then"
+          puts $fh_unix "        line=\"\$lib_name=xsim.dir/\$lib_name\""
+          puts $fh_unix "        updated_mappings+=(\"\$line\")"
+          puts $fh_unix "      fi"
+          puts $fh_unix "    done"
+          puts $fh_unix "    # Write updated mappings in xsim.ini"
+          puts $fh_unix "    rm -f \$file"
+          puts $fh_unix "    for (( i=0; i<\$\{#updated_mappings\[*\]\}; i++ )); do"
+          puts $fh_unix "      lib_name=\"\$\{updated_mappings\[i\]\}\""
+          puts $fh_unix "      echo \$lib_name >> \$file"
+          puts $fh_unix "    done"
+          puts $fh_unix "  fi"
+          puts $fh_unix "\}\n"
+        }
 
         # physically copy file to run dir for windows
         if {$::tcl_platform(platform) == "windows"} {

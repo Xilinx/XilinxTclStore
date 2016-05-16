@@ -111,7 +111,10 @@ proc usf_init_vars {} {
 
   # netlist file
   set a_sim_vars(s_netlist_file)            {}
-   
+  
+  variable a_sim_cache_all_design_files_obj
+  array unset a_sim_cache_all_design_files_obj 
+
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::ies::_xcs_defined] } {
     variable home

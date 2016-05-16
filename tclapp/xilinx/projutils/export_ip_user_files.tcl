@@ -77,6 +77,9 @@ proc xif_init_vars {} {
 
   variable    a_processed_bd_dir
   array unset a_processed_bd_dir
+
+  variable    a_sim_cache_all_bd_static_files_obj
+  array unset a_sim_cache_all_bd_static_files_obj
 }
 
 
@@ -213,6 +216,7 @@ proc export_ip_user_files {args} {
   array unset a_cache_result
   array unset a_cache_get_dynamic_sim_file_bd
   array unset a_processed_bd_dir
+  array unset a_sim_cache_all_bd_static_files_obj
 
   return
 }
@@ -659,6 +663,7 @@ proc xif_export_bd { obj } {
   variable a_vars
   variable l_valid_data_file_extns
   variable l_compiled_libraries
+  variable a_sim_cache_all_bd_static_files_obj
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
@@ -668,10 +673,13 @@ proc xif_export_bd { obj } {
   #
   # static files
   #
-  set l_static_files [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*ipstatic*"}]
-  foreach src_ip_file $l_static_files {
+  foreach file_obj [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*ipstatic*"}] {
+    set name [get_property name $file_obj]
+    set a_sim_cache_all_bd_static_files_obj($name) $file_obj
+  }
+
+  foreach {src_ip_file file_obj} [array get a_sim_cache_all_bd_static_files_obj] {
     set filename [file tail $src_ip_file]
-    set file_obj $src_ip_file
     if { {} == $file_obj } { continue; }
     if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file_obj] } {
@@ -790,7 +798,7 @@ proc xif_export_bd { obj } {
   } else {
     # for default and sync flow, the dynamic files will be fetched always
     foreach dynamic_file [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*simulation*"}] {
-      if { [lsearch $l_static_files $dynamic_file] != -1 } { continue }
+      if { [info exists a_sim_cache_all_bd_static_files_obj($dynamic_file)] } { continue }
       if { {.xci} == [file extension $dynamic_file] } { continue }
       if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file]] >= 0 } { continue }
       set dynamic_file [string map {\\ /} $dynamic_file]

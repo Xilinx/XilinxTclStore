@@ -208,9 +208,6 @@ proc usf_xsim_setup_simulation { args } {
   ::tclapp::xilinx::xsim::usf_xport_data_files
 
   # cache all design files
-  if { [info exists a_sim_cache_all_design_files_obj] } {
-    array unset a_sim_cache_all_design_files_obj
-  }
   variable a_sim_cache_all_design_files_obj
   foreach file_obj [get_files -quiet -all] {
     set name [get_property -quiet name $file_obj]
