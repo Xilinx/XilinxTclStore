@@ -1,3 +1,4 @@
+3.172 cache all design files for reference while extracting BD static files
 3.171 set xsim bin path variable and call xsim tools with this path from XILINX_VIVADO
 3.170 updated write_project_tcl to only preserve ip_repo_paths on filesets that are not OOC1 blocksets
 3.169 compile ips from project repository locally having same vlnvr

@@ -1,3 +1,4 @@
+3.06 set unset all design files variable for caching
 3.05 compile ips from project repository locally having same vlnvr
 3.04 refactor uniquify_cmd_str procedure to use dict keys
 3.03 pass pulse_e, pulse_int_e for post impl timing flows

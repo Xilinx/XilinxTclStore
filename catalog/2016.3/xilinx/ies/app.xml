@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>compile ips from project repository locally having same vlnvr</revision_history>
+      <revision_history>set unset all design files variable for caching</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

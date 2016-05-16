@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set xsim bin path variable and call xsim tools with this path from XILINX_VIVADO</revision_history>
+      <revision_history>cache all design files for reference while extracting BD static files</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
