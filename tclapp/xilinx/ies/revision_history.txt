@@ -1,3 +1,4 @@
+3.02 cache unique compile order files for reference
 3.01 set unset all design files variable for caching
 3.00 compile ips from project repository locally having same vlnvr
 2.99 refactor uniquify_cmd_str procedure to use dict keys
