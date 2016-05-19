@@ -437,12 +437,22 @@ proc usf_xsim_verify_compiled_lib {} {
     }
     set a_sim_vars(compiled_library_dir) $dir
     return 0
-  } else {
-    usf_print_compiled_lib_msg
-    return 1
-  }
+ }
 
-  return 1
+ # 3. fetch from data dir
+ set data_dir [xcs_get_path_from_data "xsim"]
+ set file [file join $data_dir $filename]
+ if { [file exists $file] } {
+   if { [usf_copy_ini_file $data_dir] } {
+     return 1
+   }
+   set a_sim_vars(compiled_library_dir) $data_dir
+   return 0
+ }
+
+ # failed to find the compiled library, print msg
+ usf_print_compiled_lib_msg
+ return 1
 }
 
 proc usf_print_compiled_lib_msg {} {

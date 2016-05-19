@@ -1010,7 +1010,8 @@ proc xif_copy_bd_static_files_recursive { src dst } {
 
   variable a_vars
   if { [file isdirectory $src] } {
-    set files [glob -nocomplain -directory $src *]
+    # filter png, xdc files
+    set files [lsearch -all -inline -not -regexp [glob -nocomplain -directory $src *] {[A-Za-z0-9].(png|xdc)$}]
     foreach file $files {
       if { [file isdirectory $file] } {
         set sub_dir [file tail $file]
@@ -1030,15 +1031,11 @@ proc xif_copy_bd_static_files_recursive { src dst } {
           }
         }
 
-        if { [xif_filter $file] } {
-          # filter these files
-        } else {
-          if { $a_vars(b_force) || (![file exist $dst_file]) } {
-            if {[catch {file copy -force $file $dst} error_msg] } {
-              send_msg_id export_ip_user_files-Tcl-017 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
-            } else {
-              #send_msg_id export_ip_user_files-Tcl-018 STATUS " + Exported file:'$dst_file'\n"
-            }
+        if { $a_vars(b_force) || (![file exist $dst_file]) } {
+          if {[catch {file copy -force $file $dst} error_msg] } {
+            send_msg_id export_ip_user_files-Tcl-017 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
+          } else {
+            #send_msg_id export_ip_user_files-Tcl-018 STATUS " + Exported file:'$dst_file'\n"
           }
         }
       }
@@ -1046,35 +1043,14 @@ proc xif_copy_bd_static_files_recursive { src dst } {
   } else {
     set filename [file tail $src]
     set dst_file [file join $dst $filename]
-    if { [xif_filter $src] } {
-      # filter these files
-    } else {
-      if { (![file exist $dst_file]) || $a_vars(b_force) } {
-        if {[catch {file copy -force $src $dst} error_msg] } {
-          send_msg_id export_ip_user_files-Tcl-019 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
-        } else {
-          #send_msg_id export_ip_user_files-Tcl-020 STATUS " + Exported file:'$dst_file'\n"
-        }
+    if { (![file exist $dst_file]) || $a_vars(b_force) } {
+      if {[catch {file copy -force $src $dst} error_msg] } {
+        send_msg_id export_ip_user_files-Tcl-019 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
+      } else {
+        #send_msg_id export_ip_user_files-Tcl-020 STATUS " + Exported file:'$dst_file'\n"
       }
     }
   }
-}
-
-proc xif_filter { file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set b_filter 0
-  if { {} == $file } { return $b_filter }
-  set file_extn [string tolower [file extension $file]]
-  switch -- $file_extn {
-    {.xdc} -
-    {.png} {
-      set b_filter 1
-    }
-  }
-  return $b_filter
 }
 
 proc xif_create_mem_dir {} {

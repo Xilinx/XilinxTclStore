@@ -225,10 +225,12 @@ proc xcs_find_comp { comps_arg index_arg to_match } {
   return $b_found
 }
 
-proc xcs_find_file_from_compile_order { ip_name src_file compile_order_files } {
+proc xcs_find_file_from_compile_order { ip_name src_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable l_compile_order_files_uniq
 
   set file [string map {\\ /} $src_file]
 
@@ -246,7 +248,7 @@ proc xcs_find_file_from_compile_order { ip_name src_file compile_order_files } {
   regsub -all $str_to_replace $file_path_str $str_replace_with file_path_str
   #puts file_path_str=$file_path_str
 
-  foreach file [xcs_uniquify_cmd_str $compile_order_files] {
+  foreach file $l_compile_order_files_uniq {
     set file [string map {\\ /} $file]
     #puts +co_file=$file
     if { [string match  *$file_path_str $file] } {
@@ -308,7 +310,12 @@ proc xcs_find_top_level_ip_file { src_file } {
   while (1) {
     incr count
     if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    set file_obj  {}
+    if { [info exists a_sim_cache_all_design_files_obj($comp_file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($comp_file)
+    } else {
+      set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+    }
     if { {} == $file_obj } {
       # try from filename
       set file_name [file tail $comp_file]

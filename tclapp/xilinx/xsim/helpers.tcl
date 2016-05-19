@@ -53,6 +53,7 @@ proc usf_init_vars {} {
 
   # fileset compile order
   variable l_compile_order_files     [list]
+  variable l_compile_order_files_uniq [list]
   variable l_design_files            [list]
   variable l_compiled_libraries      [list]
   variable l_local_design_libraries  [list]
@@ -518,7 +519,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   variable l_valid_ip_extns
   variable a_sim_cache_all_design_files_obj
   set launch_dir $a_sim_vars(s_launch_dir)
-  set dir_names [list]
+  set d_dir_names [dict create]
   set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
@@ -576,12 +577,9 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
         set dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
       }
     }
-    lappend dir_names $dir
+    dict append d_dir_names $dir
   }
-  if {[llength $dir_names] > 0} {
-    return [lsort -unique $dir_names]
-  }
-  return $dir_names
+  return [dict keys $d_dir_names]
 }
 
 proc usf_get_top_library { } {
@@ -591,7 +589,7 @@ proc usf_get_top_library { } {
 
   variable a_sim_vars
   variable l_valid_ip_extns
-  variable l_compile_order_files
+  variable l_compile_order_files_uniq
 
   set flow    $a_sim_vars(s_simulation_flow)
   set tcl_obj $a_sim_vars(sp_tcl_obj)
@@ -613,7 +611,7 @@ proc usf_get_top_library { } {
   # 3. get the library associated with the last file in compile order
   set co_top_library {}
   if { ({behav_sim} == $flow) } {
-    set filelist [xcs_uniquify_cmd_str $l_compile_order_files]
+    set filelist $l_compile_order_files_uniq
     if { [llength $filelist] > 0 } {
       set file_list [get_files -all [list "[lindex $filelist end]"]]
       if { [llength $file_list] > 0 } {
@@ -874,6 +872,9 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_compile_order_files
+  variable l_compile_order_files_uniq
+
   upvar $global_files_str_arg global_files_str
 
   set sim_flow $a_sim_vars(s_simulation_flow)
@@ -884,6 +885,7 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
   } elseif { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     set design_files [usf_get_files_for_compilation_post_sim $global_files_str]
   }
+  set l_compile_order_files_uniq [xcs_uniquify_cmd_str $l_compile_order_files]
   return $design_files
 }
 
@@ -1777,11 +1779,17 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
 
   variable a_sim_vars
   upvar $other_ver_opts_arg other_ver_opts
+  variable a_sim_cache_all_design_files_obj
   set dir             $a_sim_vars(s_launch_dir)
   set b_absolute_path $a_sim_vars(b_absolute_path)
   set cmd_str {}
   set associated_library [get_property "DEFAULT_LIB" [current_project]]
-  set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+  set file_obj {}
+  if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+    set file_obj $a_sim_cache_all_design_files_obj($file)
+  } else {
+    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+  }
   if { {} != $file_obj } {
     if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
       set associated_library [get_property "LIBRARY" $file_obj]
@@ -1996,7 +2004,6 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   # Return Value:
 
   variable a_sim_vars
-  variable l_compile_order_files
   variable l_compiled_libraries
   variable l_local_design_libraries
   variable a_sim_cache_all_design_files_obj
@@ -2023,7 +2030,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #puts ip_file=$ip_file
   set ip_name [file root [file tail $ip_file]] 
 
-  set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file $l_compile_order_files]
+  set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file]
   #puts ful_file=$full_src_file_path
   set full_src_file_obj {}
   if { [info exists a_sim_cache_all_design_files_obj($full_src_file_path)] } {

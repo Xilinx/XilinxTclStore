@@ -233,6 +233,7 @@ proc xps_init_vars {} {
 
   variable l_lib_map_path             [list]
   variable l_compile_order_files      [list]
+  variable l_compile_order_files_uniq [list]
   variable l_design_files             [list]
   variable l_compiled_libraries       [list]
   variable l_local_design_libraries   [list]
@@ -338,9 +339,11 @@ proc xps_set_webtalk_data {} {
   set proj_obj [current_project]
   foreach simulator $l_target_simulator {
     set prop "webtalk.${simulator}_export_sim" 
-    set curr_val [get_property $prop $proj_obj]
-    incr curr_val
-    [catch {set_property $prop $curr_val $proj_obj} err]
+    set curr_val [get_property -quiet $prop $proj_obj]
+    if { [string is integer $curr_val] } {
+      incr curr_val
+      [catch {set_property $prop $curr_val $proj_obj} err]
+    }
   }
 }
 
@@ -735,19 +738,19 @@ proc xps_set_target_obj { obj } {
         set a_sim_vars(fs_obj) [current_fileset]
         set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
         xps_verify_ip_status
-        update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
+        #update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
         set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
       } elseif { $fs_type == "SimulationSrcs" } {
         set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
         xps_verify_ip_status
-        update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
+        #update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
         set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
       }
     } else {
       # no -of_objects specifed, set default active simset
       set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
       xps_verify_ip_status
-      update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
+      #update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
       set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
     }
   }
@@ -1104,7 +1107,6 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
 
   variable a_sim_cache_extract_source_from_repo
   variable a_sim_vars
-  variable l_compile_order_files
   variable l_compiled_libraries
   variable l_local_design_libraries
   variable a_sim_cache_all_design_files_obj
@@ -1148,7 +1150,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   #puts ip_file=$ip_file
   set ip_name [file root [file tail $ip_file]] 
 
-  set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file $l_compile_order_files]
+  set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file]
   #puts ful_file=$full_src_file_path
   set full_src_file_obj {}
   if { [info exists a_sim_cache_all_design_files_obj($full_src_file_path)] } {
@@ -1873,12 +1875,15 @@ proc xps_write_script { simulator dir filename } {
   # Return Value:
  
   variable a_sim_vars
+  variable l_compile_order_files
+  variable l_compile_order_files_uniq
 
   if { [xps_check_script $dir $filename] } {
     return 1
   }
 
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
+  set l_compile_order_files_uniq [xcs_uniquify_cmd_str $l_compile_order_files]
   
   xps_write_simulation_script $simulator $dir
   send_msg_id exportsim-Tcl-029 INFO \
@@ -3019,7 +3024,7 @@ proc xps_get_top_library { } {
 
   variable a_sim_vars
   variable l_valid_ip_extns
-  variable l_compile_order_files
+  variable l_compile_order_files_uniq
 
   set tcl_obj $a_sim_vars(sp_tcl_obj)
 
@@ -3039,7 +3044,7 @@ proc xps_get_top_library { } {
 
   # 3. get the library associated with the last file in compile order
   set co_top_library {}
-  set filelist [xcs_uniquify_cmd_str $l_compile_order_files]
+  set filelist $l_compile_order_files_uniq
   if { [llength $filelist] > 0 } {
     set file_list [get_files -quiet -all [list "[lindex $filelist end]"]]
     if { [llength $file_list] > 0 } {
@@ -4958,7 +4963,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
   variable a_sim_vars
   variable l_valid_ip_extns
   variable a_sim_cache_all_design_files_obj
-  set dir_names [list]
+  set d_dir_names [dict create]
   set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
@@ -5038,13 +5043,10 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
         }
       }
     }
-    lappend dir_names $dir
+    dict append d_dir_names $dir
   }
 
-  if {[llength $dir_names] > 0} {
-    return [lsort -unique $dir_names]
-  }
-  return $dir_names
+  return [dict keys $d_dir_names]
 }
 
 proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
@@ -5056,7 +5058,7 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
   variable l_valid_ip_extns
   variable l_include_dirs
 
-  set dir_names [list]
+  set d_dir_names [dict create]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   set incl_dirs [list]
   set incl_dir_str {}
@@ -5111,9 +5113,9 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
 
   foreach vh_dir $incl_dirs {
     set vh_dir [string trim $vh_dir {\{\}}]
-    lappend dir_names $vh_dir
+    dict append d_dir_names $vh_dir
   }
-  return [lsort -unique $dir_names]
+  return [dict keys $d_dir_names]
 }
 
 proc xps_resolve_incldir { incl_dirs } {
