@@ -236,6 +236,18 @@ if {$error==0} {
 			set filename ""
 			append filename ".metadata/" $project_name "_configuration_parameters.dat"
 			file delete -force $filename
+
+			#added by Bulat
+
+			set filename ""
+			append filename "soc_prototype/test/prj/" $project_name "." $board_name
+			file delete -force $filename
+
+			set filename ""
+			append filename "soc_prototype/test/results/" $project_name
+			file delete -force $filename
+
+			#end added by Bulat
 		
 		}
 	}

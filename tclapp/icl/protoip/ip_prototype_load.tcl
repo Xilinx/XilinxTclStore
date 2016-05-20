@@ -359,12 +359,17 @@ if {$error==0} {
 			puts "Calling SDK to build the software project ..."
 
 			set sdk_p [open "|xsct build_sdk_project.tcl" r]
+			puts "Bulat deug line1"
 			while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
-			close $sdk_p
+			puts "Bulat deug line2"
+			#close $sdk_p
+
+			puts "Bulat deug line3"
 			
 			# set sdk_exit_flag=0 if error, sdk_exit_flag=1 if NOT error
 			set sdk_exit_flag [file exists workspace1/test_fpga/Release/test_fpga.elf]
 
+			puts "Bulat deug line4"
 
 			set error 0
 			if {$sdk_exit_flag==1}  {
@@ -373,7 +378,7 @@ if {$error==0} {
 				
 				set xmd_p [open "|xmd -tcl run_fpga_prototype.tcl" r]
 				while {![eof $xmd_p]} { gets $xmd_p line ; puts $line }
-				close $xmd_p
+				#close $xmd_p
 				after 5000
 				puts "FPGA UDP/TCP server started. FPGA prototype is ready to be used !"
 			} else {
