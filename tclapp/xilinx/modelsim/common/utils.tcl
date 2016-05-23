@@ -1032,6 +1032,13 @@ proc xcs_get_libs_from_local_repo {} {
     set local_repo [lindex [get_property -quiet repository $ip_def_obj] 0]
     if { {} == $local_repo } { continue }
     set local_repo [string map {\\ /} $local_repo]
+
+    # continue if local ip repo sub_dir not found
+    set ip_repo_sub_dir [file tail $local_repo]
+    if { {ip_repo} != $ip_repo_sub_dir } {
+      continue
+    }
+
     set local_comps [split $local_repo {/}]
     set index [lsearch -exact $local_comps "IP_HEAD"]
     if { $index == -1 } {
