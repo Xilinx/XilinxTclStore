@@ -1116,14 +1116,23 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   upvar $b_wrap_in_quotes_arg b_wrap_in_quotes
 
   set s_hash "_${ip_file}-${orig_src_file}"; # cache hash, _ prepend supports empty args
-  if { [info exists a_sim_cache_extract_source_from_repo($s_hash)] } { 
-    if { [info exists a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static")] } { 
-      set b_is_static $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") 
+  # IMPORTANT: when exporting for multiple simulators, the values of b_is_static for a given file
+  #            could change based on compiled libraries data from lib_map_path, so don't use hash
+  #            at this point for precompiled flow, just process all files.
+  set b_use_hash 1
+  if { $a_sim_vars(b_use_static_lib) } {
+    set b_use_hash 0
+  }
+  if { $b_use_hash } {
+    if { [info exists a_sim_cache_extract_source_from_repo($s_hash)] } { 
+      if { [info exists a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static")] } { 
+        set b_is_static $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") 
+      }
+      set b_is_dynamic $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") 
+      set b_add_ref $a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") 
+      set b_wrap_in_quotes $a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") 
+      return $a_sim_cache_extract_source_from_repo($s_hash) 
     }
-    set b_is_dynamic $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") 
-    set b_add_ref $a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") 
-    set b_wrap_in_quotes $a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") 
-    return $a_sim_cache_extract_source_from_repo($s_hash) 
   }
 
   #puts org_file=$orig_src_file
