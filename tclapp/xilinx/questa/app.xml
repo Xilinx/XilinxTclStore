@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>continue processing design libraries if ip_repo not found from repoitory value</revision_history>
+      <revision_history>cache unique compile order files for reference</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -187,7 +187,7 @@ proc usf_xsim_setup_simulation { args } {
   #::tclapp::xilinx::xsim::usf_prepare_ip_for_simulation
 
   variable l_compiled_libraries
-  if { $a_sim_vars(b_use_static_lib) } {
+  if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
     usf_set_compiled_lib_dir
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
     set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir)]
@@ -223,7 +223,7 @@ proc usf_xsim_setup_simulation { args } {
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
  
   set b_create_default_ini 1
-  if { $a_sim_vars(b_use_static_lib) } {
+  if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
     set filename "xsim.ini"
     set file [file join $run_dir $filename]
 
@@ -1417,8 +1417,9 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
 
   # add TCL sources
   set tcl_src_files [list]
-  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
-  ::tclapp::xilinx::xsim::usf_find_files tcl_src_files $filter
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
+  set sim_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
+  xcs_find_files tcl_src_files $::tclapp::xilinx::xsim::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) $sim_obj
   if {[llength $tcl_src_files] > 0} {
     puts $fh_scr ""
     foreach file $tcl_src_files {

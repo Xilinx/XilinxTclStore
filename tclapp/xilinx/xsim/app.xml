@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>continue processing design libraries if ip_repo not found from repoitory value</revision_history>
+      <revision_history>do not fetch compiled library info from data dir</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

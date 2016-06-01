@@ -303,6 +303,9 @@ proc xcs_find_top_level_ip_file { src_file } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_parent_comp_files
+
   set comp_file $src_file
   #puts "-----\n  +$src_file"
   set MAX_PARENT_COMP_LEVELS 10
@@ -322,9 +325,14 @@ proc xcs_find_top_level_ip_file { src_file } {
       set file_obj [lindex [get_files -all "$file_name"] 0]
       set comp_file $file_obj
     }
-    set props [list_property $file_obj]
-    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+    if { [info exists a_sim_cache_parent_comp_files($comp_file)] } {
       break
+    } else {
+      set props [list_property $file_obj]
+      if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+        set a_sim_cache_parent_comp_files($comp_file) true
+        break
+      }
     }
     set comp_file [get_property parent_composite_file -quiet $file_obj]
     #puts "  +$comp_file"
@@ -594,6 +602,7 @@ proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
 
   upvar $top_ip_file_name_arg top_ip_file_name
   variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_parent_comp_files
   set comp_file $src_file
   set MAX_PARENT_COMP_LEVELS 10
   set count 0
@@ -606,9 +615,14 @@ proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
     } else {
       set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
     }
-    set props [list_property $file_obj]
-    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+    if { [info exists a_sim_cache_parent_comp_files($comp_file)] } {
       break
+    } else {
+      set props [list_property $file_obj]
+      if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+        set a_sim_cache_parent_comp_files($comp_file) true
+        break
+      }
     }
     set comp_file [get_property parent_composite_file -quiet $file_obj]
     #puts "+comp_file=$comp_file"
@@ -631,6 +645,28 @@ proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
     set ip_output_dir [get_property ip_output_dir [get_ips -all $top_ip_name]]
   }
   return $ip_output_dir
+}
+
+proc xcs_resolve_file_path { file_dir_path_to_convert launch_dir } {
+  # Summary: Make file path relative to ref_dir if relative component found
+  # Argument Usage:
+  # file_dir_path_to_convert: input file to make relative to specfied path
+  # Return Value:
+  # Relative path wrt the path specified
+
+  set ref_dir [file normalize [string map {\\ /} $launch_dir]]
+  set ref_comps [lrange [split $ref_dir "/"] 1 end]
+  set file_comps [lrange [split [file normalize [string map {\\ /} $file_dir_path_to_convert]] "/"] 1 end]
+  set index 1
+  while { [lindex $ref_comps $index] == [lindex $file_comps $index] } {
+    incr index
+  }
+  # is file path within reference dir? return relative path
+  if { $index == [llength $ref_comps] } {
+    return [xcs_get_relative_file_path $file_dir_path_to_convert $ref_dir]
+  }
+  # return absolute
+  return $file_dir_path_to_convert
 }
 
 proc xcs_get_relative_file_path { file_path_to_convert relative_to } {
@@ -764,14 +800,13 @@ proc xcs_get_top_ip_filename { src_file } {
   return $top_ip_file
 }
 
-proc xcs_is_bd_file { src_file bd_file_arg } {
+proc xcs_is_bd_file { src_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  upvar $bd_file_arg bd_file
   variable a_sim_cache_all_design_files_obj
-  set b_is_bd 0
+  variable a_sim_cache_parent_comp_files
   set comp_file $src_file
   set MAX_PARENT_COMP_LEVELS 10
   set count 0
@@ -784,19 +819,23 @@ proc xcs_is_bd_file { src_file bd_file_arg } {
     } else {
       set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
     }
-    set props [list_property $file_obj]
-    if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+    if { [info exists a_sim_cache_parent_comp_files($comp_file)] } {
       break
+    } else {
+      set props [list_property $file_obj]
+      if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
+        set a_sim_cache_parent_comp_files($comp_file) true
+        break
+      }
     }
     set comp_file [get_property parent_composite_file -quiet $file_obj]
   }
 
   # got top-most file whose parent-comp is empty ... is this BD?
   if { {.bd} == [file extension $comp_file] } {
-    set b_is_bd 1
-    set bd_file $comp_file
+    return 1
   }
-  return $b_is_bd
+  return 0
 }
 
 proc xcs_is_core_container { ip_file_name } {
@@ -1057,4 +1096,113 @@ proc xcs_get_libs_from_local_repo {} {
     }
   }
   return [dict keys $lib_dict]
+}
+
+proc xcs_cache_result {args} {
+  # Summary: Return calculated results if they exists else execute the command args
+  #          NOTE: do not use this for procs containing upvars (in general), but to
+  #          cache a proc that use upvar, see (a_cache_get_dynamic_sim_file_bd)
+  # Argument Usage:
+  # Return Value:
+  variable a_sim_cache_result
+
+  # replace "[" and "]" with "|"
+  set cache_hash [regsub -all {[\[\]]} $args {|}];
+  set cache_hash [uplevel expr \"$cache_hash\"]
+
+  # Verify cache with the actual values
+  #puts "CACHE_ARGS=${args}"
+  #puts "CACHE_HASH=${cache_hash}"
+  #if { [info exists a_sim_cache_result($cache_hash)] } {
+  #  #puts " CACHE_EXISTS"
+  #  set old $a_sim_cache_result($cache_hash)
+  #  set a_sim_cache_result($cache_hash) [uplevel eval $args]
+  #  if { "$a_sim_cache_result($cache_hash)" != "$old" } {
+  #    error "CACHE_VALIDATION: difference detected, halting flow\n OLD: ${old}\n NEW: $a_sim_cache_result($cache_hash)"
+  #  }
+  #  return $a_sim_cache_result($cache_hash)
+  #}
+
+  # NOTE: to disable caching (with this proc) comment this block
+  if { [info exists a_sim_cache_result($cache_hash)] } {
+    # return evaluated result
+    return $a_sim_cache_result($cache_hash)
+  }
+  # end NOTE
+
+  # evaluate first time
+  return [set a_sim_cache_result($cache_hash) [uplevel eval $args]]
+}
+
+proc xcs_is_ip_project {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set fs_filter "FILESET_TYPE == \"SimulationSrcs\" || \
+                 FILESET_TYPE == \"DesignSrcs\"     || \
+                 FILESET_TYPE == \"BlockSrcs\""
+
+  set ft_filter "FILE_TYPE == \"IP\"                 || \
+                 FILE_TYPE == \"IPX\"                || \
+                 FILE_TYPE == \"DSP Design Sources\" || \
+                 FILE_TYPE == \"Block Designs\""
+
+  foreach fs_obj [get_filesets -quiet -filter $fs_filter] {
+    set ip_files [get_files -quiet -all -of_objects $fs_obj -filter $ft_filter]
+    if { [llength $ip_files] > 0 } {
+      return true
+    }
+  }
+  return false
+}
+
+proc xcs_find_files { src_files_arg tcl_obj filter dir b_absolute_path in_fs_obj } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_valid_ip_extns
+  upvar $src_files_arg src_files
+
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+    set ip_name [file tail $tcl_obj]
+    foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
+      set file [file normalize $file]
+      if { $b_absolute_path } {
+        set file "[xcs_resolve_file_path $file $dir]"
+      } else {
+        set file "[xcs_get_relative_file_path $file $dir]"
+      }
+      lappend src_files $file
+    }
+  } elseif { [xcs_is_fileset $tcl_obj] } {
+    set filesets [list]
+    lappend filesets $in_fs_obj
+    set linked_src_set {}
+    if { ({SimulationSrcs} == [get_property fileset_type [get_filesets $in_fs_obj]]) } {
+      set linked_src_set [get_property "SOURCE_SET" [get_filesets $in_fs_obj]]
+    }
+    if { {} != $linked_src_set } {
+      lappend filesets $linked_src_set
+    }
+
+    # add block filesets
+    set blk_filter "FILESET_TYPE == \"BlockSrcs\""
+    foreach blk_fs_obj [get_filesets -filter $blk_filter] {
+      lappend filesets $blk_fs_obj
+    }
+
+    foreach fs_obj $filesets {
+      foreach file [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter] {
+        set file [file normalize $file]
+        if { $b_absolute_path } {
+          set file "[xcs_resolve_file_path $file $dir]"
+        } else {
+          set file "[xcs_get_relative_file_path $file $dir]"
+        }
+        lappend src_files $file
+      }
+    }
+  }
 }

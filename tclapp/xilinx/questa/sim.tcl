@@ -1012,6 +1012,10 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   usf_add_quit_on_error $fh "simulate"
 
   puts $fh "$cmd_str"
+  if { [get_property "QUESTA.SIMULATE.IEEE_WARNINGS" $fs_obj] } {
+    puts $fh "\nset NumericStdNoWarnings 1"
+    puts $fh "set StdArithNoWarnings 1"
+  }
   puts $fh "\ndo \{$wave_do_filename\}"
   puts $fh "\nview wave"
   puts $fh "view structure"
@@ -1075,8 +1079,9 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
 
   # add TCL sources
   set tcl_src_files [list]
-  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
-  ::tclapp::xilinx::questa::usf_find_files tcl_src_files $filter
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
+  set sim_obj $::tclapp::xilinx::questa::a_sim_vars(s_simset)
+  xcs_find_files tcl_src_files $::tclapp::xilinx::questa::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) $sim_obj
   if {[llength $tcl_src_files] > 0} {
     puts $fh ""
     foreach file $tcl_src_files {

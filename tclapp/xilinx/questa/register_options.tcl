@@ -47,6 +47,7 @@ proc register_options { simulator } {
     {{simulate.custom_do}          {string} {}                                      {Specify name of the custom do file}}
     {{simulate.custom_udo}         {string} {}                                      {Specify name of the custom user do file}}
     {{simulate.sdf_delay}          {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}
+    {{simulate.ieee_warnings}      {bool}   {1}                                     {Suppress IEEE warnings}}
     {{simulate.saif_scope}         {string} {}                                      {Specify design hierarchy instance name for which power estimation is desired}}
     {{simulate.saif}               {string} {}                                      {Specify SAIF file}}
     {{simulate.vsim.more_options}  {string} {}                                      {More VSIM simulation options}}
