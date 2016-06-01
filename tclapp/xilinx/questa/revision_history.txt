@@ -1,3 +1,4 @@
+2.04 fixed variable name while calculating the parent composite file path sub-dir length
 2.03 cache unique compile order files for reference
 2.02 continue processing design libraries if ip_repo not found from repoitory value
 2.01 cache unique compile order files for reference
