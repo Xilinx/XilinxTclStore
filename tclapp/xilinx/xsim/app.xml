@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not fetch compiled library info from data dir</revision_history>
+      <revision_history>cache unique compile order files for reference</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
