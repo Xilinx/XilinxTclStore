@@ -187,7 +187,7 @@ proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
   set src_file_dirs  [file split [file normalize $src_ip_file]]
   set comp_file_dirs [file split [file normalize $comp_file_dir]]
   set src_file_len [llength $src_file_dirs]
-  set comp_dir_len [llength $comp_file_dir]
+  set comp_dir_len [llength $comp_file_dirs]
 
   set index 1
   #puts src_file_dirs=$src_file_dirs

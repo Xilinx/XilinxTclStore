@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>cache unique compile order files for reference</revision_history>
+      <revision_history>fixed variable name while calculating the parent composite file path sub-dir length</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
