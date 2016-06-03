@@ -713,7 +713,7 @@ proc xps_set_target_obj { obj } {
     }
     set a_sim_vars(sp_tcl_obj) [get_files -all -quiet [list "$comp_file"]]
     set a_sim_vars(s_top) [file root [file tail $a_sim_vars(sp_tcl_obj)]]
-    xps_verify_ip_status
+    rdi::verify_ip_sim_status -all $a_sim_vars(sp_tcl_obj)
   } else {
     if { $a_sim_vars(b_is_fs_object_specified) } {
       set fs_type [get_property fileset_type [get_filesets $obj]]
@@ -739,19 +739,19 @@ proc xps_set_target_obj { obj } {
       if { $fs_type == "DesignSrcs" } {
         set a_sim_vars(fs_obj) [current_fileset]
         set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
-        xps_verify_ip_status
+        rdi::verify_ip_sim_status -all
         #update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
         set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
       } elseif { $fs_type == "SimulationSrcs" } {
         set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
-        xps_verify_ip_status
+        rdi::verify_ip_sim_status -all
         #update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
         set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
       }
     } else {
       # no -of_objects specifed, set default active simset
       set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
-      xps_verify_ip_status
+      rdi::verify_ip_sim_status -all
       #update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
       set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
     }
@@ -3044,20 +3044,32 @@ proc xps_verify_ip_status {} {
   if { ([xcs_is_ip $a_sim_vars(sp_tcl_obj) $l_valid_ip_extns]) && ({.xci} == $a_sim_vars(s_ip_file_extn)) } {
     set ip [file root [file tail $a_sim_vars(sp_tcl_obj)]]
     set ip_obj [get_ips -all -quiet $ip]
+    # make sure ip advertises targets and support simulation target
+    if { {} == [get_property delivered_targets $ip_obj] } {
+      return
+    }
+    if { [lsearch [get_property supported_targets $ip_obj] "simulation"] == -1 } {
+      return
+    }
     set xci_obj [lindex [get_files -quiet -all ${ip}.xci] 0]
     # is user-disabled? or auto_disabled? skip
     if { ({0} == [get_property is_enabled $xci_obj]) ||
          ({1} == [get_property is_auto_disabled $xci_obj]) } {
       return
     }
-    dict set regen_ip $ip d_targets     [get_property delivered_targets $ip_obj]
-    dict set regen_ip $ip s_targets     [get_property supported_targets $ip_obj]
-    dict set regen_ip $ip generated     [get_property is_ip_generated $ip_obj]
     dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim $xci_obj]
     dict set regen_ip $ip stale         [get_property stale_targets $ip_obj]
     set b_single_ip 1
   } else {
-    foreach ip_obj [get_ips -all -quiet] {
+    foreach ip_obj [lsort -unique [get_ips -all -quiet]] {
+      # make sure ip advertises targets and support simulation target
+      if { {} == [get_property delivered_targets $ip_obj] } {
+        continue
+      }
+      if { [lsearch [get_property supported_targets $ip_obj] "simulation"] == -1 } {
+        continue
+      }
+           
       # is user-disabled? or auto_disabled? continue
       set ip_file {}
       set ip_file_xci [lindex [get_files -quiet -all ${ip_obj}.xci] 0]
@@ -3073,24 +3085,15 @@ proc xps_verify_ip_status {} {
            ({1} == [get_property is_auto_disabled $ip_file]) } {
         continue
       }
-      dict set regen_ip $ip_obj d_targets     [get_property delivered_targets   $ip_obj]
-      dict set regen_ip $ip_obj s_targets     [get_property supported_targets   $ip_obj]
-      dict set regen_ip $ip_obj generated     [get_property is_ip_generated     $ip_obj]
       dict set regen_ip $ip_obj generated_sim [get_property is_ip_generated_sim $ip_file_xci]
-      dict set regen_ip $ip_obj stale         [get_property stale_targets       $ip_obj]
+      dict set regen_ip $ip_obj stale [get_property stale_targets $ip_obj]
     }
   } 
 
   set not_generated [list]
   set stale_ips [list]
   dict for {ip regen} $regen_ip {
-    dic with regen {
-      if { {} == $d_targets } {
-        continue
-      }
-      if { [lsearch $s_targets "simulation"] == -1 } {
-        continue
-      }
+    dict with regen {
       if { {0} == $generated_sim } {
         lappend not_generated $ip
       } else {
