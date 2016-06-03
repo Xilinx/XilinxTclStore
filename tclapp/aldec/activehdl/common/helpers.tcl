@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.3
+package provide ::tclapp::aldec::common::helpers 1.4
 
 namespace eval ::tclapp::aldec::common {
 
@@ -35,6 +35,14 @@ proc usf_aldec_getLibraryPrefix {} {
     Riviera { return "riviera/" }
     ActiveHDL { return "activehdl/" }
     default { error "Unknown target simulator" }
+  }
+}
+
+proc usf_aldec_get_origin_dir_path { _path } {
+  if { [file pathtype $_path] == "relative" } {
+    return "\$origin_dir/$_path"
+  } else {
+    return $_path
   }
 }
 
@@ -1795,7 +1803,7 @@ proc usf_get_include_dirs { } {
       if { $a_sim_vars(b_absolute_path) } {
         set dir "[usf_resolve_file_path $dir]"
       } else {
-        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]]"
       }
       lappend incl_dirs $dir
     }
@@ -1897,7 +1905,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
       if { $a_sim_vars(b_absolute_path) } {
         set incl_file_path "[usf_resolve_file_path $file_path]"
       } else {
-        set incl_file_path "\$origin_dir/[usf_get_relative_file_path $file_path $dir]"
+        set incl_file_path "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $file_path $dir]]"
       }
       lappend incl_header_paths $incl_file_path
       lappend unique_paths      $file_path
@@ -1947,7 +1955,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
           if { $ref_dir } {
-            set incl_file_path "\$origin_dir/[usf_get_relative_file_path $incl_file_path $dir]"
+            set incl_file_path "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $incl_file_path $dir]]"
           }
         }
         lappend incl_file_paths $incl_file_path
@@ -1990,7 +1998,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
       if { $a_sim_vars(b_absolute_path) } {
         set dir "[usf_resolve_file_path $dir]"
       } else {
-        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]]"
       }
     }
     lappend incl_dirs $dir
@@ -2701,7 +2709,7 @@ proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
     if { $a_sim_vars(b_absolute_path) } {
       set src_file "[usf_resolve_file_path $src_file]"
     } else {
-      set src_file "\$origin_dir/[usf_get_relative_file_path $src_file $launch_dir]"
+      set src_file "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $src_file $launch_dir]]"
     }
 
     return $src_file
@@ -2725,7 +2733,7 @@ proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
   if { $a_sim_vars(b_absolute_path) } {
     set src_file "[usf_resolve_file_path $src_file]"
   } else {
-    set src_file "\$origin_dir/[usf_get_relative_file_path $src_file $launch_dir]"
+    set src_file "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $src_file $launch_dir]]"
   }
 
   return $src_file

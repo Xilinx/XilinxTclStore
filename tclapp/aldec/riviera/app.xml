@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Update 1.3: Excluded files should not appear in the generated scripts.</revision_history>
+      <revision_history>Update 1.4: Invalid paths corrected in the generated scripts.</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

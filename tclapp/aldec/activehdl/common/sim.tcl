@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.3
+package require ::tclapp::aldec::common::helpers 1.4
 
-package provide ::tclapp::aldec::common::sim 1.3
+package provide ::tclapp::aldec::common::sim 1.4
 
 namespace eval ::tclapp::aldec::common {
 
