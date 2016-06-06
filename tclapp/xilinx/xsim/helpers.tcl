@@ -914,6 +914,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   variable a_sim_vars
   variable l_compile_order_files
   variable l_valid_ip_extns
+  variable l_compiled_libraries
   upvar $global_files_str_arg global_files_str
 
   set files          [list]
@@ -940,6 +941,19 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
   [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
   if { $b_reference_xpm_library } {
     set b_compile_xpm_library 0
   }

@@ -563,7 +563,7 @@ proc usf_ies_write_elaborate_script {} {
   # Return Value:
 
   variable a_sim_vars
-
+  variable l_compiled_libraries
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
@@ -681,6 +681,19 @@ proc usf_ies_write_elaborate_script {} {
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
   [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
   if { $b_reference_xpm_library } {
     set arg_list [linsert $arg_list end "-libname" "xpm"]
   }

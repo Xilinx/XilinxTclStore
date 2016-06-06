@@ -877,6 +877,7 @@ proc xps_get_files { simulator launch_dir } {
   variable a_sim_vars
   variable l_compile_order_files
   variable l_valid_ip_extns
+  variable l_compiled_libraries
   set files          [list]
   set l_compile_order_files [list]
   set target_obj            $a_sim_vars(sp_tcl_obj)
@@ -925,6 +926,19 @@ proc xps_get_files { simulator launch_dir } {
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
   [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
   if { $b_reference_xpm_library } {
     set b_compile_xpm_library 0
   }
@@ -1951,7 +1965,7 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   variable a_sim_vars
   variable l_defines
   variable l_generics
-
+  variable l_compiled_libraries
   puts $fh_unix "# RUN_STEP: <execute>"
   puts $fh_unix "execute()\n\{"
 
@@ -1966,6 +1980,19 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
   [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
   if { $b_reference_xpm_library } {
     lappend base_libs "xpm"
   }
@@ -3471,6 +3498,7 @@ proc xps_write_xsim_setup_file { launch_dir } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_compiled_libraries
   set top $a_sim_vars(s_top)
   set filename "xsim.ini"
   set file [file normalize [file join $launch_dir $filename]]
@@ -3489,6 +3517,19 @@ proc xps_write_xsim_setup_file { launch_dir } {
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
   [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
   if { $b_reference_xpm_library } {
     set filename "xsim.ini"
     set lib_name "xpm"
@@ -3936,6 +3977,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
 
   variable a_sim_vars
   variable l_generics
+  variable l_compiled_libraries
   set filename "elaborate.do"
   set do_file [file normalize [file join $dir $filename]]
   set fh 0
@@ -3967,6 +4009,19 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       # reference XPM modules from precompiled libs if param is set
       set b_reference_xpm_library 0
       [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+      # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+      # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+      if { $b_reference_xpm_library } {
+        if { $a_sim_vars(b_use_static_lib) } {
+          if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+            set b_reference_xpm_library 0
+          }
+        } else {
+          set b_reference_xpm_library 0
+        }
+      }
+
       if { $b_reference_xpm_library } {
         set arg_list [linsert $arg_list end "-L" "xpm"]
       }
@@ -4101,7 +4156,7 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
 
   variable a_sim_vars
   variable l_generics
-
+  variable l_compiled_libraries
   set args [list]
   switch -regexp -- $simulator {
     "modelsim" {
@@ -4138,6 +4193,19 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
   [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
   if { $b_reference_xpm_library } {
     set args [linsert $args end "-L" "xpm"]
   }
@@ -4208,6 +4276,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   variable l_defines
   variable l_generics
   variable l_include_dirs
+  variable l_compiled_libraries
   set args [list]
   xps_append_config_opts args "xsim" "xelab"
   #lappend args "-wto [get_property ID [current_project]]"
@@ -4261,6 +4330,19 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
   [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
   if { $b_reference_xpm_library } {
     lappend args "-L xpm"
   }
