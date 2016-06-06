@@ -1,3 +1,4 @@
+3.179 compile XPM files locally and donot reference from precompiled libs
 3.178 call internal method for verifying IP status
 3.177 fixed variable name while calculating the parent composite file path sub-dir length
 3.176 cache unique compile order files for reference
