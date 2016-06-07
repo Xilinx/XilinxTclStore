@@ -285,7 +285,7 @@ proc xps_init_vars {} {
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
     variable home
-    source -notrace [file join $home "common" "utils.tcl"] 
+    source -notrace "$home/common/utils.tcl"
   }
   
   # setup cache
@@ -381,7 +381,7 @@ proc xps_xport_simulation { obj } {
 
   if { [xps_write_sim_script $run_dir $data_files $filename] } { return }
 
-  set readme_file [file join $run_dir "README.txt"]
+  set readme_file "$run_dir/README.txt"
   #send_msg_id exportsim-Tcl-030 INFO \
   #  "Please see readme file for instructions on how to use the generated script: '$readme_file'\n"
 
@@ -445,7 +445,7 @@ proc xps_create_rundir { dir run_dir_arg } {
     if { $a_sim_vars(b_directory_specified) } {
       set ip_dir [file tail [file dirname $tcl_obj]]
       #append ip_dir "_sim"
-      set dir [file normalize [file join $dir $ip_dir]]
+      set dir [file normalize "$dir/$ip_dir"]
     } else {
       set ip_dir [file dirname $tcl_obj]
       set ip_filename [file tail $tcl_obj]
@@ -461,13 +461,13 @@ proc xps_create_rundir { dir run_dir_arg } {
   }
   if { {all} == $a_sim_vars(s_simulator) } {
     foreach simulator $l_target_simulator {
-      set sim_dir [file join $dir $simulator]
+      set sim_dir "$dir/$simulator"
       if { [xps_create_dir $sim_dir] } {
         return 1
       }
     }
   } else {
-    set sim_dir [file join $dir $a_sim_vars(s_simulator)]
+    set sim_dir "$dir/$a_sim_vars(s_simulator)"
     if { [xps_create_dir $sim_dir] } {
       return 1
     }
@@ -485,7 +485,7 @@ proc xps_readme { dir } {
   variable a_sim_vars
   set fh 0
   set filename "README.txt"
-  set file [file join $dir $filename]
+  set file "$dir/$filename"
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-030 ERROR "failed to open file to write ($file)\n"
     return 1
@@ -571,7 +571,7 @@ proc xps_write_simulator_readme { dir } {
   variable a_sim_vars
   set fh 0
   set filename "README.txt"
-  set file [file join $dir $filename]
+  set file "$dir/$filename"
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-030 ERROR "failed to open file to write ($file)\n"
     return 1
@@ -655,12 +655,12 @@ proc xps_create_srcs_dir { dir } {
   variable a_sim_vars
   set srcs_dir {}
   if { $a_sim_vars(b_xport_src_files) } {
-    set srcs_dir [file normalize [file join $dir "srcs"]]
+    set srcs_dir [file normalize "$dir/srcs"]
     if {[catch {file mkdir $srcs_dir} error_msg] } {
       send_msg_id exportsim-Tcl-012 ERROR "failed to create the directory ($srcs_dir): $error_msg\n"
       return 1
     }
-    set incl_dir [file normalize [file join $srcs_dir "incl"]]
+    set incl_dir [file normalize "$srcs_dir/incl"]
     if {[catch {file mkdir $incl_dir} error_msg] } {
       send_msg_id exportsim-Tcl-013 ERROR "failed to create the directory ($incl_dir): $error_msg\n"
       return 1
@@ -806,9 +806,9 @@ proc xps_copy_glbl { run_dir } {
   variable a_sim_vars
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-    set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
+    set glbl_file [file normalize "$data_dir/verilog/src/glbl.v"]
     if { [file exists $glbl_file] } {
-      set target_file [file normalize [file join $run_dir "glbl.v"]]
+      set target_file [file normalize "$run_dir/glbl.v"]
       if { ![file exists $target_file] } {
         if {[catch {file copy -force $glbl_file $run_dir} error_msg] } {
           send_msg_id exportsim-Tcl-041 WARNING "failed to copy file '$glbl_file' to '$run_dir' : $error_msg\n"
@@ -1277,7 +1277,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
     
             # strip the ip_output_dir path from source ip file and prepend static dir
             set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
-            set target_extract_dir [file normalize [file join $a_sim_vars(s_ipstatic_source_dir) $lib_dir]]
+            set target_extract_dir [file normalize "$a_sim_vars(s_ipstatic_source_dir)/$lib_dir"]
             #puts target_extract_dir=$target_extract_dir
     
             set dst_cip_file [extract_files -no_path -quiet -files [list "$ip_static_file"] -base_dir $target_extract_dir]
@@ -1340,7 +1340,7 @@ proc xps_fetch_ipi_static_file { file } {
 
   #puts ip_lib_dir=$ip_lib_dir
   set ip_lib_dir_name [file tail $ip_lib_dir]
-  set target_ip_lib_dir [file join $a_sim_vars(s_ipstatic_source_dir) $ip_lib_dir_name]
+  set target_ip_lib_dir "$a_sim_vars(s_ipstatic_source_dir)/$ip_lib_dir_name"
   #puts target_ip_lib_dir=$target_ip_lib_dir
 
   # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
@@ -1353,7 +1353,7 @@ proc xps_fetch_ipi_static_file { file } {
   # /hdl/xbip_utils_v3_0_vh_rfs.vhd
   #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
 
-  set dst_cip_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
+  set dst_cip_file "$target_ip_lib_dir/$ip_hdl_sub_dir"
   #puts dst_cip_file=$dst_cip_file
 
   # repo static file does not exist? maybe generate_target or export_ip_user_files was not executed, fall-back to project src file
@@ -1412,7 +1412,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
   set b_absolute_path $a_sim_vars(b_absolute_path)
   set cmd_str {}
   set associated_library $a_sim_vars(default_lib);
-  set srcs_dir [file normalize [file join $launch_dir "srcs"]]
+  set srcs_dir [file normalize "$launch_dir/srcs"]
   if { $b_skip_file_obj_access } {
     if { ($b_xpm) && ([string length $xpm_library] != 0)} {
       set associated_library $xpm_library
@@ -1436,7 +1436,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
           set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
           # remove leading "../"
           set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
-          set file [file join $ip_ext_dir $ip_file]
+          set file "$ip_ext_dir/$ip_file"
         } else {
           # set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
         }
@@ -1519,7 +1519,7 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
         }
         default {
           if { $a_sim_vars(b_xport_src_files) } {
-            set file [file join $launch_dir "srcs/incl/$src_file"]
+            set file "$launch_dir/srcs/incl/$src_file"
           } else {
             set file "[xcs_resolve_file_path $file $launch_dir]"
           }
@@ -1627,10 +1627,10 @@ proc xps_export_data_files { data_files export_dir } {
       # mig data files
       set mig_files [list "xsim_run.sh" "ies_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
       if { [lsearch $mig_files $filename] != -1 } {continue}
-
-      set target_file [file join $export_dir [file tail $file]]
+      set f_name [file tail $file]
+      set target_file "$export_dir/$f_name"
       if { [get_param project.enableCentralSimRepo] } {
-        set mem_init_dir [file normalize [file join $a_sim_vars(s_ip_user_files_dir) "mem_init_files"]]
+        set mem_init_dir [file normalize "$a_sim_vars(s_ip_user_files_dir)/mem_init_files"]
         set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
         if {[catch {file copy -force $data_file $export_dir} error_msg] } {
           send_msg_id exportsim-Tcl-025 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
@@ -1699,12 +1699,12 @@ proc xps_write_sim_script { run_dir data_files filename } {
     #puts ""
     send_msg_id exportsim-Tcl-035 INFO \
       "Exporting simulation files for \"[string toupper $simulator]\" ($simulator_name)...\n"
-    set dir [file join $run_dir $simulator] 
+    set dir "$run_dir/$simulator"
     xps_create_dir $dir
     if { $a_sim_vars(b_xport_src_files) } {
-      xps_create_dir [file join $dir "srcs"]
-      xps_create_dir [file join $dir "srcs" "incl"]
-      xps_create_dir [file join $dir "srcs" "ip"]
+      xps_create_dir "$dir/srcs"
+      xps_create_dir "$dir/srcs/incl"
+      xps_create_dir "$dir/srcs/ip"
     }
     if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
       set a_sim_vars(s_top) [file tail [file root $tcl_obj]]
@@ -1781,7 +1781,7 @@ proc xps_get_lib_map_path { simulator {b_ignore_default_for_xsim 0} } {
       if { [info exists ::env(XILINX_VIVADO)] } {
         set dir $::env(XILINX_VIVADO)
       }
-      set lmp_value [file normalize [file join $dir "data/xsim"]]
+      set lmp_value [file normalize "$dir/data/xsim"]
     }
   }
   return $lmp_value
@@ -1824,7 +1824,7 @@ proc xps_check_script { dir filename } {
   # Return Value:
 
   variable a_sim_vars
-  set file [file normalize [file join $dir $filename]]
+  set file [file normalize "$dir/$filename"]
   if { [file exists $file] && (!$a_sim_vars(b_overwrite)) } {
     send_msg_id exportsim-Tcl-032 ERROR "Script file exist:'$file'. Use the -force option to overwrite or select 'Overwrite files' from 'File->Export->Export Simulation' dialog box in GUI."
     return 1
@@ -1881,7 +1881,7 @@ proc xps_write_simulation_script { simulator dir } {
   variable a_sim_vars
   set fh_unix 0
 
-  set file [file join $dir $a_sim_vars(s_script_filename)] 
+  set file "$dir/$a_sim_vars(s_script_filename)"
   set file_unix ${file}.sh
   if {[catch {open $file_unix w} fh_unix]} {
     send_msg_id exportsim-Tcl-034 ERROR "failed to open file to write ($file_unix)\n"
@@ -2063,7 +2063,7 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   puts $fh_unix "       $cmd_str"
 
   set fh_run 0
-  set file [file normalize [file join $launch_dir $filename]]
+  set file [file normalize "$launch_dir/$filename"]
   if { [catch {open $file w} fh_run] } {
     send_msg_id exportsim-Tcl-038 ERROR "failed to open file to write ($file)\n"
     return 1
@@ -2416,7 +2416,7 @@ proc xps_write_compile_order_for_ies_vcs { simulator fh launch_dir srcs_dir } {
       if { {} != $ip_file } {
         set ip_name [file rootname [file tail $ip_file]]
         set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
-        set ip_dir [file join $srcs_dir "ip" $ip_name $lib] 
+        set ip_dir "$srcs_dir/ip/$ip_name/$lib"
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
             send_msg_id exportsim-Tcl-040 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -3226,7 +3226,7 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       set compiled_lib_dir {}
       if { [info exists ::env(XILINX_VIVADO)] } {
         set xil_dir $::env(XILINX_VIVADO)
-        set compiled_lib_dir [file normalize [file join $xil_dir "data/xsim"]]
+        set compiled_lib_dir [file normalize "$xil_dir/data/xsim"]
       }
       puts $fh_unix "  lib_map_path=\"$compiled_lib_dir\""
       puts $fh_unix "  if \[\[ (\$1 != \"\") \]\]; then"
@@ -3346,15 +3346,15 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
             set dir $::env(XILINX_VIVADO)
           }
           if { {} != $dir } {
-            set clibs_dir [file normalize [file join $dir "data/xsim"]]
-            set ip_file [file join $clibs_dir "ip" "xsim_ip.ini"]
-            set target_file [file join $launch_dir "xsim.ini"]
+            set clibs_dir [file normalize "$dir/data/xsim"]
+            set ip_file "$clibs_dir/ip/xsim_ip.ini"
+            set target_file "$launch_dir/xsim.ini"
             if { [file exists $ip_file] } {
               if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                 send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
               }
             } else {
-              set ip_file [file join $clibs_dir "xsim.ini"]
+              set ip_file "$clibs_dir/xsim.ini"
               if { [file exists $ip_file] } {
                 if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                   send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
@@ -3369,8 +3369,8 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
         if {$::tcl_platform(platform) == "windows"} {
           set lmp [xps_get_lib_map_path $simulator 1]
           if { {} != $lmp } {
-            set ip_file [file join $lmp "xsim.ini"]
-            set target_file [file join $launch_dir "xsim.ini"]
+            set ip_file "$lmp/xsim.ini"
+            set target_file "$launch_dir/xsim.ini"
             if { [file exists $ip_file] } {
               if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                 send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
@@ -3394,8 +3394,8 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       if {$::tcl_platform(platform) == "windows"} {
         set lmp [xps_get_lib_map_path $simulator]
         if { {} != $lmp } {
-          set ini_file [file join $lmp "modelsim.ini"]
-          set target_file [file join $launch_dir "modelsim.ini"]
+          set ini_file "$lmp/modelsim.ini"
+          set target_file "$launch_dir/modelsim.ini"
           if { [file exists $ini_file] } {
             if {[catch {file copy -force $ini_file $target_file} error_msg] } {
               send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ini_file' to '$launch_dir' : $error_msg\n"
@@ -3456,7 +3456,7 @@ proc xps_create_vcs_do_file { dir } {
 
   variable a_sim_vars
 
-  set do_file [file join $dir $a_sim_vars(do_filename)]
+  set do_file "$dir/$a_sim_vars(do_filename)"
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id exportsim-Tcl-048 ERROR "failed to open file to write ($do_file)\n"
@@ -3478,7 +3478,7 @@ proc xps_create_irun_do_file { dir } {
 
   variable a_sim_vars
 
-  set do_file [file join $dir $a_sim_vars(do_filename)]
+  set do_file "$dir/$a_sim_vars(do_filename)"
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id exportsim-Tcl-048 ERROR "failed to open file to write ($do_file)\n"
@@ -3501,7 +3501,7 @@ proc xps_write_xsim_setup_file { launch_dir } {
   variable l_compiled_libraries
   set top $a_sim_vars(s_top)
   set filename "xsim.ini"
-  set file [file normalize [file join $launch_dir $filename]]
+  set file [file normalize "$launch_dir/$filename"]
   set fh 0
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-049 "Failed to open file to write ($file)\n"
@@ -3537,7 +3537,7 @@ proc xps_write_xsim_setup_file { launch_dir } {
     set lmp [xps_get_lib_map_path "xsim" 1]
     if { {} != $lmp } {
       set dir $lmp
-      set ini_file [file join $dir $filename]
+      set ini_file "$dir/$filename"
       if { [file exists $ini_file] } {
         puts $fh "$lib_name=${dir}/$lib_name"
         set b_mapping_set 1
@@ -3545,8 +3545,8 @@ proc xps_write_xsim_setup_file { launch_dir } {
     }
     if { !$b_mapping_set } {
       set dir $::env(XILINX_VIVADO)
-      set dir [file normalize [file join $dir "data/xsim"]]
-      set ini_file [file normalize [file join $dir $filename]]
+      set dir [file normalize "$dir/data/xsim"]
+      set ini_file [file normalize "$dir/$filename"]
       if { [file exists $ini_file] } {
         puts $fh "$lib_name=${dir}/$lib_name"
       }
@@ -3564,13 +3564,13 @@ proc xps_write_xsim_prj { dir srcs_dir } {
   set top $a_sim_vars(s_top)
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set filename "vlog.prj"
-    set file [file normalize [file join $dir $filename]]
+    set file [file normalize "$dir/$filename"]
     xps_write_prj $dir $file "VERILOG" $srcs_dir
   }
 
   if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
     set filename "vhdl.prj"
-    set file [file normalize [file join $dir $filename]]
+    set file [file normalize "$dir/$filename"]
     xps_write_prj $dir $file "VHDL" $srcs_dir
   }
 }
@@ -3648,7 +3648,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
         set target_dir $srcs_dir
         if { {} != $ip_file } {
           set ip_name [file rootname [file tail $ip_file]]
-          set ip_dir [file join $srcs_dir "ip" $ip_name $lib] 
+          set ip_dir "$srcs_dir/ip/$ip_name/$lib"
           if { ![file exists $ip_dir] } {
             if {[catch {file mkdir $ip_dir} error_msg] } {
               send_msg_id exportsim-Tcl-050 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -3800,7 +3800,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
   if { $a_sim_vars(b_single_step) } {
     set filename "run.do"
   }
-  set do_file [file normalize [file join $dir $filename]]
+  set do_file [file normalize "$dir/$filename"]
   set fh 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id exportsim-Tcl-055 ERROR "Failed to open file to write ($do_file)\n"
@@ -3905,7 +3905,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
       if { {} != $ip_file } {
         set ip_name [file rootname [file tail $ip_file]]
         set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
-        set ip_dir [file join $srcs_dir "ip" $ip_name $lib] 
+        set ip_dir "$srcs_dir/ip/$ip_name/$lib"
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
             send_msg_id exportsim-Tcl-056 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -3979,7 +3979,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
   variable l_generics
   variable l_compiled_libraries
   set filename "elaborate.do"
-  set do_file [file normalize [file join $dir $filename]]
+  set do_file [file normalize "$dir/$filename"]
   set fh 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id exportsim-Tcl-058 ERROR "Failed to open file to write ($do_file)\n"
@@ -4064,14 +4064,14 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   variable a_sim_vars
   set b_absolute_path $a_sim_vars(b_absolute_path)
   set filename $a_sim_vars(do_filename)
-  set do_file [file normalize [file join $dir $filename]]
+  set do_file [file normalize "$dir/$filename"]
   set fh 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id exportsim-Tcl-059 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
   set wave_do_filename "wave.do"
-  set wave_do_file [file normalize [file join $dir $wave_do_filename]]
+  set wave_do_file [file normalize "$dir/$wave_do_filename"]
   xps_create_wave_do_file $wave_do_file
   set cmd_str {}
   switch $simulator {
@@ -4103,7 +4103,7 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   puts $fh "view signals\n"
   set top $a_sim_vars(s_top)
   set udo_filename $top;append udo_filename ".udo"
-  set udo_file [file normalize [file join $dir $udo_filename]]
+  set udo_file [file normalize "$dir/$udo_filename"]
   xps_create_udo_file $udo_file
   puts $fh "do \{$top.udo\}"
   set runtime "run -all"
@@ -4362,7 +4362,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
 
   if {$::tcl_platform(platform) == "windows"} {
     set fh_win 0 
-    set file [file join $launch_dir "elab.opt"]
+    set file "$launch_dir/elab.opt"
     if { [catch {open $file w} fh_win] } {
       send_msg_id exportsim-Tcl-063 ERROR "Failed to open file to write ($file)\n"
     } else {
@@ -4414,7 +4414,7 @@ proc xps_write_xsim_tcl_cmd_file { dir filename } {
   # Return Value:
 
   variable a_sim_vars
-  set file [file normalize [file join $dir $filename]]
+  set file [file normalize "$dir/$filename"]
   set fh 0
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-063 ERROR "Failed to open file to write ($file)\n"
@@ -4809,7 +4809,7 @@ proc xps_write_lib_map_path_dir { simulator fh_unix } {
       set cds_file {}
       set lmp [xps_get_lib_map_path $simulator]
       if { {} != $lmp } {
-        set cds_file [file join $lmp "cds.lib"]
+        set cds_file "$lmp/cds.lib"
         if { [file exist $cds_file] } {
           set cds_lmp $lmp
         } else {
@@ -4921,8 +4921,8 @@ proc xps_get_bfm_lib { simulator lib_name_arg lib_dir_arg } {
     set lib_path {}
     #send_msg_id exportsim-Tcl-116 INFO "Finding simulator library from 'XILINX_VIVADO'..."
     foreach path [split $xil $path_sep] {
-      set lib_dir [file normalize [file join $path "lib" $platform]] 
-      set file [file join $lib_dir $lib_name]
+      set lib_dir [file normalize "$path/lib/$platform"]
+      set file "$lib_dir/$lib_name"
       if { [file exists $file] } {
         #send_msg_id exportsim-Tcl-117 INFO "Using library:'$file'"
         set simulator_lib $file
@@ -5019,7 +5019,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
     set dir [file normalize [file dirname $vh_file]]
 
     if { $a_sim_vars(b_xport_src_files) } {
-      set export_dir [file join $launch_dir "srcs/incl"]
+      set export_dir "$launch_dir/srcs/incl"
       if {[catch {file copy -force $vh_file $export_dir} error_msg] } {
         send_msg_id exportsim-Tcl-065 WARNING "Failed to copy file '$vh_file' to '$export_dir' : $error_msg\n"
       }
@@ -5318,7 +5318,7 @@ proc xps_xtract_file { file } {
       set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
       # remove leading "../"
       set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
-      set file [file join $ip_ext_dir $ip_file]
+      set file "$ip_ext_dir/$ip_file"
     }
   }
   return $file
@@ -5331,7 +5331,7 @@ proc xps_write_filelist_info { simulator dir } {
   variable a_sim_vars
   variable l_target_simulator
   set fh 0
-  set file [file join $dir "file_info.txt"]
+  set file "$dir/file_info.txt"
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-067 ERROR "failed to open file to write ($file)\n"
     return 1
@@ -5370,7 +5370,7 @@ proc xps_write_filelist_info { simulator dir } {
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set file "glbl.v"
     if { $a_sim_vars(b_absolute_path) } {
-      set file [file normalize [file join $dir $file]]
+      set file [file normalize "$dir/$file"]
     }
     set top_lib [xps_get_top_library]
     puts $fh "glbl.v,Verilog,$top_lib,$file"
@@ -5404,7 +5404,7 @@ proc xps_resolve_file { proj_src_file ip_file src_file dir } {
       set src_file "srcs/[file tail $proj_src_file]"
     }
     if { $a_sim_vars(b_absolute_path) } {
-      set src_file [file normalize [file join $dir $src_file]]
+      set src_file [file normalize "$dir/$src_file"]
     }
   }
   return $src_file
