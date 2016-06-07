@@ -133,7 +133,12 @@ proc usf_modelsim_setup_simulation { args } {
   #::tclapp::xilinx::modelsim::usf_print_args
 
   # write functional/timing netlist for post-* simulation
-  ::tclapp::xilinx::modelsim::usf_write_design_netlist
+  set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
+                                                           $a_sim_vars(s_simulation_flow) \
+                                                           $a_sim_vars(s_type)            \
+                                                           $a_sim_vars(s_sim_top)         \
+                                                           $a_sim_vars(s_launch_dir)      \
+                                 ]
 
   # prepare IP's for simulation
   #::tclapp::xilinx::modelsim::usf_prepare_ip_for_simulation

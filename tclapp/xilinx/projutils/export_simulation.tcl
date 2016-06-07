@@ -788,8 +788,7 @@ proc xps_gen_mem_files { run_dir } {
     return
   }
 
-  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
-  if { [llength $embedded_files] > 0 } {
+  if { [xcs_is_embedded_flow] } {
     #send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
     generate_mem_files $run_dir
     set a_sim_cache_gen_mem_files($s_hash) $run_dir

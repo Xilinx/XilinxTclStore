@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>compile XPM files locally and donot reference from precompiled libs</revision_history>
+      <revision_history>refactored netlist generation common procs to utils</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

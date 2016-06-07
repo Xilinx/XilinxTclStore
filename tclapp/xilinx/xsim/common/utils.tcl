@@ -124,7 +124,7 @@ proc xcs_copy_glbl_file { run_dir } {
   set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
 
   if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
-    send_msg_id USF-IES-097 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+    send_msg_id USF-utils-097 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
   }
 }
 
@@ -360,22 +360,22 @@ proc xcs_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
   if { [get_property "IS_IP_BEHAV_LANG_SUPPORTED" $comp_file] } {
     # does ip generated simulation products? if not, generate them
     if { ![get_property "IS_IP_GENERATED_SIM" $comp_file] } {
-      send_msg_id USF-XSim-071 INFO "Generating simulation products for IP '$ip_name'...\n"
+      send_msg_id USF-utils-071 INFO "Generating simulation products for IP '$ip_name'...\n"
       set delivered_targets [get_property delivered_targets [get_ips -all -quiet ${ip_name}]]
       if { [regexp -nocase {simulation} $delivered_targets] } {
         generate_target {simulation} [get_files [list "$comp_file"]] -force
       }
     } else {
-      send_msg_id USF-XSim-074 INFO "IP '$ip_name' is upto date for simulation\n"
+      send_msg_id USF-utils-074 INFO "IP '$ip_name' is upto date for simulation\n"
     }
   } elseif { [get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file] } {
     # make sure ip is up-to-date
     if { ![get_property "IS_IP_GENERATED" $comp_file] } { 
       generate_target {all} [get_files [list "$comp_file"]] -force
-      send_msg_id USF-XSim-077 INFO "Generating functional netlist for IP '$ip_name'...\n"
+      send_msg_id USF-utils-077 INFO "Generating functional netlist for IP '$ip_name'...\n"
       xcs_generate_ip_netlist $comp_file runs_to_launch
     } else {
-      send_msg_id USF-XSim-078 INFO "IP '$ip_name' is upto date for all products\n"
+      send_msg_id USF-utils-078 INFO "IP '$ip_name' is upto date for all products\n"
     }
   } else {
     # at this point, ip doesnot support behavioral language and synth check point is false, so advise
@@ -390,7 +390,7 @@ proc xcs_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
     } else {
       # no synthesis, so no recommendation to do a synth checkpoint.
     }
-    send_msg_id USF-XSim-079 WARNING "$error_msg\n"
+    send_msg_id USF-utils-079 WARNING "$error_msg\n"
     #return 1
   }
 }
@@ -404,17 +404,17 @@ proc xcs_generate_ip_netlist { comp_file runs_to_launch_arg } {
   set comp_file_obj [get_files [list "$comp_file"]]
   set comp_file_fs  [get_property "FILESET_NAME" $comp_file_obj]
   if { ![get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file_obj] } {
-    send_msg_id USF-IES-084 INFO "Generate synth checkpoint is 'false':$comp_file\n"
+    send_msg_id USF-utils-084 INFO "Generate synth checkpoint is 'false':$comp_file\n"
     # if synth checkpoint read-only, return
     if { [get_property "IS_IP_SYNTH_CHECKPOINT_READONLY" $comp_file_obj] } {
-      send_msg_id USF-IES-085 WARNING "Synth checkpoint property is 'readonly' ... skipping:$comp_file\n"
+      send_msg_id USF-utils-085 WARNING "Synth checkpoint property is 'readonly' ... skipping:$comp_file\n"
       return
     }
     # set property to create a DCP/structural simulation file
-    send_msg_id USF-IES-086 INFO "Setting synth checkpoint for generating simulation netlist:$comp_file\n"
+    send_msg_id USF-utils-086 INFO "Setting synth checkpoint for generating simulation netlist:$comp_file\n"
     set_property "GENERATE_SYNTH_CHECKPOINT" true $comp_file_obj
   } else {
-    send_msg_id USF-IES-087 INFO "Generate synth checkpoint is set:$comp_file\n"
+    send_msg_id USF-utils-087 INFO "Generate synth checkpoint is set:$comp_file\n"
   }
   # block fileset name is based on the basename of the IP
   set src_file [file normalize $comp_file]
@@ -425,16 +425,16 @@ proc xcs_generate_ip_netlist { comp_file runs_to_launch_arg } {
   if { {} == $block_fs_obj } {
     create_fileset -blockset "$ip_basename"
     set block_fs_obj [get_filesets $ip_basename]
-    send_msg_id USF-IES-088 INFO "Block-fileset created:$block_fs_obj"
+    send_msg_id USF-utils-088 INFO "Block-fileset created:$block_fs_obj"
     # set fileset top
     set comp_file_top [get_property "IP_TOP" $comp_file_obj]
     set_property "TOP" $comp_file_top [get_filesets $ip_basename]
     # move sub-design to block-fileset
-    send_msg_id USF-IES-089 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
+    send_msg_id USF-utils-089 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
     move_files -fileset [get_filesets $ip_basename] [get_files -of_objects [get_filesets $comp_file_fs] $src_file] 
   }
   if { {BlockSrcs} != [get_property "FILESET_TYPE" $block_fs_obj] } {
-    send_msg_id USF-IES-090 ERROR "Given source file is not associated with a design source fileset.\n"
+    send_msg_id USF-utils-090 ERROR "Given source file is not associated with a design source fileset.\n"
     return 1
   }
   # construct block-fileset run for the netlist
@@ -443,7 +443,7 @@ proc xcs_generate_ip_netlist { comp_file runs_to_launch_arg } {
     reset_run $run_name
   }
   lappend runs_to_launch $run_name
-  send_msg_id USF-IES-091 INFO "Run scheduled for '$ip_basename':$run_name\n"
+  send_msg_id USF-utils-091 INFO "Run scheduled for '$ip_basename':$run_name\n"
 }
 
 proc xcs_get_bin_path { tool_name path_sep } {
@@ -576,14 +576,14 @@ proc xcs_get_files_from_block_filesets { filter_type } {
   set used_in_val "simulation"
   set fs_objs [get_filesets -filter $filter]
   if { [llength $fs_objs] > 0 } {
-    send_msg_id USF-IES-101 INFO "Finding block fileset files..."
+    send_msg_id USF-utils-101 INFO "Finding block fileset files..."
     foreach fs_obj $fs_objs {
       set fs_name [get_property "NAME" $fs_obj]
-      send_msg_id USF-IES-070 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
+      send_msg_id USF-utils-070 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
       #set files [xcs_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]]
       set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]
       if { [llength $files] == 0 } {
-        send_msg_id USF-IES-071 INFO "No files found in '$fs_name'\n"
+        send_msg_id USF-utils-071 INFO "No files found in '$fs_name'\n"
         continue
       } else {
         foreach file $files {
@@ -920,11 +920,11 @@ proc xcs_make_file_executable { file } {
 
   if {$::tcl_platform(platform) == "unix"} {
     if {[catch {exec chmod a+x $file} error_msg] } {
-      send_msg_id USF-XSim-069 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-utils-069 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   } else {
     if {[catch {exec attrib /D -R $file} error_msg] } {
-      send_msg_id USF-XSim-070 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-utils-070 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   }
 }
@@ -1205,4 +1205,306 @@ proc xcs_find_files { src_files_arg tcl_obj filter dir b_absolute_path in_fs_obj
       }
     }
   }
+}
+
+proc xcs_is_embedded_flow {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable s_embedded_files_filter
+  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
+  if { [llength $embedded_files] > 0 } {
+    return 1
+  }
+  return 0
+}
+
+proc xcs_get_netlist_filename { s_sim_top s_simulation_flow s_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set filename $s_sim_top
+  switch -regexp -- $s_simulation_flow {
+    {behav_sim} {
+      set filename [append filename "_behav"]
+    }
+    {post_synth_sim} -
+    {post_impl_sim} {
+      switch -regexp -- $s_type {
+        {functional} { set filename [append filename "_func"] }
+        {timing}     { set filename [append filename "_time"] }
+      }
+    }
+  }
+  switch -regexp -- $s_simulation_flow {
+    {post_synth_sim} { set filename [append filename "_synth"] }
+    {post_impl_sim}  { set filename [append filename "_impl"] }
+  }
+  return $filename
+}
+
+proc xcs_get_netlist_writer_cmd_args { s_simset s_type extn } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set fs_obj                 [get_filesets $s_simset]
+  set nl_cell                [get_property "NL.CELL" $fs_obj]
+  set nl_incl_unisim_models  [get_property "NL.INCL_UNISIM_MODELS" $fs_obj]
+  set nl_rename_top          [get_property "NL.RENAME_TOP" $fs_obj]
+  set nl_sdf_anno            [get_property "NL.SDF_ANNO" $fs_obj]
+  set nl_write_all_overrides [get_property "NL.WRITE_ALL_OVERRIDES" $fs_obj]
+  set args                   [list]
+
+  if { {} != $nl_cell } {
+    lappend args "-cell"
+    lappend args $nl_cell
+  }
+
+  if { $nl_write_all_overrides } {
+    lappend args "-write_all_overrides"
+  }
+
+  if { {} != $nl_rename_top } {
+    if { {.v} == $extn } {
+      lappend args "-rename_top"
+      lappend args $nl_rename_top
+    } elseif { {.vhd} == $extn } {
+      lappend args "-rename_top"
+      lappend args $nl_rename_top
+    }
+  }
+
+  if { ({timing} == $s_type) } {
+    if { $nl_sdf_anno } {
+      lappend args "-sdf_anno true"
+    } else {
+      lappend args "-sdf_anno false"
+    }
+  }
+
+  if { $nl_incl_unisim_models } {
+    lappend args "-include_unisim"
+  }
+  lappend args "-force"
+  set cmd_args [join $args " "]
+
+  return $cmd_args
+}
+
+proc xcs_get_netlist_extn { s_type warning } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set extn {.v}
+  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+  if { {VHDL} == $target_lang } {
+    set extn {.vhd}
+  }
+
+  if { (({VHDL} == $target_lang) && ({timing} == $s_type)) } {
+    set extn {.v}
+    if { $warning } {
+      send_msg_id USF-utils-064 INFO "The target language is set to VHDL, it is not supported for simulation type '$s_type', using Verilog instead.\n"
+    }
+  }
+  return $extn
+}
+
+proc xcs_get_sdf_writer_cmd_args { s_simset } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set fs_obj            [get_filesets $s_simset]
+  set nl_cell           [get_property "NL.CELL" $fs_obj]
+  set nl_rename_top     [get_property "NL.RENAME_TOP" $fs_obj]
+  set nl_process_corner [get_property "NL.PROCESS_CORNER" $fs_obj]
+  set args              [list]
+
+  if { {} != $nl_cell } {
+    lappend args "-cell"
+    lappend args $nl_cell
+  }
+
+  lappend args "-process_corner"
+  lappend args $nl_process_corner
+
+  if { {} != $nl_rename_top } {
+    lappend "-rename_top_module"
+    lappend args $nl_rename_top
+  }
+
+  lappend args "-force"
+
+  set cmd_args [join $args " "]
+  return $cmd_args
+}
+
+proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set s_netlist_file {}
+
+  # is behavioral?, return
+  if { {behav_sim} == $s_simulation_flow } {
+    return $s_netlist_file
+  }
+
+  set extn [xcs_get_netlist_extn $s_type 1]
+
+  # generate netlist
+  set net_filename [xcs_get_netlist_filename $s_sim_top $s_simulation_flow $s_type];append net_filename "$extn"
+  set sdf_filename [xcs_get_netlist_filename $s_sim_top $s_simulation_flow $s_type];append sdf_filename ".sdf"
+
+  set net_file [file normalize "$s_launch_dir/$net_filename"]
+  set sdf_file [file normalize "$s_launch_dir/$sdf_filename"]
+
+  set netlist_cmd_args [xcs_get_netlist_writer_cmd_args $s_simset $s_type $extn]
+  set sdf_cmd_args     [xcs_get_sdf_writer_cmd_args $s_simset]
+  set design_mode      [get_property DESIGN_MODE [current_fileset]]
+
+  # check run results status
+  switch -regexp -- $s_simulation_flow {
+    {post_synth_sim} {
+      if { {RTL} == $design_mode } {
+        if { [get_param "project.checkRunResultsForUnifiedSim"] } {
+          set synth_run [current_run -synthesis]
+          set status [get_property "STATUS" $synth_run]
+          if { ([regexp -nocase {^synth_design complete} $status] != 1) } {
+            send_msg_id USF-utils-028 ERROR \
+               "Synthesis results not available! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console and retry this operation.\n"
+            return $s_netlist_file
+          }
+        }
+      }
+
+      if { {RTL} == $design_mode } {
+        set synth_run [current_run -synthesis]
+        set netlist $synth_run
+
+        # is design for the current synth run already opened in memory?
+        set synth_design [get_designs -quiet $synth_run]
+        if { {} != $synth_design } {
+          # design already opened, set it current
+          current_design $synth_design
+        } else {
+          if { [catch {open_run $synth_run -name $netlist} open_err] } {
+            #send_msg_id USF-utils-028 WARNING "open_run failed:$open_err"
+          } else {
+            current_design $netlist
+          }
+        }
+      } elseif { {GateLvl} == $design_mode } {
+        set netlist "netlist_1"
+
+        # is design already opened in memory?
+        set synth_design [get_designs -quiet $netlist]
+        if { {} != $synth_design } {
+          # design already opened, set it current
+          current_design $synth_design
+        } else {
+          # open the design
+          link_design -name $netlist
+        }
+      } else {
+        send_msg_id USF-utils-028 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
+        return $s_netlist_file
+      }
+
+      set design_in_memory [current_design]
+      send_msg_id USF-utils-029 INFO "Writing simulation netlist file for design '$design_in_memory'..."
+
+      # write netlist/sdf
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
+      if { {functional} == $s_type } {
+        set wv_args "-mode funcsim $wv_args"
+      } elseif { {timing} == $s_type } {
+        set wv_args "-mode timesim $wv_args"
+      }
+
+      if { {.v} == $extn } {
+        send_msg_id USF-utils-090 INFO "write_verilog $wv_args"
+        eval "write_verilog $wv_args"
+      } else {
+        send_msg_id USF-utils-090 INFO "write_vhdl $wv_args"
+        eval "write_vhdl $wv_args"
+      }
+
+      if { {timing} == $s_type } {
+        send_msg_id USF-utils-030 INFO "Writing SDF file..."
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
+        send_msg_id USF-utils-091 INFO "write_sdf $ws_args"
+        eval "write_sdf $ws_args"
+      }
+      set s_netlist_file $net_file
+    }
+    {post_impl_sim} {
+      set impl_run [current_run -implementation]
+      set netlist $impl_run
+      if { [get_param "project.checkRunResultsForUnifiedSim"] } {
+        if { ![get_property can_open_results $impl_run] } {
+          send_msg_id USF-utils-031 ERROR \
+             "Implementation results not available! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console and retry this operation.\n"
+          return $s_netlist_file
+        }
+      }
+
+      # is design for the current impl run already opened in memory?
+      set impl_design [get_designs -quiet $impl_run]
+      if { {} != $impl_design } {
+        # design already opened, set it current
+        current_design $impl_design
+      } else {
+        if { [catch {open_run $impl_run -name $netlist} open_err] } {
+          #send_msg_id USF-utils-028 WARNING "open_run failed:$open_err"
+        } else {
+          current_design $impl_run
+        }
+      }
+
+      set design_in_memory [current_design]
+      send_msg_id USF-utils-032 INFO "Writing simulation netlist file for design '$design_in_memory'..."
+
+      # write netlist/sdf
+      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
+      if { {functional} == $s_type } {
+        set wv_args "-mode funcsim $wv_args"
+      } elseif { {timing} == $s_type } {
+        set wv_args "-mode timesim $wv_args"
+      }
+
+      if { {.v} == $extn } {
+        send_msg_id USF-utils-092 INFO "write_verilog $wv_args"
+        eval "write_verilog $wv_args"
+      } else {
+        send_msg_id USF-utils-092 INFO "write_vhdl $wv_args"
+        eval "write_vhdl $wv_args"
+      }
+
+      if { {timing} == $s_type } {
+        send_msg_id USF-utils-033 INFO "Writing SDF file..."
+        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
+        send_msg_id USF-utils-093 INFO "write_sdf $ws_args"
+        eval "write_sdf $ws_args"
+      }
+
+      set s_netlist_file $net_file
+    }
+  }
+
+  if { [file exist $net_file] } {
+    send_msg_id USF-utils-034 INFO "Netlist generated:$net_file"
+  }
+
+  if { [file exist $sdf_file] } {
+    send_msg_id USF-utils-035 INFO "SDF generated:$sdf_file"
+  }
+
+  return $s_netlist_file
 }

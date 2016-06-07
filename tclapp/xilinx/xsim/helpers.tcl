@@ -329,152 +329,6 @@ proc usf_set_sim_tcl_obj {} {
   return 0
 }
 
-proc usf_write_design_netlist {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  # is behavioral?, return
-  if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
-    return
-  }
-  set extn [usf_get_netlist_extn 1]
-
-  # generate netlist
-  set net_filename     [usf_get_netlist_filename];append net_filename "$extn"
-  set sdf_filename     [usf_get_netlist_filename];append sdf_filename ".sdf"
-  set net_file         [file normalize [file join $a_sim_vars(s_launch_dir) $net_filename]]
-  set sdf_file         [file normalize [file join $a_sim_vars(s_launch_dir) $sdf_filename]]
-  set netlist_cmd_args [usf_get_netlist_writer_cmd_args $extn]
-  set sdf_cmd_args     [usf_get_sdf_writer_cmd_args]
-  set design_mode      [get_property DESIGN_MODE [current_fileset]]
-
-  # check run results status
-  switch -regexp -- $a_sim_vars(s_simulation_flow) {
-    {post_synth_sim} {
-      if { {RTL} == $design_mode } {
-        if { [get_param "project.checkRunResultsForUnifiedSim"] } {
-          set synth_run [current_run -synthesis]
-          set status [get_property "STATUS" $synth_run]
-          if { ([regexp -nocase {^synth_design complete} $status] != 1) } {
-            send_msg_id USF-XSim-028 ERROR \
-               "Synthesis results not available! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console and retry this operation.\n"
-            return 1
-          }
-        }
-      }
-
-      if { {RTL} == $design_mode } {
-        set synth_run [current_run -synthesis]
-        set netlist $synth_run 
-        # is design for the current synth run already opened in memory?
-        set synth_design [get_designs -quiet $synth_run]
-        if { {} != $synth_design } {
-          # design already opened, set it current
-          current_design $synth_design
-        } else {
-          if { [catch {open_run $synth_run -name $netlist} open_err] } {
-            #send_msg_id USF-XSim-028 WARNING "open_run failed:$open_err"
-          } else {
-            current_design $netlist
-          }
-        }
-      } elseif { {GateLvl} == $design_mode } {
-        set netlist "netlist_1"
-        # is design already opened in memory?
-        set synth_design [get_designs -quiet $netlist]
-        if { {} != $synth_design } {
-          # design already opened, set it current
-          current_design $synth_design
-        } else {
-          # open the design
-          link_design -name $netlist
-        }
-      } else {
-        send_msg_id USF-XSim-028 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
-        return 1
-      }
-
-      set design_in_memory [current_design]
-      send_msg_id USF-XSim-029 INFO "Writing simulation netlist file for design '$design_in_memory'..."
-      # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
-      if { {functional} == $a_sim_vars(s_type) } {
-        set wv_args "-mode funcsim $wv_args"
-      } elseif { {timing} == $a_sim_vars(s_type) } {
-        set wv_args "-mode timesim $wv_args"
-      }
-      if { {.v} == $extn } {
-        send_msg_id USF-XSim-090 INFO "write_verilog $wv_args"
-        eval "write_verilog $wv_args"
-      } else {
-        send_msg_id USF-XSim-090 INFO "write_vhdl $wv_args"
-        eval "write_vhdl $wv_args"
-      }
-      if { {timing} == $a_sim_vars(s_type) } {
-        send_msg_id USF-XSim-030 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
-        send_msg_id USF-XSim-091 INFO "write_sdf $ws_args"
-        eval "write_sdf $ws_args"
-      }
-      set a_sim_vars(s_netlist_file) $net_file
-    }
-    {post_impl_sim} {
-      set impl_run [current_run -implementation]
-      set netlist $impl_run 
-      if { [get_param "project.checkRunResultsForUnifiedSim"] } {
-        if { ![get_property can_open_results $impl_run] } {
-          send_msg_id USF-XSim-031 ERROR \
-             "Implementation results not available! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console and retry this operation.\n"
-          return 1
-        }
-      }
-
-      # is design for the current impl run already opened in memory?
-      set impl_design [get_designs -quiet $impl_run]
-      if { {} != $impl_design } {
-        # design already opened, set it current
-        current_design $impl_design
-      } else {
-        if { [catch {open_run $impl_run -name $netlist} open_err] } {
-          #send_msg_id USF-XSim-028 WARNING "open_run failed:$open_err"
-        } else {
-          current_design $impl_run
-        }
-      }
-
-      set design_in_memory [current_design]
-      send_msg_id USF-XSim-032 INFO "Writing simulation netlist file for design '$design_in_memory'..."
-
-      # write netlist/sdf
-      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
-      if { {functional} == $a_sim_vars(s_type) } {
-        set wv_args "-mode funcsim $wv_args"
-      } elseif { {timing} == $a_sim_vars(s_type) } {
-        set wv_args "-mode timesim $wv_args"
-      }
-      if { {.v} == $extn } {
-        send_msg_id USF-XSim-092 INFO "write_verilog $wv_args"
-        eval "write_verilog $wv_args"
-      } else {
-        send_msg_id USF-XSim-092 INFO "write_vhdl $wv_args"
-        eval "write_vhdl $wv_args"
-      }
-      if { {timing} == $a_sim_vars(s_type) } {
-        send_msg_id USF-XSim-033 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
-        send_msg_id USF-XSim-093 INFO "write_sdf $ws_args"
-        eval "write_sdf $ws_args"
-      }
-
-      set a_sim_vars(s_netlist_file) $net_file
-    }
-  }
-  if { [file exist $net_file] } { send_msg_id USF-XSim-034 INFO "Netlist generated:$net_file" }
-  if { [file exist $sdf_file] } { send_msg_id USF-XSim-035 INFO "SDF generated:$sdf_file" }
-}
-
 proc usf_xport_data_files { } {
   # Summary:
   # Argument Usage:
@@ -745,7 +599,7 @@ proc usf_prepare_ip_for_simulation { } {
       }
     }
     # fileset contains embedded sources? generate mem files
-    if { [usf_is_embedded_flow] } {
+    if { [xcs_is_embedded_flow] } {
       send_msg_id USF-XSim-041 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
       generate_mem_files $a_sim_vars(s_launch_dir)
     }
@@ -783,7 +637,7 @@ proc usf_generate_mem_files_for_simulation { } {
 
   if { [xcs_is_fileset $a_sim_vars(sp_tcl_obj)] } {
     # fileset contains embedded sources? generate mem files
-    if { [usf_is_embedded_flow] } {
+    if { [xcs_is_embedded_flow] } {
       send_msg_id USF-XSim-096 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
       generate_mem_files $a_sim_vars(s_launch_dir)
     }
@@ -1469,52 +1323,6 @@ proc usf_get_script_extn {} {
 # Low level helper procs
 # 
 namespace eval ::tclapp::xilinx::xsim {
-proc usf_get_netlist_extn { warning } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  variable a_sim_vars
-
-  set extn {.v}
-  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-  if { {VHDL} == $target_lang } {
-    set extn {.vhd}
-  }
-
-  if { (({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type))) } {
-    set extn {.v}
-    if { $warning } {
-      send_msg_id USF-XSim-064 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
-    }
-  }
-  return $extn
-}
-
-proc usf_get_netlist_filename { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set filename $a_sim_vars(s_sim_top)
-  switch -regexp -- $a_sim_vars(s_simulation_flow) {
-    {behav_sim} { set filename [append filename "_behav"] }
-    {post_synth_sim} -
-    {post_impl_sim} {
-      switch -regexp -- $a_sim_vars(s_type) {
-        {functional} { set filename [append filename "_func"] }
-        {timing} {set filename [append filename "_time"] }
-      }
-    }
-  }
-  switch -regexp -- $a_sim_vars(s_simulation_flow) {
-    {post_synth_sim} { set filename [append filename "_synth"] }
-    {post_impl_sim}  { set filename [append filename "_impl"] }
-  }
-  return $filename
-}
-
 proc usf_export_data_files { data_files } {
   # Summary: 
   # Argument Usage:
@@ -1687,19 +1495,6 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   return $incl_dirs
 }
 
-proc usf_is_embedded_flow {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable s_embedded_files_filter
-  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
-  if { [llength $embedded_files] > 0 } {
-    return 1
-  }
-  return 0
-}
-
 proc usf_get_compiler_name { file_type } {
   # Summary:
   # Argument Usage:
@@ -1808,75 +1603,6 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
   set type [xcs_get_file_type_category $file_type]
   set cmd_str "$type|$file_type|$associated_library|$file_str|$b_static_ip_file"
   return $cmd_str
-}
-
-proc usf_get_netlist_writer_cmd_args { extn } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set fs_obj                 [get_filesets $a_sim_vars(s_simset)]
-  set nl_cell                [get_property "NL.CELL" $fs_obj]
-  set nl_incl_unisim_models  [get_property "NL.INCL_UNISIM_MODELS" $fs_obj]
-  set nl_rename_top          [get_property "NL.RENAME_TOP" $fs_obj]
-  set nl_sdf_anno            [get_property "NL.SDF_ANNO" $fs_obj]
-  set nl_write_all_overrides [get_property "NL.WRITE_ALL_OVERRIDES" $fs_obj]
-  set args                   [list]
-
-  if { {} != $nl_cell }          { lappend args "-cell";lappend args $nl_cell }
-  if { $nl_write_all_overrides } { lappend args "-write_all_overrides" }
-
-  if { {} != $nl_rename_top } {
-    if { {.v} == $extn } {
-      lappend args "-rename_top";lappend args $nl_rename_top
-    } elseif { {.vhd} == $extn } {
-      lappend args "-rename_top";lappend args $nl_rename_top
-    }
-  }
-
-  if { ({timing} == $a_sim_vars(s_type)) } {
-    if { $nl_sdf_anno } {
-      lappend args "-sdf_anno true"
-    } else {
-      lappend args "-sdf_anno false"
-    }
-  }
-
-  if { $nl_incl_unisim_models } { lappend args "-include_unisim" }
-  lappend args "-force"
-  set cmd_args [join $args " "]
-  return $cmd_args
-}
-
-proc usf_get_sdf_writer_cmd_args { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set fs_obj            [get_filesets $a_sim_vars(s_simset)]
-  set nl_cell           [get_property "NL.CELL" $fs_obj]
-  set nl_rename_top     [get_property "NL.RENAME_TOP" $fs_obj]
-  set nl_process_corner [get_property "NL.PROCESS_CORNER" $fs_obj]
-  set args              [list]
-
-  if { {} != $nl_cell } {lappend args "-cell";lappend args $nl_cell}
-  lappend args "-process_corner";lappend args $nl_process_corner
-  if { {} != $nl_rename_top } {lappend "-rename_top_module";lappend args $nl_rename_top}
-  lappend args "-force"
-  set cmd_args [join $args " "]
-  return $cmd_args
-}
-
-proc usf_get_rdi_bin_path {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set rdi_path $::env(RDI_BINROOT)
-  set rdi_path [string map {/ \\\\} $rdi_path]
-  return $rdi_path
 }
 
 proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip_file_arg  } {

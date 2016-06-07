@@ -181,7 +181,12 @@ proc usf_xsim_setup_simulation { args } {
   #::tclapp::xilinx::xsim::usf_print_args
 
   # write functional/timing netlist for post-* simulation
-  ::tclapp::xilinx::xsim::usf_write_design_netlist
+  set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
+                                                           $a_sim_vars(s_simulation_flow) \
+                                                           $a_sim_vars(s_type)            \
+                                                           $a_sim_vars(s_sim_top)         \
+                                                           $a_sim_vars(s_launch_dir)      \
+                                 ]
 
   # prepare IP's for simulation
   #::tclapp::xilinx::xsim::usf_prepare_ip_for_simulation
@@ -615,7 +620,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     ::tclapp::xilinx::xsim::usf_write_shell_step_fn $fh_scr
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
+    puts $fh_scr "set xv_path=[usf_get_rdi_bin_path]"
   }
 
   # write verilog prj if design contains verilog sources 
@@ -852,7 +857,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     puts $fh_scr "ExecStep \$xv_path/bin/xelab $args"
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
+    puts $fh_scr "set xv_path=[usf_get_rdi_bin_path]"
     set args [usf_xsim_get_xelab_cmdline_args]
     puts $fh_scr "call %xv_path%/xelab $s_dbg_sw $args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
@@ -958,7 +963,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
     puts $fh_scr "ExecStep \$xv_path/bin/xsim $cmd_args"
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set xv_path=[::tclapp::xilinx::xsim::usf_get_rdi_bin_path]"
+    puts $fh_scr "set xv_path=[usf_get_rdi_bin_path]"
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $b_batch]
     puts $fh_scr "call %xv_path%/xsim $cmd_args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
@@ -1694,5 +1699,15 @@ proc usf_xsim_include_xvhdl_log {} {
       }
     }
   }
+}
+
+proc usf_get_rdi_bin_path {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set rdi_path $::env(RDI_BINROOT)
+  set rdi_path [string map {/ \\\\} $rdi_path]
+  return $rdi_path
 }
 }
