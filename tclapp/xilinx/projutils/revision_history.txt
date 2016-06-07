@@ -1,3 +1,4 @@
+3.181 refactored netlist generation common procs to utils
 3.180 replaced file join with path separator
 3.179 compile XPM files locally and donot reference from precompiled libs
 3.178 call internal method for verifying IP status
