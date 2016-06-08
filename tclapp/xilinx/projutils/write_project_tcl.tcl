@@ -864,7 +864,9 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         # skip step properties
       } else {
         set attr_names [rdi::get_attr_specs -class [get_property class [get_runs $tcl_obj] ]]
-        set prop_type [get_property type [lindex $attr_names [lsearch $attr_names $prop]]]
+        if { [lsearch $attr_names $prop] != -1 } {
+          set prop_type [get_property type [lindex $attr_names [lsearch $attr_names $prop]]]
+        }
       }
     } else {
       set attr_spec [rdi::get_attr_specs -quiet $prop -object [$get_what $tcl_obj]]
