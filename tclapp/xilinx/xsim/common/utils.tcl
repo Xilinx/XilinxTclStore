@@ -913,6 +913,18 @@ proc xcs_is_static_ip_lib { library ip_static_libs } {
   return false
 }
 
+proc xcs_is_local_ip_lib { library local_libs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set library [string tolower $library]
+  if { [lsearch -exact $local_libs $library] != -1 } {
+    return true
+  }
+  return false
+}
+
 proc xcs_make_file_executable { file } {
   # Summary:
   # Argument Usage:

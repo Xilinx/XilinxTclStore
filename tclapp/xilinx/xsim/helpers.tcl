@@ -1743,7 +1743,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
         set b_process_file 0
         set b_is_static 1
       } else {
-        # add this library to have the new mapping to xsim.dir/<library>
+        # add this library to have the new library linkage in mapping file
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
           lappend l_local_design_libraries $library
         }

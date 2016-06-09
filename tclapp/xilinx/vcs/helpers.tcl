@@ -56,6 +56,7 @@ proc usf_init_vars {} {
   variable l_compile_order_files_uniq [list]
   variable l_design_files            [list]
   variable l_compiled_libraries      [list]
+  variable l_local_design_libraries  [list]
   # ip static libraries
   variable l_ip_static_libs          [list]
 
@@ -2061,6 +2062,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
   variable a_sim_vars
   variable l_compiled_libraries
+  variable l_local_design_libraries
   variable a_sim_cache_all_design_files_obj
   variable a_sim_cache_all_bd_files
   upvar $b_is_static_arg b_is_static
@@ -2148,6 +2150,11 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
         set b_process_file 0
         set b_is_static 1
+      } else {
+        # add this library to have the new library linkage in mapping file
+        if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
+          lappend l_local_design_libraries $library
+        }
       }
     }
 
