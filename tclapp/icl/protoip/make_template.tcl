@@ -1476,19 +1476,30 @@ foreach i $input_vectors {
 	puts $file "	///////////////////////////////////////"
 	puts $file "	//load input vectors from memory (DDR)"
 	puts $file ""
+
+	# start modified by Bulat
+	append tmp_line "	if(!(byte_" $i "_in_offset & (1<<31)))"
+	puts $file $tmp_line
+	unset tmp_line
+	puts $file "	{"
 	
-	append tmp_line "	memcpy(" $i "_in,(const data_t_memory*)(memory_inout+byte_" $i "_in_offset/4),[string toupper $i]_IN_LENGTH*sizeof(data_t_memory));"
+	append tmp_line "		memcpy(" $i "_in,(const data_t_memory*)(memory_inout+byte_" $i "_in_offset/4),[string toupper $i]_IN_LENGTH*sizeof(data_t_memory));"
 	puts $file $tmp_line
 	unset tmp_line
 	
 	puts $file ""
-	puts $file "    //Initialisation: cast to the precision used for the algorithm"
+	puts $file "    	//Initialisation: cast to the precision used for the algorithm"
 
-	puts $file "	input_cast_loop_$i:for (int i=0; i< [string toupper $i]_IN_LENGTH; i++)"
-		append tmp_line "		" $i "_in_int\[i\]=(data_t_" $i "_in)" $i "_in\[i\];"
+	puts $file "		input_cast_loop_$i:for (int i=0; i< [string toupper $i]_IN_LENGTH; i++)"
+		append tmp_line "			" $i "_in_int\[i\]=(data_t_" $i "_in)" $i "_in\[i\];"
 		puts $file $tmp_line
 		unset tmp_line
 		puts $file ""
+
+	puts $file "	}"
+	# end modified by Bulat
+
+	puts $file "	"
 
 	puts $file ""
 	puts $file "	#elif FLOAT_FIX_[string toupper $i]_IN == 0"
@@ -1496,9 +1507,16 @@ foreach i $input_vectors {
 	puts $file "	//load input vectors from memory (DDR)"
 	puts $file ""
 
-		append tmp_line "	memcpy(" $i "_in_int,(const data_t_memory*)(memory_inout+byte_" $i "_in_offset/4),[string toupper $i]_IN_LENGTH*sizeof(data_t_memory));"
+		# start modified by Bulat
+		append tmp_line "	if(!(byte_" $i "_in_offset & (1<<31)))"
 		puts $file $tmp_line
 		unset tmp_line
+		puts $file "	{"
+		append tmp_line "		memcpy(" $i "_in_int,(const data_t_memory*)(memory_inout+byte_" $i "_in_offset/4),[string toupper $i]_IN_LENGTH*sizeof(data_t_memory));"
+		puts $file $tmp_line
+		unset tmp_line
+		puts $file "	}"
+		# end modified by Bulat
 
 	puts $file ""
 	puts $file "	#endif"
@@ -1565,27 +1583,44 @@ foreach i $output_vectors {
 	puts $file "	///////////////////////////////////////"
 	puts $file "	//store output vectors to memory (DDR)"
 	puts $file ""
-	puts $file "	output_cast_loop_$i: for(int i = 0; i <  [string toupper $i]_OUT_LENGTH; i++)"
 
-	append tmp_line "		" $i "_out\[i\]=(data_t_interface_" $i "_out)" $i "_out_int\[i\];"
+	#end modified by Bulat
+	append tmp_line "	if(!(byte_" $i "_out_offset & (1<<31)))"
+	puts $file $tmp_line
+	unset tmp_line
+	puts $file "	{"	
+	puts $file "		output_cast_loop_$i: for(int i = 0; i <  [string toupper $i]_OUT_LENGTH; i++)"
+
+	append tmp_line "			" $i "_out\[i\]=(data_t_interface_" $i "_out)" $i "_out_int\[i\];"
 	puts $file $tmp_line
 	unset tmp_line
 	
 	puts $file ""
-	puts $file "	//write results vector y_out to DDR"
-	append tmp_line "	memcpy((data_t_memory *)(memory_inout+byte_" $i "_out_offset/4)," $i "_out,[string toupper $i]_OUT_LENGTH*sizeof(data_t_memory));"
+	puts $file "		//write results vector y_out to DDR"
+	append tmp_line "		memcpy((data_t_memory *)(memory_inout+byte_" $i "_out_offset/4)," $i "_out,[string toupper $i]_OUT_LENGTH*sizeof(data_t_memory));"
 	puts $file $tmp_line
 	unset tmp_line
 	puts $file ""
+
+	puts $file "	}"	
+	#end modified by Bulat
+
 	puts $file "	#elif FLOAT_FIX_[string toupper $i]_OUT == 0"
 	
 
 	puts $file "	///////////////////////////////////////"
 	puts $file "	//write results vector y_out to DDR"
-	
-	append tmp_line "	memcpy((data_t_memory *)(memory_inout+byte_" $i "_out_offset/4)," $i "_out_int,[string toupper $i]_OUT_LENGTH*sizeof(data_t_memory));"
+
+	# start modified by Bulat
+	append tmp_line "	if(!(byte_" $i "_out_offset & (1<<31)))"
 	puts $file $tmp_line
 	unset tmp_line
+	puts $file "	{"	
+	append tmp_line "		memcpy((data_t_memory *)(memory_inout+byte_" $i "_out_offset/4)," $i "_out_int,[string toupper $i]_OUT_LENGTH*sizeof(data_t_memory));"
+	puts $file $tmp_line
+	unset tmp_line
+	puts $file "	}"
+	# end modified by Bulat
 	
 	puts $file ""
 	puts $file "	#endif"

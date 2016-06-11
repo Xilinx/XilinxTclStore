@@ -359,7 +359,7 @@ if {$error==0} {
 
 			set sdk_p [open "|xsct build_soc_sdk_project.tcl" r]
 			while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
-			close $sdk_p
+			#close $sdk_p
 			
 			# set sdk_exit_flag=0 if error, sdk_exit_flag=1 if NOT error
 			set sdk_exit_flag [file exists workspace1/test_fpga/Release/test_fpga.elf]
@@ -372,7 +372,7 @@ if {$error==0} {
 				
 				set xmd_p [open "|xmd -tcl run_fpga_prototype.tcl" r]
 				while {![eof $xmd_p]} { gets $xmd_p line ; puts $line }
-				close $xmd_p
+				#close $xmd_p
 				after 5000
 				puts "FPGA UDP/TCP server started. FPGA prototype is ready to be used !"
 			} else {
