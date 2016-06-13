@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>check for local design libraries while mapping and process them</revision_history>
+      <revision_history>fetch all ipdef objects while determining static files from local repo</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
