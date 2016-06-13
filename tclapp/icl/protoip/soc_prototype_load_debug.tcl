@@ -193,6 +193,8 @@ if {$error==0} {
 			file copy -force $source_file design_1_wrapper.hdf
 			file copy -force ../../../../.metadata/build_soc_sdk_project.tcl build_soc_sdk_project.tcl
 			file copy -force ../../../../.metadata/run_fpga_prototype.tcl run_fpga_prototype.tcl
+
+
 			
 			cd ../../../../
 			
@@ -205,6 +207,19 @@ if {$error==0} {
 			append command_name "/workspace1"
 
 			set sdk_p [open $command_name r]
+
+			#addded by Bulat
+			while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
+			#close $sdk_p
+			
+			# copy all the file that have word 'user' in their names
+			set pattern "" 
+			append pattern "soc_prototype/test/prj/" $project_name "." $board_name "/workspace1/test_fpga/src/*user*"
+			set file_list [glob $pattern]
+			foreach file $file_list {
+				file copy -force $file "soc_prototype/src"
+			}
+			#end added by Bulat
 			
 			}
 		}
