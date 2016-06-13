@@ -1076,7 +1076,7 @@ proc xcs_get_libs_from_local_repo {} {
   set lib_dict [dict create]
   foreach ip_obj [get_ips -all -quiet] {
     if { {} == $ip_obj } { continue }
-    set ip_def_obj [get_ipdefs -quiet [get_property -quiet ipdef $ip_obj]]
+    set ip_def_obj [get_ipdefs -quiet -all [get_property -quiet ipdef $ip_obj]]
     if { {} == $ip_def_obj } { continue }
     
     # fetch the first repo path currently and get the IP_HEAD sub_dir
