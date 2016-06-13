@@ -191,7 +191,7 @@ if {$error==0} {
 			#export to SDK
 			cd $target_dir
 			file copy -force $source_file design_1_wrapper.hdf
-			file copy -force ../../../../.metadata/build_sdk_project.tcl build_sdk_project.tcl
+			file copy -force ../../../../.metadata/build_soc_sdk_project.tcl build_soc_sdk_project.tcl
 			file copy -force ../../../../.metadata/run_fpga_prototype.tcl run_fpga_prototype.tcl
 			
 			cd ../../../../
