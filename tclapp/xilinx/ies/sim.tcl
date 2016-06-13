@@ -305,6 +305,7 @@ proc usf_ies_write_setup_files {} {
   
   variable a_sim_vars
   variable l_ip_static_libs
+  variable l_local_design_libraries
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
 
@@ -334,7 +335,10 @@ proc usf_ies_write_setup_files {} {
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
   foreach lib_name $libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {
-      continue
+      # continue if no local library found or if this library is precompiled (not local)
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+        continue
+      }
     }
     set lib_dir [file join $dir_name $lib_name]
     set lib_dir_path [file normalize [string map {\\ /} [file join $dir $lib_dir]]]
@@ -941,6 +945,7 @@ proc usf_ies_create_setup_script {} {
 
   variable a_sim_vars
   variable l_ip_static_libs
+  variable l_local_design_libraries
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set filename "setup";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
@@ -974,7 +979,10 @@ proc usf_ies_create_setup_script {} {
   set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
-      continue
+      # continue if no local library found or continue if this library is precompiled (not local)
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+        continue
+      }
     }
     if { {} == $lib } {
       continue;

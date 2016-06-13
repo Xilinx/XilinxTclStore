@@ -473,6 +473,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   variable a_sim_vars
   variable l_ip_static_libs
+  variable l_local_design_libraries
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set default_lib [get_property "DEFAULT_LIB" [current_project]]
@@ -526,7 +527,10 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     }
     set lib_path "msim/$lib"
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
-      continue
+      # continue if no local library found or continue if this library is precompiled (not local)
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+        continue
+      }
     }
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/$lib_path"
@@ -547,13 +551,15 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
-      # no op
-    } else {
-      if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
-        puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
-      } else {
-        puts $fh "${tool_path_str}vmap $lib msim/$lib"
+      # continue if no local library found or continue if this library is precompiled (not local)
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+        continue
       }
+    }
+    if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
+      puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
+    } else {
+      puts $fh "${tool_path_str}vmap $lib msim/$lib"
     }
   }
   if { !$b_default_lib } {
