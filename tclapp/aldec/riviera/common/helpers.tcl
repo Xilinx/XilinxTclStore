@@ -39,6 +39,10 @@ proc usf_aldec_getLibraryPrefix {} {
 }
 
 proc usf_aldec_get_origin_dir_path { _path } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
   if { [file pathtype $_path] == "relative" } {
     return "\$origin_dir/$_path"
   } else {
