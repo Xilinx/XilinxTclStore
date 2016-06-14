@@ -1520,3 +1520,129 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
 
   return $s_netlist_file
 }
+
+proc xcs_fetch_ipi_static_file { file ipstatic_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set src_ip_file $file
+
+  set comps [lrange [split $src_ip_file "/"] 0 end]
+  set to_match "xilinx.com"
+  set index 0
+  set b_found [xcs_find_comp comps index $to_match]
+  if { !$b_found } {
+    set to_match "user_company"
+    set b_found [xcs_find_comp comps index $to_match]
+  }
+  if { !$b_found } {
+    return $src_ip_file
+  }
+
+  set file_path_str [join [lrange $comps 0 $index] "/"]
+  set ip_lib_dir "$file_path_str"
+
+  #puts ip_lib_dir=$ip_lib_dir
+  set ip_lib_dir_name [file tail $ip_lib_dir]
+  set target_ip_lib_dir "$ipstatic_dir/$ip_lib_dir_name"
+  #puts target_ip_lib_dir=$target_ip_lib_dir
+
+  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
+  set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
+  set ip_hdl_dir "$ip_hdl_dir"
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
+  #puts ip_hdl_dir=$ip_hdl_dir
+  incr index
+
+  set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
+  # /hdl/xbip_utils_v3_0_vh_rfs.vhd
+  #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
+
+  set dst_cip_file "$target_ip_lib_dir/$ip_hdl_sub_dir"
+  #puts dst_cip_file=$dst_cip_file
+
+  # repo static file does not exist? maybe generate_target or export_ip_user_files was not executed, fall-back to project src file
+  if { ![file exists $dst_cip_file] } {
+    return $src_ip_file
+  }
+
+  return $dst_cip_file
+}
+
+proc xcs_set_simulation_flow { s_simset s_mode s_type s_flow_dir_key_arg s_simulation_flow_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $s_flow_dir_key_arg s_flow_dir_key
+  upvar $s_simulation_flow_arg s_simulation_flow
+
+  set fs_obj [get_filesets $s_simset]
+
+  set simulation_flow {unknown}
+  set type_dir        {timing}
+
+  if { {behavioral} == $s_mode } {
+    if { ({functional} == $s_type) || ({timing} == $s_type) } {
+      send_msg_id USF-utils-023 ERROR "Invalid simulation type '$s_type' specified. Please see 'launch_simulation -help' for more details.\n"
+      return 1
+    }
+
+    set simulation_flow "behav_sim"
+    set s_flow_dir_key "behav"
+
+    # set simulation and netlist mode on simset
+    set_property sim_mode "behavioral" $fs_obj
+
+  } elseif { {post-synthesis} == $s_mode } {
+    if { ({functional} != $s_type) && ({timing} != $s_type) } {
+      send_msg_id USF-utils-024 ERROR "Invalid simulation type '$s_type' specified. Please see 'launch_simulation -help' for more details.\n"
+      return 1
+    }
+
+    set simulation_flow "post_synth_sim"
+    if { {functional} == $s_type } {
+      set type_dir "func"
+    }
+    set s_flow_dir_key "synth/${type_dir}"
+
+    # set simulation and netlist mode on simset
+    set_property sim_mode "post-synthesis" $fs_obj
+    if { {functional} == $s_type } {
+      set_property "NL.MODE" "funcsim" $fs_obj
+    }
+
+    if { {timing} == $s_type } {
+      set_property "NL.MODE" "timesim" $fs_obj
+    }
+  } elseif { ({post-implementation} == $s_mode) || ({timing} == $s_mode) } {
+    if { ({functional} != $s_type) && ({timing} != $s_type) } {
+      send_msg_id USF-utils-025 ERROR "Invalid simulation type '$s_type' specified. Please see 'launch_simulation -help' for more details.\n"
+      return 1
+    }
+
+    set simulation_flow "post_impl_sim"
+    if { {functional} == $s_type } {
+      set type_dir "func"
+    }
+    set s_flow_dir_key "impl/${type_dir}"
+
+    # set simulation and netlist mode on simset
+    set_property sim_mode "post-implementation" $fs_obj
+    if { {functional} == $s_type } {
+      set_property "NL.MODE" "funcsim" $fs_obj
+    }
+
+    if { {timing} == $s_type } {
+      set_property "NL.MODE" "timesim" $fs_obj
+    }
+  } else {
+    send_msg_id USF-utils-026 ERROR "Invalid simulation mode '$s_mode' specified. Please see 'launch_simulation -help' for more details.\n"
+    return 1
+  }
+
+  set s_simulation_flow $simulation_flow
+
+  return 0
+}

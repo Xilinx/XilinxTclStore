@@ -113,7 +113,7 @@ proc usf_ies_setup_simulation { args } {
   ::tclapp::xilinx::ies::usf_set_simulator_path "ies"
  
   # set the simulation flow
-  ::tclapp::xilinx::ies::usf_set_simulation_flow
+  xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op

@@ -240,69 +240,6 @@ proc usf_is_option_registered_on_simulator { prop_name simulator } {
   return false
 }
 
-proc usf_set_simulation_flow {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-
-  set fs_obj [get_filesets $a_sim_vars(s_simset)]
-  set simulation_flow {unknown}
-  set type_dir {timing}
-  if { {behavioral} == $a_sim_vars(s_mode) } {
-    if { ({functional} == $a_sim_vars(s_type)) || ({timing} == $a_sim_vars(s_type)) } {
-      send_msg_id USF-IES-020 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
-      return 1
-    }
-    set simulation_flow "behav_sim"
-    set a_sim_vars(s_flow_dir_key) "behav"
-
-    # set simulation and netlist mode on simset
-    set_property sim_mode "behavioral" $fs_obj
-
-  } elseif { {post-synthesis} == $a_sim_vars(s_mode) } {
-    if { ({functional} != $a_sim_vars(s_type)) && ({timing} != $a_sim_vars(s_type)) } {
-      send_msg_id USF-IES-021 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
-      return 1
-    }
-    set simulation_flow "post_synth_sim"
-    if { {functional} == $a_sim_vars(s_type) } {
-      set type_dir "func"
-    }
-    set a_sim_vars(s_flow_dir_key) "synth/${type_dir}"
-
-    # set simulation and netlist mode on simset
-    set_property sim_mode "post-synthesis" $fs_obj
-    if { {functional} == $a_sim_vars(s_type) } {
-      set_property "NL.MODE" "funcsim" $fs_obj
-    }
-    if { {timing} == $a_sim_vars(s_type) } {
-      set_property "NL.MODE" "timesim" $fs_obj
-    }
-  } elseif { ({post-implementation} == $a_sim_vars(s_mode)) || ({timing} == $a_sim_vars(s_mode)) } {
-    if { ({functional} != $a_sim_vars(s_type)) && ({timing} != $a_sim_vars(s_type)) } {
-      send_msg_id USF-IES-022 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
-      return 1
-    }
-    set simulation_flow "post_impl_sim"
-    if { {functional} == $a_sim_vars(s_type) } {
-      set type_dir "func"
-    }
-    set a_sim_vars(s_flow_dir_key) "impl/${type_dir}"
-
-    # set simulation and netlist mode on simset
-    set_property sim_mode "post-implementation" $fs_obj
-    if { {functional} == $a_sim_vars(s_type) } { set_property "NL.MODE" "funcsim" $fs_obj }
-    if { {timing} == $a_sim_vars(s_type) } { set_property "NL.MODE" "timesim" $fs_obj }
-  } else {
-    send_msg_id USF-IES-023 ERROR "Invalid simulation mode '$a_sim_vars(s_mode)' specified. Please see 'simulate -help' for more details.\n"
-    return 1
-  }
-  set a_sim_vars(s_simulation_flow) $simulation_flow
-  return 0
-}
-
 proc usf_extract_ip_files {} {
   # Summary:
   # Argument Usage:
@@ -460,7 +397,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(dynamic_repo_dir)]
       } else {
         if { $b_is_bd } {
-          set vh_file [usf_fetch_ipi_static_file $vh_file]
+          set vh_file [xcs_fetch_ipi_static_file $vh_file $a_sim_vars(ipstatic_dir)]
         } else {
           set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
@@ -2157,7 +2094,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
     if { $b_process_file } {
       if { $b_is_bd_ip } {
-        set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
+        set dst_cip_file [xcs_fetch_ipi_static_file $ip_static_file $a_sim_vars(ipstatic_dir)]
       } else {
         # get the parent composite file for this static file
         set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
@@ -2211,55 +2148,5 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set orig_src_file $dst_cip_file
   }
   return $orig_src_file
-}
-
-proc usf_fetch_ipi_static_file { file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set src_ip_file $file
-
-  set comps [lrange [split $src_ip_file "/"] 0 end]
-  set to_match "xilinx.com"
-  set index 0
-  set b_found [xcs_find_comp comps index $to_match]
-  if { !$b_found } {
-    set to_match "user_company"
-    set b_found [xcs_find_comp comps index $to_match]
-  }
-  if { !$b_found } {
-    return $src_ip_file
-  }
-
-  set file_path_str [join [lrange $comps 0 $index] "/"]
-  set ip_lib_dir "$file_path_str"
-
-  #puts ip_lib_dir=$ip_lib_dir
-  set ip_lib_dir_name [file tail $ip_lib_dir]
-  set target_ip_lib_dir [file join $a_sim_vars(ipstatic_dir) $ip_lib_dir_name]
-  #puts target_ip_lib_dir=$target_ip_lib_dir
-
-  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
-  set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
-  set ip_hdl_dir "$ip_hdl_dir"
-  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
-  #puts ip_hdl_dir=$ip_hdl_dir
-  incr index
-
-  set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
-  # /hdl/xbip_utils_v3_0_vh_rfs.vhd
-  #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
-
-  set dst_cip_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
-  #puts dst_cip_file=$dst_cip_file
-
-  # repo static file does not exist? maybe generate_target or export_ip_user_files was not executed, fall-back to project src file
-  if { ![file exists $dst_cip_file] } {
-    return $src_ip_file
-  }
-
-  return $dst_cip_file
 }
 }

@@ -1250,7 +1250,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
 
     if { $b_process_file } {
       if { $b_is_bd_ip } {
-        set dst_cip_file [xps_fetch_ipi_static_file $ip_static_file] 
+        set dst_cip_file [xcs_fetch_ipi_static_file $ip_static_file $a_sim_vars(s_ipstatic_source_dir)] 
       } else {
         # get the parent composite file for this static file
         set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
@@ -1312,55 +1312,6 @@ proc xps_get_source_from_repo { orig_src_file dst_cip_file b_add_ref b_wrap_in_q
     set orig_src_file $dst_cip_file
   }
   return $orig_src_file
-}
-
-proc xps_fetch_ipi_static_file { file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set src_ip_file $file
-
-  set comps [lrange [split $src_ip_file "/"] 0 end]
-  set to_match "xilinx.com"
-  set index 0
-  set b_found [xcs_find_comp comps index $to_match]
-  if { !$b_found } {
-    set to_match "user_company"
-    set b_found [xcs_find_comp comps index $to_match]
-  }
-  if { !$b_found } {
-    return $src_ip_file
-  }
-
-  set file_path_str [join [lrange $comps 0 $index] "/"]
-  set ip_lib_dir "$file_path_str"
-
-  #puts ip_lib_dir=$ip_lib_dir
-  set ip_lib_dir_name [file tail $ip_lib_dir]
-  set target_ip_lib_dir "$a_sim_vars(s_ipstatic_source_dir)/$ip_lib_dir_name"
-  #puts target_ip_lib_dir=$target_ip_lib_dir
-
-  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
-  set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
-  set ip_hdl_dir "$ip_hdl_dir"
-  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
-  #puts ip_hdl_dir=$ip_hdl_dir
-  incr index
-  set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
-  # /hdl/xbip_utils_v3_0_vh_rfs.vhd
-  #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
-
-  set dst_cip_file "$target_ip_lib_dir/$ip_hdl_sub_dir"
-  #puts dst_cip_file=$dst_cip_file
-
-  # repo static file does not exist? maybe generate_target or export_ip_user_files was not executed, fall-back to project src file
-  if { ![file exists $dst_cip_file] } {
-    return $src_ip_file
-  }
-
-  return $dst_cip_file
 }
 
 proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilog_incl_dirs_arg files_arg compile_order_files_arg } {
@@ -5002,7 +4953,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(s_ip_user_files_dir)]
       } else {
         if { $b_is_bd } {
-          set vh_file [xps_fetch_ipi_static_file $vh_file]
+          set vh_file [xcs_fetch_ipi_static_file $vh_file $a_sim_vars(s_ipstatic_source_dir)]
         } else {
           set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir)]
           if { $a_sim_vars(b_use_static_lib) } {

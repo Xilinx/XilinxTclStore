@@ -166,7 +166,7 @@ proc usf_xsim_setup_simulation { args } {
   set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
  
   # set the simulation flow
-  ::tclapp::xilinx::xsim::usf_set_simulation_flow
+  xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
  
   # set default object
   if { [::tclapp::xilinx::xsim::usf_set_sim_tcl_obj] } {
