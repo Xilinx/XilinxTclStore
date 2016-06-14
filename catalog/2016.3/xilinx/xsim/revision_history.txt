@@ -1,3 +1,4 @@
+2.123 refactor procs into common utils
 2.122 fetch all ipdef objects while determining static files from local repo
 2.121 construct local design libraries collection for mapping
 2.120 refactored netlist generation common procs to utils
