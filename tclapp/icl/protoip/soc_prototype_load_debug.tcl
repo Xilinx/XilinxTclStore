@@ -209,7 +209,8 @@ if {$error==0} {
 			set sdk_p [open $command_name r]
 
 			#addded by Bulat
-			while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
+			#temporarly comment next line
+			#while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
 			#close $sdk_p
 			
 			# copy all the file that have word 'user' in their names
