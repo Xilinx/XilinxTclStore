@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.4
+package provide ::tclapp::aldec::common::helpers 1.5
 
 namespace eval ::tclapp::aldec::common {
 
@@ -2173,6 +2173,47 @@ proc usf_aldec_append_compiler_options { tool file_type opts_arg } {
   }
 }
 
+proc usf_aldec_getPropertyName { property } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  switch -- [get_property target_simulator [current_project]] {
+    Riviera { return "RIVIERA.$property" }
+    ActiveHDL { return "ACTIVEHDL.$property" }
+  }
+}
+
+proc usf_aldec_get_compiler_standard_by_file_type { file_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
+  
+  switch -nocase -regexp -- $file_type {  
+    "^Verilog|Verilog Header$" {
+      switch -- [get_property [usf_aldec_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj] {
+        1995 { return "-v95" }
+        2001 { return "-v2k" }
+        2005 { return "-v2k5" }
+      }
+    }
+    "^SystemVerilog$" {
+      switch -- [get_property [usf_aldec_getPropertyName COMPILE.SV_SYNTAX] $fs_obj] {
+        2005 { return "-sv2k5" }
+        2009 { return "-sv2k9" }
+        2012 {
+          switch -- [get_property target_simulator [current_project]] {
+            Riviera { return "" }
+            ActiveHDL { return "-sv2k12" }
+          }
+        }
+      }
+    }
+  }
+}
+
 proc usf_append_other_options { tool file_type global_files_str opts_arg } {
   # Summary:
   # Argument Usage:
@@ -2417,6 +2458,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
+    lappend arg_list [usf_aldec_get_compiler_standard_by_file_type $file_type]
     usf_aldec_append_compiler_options $compiler $file_type arg_list
     set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str"]
   }

@@ -1,1 +1,1 @@
-1.4 Update 1.4: Invalid paths corrected in the generated scripts.
+1.5 Update 1.5: Separated compilation standard for SystemVerilog.

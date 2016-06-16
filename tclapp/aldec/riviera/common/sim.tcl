@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.4
+package require ::tclapp::aldec::common::helpers 1.5
 
-package provide ::tclapp::aldec::common::sim 1.4
+package provide ::tclapp::aldec::common::sim 1.5
 
 namespace eval ::tclapp::aldec::common {
 
@@ -93,13 +93,6 @@ proc simulate { args } {
 }
 
 namespace eval ::tclapp::aldec::common::sim {
-
-proc usf_aldec_getPropertyName { property } {
-  switch -- [get_property target_simulator [current_project]] {
-    Riviera { return "RIVIERA.$property" }
-    ActiveHDL { return "ACTIVEHDL.$property" }
-  }
-}
 
 proc usf_aldec_getSimulatorName {} {
   # Summary:
@@ -334,15 +327,13 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   }
 
   set vlog_arg_list [list]
-  set vlog_syntax [get_property [usf_aldec_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj]
-  lappend vlog_arg_list "-$vlog_syntax"
-  if { [get_property [usf_aldec_getPropertyName COMPILE.DEBUG] $fs_obj] } {
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.DEBUG] $fs_obj] } {
     lappend vlog_arg_list "-dbg"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
     lappend vlog_arg_list "-incr"
   }
-  set more_vlog_options [string trim [get_property [usf_aldec_getPropertyName COMPILE.VLOG.MORE_OPTIONS] $fs_obj]]
+  set more_vlog_options [string trim [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.VLOG.MORE_OPTIONS] $fs_obj]]
   if { {} != $more_vlog_options } {
     set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
   }
@@ -350,18 +341,18 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   puts $fh "null \[set vlog_opts \{$vlog_cmd_str\}\]"
 
   set vcom_arg_list [list]
-  set vhdl_syntax [get_property [usf_aldec_getPropertyName COMPILE.VHDL_SYNTAX] $fs_obj]
+  set vhdl_syntax [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.VHDL_SYNTAX] $fs_obj]
   lappend vcom_arg_list "-$vhdl_syntax"
-  if { [get_property [usf_aldec_getPropertyName COMPILE.VHDL_RELAX] $fs_obj] } {
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.VHDL_RELAX] $fs_obj] } {
     lappend vcom_arg_list "-relax"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.DEBUG] $fs_obj] } {
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.DEBUG] $fs_obj] } {
     lappend vcom_arg_list "-dbg"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.INCREMENTAL] $fs_obj] } {
     lappend vcom_arg_list "-incr"
   }
-  set more_vcom_options [string trim [get_property [usf_aldec_getPropertyName COMPILE.VCOM.MORE_OPTIONS] $fs_obj]]
+  set more_vcom_options [string trim [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.VCOM.MORE_OPTIONS] $fs_obj]]
   if { {} != $more_vcom_options } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
   }
@@ -383,7 +374,7 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   }
 
   # compile glbl file
-  set b_load_glbl [get_property [usf_aldec_getPropertyName COMPILE.LOAD_GLBL] [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]]
+  set b_load_glbl [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]]
   if { [::tclapp::aldec::common::helpers::usf_compile_glbl_file $target_simulator $b_load_glbl $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)] } {
     ::tclapp::aldec::common::helpers::usf_copy_glbl_file
     set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
@@ -410,9 +401,9 @@ proc usf_aldec_get_elaboration_cmdline {} {
 
   set arg_list [list]
 
-  if { [get_property [usf_aldec_getPropertyName ELABORATE.ACCESS] $fs_obj]
-    || [get_property [usf_aldec_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
-    || [get_property [usf_aldec_getPropertyName SIMULATE.SAIF] $fs_obj] != {} } {
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName ELABORATE.ACCESS] $fs_obj]
+    || [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
+    || [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.SAIF] $fs_obj] != {} } {
     lappend arg_list "+access +r"
   } else {
     lappend arg_list "+access +r +m+$top"
@@ -442,7 +433,7 @@ proc usf_aldec_get_elaboration_cmdline {} {
   }
 
   # behavioral simulation
-  set b_compile_unifast [get_property [usf_aldec_getPropertyName ELABORATE.UNIFAST] $fs_obj]
+  set b_compile_unifast [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName ELABORATE.UNIFAST] $fs_obj]
 
   if { ([::tclapp::aldec::common::helpers::usf_contains_vhdl $design_files]) && ({behav_sim} == $sim_flow) } {
     if { $b_compile_unifast && [get_param "simulation.addUnifastLibraryForVhdl"] } {
@@ -498,17 +489,17 @@ proc usf_aldec_get_simulation_cmdline {} {
 
   lappend arg_list [usf_aldec_get_elaboration_cmdline]
   
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.VERILOG_ACCELERATION] $fs_obj] } {
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.VERILOG_ACCELERATION] $fs_obj] } {
     lappend arg_list "-O5"
   } else {
     lappend arg_list "-O2"
   }
   
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.DEBUG] $fs_obj] } {
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.DEBUG] $fs_obj] } {
     lappend arg_list "-dbg"
   }  
 
-  set more_sim_options [string trim [get_property [usf_aldec_getPropertyName SIMULATE.ASIM.MORE_OPTIONS] $fs_obj]]
+  set more_sim_options [string trim [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.ASIM.MORE_OPTIONS] $fs_obj]]
   if { {} != $more_sim_options } {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
@@ -586,7 +577,7 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   puts $fh [usf_aldec_get_simulation_cmdline]
   puts $fh ""
 
-  set b_log_all_signals [get_property [usf_aldec_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
+  set b_log_all_signals [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
   if { $b_log_all_signals } {
     puts $fh "log -rec *"
     if { [::tclapp::aldec::common::helpers::usf_contains_verilog $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)] } {
@@ -594,13 +585,13 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
     }
   }
   
-  set uut [get_property [usf_aldec_getPropertyName SIMULATE.UUT] $fs_obj]
+  set uut [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.UUT] $fs_obj]
   if { {} == $uut } {
     set uut "/$top/uut"
   }
  
   # generate saif file for power estimation
-  set saif [get_property [usf_aldec_getPropertyName SIMULATE.SAIF] $fs_obj]
+  set saif [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.SAIF] $fs_obj]
   if { !$b_log_all_signals } {
     if { {} != $saif } {
       set rec ""
@@ -613,7 +604,7 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
 
   puts $fh "wave *"
 
-  set rt [string trim [get_property [usf_aldec_getPropertyName SIMULATE.RUNTIME] $fs_obj]]
+  set rt [string trim [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.RUNTIME] $fs_obj]]
   if { {} == $rt } {
     # no runtime specified
     puts $fh "\nrun"
