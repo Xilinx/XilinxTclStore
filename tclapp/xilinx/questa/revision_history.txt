@@ -1,3 +1,4 @@
+2.11 process static files from locked always explicitly
 2.10 refactor procs into common utils
 2.09 fetch all ipdef objects while determining static files from local repo
 2.08 check for local design libraries while mapping and process them

@@ -1,3 +1,4 @@
+3.186 process static files from locked always explicitly
 3.185 refactor procs into common utils
 3.184 fetch all ipdef objects while determining static files from local repo
 3.183 construct local design libraries collection for mapping
