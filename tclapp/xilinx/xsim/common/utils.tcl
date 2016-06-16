@@ -1076,34 +1076,46 @@ proc xcs_get_libs_from_local_repo {} {
   set lib_dict [dict create]
   foreach ip_obj [get_ips -all -quiet] {
     if { {} == $ip_obj } { continue }
-    set ip_def_obj [get_ipdefs -quiet -all [get_property -quiet ipdef $ip_obj]]
-    if { {} == $ip_def_obj } { continue }
-    
-    # fetch the first repo path currently and get the IP_HEAD sub_dir
-    set local_repo [lindex [get_property -quiet repository $ip_def_obj] 0]
-    if { {} == $local_repo } { continue }
-    set local_repo [string map {\\ /} $local_repo]
-
-    # continue if local ip repo sub_dir not found
-    set ip_repo_sub_dir [file tail $local_repo]
-    if { {ip_repo} != $ip_repo_sub_dir } {
-      continue
-    }
-
-    set local_comps [split $local_repo {/}]
-    set index [lsearch -exact $local_comps "IP_HEAD"]
-    if { $index == -1 } {
-      set local_dir $local_repo
-    } else {
-      set local_dir [join [lrange $local_comps $index end] "/"]
-    }
-
-    # if install ip_head sub-dir doesnot match with local ip repo path, filter libraries for this ip to be processed locally
-    if { [string equal -nocase $install_dir $local_dir] != 1 } {
+    # is ip in locked state? compile files from this ip locally
+    set b_is_locked 0
+    set b_is_locked [get_property -quiet is_locked $ip_obj]
+    if { $b_is_locked } {
       foreach file_obj [get_files -quiet -all -of_objects $ip_obj -filter {USED_IN=~"*ipstatic*"}] {
         set lib [get_property library $file_obj]
         if { {xil_defaultlib} == $lib } { continue }
         dict append lib_dict $lib
+      }
+    } else {
+      # is this ip from local repo? compile files from this ip locally
+      set ip_def_obj [get_ipdefs -quiet -all [get_property -quiet ipdef $ip_obj]]
+      if { {} == $ip_def_obj } { continue }
+      
+      # fetch the first repo path currently and get the IP_HEAD sub_dir
+      set local_repo [lindex [get_property -quiet repository $ip_def_obj] 0]
+      if { {} == $local_repo } { continue }
+      set local_repo [string map {\\ /} $local_repo]
+
+      # continue if local ip repo sub_dir not found
+      set ip_repo_sub_dir [file tail $local_repo]
+      if { {ip_repo} != $ip_repo_sub_dir } {
+        continue
+      }
+
+      set local_comps [split $local_repo {/}]
+      set index [lsearch -exact $local_comps "IP_HEAD"]
+      if { $index == -1 } {
+        set local_dir $local_repo
+      } else {
+        set local_dir [join [lrange $local_comps $index end] "/"]
+      }
+  
+      # if install ip_head sub-dir doesnot match with local ip repo path, filter libraries for this ip to be processed locally
+      if { [string equal -nocase $install_dir $local_dir] != 1 } {
+        foreach file_obj [get_files -quiet -all -of_objects $ip_obj -filter {USED_IN=~"*ipstatic*"}] {
+          set lib [get_property library $file_obj]
+          if { {xil_defaultlib} == $lib } { continue }
+          dict append lib_dict $lib
+        }
       }
     }
   }
