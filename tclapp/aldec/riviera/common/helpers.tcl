@@ -2191,7 +2191,17 @@ proc usf_aldec_get_compiler_standard_by_file_type { file_type } {
   
   set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
   
-  switch -nocase -regexp -- $file_type {  
+  switch -nocase -regexp -- $file_type {
+    "^VHDL$" {
+      switch -- [get_property [usf_aldec_getPropertyName COMPILE.VHDL_SYNTAX] $fs_obj] {
+        93 { return "-93" }
+        2002 { return "-2002" }
+        2008 { return "-2008" }
+      }
+    }
+    "^VHDL 2008$" {
+      return "-2008"
+    }
     "^Verilog|Verilog Header$" {
       switch -- [get_property [usf_aldec_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj] {
         1995 { return "-v95" }

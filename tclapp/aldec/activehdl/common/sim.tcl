@@ -341,8 +341,6 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   puts $fh "null \[set vlog_opts \{$vlog_cmd_str\}\]"
 
   set vcom_arg_list [list]
-  set vhdl_syntax [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.VHDL_SYNTAX] $fs_obj]
-  lappend vcom_arg_list "-$vhdl_syntax"
   if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.VHDL_RELAX] $fs_obj] } {
     lappend vcom_arg_list "-relax"
   }
