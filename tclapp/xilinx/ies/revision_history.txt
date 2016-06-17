@@ -1,3 +1,4 @@
+3.13 export and reference static files for remote BD
 3.12 process static files from locked always explicitly
 3.11 refactor procs into common utils
 3.10 fetch all ipdef objects while determining static files from local repo
