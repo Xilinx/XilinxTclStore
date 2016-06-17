@@ -703,7 +703,7 @@ proc xif_export_bd { obj } {
       set b_found [xcs_find_comp comps index $to_match]
     }
     if { !$b_found } {
-      continue;
+      #continue;
     }
 
     set extracted_static_file_path {}
@@ -721,7 +721,7 @@ proc xif_export_bd { obj } {
           set library [get_property library $file_obj]
           if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
             # This is causing performance issues (in case the file was present in ipstatic dir from previous run)
-            #set extracted_static_file_path [xif_get_extracted_static_file_path_bd $comps $index]
+            #set extracted_static_file_path [xif_get_extracted_static_file_path_bd $file_obj $comps $b_found $index]
             #lappend l_static_files_to_delete $extracted_static_file_path
             continue
           }
@@ -731,7 +731,7 @@ proc xif_export_bd { obj } {
 
     # not extracted yet? extract it
     if { {} == $extracted_static_file_path } {
-      set extracted_static_file_path [xif_get_extracted_static_file_path_bd $comps $index]
+      set extracted_static_file_path [xif_get_extracted_static_file_path_bd $file_obj $comps $b_found $index]
     }
 
     # if reset requested, delete IPI file from ipstatic
@@ -882,7 +882,7 @@ proc xif_export_bd_dynamic_files { bd_file ip_name } {
   }
 }
 
-proc xif_get_extracted_static_file_path_bd { comps index } {
+proc xif_get_extracted_static_file_path_bd { src_file_obj comps b_found index } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -891,6 +891,13 @@ proc xif_get_extracted_static_file_path_bd { comps index } {
   variable a_processed_bd_dir
 
   set file_path_str [join [lrange $comps 0 $index] "/"]
+  if { !$b_found } {
+    set library [get_property -quiet library $src_file_obj]
+    if { {} != $library } {
+      set index [lsearch -exact $comps $library]
+      set file_path_str [join [lrange $comps 0 $index] "/"]
+    }
+  }
   set ip_lib_dir "$file_path_str"
 
   # /demo/ipshared/xilinx.com/xbip_utils_v3_0

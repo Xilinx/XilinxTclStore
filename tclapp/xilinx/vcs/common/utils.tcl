@@ -1533,7 +1533,7 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
   return $s_netlist_file
 }
 
-proc xcs_fetch_ipi_static_file { file ipstatic_dir } {
+proc xcs_fetch_ipi_static_file { src_file_obj file ipstatic_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1549,7 +1549,14 @@ proc xcs_fetch_ipi_static_file { file ipstatic_dir } {
     set b_found [xcs_find_comp comps index $to_match]
   }
   if { !$b_found } {
-    return $src_ip_file
+    set index -1
+    set library [get_property -quiet library $src_file_obj]
+    if { {} != $library } {
+      set index [lsearch -exact $comps $library]
+    }
+    if { ({} == $library) || (-1 == $index) } {
+      return $src_ip_file
+    }
   }
 
   set file_path_str [join [lrange $comps 0 $index] "/"]

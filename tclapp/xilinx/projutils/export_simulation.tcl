@@ -1250,7 +1250,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
 
     if { $b_process_file } {
       if { $b_is_bd_ip } {
-        set dst_cip_file [xcs_fetch_ipi_static_file $ip_static_file $a_sim_vars(s_ipstatic_source_dir)] 
+        set dst_cip_file [xcs_fetch_ipi_static_file $full_src_file_obj $ip_static_file $a_sim_vars(s_ipstatic_source_dir)] 
       } else {
         # get the parent composite file for this static file
         set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
@@ -4953,7 +4953,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(s_ip_user_files_dir)]
       } else {
         if { $b_is_bd } {
-          set vh_file [xcs_fetch_ipi_static_file $vh_file $a_sim_vars(s_ipstatic_source_dir)]
+          set vh_file [xcs_fetch_ipi_static_file $vh_file_obj $vh_file $a_sim_vars(s_ipstatic_source_dir)]
         } else {
           set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir)]
           if { $a_sim_vars(b_use_static_lib) } {

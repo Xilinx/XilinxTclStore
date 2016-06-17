@@ -1496,7 +1496,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(dynamic_repo_dir)]
       } else {
         if { $b_is_bd } {
-          set vh_file [xcs_fetch_ipi_static_file $vh_file $a_sim_vars(ipstatic_dir)]
+          set vh_file [xcs_fetch_ipi_static_file $vh_file_obj $vh_file $a_sim_vars(ipstatic_dir)]
         } else {
           set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
@@ -2026,7 +2026,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 
     if { $b_process_file } {
       if { $b_is_bd_ip } {
-        set dst_cip_file [xcs_fetch_ipi_static_file $ip_static_file $a_sim_vars(ipstatic_dir)]
+        set dst_cip_file [xcs_fetch_ipi_static_file $full_src_file_obj $ip_static_file $a_sim_vars(ipstatic_dir)]
       } else {
         # get the parent composite file for this static file
         set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
