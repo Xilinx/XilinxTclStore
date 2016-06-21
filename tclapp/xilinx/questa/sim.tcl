@@ -946,10 +946,33 @@ proc usf_questa_get_simulation_cmdline {} {
   }
 
   if { [get_param "project.allowSharedLibraryType"] } {
+    set b_common_libs_added false
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
       if { {Shared Library} == [get_property FILE_TYPE $file] } {
-        lappend arg_list "-sv_lib libsls"
-        break
+        if { !$b_common_libs_added } {
+          set b_common_libs_added true
+          lappend arg_list "-sv_root \$xv_lib_path/ -sv_lib libxaxi_tlm -sv_root \$xv_lib_path/ -sv_lib libsystemc"
+        }
+        set file_dir [file dirname $file]
+        set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
+
+        if { [get_param "project.copyShLibsToCurrRunDir"] } {
+          if { [file exists $file] } {
+            if { [catch {file copy -force $file $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)} error_msg] } {
+              send_msg_id USF_Questa-010 ERROR "Failed to copy file ($file): $error_msg\n"
+            } else {
+              send_msg_id USF_Questa-011 INFO "File '$file' copied to run dir:'$::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)'\n"
+            }
+          }
+          set file_dir "."
+        }
+
+        set file_name [file tail $file]
+        if { [string match "lib*so" $file_name] } {
+          # remove ".so" from libraryname 
+          set file_name [string range $file_name 0 end-3]
+        }
+        lappend arg_list "-sv_root \"$file_dir\" -sv_lib $file_name"
       }
     }
   }
@@ -1032,6 +1055,10 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   usf_questa_create_wave_do_file $wave_do_file
   set cmd_str [usf_questa_get_simulation_cmdline]
   usf_add_quit_on_error $fh "simulate"
+  
+  if { [get_param "project.allowSharedLibraryType"] } {
+    puts $fh "set xv_lib_path \"$::env(RDI_LIBDIR)\""
+  }
 
   puts $fh "$cmd_str"
   if { [get_property "QUESTA.SIMULATE.IEEE_WARNINGS" $fs_obj] } {
@@ -1185,9 +1212,35 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
 
-    if {({compile} == $step)} {
+    # TODO: once vsim picks the "so"s path at runtime , we can remove the following code
+    if { {simulate} == $step } {
       if { [get_param "project.allowSharedLibraryType"] } {
+        puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
         puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+
+        set args_list [list]
+        foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
+          set file_type [get_property FILE_TYPE $file]
+          set file_dir [file dirname $file] 
+          set file_name [file tail $file] 
+
+          if { {Shared Library} == $file_type } {
+            set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
+            if { ![info exists a_shared_lib_dirs($file_dir)] } {
+              set a_shared_lib_dirs($file_dir) $file_dir
+              lappend args_list "$file_dir"
+            }
+          }
+        }
+
+        if { [llength $args_list] != 0 } {
+          set cmd_args [join $args_list ":"]
+          if { [get_param "project.copyShLibsToCurrRunDir"] } {
+            puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+          } else {
+            puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+          }
+        }
       }
     }
 
@@ -1227,49 +1280,6 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     puts $fh_scr "exit 0"
   }
 
-  if {({compile} == $step)} {
-    set b_sw_lib 0
-    set args_list [list]
-    if { [get_param "project.allowSharedLibraryType"] } {
-      if {$::tcl_platform(platform) == "unix"} {
-        set b_default_sw_lib 0
-        foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
-          set file_dir [file dirname $file]
-          set file_name [file tail $file]
-          set final_file_name $file_dir\/$file_name
-          if [string match "lib*so" $file_name] {
-            # remove "lib" from prefix and ".so" extension
-            set file_name [string range $file_name 3 end-3]
-            set final_file_name "-l$file_name"
-            set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
-          }
-
-          if { {Shared Library} == [get_property FILE_TYPE $file] } {
-            if { $b_default_sw_lib == 0 } {
-              lappend args_list "\ng++ -shared -o libsls.so -L\$xv_lib_path/ -lxaxi_tlm -Wl,-rpath -Wl,\$xv_lib_path/ -lsystemc -L$file_dir\/ $final_file_name"
-              # file_dir already set in g++ command? donot add
-              if { [info exists a_shared_lib_dirs($file_dir) ] == 0 } {
-                lappend args_list "-Wl,-rpath -Wl,$file_dir"
-                set a_shared_lib_dirs($file_dir) $file_dir
-              }
-              incr b_default_sw_lib 1
-              incr b_sw_lib 1
-            } else {
-              lappend args_list "-L$file_dir\/ $final_file_name"
-              if { [info exists a_shared_lib_dirs($file_dir)] == 0 } {
-                lappend args_list "-Wl,-rpath -Wl,$file_dir"
-                set a_shared_lib_dirs($file_dir) $file_dir
-              }
-            }
-          }
-        }
-      }
-    }
-
-    if { $b_sw_lib == 1} {
-      puts $fh_scr [join $args_list " "]
-    }
-  }
   close $fh_scr
 }
 
