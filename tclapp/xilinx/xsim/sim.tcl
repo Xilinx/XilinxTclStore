@@ -581,7 +581,6 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
-  set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
   set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
 
   set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
@@ -655,7 +654,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     if { {behav_sim} == $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow) } {
       set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
       if { [::tclapp::xilinx::xsim::usf_compile_glbl_file "xsim" $b_load_glbl $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)] } {
-        set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
+        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set file_str "$top_lib \"${glbl_file}\""
         puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
@@ -666,7 +665,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         if { ({timing} == $::tclapp::xilinx::xsim::a_sim_vars(s_type)) } {
           # This is not supported, netlist will be verilog always
         } else {
-          set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
+          set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
           xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
           set file_str "$top_lib \"${glbl_file}\""
           puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
@@ -676,7 +675,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
     # nosort? (verilog)
     set b_no_sort [get_property "XSIM.COMPILE.XVLOG.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-    if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
+    if { $b_no_sort || $nosort_param || ({DisplayOnly} == $a_sim_vars(src_mgmt_mode)) || ({None} == $a_sim_vars(src_mgmt_mode)) } {
       puts $fh_vlog "\n# Do not sort compile order\nnosort"
     }
     close $fh_vlog
@@ -733,7 +732,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     # nosort? (vhdl)
     set b_no_sort [get_property "XSIM.COMPILE.XVHDL.NOSORT" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-    if { $b_no_sort || $nosort_param || ({DisplayOnly} == $src_mgmt_mode) || ({None} == $src_mgmt_mode) } {
+    if { $b_no_sort || $nosort_param || ({DisplayOnly} == $a_sim_vars(src_mgmt_mode)) || ({None} == $a_sim_vars(src_mgmt_mode)) } {
       puts $fh_vhdl "\n# Do not sort compile order\nnosort"
     }
     close $fh_vhdl
@@ -1293,7 +1292,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
 
   if { $b_add_glbl } {
-    set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
   }
 }
@@ -1523,7 +1522,8 @@ proc usf_xsim_get_top_level_instance_names {} {
   variable a_sim_vars
   set top_level_instance_names [list]
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
-  set top_lib [::tclapp::xilinx::xsim::usf_get_top_library]
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set top_names [split $top " "]
   if { [llength $top_names] > 1 } {
     foreach name $top_names {

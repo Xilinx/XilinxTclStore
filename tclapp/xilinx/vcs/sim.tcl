@@ -347,7 +347,7 @@ proc usf_vcs_write_setup_files {} {
     if { ({work} == $lib) } { continue; }
     lappend libs [string tolower $lib]
   }
-  set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+  set default_lib [string tolower $a_sim_vars(default_top_library)]
   if { [lsearch -exact $libs $default_lib] == -1 } {
     lappend libs $default_lib
   }
@@ -426,7 +426,6 @@ proc usf_vcs_write_compile_script {} {
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set scr_filename "compile";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
@@ -547,7 +546,7 @@ proc usf_vcs_write_compile_script {} {
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
-    set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] } {
       set work_lib_sw {}
       if { {work} != $top_lib } {
@@ -568,7 +567,7 @@ proc usf_vcs_write_compile_script {} {
       if { ({timing} == $::tclapp::xilinx::vcs::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
-        set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         set work_lib_sw {}
         if { {work} != $top_lib } {
           set work_lib_sw "-work $top_lib "
@@ -591,6 +590,8 @@ proc usf_vcs_write_elaborate_script {} {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
 
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
@@ -615,7 +616,7 @@ proc usf_vcs_write_elaborate_script {} {
     puts $fh_scr "bin_path=\"$tool_path\"\n"
   }
   set tool "vcs"
-  set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list]
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
     lappend arg_list {-debug_pp}
@@ -754,7 +755,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
 
   if { $b_add_glbl } {
-    set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
   }
 }
@@ -763,6 +764,8 @@ proc usf_vcs_write_simulate_script {} {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
 
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
@@ -798,7 +801,7 @@ proc usf_vcs_write_simulate_script {} {
   set do_filename "${top}_simulate.do"
   ::tclapp::xilinx::vcs::usf_create_do_file "vcs" $do_filename
   set tool "${top}_simv"
-  set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list "-ucli" "-licqueue" "-l" "simulate.log"]
 
   set more_sim_options [string trim [get_property "VCS.SIMULATE.VCS.MORE_OPTIONS" $fs_obj]]
@@ -951,7 +954,7 @@ proc usf_vcs_create_setup_script {} {
     lappend libs [string tolower $lib]
   }
 
-  set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+  set default_lib [string tolower $a_sim_vars(default_top_library)]
   if { [lsearch -exact $libs $default_lib] == -1 } {
     lappend libs $default_lib
   }

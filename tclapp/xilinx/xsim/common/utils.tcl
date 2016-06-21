@@ -1665,3 +1665,162 @@ proc xcs_set_simulation_flow { s_simset s_mode s_type s_flow_dir_key_arg s_simul
 
   return 0
 }
+
+proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_target_simulator
+  if { [llength $data_files] == 0 } { return }
+  set data_files [xcs_remove_duplicate_files $data_files]
+  foreach file $data_files {
+    set extn [file extension $file]
+    switch -- $extn {
+      {.bd} -
+      {.png} -
+      {.c} -
+      {.zip} -
+      {.hwh} -
+      {.hwdef} -
+      {.xml} {
+        if { {} != [xcs_cache_result {xcs_get_top_ip_filename $file}] } {
+          continue
+        }
+      }
+    }
+
+    set filename [file tail $file]
+
+    # skip bd files
+    if { ([string match *_bd* $filename])        && ({.tcl} == $extn) } { continue }
+    if { ([string match *_changelog* $filename]) && ({.txt} == $extn) } { continue }
+
+    # skip mig data files
+    set mig_files [list "xsim_run.sh" "ies_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
+    if { [lsearch $mig_files $filename] != -1 } {continue}
+
+    set target_file "$export_dir/[file tail $file]"
+
+    if { [get_param project.enableCentralSimRepo] } {
+      set mem_init_dir [file normalize "$dynamic_repo_dir/mem_init_files"]
+      set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
+
+      if {[catch {file copy -force $data_file $export_dir} error_msg] } {
+        send_msg_id USF-utils-025 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
+      } else {
+        send_msg_id USF-utils-025 INFO "Exported '$target_file'\n"
+      }
+    } else {
+      set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $export_dir]
+      send_msg_id USF-utils-025 INFO "Exported '$target_file'\n"
+    }
+  }
+}
+
+proc xcs_fs_contains_hdl_source { fs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_valid_ip_extns
+  variable l_valid_hdl_extns
+
+  set b_contains_hdl 0
+  set tokens [split [find_top -fileset $fs -return_file_paths] { }]
+  for {set i 0} {$i < [llength $tokens]} {incr i} {
+    set top [string trim [lindex $tokens $i]]
+    incr i
+    set file [string trim [lindex $tokens $i]]
+    if { ({} == $top) || ({} == $file) } { continue; }
+    set extn [file extension $file]
+
+    # skip ip's
+    if { [lsearch -exact $l_valid_ip_extns $extn] >= 0 } { continue; }
+
+    # check if any HDL sources present in fileset
+    if { [lsearch -exact $l_valid_hdl_extns $extn] >= 0 } {
+      set b_contains_hdl 1
+      break
+    }
+  }
+  return $b_contains_hdl
+}
+
+proc xcs_get_top_library { s_simulation_flow sp_tcl_obj fs_obj src_mgmt_mode default_top_library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_valid_ip_extns
+  variable l_compile_order_files_uniq
+
+  set tcl_obj $sp_tcl_obj
+
+  set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
+
+  # was -of_objects <ip> specified?, fetch current fileset
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+    set tcl_obj $fs_obj
+  }
+
+  # 1. get the library associated with the top file from the 'top_lib' property on the fileset
+  set fs_top_library [get_property "TOP_LIB" [get_filesets $tcl_obj]]
+
+  # 2. get the library associated with the last file in compile order
+  set co_top_library {}
+  if { ({behav_sim} == $s_simulation_flow) } {
+    set filelist $l_compile_order_files_uniq
+    if { [llength $filelist] > 0 } {
+      set file_list [get_files -quiet -all [list "[lindex $filelist end]"]]
+      if { [llength $file_list] > 0 } {
+        set co_top_library [get_property "LIBRARY" [lindex $file_list 0]]
+      }
+    }
+  } elseif { ({post_synth_sim} == $s_simulation_flow) || ({post_impl_sim} == $s_simulation_flow) } {
+    set file_list [get_files -quiet -compile_order sources -used_in synthesis_post -of_objects [get_filesets $tcl_obj]]
+    if { [llength $file_list] > 0 } {
+      set co_top_library [get_property "LIBRARY" [lindex $file_list end]]
+    }
+  }
+
+  # 3. if default top library is set and the compile order file library is different
+  #    than this default, return the compile order file library
+  if { {} != $default_top_library } {
+    # manual compile order, we just return the file set's top
+    if { $manual_compile_order && ({} != $fs_top_library) } {
+      return $fs_top_library
+    }
+    # compile order library is set and is different then the default
+    if { ({} != $co_top_library) && ($default_top_library != $co_top_library) } {
+      return $co_top_library
+    } else {
+      # worst case (default is set but compile order file library is empty or we failed to get the library for some reason)
+      return $default_top_library
+    }
+  }
+
+  # 4. default top library is empty at this point
+  #    if fileset top library is set and the compile order file library is different
+  #    than this default, return the compile order file library
+  if { {} != $fs_top_library } {
+    # manual compile order, we just return the file set's top
+    if { $manual_compile_order } {
+      return $fs_top_library
+    }
+    # compile order library is set and is different then the fileset
+    if { ({} != $co_top_library) && ($fs_top_library != $co_top_library) } {
+      return $co_top_library
+    } else {
+      # worst case (fileset library is set but compile order file library is empty or we failed to get the library for some reason)
+      return $fs_top_library
+    }
+  }
+
+  # 5. Both the default and fileset library are empty, return compile order library else xilinx default
+  if { {} != $co_top_library } {
+    return $co_top_library
+  }
+
+  return "xil_defaultlib"
+}

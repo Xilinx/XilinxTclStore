@@ -332,7 +332,7 @@ proc usf_ies_write_setup_files {} {
   }
   set dir_name "ies"
   set b_default_lib false
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  set default_lib $a_sim_vars(default_top_library)
   foreach lib_name $libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {
       # continue if no local library found or if this library is precompiled (not local)
@@ -427,8 +427,6 @@ proc usf_ies_write_compile_script {} {
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
 
   set filename "compile";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
   set scr_file [file normalize [file join $dir $filename]]
@@ -535,7 +533,7 @@ proc usf_ies_write_compile_script {} {
     set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
     if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
       puts $fh_scr "\n# compile glbl module"
       if { {} != $tool_path } {
@@ -551,7 +549,7 @@ proc usf_ies_write_compile_script {} {
         # This is not supported, netlist will be verilog always
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         set file_str "-work $top_lib \"${glbl_file}\""
         puts $fh_scr "\n# compile glbl module"
         if { {} != $tool_path } {
@@ -599,7 +597,7 @@ proc usf_ies_write_elaborate_script {} {
   }
 
   set tool "ncelab"
-  set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list "-relax -access +rwc -namemap_mixgen"]
 
   set path_delay 0
@@ -789,7 +787,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
 
   if { $b_add_glbl } {
-    set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
   }
 }
@@ -799,6 +797,7 @@ proc usf_ies_write_simulate_script {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
@@ -826,7 +825,7 @@ proc usf_ies_write_simulate_script {} {
   ::tclapp::xilinx::ies::usf_create_do_file "ies" $do_filename
 	
   set tool "ncsim"
-  set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list "-logfile" "simulate.log"]
   if { [get_property 32bit $fs_obj] } {
     # donot pass os type
@@ -990,7 +989,7 @@ proc usf_ies_create_setup_script {} {
     lappend libs [string tolower $lib]
   }
 
-  set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+  set default_lib [string tolower $a_sim_vars(default_top_library)]
   if { [lsearch -exact $libs $default_lib] == -1 } {
     lappend libs $default_lib
   }

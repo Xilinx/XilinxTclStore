@@ -220,6 +220,8 @@ proc xps_init_vars {} {
   set a_sim_vars(b_ip_user_files_dir_specified)        0
   set a_sim_vars(b_ipstatic_source_dir_specified)        0
   set a_sim_vars(b_directory_specified)         0
+  set a_sim_vars(src_mgmt_mode)       "All"
+  set a_sim_vars(s_simulation_flow)   "behav_sim"
   set a_sim_vars(fs_obj)              [current_fileset -simset]
   set a_sim_vars(sp_tcl_obj)          ""
   set a_sim_vars(s_top)               ""
@@ -884,7 +886,6 @@ proc xps_get_files { simulator launch_dir } {
   if { ([xcs_is_fileset $a_sim_vars(sp_tcl_obj)]) && ({SimulationSrcs} == [get_property fileset_type $a_sim_vars(fs_obj)]) } {
     set linked_src_set [get_property "SOURCE_SET" $a_sim_vars(fs_obj)]
   }
-  set src_mgmt_mode   "All"
   set incl_file_paths [list]
   set incl_files      [list]
 
@@ -991,7 +992,7 @@ proc xps_get_files { simulator launch_dir } {
       }
     }
 
-    if { {All} == $src_mgmt_mode } {
+    if { {All} == $a_sim_vars(src_mgmt_mode) } {
       #send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$target_obj'..."
       foreach fs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
         if { [xcs_is_global_include_file $fs_file_obj $a_sim_vars(global_files_str)] } { continue }
@@ -1541,60 +1542,6 @@ proc xps_export_fs_data_files { filter data_files_arg } {
   }
 }
 
-proc xps_export_data_files { data_files export_dir } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_target_simulator
-  if { [llength $data_files] > 0 } {
-    set data_files [xcs_remove_duplicate_files $data_files]
-    foreach file $data_files {
-      set extn [file extension $file]
-      switch -- $extn {
-        {.bd} -
-        {.png} -
-        {.c} -
-        {.zip} -
-        {.hwh} -
-        {.hwdef} -
-        {.xml} {
-          if { {} != [xcs_cache_result {xcs_get_top_ip_filename $file}] } {
-            continue
-          }
-        }
-      }
-
-      set filename [file tail $file]
-      if { ([string match *_bd* $filename]) && ({.tcl} == $extn) } {
-        continue
-      }
-      if { ([string match *_changelog* $filename]) && ({.txt} == $extn) } {
-        continue
-      }
-   
-      # mig data files
-      set mig_files [list "xsim_run.sh" "ies_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
-      if { [lsearch $mig_files $filename] != -1 } {continue}
-      set f_name [file tail $file]
-      set target_file "$export_dir/$f_name"
-      if { [get_param project.enableCentralSimRepo] } {
-        set mem_init_dir [file normalize "$a_sim_vars(s_ip_user_files_dir)/mem_init_files"]
-        set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
-        if {[catch {file copy -force $data_file $export_dir} error_msg] } {
-          send_msg_id exportsim-Tcl-025 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
-        } else {
-          send_msg_id exportsim-Tcl-025 INFO "Exported '$target_file'\n"
-        }
-      } else {
-        set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $export_dir]
-        send_msg_id exportsim-Tcl-025 INFO "Exported '$target_file'\n"
-      }
-    }
-  }
-}
-
 proc xps_set_script_filename {} {
   # Summary:
   # Argument Usage:
@@ -1679,7 +1626,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
       return 1
     }
 
-    xps_export_data_files $data_files $dir
+    xcs_export_data_files $dir $a_sim_vars(s_ip_user_files_dir) $data_files
     xps_gen_mem_files $dir
     xps_copy_glbl $dir
 
@@ -2072,7 +2019,7 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
   }
    
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-    set top_lib [xps_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
     switch -regexp -- $simulator {
       "vcs" {
         set sw {}
@@ -2569,7 +2516,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
     return 0
   }
  
-  set top_lib [xps_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   switch -regexp -- $simulator {
     "xsim" {
       xps_write_xelab_cmdline $fh_unix $dir
@@ -2630,7 +2577,7 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
     return 0
   }
 
-  set top_lib [xps_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   switch -regexp -- $simulator {
     "xsim" {
       xps_write_xsim_cmdline $fh_unix $dir
@@ -2895,82 +2842,6 @@ proc xps_get_compile_order_libs { } {
   }
 
   return $libs
-}
-
-proc xps_get_top_library { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_valid_ip_extns
-  variable l_compile_order_files_uniq
-
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
-
-  set src_mgmt_mode         "All"
-  set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
-
-  # was -of_objects <ip> specified?, fetch current fileset
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
-    set tcl_obj $a_sim_vars(fs_obj)
-  }
-
-  # 1. get the default top library set for the project
-  set default_top_library $a_sim_vars(default_lib)
-
-  # 2. get the library associated with the top file from the 'top_lib' property on the fileset
-  set fileset_top_library [get_property "TOP_LIB" [get_filesets $tcl_obj]]
-
-  # 3. get the library associated with the last file in compile order
-  set co_top_library {}
-  set filelist $l_compile_order_files_uniq
-  if { [llength $filelist] > 0 } {
-    set file_list [get_files -quiet -all [list "[lindex $filelist end]"]]
-    if { [llength $file_list] > 0 } {
-      set co_top_library [get_property "LIBRARY" [lindex $file_list 0]]
-    }
-  }
-
-  # 4. if default top library is set and the compile order file library is different
-  #    than this default, return the compile order file library
-  if { {} != $default_top_library } {
-    # manual compile order, we just return the file set's top
-    if { $manual_compile_order && ({} != $fileset_top_library) } {
-      return $fileset_top_library
-    }
-    # compile order library is set and is different then the default
-    if { ({} != $co_top_library) && ($default_top_library != $co_top_library) } {
-      return $co_top_library
-    } else {
-      # worst case (default is set but compile order file library is empty or we failed to get the library for some reason)
-      return $default_top_library
-    }
-  }
-
-  # 5. default top library is empty at this point
-  #    if fileset top library is set and the compile order file library is different
-  #    than this default, return the compile order file library
-  if { {} != $fileset_top_library } {
-    # manual compile order, we just return the file set's top
-    if { $manual_compile_order } {
-      return $fileset_top_library
-    }
-    # compile order library is set and is different then the fileset
-    if { ({} != $co_top_library) && ($fileset_top_library != $co_top_library) } {
-      return $co_top_library
-    } else {
-      # worst case (fileset library is set but compile order file library is empty or we failed to get the library for some reason)
-      return $fileset_top_library
-    }
-  }
-
-  # 6. Both the default and fileset library are empty, return compile order library else xilinx default
-  if { {} != $co_top_library } {
-    return $co_top_library
-  }
-
-  return $a_sim_vars(default_lib)
 }
 
 proc xps_contains_system_verilog {} {
@@ -3668,7 +3539,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
   }
 
   if { {VERILOG} == $ft } {
-    puts $fh "\nverilog [xps_get_top_library] \"glbl.v\""
+    puts $fh "\nverilog [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)] \"glbl.v\""
   }
   puts $fh "\nnosort"
 
@@ -3907,7 +3778,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
 
   # compile glbl file
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-    puts $fh "\nvlog -work [xps_get_top_library] \"glbl.v\""
+    puts $fh "\nvlog -work [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)] \"glbl.v\""
   }
   if { $a_sim_vars(b_single_step) } {
     set cmd_str [xps_get_simulation_cmdline_modelsim $simulator]
@@ -3940,7 +3811,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
     "modelsim" {
     }
     "questa" {
-      set top_lib [xps_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       set arg_list [list "+acc" "-l" "elaborate.log"]
       if { !$a_sim_vars(b_32bit) } {
         set arg_list [linsert $arg_list 0 "-64"]
@@ -3986,7 +3857,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       lappend arg_list "-work"
       lappend arg_list $default_lib
       set d_libs [join $arg_list " "]
-      set top_lib [xps_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       set arg_list [list]
       lappend arg_list "vopt"
       xps_append_config_opts arg_list $simulator "vopt"
@@ -4174,7 +4045,7 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
     lappend args $default_lib
   }
   set d_libs [join $args " "]
-  set top_lib [xps_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   set args [list "vsim" $t_opts]
   if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
     set args [list "asim" $t_opts]
@@ -4302,7 +4173,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   }
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     if { ([lsearch [xps_get_tops] {glbl}] == -1) } {
-      set top_lib [xps_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       lappend args "${top_lib}.glbl"
     }
   }
@@ -4408,7 +4279,7 @@ proc xps_get_tops {} {
   variable a_sim_vars
   set inst_names [list]
   set top $a_sim_vars(s_top)
-  set top_lib [xps_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   set assoc_lib "${top_lib}";append assoc_lib {.}
   set top_names [split $top " "]
   if { [llength $top_names] > 1 } {
@@ -5322,7 +5193,7 @@ proc xps_write_filelist_info { simulator dir } {
     if { $a_sim_vars(b_absolute_path) } {
       set file [file normalize "$dir/$file"]
     }
-    set top_lib [xps_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
     puts $fh "glbl.v,Verilog,$top_lib,$file"
   }
   close $fh

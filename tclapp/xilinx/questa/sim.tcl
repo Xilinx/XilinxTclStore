@@ -474,7 +474,6 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   variable l_local_design_libraries
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path)
   set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
@@ -517,7 +516,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
 
   set b_default_lib false
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  set default_lib $a_sim_vars(default_top_library)
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { $default_lib == $lib } {
@@ -674,7 +673,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]]
     if { [::tclapp::xilinx::questa::usf_compile_glbl_file "questa" $b_load_glbl $::tclapp::xilinx::questa::a_sim_vars(l_design_files)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
       puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
     }
@@ -685,7 +684,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
         # This is not supported, netlist will be verilog always
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
+        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         set file_str "-work $top_lib \"${glbl_file}\""
         puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
       }
@@ -878,12 +877,11 @@ proc usf_questa_get_elaboration_cmdline {} {
     #lappend arg_list "[string tolower $lib]"
   }
 
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   lappend arg_list "-work"
-  lappend arg_list $default_lib
+  lappend arg_list $a_sim_vars(default_top_library)
   
   set d_libs [join $arg_list " "]
-  set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
@@ -900,6 +898,7 @@ proc usf_questa_get_simulation_cmdline {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow)
@@ -955,9 +954,8 @@ proc usf_questa_get_simulation_cmdline {} {
     }
   }
 
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   lappend arg_list "-lib"
-  lappend arg_list $default_lib
+  lappend arg_list $a_sim_vars(default_top_library)
   lappend arg_list "${top}_opt"
 
   set cmd_str [join $arg_list " "]
@@ -1007,7 +1005,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
 
   if { $b_add_glbl } {
-    set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
   }
 }

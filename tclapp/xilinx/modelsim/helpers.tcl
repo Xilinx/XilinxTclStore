@@ -22,12 +22,14 @@ proc usf_init_vars {} {
 
   variable a_sim_vars
 
-  set project                        [current_project]
-  set a_sim_vars(s_project_name)     [get_property "NAME" $project]
-  set a_sim_vars(s_project_dir)      [get_property "DIRECTORY" $project]
-  set a_sim_vars(b_is_managed)       [get_property "MANAGED_IP" $project]
-  set a_sim_vars(s_launch_dir)       {}
-  set a_sim_vars(s_sim_top)          [get_property "TOP" [current_fileset -simset]]
+  set project                         [current_project]
+  set a_sim_vars(src_mgmt_mode)       [get_property "SOURCE_MGMT_MODE" $project]
+  set a_sim_vars(default_top_library) [get_property "DEFAULT_LIB" $project]
+  set a_sim_vars(s_project_name)      [get_property "NAME" $project]
+  set a_sim_vars(s_project_dir)       [get_property "DIRECTORY" $project]
+  set a_sim_vars(b_is_managed)        [get_property "MANAGED_IP" $project]
+  set a_sim_vars(s_launch_dir)        {}
+  set a_sim_vars(s_sim_top)           [get_property "TOP" [current_fileset -simset]]
 
   # launch_simulation tcl task args
   set a_sim_vars(s_simset)           [current_fileset -simset]
@@ -314,7 +316,7 @@ proc usf_xport_data_files { } {
         }
         lappend data_files $file
       }
-      usf_export_data_files $data_files
+      xcs_export_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $data_files
     }
   } elseif { [xcs_is_fileset $tcl_obj] } {
     send_msg_id USF-ModelSim-040 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
@@ -328,90 +330,6 @@ proc usf_xport_data_files { } {
     send_msg_id USF-ModelSim-041 INFO "Unsupported object source: $tcl_obj\n"
     return 1
   }
-}
-
-proc usf_get_top_library { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_valid_ip_extns
-  variable l_compile_order_files_uniq
-
-  set flow    $a_sim_vars(s_simulation_flow)
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
-
-  set src_mgmt_mode         [get_property "SOURCE_MGMT_MODE" [current_project]]
-  set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
-
-  # was -of_objects <ip> specified?, fetch current fileset
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
-    set tcl_obj [get_filesets $a_sim_vars(s_simset)]
-  }
-
-  # 1. get the default top library set for the project
-  set default_top_library [get_property "DEFAULT_LIB" [current_project]]
-
-  # 2. get the library associated with the top file from the 'top_lib' property on the fileset
-  set fs_top_library [get_property "TOP_LIB" [get_filesets $tcl_obj]]
-
-  # 3. get the library associated with the last file in compile order
-  set co_top_library {}
-  if { ({behav_sim} == $flow) } {
-    set filelist $l_compile_order_files_uniq
-    if { [llength $filelist] > 0 } {
-      set file_list [get_files -all [list "[lindex $filelist end]"]]
-      if { [llength $file_list] > 0 } {
-        set co_top_library [get_property "LIBRARY" [lindex $file_list 0]]
-      }     
-    }
-  } elseif { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-    set file_list [get_files -quiet -compile_order sources -used_in synthesis_post -of_objects [get_filesets $tcl_obj]]
-    if { [llength $file_list] > 0 } {
-      set co_top_library [get_property "LIBRARY" [lindex $file_list end]]
-    }
-  }
-
-  # 4. if default top library is set and the compile order file library is different
-  #    than this default, return the compile order file library
-  if { {} != $default_top_library } {
-    # manual compile order, we just return the file set's top
-    if { $manual_compile_order && ({} != $fs_top_library) } {
-      return $fs_top_library
-    }
-    # compile order library is set and is different then the default
-    if { ({} != $co_top_library) && ($default_top_library != $co_top_library) } {
-      return $co_top_library
-    } else {
-      # worst case (default is set but compile order file library is empty or we failed to get the library for some reason)
-      return $default_top_library
-    }
-  }
-
-  # 5. default top library is empty at this point
-  #    if fileset top library is set and the compile order file library is different
-  #    than this default, return the compile order file library
-  if { {} != $fs_top_library } {
-    # manual compile order, we just return the file set's top
-    if { $manual_compile_order } {
-      return $fs_top_library
-    }
-    # compile order library is set and is different then the fileset
-    if { ({} != $co_top_library) && ($fs_top_library != $co_top_library) } {
-      return $co_top_library
-    } else {
-      # worst case (fileset library is set but compile order file library is empty or we failed to get the library for some reason)
-      return $fs_top_library
-    }
-  }
-
-  # 6. Both the default and fileset library are empty, return compile order library else xilinx default
-  if { {} != $co_top_library } {
-    return $co_top_library
-  }
-
-  return "xil_defaultlib"
 }
 
 proc usf_append_define_generics { def_gen_list tool opts_arg } {
@@ -576,7 +494,7 @@ proc usf_prepare_ip_for_simulation { } {
   # update compile order
   if { {None} != [get_property "SOURCE_MGMT_MODE" [current_project]] } {
     foreach fs $fs_objs {
-      if { [usf_fs_contains_hdl_source $fs] } {
+      if { [xcs_fs_contains_hdl_source $fs] } {
         update_compile_order -fileset [get_filesets $fs]
       }
     }
@@ -597,34 +515,6 @@ proc usf_generate_mem_files_for_simulation { } {
       generate_mem_files $a_sim_vars(s_launch_dir)
     }
   }
-}
-
-proc usf_fs_contains_hdl_source { fs } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable l_valid_ip_extns
-  variable l_valid_hdl_extns
-
-  set b_contains_hdl 0
-  set tokens [split [find_top -fileset $fs -return_file_paths] { }]
-  for {set i 0} {$i < [llength $tokens]} {incr i} {
-    set top [string trim [lindex $tokens $i]];incr i
-    set file [string trim [lindex $tokens $i]]
-    if { ({} == $top) || ({} == $file) } { continue; }
-    set extn [file extension $file]
-
-    # skip ip's
-    if { [lsearch -exact $l_valid_ip_extns $extn] >= 0 } { continue; }
-
-    # check if any HDL sources present in fileset
-    if { [lsearch -exact $l_valid_hdl_extns $extn] >= 0 } {
-      set b_contains_hdl 1
-      break
-    }
-  }
-  return $b_contains_hdl
 }
 
 proc usf_set_simulator_path { simulator } {
@@ -739,7 +629,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   set simset_obj     [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
   set linked_src_set [get_property "SOURCE_SET" $simset_obj]
   set target_lang    [get_property "TARGET_LANGUAGE" [current_project]]
-  set src_mgmt_mode  [get_property "SOURCE_MGMT_MODE" [current_project]]
 
   # get global include file paths
   set incl_file_paths [list]
@@ -829,7 +718,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
     # add files from simulation compile order
-    if { {All} == $src_mgmt_mode } {
+    if { {All} == $a_sim_vars(src_mgmt_mode) } {
       send_msg_id USF-ModelSim-109 INFO "Fetching design files from '$target_obj'..."
       foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
         if { [xcs_is_global_include_file $global_files_str $file] } { continue }
@@ -915,7 +804,6 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   set netlist_file  $a_sim_vars(s_netlist_file)
   set target_obj    $a_sim_vars(sp_tcl_obj)
   set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
-  set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
 
   # get global include file paths
   set incl_file_paths [list]
@@ -1276,51 +1164,12 @@ proc usf_get_simulator_lib_for_bfm {} {
 # Low level helper procs
 # 
 namespace eval ::tclapp::xilinx::modelsim {
-proc usf_export_data_files { data_files } {
-  # Summary: 
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_target_simulator
-  set export_dir $a_sim_vars(s_launch_dir)
-  if { [llength $data_files] > 0 } {
-    set data_files [xcs_remove_duplicate_files $data_files]
-    foreach file $data_files {
-      set extn [file extension $file]
-      switch -- $extn {
-        {.c} -
-        {.zip} -
-        {.hwh} -
-        {.hwdef} -
-        {.xml} {
-          if { {} != [xcs_cache_result {xcs_get_top_ip_filename $file}] } {
-            continue
-          }
-        }
-      }
-      set target_file [file join $export_dir [file tail $file]]
-      if { [get_param project.enableCentralSimRepo] } {
-        set mem_init_dir [file normalize [file join $a_sim_vars(dynamic_repo_dir) "mem_init_files"]]
-        set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
-        if {[catch {file copy -force $data_file $export_dir} error_msg] } {
-          send_msg_id USF-ModelSim-025 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
-        } else {
-          send_msg_id USF-ModelSim-025 INFO "Exported '$target_file'\n"
-        }
-      } else {
-        set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $export_dir]
-        send_msg_id USF-ModelSim-025 INFO "Exported '$target_file'\n"
-      }
-    }
-  }
-}
-
 proc usf_export_fs_data_files { filter } {
   # Summary: Copy fileset IP data files to output directory
   # Argument Usage:
   # Return Value:
-
+  
+  variable a_sim_vars
   set data_files [list]
   foreach ip_obj [get_ips -quiet -all] {
     set data_files [concat $data_files [get_files -all -quiet -of_objects $ip_obj -filter $filter]]
@@ -1332,7 +1181,7 @@ proc usf_export_fs_data_files { filter } {
   foreach fs_obj $l_fs {
     set data_files [concat $data_files [get_files -all -quiet -of_objects $fs_obj -filter $filter]]
   }
-  usf_export_data_files $data_files
+  xcs_export_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $data_files
 }
 
 proc usf_export_fs_non_hdl_data_files {} {
@@ -1354,7 +1203,7 @@ proc usf_export_fs_non_hdl_data_files {} {
     }
     lappend data_files $file
   }
-  usf_export_data_files $data_files
+  xcs_export_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $data_files
 }
 
 proc usf_get_include_dirs { } {
@@ -1753,7 +1602,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
   set dir             $a_sim_vars(s_launch_dir)
   set b_absolute_path $a_sim_vars(b_absolute_path)
   set cmd_str {}
-  set associated_library [get_property "DEFAULT_LIB" [current_project]]
+  set associated_library $a_sim_vars(default_top_library)
   set file_obj {}
   if { [info exists a_sim_cache_all_design_files_obj($file)] } {
     set file_obj $a_sim_cache_all_design_files_obj($file)
