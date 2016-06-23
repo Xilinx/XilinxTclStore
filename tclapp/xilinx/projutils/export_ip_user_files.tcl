@@ -736,7 +736,7 @@ proc xif_export_bd { obj } {
 
     # if reset requested, delete IPI file from ipstatic
     if { $a_vars(b_reset) } {
-      if { [file exists $extracted_static_file_path] } {
+      if { ({} != $extracted_static_file_path) && ([file exists $extracted_static_file_path]) } {
         if { [catch {file delete -force $extracted_static_file_path} _error] } {
           #send_msg_id export_ip_user_files-Tcl-003 INFO "Failed to remove static simulation file (${extracted_static_file_path}): $_error\n"
         } else {
@@ -875,8 +875,10 @@ proc xif_export_bd_dynamic_files { bd_file ip_name } {
 
     set target_file "$target_ip_lib_dir/$filename"
     if { ![file exists $target_file] } {
-      if {[catch {file copy -force $src_file $target_ip_lib_dir} error_msg] } {
-        send_msg_id export_ip_user_files-Tcl-014 WARNING "Failed to copy file '$src_file' to '$target_ip_lib_dir' : $error_msg\n"
+      if { [file exists $src_file] } {
+        if {[catch {file copy -force $src_file $target_ip_lib_dir} error_msg] } {
+          send_msg_id export_ip_user_files-Tcl-014 WARNING "Failed to copy file '$src_file' to '$target_ip_lib_dir' : $error_msg\n"
+        }
       }
     }
   }
@@ -890,12 +892,20 @@ proc xif_get_extracted_static_file_path_bd { src_file_obj comps b_found index } 
   variable a_vars
   variable a_processed_bd_dir
 
+  set dst_file {}
   set file_path_str [join [lrange $comps 0 $index] "/"]
   if { !$b_found } {
+    set file_path_str {}
     set library [get_property -quiet library $src_file_obj]
     if { {} != $library } {
       set index [lsearch -exact $comps $library]
-      set file_path_str [join [lrange $comps 0 $index] "/"]
+      if { $index != -1 } {
+        set file_path_str [join [lrange $comps 0 $index] "/"]
+      }
+    }
+    if { {} == $file_path_str } {
+      # failed to find the file path based on library /<path>/<library>
+      return $dst_file
     }
   }
   set ip_lib_dir "$file_path_str"
