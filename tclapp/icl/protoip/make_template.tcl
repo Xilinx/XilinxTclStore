@@ -755,6 +755,7 @@ if {$error==0} {
 		##make ip_prototype_make_sdk_prj_tcl
 		[::tclapp::icl::protoip::make_template::make_build_sdk_project_tcl]
 		[::tclapp::icl::protoip::make_template::make_run_fpga_prototype_tcl]
+
 		
 		#added by Bulat
 		[::tclapp::icl::protoip::make_template::soc_make_main_c]
@@ -7370,7 +7371,6 @@ puts $file ""
 puts $file "#include \"xfoo.h\""
 puts $file "#include \"FPGAserver.h\""
 puts $file "#include \"soc_user.h\""
-puts $file "#include \"foo_function_wrapped.h\""
 puts $file ""
 
 puts $file "#define TIMER_DEVICE_ID		XPAR_XSCUTIMER_0_DEVICE_ID"
@@ -8581,7 +8581,6 @@ proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
 	puts $file "#include \"xfoo.h\""
 	puts $file "#include <stdio.h>"
 	puts $file "#include <stdint.h>"
-	puts $file "#include <math.h>"
 
 	puts $file "//functions for sending data from PS to DDR"
 	foreach i $input_vectors {
@@ -9074,12 +9073,12 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	set tmp_line "void soc_user("
 	foreach i $soc_input_vectors {
 		append tmp_line "float "
-		append tmp_line "soc_$i\_in\[\],"
+		append tmp_line "*soc_$i\_in,"
 
 	}
 	foreach i $soc_output_vectors {
 		append tmp_line "float "
-		append tmp_line "soc_$i\_out\[\],"
+		append tmp_line "*soc_$i\_out,"
 	}
 	set tmp_line [string trim $tmp_line ","]
 	append tmp_line ")"
@@ -9180,12 +9179,12 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	set tmp_line "void soc_user("
 	foreach i $soc_input_vectors {
 		append tmp_line "float "
-		append tmp_line "soc_$i\_in\[\],"
+		append tmp_line "*soc_$i\_in,"
 
 	}
 	foreach i $soc_output_vectors {
 		append tmp_line "float "
-		append tmp_line "soc_$i\_out\[\],"
+		append tmp_line "*soc_$i\_out,"
 	}
 	set tmp_line [string trim $tmp_line ","]
 	append tmp_line ");"
@@ -9240,6 +9239,18 @@ puts $file $tmp_line
 puts $file "foreach file \$file_list {"
 puts $file "	file copy -force \$file \"workspace1/test_fpga/src\""
 puts $file "}"
+
+puts $file ""
+puts $file "# copy project settings in xml format"
+puts $file "if { \[file exists ../../../src/.cproject\] } {"
+puts $file "	file copy -force ../../../src/.cproject workspace1/test_fpga/.cproject"
+puts $file "}"
+puts $file ""
+puts $file "if { \[file exists ../../../src/.project\] } {"
+puts $file "	file copy -force ../../../src/.project workspace1/test_fpga/.project"
+puts $file "}"
+puts $file ""
+
 puts $file "#end added by Bulat"
 
 puts $file "sdk build_project -type all"

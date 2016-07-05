@@ -352,7 +352,8 @@ if {$error==0} {
 			
 			file copy -force ../../../../.metadata/build_soc_sdk_project.tcl build_soc_sdk_project.tcl
 			file copy -force ../../../../.metadata/run_fpga_prototype.tcl run_fpga_prototype.tcl
-			
+
+		
 			
 			# Create SDK Project
 			puts "Calling SDK to build the software project ..."

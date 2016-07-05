@@ -210,7 +210,7 @@ if {$error==0} {
 
 			#addded by Bulat
 			#temporarly comment next line
-			#while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
+			while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
 			#close $sdk_p
 			
 			# copy all the file that have word 'user' in their names
@@ -220,6 +220,20 @@ if {$error==0} {
 			foreach file $file_list {
 				file copy -force $file "soc_prototype/src"
 			}
+
+
+			set source_file ""
+			append source_file "soc_prototype/test/prj/" $project_name "." $board_name "/workspace1/test_fpga/.cproject"
+			set destination_file ""
+			append destination_file "soc_prototype/src/.cproject"
+			file copy -force $source_file $destination_file
+
+			set source_file ""
+			append source_file "soc_prototype/test/prj/" $project_name "." $board_name "/workspace1/test_fpga/.project"
+			set destination_file ""
+			append destination_file "soc_prototype/src/.project"
+			file copy -force $source_file $destination_file			
+
 			#end added by Bulat
 			
 			}
