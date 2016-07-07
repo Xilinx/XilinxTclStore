@@ -143,7 +143,7 @@ proc usf_vcs_setup_simulation { args } {
   #::tclapp::xilinx::vcs::usf_prepare_ip_for_simulation
 
   variable l_compiled_libraries
-  if { $a_sim_vars(b_use_static_lib) } {
+  if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
     set clibs_dir [get_property compxlib.vcs_compiled_library_dir [current_project]]
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
     set libraries [xcs_get_compiled_libraries $clibs_dir]

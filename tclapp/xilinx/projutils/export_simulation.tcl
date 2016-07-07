@@ -1049,7 +1049,7 @@ proc xps_get_files { simulator launch_dir } {
   } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
     #send_msg_id exportsim-Tcl-023 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
-    foreach ip_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
+    foreach ip_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet $ip_filename]] {
       set file_type [get_property "FILE_TYPE" $ip_file_obj]
       set compiler [xps_get_compiler $simulator $file_type]
       set l_other_compiler_opts [list]

@@ -322,7 +322,7 @@ proc usf_xport_data_files { } {
     send_msg_id USF-ModelSim-040 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
     # export all fileset data files to run dir
     if { [get_param "project.copyDataFilesForSim"] } {
-      usf_export_fs_data_files $s_data_files_filter
+      xcs_export_fs_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $s_data_files_filter
     }
     # export non-hdl data files to run dir
     usf_export_fs_non_hdl_data_files
@@ -774,7 +774,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # prepare command line args for fileset ip files
     send_msg_id USF-ModelSim-112 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
-    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
+    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet $ip_filename]] {
       set file_type [get_property "FILE_TYPE" $file]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
@@ -1164,25 +1164,6 @@ proc usf_get_simulator_lib_for_bfm {} {
 # Low level helper procs
 # 
 namespace eval ::tclapp::xilinx::modelsim {
-proc usf_export_fs_data_files { filter } {
-  # Summary: Copy fileset IP data files to output directory
-  # Argument Usage:
-  # Return Value:
-  
-  variable a_sim_vars
-  set data_files [list]
-  foreach ip_obj [get_ips -quiet -all] {
-    set data_files [concat $data_files [get_files -all -quiet -of_objects $ip_obj -filter $filter]]
-  }
-  set l_fs [list]
-  lappend l_fs [get_filesets -filter "FILESET_TYPE == \"BlockSrcs\""]
-  lappend l_fs [current_fileset -srcset]
-  lappend l_fs [current_fileset -simset]
-  foreach fs_obj $l_fs {
-    set data_files [concat $data_files [get_files -all -quiet -of_objects $fs_obj -filter $filter]]
-  }
-  xcs_export_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $data_files
-}
 
 proc usf_export_fs_non_hdl_data_files {} {
   # Summary: Copy fileset IP data files to output directory

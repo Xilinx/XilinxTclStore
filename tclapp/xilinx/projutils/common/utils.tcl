@@ -1702,7 +1702,7 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
 
     set target_file "$export_dir/[file tail $file]"
 
-    if { [get_param project.enableCentralSimRepo] } {
+    if { ([get_param project.enableCentralSimRepo]) && ({} != $dynamic_repo_dir) } {
       set mem_init_dir [file normalize "$dynamic_repo_dir/mem_init_files"]
       set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
 
@@ -1823,4 +1823,23 @@ proc xcs_get_top_library { s_simulation_flow sp_tcl_obj fs_obj src_mgmt_mode def
   }
 
   return "xil_defaultlib"
+}
+
+proc xcs_export_fs_data_files { s_launch_dir dynamic_repo_dir filter } {
+  # Summary: Copy fileset IP data files to output directory
+  # Argument Usage:
+  # Return Value:
+
+  set data_files [list]
+  foreach ip_obj [get_ips -quiet -all] {
+    set data_files [concat $data_files [get_files -all -quiet -of_objects $ip_obj -filter $filter]]
+  }
+  set l_fs [list]
+  lappend l_fs [get_filesets -filter "FILESET_TYPE == \"BlockSrcs\""]
+  lappend l_fs [current_fileset -srcset]
+  lappend l_fs [current_fileset -simset]
+  foreach fs_obj $l_fs {
+    set data_files [concat $data_files [get_files -all -quiet -of_objects $fs_obj -filter $filter]]
+  }
+  xcs_export_data_files $s_launch_dir $dynamic_repo_dir $data_files
 }
