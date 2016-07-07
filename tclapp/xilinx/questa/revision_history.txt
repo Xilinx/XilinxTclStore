@@ -1,3 +1,4 @@
+1.93 compile glbl into top library for target language vhdl
 1.92 support for XPM files for -of_objects
 1.91 add VCOM VHDL file for XPM simulation, CR:947555
 1.90 set absolute path for xpm files
