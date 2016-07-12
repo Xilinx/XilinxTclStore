@@ -188,6 +188,29 @@ if {$error==0} {
 				append directives_to "../../src/" $project_name "_directives.tcl"
 				file copy -force  $directives_from $directives_to
 
+# added by Bulat
+
+				set source_file ""
+				append source_file $project_name "/.cproject"
+				set destination_file ""
+				append destination_file "../../src/.cproject"
+				file copy -force $source_file $destination_file
+
+				set source_file ""
+				append source_file $project_name "/.project"
+				set destination_file ""
+				append destination_file "../../src/.project"
+				file copy -force $source_file $destination_file
+
+				set source_file ""
+				append source_file $project_name "/vivado_hls.app"
+				set destination_file ""
+				append destination_file "../../src/vivado_hls.app"
+				file copy -force $source_file $destination_file
+
+				
+#end added by Bulat
+
 				
 				cd ../../../
 				

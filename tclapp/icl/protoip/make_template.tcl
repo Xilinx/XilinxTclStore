@@ -2211,7 +2211,25 @@ puts $file "# Create a new project named \"project_name\""
 puts $file "cd ip_design/build/prj"
 puts $file "open_project -reset \$project_name"
 puts $file "set_top foo"
+#added by Bulat
 puts $file ""
+puts $file "#added by Bulat"
+puts $file "#Copy project settings files from src if they exist"
+puts $file "if { \[file exists ../../src/.cproject\] } {"
+puts $file "	file copy -force ../../src/.cproject $project_name"
+puts $file "}"
+puts $file ""
+puts $file "if { \[file exists ../../src/.project\] } {"
+puts $file "	file copy -force ../../src/.project $project_name"
+puts $file "}"
+puts $file ""
+puts $file "if { \[file exists ../../src/vivado_hls.app\] } {"
+puts $file "	file copy -force ../../src/vivado_hls.app $project_name"
+puts $file "}"
+puts $file "#end added by Bulat"
+puts $file ""
+puts $file ""
+#end added by Bulat
 puts $file "# Add here below other files made by the user:"
 puts $file "set filename \[format \"../../src/foo_data.h\"\] "
 puts $file "add_files \$filename"
@@ -8577,10 +8595,15 @@ proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
 	#add license_c header
 	[::tclapp::icl::protoip::make_template::license_c $file]
 
+
+	puts $file "#ifndef FOO_FUNCTION_WRAPPED"
+	puts $file "#define FOO_FUNCTION_WRAPPED"
+
 	puts $file "#include \"FPGAserver.h\""
 	puts $file "#include \"xfoo.h\""
 	puts $file "#include <stdio.h>"
 	puts $file "#include <stdint.h>"
+	puts $file "#include <math.h>"
 
 	puts $file "//functions for sending data from PS to DDR"
 	foreach i $input_vectors {
@@ -8617,6 +8640,9 @@ proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
 		puts $file $tmp_line	
 
 	}
+
+	puts $file "#endif"
+
 	
 
 	close $file
@@ -9063,7 +9089,8 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	#add license_c header
 	#[::tclapp::icl::protoip::make_template::license_c $file]
 	
-	
+	set tmp_line "#include \"soc_user.h\""
+	puts $file $tmp_line
 	set tmp_line "#include \"foo_function_wrapped.h\""
 	puts $file $tmp_line
 	puts $file ""
@@ -9169,6 +9196,10 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	[::tclapp::icl::protoip::make_template::license_c $file]
 
 
+	puts $file "#ifndef SOC_USER"
+	puts $file "#define SOC_USER"
+	puts $file ""
+
 	set tmp_line "#include \"FPGAserver.h\""
 	puts $file $tmp_line
 	
@@ -9189,6 +9220,8 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	set tmp_line [string trim $tmp_line ","]
 	append tmp_line ");"
 	puts $file $tmp_line
+
+	puts $file "#endif"
 
 	close $file
 	
