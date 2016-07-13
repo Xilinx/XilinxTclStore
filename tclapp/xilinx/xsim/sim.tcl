@@ -189,7 +189,7 @@ proc usf_xsim_setup_simulation { args } {
                                  ]
 
   # prepare IP's for simulation
-  #::tclapp::xilinx::xsim::usf_prepare_ip_for_simulation
+  # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   variable l_compiled_libraries
   if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
@@ -1386,7 +1386,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     }
     puts $fh_scr "\nopen_saif \"$saif\""
     if { {} != $uut } {
-      set uut_name [::tclapp::xilinx::xsim::usf_resolve_uut_name_with_scope uut]
+      set uut_name [xcs_resolve_uut_name "xsim" uut]
       puts $fh_scr "set curr_xsim_wave_scope \[current_scope\]"
       puts $fh_scr "current_scope $uut_name"
     }

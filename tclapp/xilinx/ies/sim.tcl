@@ -142,7 +142,7 @@ proc usf_ies_setup_simulation { args } {
                                  ]
 
   # prepare IP's for simulation
-  #::tclapp::xilinx::ies::usf_prepare_ip_for_simulation
+  # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   variable l_compiled_libraries
   if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {

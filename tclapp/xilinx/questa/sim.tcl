@@ -141,7 +141,7 @@ proc usf_questa_setup_simulation { args } {
                                  ]
 
   # prepare IP's for simulation
-  #::tclapp::xilinx::questa::usf_prepare_ip_for_simulation
+  # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   variable l_compiled_libraries
   if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
@@ -1087,11 +1087,12 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     if { {} == $uut } {
       set uut "/$top/uut/*"
     }
+    set simulator "questa"
     if { ({functional} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) || \
          ({timing} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) } {
-      puts $fh "power add -r -in -inout -out -internal [::tclapp::xilinx::questa::usf_resolve_uut_name uut]\n"
+      puts $fh "power add -r -in -inout -out -internal [xcs_resolve_uut_name $simulator uut]\n"
     } else {
-      puts $fh "power add -in -inout -out -internal [::tclapp::xilinx::questa::usf_resolve_uut_name uut]\n"
+      puts $fh "power add -in -inout -out -internal [xcs_resolve_uut_name $simulator uut]\n"
     }
   }
   # create custom UDO file

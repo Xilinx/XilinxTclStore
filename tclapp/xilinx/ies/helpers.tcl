@@ -577,76 +577,6 @@ proc usf_create_do_file { simulator do_filename } {
   close $fh_do
 }
 
-proc usf_prepare_ip_for_simulation { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_valid_ip_extns
-  #if { [regexp {^post_} $a_sim_vars(s_simulation_flow)] } {
-  #  return
-  #}
-  # list of block filesets and corresponding runs to launch
-  set fs_objs        [list]
-  set runs_to_launch [list]
-  # target object (fileset or ip)
-  set target_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_fileset $target_obj] } {
-    set fs $target_obj
-    # add specified fileset (expected simulation fileset)
-    lappend fs_objs $fs
-    # add linked source fileset
-    if { {SimulationSrcs} == [get_property "FILESET_TYPE" [get_filesets $fs]] } {
-      set src_set [get_property "SOURCE_SET" [get_filesets $fs]]
-      if { {} != $src_set } {
-        lappend fs_objs $src_set
-      }
-    }
-    # add block filesets
-    set filter "FILESET_TYPE == \"BlockSrcs\""
-    foreach blk_fs_obj [get_filesets -filter $filter] {
-      lappend fs_objs $blk_fs_obj
-    }
-    set ip_filter "FILE_TYPE == \"IP\""
-    foreach fs_obj $fs_objs {
-      set fs_name [get_property "NAME" [get_filesets $fs_obj]]
-      send_msg_id USF-IES-037 INFO "Inspecting fileset '$fs_name' for IP generation...\n"
-      # get ip composite files
-      foreach comp_file [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $ip_filter] {
-        xcs_generate_comp_file_for_simulation $comp_file runs_to_launch
-      }
-    }
-    # fileset contains embedded sources? generate mem files
-    if { [xcs_is_embedded_flow] } {
-      send_msg_id USF-IES-038 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
-      generate_mem_files $a_sim_vars(s_launch_dir)
-    }
-  } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
-    set comp_file $target_obj
-    xcs_generate_comp_file_for_simulation $comp_file runs_to_launch
-  } else {
-    send_msg_id USF-IES-039 ERROR "Unknown target '$target_obj'!\n"
-  }
-  # generate functional netlist  
-  if { [llength $runs_to_launch] > 0 } {
-    send_msg_id USF-IES-040 INFO "Launching block-fileset run '$runs_to_launch'...\n"
-    launch_runs $runs_to_launch
-
-    foreach run $runs_to_launch {
-      wait_on_run [get_property "NAME" [get_runs $run]]
-    }
-  }
-  # update compile order
-  if { {None} != [get_property "SOURCE_MGMT_MODE" [current_project]] } {
-    foreach fs $fs_objs {
-      if { [xcs_fs_contains_hdl_source $fs] } {
-        update_compile_order -fileset [get_filesets $fs]
-      }
-    }
-  }
-}
-
 proc usf_generate_mem_files_for_simulation { } {
   # Summary:
   # Argument Usage:
@@ -1295,28 +1225,6 @@ proc usf_write_shell_step_fn { fh } {
   puts $fh "\}"
 }
 
-proc usf_resolve_uut_name { uut_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $uut_arg uut
-  set uut [string map {\\ /} $uut]
-  # prepend slash
-  if { ![string match "/*" $uut] } {
-    set uut "/$uut"
-  }
-  # append *
-  if { [string match "*/" $uut] } {
-    set uut "${uut}*"
-  }
-  # append /*
-  if { {/*} != [string range $uut end-1 end] } {
-    set uut "${uut}/*"
-  }
-  return $uut
-}
-
 proc usf_print_args {} {
   # Summary:
   # Argument Usage:
@@ -1597,21 +1505,6 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   return $incl_dirs
 }
 
-proc usf_get_compiler_name { file_type } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set compiler ""
-  if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } {
-    set compiler "ncvhdl"
-  } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) || ({Verilog/SystemVerilog Header} == $file_type) } {
-    set compiler "ncvlog"
-  }
-  return $compiler
-}
-
 proc usf_append_compiler_options { tool file_type opts_arg } {
   # Summary:
   # Argument Usage:
@@ -1731,7 +1624,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
     set file [usf_get_ip_file_from_repo $ip_file $file $associated_library $dir b_static_ip_file]
   }
   
-  set compiler [usf_get_compiler_name $file_type]
+  set compiler [xcs_get_compiler_name "ies" $file_type]
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
