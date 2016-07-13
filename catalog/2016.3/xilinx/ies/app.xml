@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export data files to run dir directly, if ip_user_files dir is not specified</revision_history>
+      <revision_history>refactor common procs to utils</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
