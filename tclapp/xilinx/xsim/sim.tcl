@@ -169,16 +169,12 @@ proc usf_xsim_setup_simulation { args } {
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
  
   # set default object
-  if { [::tclapp::xilinx::xsim::usf_set_sim_tcl_obj] } {
-    puts "failed to set tcl obj"
+  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
     return 1
   }
 
   # initialize Vivado simulator variables
   usf_xsim_init_simulation_vars
-
-  # print launch_simulation arg values
-  #::tclapp::xilinx::xsim::usf_print_args
 
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
@@ -207,7 +203,7 @@ proc usf_xsim_setup_simulation { args } {
   }
 
   # generate mem files
-  ::tclapp::xilinx::xsim::usf_generate_mem_files_for_simulation
+  xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # fetch the compile order for the specified object
   ::tclapp::xilinx::xsim::usf_xport_data_files
@@ -591,7 +587,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set log_filename "compile.log"
 
   # write compile.sh/.bat
-  set scr_filename "compile";append scr_filename [::tclapp::xilinx::xsim::usf_get_script_extn]
+  set scr_filename "compile";append scr_filename [xcs_get_script_extn "xsim"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -789,7 +785,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
   # write elaborate.sh/.bat
-  set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::xsim::usf_get_script_extn]
+  set scr_filename "elaborate";append scr_filename [xcs_get_script_extn "xsim"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -886,7 +882,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   set cmd_file ${top};append cmd_file ".tcl"
   usf_xsim_write_cmd_file $cmd_file $b_add_wave
 
-  set scr_filename "simulate";append scr_filename [::tclapp::xilinx::xsim::usf_get_script_extn]
+  set scr_filename "simulate";append scr_filename [xcs_get_script_extn "xsim"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {

@@ -123,15 +123,12 @@ proc usf_ies_setup_simulation { args } {
   }
 	
   # set default object
-  if { [::tclapp::xilinx::ies::usf_set_sim_tcl_obj] } {
+  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
     return 1
   }
 
   # initialize IES simulator variables
   usf_ies_init_simulation_vars
-
-  # print launch_simulation arg values
-  #::tclapp::xilinx::ies::usf_print_args
 
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
@@ -160,7 +157,7 @@ proc usf_ies_setup_simulation { args } {
   }
 
   # generate mem files
-  ::tclapp::xilinx::ies::usf_generate_mem_files_for_simulation 
+  xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   usf_ies_verify_compiled_lib
 
@@ -428,7 +425,7 @@ proc usf_ies_write_compile_script {} {
   set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
 
-  set filename "compile";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
+  set filename "compile";append filename [xcs_get_script_extn "ies"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
 
@@ -580,7 +577,7 @@ proc usf_ies_write_elaborate_script {} {
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
-  set filename "elaborate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
+  set filename "elaborate";append filename [xcs_get_script_extn "ies"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
 
@@ -804,7 +801,7 @@ proc usf_ies_write_simulate_script {} {
   set b_scripts_only $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)
   set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
 
-  set filename "simulate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
+  set filename "simulate";append filename [xcs_get_script_extn "ies"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
 
@@ -947,7 +944,7 @@ proc usf_ies_create_setup_script {} {
   variable l_local_design_libraries
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
-  set filename "setup";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
+  set filename "setup";append filename [xcs_get_script_extn "ies"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {

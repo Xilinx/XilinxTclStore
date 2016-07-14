@@ -121,15 +121,12 @@ proc usf_vcs_setup_simulation { args } {
   }
 
   # set default object
-  if { [::tclapp::xilinx::vcs::usf_set_sim_tcl_obj] } {
+  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
     return 1
   }
 
   # initialize VCS simulator variables
   usf_vcs_init_simulation_vars
-
-  # print launch_simulation arg values
-  #::tclapp::xilinx::vcs::usf_print_args
 
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
@@ -158,7 +155,7 @@ proc usf_vcs_setup_simulation { args } {
   }
 
   # generate mem files
-  ::tclapp::xilinx::vcs::usf_generate_mem_files_for_simulation
+  xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   usf_vcs_verify_compiled_lib
 
@@ -426,7 +423,7 @@ proc usf_vcs_write_compile_script {} {
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-  set scr_filename "compile";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
+  set scr_filename "compile";append scr_filename [xcs_get_script_extn "vcs"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -602,7 +599,7 @@ proc usf_vcs_write_elaborate_script {} {
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
-  set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
+  set scr_filename "elaborate";append scr_filename [xcs_get_script_extn "vcs"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -909,7 +906,7 @@ proc usf_vcs_create_setup_script {} {
   variable l_local_design_libraries
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
-  set filename "setup";append filename [::tclapp::xilinx::vcs::usf_get_script_extn]
+  set filename "setup";append filename [xcs_get_script_extn "vcs"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {

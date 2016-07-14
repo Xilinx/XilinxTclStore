@@ -2004,3 +2004,69 @@ proc xcs_resolve_uut_name { simulator uut_arg } {
   }
   return $uut
 }
+
+proc xcs_generate_mem_files_for_simulation { sp_tcl_obj s_launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { [xcs_is_fileset $sp_tcl_obj] } {
+    # fileset contains embedded sources? generate mem files
+    if { [xcs_is_embedded_flow] } {
+      send_msg_id SIM-utils-050 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
+      generate_mem_files $s_launch_dir
+    }
+  }
+}
+
+proc xcs_get_script_extn { simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set scr_extn ".bat"
+  if { {unix} == $::tcl_platform(platform) } {
+    set scr_extn ".sh"
+  }
+
+  switch -exact -- $simulator {
+    "ies" -
+    "vcs" {
+      set scr_extn ".sh"
+    }
+  }
+  return $scr_extn
+}
+
+proc xcs_set_sim_tcl_obj { s_comp_file s_simset sp_tcl_obj_arg s_sim_top_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $sp_tcl_obj_arg sp_tcl_obj
+  upvar $s_sim_top_arg s_sim_top
+
+  # -of_objects <full-path-to-ip-composite-file>
+  if { {} != $s_comp_file } {
+    set sp_tcl_obj [get_files -all -quiet [list "$s_comp_file"]]
+
+    # get top based on composite filename
+    set s_sim_top [file root [file tail $sp_tcl_obj]]
+
+  } else {
+    # specified fileset
+    set sp_tcl_obj [get_filesets $s_simset]
+
+    # set current simset if not specified
+    if { {} == $sp_tcl_obj } {
+      set sp_tcl_obj [current_fileset -simset]
+    }
+
+    # get the top for this fileset object
+    set s_sim_top [get_property top [get_filesets $sp_tcl_obj]]
+  }
+
+  send_msg_id SIM-utils-051 INFO "Simulation object is '$sp_tcl_obj'\n"
+
+  return 0
+}

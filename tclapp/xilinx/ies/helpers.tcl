@@ -264,29 +264,6 @@ proc usf_extract_ip_files {} {
   }
 }
 
-proc usf_set_sim_tcl_obj {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set comp_file $a_sim_vars(s_comp_file)
-  if { {} != $comp_file } {
-    # -of_objects <full-path-to-ip-composite-file>
-    set a_sim_vars(sp_tcl_obj) [get_files -all -quiet [list "$comp_file"]]
-    set a_sim_vars(s_sim_top) [file root [file tail $a_sim_vars(sp_tcl_obj)]]
-  } else {
-    set a_sim_vars(sp_tcl_obj) [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
-    # set current simset
-    if { {} == $a_sim_vars(sp_tcl_obj) } {
-      set a_sim_vars(sp_tcl_obj) [current_fileset -simset]
-    }
-    set a_sim_vars(s_sim_top) [get_property TOP [get_filesets $a_sim_vars(sp_tcl_obj)]]
-  }
-  send_msg_id USF-IES-024 INFO "Simulation object is '$a_sim_vars(sp_tcl_obj)'...\n"
-  return 0
-}
-
 proc usf_set_ref_dir { fh } {
   # Summary:
   # Argument Usage:
@@ -575,22 +552,6 @@ proc usf_create_do_file { simulator do_filename } {
     }
   }
   close $fh_do
-}
-
-proc usf_generate_mem_files_for_simulation { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-
-  if { [xcs_is_fileset $a_sim_vars(sp_tcl_obj)] } {
-    # fileset contains embedded sources? generate mem files
-    if { [xcs_is_embedded_flow] } {
-      send_msg_id USF-IES-099 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
-      generate_mem_files $a_sim_vars(s_launch_dir)
-    }
-  }
 }
 
 proc usf_is_tool_installed {} {
@@ -1064,7 +1025,7 @@ proc usf_launch_script { simulator step } {
   # Return Value:
 
   variable a_sim_vars
-  set extn [usf_get_script_extn]
+  set extn [xcs_get_script_extn "ies"]
   set scr_file ${step}$extn
   set run_dir $a_sim_vars(s_launch_dir)
 
@@ -1223,34 +1184,6 @@ proc usf_write_shell_step_fn { fh } {
   puts $fh "exit \$RETVAL"
   puts $fh "fi"
   puts $fh "\}"
-}
-
-proc usf_print_args {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  puts "*******************************"
-  puts "-simset         = $::tclapp::xilinx::ies::a_sim_vars(s_simset)"
-  puts "-mode           = $::tclapp::xilinx::ies::a_sim_vars(s_mode)"
-  puts "-type           = $::tclapp::xilinx::ies::a_sim_vars(s_type)"
-  puts "-scripts_only   = $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)"
-  puts "-of_objects     = $::tclapp::xilinx::ies::a_sim_vars(s_comp_file)"
-  puts "-absolute_path  = $::tclapp::xilinx::ies::a_sim_vars(b_absolute_path)"
-  puts "-install_path   = $::tclapp::xilinx::ies::a_sim_vars(s_install_path)"
-  puts "-batch          = $::tclapp::xilinx::ies::a_sim_vars(b_batch)"
-  puts "-int_os_type    = $::tclapp::xilinx::ies::a_sim_vars(s_int_os_type)"
-  puts "-int_debug_mode = $::tclapp::xilinx::ies::a_sim_vars(s_int_debug_mode)"
-  puts "*******************************"
-}
-
-proc usf_get_script_extn {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set scr_extn ".sh"
-  return $scr_extn
 }
 
 proc usf_get_platform {} {

@@ -122,15 +122,12 @@ proc usf_questa_setup_simulation { args } {
   }
 
   # set default object
-  if { [::tclapp::xilinx::questa::usf_set_sim_tcl_obj] } {
+  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
     return 1
   }
 
   # initialize Questa simulator variables
   usf_questa_init_simulation_vars
-
-  # print launch_simulation arg values
-  #::tclapp::xilinx::questa::usf_print_args
 
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
@@ -159,7 +156,7 @@ proc usf_questa_setup_simulation { args } {
   }
 
   # generate mem files
-  ::tclapp::xilinx::questa::usf_generate_mem_files_for_simulation
+  xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # find/copy modelsim.ini file into run dir
   usf_questa_verify_compiled_lib
@@ -1184,7 +1181,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
 
-  set scr_filename $step;append scr_filename [::tclapp::xilinx::questa::usf_get_script_extn]
+  set scr_filename $step;append scr_filename [xcs_get_script_extn "questa"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
