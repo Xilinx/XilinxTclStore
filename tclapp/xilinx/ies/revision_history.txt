@@ -1,3 +1,4 @@
+3.17 refactored procs to common utils
 3.16 refactor common procs to utils
 3.15 export data files to run dir directly, if ip_user_files dir is not specified
 3.14 refactored common procs to utils

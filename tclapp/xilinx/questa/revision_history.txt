@@ -1,3 +1,4 @@
+2.17 refactored procs to common utils
 2.16 refactor common procs to utils
 2.15 export data files to run dir directly, if ip_user_files dir is not specified
 2.14 copy shared libraries into run dir
