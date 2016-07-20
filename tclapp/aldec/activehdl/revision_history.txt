@@ -1,1 +1,1 @@
-1.5 Update 1.5: Separated compilation standard for SystemVerilog.
+1.6 Update 1.6: Coverage options.

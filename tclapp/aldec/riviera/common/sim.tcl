@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.5
+package require ::tclapp::aldec::common::helpers 1.6
 
-package provide ::tclapp::aldec::common::sim 1.5
+package provide ::tclapp::aldec::common::sim 1.6
 
 namespace eval ::tclapp::aldec::common {
 
@@ -327,6 +327,7 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   }
 
   set vlog_arg_list [list]
+  ::tclapp::aldec::common::helpers::usf_aldec_appendCompilationCoverageOptions vlog_arg_list vlog
   if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.DEBUG] $fs_obj] } {
     lappend vlog_arg_list "-dbg"
   }
@@ -341,6 +342,7 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   puts $fh "null \[set vlog_opts \{$vlog_cmd_str\}\]"
 
   set vcom_arg_list [list]
+  ::tclapp::aldec::common::helpers::usf_aldec_appendCompilationCoverageOptions vcom_arg_list vcom
   if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.VHDL_RELAX] $fs_obj] } {
     lappend vcom_arg_list "-relax"
   }
@@ -480,7 +482,9 @@ proc usf_aldec_get_simulation_cmdline {} {
 
   set tool "asim"
   set arg_list [list "$tool" "-t 1ps"]
-  
+
+  ::tclapp::aldec::common::helpers::usf_aldec_appendSimulationCoverageOptions arg_list
+
   if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
     lappend arg_list "-asdb"
   }

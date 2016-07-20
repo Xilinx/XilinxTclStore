@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.5
+package require ::tclapp::aldec::common::helpers 1.6
 
 namespace eval ::tclapp::aldec::activehdl {
   namespace export register_options
@@ -44,6 +44,20 @@ proc register_options { simulator } {
     {{compile.vlog.more_options}   {string} {}                                      {More Verilog compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VHDL compilation options}}
 
+    {{compile.statement_coverage}         {bool}   {0}                        {Statement Coverage}}
+    {{compile.branch_coverage}         {bool}   {0}                           {Branch Coverage}}
+    {{compile.expression_coverage}         {bool}   {0}                       {Expression Coverage}}
+    {{compile.condition_coverage}         {bool}   {0}                        {Condition Coverage}}
+    {{compile.path_coverage}         {bool}   {0}                             {Path Coverage}}
+    {{compile.assertion_coverage}         {bool}   {0}                        {Assertion Coverage}}
+    {{compile.fsm_coverage}         {bool}   {0}                              {FSM Coverage}}
+    {{compile.enable_expressions_on_subprogram_arguments} {bool} {0}              {Enable expressions on subprogram arguments}}
+    {{compile.enable_atomic_expressions_in_the_conditional_statements} {bool} {0} {Enable atomic expressions in the conditional statements}}
+    {{compile.enable_the_expressions_consisting_of_one_variable_only} {bool} {0}  {Enable the expressions consisting of one variable only}}
+    {{compile.enable_the_expressions_with_relational_operators} {bool} {0}        {Enable the expressions with relational operators}}
+    {{compile.enable_the_expressions_returning_vectors} {bool} {0}                {Enable the expressions returning vectors}}
+    {{compile.enable_fsm_sequences_in_fsm_coverage} {bool} {0}                    {Enable FSM sequences in FSM Coverage}}
+
     {{elaborate.access}            {bool}   {0}                                     {Enable access to objects optimized by default}}
     {{elaborate.unifast}           {bool}   {0}                                     {Enable fast simulation models}}
 
@@ -54,6 +68,16 @@ proc register_options { simulator } {
     {{simulate.uut}                {string} {}                                      {Specify hierarchical path of unit under test instance}}
     {{simulate.saif}               {string} {}                                      {Generate SAIF file for power analysis}}
     {{simulate.asim.more_options}  {string} {}                                      {More simulation options}}
+
+    {{simulate.statement_coverage}    {bool}   {0}                             {Statement Coverage}}
+    {{simulate.branch_coverage}    {bool}   {0}                                {Branch Coverage}}
+    {{simulate.functional_coverage}    {bool}   {0}                            {Functional Coverage}}
+    {{simulate.expression_coverage}    {bool}   {0}                            {Expression Coverage}}
+    {{simulate.condition_coverage}    {bool}   {0}                             {Condition Coverage}}
+    {{simulate.path_coverage}    {bool}   {0}                                  {Path Coverage}}
+    {{simulate.toggle_coverage}    {bool}   {0}                                {Toggle Coverage}}
+    {{simulate.assertion_coverage}    {bool}   {0}                             {Assertion Coverage}}
+    {{simulate.fsm_coverage}    {bool}   {0}                                   {FSM Coverage}}    
   }
   # create options
   ::tclapp::aldec::common::helpers::usf_create_options $simulator $options
