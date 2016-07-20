@@ -2070,3 +2070,22 @@ proc xcs_set_sim_tcl_obj { s_comp_file s_simset sp_tcl_obj_arg s_sim_top_arg } {
 
   return 0
 }
+
+proc xcs_export_fs_non_hdl_data_files { s_simset s_launch_dir dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable s_non_hdl_data_files_filter
+  set data_files [list]
+
+  foreach file_obj [get_files -all -quiet -of_objects [get_filesets $s_simset] -filter $s_non_hdl_data_files_filter] {
+    if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
+      if { [get_property {IS_USER_DISABLED} $file_obj] } {
+        continue;
+      }
+    }
+    lappend data_files $file_obj
+  }
+  xcs_export_data_files $s_launch_dir $dynamic_repo_dir $data_files
+}

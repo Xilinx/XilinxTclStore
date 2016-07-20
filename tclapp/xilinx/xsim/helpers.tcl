@@ -282,7 +282,7 @@ proc usf_xport_data_files { } {
       xcs_export_fs_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $s_data_files_filter
     }
     # export non-hdl data files to run dir
-    usf_export_fs_non_hdl_data_files
+    xcs_export_fs_non_hdl_data_files $a_sim_vars(s_simset) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
   } else {
     send_msg_id USF-XSim-038 INFO "Unsupported object source: $tcl_obj\n"
     return 1
@@ -963,28 +963,6 @@ proc usf_write_shell_step_fn { fh } {
 # Low level helper procs
 # 
 namespace eval ::tclapp::xilinx::xsim {
-
-proc usf_export_fs_non_hdl_data_files {} {
-  # Summary: Copy fileset IP data files to output directory
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable s_non_hdl_data_files_filter
-
-  set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
-  set data_files [list]
-  foreach file [get_files -all -quiet -of_objects [get_filesets $fs_obj] -filter $s_non_hdl_data_files_filter] {
-    # skip user disabled (if the file supports is_user_disabled property
-    if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
-      if { [get_property {IS_USER_DISABLED} $file] } {
-        continue;
-      }
-    }
-    lappend data_files $file
-  }
-  xcs_export_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $data_files
-}
 
 proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir "true" } } {
   # Summary: find source files marked as global include
