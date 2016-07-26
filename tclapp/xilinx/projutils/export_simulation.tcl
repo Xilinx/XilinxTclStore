@@ -2063,17 +2063,17 @@ proc xps_append_config_opts { opts_arg simulator tool } {
     }
     "modelsim" {
       if {"vlog" == $tool} {set opts_str "-incr"}
-      if {"vcom" == $tool} {set opts_str "-93"}
+      if {"vcom" == $tool} {set opts_str ""}
       if {"vsim" == $tool} {set opts_str ""}
     }
     "riviera" {
       if {"vlog" == $tool} {set opts_str ""}
-      if {"vcom" == $tool} {set opts_str "-93"}
+      if {"vcom" == $tool} {set opts_str ""}
       if {"asim" == $tool} {set opts_str ""}
     }
     "activehdl" {
       if {"vlog" == $tool} {set opts_str ""}
-      if {"vcom" == $tool} {set opts_str "-93"}
+      if {"vcom" == $tool} {set opts_str ""}
       if {"asim" == $tool} {set opts_str ""}
     }
     "questa" {
@@ -2748,10 +2748,14 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
         set s_64bit {-32}
       }
       set arg_list [list $s_64bit]
-      #lappend arg_list "-93"
       if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
         set arg_list [list]
       }
+      set opts_str "-93"
+      if { [string equal -nocase $file_type "vhdl 2008"] } {
+        set opts_str "-2008"
+      }
+      lappend arg_list $opts_str
       xps_append_config_opts arg_list $simulator "vcom"
       set cmd_str [join $arg_list " "]
       lappend opts $cmd_str
