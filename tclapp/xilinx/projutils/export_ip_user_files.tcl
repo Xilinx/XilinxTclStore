@@ -215,6 +215,11 @@ proc export_ip_user_files {args} {
     }
   }
 
+  # delete empty directories from "ip_user_files/ipstatic" if exist
+  if { $a_vars(b_use_static_lib) } {
+    xif_delete_empty_dirs $a_vars(ipstatic_dir)
+  }
+
   # clear cache
   array unset a_cache_result
   array unset a_cache_get_dynamic_sim_file_bd
@@ -408,10 +413,6 @@ proc xif_export_ip { obj } {
         #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted static file:$repo_file\n"
       }
     }
-  }
-
-  if { $a_vars(b_use_static_lib) } {
-    xif_delete_empty_dirs $a_vars(ipstatic_dir)
   }
 
   # set ip instance dir <ip_user_files>/ip/<ip_instance>
@@ -756,10 +757,6 @@ proc xif_export_bd { obj } {
         #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted static file:$repo_file\n"
       }
     }
-  }
-
-  if { $a_vars(b_use_static_lib) } {
-    xif_delete_empty_dirs $a_vars(ipstatic_dir)
   }
 
   # set bd instance dir <ip_user_files>/bd/<ip_instance>
