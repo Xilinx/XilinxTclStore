@@ -5519,6 +5519,27 @@ set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vector
 set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]] 
 
 
+#added by Bulat
+set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
+set soc_input_vectors {}
+set soc_input_vectors_length {}
+		
+for {set i 0} {$i < $num_soc_input_vectors} {incr i} {
+	lappend soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
+	lappend soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
+}		
+			
+			
+set num_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 1 ]]
+set soc_output_vectors {}
+set soc_output_vectors_length {}
+			
+for {set i 0} {$i < $num_soc_output_vectors} {incr i} {
+	lappend soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
+	lappend soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
+}
+#end added by Bulat
+
 set dir_name ""
 append dir_name "doc/" $project_name
 file mkdir $dir_name
@@ -5657,6 +5678,41 @@ foreach i $output_vectors {
 	puts $file $tmp_line
 	incr m
 }
+
+
+
+#added by Bulat
+if { ([llength $soc_input_vectors]>0) && ([llength $soc_output_vectors]>0) } {
+	puts $file ""
+	puts $file ""
+	puts $file "---------------------------------------------------------"
+	puts $file "SoC Input and output vectors:"
+	puts $file "---------------------------------------------------------"
+	puts $file ""
+	puts $file "Name			| Direction		| Number of data "
+	puts $file ""
+	set m 0
+	foreach i $soc_input_vectors { 
+		set tmp_line ""
+		append tmp_line $i "			 	| Input         | SOC_[string toupper [lindex $soc_input_vectors $m]]_IN_LENGTH=[lindex $soc_input_vectors_length $m]"
+		puts $file $tmp_line
+		incr m
+	}
+	set m 0
+	foreach i $soc_output_vectors {
+		set tmp_line ""
+		append tmp_line $i "			 	| Output         | SOC_[string toupper [lindex $soc_output_vectors $m]]_OUT_LENGTH=[lindex $soc_output_vectors_length $m]"
+		puts $file $tmp_line
+		incr m
+
+	}
+	puts $file ""
+	puts $file "NOTE: SoC interfaces use single precision floating point arithmetics."
+	puts $file ""
+	puts $file ""
+}
+
+#end added by Bulat
 
 
 puts $file ""
