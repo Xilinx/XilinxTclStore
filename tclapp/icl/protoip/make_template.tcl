@@ -22,6 +22,8 @@ proc ::tclapp::icl::protoip::make_template {args} {
 	# -project_name <arg>: Project name
 	# -input <arg>: Input vector name,size and type separated by ':' symbol
 	# -output <arg>: Output vector name,size and type separated by ':' symbol
+	# -soc_input <arg>: SoC input vector name,size and type separated by ':' symbol
+	# -soc_output <arg>: SoC output vector name,size and type separated by ':' symbol
 	# [-usage]: Usage information
 
 	# Return Value:
@@ -93,8 +95,10 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
 	set str_float "float"
 	
 	#added by Bulat
+	set soc_input {}
 	set soc_input_vectors {}
 	set soc_input_vectors_length {}
+	set soc_output {}
 	set soc_output_vectors {}
 	set soc_output_vectors_length {}
 	#end added by Bulat
@@ -273,6 +277,76 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
 	
 			}
 	     }
+
+
+
+
+	 -soc_input - 
+        {^-s(o(c(_(i(n(p(ut?)?)?)?)?)?)?)?$} {
+        	# this branch was added by Bulat
+            set soc_input [lshift args]
+            if {$soc_input == {}} {
+               puts " -E- NO input specified."
+               incr error
+            } else {
+				set records [split $soc_input ":"]
+				if {[lindex $records 1] == {}} {
+					puts " -E- input vector [lindex $records 0]: NO lengths specified."
+					incr error
+				} 
+
+				lappend soc_input_vectors [lindex $records 0]
+				lappend soc_input_vectors_length [lindex $records 1]
+	
+				#correctness checks:
+				
+				#vector length
+				if {[string is integer -strict [lindex $records 1]]==1} {
+					if {[lindex $records 1]<1} {
+						puts " -E- SoC nput vector [lindex $records 0]: length must be an integer greater than 0."
+						incr error
+					}
+				} else {
+					puts " -E- SoC input vector [lindex $records 0]: length must be an integer greater than 0."
+					incr error
+				}
+			}
+	     }
+
+	 -soc_output -
+        {^-s(o(c(_(o(u(t(p(ut?)?)?)?)?)?)?)?)?$} {
+        	# this branch was added by Bulat
+            set soc_output [lshift args]
+            if {$soc_input == {}} {
+               puts " -E- NO input specified."
+               incr error
+            } else {
+				set records [split $soc_output ":"]
+				if {[lindex $records 1] == {}} {
+					puts " -E- SoC output vector [lindex $records 0]: NO lengths specified."
+					incr error
+				} 
+
+				lappend soc_output_vectors [lindex $records 0]
+				lappend soc_output_vectors_length [lindex $records 1]
+	
+				#correctness checks:
+				
+				#vector length
+				if {[string is integer -strict [lindex $records 1]]==1} {
+					if {[lindex $records 1]<1} {
+						puts " -E- SoC output vector [lindex $records 0]: length must be an integer greater than 0."
+						incr error
+					}
+				} else {
+					puts " -E- SoC output vector [lindex $records 0]: length must be an integer greater than 0."
+					incr error
+				}
+			}
+	     }	  
+
+
+
 		 -project_name -
         {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
@@ -290,6 +364,7 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
 				incr error
              } 
 	     }
+
         -usage -
 		  {^-u(s(a(ge?)?)?)?$} -
 		  -help -
