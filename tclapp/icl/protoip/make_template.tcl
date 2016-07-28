@@ -1454,7 +1454,7 @@ foreach i $output_vectors {
 }
 puts $file ""
 foreach i $input_vectors {
-	append tmp_line "	data_t_" $i "_in  " $i "_in_int\[[string toupper $i]_IN_LENGTH\];"
+	append tmp_line "	static data_t_" $i "_in  " $i "_in_int\[[string toupper $i]_IN_LENGTH\];"
 	puts $file $tmp_line
 	unset tmp_line
 }
@@ -1723,6 +1723,7 @@ puts $file "#include <sstream>"
 puts $file "#include <vector>"
 #added by Bulat
 puts $file "#include <hls_math.h>"
+puts $file "#include \"ap_cint.h\""
 
 puts $file ""
 puts $file ""
