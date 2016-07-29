@@ -8555,12 +8555,12 @@ foreach i $output_vectors {
 }
 
 #calculate maximum vector lengths for IP interface
-set tmp_line ""
-append tmp_line "#define IP_MAX_IN_VECTOR_LENGTH [lindex [lsort -decreasing $input_vectors_length] 0]"
-puts $file $tmp_line
-set tmp_line ""
-append tmp_line "#define IP_MAX_OUT_VECTOR_LENGTH [lindex [lsort -decreasing $output_vectors_length] 0]"
-puts $file $tmp_line
+#set tmp_line ""
+#append tmp_line "#define IP_MAX_IN_VECTOR_LENGTH [lindex [lsort -decreasing $input_vectors_length] 0]"
+#puts $file $tmp_line
+#set tmp_line ""
+#append tmp_line "#define IP_MAX_OUT_VECTOR_LENGTH [lindex [lsort -decreasing $output_vectors_length] 0]"
+#puts $file $tmp_line
 
 
 
@@ -9232,12 +9232,12 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	set tmp_line "void soc_user("
 	foreach i $soc_input_vectors {
 		append tmp_line "float "
-		append tmp_line "*soc_$i\_in,"
+		append tmp_line "soc_$i\_in\[SOC_[string toupper $i]_IN_VECTOR_LENGTH\],"
 
 	}
 	foreach i $soc_output_vectors {
 		append tmp_line "float "
-		append tmp_line "*soc_$i\_out,"
+		append tmp_line "soc_$i\_out\[SOC_[string toupper $i]_OUT_VECTOR_LENGTH\],"
 	}
 	set tmp_line [string trim $tmp_line ","]
 	append tmp_line ")"
@@ -9342,12 +9342,12 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	set tmp_line "void soc_user("
 	foreach i $soc_input_vectors {
 		append tmp_line "float "
-		append tmp_line "*soc_$i\_in,"
+		append tmp_line "soc_$i\_in\[SOC_[string toupper $i]_IN_VECTOR_LENGTH\],"
 
 	}
 	foreach i $soc_output_vectors {
 		append tmp_line "float "
-		append tmp_line "*soc_$i\_out,"
+		append tmp_line "soc_$i\_out\[SOC_[string toupper $i]_OUT_VECTOR_LENGTH\],"
 	}
 	set tmp_line [string trim $tmp_line ","]
 	append tmp_line ");"
