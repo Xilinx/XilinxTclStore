@@ -1798,7 +1798,7 @@ puts $file "#include <sstream>"
 puts $file "#include <vector>"
 #added by Bulat
 puts $file "#include <hls_math.h>"
-puts $file "#include \"ap_cint.h\""
+#puts $file "#include \"ap_cint.h\""
 
 puts $file ""
 puts $file ""
