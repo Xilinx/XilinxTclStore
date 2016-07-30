@@ -202,7 +202,7 @@ if {$error==0} {
 			# Create SDK Project
 			puts "Calling SDK GUI ..."
 			
-			set command_name "|xsdk -workspace "
+			set command_name "|xsdk -wait -workspace "
 			append command_name $target_dir
 			append command_name "/workspace1"
 
