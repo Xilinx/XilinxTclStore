@@ -8054,65 +8054,56 @@ puts $file "							else"
 puts $file "								printf(\"ERROR: reprogram the FPGA !\\n\"); //should be added the IP reset procedure"
 puts $file ""
 puts $file "						\}"
-puts $file "					else if (packet_type==2) //start IP"
+puts $file "					else if (packet_type==2) //start SOC function"  ; 
 puts $file "							\{"
 puts $file ""
 puts $file "								if (DEBUG)"
-puts $file "									printf(\"Start IP ...\\n\");"
+puts $file "									printf(\"Start SOC function ...\\n\");"
 puts $file ""
-foreach i $input_vectors {
-
-	set tmp_line ""
-	append tmp_line "								XFoo_Set_byte_" $i "_in_offset(&xcore," $i "_IN_DEFINED_MEM_ADDRESS);"
-	puts $file $tmp_line
-
-}
-foreach i $output_vectors {
-
-	set tmp_line ""
-	append tmp_line "								XFoo_Set_byte_" $i "_out_offset(&xcore," $i "_OUT_DEFINED_MEM_ADDRESS);"
-	puts $file $tmp_line
-
-}
 puts $file ""
 puts $file "								//Start timer"
 puts $file "								CntValue1 = IpTimer(TIMER_DEVICE_ID,0);"
 puts $file ""
-puts $file "								//Start IP core"
-puts $file "								XFoo_Start(&xcore);"
+puts $file "								//Start SOC function"
+#added by Bulat
+set tmp_line "soc_user("
+foreach i $soc_input_vectors {
+	append tmp_line "soc_$i\_in,"
+}
+foreach i $soc_output_vectors {
+	append tmp_line "soc_$i\_out,"
+}
+set tmp_line [ string trim $tmp_line "," ]
+append tmp_line ");"
+puts $file "								$tmp_line"
+# end added by Bulat
 puts $file ""
-puts $file "								//wait until the IP has finished. If an Ethernet read request arrive, it will be served only when the IP will finish. FPGAclientAPI has a timeout of 1 day."
-puts $file "								while (XFoo_IsIdle(&xcore)!=1)"
-puts $file "								\{"
-puts $file "									if (DEBUG)"
-puts $file "										printf(\"Wait until the IP has finished ...\\n\");"
-puts $file "								\}"
-puts $file ""
+
 puts $file "								//Stop timer"
 puts $file "								CntValue2 = IpTimer(TIMER_DEVICE_ID,1);"
 puts $file ""
 puts $file "								if (DEBUG)"
 puts $file "								\{"
-puts $file "									printf (\"IP Timer: beginning of the counter is : %d \\n\", CntValue1);"
-puts $file "									printf (\"IP Timer: end of the counter is : %d \\n\", CntValue2);"
+puts $file "									printf (\"SOC Timer: beginning of the counter is : %d \\n\", CntValue1);"
+puts $file "									printf (\"SOC Timer: end of the counter is : %d \\n\", CntValue2);"
 puts $file "								\}"
 puts $file ""
 puts $file "					\}"
-puts $file "					else if (packet_type==3) //write data DDR"
+puts $file "					else if (packet_type==3) //write data to SOC input arrays"
 puts $file "					\{"
 puts $file ""
 puts $file "						if (DEBUG)"
-puts $file "						printf(\"Write data to DDR ...\\n\");"
+puts $file "						printf(\"Write data to SOC input arrays ...\\n\");"
 puts $file ""
 puts $file "						switch (packet_internal_ID)"
 puts $file "						\{"
 
 
 set m 0
-foreach i $input_vectors {
+foreach i $soc_input_vectors {
 
 	set tmp_line ""
-	append tmp_line "							case " $m ": //" $i "_in"
+	append tmp_line "							case " $m ": //" soc_$i "_in"
 	puts $file $tmp_line
 	
 	set tmp_line ""
@@ -8120,44 +8111,34 @@ foreach i $input_vectors {
 	puts $file $tmp_line
 	
 	set tmp_line ""
-	append tmp_line "									printf(\"write " $i "_in\\n\\r\");"
+	append tmp_line "									printf(\"write " soc_$i "_in\\n\\r\");"
 	puts $file $tmp_line
 	
-puts $file ""
-set tmp_line ""	
-append tmp_line "							if (FLOAT_FIX_" [string toupper $i] "_IN==1) \{"
-puts $file $tmp_line
+	puts $file ""
 
-set tmp_line ""	
-append tmp_line "								for (i=0; i<ETH_PACKET_LENGTH-2; i++)"
-puts $file $tmp_line
-set tmp_line ""	
-append tmp_line "								\{"
-puts $file $tmp_line
-set tmp_line ""	
-append tmp_line "									tmp_float=*(float*)&inputvec\[i\];"
-puts $file $tmp_line
-set tmp_line ""	
-append tmp_line "									inputvec_fix\[i\]=(int32_t)(tmp_float*pow(2," [string toupper $i] "_IN_FRACTIONLENGTH));"
-puts $file $tmp_line
-set tmp_line ""	
-append tmp_line "								\}"
-puts $file $tmp_line
-set tmp_line ""	
-append tmp_line "								memcpy(" $i "_in_ptr_ddr+(ETH_PACKET_LENGTH-2)*packet_internal_ID_offset,inputvec_fix,(ETH_PACKET_LENGTH-2)*4);"
-puts $file $tmp_line
-set tmp_line ""	
-append tmp_line "							\} else \{ //floating-point"
-puts $file $tmp_line
-set tmp_line ""	
-append tmp_line "								memcpy(" $i "_in_ptr_ddr+(ETH_PACKET_LENGTH-2)*packet_internal_ID_offset,inputvec,(ETH_PACKET_LENGTH-2)*4);"
-puts $file $tmp_line
-set tmp_line ""	
-append tmp_line "							\}"
-puts $file $tmp_line
+	set tmp_line ""	
+	append tmp_line "								for (i=0; i<ETH_PACKET_LENGTH-2; i++)"
+	puts $file $tmp_line
+	set tmp_line ""	
+	append tmp_line "								\{"
+	puts $file $tmp_line
+	set tmp_line ""	
+	append tmp_line "									tmp_float=*(float*)&inputvec\[i\];"
+	puts $file $tmp_line
+	set tmp_line ""	
+	append tmp_line "									if(i+(ETH_PACKET_LENGTH-2)*packet_internal_ID_offset > SOC_[string toupper $i]_IN_VECTOR_LENGTH)"
+	puts $file $tmp_line
+	set tmp_line ""	
+	append tmp_line "										{break;}"
+	puts $file $tmp_line
+	set tmp_line ""	
+	append tmp_line "									soc_$i\_in\[i+(ETH_PACKET_LENGTH-2)*packet_internal_ID_offset\] = tmp_float;"
+	puts $file $tmp_line
+	set tmp_line ""	
+	append tmp_line "								\}"
+	puts $file $tmp_line
 
-	
-	
+		
 	
 	set tmp_line ""
 	append tmp_line "							break;"
@@ -8176,7 +8157,7 @@ puts $file "						\}"
 puts $file ""
 puts $file "					\}"
 puts $file ""
-puts $file "					else if (packet_type==4) //read data from DDR"
+puts $file "					else if (packet_type==4) //read data from SOC output vectors"
 puts $file "					\{"
 puts $file "						"
 puts $file "						tmp_float=((float)CntValue1-(float)CntValue2) / (float)EE_TICKS_PER_SEC;"
@@ -8199,7 +8180,7 @@ puts $file "						\{"
 
 
 set m 0
-foreach i $output_vectors {
+foreach i $soc_output_vectors {
 
 	set tmp_line ""
 	append tmp_line "							case " $m ": //" $i "_in"
@@ -8212,39 +8193,25 @@ foreach i $output_vectors {
 	set tmp_line ""
 	append tmp_line "								printf(\"read " $i "_out\\n\\r\");"
 	puts $file $tmp_line
-	
+		
 	set tmp_line ""
-	append tmp_line "							memcpy(outvec_fix," $i "_out_ptr_ddr+(ETH_PACKET_LENGTH_RECV-2)*packet_internal_ID_offset,(ETH_PACKET_LENGTH_RECV-2)*4);"
+	append tmp_line "							for (i=0; i<ETH_PACKET_LENGTH_RECV-2; i++)"
 	puts $file $tmp_line
-	
-	
-set tmp_line ""
-append tmp_line "							for (i=0; i<ETH_PACKET_LENGTH_RECV-2; i++)"
-puts $file $tmp_line
-set tmp_line ""
-append tmp_line "							\{"
-puts $file $tmp_line
-set tmp_line ""
-append tmp_line "								if (FLOAT_FIX_" [string toupper $i] "_OUT==1) \{ //fixed-point"
-puts $file $tmp_line
-set tmp_line ""
-append tmp_line "									tmp_float=((float)outvec_fix\[i\])/pow(2," [string toupper $i] "_OUT_FRACTIONLENGTH);"
-puts $file $tmp_line
-set tmp_line ""
-append tmp_line "									outvec\[i\]=*(Xint32*)&tmp_float;"
-puts $file $tmp_line
-set tmp_line ""
-append tmp_line "								\} else \{ //floating point"
-puts $file $tmp_line
-set tmp_line ""
-append tmp_line "									outvec\[i\]=outvec_fix\[i\];"
-puts $file $tmp_line
-set tmp_line ""
-append tmp_line "								\}"
-puts $file $tmp_line
-set tmp_line ""
-append tmp_line "							\}"
-puts $file $tmp_line
+	set tmp_line ""
+	append tmp_line "							\{"
+	puts $file $tmp_line
+	set tmp_line ""
+	append tmp_line "								if (i+(ETH_PACKET_LENGTH_RECV-2)*packet_internal_ID_offset > SOC_[string toupper $i]_OUT_VECTOR_LENGTH)"
+	puts $file $tmp_line
+	set tmp_line ""
+	append tmp_line "									break;"
+	puts $file $tmp_line
+	set tmp_line ""
+	append tmp_line "								outvec\[i\]=*(Xint32*)&soc_$i\_out\[i+(ETH_PACKET_LENGTH_RECV-2)*packet_internal_ID_offset\];"
+	puts $file $tmp_line
+	set tmp_line ""
+	append tmp_line "							\}"
+	puts $file $tmp_line
 
 	set tmp_line ""
 	append tmp_line "							break;"
