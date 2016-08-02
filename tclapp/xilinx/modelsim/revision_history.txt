@@ -1,3 +1,4 @@
+2.128 consider XPM precompiled library for RTL based designs
 2.127 refactored export_fs_non_hdl_data_files proc to common utils
 2.126 refactored procs to common utils
 2.125 refactor common procs to utils
