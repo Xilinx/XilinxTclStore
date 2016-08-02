@@ -736,9 +736,11 @@ if {$error==0} {
 	file mkdir ip_prototype/build/prj
 	
 	#added by Bulat
-	file mkdir soc_prototype/src
-	file mkdir soc_prototype/test/prj
-	file mkdir soc_prototype/test/results
+	if {$type_template == "SOC"} {
+		file mkdir soc_prototype/src
+		file mkdir soc_prototype/test/prj
+		file mkdir soc_prototype/test/results
+	}
 	
 	#end added by Bulat
 
@@ -796,7 +798,7 @@ if {$error==0} {
 	
 
 
-	if {$type_template == "PL"} {
+	if {$type_template == "PL" || $type_template == "SOC"} {
 	
 	
 	if {$count_is_fix==[expr $num_input_vectors+$num_output_vectors] || $count_is_float==[expr $num_input_vectors+$num_output_vectors]} {
@@ -833,20 +835,22 @@ if {$error==0} {
 
 		
 		#added by Bulat
-		[::tclapp::icl::protoip::make_template::soc_make_main_c]
-		[::tclapp::icl::protoip::make_template::soc_make_echo_c $project_name]
-		[::tclapp::icl::protoip::make_template::soc_make_FPGAserver_h $project_name]
-		
-		[::tclapp::icl::protoip::make_template::make_foo_function_wrapped $project_name]
-		[::tclapp::icl::protoip::make_template::make_soc_user $project_name]		
-		
-		#HIL test files
-		[::tclapp::icl::protoip::make_template::make_soc_FPGAclientAPI_h $project_name]
-		[::tclapp::icl::protoip::make_template::soc_FPGAclientMATLAB_m]
-		[::tclapp::icl::protoip::make_template::soc_FPGAclientMATLAB_c]
-		[::tclapp::icl::protoip::make_template::make_soc_test_HIL_m $project_name]
+		if {$type_template == "SOC"} {
+			[::tclapp::icl::protoip::make_template::soc_make_main_c]
+			[::tclapp::icl::protoip::make_template::soc_make_echo_c $project_name]
+			[::tclapp::icl::protoip::make_template::soc_make_FPGAserver_h $project_name]
+			
+			[::tclapp::icl::protoip::make_template::make_foo_function_wrapped $project_name]
+			[::tclapp::icl::protoip::make_template::make_soc_user $project_name]		
+			
+			#HIL test files
+			[::tclapp::icl::protoip::make_template::make_soc_FPGAclientAPI_h $project_name]
+			[::tclapp::icl::protoip::make_template::soc_FPGAclientMATLAB_m]
+			[::tclapp::icl::protoip::make_template::soc_FPGAclientMATLAB_c]
+			[::tclapp::icl::protoip::make_template::make_soc_test_HIL_m $project_name]
 
-		[::tclapp::icl::protoip::make_template::make_build_soc_sdk_project_tcl]
+			[::tclapp::icl::protoip::make_template::make_build_soc_sdk_project_tcl]
+		}
 		
 		#end added by Bulat
 		
@@ -1032,12 +1036,13 @@ set type_template [lindex $args 18]
 set type_design_flow [lindex $args 19]
 
 #added by Bulat
-set soc_input_vectors [lindex $args 20]
-set soc_input_vectors_length [lindex $args 21]
+if {$type_template == "SOC"} {
+	set soc_input_vectors [lindex $args 20]
+	set soc_input_vectors_length [lindex $args 21]
 
-set soc_output_vectors [lindex $args 22]
-set soc_output_vectors_length [lindex $args 23]
-
+	set soc_output_vectors [lindex $args 22]
+	set soc_output_vectors_length [lindex $args 23]
+}
 #end added by Bulat
 
 
@@ -1164,54 +1169,55 @@ puts $file "#type_design_flow"
 puts $file $type_design_flow
 
 #added by Bulat
+if {$type_template == "SOC"} {
+	#soc_inputs:
+	puts $file "#soc_Input"
 
-#soc_inputs:
-puts $file "#soc_Input"
+	set count 0
+	foreach i $soc_input_vectors {
+		incr count
+	}
 
-set count 0
-foreach i $soc_input_vectors {
-	incr count
-}
+	#Number of SOC inputs vectors
+	puts $file $count
+	set count 0
 
-#Number of SOC inputs vectors
-puts $file $count
-set count 0
-
-foreach i $soc_input_vectors {
-	#Vector name
-	puts $file $i
-	#Number of elements
-	puts $file [lindex $soc_input_vectors_length $count]
-	puts $file 0
-	puts $file 0
-	puts $file 0
-	
-	incr count
-}
+	foreach i $soc_input_vectors {
+		#Vector name
+		puts $file $i
+		#Number of elements
+		puts $file [lindex $soc_input_vectors_length $count]
+		puts $file 0
+		puts $file 0
+		puts $file 0
+		
+		incr count
+	}
 
 
-#soc_outputs:
-puts $file "#soc_Output"
+	#soc_outputs:
+	puts $file "#soc_Output"
 
-set count 0
-foreach i $soc_output_vectors {
-	incr count
-}
+	set count 0
+	foreach i $soc_output_vectors {
+		incr count
+	}
 
-#Number of SOC output vectors
-puts $file $count
-set count 0
+	#Number of SOC output vectors
+	puts $file $count
+	set count 0
 
-foreach i $soc_output_vectors {
-	#Vector name
-	puts $file $i
-	#Number of elements
-	puts $file [lindex $soc_output_vectors_length $count]
-	puts $file 0
-	puts $file 0
-	puts $file 0
-	
-	incr count
+	foreach i $soc_output_vectors {
+		#Vector name
+		puts $file $i
+		#Number of elements
+		puts $file [lindex $soc_output_vectors_length $count]
+		puts $file 0
+		puts $file 0
+		puts $file 0
+		
+		incr count
+	}
 }
 
 #end added by Bulat
@@ -5595,23 +5601,25 @@ set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_ve
 
 
 #added by Bulat
-set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
-set soc_input_vectors {}
-set soc_input_vectors_length {}
-		
-for {set i 0} {$i < $num_soc_input_vectors} {incr i} {
-	lappend soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
-	lappend soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
-}		
+if {$type_template == "SOC"} {
+	set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
+	set soc_input_vectors {}
+	set soc_input_vectors_length {}
 			
-			
-set num_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 1 ]]
-set soc_output_vectors {}
-set soc_output_vectors_length {}
-			
-for {set i 0} {$i < $num_soc_output_vectors} {incr i} {
-	lappend soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
-	lappend soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
+	for {set i 0} {$i < $num_soc_input_vectors} {incr i} {
+		lappend soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
+		lappend soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
+	}		
+				
+				
+	set num_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 1 ]]
+	set soc_output_vectors {}
+	set soc_output_vectors_length {}
+				
+	for {set i 0} {$i < $num_soc_output_vectors} {incr i} {
+		lappend soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
+		lappend soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
+	}
 }
 #end added by Bulat
 
@@ -5757,6 +5765,7 @@ foreach i $output_vectors {
 
 
 #added by Bulat
+if {$type_template == "SOC"} {
 if { ([llength $soc_input_vectors]>0) && ([llength $soc_output_vectors]>0) } {
 	puts $file ""
 	puts $file ""
@@ -5786,7 +5795,7 @@ if { ([llength $soc_input_vectors]>0) && ([llength $soc_output_vectors]>0) } {
 	puts $file ""
 	puts $file ""
 }
-
+}
 #end added by Bulat
 
 
