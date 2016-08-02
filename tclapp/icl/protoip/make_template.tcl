@@ -705,6 +705,88 @@ if {$help==0} {
 				puts ""
 			}	
 
+			# added by Bulat
+			if {$type_template == "SOC"} {
+				if {[lindex $soc_input_vectors 0] == {}} {
+				puts " -E- there are NO soc_input vectors."
+				incr error
+		   		}
+		   		#checks if there is at least one output vector 
+		   		if {[lindex $soc_output_vectors 0] == {}} {
+					puts " -E- there are NO soc_outputs vectors."
+					incr error
+		   		}
+			}
+			# print SOC vectors list
+			if {$error==0} {
+				puts ""
+				puts "SOC Input vectors list:"
+				puts "---------------------------"
+				set m 0
+				foreach i $soc_input_vectors {
+					if {[lindex $soc_input_vectors_length $m] != {}}  {
+						puts "SOC input vector  $m: '$i' is [lindex $soc_input_vectors_length $m] element(s)"
+					}
+					incr m
+					}
+
+					puts ""    
+			
+			
+				puts ""
+				puts "SOC Output vectors list:"
+				puts "---------------------------"
+				set m 0
+				foreach i $soc_output_vectors {
+					if {[lindex $soc_output_vectors_length $m] != {}}  {
+						puts "SOC output vector  $m: '$i' is [lindex $soc_output_vectors_length $m] element(s)"
+					}
+					incr m
+					}
+				puts ""
+			}	
+
+			#checks if there are input vectors with the same name
+			set error_i 0
+			set count_i 0
+			foreach i $soc_input_vectors {
+				set count_j 0
+				foreach j $soc_input_vectors {
+					if {$count_j > $count_i} { 
+						if {$i == $j} {
+							incr error_i
+						}
+					}
+					incr count_j
+				}
+				incr count_i
+			}
+			if {$error_i>0} {
+				puts " -E- there are SOC inputs vector with the same name"
+				incr error
+			}
+
+			#checks if there are output vectors with the same name
+			set error_i 0
+			set count_i 0
+			foreach i $soc_output_vectors {
+				set count_j 0
+				foreach j $soc_output_vectors {
+					if {$count_j > $count_i} { 
+						if {$i == $j} {
+							incr error_i
+						}
+					}
+					incr count_j
+				}
+				incr count_i
+			}
+			if {$error_i>0} {
+				puts " -E- there are SOC output vector with the same name"
+				incr error
+			}
+			# end added by Bulat
+
     
 }
 
@@ -6184,22 +6266,26 @@ puts $file "	%added by Bulat"
 puts $file "    %find the index of #soc_Input"
 puts $file "    IndexC = strfind(configuration_parameters, '#soc_Input');"
 puts $file "    index_soc_input = find(not(cellfun('isempty', IndexC))); "
-puts $file "    num_soc_inputs_value = str2double(configuration_parameters{index_soc_input+1,1});"
-puts $file "    for i=0:num_soc_inputs_value-1"
-puts $file "        %size"
-puts $file "        tmp_str=strcat('SOC_',upper(configuration_parameters{index_soc_input+2+i*5,1}),'_IN_LENGTH');"
-puts $file "        input_size=str2double(configuration_parameters{index_soc_input+3+i*5,1});"
-puts $file "        assignin('caller', tmp_str, input_size);"
+puts $file "    if(index_soc_input > 0) "
+puts $file "        num_soc_inputs_value = str2double(configuration_parameters{index_soc_input+1,1});"
+puts $file "        for i=0:num_soc_inputs_value-1"
+puts $file "            %size"
+puts $file "            tmp_str=strcat('SOC_',upper(configuration_parameters{index_soc_input+2+i*5,1}),'_IN_LENGTH');"
+puts $file "            input_size=str2double(configuration_parameters{index_soc_input+3+i*5,1});"
+puts $file "            assignin('caller', tmp_str, input_size);"
+puts $file "        end"
 puts $file "    end"
 puts $file "    %find the index of #soc_Output"
 puts $file "    IndexC = strfind(configuration_parameters, '#soc_Output');"
 puts $file "    index_soc_output = find(not(cellfun('isempty', IndexC)));"
-puts $file "    num_soc_outputs_value = str2double(configuration_parameters{index_soc_output+1,1});  "
-puts $file "    for i=0:num_soc_outputs_value-1"
-puts $file "        %size"
-puts $file "        tmp_str=strcat('SOC_',upper(configuration_parameters{index_soc_output+2+i*5,1}),'_OUT_LENGTH');"
-puts $file "        input_size=str2double(configuration_parameters{index_soc_output+3+i*5,1});"
-puts $file "        assignin('caller', tmp_str, input_size);"
+puts $file "    if(index_soc_output > 0) "
+puts $file "        num_soc_outputs_value = str2double(configuration_parameters{index_soc_output+1,1});  "
+puts $file "        for i=0:num_soc_outputs_value-1"
+puts $file "            %size"
+puts $file "            tmp_str=strcat('SOC_',upper(configuration_parameters{index_soc_output+2+i*5,1}),'_OUT_LENGTH');"
+puts $file "            input_size=str2double(configuration_parameters{index_soc_output+3+i*5,1});"
+puts $file "            assignin('caller', tmp_str, input_size);"
+puts $file "        end      "
 puts $file "    end      "
 puts $file "   %end added by Bulat"
 #end added by Bulat

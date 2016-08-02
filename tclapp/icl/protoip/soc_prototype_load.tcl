@@ -239,6 +239,12 @@ if {$error==0} {
 			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
 			
 			#added by Bulat
+
+			if {!($type_template == "SOC")} {
+				error " -E- This function can be used only for SOC template. Consider using ip_prototype_load function or change to SOC template"
+				incr error
+			}
+
 			set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
 			set soc_input_vectors {}
 			set soc_input_vectors_length {}
@@ -403,7 +409,7 @@ if {$error==0} {
 
 	puts ""
     if {$error} {
-		puts "SDK: FPGA software project built ERROR. Please run tclapp::icl::protoip::ip_prototype_load_debug to open SDK GUI and debug the software project using Eclipse enviroment"
+		puts "SDK: FPGA software project built ERROR. Please run tclapp::icl::protoip::soc_prototype_load_debug to open SDK GUI and debug the software project using Eclipse enviroment"
 		puts ""
 		return -code error
     } else {
