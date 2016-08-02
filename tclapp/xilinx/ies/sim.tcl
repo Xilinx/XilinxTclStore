@@ -142,7 +142,13 @@ proc usf_ies_setup_simulation { args } {
   # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   variable l_compiled_libraries
-  if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
+  set b_reference_xpm_library 0
+  if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
+     if { [get_param project.usePreCompiledXPMLibForSim] } {
+      set b_reference_xpm_library 1
+    }
+  }
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     set clibs_dir [get_property compxlib.ies_compiled_library_dir [current_project]]
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
     set libraries [xcs_get_compiled_libraries $clibs_dir]

@@ -188,7 +188,13 @@ proc usf_xsim_setup_simulation { args } {
   # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   variable l_compiled_libraries
-  if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
+  set b_reference_xpm_library 0
+  if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
+    if { [get_param project.usePreCompiledXPMLibForSim] } {
+      set b_reference_xpm_library 1
+    }
+  }
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     usf_set_compiled_lib_dir
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
     set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir)]
@@ -224,7 +230,13 @@ proc usf_xsim_setup_simulation { args } {
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
  
   set b_create_default_ini 1
-  if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
+  set b_reference_xpm_library 0
+  if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
+    if { [get_param project.usePreCompiledXPMLibForSim] } {
+      set b_reference_xpm_library 1
+    }
+  }
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     set filename "xsim.ini"
     set file [file join $run_dir $filename]
 
