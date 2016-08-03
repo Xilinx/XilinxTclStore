@@ -1,3 +1,4 @@
+3.196 cache IP static files for file obj reference
 3.195 pass 2008 switch based on VHDL 2008 file type
 3.194 call ipstatic empty directory deletion proc after all files exported
 3.193 refactored export_fs_non_hdl_data_files proc to common utils
