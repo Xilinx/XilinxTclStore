@@ -78,6 +78,9 @@ proc xif_init_vars {} {
   variable    a_processed_bd_dir
   array unset a_processed_bd_dir
 
+  variable    a_cache_all_ip_static_files_obj
+  array unset a_cache_all_ip_static_files_obj
+
   variable    a_cache_all_bd_static_files_obj
   array unset a_cache_all_bd_static_files_obj
 
@@ -224,6 +227,7 @@ proc export_ip_user_files {args} {
   array unset a_cache_result
   array unset a_cache_get_dynamic_sim_file_bd
   array unset a_processed_bd_dir
+  array unset a_cache_all_ip_static_files_obj
   array unset a_cache_all_bd_static_files_obj
   array unset a_cache_bd_dst_dirs
 
@@ -340,6 +344,7 @@ proc xif_export_ip { obj } {
   variable a_vars
   variable l_valid_data_file_extns
   variable l_compiled_libraries
+  variable a_cache_all_ip_static_files_obj
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
@@ -351,10 +356,13 @@ proc xif_export_ip { obj } {
   #
   # static files
   #
+  foreach file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
+    set name [get_property name $file_obj]
+    set a_cache_all_ip_static_files_obj($name) $file_obj
+  }
   set ip_data [list]
-  foreach src_ip_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
+  foreach {src_ip_file file_obj} [array get a_cache_all_ip_static_files_obj] {
     set filename [file tail $src_ip_file]
-    set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
     if { {} == $file_obj } { continue; }
     if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file_obj] } {

@@ -1416,7 +1416,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   }
 
   if { [get_property "XSIM.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
-    puts $fh_scr "log_wave -r \[get_objects /*\]"
+    puts $fh_scr "log_wave -r /"
   }
 
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]

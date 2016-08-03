@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass 2008 switch based on VHDL 2008 file type</revision_history>
+      <revision_history>cache IP static files for file obj reference</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
