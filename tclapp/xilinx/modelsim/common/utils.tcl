@@ -260,14 +260,16 @@ proc xcs_find_file_from_compile_order { ip_name src_file } {
   return $src_file
 }
 
-proc xcs_find_ipstatic_file_path { src_ip_file parent_comp_file ipstatic_dir} {
+proc xcs_find_ipstatic_file_path { file_obj src_ip_file parent_comp_file ipstatic_dir} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set dest_file {}
   set filename [file tail $src_ip_file]
-  set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+  if { {} == $file_obj } {
+    set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+  }
   if { {} == $file_obj } {
     set file_obj [lindex [get_files -quiet -all $filename] 0]
   }

@@ -1254,10 +1254,10 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
         set dst_cip_file [xcs_fetch_ipi_static_file $full_src_file_obj $ip_static_file $a_sim_vars(s_ipstatic_source_dir)] 
       } else {
         # get the parent composite file for this static file
-        set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
+        set parent_comp_file [get_property parent_composite_file -quiet $full_src_file_obj]
 
         # calculate destination path
-        set dst_cip_file [xcs_find_ipstatic_file_path $ip_static_file $parent_comp_file $a_sim_vars(s_ipstatic_source_dir)]
+        set dst_cip_file [xcs_find_ipstatic_file_path $full_src_file_obj $ip_static_file $parent_comp_file $a_sim_vars(s_ipstatic_source_dir)]
 
         # skip if file exists
         if { ({} == $dst_cip_file) || (![file exists $dst_cip_file]) } {

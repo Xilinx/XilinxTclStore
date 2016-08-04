@@ -385,7 +385,7 @@ proc xif_export_ip { obj } {
           set library [get_property library $file_obj]
           if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
             # This is causing performance issues (in case the file was present in ipstatic dir from previous run)
-            #set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
+            #set extracted_static_file_path [xif_get_extracted_static_file_path $file_obj $src_ip_file]
             #lappend l_static_files_to_delete $extracted_static_file_path
             continue
           }
@@ -396,7 +396,7 @@ proc xif_export_ip { obj } {
     lappend l_static_files $src_ip_file
     # not extracted yet? extract it
     if { {} == $extracted_static_file_path } {
-      set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
+      set extracted_static_file_path [xif_get_extracted_static_file_path $file_obj $src_ip_file]
     }
 
     # if reset requested, delete IP file from ipstatic
@@ -557,7 +557,7 @@ proc xif_export_ip { obj } {
   return 0
 }
 
-proc xif_get_extracted_static_file_path { src_ip_file } { 
+proc xif_get_extracted_static_file_path { file_obj src_ip_file } { 
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -567,10 +567,10 @@ proc xif_get_extracted_static_file_path { src_ip_file } {
   set ipstatic_file_path {}
 
   # get the parent composite file for this static file
-  set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$src_ip_file"]] 0]]
+  set parent_comp_file [get_property parent_composite_file -quiet $file_obj]
 
   # calculate destination path
-  set ipstatic_file_path [xcs_find_ipstatic_file_path $src_ip_file $parent_comp_file $a_vars(ipstatic_dir)]
+  set ipstatic_file_path [xcs_find_ipstatic_file_path $file_obj $src_ip_file $parent_comp_file $a_vars(ipstatic_dir)]
 
   # skip if file exists
   if { ({} != $ipstatic_file_path) && ([file exists $ipstatic_file_path]) } {
