@@ -77,3 +77,5 @@ set auto_index(::tclapp::icl::protoip::soc_prototype_load) [list source [file jo
 set auto_index(::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load) [list source [file join $dir soc_prototype_load.tcl]]
 set auto_index(::tclapp::icl::protoip::soc_prototype_load_debug) [list source [file join $dir soc_prototype_load_debug.tcl]]
 set auto_index(::tclapp::icl::protoip::soc_prototype_load_debug::soc_prototype_load_debug) [list source [file join $dir soc_prototype_load_debug.tcl]]
+set auto_index(::tclapp::icl::protoip::soc_prototype_test) [list source [file join $dir soc_prototype_test.tcl]]
+set auto_index(::tclapp::icl::protoip::soc_prototype_test::soc_prototype_test) [list source [file join $dir soc_prototype_test.tcl]]

@@ -5,32 +5,31 @@
 
 namespace eval ::tclapp::icl::protoip {
     # Export procs that should be allowed to import into other namespaces
-    namespace export soc_prototype_load
+    namespace export soc_prototype_test
 }
 
 
-proc ::tclapp::icl::protoip::soc_prototype_load {args} {
+proc ::tclapp::icl::protoip::soc_prototype_test {args} {
 
-	  # Summary: Build the FPGA Ethernet server application using SDK according to the specification in [WORKING DIRECTORY]/design_parameters.tcl and program the FPGA. A connected evaluation board is required.
+	  # Summary: Run a test of the SOC named 'project_name' according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt. A connected evaluation board is required.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
 	  # -board_name <arg>: Evaluation board name
-	  # -type_eth <arg>: Ethernet connection protocol (UDP-IP or TCP-IP)
-	  # [-mem_base_address <arg>]: DDR3 memory base address
+	  # -num_test <arg>: Number of test(s)
 	  # [-usage]: Usage information
 
 	  # Return Value:
-	  # Return the built FPGA Ethernet server running on the FPGA ARM processor and the loaded designed IP on the FPGA. If any error occur TCL_ERROR is returned
+	  # Return the test results in [WORKING DIRECTORY]/soc_prototype/test/results/project_name. If any error occur TCL_ERROR is returned.
 
 	  # Categories: 
 	  # xilinxtclstore, protoip
 	  
- uplevel [concat ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load $args]
+uplevel [concat ::tclapp::icl::protoip::soc_prototype_test::soc_prototype_test $args]
 }
 
 # Trick to silence the linter
-eval [list namespace eval ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load {
+eval [list namespace eval ::tclapp::icl::protoip::soc_prototype_test::soc_prototype_test {
   variable version {20/11/2014}
 } ]	  
 
@@ -42,7 +41,7 @@ eval [list namespace eval ::tclapp::icl::protoip::soc_prototype_load::soc_protot
 # #******************************************************************************# #
 #**********************************************************************************#
 
-proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
+proc ::tclapp::icl::protoip::soc_prototype_test::soc_prototype_test { args } {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -76,7 +75,7 @@ proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
     while {[llength $args]} {
       set name [lshift args]
       switch -regexp -- $name {
-		 -project_name -
+	  -project_name -
         {^-p(r(o(j(e(c(t(_(n(a(me?)?)?)?)?)?)?)?)?)?)?$} {
              set project_name [lshift args]
              if {$project_name == {}} {
@@ -92,21 +91,18 @@ proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
 				incr error
              } 
 	     }
-		 -type_eth -
-        {^-t(y(p(e(_(e(th?)?)?)?)?)?)?$} {
-             set type_eth [lshift args]
-             if {$type_eth == {}} {
-				puts " -E- NO ethernet connection type name specified."
+	   -num_test -
+        {^-n(u(m(_(t(e(st?)?)?)?)?)?)?$} {
+             set num_test [lshift args]
+             if {$num_test == {}} {
+				puts " -E- NO number of test(s) specified."
 				incr error
-             } 
-	     }
-		  -mem_base_address -
-        {^-m(e(m(_(b(a(s(e(_(a(d(r(e(s?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
-             set mem_base_address [lshift args]
-             if {$mem_base_address == {}} {
-				puts " -E- NO DDR3 memory base address specified."
-				incr error
-             } 
+             } else {
+				if {$num_test < 1} {
+					puts " -E- number of test(s) must be greater than 0."
+					incr error
+				}
+			}
 	     }
         -usage -
 		  {^-u(s(a(ge?)?)?)?$} -
@@ -130,39 +126,36 @@ proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
       }
     }
     
- if {$help} {
+  if {$help} {
       puts [format {
- Usage: ip_prototype_load
+ Usage: ip_prototype_test
   -project_name <arg>       - Project name
                               It's a mandatory field
   -board_name <arg>         - Evaluation board name
                               It's a mandatory field
-  -type_eth <arg>           - Ethernet connection protocol 
-                              ('udp' for UDP-IP connection or 'tcp' for TCP-IP connection)
+  -num_test <arg>           - Number of test(s)
                               It's a mandatory field
-  [-mem_base_address <arg>] - DDR3 memory base address
   [-usage|-u]               - This help message
 
  Description: 
-  Build the FPGA Ethernet server application using SDK according 
-  to the project configuration parameters
+  Run a HIL test of the IP prototype named 'project_name'
+  according to the project configuration parameters
  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
-  and program the FPGA.
-  
- An evaluation board connected to an host computer through an Ethernet and USB JTAG cable is required.
+   
+ An evaluation board connected to an host computer through an Ethernet cable is required.
  
- This command can be run after 'ip_prototype_build' command only.
-
+ This command must be run after 'ip_prototype_load' command only.
+  
+  
  Example:
-  ip_prototype_load -project_name my_project0  -board_name zedboard -type_eth udp
-  ip_prototype_load -project_name my_project0  -board_name zedboard -type_eth udp -mem_base_address 33554432
+  ip_prototype_test -project_name my_project0 -board_name zedboard -num_test 1
 
 
 } ]
       # HELP -->
       return {}
     }
-	
+
 		if {$error} {
     error " -E- some error(s) happened. Cannot continue. Use the -usage option for more details"
   }
@@ -174,15 +167,17 @@ if {$error==0} {
 	append file_name ".metadata/" $project_name "_configuration_parameters.dat"
 	
 	if {$project_name == {}} {
+	
 			error " -E- NO project name specified. Use the -usage option for more details."
 			
 		} else {
 	
 		if {[file exists $file_name] == 0} { 
 
-			set tmp_error ""
-			append tmp_error "-E- " $project_name " does NOT exist. Use the -usage option for more details."
-			error $tmp_error
+				set tmp_error ""
+				append tmp_error "-E- " $project_name " does NOT exist. Use the -usage option for more details."
+				error $tmp_error
+
 			
 		} else {
 		
@@ -191,6 +186,7 @@ if {$error==0} {
 			error " -E- NO board name specified. Use the -usage option for more details."
 			
 		} else {
+
 		
 			#load configuration parameters
 			set  file_name ""
@@ -231,20 +227,21 @@ if {$error==0} {
 			set fclk [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 2]] 
 			set FPGA_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 4]] 
 			set old_board_name [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 6]] 
-			set old_type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
-			set old_mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
-			set num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
-			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]] 
-			set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]]
-			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]] 
+			set type_eth [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 8]] 
+			set mem_base_address [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 10]] 
+			set old_num_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 12]] 
+			set type_test [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 14]]
+			set type_template [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 16]]			
+			set type_design_flow [lindex $data [expr ($num_input_vectors * 5) + ($num_output_vectors * 5) + 5 + 18]]
+			
+			if {!($type_template == "SOC")} {
+				set tmp_error ""
+				append tmp_error "-E- " "This function can be called for SOC template only. Consider using ip_prototype_test or switch to PL template."
+				error $tmp_error
+			} else {
+			
 			
 			#added by Bulat
-
-			if {!($type_template == "SOC")} {
-				error " -E- This function can be used only for SOC template. Consider using ip_prototype_load function or change to SOC template"
-				incr error
-			}
-
 			set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
 			set soc_input_vectors {}
 			set soc_input_vectors_length {}
@@ -265,41 +262,8 @@ if {$error==0} {
 			}
 			#end added by Bulat
 			
+
 		
-
-			
-			# update configuration parameters
-			
-			if {$mem_base_address == {}} {
-				set mem_base_address $old_mem_base_address
-			}
-			
-			if {$type_eth == {}} {
-				set type_eth $old_type_eth
-				if {$type_eth==0} {
-					set type_eth "udp"
-				} elseif {$type_eth==1} {
-					set type_eth "tcp"
-				}
-			} 
-			
-			if {$type_eth=="udp" || $type_eth=="tcp"} {
-				set flag_compile 1
-			} else {
-				set flag_compile 0
-				
-
-				set tmp_error ""
-				append tmp_error " -E- Ethernet type" $type_eth " is not supported. Use the -usage option for more details."
-				error $tmp_error
-
-				incr error
-			}
-			
-			
-			if {$flag_compile==1} {
-			
-			
 			# update configuration parameters
 			set m 0
 			foreach i $input_vectors_type {
@@ -320,11 +284,16 @@ if {$error==0} {
 				incr m
 			}
 			
+			if {$type_eth==0} {
+				set type_eth "udp"
+			} elseif {$type_eth==1} {
+				set type_eth "tcp"
+			} 
 
 			set type_test "none"
 			
-			
 
+			
 			set source_file ""
 			append source_file "ip_prototype/build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
 			
@@ -333,86 +302,108 @@ if {$error==0} {
 				set tmp_error ""
 				append tmp_error "-E- " $project_name " associated to " $board_name " has not been built. Use the -usage option for more details."
 				error $tmp_error
+
 			
 			} else {
 			
+			set type_design_flow "vivado"
 			[::tclapp::icl::protoip::make_template::make_project_configuration_parameters_dat $project_name $input_vectors $input_vectors_length $input_vectors_type $input_vectors_integer_length $input_vectors_fraction_length $output_vectors $output_vectors_length $output_vectors_type $output_vectors_integer_length $output_vectors_fraction_length $fclk $FPGA_name $board_name $type_eth $mem_base_address $num_test $type_test $type_template $type_design_flow $soc_input_vectors $soc_input_vectors_length $soc_output_vectors $soc_output_vectors_length]
-			[::tclapp::icl::protoip::make_template::make_ip_configuration_parameters_readme_txt $project_name]
-			
+
 			# update ip_design/src/FPGAclientAPI.h file
+			#[::tclapp::icl::protoip::make_template::make_FPGAclientAPI_h  $project_name]
 			[::tclapp::icl::protoip::make_template::make_soc_FPGAclientAPI_h $project_name]
-			[::tclapp::icl::protoip::make_template::soc_make_echo_c $project_name]
-			[::tclapp::icl::protoip::make_template::soc_make_FPGAserver_h $project_name]
-		
-			set target_dir ""
-			append target_dir "soc_prototype/test/prj/" $project_name "." $board_name
 			
-			set source_file ""
-			append source_file "../../../../ip_prototype/build/prj/" $project_name "." $board_name "/prototype.runs/impl_1/design_1_wrapper.sysdef"
-		
-			#export to SDK
-			file delete -force $target_dir
-			file mkdir $target_dir
-			cd $target_dir
-			file copy -force $source_file design_1_wrapper.hdf
+	
+			puts ""
+			puts "Calling Matlab to test the SOC running on the FPGA evaluation board..."
 			
-			file copy -force ../../../../.metadata/build_soc_sdk_project.tcl build_soc_sdk_project.tcl
-			file copy -force ../../../../.metadata/run_fpga_prototype.tcl run_fpga_prototype.tcl
-
-		
 			
-			# Create SDK Project
-			puts "Calling SDK to build the software project ..."
-
-			set sdk_p [open "|xsct build_soc_sdk_project.tcl" r+]
-			while {![eof $sdk_p]} { gets $sdk_p line ; puts $line }
-			close $sdk_p
-			
-			# set sdk_exit_flag=0 if error, sdk_exit_flag=1 if NOT error
-			set sdk_exit_flag [file exists workspace1/test_fpga/Release/test_fpga.elf]
-
-
-			set error 0
-			if {$sdk_exit_flag==1}  {
-				puts ""
-				puts "Programming the FPGA ..."
+				set tmp_dir "soc_prototype/test/results/"
+				append tmp_dir $project_name
+				file mkdir $tmp_dir
+				cd $tmp_dir
 				
-				set xmd_p [open "|xmd -tcl run_fpga_prototype.tcl" r+]
-				while {![eof $xmd_p]} { gets $xmd_p line ; puts $line }
-				close $xmd_p
-				after 5000
-				puts "FPGA UDP/TCP server started. FPGA prototype is ready to be used !"
-			} else {
-				incr error
+				set time_stamp [clock format [clock seconds] -format "%Y-%m-%d_T%H-%M"]
+				
+				foreach i $soc_input_vectors {
+					set file_name ""
+					append file_name "soc_" $i "_in_log.dat"
+					if {[file exists $file_name] == 1} { 
+						set file_name_new ""
+						append file_name_new $time_stamp "_backup_" $i "_in_log.dat"
+						file copy -force $file_name $file_name_new
+						file delete -force $file_name
+					}
+				}
+				
+				foreach i $soc_output_vectors {
+					set file_name ""
+					append file_name "fpga_soc_" $i "_out_log.dat"
+					if {[file exists $file_name] == 1} { 
+						set file_name_new ""
+						append file_name_new $time_stamp "_backup_soc_" $i "_out_log.dat"
+						file copy -force $file_name $file_name_new
+						file delete -force $file_name
+					}
+					#set file_name ""
+					#append file_name "matlab_" $i "_out_log.dat"
+					#if {[file exists $file_name] == 1} { 
+				#		set file_name_new ""
+				#		append file_name_new $time_stamp "_backup_matlab_" $i "_out_log.dat"
+				#		file copy -force $file_name $file_name_new
+				#		file delete -force $file_name
+				#	}
+				}
+				
+				set file_name ""
+				append file_name "fpga_time_log.dat"
+				if {[file exists $file_name] == 1} { 
+					set file_name_new ""
+					append file_name_new $time_stamp "_backup_soc_time_log.dat"
+					file copy -force $file_name $file_name_new
+					file delete -force $file_name
+				}
+				
+				cd ../../../../
+			
+			set project_name_to_Matlab ""
+			append project_name_to_Matlab "'" $project_name "'"
+
+			cd soc_prototype/src
+			file delete -force _locked
+			 
+			set status [ catch { exec matlab.exe -nojvc -nosplash -nodesktop -r test_HIL($project_name_to_Matlab)} output ]
+
+			# Wait until the Matlab has finished
+			while {true} {
+				if { [file exists _locked] == 1} {  
+					after 1000
+					break
+				}
 			}
 			
-			
-		
-			
-			
-			cd ../../../../
-
-			
-		}
-		
-		}
-		
-		}
-
+			cd ../../
 	
+
+		
+}
+}
+}	
 	}
 	}
 
 }
 
 
+	
 
 	puts ""
     if {$error} {
-		puts "SDK: FPGA software project built ERROR. Please run tclapp::icl::protoip::soc_prototype_load_debug to open SDK GUI and debug the software project using Eclipse enviroment"
+		puts "SOC prototype test error."
 		puts ""
 		return -code error
     } else {
+		puts "SOC prototype tested successfully with HIL setup."
 		puts ""
 		return -code ok
 	}
