@@ -1,3 +1,4 @@
+3.20 reference cached IP static file object in xcs_find_ipstatic_file_path
 3.19 consider XPM precompiled library for RTL based designs
 3.18 refactored export_fs_non_hdl_data_files proc to common utils
 3.17 refactored procs to common utils
