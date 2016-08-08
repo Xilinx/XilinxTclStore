@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference cached IP static file object in xcs_find_ipstatic_file_path</revision_history>
+      <revision_history>reset cached IP static file object variable</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
