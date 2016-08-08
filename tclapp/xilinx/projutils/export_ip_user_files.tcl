@@ -345,6 +345,7 @@ proc xif_export_ip { obj } {
   variable l_valid_data_file_extns
   variable l_compiled_libraries
   variable a_cache_all_ip_static_files_obj
+  array unset a_cache_all_ip_static_files_obj
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
