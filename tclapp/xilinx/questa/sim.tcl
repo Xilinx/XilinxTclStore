@@ -949,13 +949,8 @@ proc usf_questa_get_simulation_cmdline {} {
   }
 
   if { [get_param "project.allowSharedLibraryType"] } {
-    set b_common_libs_added false
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
       if { {Shared Library} == [get_property FILE_TYPE $file] } {
-        if { !$b_common_libs_added } {
-          set b_common_libs_added true
-          lappend arg_list "-sv_root \$xv_lib_path/ -sv_lib libxaxi_tlm -sv_root \$xv_lib_path/ -sv_lib libsystemc"
-        }
         set file_dir [file dirname $file]
         set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
 

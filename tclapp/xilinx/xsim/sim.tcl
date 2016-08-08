@@ -1068,15 +1068,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   #}
 
   if { [get_param "project.allowSharedLibraryType"] } {
-    set b_common_libs_added false
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
       set file_type [get_property FILE_TYPE $file]
       if { {Shared Library} == $file_type } {
-        if { !$b_common_libs_added } {
-          set b_common_libs_added true
-          lappend args_list "-sv_root \$xv_lib_path/ -sv_lib libxaxi_tlm.so -sv_root \$xv_lib_path/ -sv_lib libsystemc.so"
-        }
-
         set file_dir [file dirname $file]
         set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
 
