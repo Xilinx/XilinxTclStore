@@ -1,3 +1,4 @@
+2.135 do not pass sv switches for shared library
 2.134 reference cached IP static file object in xcs_find_ipstatic_file_path
 2.133 log all signals in the design
 2.132 consider XPM precompiled library for RTL based designs
