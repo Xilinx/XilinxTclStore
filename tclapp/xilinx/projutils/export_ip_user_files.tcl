@@ -581,7 +581,7 @@ proc xif_get_extracted_static_file_path { file_obj src_ip_file } {
   # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be 
   # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
   if { {} == $parent_comp_file } {
-    set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
+    set extracted_file [extract_files -no_ip_dir -quiet -files [list "$file_obj"] -base_dir $a_vars(ipstatic_dir)]
     #puts extracted_file_no_pc=$extracted_file
     set ipstatic_file_path $extracted_file
   } else {
@@ -598,7 +598,7 @@ proc xif_get_extracted_static_file_path { file_obj src_ip_file } {
     set target_extract_dir [file normalize "$a_vars(ipstatic_dir)/$lib_dir"]
     #puts target_extract_dir=$target_extract_dir
 	
-    set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
+    set extracted_file [extract_files -no_path -quiet -files [list "$file_obj"] -base_dir $target_extract_dir]
     #puts extracted_file_with_pc=$extracted_file
 
     set ipstatic_file_path $extracted_file

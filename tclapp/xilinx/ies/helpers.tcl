@@ -1739,7 +1739,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
           # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be
           # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
           if { {} == $parent_comp_file } {
-            set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$ip_static_file"] -base_dir $a_sim_vars(ipstatic_dir)]
+            set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$full_src_file_obj"] -base_dir $a_sim_vars(ipstatic_dir)]
             #puts extracted_file_no_pc=$dst_cip_file
           } else {
             # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
@@ -1755,7 +1755,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
             set target_extract_dir [file normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
             #puts target_extract_dir=$target_extract_dir
   
-            set dst_cip_file [extract_files -no_path -quiet -files [list "$ip_static_file"] -base_dir $target_extract_dir]
+            set dst_cip_file [extract_files -no_path -quiet -files [list "$full_src_file_obj"] -base_dir $target_extract_dir]
             #puts extracted_file_with_pc=$dst_cip_file
           }
         }
