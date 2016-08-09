@@ -1909,11 +1909,11 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   
   set opts [list]
   if { [llength $l_defines] > 0 } {
-    xps_append_define_generics $l_defines "irun" opts
+    xps_append_define_generics $l_defines "irun" "ies" opts
   }
 
   if { [llength $l_generics] > 0 } {
-    xps_append_define_generics $l_generics "irun" opts
+    xps_append_define_generics $l_generics "irun" "ies" opts
   }
 
   if { [llength $opts] > 0 } {
@@ -2532,7 +2532,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
       set arg_list [list "ncelab" "\$ncelab_opts"]
       if { [xcs_is_fileset $a_sim_vars(sp_tcl_obj)] } {
         if { [llength $l_generics] > 0 } {
-          xps_append_define_generics $l_generics "ncelab" arg_list
+          xps_append_define_generics $l_generics "ncelab" $simulator arg_list
         }
       }
       lappend arg_list "${top_lib}.$a_sim_vars(s_top)"
@@ -2547,7 +2547,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
       set arg_list [list "vcs" "\$vcs_elab_opts" "${top_lib}.$a_sim_vars(s_top)"]
       if { [xcs_is_fileset $a_sim_vars(sp_tcl_obj)] } {
         if { [llength $l_generics] > 0 } {
-          xps_append_define_generics $l_generics "vcs" arg_list
+          xps_append_define_generics $l_generics "vcs" $simulator arg_list
         }
       }
       if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
@@ -2641,7 +2641,7 @@ proc xps_create_udo_file { file } {
   close $fh
 }
 
-proc xps_append_define_generics { def_gen_list tool opts_arg } {
+proc xps_append_define_generics { def_gen_list tool simulator opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2653,7 +2653,12 @@ proc xps_append_define_generics { def_gen_list tool opts_arg } {
     set val  [lindex $key_val_pair 1]
     set str {}
     switch $tool {
-      "vlog"   { set str "+define+$name="       }
+      "vlog"   { 
+        switch -regexp -- $simulator {
+          "riviera" { set str "+define+$name"  }
+          default   { set str "+define+$name=" }
+        }
+      }
       "ncvlog" -
       "irun"   { set str "-define \"$name="   }
       "vlogan" { set str "+define+$name="     }
@@ -2804,7 +2809,7 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
     "ncvlog" -
     "vlogan" {
       if { [llength $l_defines] > 0 } {
-        xps_append_define_generics $l_defines $tool opts
+        xps_append_define_generics $l_defines $tool $simulator opts
       }
  
       # include dirs
