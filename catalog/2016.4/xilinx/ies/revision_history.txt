@@ -1,0 +1,21 @@
+2.91 support for XPM files for -of_objects
+2.90 add VCOM VHDL file for XPM simulation, CR:947555
+2.89 set absolute path for xpm files
+2.88 pass clibs directory while checking for compiled libraries
+2.87 updated progress message for compile step
+2.86 set absolute path for glbl.v if absolute_path switch specified
+2.85 map vhdl generics to verilog parameters with namemap_mixgen for ncelab
+2.84 define proc to return true if system verilog source found
+2.83 fixed tcl syntax error while fetching libraries
+2.82 check for null file object before checking for used in property
+2.81 fetch IPI static files for old IP definitions
+2.80 export and compile static files for the older IP libraries
+2.79 print warning if file not found from repo
+2.78 support for verilog header
+2.77 support for referencing old ips from previous projects
+2.76 support for the new verilog header type
+2.75 control IP pre-compiled flow via param
+2.74 moved procs to utils.tcl
+2.73 refactored procs in utils.tcl
+2.72 source utils.tcl with notrace
+2.71 re-structured common helper procedures in utils
