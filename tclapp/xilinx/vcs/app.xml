@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass source file object to extract_files</revision_history>
+      <revision_history>fixed library variable name while calculating local IP libraries</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

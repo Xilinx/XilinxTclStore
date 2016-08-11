@@ -359,7 +359,7 @@ proc usf_vcs_write_setup_files {} {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {
       # continue if no local library found or continue if precompiled library (not local) and library is not default
       if { $lib_name != $default_lib } {        
-        if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+        if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib_name $l_local_design_libraries]) } {
           continue
         }
       }

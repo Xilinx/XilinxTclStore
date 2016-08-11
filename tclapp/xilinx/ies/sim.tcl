@@ -339,7 +339,7 @@ proc usf_ies_write_setup_files {} {
   foreach lib_name $libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {
       # continue if no local library found or if this library is precompiled (not local)
-      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib_name $l_local_design_libraries]) } {
         continue
       }
     }
