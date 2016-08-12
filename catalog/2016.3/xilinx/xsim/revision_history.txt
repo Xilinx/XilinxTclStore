@@ -1,3 +1,4 @@
+2.137 support for vhdl 2008
 2.136 pass source file object to extract_files
 2.135 do not pass sv switches for shared library
 2.134 reference cached IP static file object in xcs_find_ipstatic_file_path
