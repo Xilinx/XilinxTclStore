@@ -1943,6 +1943,17 @@ proc xcs_get_compiler_name { simulator file_type } {
         "SystemVerilog"                {set compiler "vlog"}
       }
     }
+    "riviera" -
+    "activehdl" {
+      switch -exact -- $file_type {
+        "VHDL"                         -
+        "VHDL 2008"                    {set compiler "vcom"}
+        "Verilog"                      -
+        "Verilog Header"               -
+        "Verilog/SystemVerilog Header" -
+        "SystemVerilog"                {set compiler "vlog"}
+      }
+    }
     "ies" {
       switch -exact -- $file_type {
         "VHDL"                         -

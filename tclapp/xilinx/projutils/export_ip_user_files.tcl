@@ -357,7 +357,7 @@ proc xif_export_ip { obj } {
   #
   # static files
   #
-  foreach file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
+  foreach file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*" && IS_USER_DISABLED==0}] {
     set name [get_property name $file_obj]
     set a_cache_all_ip_static_files_obj($name) $file_obj
   }
@@ -365,11 +365,6 @@ proc xif_export_ip { obj } {
   foreach {src_ip_file file_obj} [array get a_cache_all_ip_static_files_obj] {
     set filename [file tail $src_ip_file]
     if { {} == $file_obj } { continue; }
-    if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
-      if { [get_property {IS_USER_DISABLED} $file_obj] } {
-        continue;
-      }
-    }
 
     set extracted_static_file_path {}
 
@@ -513,7 +508,7 @@ proc xif_export_ip { obj } {
   } else {
     # for default and sync flow, the dynamic files will be fetched always
     foreach dynamic_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
-      if { [lsearch $l_static_files $dynamic_file_obj] != -1 } { continue }
+      if { [info exists a_cache_all_ip_static_files_obj($dynamic_file_obj)] } { continue }
       if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file_obj]] >= 0 } { continue }
       set file $dynamic_file_obj
       if { $b_container } {

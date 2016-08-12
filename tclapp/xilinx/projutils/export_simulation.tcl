@@ -948,7 +948,7 @@ proc xps_get_files { simulator launch_dir } {
     foreach library [get_property xpm_libraries [current_project]] {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
-        set compiler [xps_get_compiler $simulator $file_type]
+        set compiler [xcs_get_compiler_name $simulator $file_type]
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type true $compiler l_other_compiler_opts l_incl_dirs_opts 1]
@@ -964,7 +964,7 @@ proc xps_get_files { simulator launch_dir } {
       set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
       foreach file $common_xpm_vhdl_files {
         set file_type "VHDL"
-        set compiler [xps_get_compiler $simulator $file_type]
+        set compiler [xcs_get_compiler_name $simulator $file_type]
         set l_other_compiler_opts [list]
         set b_is_xpm true
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
@@ -997,7 +997,7 @@ proc xps_get_files { simulator launch_dir } {
       foreach fs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
         if { [xcs_is_global_include_file $fs_file_obj $a_sim_vars(global_files_str)] } { continue }
         set file_type [get_property "FILE_TYPE" $fs_file_obj]
-        set compiler [xps_get_compiler $simulator $file_type]
+        set compiler [xcs_get_compiler_name $simulator $file_type]
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1016,7 +1016,7 @@ proc xps_get_files { simulator launch_dir } {
           #send_msg_id exportsim-Tcl-021 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
           foreach fs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
             set file_type [get_property "FILE_TYPE" $fs_file_obj]
-            set compiler [xps_get_compiler $simulator $file_type]
+            set compiler [xcs_get_compiler_name $simulator $file_type]
             set l_other_compiler_opts [list]
             xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
             if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1034,7 +1034,7 @@ proc xps_get_files { simulator launch_dir } {
       #send_msg_id exportsim-Tcl-022 INFO "Fetching design files from '$a_sim_vars(fs_obj)'..."
       foreach fs_file_obj [get_files -quiet -all -of_objects $a_sim_vars(fs_obj)] {
         set file_type [get_property "FILE_TYPE" $fs_file_obj]
-        set compiler [xps_get_compiler $simulator $file_type]
+        set compiler [xcs_get_compiler_name $simulator $file_type]
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1051,7 +1051,7 @@ proc xps_get_files { simulator launch_dir } {
     set ip_filename [file tail $target_obj]
     foreach ip_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet $ip_filename]] {
       set file_type [get_property "FILE_TYPE" $ip_file_obj]
-      set compiler [xps_get_compiler $simulator $file_type]
+      set compiler [xcs_get_compiler_name $simulator $file_type]
       set l_other_compiler_opts [list]
       xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1329,7 +1329,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilo
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
   foreach file [xcs_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-    set compiler [xps_get_compiler $simulator $file_type]
+    set compiler [xcs_get_compiler_name $simulator $file_type]
     set l_other_compiler_opts [list]
     xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
     set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type false $compiler {} l_other_compiler_opts l_incl_dirs_opts]
@@ -1341,7 +1341,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilo
   set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
   foreach file [xcs_get_files_from_block_filesets $verilog_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-    set compiler [xps_get_compiler $simulator $file_type]
+    set compiler [xcs_get_compiler_name $simulator $file_type]
     set l_other_compiler_opts [list]
     xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
     set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type false $compiler l_other_compiler_opts l_incl_dirs_opts]
@@ -2184,8 +2184,10 @@ proc xps_set_initial_cmd { simulator fh cmd_str src_file file_type lib opts_str 
     "ies" {
       if { $a_sim_vars(b_single_step) } {
         set opts {}
-        if { {SystemVerilog} == $file_type } {
+        if { [string equal -nocase $file_type "systemverilog"] } {
           set opts "-sv "
+        } elseif { [string equal -nocase $file_type "vhdl 2008"] } {
+          set opts "-v200x "
         }
         puts $fh "-makelib ies/$lib $opts\\"
         if { $a_sim_vars(b_xport_src_files) } {
@@ -2700,42 +2702,6 @@ proc xps_append_define_generics { def_gen_list tool simulator opts_arg } {
   }
 }
 
-proc xps_get_compiler { simulator file_type } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set compiler ""
-  if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } {
-    switch -regexp -- $simulator {
-      "xsim"     { set compiler "vhdl" }
-      "modelsim" -
-      "riviera" -
-      "activehdl" -
-      "questa"   { set compiler "vcom" }
-      "ies"      { set compiler "ncvhdl" }
-      "vcs"      { set compiler "vhdlan" }
-    }
-  } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) || ({Verilog/SystemVerilog Header} == $file_type) } {
-    switch -regexp -- $simulator {
-      "xsim"     {
-        set compiler "verilog"
-        if { {SystemVerilog} == $file_type } {
-          set compiler "sv"
-        }
-      }
-      "modelsim" -
-      "riviera" -
-      "activehdl" -
-      "questa"   { set compiler "vlog" }
-      "ies"      { set compiler "ncvlog" }
-      "vcs"      { set compiler "vlogan" }
-    }
-  }
-  return $compiler
-}
- 
 proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog_incl_dirs_arg opts_arg } {
   # Summary:
   # Argument Usage:
@@ -2782,10 +2748,13 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
       }
     }
     "ncvhdl" { 
-       lappend opts "\$ncvhdl_opts"
+      lappend opts "\$ncvhdl_opts"
     }
     "vhdlan" {
-       lappend opts "\$vhdlan_opts"
+      lappend opts "\$vhdlan_opts"
+      if { [string equal -nocase $file_type "vhdl 2008"] } {
+        lappend opts "-vhdl08"
+      }
     }
     "ncvlog" {
       lappend opts "\$ncvlog_opts"
