@@ -647,7 +647,6 @@ proc usf_vcs_write_elaborate_script {} {
      set arg_list [linsert $arg_list 0 "-full64"]
   }
 
-  # TODO: xpm library
   if { ({post-synthesis} == $mode) || ({post-implementation} == $mode) } {
     if { {Verilog} == $target_lang } {
       lappend arg_list "-liblist"

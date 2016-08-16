@@ -79,7 +79,7 @@ proc usf_init_vars {} {
 
   # embedded file extension types 
   variable s_embedded_files_filter
-  set s_embedded_files_filter        "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ElF\""
+  set s_embedded_files_filter        "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ELF\""
 
   # non-hdl data files filter
   variable s_non_hdl_data_files_filter

@@ -1,3 +1,4 @@
+2.132 removed XPM library and reference design libraries first for post simulation flow
 2.131 support for vhdl 2008
 2.130 pass source file object to extract_files
 2.129 reference cached IP static file object in xcs_find_ipstatic_file_path

@@ -648,12 +648,20 @@ proc usf_ies_write_elaborate_script {} {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
+  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
 
   set arg_list [list]
   # add simulation libraries
 
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    foreach lib $design_libs {
+      if {[string length $lib] == 0} {
+        continue;
+      }
+      lappend arg_list "-libname"
+      lappend arg_list "[string tolower $lib]"
+    }
     if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-libname" "simprims_ver"]
@@ -705,17 +713,20 @@ proc usf_ies_write_elaborate_script {} {
   }
 
   if { $b_reference_xpm_library } {
-    set arg_list [linsert $arg_list end "-libname" "xpm"]
+    if { {behav_sim} == $sim_flow } {
+      set arg_list [linsert $arg_list end "-libname" "xpm"]
+    }
   }
 
   # add design libraries
-  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} {
-      continue;
+  if { {behav_sim} == $sim_flow } {
+    foreach lib $design_libs {
+      if {[string length $lib] == 0} {
+        continue;
+      }
+      lappend arg_list "-libname"
+      lappend arg_list "[string tolower $lib]"
     }
-    lappend arg_list "-libname"
-    lappend arg_list "[string tolower $lib]"
   }
 
   puts $fh_scr "\n# set design libraries"

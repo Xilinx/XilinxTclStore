@@ -255,7 +255,7 @@ proc xps_init_vars {} {
   set s_data_files_filter             "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
 
   variable s_embedded_files_filter
-  set s_embedded_files_filter         "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ElF\""
+  set s_embedded_files_filter         "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ELF\""
 
   variable s_non_hdl_data_files_filter
   set s_non_hdl_data_files_filter \
@@ -768,7 +768,6 @@ proc xps_gen_mem_files { run_dir } {
   
   variable a_sim_cache_gen_mem_files
   variable a_sim_vars
-  variable s_embedded_files_filter
   variable l_target_simulator
 
   set s_ip_dir [file tail [file dirname $run_dir]]

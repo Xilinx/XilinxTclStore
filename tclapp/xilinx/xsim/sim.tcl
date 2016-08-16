@@ -1187,7 +1187,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   if { $b_reference_xpm_library } {
-    lappend args_list "-L xpm"
+    if { {behav_sim} == $sim_flow } {
+      lappend args_list "-L xpm"
+    }
   }
 
   # snapshot
