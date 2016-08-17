@@ -1,3 +1,4 @@
+2.25 added comment for XPM library referencing
 2.24 removed XPM library and reference design libraries first for post simulation flow
 2.23 support for vhdl 2008
 2.22 pass source file object to extract_files
