@@ -2994,7 +2994,12 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       }
     }
     "riviera" -
-    "activehdl" {}
+    "activehdl" {
+      puts $fh_unix "# Copy library.cfg file"
+      puts $fh_unix "copy_setup_file()"
+      puts $fh_unix "\{"
+      puts $fh_unix "  file=\"library.cfg\""
+    }
     "modelsim" -
     "questa" {
       puts $fh_unix "# Copy modelsim.ini file"
@@ -3034,9 +3039,7 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     } else {
       xps_write_xsim_setup_file $launch_dir
     }
-  } elseif { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
-    # no op
-  } elseif { ({modelsim} == $simulator) || ({questa} == $simulator) || ({vcs} == $simulator) } {
+  } elseif { ({riviera} == $simulator) || ({activehdl} == $simulator) || ({modelsim} == $simulator) || ({questa} == $simulator) || ({vcs} == $simulator) } {
     # is -lib_map_path specified and point to valid location?
     set lmp [xps_get_lib_map_path $simulator]
     if { {} != $lmp } {
@@ -3180,7 +3183,27 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       }
     }
     "riviera" -
-    "activehdl" {}
+    "activehdl" {
+      puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
+      puts $fh_unix "    src_file=\"\$lib_map_path/\$file\""
+      puts $fh_unix "    cp \$src_file ."
+      puts $fh_unix "  fi"
+      puts $fh_unix "\}\n"
+
+      # physically copy library.cfg file to run dir for windows
+      if {$::tcl_platform(platform) == "windows"} {
+        set lmp [xps_get_lib_map_path $simulator]
+        if { {} != $lmp } {
+          set ini_file "$lmp/library.cfg"
+          set target_file "$launch_dir/library.cfg"
+          if { [file exists $ini_file] } {
+            if {[catch {file copy -force $ini_file $target_file} error_msg] } {
+              send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ini_file' to '$launch_dir' : $error_msg\n"
+            }
+          }
+        }
+      }
+    }
     "modelsim" -
     "questa" {
       puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
@@ -4383,7 +4406,7 @@ proc xps_write_setup { simulator fh_unix } {
       }
     }
     "riviera" -
-    "activehdl" {}
+    "activehdl" -
     "modelsim" -
     "questa" {
       puts $fh_unix "     copy_setup_file \$2"
@@ -4412,7 +4435,7 @@ proc xps_write_setup { simulator fh_unix } {
       }
     }
     "riviera" -
-    "activehdl" {}
+    "activehdl" -
     "modelsim" -
     "questa" {
       puts $fh_unix "     copy_setup_file \$2"
