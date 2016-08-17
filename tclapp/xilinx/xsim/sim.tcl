@@ -1187,6 +1187,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   if { $b_reference_xpm_library } {
+    # pass xpm library reference for behavioral simulation only
     if { {behav_sim} == $sim_flow } {
       lappend args_list "-L xpm"
     }

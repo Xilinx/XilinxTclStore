@@ -713,6 +713,7 @@ proc usf_ies_write_elaborate_script {} {
   }
 
   if { $b_reference_xpm_library } {
+    # pass xpm library reference for behavioral simulation only
     if { {behav_sim} == $sim_flow } {
       set arg_list [linsert $arg_list end "-libname" "xpm"]
     }

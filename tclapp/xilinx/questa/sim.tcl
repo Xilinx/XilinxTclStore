@@ -875,6 +875,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   }
 
   if { $b_reference_xpm_library } {
+    # pass xpm library reference for behavioral simulation only
     if { {behav_sim} == $sim_flow } {
       set arg_list [linsert $arg_list end "-L" "xpm"]
     }

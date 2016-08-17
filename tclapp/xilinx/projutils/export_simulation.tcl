@@ -52,6 +52,7 @@ proc export_simulation {args} {
   variable l_defines
   variable l_generics
   variable l_include_dirs
+
   xps_init_vars
   set a_sim_vars(options) [split $args " "]
 
