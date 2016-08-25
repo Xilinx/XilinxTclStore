@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added comment for XPM library referencing</revision_history>
+      <revision_history>fixed the library search order for user design libraries for behavioral simulation</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

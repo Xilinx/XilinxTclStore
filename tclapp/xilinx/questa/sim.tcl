@@ -816,14 +816,17 @@ proc usf_questa_get_elaboration_cmdline {} {
 
   # add simulation libraries
   set arg_list [list]
+
+  # add user design libraries
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    lappend arg_list "-L"
+    lappend arg_list "$lib"
+    #lappend arg_list "[string tolower $lib]"
+  }
+
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    foreach lib $design_libs {
-      if {[string length $lib] == 0} { continue; }
-      lappend arg_list "-L"
-      lappend arg_list "$lib"
-      #lappend arg_list "[string tolower $lib]"
-    }
     if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ({Verilog} == $target_lang) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-L" "simprims_ver"]
@@ -878,16 +881,6 @@ proc usf_questa_get_elaboration_cmdline {} {
     # pass xpm library reference for behavioral simulation only
     if { {behav_sim} == $sim_flow } {
       set arg_list [linsert $arg_list end "-L" "xpm"]
-    }
-  }
-
-  # add design libraries
-  if { {behav_sim} == $sim_flow } {
-    foreach lib $design_libs {
-      if {[string length $lib] == 0} { continue; }
-      lappend arg_list "-L"
-      lappend arg_list "$lib"
-      #lappend arg_list "[string tolower $lib]"
     }
   }
 

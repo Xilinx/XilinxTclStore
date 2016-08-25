@@ -1509,8 +1509,6 @@ proc xps_get_design_libs {} {
   set libs [list]
   foreach file $a_sim_vars(l_design_files) {
     set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
     set library   [lindex $fargs 2]
     if { {} == $library } {
       continue;
@@ -1895,7 +1893,7 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   }
   if { $a_sim_vars(b_use_static_lib) } {
     variable l_compiled_libraries
-    foreach lib [xps_get_compile_order_libs] {
+    foreach lib [xps_get_design_libs] {
       if {[string length $lib] == 0} { continue; }
       if { [xcs_is_static_ip_lib $lib $l_compiled_libraries] } {
         lappend base_libs [string tolower $lib]
@@ -2802,26 +2800,6 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
   }
 }
  
-proc xps_get_compile_order_libs { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
- 
-  variable a_sim_vars
-  set libs [list]
-  foreach file $a_sim_vars(l_design_files) {
-    set library   [lindex [split $file {|}] 2]
-    if { {} == $library } {
-      continue;
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-
-  return $libs
-}
-
 proc xps_contains_system_verilog {} {
   # Summary:
   # Argument Usage:
@@ -3822,6 +3800,13 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       }
       set t_opts [join $arg_list " "]
       set arg_list [list]
+      # add user design libraries
+      set design_libs [xps_get_design_libs]
+      foreach lib $design_libs {
+        if {[string length $lib] == 0} { continue; }
+        lappend arg_list "-L"
+        lappend arg_list "$lib"
+      }
       if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         set arg_list [linsert $arg_list end "-L" "unisims_ver"]
         set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
@@ -3846,13 +3831,6 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
 
       if { $b_reference_xpm_library } {
         set arg_list [linsert $arg_list end "-L" "xpm"]
-      }
-      # add design libraries
-      set design_libs [xps_get_design_libs]
-      foreach lib $design_libs {
-        if {[string length $lib] == 0} { continue; }
-        lappend arg_list "-L"
-        lappend arg_list "$lib"
       }
       set default_lib $a_sim_vars(default_lib)
       lappend arg_list "-work"
@@ -4007,6 +3985,14 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   }
   set t_opts [join $args " "]
   set args [list]
+  # add user design libraries
+  set design_libs [xps_get_design_libs]
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    lappend args "-L"
+    lappend args "$lib"
+    #lappend args "[string tolower $lib]"
+  }
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set args [linsert $args end "-L" "unisims_ver"]
     set args [linsert $args end "-L" "unimacro_ver"]
@@ -4030,13 +4016,6 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
 
   if { $b_reference_xpm_library } {
     set args [linsert $args end "-L" "xpm"]
-  }
-  set design_libs [xps_get_design_libs]
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} { continue; }
-    lappend args "-L"
-    lappend args "$lib"
-    #lappend args "[string tolower $lib]"
   }
   set default_lib $a_sim_vars(default_lib)
   if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
@@ -4139,6 +4118,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
       lappend args "-generic_top \"$str\""
     }
   }
+  # add user design libraries
   set design_libs [xps_get_design_libs]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -4562,7 +4542,7 @@ proc xps_write_main { simulator fh_unix launch_dir } {
     "ies" -
     "vcs" {
       set libs [list]
-      foreach lib [xps_get_compile_order_libs] {
+      foreach lib [xps_get_design_libs] {
         if {[string length $lib] == 0} { continue; }
         if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
         if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_compiled_libraries]) } {
