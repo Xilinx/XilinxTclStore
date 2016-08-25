@@ -1,3 +1,4 @@
+2.134 fixed the library search order for user design libraries for behavioral simulation
 2.133 added comment for XPM library referencing
 2.132 removed XPM library and reference design libraries first for post simulation flow
 2.131 support for vhdl 2008
