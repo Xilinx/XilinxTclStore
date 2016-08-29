@@ -7351,7 +7351,7 @@ set file [open soc_prototype/src/main.c w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::make_template::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c_bulat $file]
 
 puts $file ""
 puts $file "#include <stdio.h>"
@@ -7630,7 +7630,7 @@ set file [open soc_prototype/src/echo.c w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::make_template::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c_bulat $file]
 
 
 puts $file "#include <stdio.h>"
@@ -8578,7 +8578,7 @@ set file [open soc_prototype/src/FPGAserver.h w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::make_template::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c_bulat $file]
 
 
 
@@ -8826,7 +8826,7 @@ proc ::tclapp::icl::protoip::make_template::make_foo_function_wrapped {args} {
 	#create foo_function_wrapped.h
 	set file [open soc_prototype/src/foo_function_wrapped.h w]
 	#add license_c header
-	[::tclapp::icl::protoip::make_template::license_c $file]
+	[::tclapp::icl::protoip::make_template::license_c_bulat $file]
 
 
 	puts $file "#ifndef FOO_FUNCTION_WRAPPED"
@@ -9320,7 +9320,7 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 	#create soc_user.c
 	set file [open soc_prototype/src/soc_user.c w]
 	#add license_c header
-	#[::tclapp::icl::protoip::make_template::license_c $file]
+	[::tclapp::icl::protoip::make_template::license_c_bulat $file]
 	
 	set tmp_line "#include \"soc_user.h\""
 	puts $file $tmp_line
@@ -9465,7 +9465,7 @@ proc ::tclapp::icl::protoip::make_template::make_soc_user {args} {
 # ########################################################################################
 # make soc_prototype/src/build_soc_sdk_project.tcl file
 
-proc ::tclapp::icl::protoip::make_template::make_build_soc_sdk_project_tcl {args} {
+proc ::tclapp::icl::protoip::make_template::make_build_soc_sdk_project_tcl_bulat {args} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -9593,7 +9593,7 @@ set file [open soc_prototype/src/FPGAclientAPI.h w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::make_template::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c_bulat $file]
 
 puts $file ""
 puts $file "#include<stdio.h>"
@@ -10358,7 +10358,7 @@ set file [open soc_prototype/src/FPGAclientMATLAB.m w]
 
 
 #add license_m header
-[::tclapp::icl::protoip::make_template::license_m $file]
+[::tclapp::icl::protoip::make_template::license_m_bulat $file]
 
 
 puts $file ""
@@ -10385,7 +10385,7 @@ set file [open soc_prototype/src/FPGAclientMATLAB.c w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::make_template::license_c $file]
+[::tclapp::icl::protoip::make_template::license_c_bulat $file]
 puts $file ""
 
 puts $file "#include \"mex.h\""
@@ -10618,7 +10618,7 @@ set file [open soc_prototype/src/test_HIL.m w]
 
 
 #add license_c header
-[::tclapp::icl::protoip::make_template::license_m $file]
+[::tclapp::icl::protoip::make_template::license_m_bulat $file]
 
 
 
@@ -10928,6 +10928,112 @@ puts $file "end"
 
 
 close $file
+return -code ok
+
+}
+
+# ########################################################################################
+# license header C/C++ format (with Bulat)
+
+proc ::tclapp::icl::protoip::make_template::license_c_bulat {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories:
+
+set file  [lindex $args 0]
+
+# puts $file "/* "
+# puts $file "* Copyright (c) 2014, Imperial College London"
+# puts $file "* All rights reserved."
+# puts $file "* "
+# puts $file "* Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:"
+# puts $file "* "
+# puts $file "* 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer."
+# puts $file "* "
+# puts $file "* 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution."
+# puts $file "* "
+# puts $file "* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+# puts $file "*/"
+puts $file "/* "
+puts $file "* icl::protoip"
+puts $file "* Authors: asuardi <https://github.com/asuardi>, bulatkhusainov <https://github.com/bulatkhusainov>"
+puts $file "* Date: November - 2014"
+puts $file "*/"
+puts $file ""
+puts $file ""
+return -code ok
+
+}
+
+
+# ########################################################################################
+# license header Matlab format
+
+proc ::tclapp::icl::protoip::make_template::license_m_bulat {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories:
+
+set file  [lindex $args 0]
+
+# puts $file "%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+# puts $file "% Copyright (c) 2014, Imperial College London"
+# puts $file "% All rights reserved."
+# puts $file "%"
+# puts $file "% Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:"
+# puts $file "%"
+# puts $file "% 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer."
+# puts $file "%"
+# puts $file "% 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution."
+# puts $file "%"
+# puts $file "% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+# puts $file "%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+# puts $file ""
+puts $file "%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+puts $file "% icl::protoip"
+puts $file "% Authors: asuardi <https://github.com/asuardi>, bulatkhusainov <https://github.com/bulatkhusainov"
+puts $file "% Date: November - 2014"
+puts $file "%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+puts $file ""
+puts $file ""
+return -code ok
+
+}
+
+
+# ########################################################################################
+# license header tcl format
+
+proc ::tclapp::icl::protoip::make_template::license_tcl_bulat {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories:
+
+set file  [lindex $args 0]
+
+# puts $file "# ##############################################################################################"
+# puts $file "# Copyright (c) 2014, Imperial College London"
+# puts $file "# All rights reserved."
+# puts $file "#"
+# puts $file "# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:"
+# puts $file "#"
+# puts $file "# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer."
+# puts $file "#"
+# puts $file "# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution."
+# puts $file "#"
+# puts $file "# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+# puts $file "# ##############################################################################################"
+# puts $file ""
+puts $file "# ##############################################################################################"
+puts $file "# icl::protoip"
+puts $file "# Author: asuardi <https://github.com/asuardi>, bulatkhusainov <https://github.com/bulatkhusainov"
+puts $file "# Date: November - 2014"
+puts $file "# ##############################################################################################"
+puts $file ""
+puts $file ""
 return -code ok
 
 }

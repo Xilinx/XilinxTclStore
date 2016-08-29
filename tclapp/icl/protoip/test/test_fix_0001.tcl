@@ -69,7 +69,7 @@ set file [open $target_file a+]
 puts $file "== ip_prototype_build test -> SECCESSFULLY"
 close $file
 
-file delete -force $file_dir/Temp
+catch {file delete -force $file_dir/Temp}
 
 set f [open $target_file]
 set file_data [read $f]
