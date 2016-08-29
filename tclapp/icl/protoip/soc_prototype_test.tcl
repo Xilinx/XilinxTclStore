@@ -128,7 +128,7 @@ proc ::tclapp::icl::protoip::soc_prototype_test::soc_prototype_test { args } {
     
   if {$help} {
       puts [format {
- Usage: ip_prototype_test
+ Usage: soc_prototype_test
   -project_name <arg>       - Project name
                               It's a mandatory field
   -board_name <arg>         - Evaluation board name
@@ -148,7 +148,7 @@ proc ::tclapp::icl::protoip::soc_prototype_test::soc_prototype_test { args } {
   
   
  Example:
-  ip_prototype_test -project_name my_project0 -board_name zedboard -num_test 1
+  soc_prototype_test -project_name my_project0 -board_name zedboard -num_test 1
 
 
 } ]
@@ -372,7 +372,17 @@ if {$error==0} {
 			cd soc_prototype/src
 			file delete -force _locked
 			 
-			set status [ catch { exec matlab.exe -nojvc -nosplash -nodesktop -r test_HIL($project_name_to_Matlab)} output ]
+			#set status [ catch { exec matlab.exe -nojvc -nosplash -nodesktop -r test_HIL($project_name_to_Matlab)} output ]
+
+			#added by Bulat
+			set OS [lindex $::tcl_platform(os) 0]
+			if { $OS == "Linux" } {
+    			set status [ catch { exec matlab -nojvm -nosplash -nodesktop -r test_HIL($project_name_to_Matlab)} output ]
+			} else {
+    			set status [ catch { exec matlab.exe -nojvc -nosplash -nodesktop -r test_HIL($project_name_to_Matlab)} output ]
+			}
+			#added by Bulat
+			
 
 			# Wait until the Matlab has finished
 			while {true} {

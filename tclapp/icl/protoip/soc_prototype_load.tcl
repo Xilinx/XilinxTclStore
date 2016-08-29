@@ -11,12 +11,14 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::soc_prototype_load {args} {
 
-	  # Summary: Build the FPGA Ethernet server application using SDK according to the specification in [WORKING DIRECTORY]/design_parameters.tcl and program the FPGA. A connected evaluation board is required.
+	  # Summary: Build user's code (from soc_user.c and soc_user.h files) and the FPGA Ethernet server application using SDK according to the specification in [WORKING DIRECTORY]/design_parameters.tcl and program the FPGA. A connected evaluation board is required.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
 	  # -board_name <arg>: Evaluation board name
 	  # -type_eth <arg>: Ethernet connection protocol (UDP-IP or TCP-IP)
+	  # [-soc_input <arg>]: SoC input vector name and size
+	  # [-soc_output <arg>]: SoC output vector name and size
 	  # [-mem_base_address <arg>]: DDR3 memory base address
 	  # [-usage]: Usage information
 
@@ -140,11 +142,15 @@ proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
   -type_eth <arg>           - Ethernet connection protocol 
                               ('udp' for UDP-IP connection or 'tcp' for TCP-IP connection)
                               It's a mandatory field
+  ['soc_input', 'value']    - SoC input vector name and size separated by : symbol
+  							  Repeat the command for every SoC input vector to update     
+  ['soc_output', 'value']   - SoC output vector name and size separated by : symbol		
+  					          Repeat the command for every output to update              
   [-mem_base_address <arg>] - DDR3 memory base address
   [-usage|-u]               - This help message
 
  Description: 
-  Build the FPGA Ethernet server application using SDK according 
+  Build user's code (from soc_user.c and soc_user.h files) and the FPGA Ethernet server application using SDK according 
   to the project configuration parameters
  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
   and program the FPGA.
@@ -154,8 +160,9 @@ proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
  This command can be run after 'ip_prototype_build' command only.
 
  Example:
-  ip_prototype_load -project_name my_project0  -board_name zedboard -type_eth udp
-  ip_prototype_load -project_name my_project0  -board_name zedboard -type_eth udp -mem_base_address 33554432
+  soc_prototype_load('project_name','my_project0','board_name','zedboard','type_eth','udp')
+  soc_prototype_load('project_name','my_project0','board_name','zedboard','type_eth','udp','mem_base_address',33554432)
+  soc_prototype_load('project_name','my_project0','board_name','zedboard','type_eth','udp','soc_input','x_hat:8','soc_output','u_opt:28')
 
 
 } ]

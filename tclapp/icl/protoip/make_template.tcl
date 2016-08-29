@@ -22,8 +22,8 @@ proc ::tclapp::icl::protoip::make_template {args} {
 	# -project_name <arg>: Project name
 	# -input <arg>: Input vector name,size and type separated by ':' symbol
 	# -output <arg>: Output vector name,size and type separated by ':' symbol
-	# -soc_input <arg>: SoC input vector name,size and type separated by ':' symbol
-	# -soc_output <arg>: SoC output vector name,size and type separated by ':' symbol
+	# [-soc_input <arg>]: SoC input vector name and size separated by ':' symbol
+	# [-soc_output <arg>]: SoC output vector name and size separated by ':' symbol
 	# [-usage]: Usage information
 
 	# Return Value:
@@ -391,9 +391,7 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
  if {$help} {
       puts [format {
   Usage: make_template
- -type <arg>          - Template project type. 
-                        Now only a template with the algorithm running inside 
-                        the FPGA programmable logic is supported ('PL').
+ -type <arg>          - Template project type. ('PL' or 'SOC').
                         It's a mandatory field
  -project_name <arg>  - Project name
                         It's a mandatory field
@@ -411,6 +409,10 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
                         Repeat the command for every output vectors
                         All inputs and outputs must be of the same type: 
                         float or fix
+ [-soc_input <arg>]     - SoC input vector name and size separated by : symbol         
+                        Repeat the command for every SoC input vector to update
+ [-soc_output <arg>]    - Soc output vector name and size separated by : symbol
+                        Repeat the command for every output to update 
   [-usage|-u]         - This help message
 
  Description: 
@@ -440,6 +442,23 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
   y0[4] floating point
   
   make_template -type PL -project_name my_project0 -input x0:1:float -input x1:2:float -output y0:4:float
+
+Example 3:
+ SoC prototype:
+ 2 inputs vectors on FPGA level: 
+ x0[1] floating point
+ x1[2] floating point
+
+ 1 output vector on FPGA level: 
+ y0[4] floating point
+
+ 1 input on SoC level
+ soc_x0[1] floating point
+
+ 1 output on SoC level
+ soc_y0[2] floating point
+
+ make_template('type','SOC','project_name','my_project0','input','x0:1:float','input','x1:2:float','output','y0:4:float,'soc_input','soc_x0:1','soc_output','soc_y0:2')
 
 
 } ]

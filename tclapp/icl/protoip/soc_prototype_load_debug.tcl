@@ -11,7 +11,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::soc_prototype_load_debug {args} {
 
-	  # Summary: Compile the Vivado project according to the specification in [WORKING DIRECTORY]/design_parameters.tcl
+	  # Open SDK to debug user's code (from soc_user.c and soc_user.h files) and the the FPGA Ethernet server running on the FPGA ARM processor.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
@@ -114,7 +114,7 @@ proc ::tclapp::icl::protoip::soc_prototype_load_debug::soc_prototype_load_debug 
     
 if {$help} {
       puts [format {
- Usage: ip_prototype_load_debug
+ Usage: soc_prototype_load_debug
   -project_name <arg>       - Project name
                               It's a mandatory field
   -board_name <arg>         - Evaluation board name
@@ -122,13 +122,12 @@ if {$help} {
   [-usage|-u]               - This help message
 
  Description: 
-  Open SDK to debug the the FPGA Ethernet server running on the FPGA ARM processor.
+  Open SDK to debug user's code (from soc_user.c and soc_user.h files) and the the FPGA Ethernet server running on the FPGA ARM processor.
   
-  This command must be run after 'ip_prototype_load' command only.
+  This command must be run after 'soc_prototype_load' command only.
 
  Example:
-  ip_prototype_load_debug -project_name my_project0 -board_name zedboard
-
+  soc_prototype_load_debug('project_name','my_project0','board_name','zedboard')
 
 } ]
       # HELP -->
