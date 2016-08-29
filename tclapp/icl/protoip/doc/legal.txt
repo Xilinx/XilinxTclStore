@@ -13,6 +13,4 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 =================================================================================================
 This file must be included in <app>/doc/legal.txt for all accepted contributions to the Xilinx Tcl Store.
 All contributors must date and digitally sign once below in order to submit to the Xilinx Tcl Store
-<20141203 Date>::<asuardi>::<Andrea Suardi>
-=================================================================================================
-<20141203 Date>::<asuardi>::<Andrea Suardi>
+20160829::bulatkhusainov::Bulat Khusainov

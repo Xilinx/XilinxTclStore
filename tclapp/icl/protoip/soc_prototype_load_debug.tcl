@@ -11,7 +11,7 @@ namespace eval ::tclapp::icl::protoip {
 
 proc ::tclapp::icl::protoip::soc_prototype_load_debug {args} {
 
-	  # Open SDK to debug user's code (from soc_user.c and soc_user.h files) and the the FPGA Ethernet server running on the FPGA ARM processor.
+	  # Summary: Open SDK to debug user's code (from soc_user.c and soc_user.h files) and the the FPGA Ethernet server running on the FPGA ARM processor.
 
 	  # Argument Usage:
 	  # -project_name <arg>: Project name
