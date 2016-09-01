@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Update 1.6: Coverage options.</revision_history>
+      <revision_history>Update 1.7: Add mappings for libraries from compiled library location.</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

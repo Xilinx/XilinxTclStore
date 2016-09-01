@@ -1,1 +1,2 @@
+1.7 Update 1.7: Add mappings for libraries from compiled library location.
 1.6 Update 1.6: Coverage options.

@@ -113,6 +113,7 @@ set auto_index(::tclapp::aldec::common::sim::usf_aldec_write_setup_files) [list 
 set auto_index(::tclapp::aldec::common::sim::usf_aldec_write_compile_script) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_write_simulate_script) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_create_udo_file) [list source [file join $dir sim.tcl]]
+set auto_index(::tclapp::aldec::common::sim::usf_aldec_mapLibraryCfg) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_aldec_create_do_file_for_compilation) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_aldec_get_elaboration_cmdline) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_aldec_get_simulation_cmdline) [list source [file join $dir sim.tcl]]

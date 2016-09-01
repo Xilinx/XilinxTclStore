@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.6
+package require ::tclapp::aldec::common::helpers 1.7
 
-package provide ::tclapp::aldec::common::sim 1.6
+package provide ::tclapp::aldec::common::sim 1.7
 
 namespace eval ::tclapp::aldec::common {
 
@@ -266,6 +266,54 @@ proc usf_create_udo_file { file } {
   close $fh
 }
 
+proc usf_aldec_mapLibraryCfg { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set librariesLocation ""
+  
+  set product [get_property target_simulator [current_project]]
+
+  switch -- $product {
+    Riviera { set librariesLocation [get_property COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR [current_project]] }
+    ActiveHDL { set librariesLocation [get_property COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR [current_project]] }
+  }
+  
+  if { $librariesLocation == "" } {
+    return
+  }
+
+  set libraryCfg [file join $librariesLocation library.cfg]
+  if { ![file isfile $libraryCfg] } {
+    return
+  }
+
+  set f [open $libraryCfg r]
+  
+  while { ![eof $f] } {
+    gets $f line
+    if { [regexp {\s*([^\s]+)\s*=\s*\"?([^\s\"]+).*} $line tmp mapName mapPath] } {
+
+      if { [file pathtype $mapPath] != "absolute" } {
+        set mapPath [file join $librariesLocation $mapPath]      
+      }
+
+      set mapPath [file normalize $mapPath]
+
+      if { ![file isfile $mapPath] } {
+        continue
+      }
+      
+      puts $fh "vmap $mapName \{$mapPath\}"
+    }
+  }
+
+  close $f
+
+  puts $fh ""
+}
+
 proc usf_aldec_create_do_file_for_compilation { do_file } {
   # Summary:
   # Argument Usage:
@@ -294,6 +342,8 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   usf_aldec_createDesignIfNeeded $fh
 
   puts $fh "vlib work\n"
+
+  usf_aldec_mapLibraryCfg $fh
 
   set design_libs [usf_aldec_get_design_libs $::tclapp::aldec::common::helpers::a_sim_vars(l_design_files)]
 
