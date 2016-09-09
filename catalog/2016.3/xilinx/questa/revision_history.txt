@@ -1,3 +1,4 @@
+2.27 reference compiled library from the path specified with -lib_map_path
 2.26 fixed the library search order for user design libraries for behavioral simulation
 2.25 added comment for XPM library referencing
 2.24 removed XPM library and reference design libraries first for post simulation flow
