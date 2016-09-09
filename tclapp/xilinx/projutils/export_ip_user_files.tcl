@@ -157,6 +157,10 @@ proc export_ip_user_files {args} {
   if { $a_vars(b_use_static_lib) } {
     set simulator [string tolower [get_property target_simulator [current_project]]]
     set clibs_dir [get_property compxlib.${simulator}_compiled_library_dir [current_project]]
+    # if lib_map_path specified? use this path instead for finding compiled libraries
+    if { $a_vars(b_lib_map_path_specified) } {
+      set clibs_dir [lindex $l_lib_map_path 0]
+    }
     if { ({xsim} == $simulator) && ({} == $clibs_dir) } {
       set dir $::env(XILINX_VIVADO)
       set clibs_dir [file normalize "$dir/data/xsim"]

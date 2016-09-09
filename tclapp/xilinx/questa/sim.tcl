@@ -140,6 +140,9 @@ proc usf_questa_setup_simulation { args } {
   # prepare IP's for simulation
   # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
+  # find/copy modelsim.ini file into run dir
+  set clibs_dir [usf_questa_verify_compiled_lib]
+
   variable l_compiled_libraries
   set b_reference_xpm_library 0
   if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
@@ -148,24 +151,22 @@ proc usf_questa_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set clibs_dir [get_property compxlib.questa_compiled_library_dir [current_project]]
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
-    set libraries [xcs_get_compiled_libraries $clibs_dir]
-    # filter local ip definitions
-    foreach lib $libraries {
-      if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
-        continue
-      } else {
-        lappend l_compiled_libraries $lib
+    if { {} != $clibs_dir } {
+      set libraries [xcs_get_compiled_libraries $clibs_dir]
+      # filter local ip definitions
+      foreach lib $libraries {
+        if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+          continue
+        } else {
+          lappend l_compiled_libraries $lib
+        }
       }
     }
   }
 
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
-
-  # find/copy modelsim.ini file into run dir
-  usf_questa_verify_compiled_lib
 
   # fetch the compile order for the specified object
   ::tclapp::xilinx::questa::usf_xport_data_files
@@ -273,7 +274,7 @@ proc usf_questa_verify_compiled_lib {} {
         } else {
           send_msg_id USF-questa-025 ERROR \
             "The INI file specified with the MODELSIM environment variable is not accessible. Please check the file permissions.\n"
-          return 1
+          return $compiled_lib_dir
         }
       }
     }
@@ -285,15 +286,13 @@ proc usf_questa_verify_compiled_lib {} {
     set compiled_lib_dir $dir
   }
   # 2a. check -lib_map_path
-  if { $a_sim_vars(b_use_static_lib) } {
-    # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      if { [file exists $a_sim_vars(s_lib_map_path)] } {
-        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
-      } else {
-        send_msg_id USF-Questa-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
-      }
+  # is -lib_map_path specified and point to valid location?
+  if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+    if { [file exists $a_sim_vars(s_lib_map_path)] } {
+      set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+    } else {
+      send_msg_id USF-Questa-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
     }
   }
   # 3. not found? find modelsim.ini from current working directory
@@ -338,7 +337,7 @@ proc usf_questa_verify_compiled_lib {} {
       }
     }
   }
-  return 0
+  return $compiled_lib_dir
 }
 
 proc usf_questa_write_setup_files {} {

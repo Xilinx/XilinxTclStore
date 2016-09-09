@@ -139,6 +139,9 @@ proc usf_vcs_setup_simulation { args } {
   # prepare IP's for simulation
   # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
+  # find/copy synopsys_sim.setup file into run dir
+  set clibs_dir [usf_vcs_verify_compiled_lib]
+
   variable l_compiled_libraries
   set b_reference_xpm_library 0
   if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
@@ -147,23 +150,22 @@ proc usf_vcs_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set clibs_dir [get_property compxlib.vcs_compiled_library_dir [current_project]]
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
-    set libraries [xcs_get_compiled_libraries $clibs_dir]
-    # filter local ip definitions
-    foreach lib $libraries {
-      if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
-        continue
-      } else {
-        lappend l_compiled_libraries $lib
+    if { {} != $clibs_dir } {
+      set libraries [xcs_get_compiled_libraries $clibs_dir]
+      # filter local ip definitions
+      foreach lib $libraries {
+        if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+          continue
+        } else {
+          lappend l_compiled_libraries $lib
+        }
       }
     }
   }
 
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
-
-  usf_vcs_verify_compiled_lib
 
   # fetch the compile order for the specified object
   ::tclapp::xilinx::vcs::usf_xport_data_files
@@ -265,15 +267,13 @@ proc usf_vcs_verify_compiled_lib {} {
     set compiled_lib_dir $dir
   }
   # 1. check -lib_map_path
-  if { $a_sim_vars(b_use_static_lib) } {
-    # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      if { [file exists $a_sim_vars(s_lib_map_path)] } {
-        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
-      } else {
-        send_msg_id USF-VCS-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
-      }
+  # is -lib_map_path specified and point to valid location?
+  if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+    if { [file exists $a_sim_vars(s_lib_map_path)] } {
+      set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+    } else {
+      send_msg_id USF-VCS-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
     }
   }
   # 1a. find setup file from current working directory
@@ -288,7 +288,7 @@ proc usf_vcs_verify_compiled_lib {} {
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
    send_msg_id USF-VCS-007 INFO "Using synopsys_sim.setup from '$compiled_lib_dir/synopsys_sim.setup'\n"
-   return
+   return $compiled_lib_dir
   }
   if { $b_scripts_only } {
     send_msg_id USF-VCS-018 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
@@ -297,6 +297,8 @@ proc usf_vcs_verify_compiled_lib {} {
   }
   send_msg_id USF-VCS-009 INFO \
      "Please set the 'COMPXLIB.VCS_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for VCS.\n"
+
+  return $compiled_lib_dir
 }
 
 proc usf_vcs_write_setup_files {} {
