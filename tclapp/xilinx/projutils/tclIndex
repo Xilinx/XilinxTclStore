@@ -8,6 +8,7 @@
 
 
 set auto_index(::tclapp::xilinx::projutils::convert_ngc) [list source [file join $dir convert_ngc.tcl]]
+set auto_index(::tclapp::xilinx::projutils::copy_run) [list source [file join $dir copy_run.tcl]]
 set auto_index(::tclapp::xilinx::projutils::export_bd_synth) [list source [file join $dir export_bd_synth.tcl]]
 set auto_index(::tclapp::xilinx::projutils::export_simulation) [list source [file join $dir export_simulation.tcl]]
 set auto_index(::tclapp::xilinx::projutils::export_ip_user_files) [list source [file join $dir export_ip_user_files.tcl]]

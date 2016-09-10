@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history> Updated write_spyglass_script.tcl to correct usage of get_property in some cases. </revision_history>
+      <revision_history> Updated write_spyglass_script.tcl. No library is created for blk_mem_gen. 'synth_fileset' variable is removed. Automatically creates the blk_mem_gen_vxxx,sgdc file(s) and includes them for the cdc_verify_struct goal run. </revision_history>
       <name>spyglass</name>
       <pkg_require>Vivado 2015.1</pkg_require>
       <company>atrenta</company>

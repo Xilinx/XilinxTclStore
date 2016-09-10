@@ -1,0 +1,57 @@
+3.159 fixes for the irun script generation
+3.158 removed unneeded call to generate_mem_files
+3.157 support for XPM files for -of_objects
+3.156 do not refetch ipstatic file while iterating over files already returned from get_files
+3.155 add VCOM VHDL file for XPM simulation, CR:947555
+3.154 support for the reset switch for deleting ip instance files
+3.153 add block fileset to check for ip files to fix a critical warning
+3.152 set absolute path for xpm files
+3.151 pass clibs directory while checking for compiled libraries
+3.150 added deprecation message for single step help
+3.149 print critical warning if library mapping not specified for 3rd party simulators
+3.148 copy ini files to run directory if lib_map_path specified
+3.147 print info message when fileset contains ips and compiled ips is enabled
+3.146 compile static files locally if not compiled from clibs
+3.145 pass -sv switch for single step IES flow and determine if system verilog source in compile order
+3.144 fixed tcl syntax error while fetching libraries
+3.143 check for null file object before checking for used in property
+3.142 print ip definition name for missing library
+3.141 print warning for missing library and xil_defaultlib
+3.140 improved copy_run to also support gate-level implementation runs
+3.139 extract static file is not extracted for compiled lib flow
+3.138 export and compile static files for the older IP libraries
+3.137 update catalog for specified repo unless -donot_update_catalog specified
+3.136 print warning if file not found from repo
+3.135 support for verilog header
+3.134 support for the ref dir env for referencing sources
+3.133 fetch xpm libs from project property
+3.132 single-step default support for IES and copy run tcl command
+3.131 support for referencing old ips from previous projects
+3.130 generate xsim.ini for the design libs
+3.129 reference IP static files from repository
+3.128 support for the new verilog header type
+3.127 control IP pre-compiled flow via param
+3.126 removed sem_ultra from filter
+3.125 removed processing for axi_sg
+3.124 generate dump file for IP
+3.123 do not check for ipstatic dir
+3.122 fixed setup file generation bug
+3.121 reference synopsys_sim.setup from install at the end
+3.120 Process IP static files for single and multi cores separately
+3.119 export all IP include files into incl dir
+3.117 support for ip repo path
+3.116 updated axi_register_slice version
+3.115 remove displayport from filter
+3.114 add support for microblaze, decoder
+3.113 filter older sem_ultra from pre compile
+3.112 filter xil_defaultlib from precompile
+3.111 moved procs to utils.tcl
+3.110 add warning for undefined ip file library
+3.109 do not filter IPs for export ip user files
+3.108 add support for fetching files for specified IP
+3.107 fixed ip user files dir var
+3.106 refactored procs in utils.tcl
+3.104 fixed a bug where projutils was checking xsim variable
+3.103 source utils.tcl with notrace
+3.102 re-structured common helper procedures in utils
+3.101 reference secureip vf files for single step simulation

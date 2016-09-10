@@ -1,0 +1,14 @@
+
+Example:
+  
+  To add all procs from a namespace for profiling
+  xilinx::profiler::add_commands [ info proc ::test::* ]
+  
+  To add individual procs:
+  xilinx::profiler::add_commands [ info proc ::test::first ]
+  xilinx::profiler::add_commands [ info proc ::test::second ]
+  xilinx::profiler::add_commands [ info proc ::test::main ]
+
+  To add individual commands:
+  xilinx::profiler::add_commands [ info command get_files ]
+  

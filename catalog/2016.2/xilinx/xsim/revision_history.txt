@@ -1,0 +1,26 @@
+2.102 compile glbl into top library for target language vhdl
+2.101 support for XPM files for -of_objects
+2.100 add VCOM VHDL file for XPM simulation, CR:947555
+2.99 set absolute path for xpm files
+2.98 pass clibs directory while checking for compiled libraries
+2.97 updated progress message for compile step
+2.96 set absolute path for glbl.v if absolute_path switch specified
+2.95 define proc to return true if system verilog source found
+2.94 fixed tcl syntax error while fetching libraries
+2.93 check for null file object before checking for used in property
+2.92 fetch IPI static files for old IP definitions
+2.91 localize undefined IP libraries in xsim initialization file
+2.90 export and compile static files for the older IP libraries
+2.89 print warning if file not found from repo
+2.88 support for verilog header
+2.87 use default current scope if uut instance not specified
+2.86 support for referencing old ips from previous projects
+2.85 replace data dir env with the compiled library path in xsim.ini
+2.84 support for the new verilog header type
+2.83 use compxlib compiled library directory for precompiled flow
+2.82 control IP pre-compiled flow via param
+2.81 moved procs to utils.tcl
+2.80 add pwd to LD_LIBRARY_PATH
+2.79 refactored procs in utils.tcl
+2.78 source utils.tcl with notrace
+2.77 re-structured common helper procedures in utils

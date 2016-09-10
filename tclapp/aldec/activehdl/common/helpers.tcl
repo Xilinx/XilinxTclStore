@@ -8,11 +8,124 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.3
+package provide ::tclapp::aldec::common::helpers 1.7
 
 namespace eval ::tclapp::aldec::common {
 
 namespace eval helpers {
+
+proc usf_aldec_appendSimulationCoverageOptions { _optionsList } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  upvar $_optionsList optionsList  
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set switches ""
+
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.STATEMENT_COVERAGE] $fs_obj] } {
+    append switches "s"
+  }
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.BRANCH_COVERAGE] $fs_obj] } {
+    append switches "b"
+  }
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.FUNCTIONAL_COVERAGE] $fs_obj] } {
+    append switches "f"
+  }
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.EXPRESSION_COVERAGE] $fs_obj] } {
+    append switches "e"
+  }
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.CONDITION_COVERAGE] $fs_obj] } {
+    append switches "c"
+  }
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.PATH_COVERAGE] $fs_obj] } {
+    append switches "p"
+  }
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.TOGGLE_COVERAGE] $fs_obj] } {
+    append switches "t"
+  }
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.ASSERTION_COVERAGE] $fs_obj] } {
+    append switches "a"
+  }
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.FSM_COVERAGE] $fs_obj] } {
+    append switches "m"
+  }
+
+  if { $switches != "" } {
+    lappend optionsList "-acdb -acdb_cov $switches"
+  }
+}
+
+proc usf_aldec_appendCompilationCoverageOptions { _optionsList compiler } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  
+  upvar $_optionsList optionsList
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+  
+  # -------------- main options -------------
+  
+  set switches ""  
+  
+  if { [get_property [usf_aldec_getPropertyName COMPILE.STATEMENT_COVERAGE] $fs_obj] } {
+    append switches "s"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.BRANCH_COVERAGE] $fs_obj] } {
+    append switches "b"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.EXPRESSION_COVERAGE] $fs_obj] } {
+    append switches "e"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.CONDITION_COVERAGE] $fs_obj] } {
+    append switches "c"
+  }
+  if { ( $compiler == "acom" || $compiler == "vcom" ) && [get_property [usf_aldec_getPropertyName COMPILE.PATH_COVERAGE] $fs_obj] } {
+    append switches "p"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ASSERTION_COVERAGE] $fs_obj] } {
+    append switches "a"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.FSM_COVERAGE] $fs_obj] } {
+    append switches "m"
+  }
+
+  if { $switches != "" } {
+    lappend optionsList "-coverage $switches"
+  }
+
+  # --------- additional options ---------------
+
+  set switches ""
+
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_EXPRESSIONS_ON_SUBPROGRAM_ARGUMENTS] $fs_obj] } {
+    lappend switches "args"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_ATOMIC_EXPRESSIONS_IN_THE_CONDITIONAL_STATEMENTS] $fs_obj] } {
+    lappend switches "implicit"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_THE_EXPRESSIONS_CONSISTING_OF_ONE_VARIABLE_ONLY] $fs_obj] } {
+    lappend switches "onevar"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_THE_EXPRESSIONS_WITH_RELATIONAL_OPERATORS] $fs_obj] } {
+    lappend switches "relational"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_THE_EXPRESSIONS_RETURNING_VECTORS] $fs_obj] } {
+    lappend switches "vectors"
+  }
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_FSM_SEQUENCES_IN_FSM_COVERAGE] $fs_obj] } {
+    lappend switches "fsmsequence"
+  }
+
+  if { $switches != "" } {
+    lappend optionsList "-coverage_options [join $switches +]"
+  }
+}
 
 proc usf_aldec_getSimulatorName {} {
   # Summary:
@@ -35,6 +148,18 @@ proc usf_aldec_getLibraryPrefix {} {
     Riviera { return "riviera/" }
     ActiveHDL { return "activehdl/" }
     default { error "Unknown target simulator" }
+  }
+}
+
+proc usf_aldec_get_origin_dir_path { _path } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { [file pathtype $_path] == "relative" } {
+    return "\$origin_dir/$_path"
+  } else {
+    return $_path
   }
 }
 
@@ -1795,7 +1920,7 @@ proc usf_get_include_dirs { } {
       if { $a_sim_vars(b_absolute_path) } {
         set dir "[usf_resolve_file_path $dir]"
       } else {
-        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]]"
       }
       lappend incl_dirs $dir
     }
@@ -1897,7 +2022,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
       if { $a_sim_vars(b_absolute_path) } {
         set incl_file_path "[usf_resolve_file_path $file_path]"
       } else {
-        set incl_file_path "\$origin_dir/[usf_get_relative_file_path $file_path $dir]"
+        set incl_file_path "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $file_path $dir]]"
       }
       lappend incl_header_paths $incl_file_path
       lappend unique_paths      $file_path
@@ -1947,7 +2072,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
           if { $ref_dir } {
-            set incl_file_path "\$origin_dir/[usf_get_relative_file_path $incl_file_path $dir]"
+            set incl_file_path "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $incl_file_path $dir]]"
           }
         }
         lappend incl_file_paths $incl_file_path
@@ -1990,7 +2115,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
       if { $a_sim_vars(b_absolute_path) } {
         set dir "[usf_resolve_file_path $dir]"
       } else {
-        set dir "\$origin_dir/[usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        set dir "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]]"
       }
     }
     lappend incl_dirs $dir
@@ -2157,6 +2282,57 @@ proc usf_aldec_append_compiler_options { tool file_type opts_arg } {
     }
     "vlog" {
       lappend opts "\$${tool}_opts"
+    }
+  }
+}
+
+proc usf_aldec_getPropertyName { property } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  switch -- [get_property target_simulator [current_project]] {
+    Riviera { return "RIVIERA.$property" }
+    ActiveHDL { return "ACTIVEHDL.$property" }
+  }
+}
+
+proc usf_aldec_get_compiler_standard_by_file_type { file_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
+  
+  switch -nocase -regexp -- $file_type {
+    "^VHDL$" {
+      switch -- [get_property [usf_aldec_getPropertyName COMPILE.VHDL_SYNTAX] $fs_obj] {
+        93 { return "-93" }
+        2002 { return "-2002" }
+        2008 { return "-2008" }
+      }
+    }
+    "^VHDL 2008$" {
+      return "-2008"
+    }
+    "^Verilog|Verilog Header$" {
+      switch -- [get_property [usf_aldec_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj] {
+        1995 { return "-v95" }
+        2001 { return "-v2k" }
+        2005 { return "-v2k5" }
+      }
+    }
+    "^SystemVerilog$" {
+      switch -- [get_property [usf_aldec_getPropertyName COMPILE.SV_SYNTAX] $fs_obj] {
+        2005 { return "-sv2k5" }
+        2009 { return "-sv2k9" }
+        2012 {
+          switch -- [get_property target_simulator [current_project]] {
+            Riviera { return "" }
+            ActiveHDL { return "-sv2k12" }
+          }
+        }
+      }
     }
   }
 }
@@ -2405,6 +2581,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
+    lappend arg_list [usf_aldec_get_compiler_standard_by_file_type $file_type]
     usf_aldec_append_compiler_options $compiler $file_type arg_list
     set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str"]
   }
@@ -2701,7 +2878,7 @@ proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
     if { $a_sim_vars(b_absolute_path) } {
       set src_file "[usf_resolve_file_path $src_file]"
     } else {
-      set src_file "\$origin_dir/[usf_get_relative_file_path $src_file $launch_dir]"
+      set src_file "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $src_file $launch_dir]]"
     }
 
     return $src_file
@@ -2725,7 +2902,7 @@ proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
   if { $a_sim_vars(b_absolute_path) } {
     set src_file "[usf_resolve_file_path $src_file]"
   } else {
-    set src_file "\$origin_dir/[usf_get_relative_file_path $src_file $launch_dir]"
+    set src_file "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $src_file $launch_dir]]"
   }
 
   return $src_file

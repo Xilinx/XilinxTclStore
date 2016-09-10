@@ -1,0 +1,13 @@
+
+
+  Description: 
+
+     Export Orcad Symbol table csv file that can be directly copied 
+     and pasted to Orcad Capture part generation spreadsheet to generate 
+     a multi-part symbol for the selected device.
+
+     This command must be run on a synthesized or implemented design.
+
+  Example:
+  
+    export_symbol -file symbol.csv

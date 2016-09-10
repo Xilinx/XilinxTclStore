@@ -239,7 +239,7 @@ proc write_project_tcl_script {} {
   }
 
   # writer helpers
-  wr_create_project $proj_dir $proj_name
+  wr_create_project $proj_dir $proj_name $part_name
   wr_project_properties $proj_dir $proj_name
   wr_filesets $proj_dir $proj_name
   wr_runs $proj_dir $proj_name
@@ -293,7 +293,7 @@ proc write_project_tcl_script {} {
   return 0
 }
 
-proc wr_create_project { proj_dir name } {
+proc wr_create_project { proj_dir name part_name } {
   # Summary: write create project command 
   # This helper command is used to script help.
   # Argument Usage: 
@@ -374,15 +374,15 @@ proc wr_create_project { proj_dir name } {
   # set target project directory path if specified. If not, create project dir in current dir.
   set target_dir $a_global_vars(s_target_proj_dir)
   if { {} == $target_dir } {
-    set tcl_cmd "create_project $name ./$name"
+    set tcl_cmd "create_project $name ./$name -part $part_name"
   } else {
     # is specified target proj dir == current dir? 
     set cwd [file normalize [string map {\\ /} [pwd]]]
     set dir [file normalize [string map {\\ /} $target_dir]]
     if { [string equal $cwd $dir] } {
-      set tcl_cmd "create_project $name"
+      set tcl_cmd "create_project $name -part $part_name"
     } else {
-      set tcl_cmd "create_project $name \"$target_dir\""
+      set tcl_cmd "create_project $name \"$target_dir\" -part $part_name"
     }
   }
       
@@ -398,6 +398,16 @@ proc wr_create_project { proj_dir name } {
   lappend l_script_data ""
   lappend l_script_data "# Set the directory path for the new project"
   lappend l_script_data "set proj_dir \[get_property directory \[current_project\]\]"
+
+  lappend l_script_data ""
+  lappend l_script_data "# Reconstruct message rules"
+
+  set msg_control_rules [ debug::get_msg_control_rules -as_tcl ]
+  if { [string length $msg_control_rules] > 0 } {
+    lappend l_script_data "${msg_control_rules}"
+  } else {
+    lappend l_script_data "# None"
+  }
   lappend l_script_data ""
 }
 
@@ -460,6 +470,12 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
   # write filesets
   set type "file"
   foreach tcl_obj $filesets {
+
+    # Is this a IP block fileset for a proxy IP that is owned by another composite file?
+    # If so, we don't want to write it out as an independent file. The parent will take care of it.
+    if { [is_proxy_ip_fileset $tcl_obj] } {
+      continue
+    }
 
     set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
 
@@ -1734,6 +1750,8 @@ proc get_script_execution_dir { } {
   return $scr_exe_dir
 }
 
+# TODO: This is the same as xcs_get_relative_file_path for simulators, see common/utils.tcl
+# Remember to add the 'source .../common/utils.tcl' in the write_project_tcl proc to load the common file
 proc get_relative_file_path_for_source { file_path_to_convert relative_to } {
   # Summary: Get the relative path wrt to path specified
   # Argument Usage:
@@ -1840,7 +1858,7 @@ proc is_ip_fileset { fileset } {
     return false
   }
 
-  set ip_filter "FILE_TYPE == \"IP\""
+  set ip_filter "FILE_TYPE == \"IP\" || FILE_TYPE==\"Block Designs\""
   set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
   set b_found false
   foreach ip $ips {
@@ -1855,6 +1873,27 @@ proc is_ip_fileset { fileset } {
   }
   return false
 }
+
+proc is_proxy_ip_fileset { fileset } {
+  # Summary: Determine if the fileset is an OOC run for a proxy IP that has a parent composite
+  # Argument Usage:
+  # fileset: fileset name
+  # Return Value:
+  # true (1) if the fileset contains an IP at its root with a parent composite, false (0) otherwise
+
+  # make sure fileset is block fileset type
+  if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
+    return false
+  }
+
+  set ip_with_parent_filter "FILE_TYPE == IP && PARENT_COMPOSITE_FILE != \"\""
+  if {[llength [get_files -norecurse -quiet -of_objects [get_filesets $fileset] -filter $ip_with_parent_filter]] == 1} {
+    return true
+  }
+
+  return false
+}
+
 
 proc is_ip_run { run } {
   # Summary: Find IP's if any from the fileset linked with the block fileset run

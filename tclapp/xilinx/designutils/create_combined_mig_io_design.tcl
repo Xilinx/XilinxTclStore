@@ -285,8 +285,8 @@ proc ::tclapp::xilinx::designutils::create_combined_mig_io_design::create_projec
 			## Set the dictionary of the specific port from the Module Port Dictionary
 			set portDict [dict get $opts(-ip_dict) $ipDictID cell ports $modulePortDictID]
 
-			## Check if the port name is named "_app_" or "_user_" (specific for MIG Ultrascale)
-			if {[regexp {_app_} [dict get $portDict name]] || [regexp {_user_} [dict get $portDict name]]} {
+			## Check if the port name is named "_app_" or "_user_" or "dbg_" (specific for MIG Ultrascale)
+			if {[regexp {_app_} [dict get $portDict name]] || [regexp {_user_} [dict get $portDict name]] || [regexp {dbg_} [dict get $portDict name]]} {
 				## Check if the port direction is output (case insensitive check)
 				if {[string tolower [dict get $portDict direction]] eq "output"} {
 					## Append the module port to the instantiation template

@@ -1,0 +1,7 @@
+
+Example:
+
+  # Set the output file:
+  set output_file [ file join $::env(HOME) profile.out ]
+  xilinx::profiler::set_out_file $output_file
+
