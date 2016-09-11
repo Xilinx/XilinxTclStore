@@ -1,0 +1,1 @@
+2.0 Added possibility of SoC prototyping (CPU and FPGA)

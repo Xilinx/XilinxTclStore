@@ -2,10 +2,10 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added prototyping of heterogeneous implementations</revision_history>
+      <revision_history>Added possibility of SoC prototyping (CPU and FPGA)</revision_history>
       <name>protoip</name>
       <pkg_require>Vivado 2015.1</pkg_require>
-      <author>asuardi https://github.com/asuardi/, bulatkhusainov https://github.com/bulatkhusainov/</author>
+      <author>Bulat Khusainov</author>
       <company>icl</company>
       <company_display>Imperial College London</company_display>
       <summary>Protoip is a utility for quickly prototyping C-based IP in FPGA hardware</summary>
@@ -69,7 +69,7 @@
         </proc>
         <proc>
           <name>soc_prototype_load_debug</name>
-          <summary/>
+          <summary>Open SDK to debug user&apos;s code (from soc_user.c and soc_user.h files) and the the FPGA Ethernet server running on the FPGA ARM processor.</summary>
         </proc>
         <proc>
           <name>soc_prototype_test</name>
