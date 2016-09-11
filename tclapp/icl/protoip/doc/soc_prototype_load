@@ -1,0 +1,17 @@
+Description: 
+  Build user's code (from soc_user.c and soc_user.h files) and the FPGA Ethernet server application using SDK according 
+  to the project configuration parameters
+ [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
+  and program the FPGA.
+  
+ An evaluation board connected to an host computer through an Ethernet and USB JTAG cable is required.
+ 
+ This command can be run after 'ip_prototype_build' command only.
+
+ Example:
+  soc_prototype_load('project_name','my_project0','board_name','zedboard','type_eth','udp')
+  soc_prototype_load('project_name','my_project0','board_name','zedboard','type_eth','udp','mem_base_address',33554432)
+  soc_prototype_load('project_name','my_project0','board_name','zedboard','type_eth','udp','soc_input','x_hat:8','soc_output','u_opt:28')
+
+
+

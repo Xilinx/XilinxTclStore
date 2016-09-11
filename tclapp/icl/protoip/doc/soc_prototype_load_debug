@@ -1,0 +1,7 @@
+ Description: 
+  Open SDK to debug user's code (from soc_user.c and soc_user.h files) and the the FPGA Ethernet server running on the FPGA ARM processor.
+  
+  This command must be run after 'soc_prototype_load' command only.
+
+ Example:
+  soc_prototype_load_debug('project_name','my_project0','board_name','zedboard')
