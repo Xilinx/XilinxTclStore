@@ -127,7 +127,7 @@ if {$help} {
   This command must be run after 'soc_prototype_load' command only.
 
  Example:
-  soc_prototype_load_debug('project_name','my_project0','board_name','zedboard')
+  soc_prototype_load_debug -project_name my_project0 -board_name zedboard
 
 } ]
       # HELP -->

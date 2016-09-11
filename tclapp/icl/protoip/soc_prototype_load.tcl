@@ -160,9 +160,9 @@ proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
  This command can be run after 'ip_prototype_build' command only.
 
  Example:
-  soc_prototype_load('project_name','my_project0','board_name','zedboard','type_eth','udp')
-  soc_prototype_load('project_name','my_project0','board_name','zedboard','type_eth','udp','mem_base_address',33554432)
-  soc_prototype_load('project_name','my_project0','board_name','zedboard','type_eth','udp','soc_input','x_hat:8','soc_output','u_opt:28')
+  soc_prototype_load -project_name my_project0 -board_name zedboard -type_eth udp
+  soc_prototype_load -project_name my_project0 -board_name zedboard -type_eth udp mem_base_address 33554432
+  soc_prototype_load -project_name my_project0 -board_name zedboard -type_eth udp -soc_input x_hat:8 -soc_output u_opt:28
 
 
 } ]
