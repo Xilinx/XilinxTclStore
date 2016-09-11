@@ -138,13 +138,13 @@ proc ::tclapp::icl::protoip::soc_prototype_test::soc_prototype_test { args } {
   [-usage|-u]               - This help message
 
  Description: 
-  Run a HIL test of the IP prototype named 'project_name'
+  Run a HIL test of the SoC prototype named 'project_name'
   according to the project configuration parameters
  [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt
    
  An evaluation board connected to an host computer through an Ethernet cable is required.
  
- This command must be run after 'ip_prototype_load' command only.
+ This command must be run after 'soc_prototype_load' command only.
   
   
  Example:
