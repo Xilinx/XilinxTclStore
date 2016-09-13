@@ -2736,13 +2736,23 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
       }
       set arg_list [list $s_64bit]
       if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
-        set arg_list [list "-v2k5"]
+        # reset arg list (platform switch not applicable for riviera/active-hdl)
+        set arg_list [list]
       }
       xps_append_config_opts arg_list $simulator "vlog"
       set cmd_str [join $arg_list " "]
       lappend opts $cmd_str
-      if { [string equal -nocase $file_type "systemverilog"] } {
-        lappend opts "-sv"
+      if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
+        if { [string equal -nocase $file_type "systemverilog"] } {
+          lappend opts "-sv2k12"
+        } else {
+          lappend opts "-v2k5"
+        }
+      } else {
+        # for ModelSim/Questa pass -sv for system verilog filetypes
+        if { [string equal -nocase $file_type "systemverilog"] } {
+          lappend opts "-sv"
+        }
       }
     }
     "ncvhdl" { 
