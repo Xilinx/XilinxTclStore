@@ -1,3 +1,4 @@
+3.207 pass -sv2k12 for compiling system verilog files
 3.206 reference compiled library from the path specified with -lib_map_path
 3.205 fixed the library search order for user design libraries for behavioral simulation
 3.204 copy library.cfg to run dir for Riviera-pro and Active-HDL
