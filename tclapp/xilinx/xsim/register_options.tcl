@@ -37,6 +37,7 @@ proc register_options { simulator } {
     {{compile.xvlog.nosort}          {bool}        {1}                                                  {Do not sort Verilog files}}
     {{compile.xvlog.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
     {{compile.xvhdl.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
+    {{compile.incremental}           {bool}        {0}                                                  {Perform incremental compilation}}
     {{compile.xvlog.more_options}    {string}      {}                                                   {More XVLOG compilation options}}
     {{compile.xvhdl.more_options}    {string}      {}                                                   {More XVHDL compilation options}}
     {{elaborate.snapshot}            {string}      {}                                                   {Specify name of the simulation snapshot}}
@@ -48,8 +49,9 @@ proc register_options { simulator } {
     {{elaborate.sdf_delay}           {enum}        {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
     {{elaborate.xelab.more_options}  {string}      {}                                                   {More XELAB elaboration options}}
     {{simulate.runtime}              {string}      {1000ns}                                             {Specify simulation run time}}
-    {{simulate.uut}                  {string}      {}                                                   {Specify instance name for design under test (default:/<tb/top>/uut)}}
+    {{simulate.log_all_signals}      {bool}        {0}                                                  {Log all signals}}
     {{simulate.wdb}                  {string}      {}                                                   {Specify waveform database file}}
+    {{simulate.saif_scope}           {string}      {}                                                   {Specify design hierarchy instance name for which power estimation is desired}}
     {{simulate.saif}                 {string}      {}                                                   {SAIF filename}}
     {{simulate.saif_all_signals}     {bool}        {0}                                                  {Get all object signals for the design under test instance for SAIF file generation}}
     {{simulate.xsim.more_options}    {string}      {}                                                   {More XSIM simulation options}}

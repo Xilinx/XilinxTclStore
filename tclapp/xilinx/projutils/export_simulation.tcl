@@ -48,9 +48,11 @@ proc export_simulation {args} {
   }
 
   variable a_sim_vars
+  variable l_lib_map_path
   variable l_defines
   variable l_generics
   variable l_include_dirs
+
   xps_init_vars
   set a_sim_vars(options) [split $args " "]
 
@@ -58,7 +60,7 @@ proc export_simulation {args} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
       "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
-      "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)        [lindex $args $i];set a_sim_vars(b_lib_map_path_specified)              1 }
+      "-lib_map_path"             { incr i;set l_lib_map_path                    [lindex $args $i];set a_sim_vars(b_lib_map_path_specified)              1 }
       "-of_objects"               { incr i;set a_sim_vars(sp_of_objects)         [lindex $args $i];set a_sim_vars(b_of_objects_specified)                1 }
       "-ip_user_files_dir"        { incr i;set a_sim_vars(s_ip_user_files_dir)   [lindex $args $i];set a_sim_vars(b_ip_user_files_dir_specified)         1 }
       "-ipstatic_source_dir"      { incr i;set a_sim_vars(s_ipstatic_source_dir) [lindex $args $i];set a_sim_vars(b_ipstatic_source_dir_specified)       1 }
@@ -98,7 +100,7 @@ proc export_simulation {args} {
       # no op
     } else {
       # is pre-compile flow with design containing IPs for a 3rd party simulator?
-      if { ($a_sim_vars(b_use_static_lib)) && [xps_fileset_contain_ips] } {
+      if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
         # is -lib_map_path not specified?
         if { !$a_sim_vars(b_lib_map_path_specified) } {
           send_msg_id exportsim-Tcl-056 "CRITICAL WARNING" \
@@ -109,7 +111,7 @@ proc export_simulation {args} {
     }
   }
 
-  if { ($a_sim_vars(b_use_static_lib)) && [xps_fileset_contain_ips] } {
+  if { ($a_sim_vars(b_use_static_lib)) && [xcs_is_ip_project] } {
     if { $b_print_compiled_simlib_msg } {
       send_msg_id exportsim-Tcl-040 INFO "Using compiled simulation libraries for IPs\n"
     }
@@ -148,6 +150,13 @@ proc export_simulation {args} {
     }
   }
 
+  variable a_sim_cache_all_design_files_obj 
+  # cache all design files
+  foreach file_obj [get_files -quiet -all] {
+    set name [get_property -quiet name $file_obj]
+    set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
+
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
     if { [xps_xport_simulation $objs] } {
@@ -162,10 +171,12 @@ proc export_simulation {args} {
   }
 
   # clear cache
-  array unset a_sim_cache
+  array unset a_sim_cache_result
   array unset a_sim_cache_extract_source_from_repo
   array unset a_sim_cache_gen_mem_files
-  array unset a_sim_cache_is_bd_file
+  array unset a_sim_cache_all_design_files_obj
+  array unset a_sim_cache_all_bd_files
+  array unset a_sim_cache_parent_comp_files
 
   return
 }
@@ -185,7 +196,6 @@ proc xps_init_vars {} {
   set a_sim_vars(s_simulator_name)    ""
   set a_sim_vars(b_xsim_specified)    0
   set a_sim_vars(b_lib_map_path_specified) 0
-  set a_sim_vars(s_lib_map_path)      ""
   set a_sim_vars(b_script_specified)  0
   set a_sim_vars(s_script_filename)   ""
   set a_sim_vars(s_runtime)           ""
@@ -211,6 +221,8 @@ proc xps_init_vars {} {
   set a_sim_vars(b_ip_user_files_dir_specified)        0
   set a_sim_vars(b_ipstatic_source_dir_specified)        0
   set a_sim_vars(b_directory_specified)         0
+  set a_sim_vars(src_mgmt_mode)       "All"
+  set a_sim_vars(s_simulation_flow)   "behav_sim"
   set a_sim_vars(fs_obj)              [current_fileset -simset]
   set a_sim_vars(sp_tcl_obj)          ""
   set a_sim_vars(s_top)               ""
@@ -223,13 +235,14 @@ proc xps_init_vars {} {
   set a_sim_vars(b_is_ies_axi_bfm)    0
   set a_sim_vars(ies_bfm_lib_name)    {}
 
+  variable l_lib_map_path             [list]
   variable l_compile_order_files      [list]
+  variable l_compile_order_files_uniq [list]
   variable l_design_files             [list]
   variable l_compiled_libraries       [list]
   variable l_local_design_libraries   [list]
 
   # ip static libraries
-  variable l_ip_static_libs           [list]
   variable l_simulators               [list xsim modelsim questa ies vcs riviera activehdl]
   variable l_target_simulator         [list]
 
@@ -243,7 +256,7 @@ proc xps_init_vars {} {
   set s_data_files_filter             "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
 
   variable s_embedded_files_filter
-  set s_embedded_files_filter         "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ElF\""
+  set s_embedded_files_filter         "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ELF\""
 
   variable s_non_hdl_data_files_filter
   set s_non_hdl_data_files_filter \
@@ -275,19 +288,21 @@ proc xps_init_vars {} {
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
     variable home
-    source -notrace [file join $home "common" "utils.tcl"] 
+    source -notrace "$home/common/utils.tcl"
   }
   
   # setup cache
   variable a_sim_cache_result
   variable a_sim_cache_extract_source_from_repo
   variable a_sim_cache_gen_mem_files
-  variable a_sim_cache_is_bd_file
+  variable a_sim_cache_all_bd_files
+  variable a_sim_cache_parent_comp_files
 
   array unset a_sim_cache_result
   array unset a_sim_cache_extract_source_from_repo
   array unset a_sim_cache_gen_mem_files
-  array unset a_sim_cache_is_bd_file
+  array unset a_sim_cache_all_bd_files
+  array unset a_sim_cache_parent_comp_files
 }
 }
 
@@ -329,9 +344,11 @@ proc xps_set_webtalk_data {} {
   set proj_obj [current_project]
   foreach simulator $l_target_simulator {
     set prop "webtalk.${simulator}_export_sim" 
-    set curr_val [get_property $prop $proj_obj]
-    incr curr_val
-    [catch {set_property $prop $curr_val $proj_obj} err]
+    set curr_val [get_property -quiet $prop $proj_obj]
+    if { [string is integer $curr_val] } {
+      incr curr_val
+      [catch {set_property $prop $curr_val $proj_obj} err]
+    }
   }
 }
 
@@ -367,7 +384,7 @@ proc xps_xport_simulation { obj } {
 
   if { [xps_write_sim_script $run_dir $data_files $filename] } { return }
 
-  set readme_file [file join $run_dir "README.txt"]
+  set readme_file "$run_dir/README.txt"
   #send_msg_id exportsim-Tcl-030 INFO \
   #  "Please see readme file for instructions on how to use the generated script: '$readme_file'\n"
 
@@ -431,7 +448,7 @@ proc xps_create_rundir { dir run_dir_arg } {
     if { $a_sim_vars(b_directory_specified) } {
       set ip_dir [file tail [file dirname $tcl_obj]]
       #append ip_dir "_sim"
-      set dir [file normalize [file join $dir $ip_dir]]
+      set dir [file normalize "$dir/$ip_dir"]
     } else {
       set ip_dir [file dirname $tcl_obj]
       set ip_filename [file tail $tcl_obj]
@@ -447,13 +464,13 @@ proc xps_create_rundir { dir run_dir_arg } {
   }
   if { {all} == $a_sim_vars(s_simulator) } {
     foreach simulator $l_target_simulator {
-      set sim_dir [file join $dir $simulator]
+      set sim_dir "$dir/$simulator"
       if { [xps_create_dir $sim_dir] } {
         return 1
       }
     }
   } else {
-    set sim_dir [file join $dir $a_sim_vars(s_simulator)]
+    set sim_dir "$dir/$a_sim_vars(s_simulator)"
     if { [xps_create_dir $sim_dir] } {
       return 1
     }
@@ -471,7 +488,7 @@ proc xps_readme { dir } {
   variable a_sim_vars
   set fh 0
   set filename "README.txt"
-  set file [file join $dir $filename]
+  set file "$dir/$filename"
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-030 ERROR "failed to open file to write ($file)\n"
     return 1
@@ -557,7 +574,7 @@ proc xps_write_simulator_readme { dir } {
   variable a_sim_vars
   set fh 0
   set filename "README.txt"
-  set file [file join $dir $filename]
+  set file "$dir/$filename"
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-030 ERROR "failed to open file to write ($file)\n"
     return 1
@@ -641,12 +658,12 @@ proc xps_create_srcs_dir { dir } {
   variable a_sim_vars
   set srcs_dir {}
   if { $a_sim_vars(b_xport_src_files) } {
-    set srcs_dir [file normalize [file join $dir "srcs"]]
+    set srcs_dir [file normalize "$dir/srcs"]
     if {[catch {file mkdir $srcs_dir} error_msg] } {
       send_msg_id exportsim-Tcl-012 ERROR "failed to create the directory ($srcs_dir): $error_msg\n"
       return 1
     }
-    set incl_dir [file normalize [file join $srcs_dir "incl"]]
+    set incl_dir [file normalize "$srcs_dir/incl"]
     if {[catch {file mkdir $incl_dir} error_msg] } {
       send_msg_id exportsim-Tcl-013 ERROR "failed to create the directory ($incl_dir): $error_msg\n"
       return 1
@@ -699,7 +716,7 @@ proc xps_set_target_obj { obj } {
     }
     set a_sim_vars(sp_tcl_obj) [get_files -all -quiet [list "$comp_file"]]
     set a_sim_vars(s_top) [file root [file tail $a_sim_vars(sp_tcl_obj)]]
-    xps_verify_ip_status
+    rdi::verify_ip_sim_status -all $a_sim_vars(sp_tcl_obj)
   } else {
     if { $a_sim_vars(b_is_fs_object_specified) } {
       set fs_type [get_property fileset_type [get_filesets $obj]]
@@ -725,20 +742,20 @@ proc xps_set_target_obj { obj } {
       if { $fs_type == "DesignSrcs" } {
         set a_sim_vars(fs_obj) [current_fileset]
         set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
-        xps_verify_ip_status
-        update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
+        rdi::verify_ip_sim_status -all
+        #update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
         set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
       } elseif { $fs_type == "SimulationSrcs" } {
         set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
-        xps_verify_ip_status
-        update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
+        rdi::verify_ip_sim_status -all
+        #update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
         set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
       }
     } else {
       # no -of_objects specifed, set default active simset
       set a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj)
-      xps_verify_ip_status
-      update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
+      rdi::verify_ip_sim_status -all
+      #update_compile_order -quiet -fileset $a_sim_vars(sp_tcl_obj)
       set a_sim_vars(s_top) [get_property TOP $a_sim_vars(fs_obj)]
     }
   }
@@ -752,7 +769,6 @@ proc xps_gen_mem_files { run_dir } {
   
   variable a_sim_cache_gen_mem_files
   variable a_sim_vars
-  variable s_embedded_files_filter
   variable l_target_simulator
 
   set s_ip_dir [file tail [file dirname $run_dir]]
@@ -774,8 +790,7 @@ proc xps_gen_mem_files { run_dir } {
     return
   }
 
-  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
-  if { [llength $embedded_files] > 0 } {
+  if { [xcs_is_embedded_flow] } {
     #send_msg_id exportsim-Tcl-016 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
     generate_mem_files $run_dir
     set a_sim_cache_gen_mem_files($s_hash) $run_dir
@@ -792,9 +807,9 @@ proc xps_copy_glbl { run_dir } {
   variable a_sim_vars
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-    set glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
+    set glbl_file [file normalize "$data_dir/verilog/src/glbl.v"]
     if { [file exists $glbl_file] } {
-      set target_file [file normalize [file join $run_dir "glbl.v"]]
+      set target_file [file normalize "$run_dir/glbl.v"]
       if { ![file exists $target_file] } {
         if {[catch {file copy -force $glbl_file $run_dir} error_msg] } {
           send_msg_id exportsim-Tcl-041 WARNING "failed to copy file '$glbl_file' to '$run_dir' : $error_msg\n"
@@ -863,6 +878,7 @@ proc xps_get_files { simulator launch_dir } {
   variable a_sim_vars
   variable l_compile_order_files
   variable l_valid_ip_extns
+  variable l_compiled_libraries
   set files          [list]
   set l_compile_order_files [list]
   set target_obj            $a_sim_vars(sp_tcl_obj)
@@ -870,7 +886,6 @@ proc xps_get_files { simulator launch_dir } {
   if { ([xcs_is_fileset $a_sim_vars(sp_tcl_obj)]) && ({SimulationSrcs} == [get_property fileset_type $a_sim_vars(fs_obj)]) } {
     set linked_src_set [get_property "SOURCE_SET" $a_sim_vars(fs_obj)]
   }
-  set src_mgmt_mode   "All"
   set incl_file_paths [list]
   set incl_files      [list]
 
@@ -907,34 +922,57 @@ proc xps_get_files { simulator launch_dir } {
     }
   }
 
-  set b_using_xpm_libraries false
-  foreach library [get_property xpm_libraries [current_project]] {
-    foreach file [rdi::get_xpm_files -library_name $library] {
-      set file_type "SystemVerilog"
-      set compiler [xps_get_compiler $simulator $file_type]
-      set l_other_compiler_opts [list]
-      xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
-      set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type true $compiler l_other_compiler_opts l_incl_dirs_opts 1]
-      if { {} != $cmd_str } {
-        lappend files $cmd_str
-        lappend l_compile_order_files $file
-        set b_using_xpm_libraries true
+  set b_compile_xpm_library 1
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
       }
+    } else {
+      set b_reference_xpm_library 0
     }
   }
-  if { $b_using_xpm_libraries } {
-    set xpm_library [xcs_get_common_xpm_library]
-    set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
-    foreach file $common_xpm_vhdl_files {
-      set file_type "VHDL"
-      set compiler [xps_get_compiler $simulator $file_type]
-      set l_other_compiler_opts [list]
-      set b_is_xpm true
-      xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
-      set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $b_is_xpm $compiler l_other_compiler_opts l_incl_dirs_opts 1 $xpm_library]
-      if { {} != $cmd_str } {
-        lappend files $cmd_str
-        lappend l_compile_order_files $file
+
+  if { $b_reference_xpm_library } {
+    set b_compile_xpm_library 0
+  }
+
+  if { $b_compile_xpm_library } {
+    set b_using_xpm_libraries false
+    foreach library [get_property xpm_libraries [current_project]] {
+      foreach file [rdi::get_xpm_files -library_name $library] {
+        set file_type "SystemVerilog"
+        set compiler [xcs_get_compiler_name $simulator $file_type]
+        set l_other_compiler_opts [list]
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type true $compiler l_other_compiler_opts l_incl_dirs_opts 1]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file
+          set b_using_xpm_libraries true
+        }
+      }
+    }
+    if { $b_using_xpm_libraries } {
+      set xpm_library [xcs_get_common_xpm_library]
+      set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
+      foreach file $common_xpm_vhdl_files {
+        set file_type "VHDL"
+        set compiler [xcs_get_compiler_name $simulator $file_type]
+        set l_other_compiler_opts [list]
+        set b_is_xpm true
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type $b_is_xpm $compiler l_other_compiler_opts l_incl_dirs_opts 1 $xpm_library]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file
+        }
       }
     }
   }
@@ -954,12 +992,12 @@ proc xps_get_files { simulator launch_dir } {
       }
     }
 
-    if { {All} == $src_mgmt_mode } {
+    if { {All} == $a_sim_vars(src_mgmt_mode) } {
       #send_msg_id exportsim-Tcl-020 INFO "Fetching design files from '$target_obj'..."
       foreach fs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
         if { [xcs_is_global_include_file $fs_file_obj $a_sim_vars(global_files_str)] } { continue }
         set file_type [get_property "FILE_TYPE" $fs_file_obj]
-        set compiler [xps_get_compiler $simulator $file_type]
+        set compiler [xcs_get_compiler_name $simulator $file_type]
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -978,7 +1016,7 @@ proc xps_get_files { simulator launch_dir } {
           #send_msg_id exportsim-Tcl-021 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
           foreach fs_file_obj [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
             set file_type [get_property "FILE_TYPE" $fs_file_obj]
-            set compiler [xps_get_compiler $simulator $file_type]
+            set compiler [xcs_get_compiler_name $simulator $file_type]
             set l_other_compiler_opts [list]
             xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
             if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -996,7 +1034,7 @@ proc xps_get_files { simulator launch_dir } {
       #send_msg_id exportsim-Tcl-022 INFO "Fetching design files from '$a_sim_vars(fs_obj)'..."
       foreach fs_file_obj [get_files -quiet -all -of_objects $a_sim_vars(fs_obj)] {
         set file_type [get_property "FILE_TYPE" $fs_file_obj]
-        set compiler [xps_get_compiler $simulator $file_type]
+        set compiler [xcs_get_compiler_name $simulator $file_type]
         set l_other_compiler_opts [list]
         xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1011,9 +1049,9 @@ proc xps_get_files { simulator launch_dir } {
   } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
     #send_msg_id exportsim-Tcl-023 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
-    foreach ip_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
+    foreach ip_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet $ip_filename]] {
       set file_type [get_property "FILE_TYPE" $ip_file_obj]
-      set compiler [xps_get_compiler $simulator $file_type]
+      set compiler [xcs_get_compiler_name $simulator $file_type]
       set l_other_compiler_opts [list]
       xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
@@ -1033,7 +1071,6 @@ proc xps_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
   # Return Value:
 
   variable a_sim_vars
-  variable l_ip_static_libs
   upvar $b_static_ip_file_arg b_static_ip_file
   if { ![get_param project.enableCentralSimRepo] } { return $src_file }
   #if { $a_sim_vars(b_xport_src_files) }            { return $src_file }
@@ -1053,7 +1090,6 @@ proc xps_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
     # phase-2
     if { $b_is_static } {
       set b_static_ip_file 1
-      lappend l_ip_static_libs [string tolower $library]
     }
   } else {
     set b_add_ref 0
@@ -1064,7 +1100,7 @@ proc xps_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
     }
     if { [file exist $src_file] } {
       if { $a_sim_vars(b_absolute_path) } {
-        set src_file "[xps_resolve_file_path $src_file $launch_dir]"
+        set src_file "[xcs_resolve_file_path $src_file $launch_dir]"
       } else {
         if { $b_add_ref } {
           set src_file "\$ref_dir/[xcs_get_relative_file_path $src_file $launch_dir]"
@@ -1085,23 +1121,33 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
 
   variable a_sim_cache_extract_source_from_repo
   variable a_sim_vars
-  variable l_compile_order_files
   variable l_compiled_libraries
   variable l_local_design_libraries
+  variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_all_bd_files
   upvar $b_is_static_arg b_is_static
   upvar $b_is_dynamic_arg b_is_dynamic
   upvar $b_add_ref_arg b_add_ref
   upvar $b_wrap_in_quotes_arg b_wrap_in_quotes
 
   set s_hash "_${ip_file}-${orig_src_file}"; # cache hash, _ prepend supports empty args
-  if { [info exists a_sim_cache_extract_source_from_repo($s_hash)] } { 
-    if { [info exists a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static")] } { 
-      set b_is_static $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") 
+  # IMPORTANT: when exporting for multiple simulators, the values of b_is_static for a given file
+  #            could change based on compiled libraries data from lib_map_path, so don't use hash
+  #            at this point for precompiled flow, just process all files.
+  set b_use_hash 1
+  if { $a_sim_vars(b_use_static_lib) } {
+    set b_use_hash 0
+  }
+  if { $b_use_hash } {
+    if { [info exists a_sim_cache_extract_source_from_repo($s_hash)] } { 
+      if { [info exists a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static")] } { 
+        set b_is_static $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") 
+      }
+      set b_is_dynamic $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") 
+      set b_add_ref $a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") 
+      set b_wrap_in_quotes $a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") 
+      return $a_sim_cache_extract_source_from_repo($s_hash) 
     }
-    set b_is_dynamic $a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") 
-    set b_add_ref $a_sim_cache_extract_source_from_repo("${s_hash}-b_add_ref") 
-    set b_wrap_in_quotes $a_sim_cache_extract_source_from_repo("${s_hash}-b_wrap_in_quotes") 
-    return $a_sim_cache_extract_source_from_repo($s_hash) 
   }
 
   #puts org_file=$orig_src_file
@@ -1128,9 +1174,14 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   #puts ip_file=$ip_file
   set ip_name [file root [file tail $ip_file]] 
 
-  set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file $l_compile_order_files]
+  set full_src_file_path [xcs_find_file_from_compile_order $ip_name $src_file]
   #puts ful_file=$full_src_file_path
-  set full_src_file_obj [lindex [get_files -quiet -all [list "$full_src_file_path"]] 0]  
+  set full_src_file_obj {}
+  if { [info exists a_sim_cache_all_design_files_obj($full_src_file_path)] } {
+    set full_src_file_obj $a_sim_cache_all_design_files_obj($full_src_file_path)
+  } else {
+    set full_src_file_obj [lindex [get_files -quiet -all [list "$full_src_file_path"]] 0]
+  }
   if { {} == $full_src_file_obj } {
     return $orig_src_file
   }
@@ -1139,33 +1190,41 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   set dst_cip_file $full_src_file_path
   set used_in_values [get_property "USED_IN" $full_src_file_obj]
   set library [get_property "LIBRARY" $full_src_file_obj]
+  set b_file_is_static 0
   # is dynamic?
   if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
     set file_extn [file extension $ip_file]
     set b_found_in_repo 0
     set repo_src_file {}
-    if { [xps_cache_result {xcs_is_core_container ${ip_name}${file_extn}}] } {
+    if { [xcs_cache_result {xcs_is_core_container ${ip_name}${file_extn}}] } {
       set dst_cip_file [xcs_get_dynamic_sim_file_core_container $full_src_file_path $a_sim_vars(s_ip_user_files_dir) b_found_in_repo repo_src_file]
+      if { !$b_found_in_repo } {
+        send_msg_id exportsim-Tcl-024 ERROR "The expected IP dynamic file(s) does not exist from the path specified with -ip_user_files_dir switch. Please make sure that the files were exported to '$a_sim_vars(s_ip_user_files_dir)' directory or specify the directory where these exported files are present.\n"
+      }
     } else {
       set dst_cip_file [xcs_get_dynamic_sim_file_core_classic $full_src_file_path $a_sim_vars(s_ip_user_files_dir) b_found_in_repo repo_src_file]
     }
-    if { !$b_found_in_repo } {
-      #send_msg_id exportsim-Tcl-024 WARNING "Expected IP user file does not exist:'$repo_src_file'!, using from default location:'$full_src_file_path'"
-    }
+  } else {
+    set b_file_is_static 1
   }
 
   set b_is_dynamic 1
   set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_dynamic") $b_is_dynamic
-  set bd_file {}
-  set b_is_bd_ip [xps_is_bd_file $full_src_file_path bd_file]
-  set bd_filename [file tail $bd_file]
+  set b_is_bd_ip 0
+  if { [info exists a_sim_cache_all_bd_files($full_src_file_path)] } {
+    set b_is_bd_ip 1
+  } else {
+    set b_is_bd_ip [xcs_is_bd_file $full_src_file_path]
+    if { $b_is_bd_ip } {
+      set a_sim_cache_all_bd_files($full_src_file_path) $b_is_bd_ip
+    }
+  }
 
   # is static ip file? set flag and return
   #puts ip_name=$ip_name
-  if { $b_is_bd_ip } {
-    set ip_static_file [lindex [get_files -quiet -all -of_objects [get_files -all -quiet $bd_filename] [list "$full_src_file_path"] -filter {USED_IN=~"*ipstatic*"}] 0]
-  } else {
-    set ip_static_file [lindex [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] [list "$full_src_file_path"] -filter {USED_IN=~"*ipstatic*"}] 0]
+  set ip_static_file {}
+  if { $b_file_is_static } {
+    set ip_static_file $full_src_file_path
   }
   if { {} != $ip_static_file } {
     #puts ip_static_file=$ip_static_file
@@ -1181,6 +1240,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
         set b_process_file 0
         set b_is_static 1
+        set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") $b_is_static
       } else {
         # add this library to have the new mapping
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
@@ -1191,20 +1251,20 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
 
     if { $b_process_file } {
       if { $b_is_bd_ip } {
-        set dst_cip_file [xps_fetch_ipi_static_file $ip_static_file] 
+        set dst_cip_file [xcs_fetch_ipi_static_file $full_src_file_obj $ip_static_file $a_sim_vars(s_ipstatic_source_dir)] 
       } else {
         # get the parent composite file for this static file
-        set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
+        set parent_comp_file [get_property parent_composite_file -quiet $full_src_file_obj]
 
         # calculate destination path
-        set dst_cip_file [xcs_find_ipstatic_file_path $ip_static_file $parent_comp_file $a_sim_vars(s_ipstatic_source_dir)]
+        set dst_cip_file [xcs_find_ipstatic_file_path $full_src_file_obj $ip_static_file $parent_comp_file $a_sim_vars(s_ipstatic_source_dir)]
 
         # skip if file exists
         if { ({} == $dst_cip_file) || (![file exists $dst_cip_file]) } {
           # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be
           # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
           if { {} == $parent_comp_file } {
-            set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$ip_static_file"] -base_dir $a_sim_vars(s_ipstatic_source_dir)]
+            set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$full_src_file_obj"] -base_dir $a_sim_vars(s_ipstatic_source_dir)]
             #puts extracted_file_no_pc=$dst_cip_file
           } else {
             # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
@@ -1217,10 +1277,10 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
     
             # strip the ip_output_dir path from source ip file and prepend static dir
             set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
-            set target_extract_dir [file normalize [file join $a_sim_vars(s_ipstatic_source_dir) $lib_dir]]
+            set target_extract_dir [file normalize "$a_sim_vars(s_ipstatic_source_dir)/$lib_dir"]
             #puts target_extract_dir=$target_extract_dir
     
-            set dst_cip_file [extract_files -no_path -quiet -files [list "$ip_static_file"] -base_dir $target_extract_dir]
+            set dst_cip_file [extract_files -no_path -quiet -files [list "$full_src_file_obj"] -base_dir $target_extract_dir]
             #puts extracted_file_with_pc=$dst_cip_file
           }
         }
@@ -1239,7 +1299,7 @@ proc xps_get_source_from_repo { orig_src_file dst_cip_file b_add_ref b_wrap_in_q
 
   if { [file exist $dst_cip_file] } {
     if { $a_sim_vars(b_absolute_path) } {
-      set dst_cip_file "[xps_resolve_file_path $dst_cip_file $launch_dir]"
+      set dst_cip_file "[xcs_resolve_file_path $dst_cip_file $launch_dir]"
     } else {
       if { $b_add_ref } {
         set dst_cip_file "\$ref_dir/[xcs_get_relative_file_path $dst_cip_file $launch_dir]"
@@ -1253,76 +1313,6 @@ proc xps_get_source_from_repo { orig_src_file dst_cip_file b_add_ref b_wrap_in_q
     set orig_src_file $dst_cip_file
   }
   return $orig_src_file
-}
-
-proc xps_is_bd_file { src_file bd_file_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_cache_is_bd_file
-  upvar $bd_file_arg bd_file
-
-  set s_hash "_${src_file}"; # cache hash, _ supports empty args
-  if { [info exists a_sim_cache_is_bd_file($s_hash)] } { 
-    if { [info exists a_sim_cache_is_bd_file("${s_hash}-bd_file")] } { 
-      set bd_file $a_sim_cache_is_bd_file("${s_hash}-bd_file") 
-    }
-    return $a_sim_cache_is_bd_file($s_hash) 
-  }
-
-  set b_is_bd [xcs_is_bd_file $src_file bd_file]
-  set a_sim_cache_is_bd_file("${s_hash}-bd_file") $bd_file
-  return [set a_sim_cache_is_bd_file($s_hash) $b_is_bd]
-}
-
-proc xps_fetch_ipi_static_file { file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set src_ip_file $file
-
-  set comps [lrange [split $src_ip_file "/"] 0 end]
-  set to_match "xilinx.com"
-  set index 0
-  set b_found [xcs_find_comp comps index $to_match]
-  if { !$b_found } {
-    set to_match "user_company"
-    set b_found [xcs_find_comp comps index $to_match]
-  }
-  if { !$b_found } {
-    return $src_ip_file
-  }
-
-  set file_path_str [join [lrange $comps 0 $index] "/"]
-  set ip_lib_dir "$file_path_str"
-
-  #puts ip_lib_dir=$ip_lib_dir
-  set ip_lib_dir_name [file tail $ip_lib_dir]
-  set target_ip_lib_dir [file join $a_sim_vars(s_ipstatic_source_dir) $ip_lib_dir_name]
-  #puts target_ip_lib_dir=$target_ip_lib_dir
-
-  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
-  set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
-  set ip_hdl_dir "$ip_hdl_dir"
-  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
-  #puts ip_hdl_dir=$ip_hdl_dir
-  incr index
-  set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
-  # /hdl/xbip_utils_v3_0_vh_rfs.vhd
-  #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
-
-  set dst_cip_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
-  #puts dst_cip_file=$dst_cip_file
-
-  # repo static file does not exist? maybe generate_target or export_ip_user_files was not executed, fall-back to project src file
-  if { ![file exists $dst_cip_file] } {
-    return $src_ip_file
-  }
-
-  return $dst_cip_file
 }
 
 proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilog_incl_dirs_arg files_arg compile_order_files_arg } {
@@ -1339,7 +1329,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilo
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
   foreach file [xcs_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-    set compiler [xps_get_compiler $simulator $file_type]
+    set compiler [xcs_get_compiler_name $simulator $file_type]
     set l_other_compiler_opts [list]
     xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
     set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type false $compiler {} l_other_compiler_opts l_incl_dirs_opts]
@@ -1351,7 +1341,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilo
   set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
   foreach file [xcs_get_files_from_block_filesets $verilog_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-    set compiler [xps_get_compiler $simulator $file_type]
+    set compiler [xcs_get_compiler_name $simulator $file_type]
     set l_other_compiler_opts [list]
     xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
     set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type false $compiler l_other_compiler_opts l_incl_dirs_opts]
@@ -1367,18 +1357,24 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
   # Argument Usage:
   # Return Value:
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
   upvar $l_other_compiler_opts_arg l_other_compiler_opts
   upvar $l_incl_dirs_opts_arg l_incl_dirs_opts
   set b_absolute_path $a_sim_vars(b_absolute_path)
   set cmd_str {}
   set associated_library $a_sim_vars(default_lib);
-  set srcs_dir [file normalize [file join $launch_dir "srcs"]]
+  set srcs_dir [file normalize "$launch_dir/srcs"]
   if { $b_skip_file_obj_access } {
     if { ($b_xpm) && ([string length $xpm_library] != 0)} {
       set associated_library $xpm_library
     }
   } else {
-    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    set file_obj {}
+    if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    }
     if { {} != $file_obj } {
       if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
         set associated_library [get_property "LIBRARY" $file_obj]
@@ -1391,7 +1387,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
           set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
           # remove leading "../"
           set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
-          set file [file join $ip_ext_dir $ip_file]
+          set file "$ip_ext_dir/$ip_file"
         } else {
           # set file [extract_files -files [list "$file"] -base_dir $launch_dir/ip_files]
         }
@@ -1406,9 +1402,12 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
   if { $b_skip_file_obj_access } {
     #
   } else {
-    set ip_file [xps_cache_result {xcs_get_top_ip_filename $src_file}]
+    set ip_file [xcs_cache_result {xcs_get_top_ip_filename $src_file}]
     if { $a_sim_vars(b_xport_src_files) } {
-      # no-op
+      # no-op for default flow
+      if { $a_sim_vars(b_use_static_lib) } {
+        set file [xps_get_ip_file_from_repo $ip_file $src_file $associated_library $launch_dir b_static_ip_file]
+      }
     } else {
       set file [xps_get_ip_file_from_repo $ip_file $src_file $associated_library $launch_dir b_static_ip_file]
     }
@@ -1471,9 +1470,9 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
         }
         default {
           if { $a_sim_vars(b_xport_src_files) } {
-            set file [file join $launch_dir "srcs/incl/$src_file"]
+            set file "$launch_dir/srcs/incl/$src_file"
           } else {
-            set file "[xps_resolve_file_path $file $launch_dir]"
+            set file "[xcs_resolve_file_path $file $launch_dir]"
           }
         }
       }
@@ -1510,8 +1509,6 @@ proc xps_get_design_libs {} {
   set libs [list]
   foreach file $a_sim_vars(l_design_files) {
     set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
     set library   [lindex $fargs 2]
     if { {} == $library } {
       continue;
@@ -1523,29 +1520,6 @@ proc xps_get_design_libs {} {
   return $libs
 }
 
-proc xps_resolve_file_path { file_dir_path_to_convert launch_dir } {
-  # Summary: Make file path relative to ref_dir if relative component found
-  # Argument Usage:
-  # file_dir_path_to_convert: input file to make relative to specfied path
-  # Return Value:
-  # Relative path wrt the path specified
-
-  variable a_sim_vars
-  set ref_dir [file normalize [string map {\\ /} $launch_dir]]
-  set ref_comps [lrange [split $ref_dir "/"] 1 end]
-  set file_comps [lrange [split [file normalize [string map {\\ /} $file_dir_path_to_convert]] "/"] 1 end]
-  set index 1
-  while { [lindex $ref_comps $index] == [lindex $file_comps $index] } {
-    incr index
-  }
-  # is file path within reference dir? return relative path
-  if { $index == [llength $ref_comps] } {
-    return [xcs_get_relative_file_path $file_dir_path_to_convert $ref_dir]
-  }
-  # return absolute
-  return $file_dir_path_to_convert
-}
-
 proc xps_export_fs_data_files { filter data_files_arg } {
   # Summary:
   # Argument Usage:
@@ -1553,76 +1527,16 @@ proc xps_export_fs_data_files { filter data_files_arg } {
 
   variable a_sim_vars
   upvar $data_files_arg data_files
-  set ips [get_files -all -quiet -filter "FILE_TYPE == \"IP\""]
-  foreach ip $ips {
-    set ip_name [file tail $ip]
-    foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
-      lappend data_files $file
-    }
-  }
-  set filesets [list]
-  lappend filesets [get_filesets -filter "FILESET_TYPE == \"BlockSrcs\""]
-  lappend filesets [current_fileset -srcset]
-  lappend filesets $a_sim_vars(fs_obj)
+  foreach ip_obj [get_ips -quiet -all] {
+    set data_files [concat $data_files [get_files -all -quiet -of_objects $ip_obj -filter $filter]]
+  } 
 
-  foreach fs_obj $filesets {
-    foreach file [get_files -all -quiet -of_objects [get_filesets $fs_obj] -filter $filter] {
-      lappend data_files $file
-    }
-  }
-}
-
-proc xps_export_data_files { data_files export_dir } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_target_simulator
-  if { [llength $data_files] > 0 } {
-    set data_files [xcs_remove_duplicate_files $data_files]
-    foreach file $data_files {
-      set extn [file extension $file]
-      switch -- $extn {
-        {.bd} -
-        {.png} -
-        {.c} -
-        {.zip} -
-        {.hwh} -
-        {.hwdef} -
-        {.xml} {
-          if { {} != [xps_cache_result {xcs_get_top_ip_filename $file}] } {
-            continue
-          }
-        }
-      }
-
-      set filename [file tail $file]
-      if { ([string match *_bd* $filename]) && ({.tcl} == $extn) } {
-        continue
-      }
-      if { ([string match *_changelog* $filename]) && ({.txt} == $extn) } {
-        continue
-      }
-   
-      # mig data files
-      set mig_files [list "xsim_run.sh" "ies_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
-      if { [lsearch $mig_files $filename] != -1 } {continue}
-
-      set target_file [file join $export_dir [file tail $file]]
-      if { [get_param project.enableCentralSimRepo] } {
-        set mem_init_dir [file normalize [file join $a_sim_vars(s_ip_user_files_dir) "mem_init_files"]]
-        set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
-        if {[catch {file copy -force $data_file $export_dir} error_msg] } {
-          send_msg_id exportsim-Tcl-025 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
-        } else {
-          send_msg_id exportsim-Tcl-025 INFO "Exported '$target_file'\n"
-        }
-      } else {
-        set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $export_dir]
-        send_msg_id exportsim-Tcl-025 INFO "Exported '$target_file'\n"
-      }
-    }
+  set l_fs [list]
+  lappend l_fs [get_filesets -filter "FILESET_TYPE == \"BlockSrcs\""]
+  lappend l_fs [current_fileset -srcset]
+  lappend l_fs $a_sim_vars(fs_obj)
+  foreach fs_obj $l_fs {
+    set data_files [concat $data_files [get_files -all -quiet -of_objects $fs_obj -filter $filter]]
   }
 }
 
@@ -1670,20 +1584,22 @@ proc xps_write_sim_script { run_dir data_files filename } {
   variable l_target_simulator
   variable l_valid_ip_extns
   variable l_compiled_libraries
+
+  set l_local_ip_libs [xcs_get_libs_from_local_repo]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   foreach simulator $l_target_simulator {
     # initialize and fetch compiled libraries for precompile flow
-    set l_compiled_libraries [xps_get_compiled_libraries $simulator]
+    set l_compiled_libraries [xps_get_compiled_libraries $simulator l_local_ip_libs]
     set simulator_name [xps_get_simulator_pretty_name $simulator] 
     #puts ""
     send_msg_id exportsim-Tcl-035 INFO \
       "Exporting simulation files for \"[string toupper $simulator]\" ($simulator_name)...\n"
-    set dir [file join $run_dir $simulator] 
+    set dir "$run_dir/$simulator"
     xps_create_dir $dir
     if { $a_sim_vars(b_xport_src_files) } {
-      xps_create_dir [file join $dir "srcs"]
-      xps_create_dir [file join $dir "srcs" "incl"]
-      xps_create_dir [file join $dir "srcs" "ip"]
+      xps_create_dir "$dir/srcs"
+      xps_create_dir "$dir/srcs/incl"
+      xps_create_dir "$dir/srcs/ip"
     }
     if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
       set a_sim_vars(s_top) [file tail [file root $tcl_obj]]
@@ -1708,7 +1624,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
       return 1
     }
 
-    xps_export_data_files $data_files $dir
+    xcs_export_data_files $dir $a_sim_vars(s_ip_user_files_dir) $data_files
     xps_gen_mem_files $dir
     xps_copy_glbl $dir
 
@@ -1723,38 +1639,78 @@ proc xps_write_sim_script { run_dir data_files filename } {
   return 0
 }
 
-proc xps_get_compiled_libraries { simulator } { 
+proc xps_get_lib_map_path { simulator {b_ignore_default_for_xsim 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
+  variable l_lib_map_path
+  
+  set lmp_value {}
+  if { $a_sim_vars(b_lib_map_path_specified) } {
+    foreach lmp $l_lib_map_path {
+      set lmp [string trim $lmp "\}\{ "]
+      if { {} == $lmp } { continue }
+      if { [regexp {=} $lmp] } {
+        set value [split $lmp {=}]
+        set name [lindex $value 0]
+        set lmp  [lindex $value 1]
+        if { [string equal -nocase $simulator $name] } {
+          if { {} == $lmp } { continue }
+          set lmp_value [file normalize $lmp]
+          break;
+        }
+      } else {
+        set lmp_value [file normalize $lmp]
+      }
+    }
+  }
+
+  if { $b_ignore_default_for_xsim } {
+    # no op
+  } else {
+    # default for xsim
+    if { ({} == $lmp_value) && ({xsim} == $simulator) } {
+      set dir {}
+      if { [info exists ::env(XILINX_VIVADO)] } {
+        set dir $::env(XILINX_VIVADO)
+      }
+      set lmp_value [file normalize "$dir/data/xsim"]
+    }
+  }
+  return $lmp_value
+}
+
+proc xps_get_compiled_libraries { simulator l_local_ip_libs_arg } { 
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $l_local_ip_libs_arg l_local_ip_libs
+  variable a_sim_vars
   variable l_target_simulator
   set libraries [list]
+  set compiled_libraries [list]
 
   if { !$a_sim_vars(b_use_static_lib) } {
-    return $libraries
+    return $compiled_libraries
   }
 
-  set clibs_dir {}
-  # default for xsim
-  if { {xsim} == $simulator } {
-    set dir {}
-    if { [info exists ::env(XILINX_VIVADO)] } {
-      set dir $::env(XILINX_VIVADO)
-    }
-    set clibs_dir [file normalize [file join $dir "data/xsim"]]
-  }
-
-  # in case -lib_map_path specified and simulator specified, pick that
-  if { ([llength $l_target_simulator] == 1) && ([string length $a_sim_vars(s_lib_map_path)] > 0) } {
-    set clibs_dir [file normalize $a_sim_vars(s_lib_map_path)]
-  }
-
+  set clibs_dir [xps_get_lib_map_path $simulator]
   if { {} != $clibs_dir } {
     set libraries [xcs_get_compiled_libraries $clibs_dir]
   }
-  return $libraries
+
+  # filter local ip definitions
+  foreach lib $libraries {
+    if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+      continue
+    } else {
+      lappend compiled_libraries $lib
+    }
+  }
+  return $compiled_libraries
 }
 
 proc xps_check_script { dir filename } {
@@ -1763,7 +1719,7 @@ proc xps_check_script { dir filename } {
   # Return Value:
 
   variable a_sim_vars
-  set file [file normalize [file join $dir $filename]]
+  set file [file normalize "$dir/$filename"]
   if { [file exists $file] && (!$a_sim_vars(b_overwrite)) } {
     send_msg_id exportsim-Tcl-032 ERROR "Script file exist:'$file'. Use the -force option to overwrite or select 'Overwrite files' from 'File->Export->Export Simulation' dialog box in GUI."
     return 1
@@ -1796,13 +1752,15 @@ proc xps_write_script { simulator dir filename } {
   # Return Value:
  
   variable a_sim_vars
+  variable l_compile_order_files
+  variable l_compile_order_files_uniq
 
   if { [xps_check_script $dir $filename] } {
     return 1
   }
 
-  variable l_local_design_libraries
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
+  set l_compile_order_files_uniq [xcs_uniquify_cmd_str $l_compile_order_files]
   
   xps_write_simulation_script $simulator $dir
   send_msg_id exportsim-Tcl-029 INFO \
@@ -1818,7 +1776,7 @@ proc xps_write_simulation_script { simulator dir } {
   variable a_sim_vars
   set fh_unix 0
 
-  set file [file join $dir $a_sim_vars(s_script_filename)] 
+  set file "$dir/$a_sim_vars(s_script_filename)"
   set file_unix ${file}.sh
   if {[catch {open $file_unix w} fh_unix]} {
     send_msg_id exportsim-Tcl-034 ERROR "failed to open file to write ($file_unix)\n"
@@ -1902,7 +1860,7 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   variable a_sim_vars
   variable l_defines
   variable l_generics
-
+  variable l_compiled_libraries
   puts $fh_unix "# RUN_STEP: <execute>"
   puts $fh_unix "execute()\n\{"
 
@@ -1914,11 +1872,30 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   }
 
   set base_libs [list "unisim" "unisims_ver" "secureip" "unimacro" "unimacro_ver"]
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
+  if { $b_reference_xpm_library } {
+    lappend base_libs "xpm"
+  }
   if { $a_sim_vars(b_use_static_lib) } {
-    variable l_ip_static_libs
-    foreach lib [xps_get_compile_order_libs] {
+    variable l_compiled_libraries
+    foreach lib [xps_get_design_libs] {
       if {[string length $lib] == 0} { continue; }
-      if { [xcs_is_static_ip_lib $lib $l_ip_static_libs] } {
+      if { [xcs_is_static_ip_lib $lib $l_compiled_libraries] } {
         lappend base_libs [string tolower $lib]
       }
     }
@@ -1928,15 +1905,13 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
     lappend arg_list "-reflib \"\$ref_lib_dir/$lib:$lib\""
   }
   
-  #lappend arg_list  "-timescale 1ps/1ps"
-
   set opts [list]
   if { [llength $l_defines] > 0 } {
-    xps_append_define_generics $l_defines "irun" opts
+    xps_append_define_generics $l_defines "irun" "ies" opts
   }
 
   if { [llength $l_generics] > 0 } {
-    xps_append_define_generics $l_generics "irun" opts
+    xps_append_define_generics $l_generics "irun" "ies" opts
   }
 
   if { [llength $opts] > 0 } {
@@ -1983,7 +1958,7 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
   puts $fh_unix "       $cmd_str"
 
   set fh_run 0
-  set file [file normalize [file join $launch_dir $filename]]
+  set file [file normalize "$launch_dir/$filename"]
   if { [catch {open $file w} fh_run] } {
     send_msg_id exportsim-Tcl-038 ERROR "failed to open file to write ($file)\n"
     return 1
@@ -2022,10 +1997,10 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
     "xsim" {
       set redirect "2>&1 | tee compile.log"
       if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-        puts $fh_unix "  xvlog \$xvlog_opts -prj vlog.prj $redirect"
+        puts $fh_unix "  \$xv_path/bin/xvlog \$xvlog_opts -prj vlog.prj $redirect"
       }
       if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
-        puts $fh_unix "  xvhdl \$xvhdl_opts -prj vhdl.prj $redirect"
+        puts $fh_unix "  \$xv_path/bin/xvhdl \$xvhdl_opts -prj vhdl.prj $redirect"
       }
       xps_write_xsim_prj $launch_dir $srcs_dir
     }
@@ -2042,7 +2017,7 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
   }
    
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-    set top_lib [xps_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
     switch -regexp -- $simulator {
       "vcs" {
         set sw {}
@@ -2086,17 +2061,17 @@ proc xps_append_config_opts { opts_arg simulator tool } {
     }
     "modelsim" {
       if {"vlog" == $tool} {set opts_str "-incr"}
-      if {"vcom" == $tool} {set opts_str "-93"}
+      if {"vcom" == $tool} {set opts_str ""}
       if {"vsim" == $tool} {set opts_str ""}
     }
     "riviera" {
       if {"vlog" == $tool} {set opts_str ""}
-      if {"vcom" == $tool} {set opts_str "-93"}
+      if {"vcom" == $tool} {set opts_str ""}
       if {"asim" == $tool} {set opts_str ""}
     }
     "activehdl" {
       if {"vlog" == $tool} {set opts_str ""}
-      if {"vcom" == $tool} {set opts_str "-93"}
+      if {"vcom" == $tool} {set opts_str ""}
       if {"asim" == $tool} {set opts_str ""}
     }
     "questa" {
@@ -2110,7 +2085,7 @@ proc xps_append_config_opts { opts_arg simulator tool } {
       if {"irun"   == $tool} {set opts_str "-v93 -relax -access +rwc -namemap_mixgen"}
     }
     "vcs" {
-      if {"vlogan" == $tool} {set opts_str "-timescale=1ps/1ps"}
+      if {"vlogan" == $tool} {set opts_str ""}
       if {"vhdlan" == $tool} {set opts_str ""}
       if {"vcs"    == $tool} {set opts_str ""}
       if {"simv"   == $tool} {set opts_str ""}
@@ -2207,8 +2182,10 @@ proc xps_set_initial_cmd { simulator fh cmd_str src_file file_type lib opts_str 
     "ies" {
       if { $a_sim_vars(b_single_step) } {
         set opts {}
-        if { {SystemVerilog} == $file_type } {
+        if { [string equal -nocase $file_type "systemverilog"] } {
           set opts "-sv "
+        } elseif { [string equal -nocase $file_type "vhdl 2008"] } {
+          set opts "-v200x "
         }
         puts $fh "-makelib ies/$lib $opts\\"
         if { $a_sim_vars(b_xport_src_files) } {
@@ -2336,7 +2313,7 @@ proc xps_write_compile_order_for_ies_vcs { simulator fh launch_dir srcs_dir } {
       if { {} != $ip_file } {
         set ip_name [file rootname [file tail $ip_file]]
         set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
-        set ip_dir [file join $srcs_dir "ip" $ip_name $lib] 
+        set ip_dir "$srcs_dir/ip/$ip_name/$lib"
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
             send_msg_id exportsim-Tcl-040 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -2539,7 +2516,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
     return 0
   }
  
-  set top_lib [xps_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   switch -regexp -- $simulator {
     "xsim" {
       xps_write_xelab_cmdline $fh_unix $dir
@@ -2555,7 +2532,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
       set arg_list [list "ncelab" "\$ncelab_opts"]
       if { [xcs_is_fileset $a_sim_vars(sp_tcl_obj)] } {
         if { [llength $l_generics] > 0 } {
-          xps_append_define_generics $l_generics "ncelab" arg_list
+          xps_append_define_generics $l_generics "ncelab" $simulator arg_list
         }
       }
       lappend arg_list "${top_lib}.$a_sim_vars(s_top)"
@@ -2570,7 +2547,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
       set arg_list [list "vcs" "\$vcs_elab_opts" "${top_lib}.$a_sim_vars(s_top)"]
       if { [xcs_is_fileset $a_sim_vars(sp_tcl_obj)] } {
         if { [llength $l_generics] > 0 } {
-          xps_append_define_generics $l_generics "vcs" arg_list
+          xps_append_define_generics $l_generics "vcs" $simulator arg_list
         }
       }
       if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
@@ -2600,7 +2577,7 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
     return 0
   }
 
-  set top_lib [xps_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   switch -regexp -- $simulator {
     "xsim" {
       xps_write_xsim_cmdline $fh_unix $dir
@@ -2664,70 +2641,7 @@ proc xps_create_udo_file { file } {
   close $fh
 }
 
-proc xps_find_files { src_files_arg filter dir } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_valid_ip_extns
-  upvar $src_files_arg src_files
-
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
-    set ip_name [file tail $tcl_obj]
-    foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
-      if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
-        if { [get_property {IS_USER_DISABLED} $file] } {
-          continue;
-        }
-      }
-      set file [file normalize $file]
-      if { $a_sim_vars(b_absolute_path) } {
-        set file "[xps_resolve_file_path $file $dir]"
-      } else {
-        set file "[xcs_get_relative_file_path $file $dir]"
-      }
-      lappend src_files $file
-    }
-  } elseif { [xcs_is_fileset $tcl_obj] } {
-    set filesets       [list]
-
-    lappend filesets $a_sim_vars(fs_obj)
-    set linked_src_set {}
-    if { ({SimulationSrcs} == [get_property fileset_type $a_sim_vars(fs_obj)]) } {
-      set linked_src_set [get_property "SOURCE_SET" $a_sim_vars(fs_obj)]
-    }
-    if { {} != $linked_src_set } {
-      lappend filesets $linked_src_set
-    }
-
-    # add block filesets
-    set blk_filter "FILESET_TYPE == \"BlockSrcs\""
-    foreach blk_fs_obj [get_filesets -filter $blk_filter] {
-      lappend filesets $blk_fs_obj
-    }
-
-    foreach fs_obj $filesets {
-      foreach file [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter] {
-        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
-          if { [get_property {IS_USER_DISABLED} $file] } {
-            continue;
-          }
-        }
-        set file [file normalize $file]
-        if { $a_sim_vars(b_absolute_path) } {
-          set file "[xps_resolve_file_path $file $dir]"
-        } else {
-          set file "[xcs_get_relative_file_path $file $dir]"
-        }
-        lappend src_files $file
-      }
-    }
-  }
-}
-
-proc xps_append_define_generics { def_gen_list tool opts_arg } {
+proc xps_append_define_generics { def_gen_list tool simulator opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2739,7 +2653,12 @@ proc xps_append_define_generics { def_gen_list tool opts_arg } {
     set val  [lindex $key_val_pair 1]
     set str {}
     switch $tool {
-      "vlog"   { set str "+define+$name="       }
+      "vlog"   { 
+        switch -regexp -- $simulator {
+          "riviera" { set str "+define+$name"  }
+          default   { set str "+define+$name=" }
+        }
+      }
       "ncvlog" -
       "irun"   { set str "-define \"$name="   }
       "vlogan" { set str "+define+$name="     }
@@ -2781,42 +2700,6 @@ proc xps_append_define_generics { def_gen_list tool opts_arg } {
   }
 }
 
-proc xps_get_compiler { simulator file_type } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set compiler ""
-  if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } {
-    switch -regexp -- $simulator {
-      "xsim"     { set compiler "vhdl" }
-      "modelsim" -
-      "riviera" -
-      "activehdl" -
-      "questa"   { set compiler "vcom" }
-      "ies"      { set compiler "ncvhdl" }
-      "vcs"      { set compiler "vhdlan" }
-    }
-  } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) || ({Verilog/SystemVerilog Header} == $file_type) } {
-    switch -regexp -- $simulator {
-      "xsim"     {
-        set compiler "verilog"
-        if { {SystemVerilog} == $file_type } {
-          set compiler "sv"
-        }
-      }
-      "modelsim" -
-      "riviera" -
-      "activehdl" -
-      "questa"   { set compiler "vlog" }
-      "ies"      { set compiler "ncvlog" }
-      "vcs"      { set compiler "vlogan" }
-    }
-  }
-  return $compiler
-}
- 
 proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog_incl_dirs_arg opts_arg } {
   # Summary:
   # Argument Usage:
@@ -2834,10 +2717,14 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
         set s_64bit {-32}
       }
       set arg_list [list $s_64bit]
-      #lappend arg_list "-93"
       if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
         set arg_list [list]
       }
+      set opts_str "-93"
+      if { [string equal -nocase $file_type "vhdl 2008"] } {
+        set opts_str "-2008"
+      }
+      lappend arg_list $opts_str
       xps_append_config_opts arg_list $simulator "vcom"
       set cmd_str [join $arg_list " "]
       lappend opts $cmd_str
@@ -2849,20 +2736,33 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
       }
       set arg_list [list $s_64bit]
       if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
-        set arg_list [list "-v2k5"]
+        # reset arg list (platform switch not applicable for riviera/active-hdl)
+        set arg_list [list]
       }
       xps_append_config_opts arg_list $simulator "vlog"
       set cmd_str [join $arg_list " "]
       lappend opts $cmd_str
-      if { [string equal -nocase $file_type "systemverilog"] } {
-        lappend opts "-sv"
+      if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
+        if { [string equal -nocase $file_type "systemverilog"] } {
+          lappend opts "-sv2k12"
+        } else {
+          lappend opts "-v2k5"
+        }
+      } else {
+        # for ModelSim/Questa pass -sv for system verilog filetypes
+        if { [string equal -nocase $file_type "systemverilog"] } {
+          lappend opts "-sv"
+        }
       }
     }
     "ncvhdl" { 
-       lappend opts "\$ncvhdl_opts"
+      lappend opts "\$ncvhdl_opts"
     }
     "vhdlan" {
-       lappend opts "\$vhdlan_opts"
+      lappend opts "\$vhdlan_opts"
+      if { [string equal -nocase $file_type "vhdl 2008"] } {
+        lappend opts "-vhdl08"
+      }
     }
     "ncvlog" {
       lappend opts "\$ncvlog_opts"
@@ -2886,7 +2786,7 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
     "ncvlog" -
     "vlogan" {
       if { [llength $l_defines] > 0 } {
-        xps_append_define_generics $l_defines $tool opts
+        xps_append_define_generics $l_defines $tool $simulator opts
       }
  
       # include dirs
@@ -2910,102 +2810,6 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
   }
 }
  
-proc xps_get_compile_order_libs { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
- 
-  variable a_sim_vars
-  set libs [list]
-  foreach file $a_sim_vars(l_design_files) {
-    set library   [lindex [split $file {|}] 2]
-    if { {} == $library } {
-      continue;
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-
-  return $libs
-}
-
-proc xps_get_top_library { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable l_valid_ip_extns
-  variable l_compile_order_files
-
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
-
-  set src_mgmt_mode         "All"
-  set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
-
-  # was -of_objects <ip> specified?, fetch current fileset
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
-    set tcl_obj $a_sim_vars(fs_obj)
-  }
-
-  # 1. get the default top library set for the project
-  set default_top_library $a_sim_vars(default_lib)
-
-  # 2. get the library associated with the top file from the 'top_lib' property on the fileset
-  set fileset_top_library [get_property "TOP_LIB" [get_filesets $tcl_obj]]
-
-  # 3. get the library associated with the last file in compile order
-  set co_top_library {}
-  set filelist [xcs_uniquify_cmd_str $l_compile_order_files]
-  if { [llength $filelist] > 0 } {
-    set file_list [get_files -quiet -all [list "[lindex $filelist end]"]]
-    if { [llength $file_list] > 0 } {
-      set co_top_library [get_property "LIBRARY" [lindex $file_list 0]]
-    }
-  }
-
-  # 4. if default top library is set and the compile order file library is different
-  #    than this default, return the compile order file library
-  if { {} != $default_top_library } {
-    # manual compile order, we just return the file set's top
-    if { $manual_compile_order && ({} != $fileset_top_library) } {
-      return $fileset_top_library
-    }
-    # compile order library is set and is different then the default
-    if { ({} != $co_top_library) && ($default_top_library != $co_top_library) } {
-      return $co_top_library
-    } else {
-      # worst case (default is set but compile order file library is empty or we failed to get the library for some reason)
-      return $default_top_library
-    }
-  }
-
-  # 5. default top library is empty at this point
-  #    if fileset top library is set and the compile order file library is different
-  #    than this default, return the compile order file library
-  if { {} != $fileset_top_library } {
-    # manual compile order, we just return the file set's top
-    if { $manual_compile_order } {
-      return $fileset_top_library
-    }
-    # compile order library is set and is different then the fileset
-    if { ({} != $co_top_library) && ($fileset_top_library != $co_top_library) } {
-      return $co_top_library
-    } else {
-      # worst case (fileset library is set but compile order file library is empty or we failed to get the library for some reason)
-      return $fileset_top_library
-    }
-  }
-
-  # 6. Both the default and fileset library are empty, return compile order library else xilinx default
-  if { {} != $co_top_library } {
-    return $co_top_library
-  }
-
-  return $a_sim_vars(default_lib)
-}
-
 proc xps_contains_system_verilog {} {
   # Summary:
   # Argument Usage:
@@ -3053,23 +2857,40 @@ proc xps_verify_ip_status {} {
   set b_single_ip 0
   if { ([xcs_is_ip $a_sim_vars(sp_tcl_obj) $l_valid_ip_extns]) && ({.xci} == $a_sim_vars(s_ip_file_extn)) } {
     set ip [file root [file tail $a_sim_vars(sp_tcl_obj)]]
-    # is user-disabled? or auto_disabled? skip
-    if { ({0} == [get_property is_enabled [get_files -quiet -all ${ip}.xci]]) ||
-         ({1} == [get_property is_auto_disabled [get_files -quiet -all ${ip}.xci]]) } {
+    set ip_obj [get_ips -all -quiet $ip]
+    # make sure ip advertises targets and support simulation target
+    if { {} == [get_property delivered_targets $ip_obj] } {
       return
     }
-    dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -all -quiet $ip]]
-    dict set regen_ip $ip s_targets [get_property supported_targets [get_ips -all -quiet $ip]]
-    dict set regen_ip $ip generated [get_property is_ip_generated [get_ips -all -quiet $ip]]
-    dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip}.xci] 0]]
-    dict set regen_ip $ip stale [get_property stale_targets [get_ips -all -quiet $ip]]
+    if { [lsearch [get_property supported_targets $ip_obj] "simulation"] == -1 } {
+      return
+    }
+    set xci_obj [lindex [get_files -quiet -all ${ip}.xci] 0]
+    # is user-disabled? or auto_disabled? skip
+    if { ({0} == [get_property is_enabled $xci_obj]) ||
+         ({1} == [get_property is_auto_disabled $xci_obj]) } {
+      return
+    }
+    dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim $xci_obj]
+    dict set regen_ip $ip stale         [get_property stale_targets $ip_obj]
     set b_single_ip 1
   } else {
-    foreach ip [get_ips -all -quiet] {
+    foreach ip_obj [lsort -unique [get_ips -all -quiet]] {
+      # make sure ip advertises targets and support simulation target
+      if { {} == [get_property delivered_targets $ip_obj] } {
+        continue
+      }
+      if { [lsearch [get_property supported_targets $ip_obj] "simulation"] == -1 } {
+        continue
+      }
+           
       # is user-disabled? or auto_disabled? continue
-      set ip_file [get_files -quiet -all ${ip}.xci]
-      if { [llength $ip_file] == 0 } {
-        set ip_file [get_files -quiet -all ${ip}.xco]
+      set ip_file {}
+      set ip_file_xci [lindex [get_files -quiet -all ${ip_obj}.xci] 0]
+      if { [llength $ip_file_xci] == 0 } {
+        set ip_file [get_files -quiet -all ${ip_obj}.xco]
+      } else {
+        set ip_file $ip_file_xci
       }
       if { [llength $ip_file] == 0 } {
         continue
@@ -3078,24 +2899,15 @@ proc xps_verify_ip_status {} {
            ({1} == [get_property is_auto_disabled $ip_file]) } {
         continue
       }
-      dict set regen_ip $ip d_targets [get_property delivered_targets [get_ips -all -quiet $ip]]
-      dict set regen_ip $ip s_targets [get_property supported_targets [get_ips -all -quiet $ip]]
-      dict set regen_ip $ip generated [get_property is_ip_generated $ip]
-      dict set regen_ip $ip generated_sim [get_property is_ip_generated_sim [lindex [get_files -all -quiet ${ip}.xci] 0]]
-      dict set regen_ip $ip stale [get_property stale_targets $ip]
+      dict set regen_ip $ip_obj generated_sim [get_property is_ip_generated_sim $ip_file_xci]
+      dict set regen_ip $ip_obj stale [get_property stale_targets $ip_obj]
     }
   } 
 
   set not_generated [list]
   set stale_ips [list]
   dict for {ip regen} $regen_ip {
-    dic with regen {
-      if { {} == $d_targets } {
-        continue
-      }
-      if { [lsearch $s_targets "simulation"] == -1 } {
-        continue
-      }
+    dict with regen {
       if { {0} == $generated_sim } {
         lappend not_generated $ip
       } else {
@@ -3159,7 +2971,7 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
   # Return Value:
 
   variable a_sim_vars
-  variable l_ip_static_libs
+  variable l_local_design_libraries
   switch $simulator {
     "xsim" {
       if { $a_sim_vars(b_use_static_lib) } {
@@ -3170,7 +2982,12 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       }
     }
     "riviera" -
-    "activehdl" {}
+    "activehdl" {
+      puts $fh_unix "# Copy library.cfg file"
+      puts $fh_unix "copy_setup_file()"
+      puts $fh_unix "\{"
+      puts $fh_unix "  file=\"library.cfg\""
+    }
     "modelsim" -
     "questa" {
       puts $fh_unix "# Copy modelsim.ini file"
@@ -3201,7 +3018,7 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       set compiled_lib_dir {}
       if { [info exists ::env(XILINX_VIVADO)] } {
         set xil_dir $::env(XILINX_VIVADO)
-        set compiled_lib_dir [file normalize [file join $xil_dir "data/xsim"]]
+        set compiled_lib_dir [file normalize "$xil_dir/data/xsim"]
       }
       puts $fh_unix "  lib_map_path=\"$compiled_lib_dir\""
       puts $fh_unix "  if \[\[ (\$1 != \"\") \]\]; then"
@@ -3210,13 +3027,11 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     } else {
       xps_write_xsim_setup_file $launch_dir
     }
-  } elseif { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
-    # no op
-  } elseif { ({modelsim} == $simulator) || ({questa} == $simulator) || ({vcs} == $simulator) } {
+  } elseif { ({riviera} == $simulator) || ({activehdl} == $simulator) || ({modelsim} == $simulator) || ({questa} == $simulator) || ({vcs} == $simulator) } {
     # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+    set lmp [xps_get_lib_map_path $simulator]
+    if { {} != $lmp } {
+      set compiled_lib_dir $lmp
       if { ![file exists $compiled_lib_dir] } {
         [catch {send_msg_id exportsim-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
         puts $fh_unix "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
@@ -3250,8 +3065,67 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
         puts $fh_unix "      cp \$src_file \$file"
         puts $fh_unix "    else"
         puts $fh_unix "      src_file=\"\$lib_map_path/\$file\""
-        puts $fh_unix "      cp \$src_file ."
+        puts $fh_unix "      if \[\[ -e \$src_file \]\]; then"
+        puts $fh_unix "        cp \$src_file ."
+        puts $fh_unix "      fi"
         puts $fh_unix "    fi"
+
+        puts $fh_unix "\n    # Map local design libraries to xsim.ini"
+        puts $fh_unix "    map_local_libs\n"
+        puts $fh_unix "  fi"
+        puts $fh_unix "\}\n"
+
+        set local_libs [join $l_local_design_libraries " "]
+        puts $fh_unix "# Map local design libraries"
+        puts $fh_unix "map_local_libs()"
+        puts $fh_unix "\{"
+        puts $fh_unix "  updated_mappings=()"
+        puts $fh_unix "  local_mappings=()\n"
+        puts $fh_unix "  # Local design libraries"
+        puts $fh_unix "  local_libs=($local_libs)\n"
+        puts $fh_unix "  if \[\[ 0 == \$\{#local_libs\[@\]\} \]\]; then"
+        puts $fh_unix "    return"
+        puts $fh_unix "  fi\n"
+        puts $fh_unix "  file=\"xsim.ini\""
+        puts $fh_unix "  file_backup=\"xsim.ini.bak\"\n"
+        puts $fh_unix "  if \[\[ -e \$file \]\]; then"
+        puts $fh_unix "    rm -f \$file_backup"
+        puts $fh_unix "    # Create a backup copy of the xsim.ini file"
+        puts $fh_unix "    cp \$file \$file_backup"
+        puts $fh_unix "    # Read libraries from backup file and search in local library collection"
+        puts $fh_unix "    while read -r line"
+        puts $fh_unix "    do"
+        puts $fh_unix "      IN=\$line"
+        puts $fh_unix "      # Split mapping entry with '=' delimiter to fetch library name and mapping"
+        puts $fh_unix "      read lib_name mapping <<<\$(IFS=\"=\"; echo \$IN)"
+        puts $fh_unix "      # If local library found, then construct the local mapping and add to local mapping collection"
+        puts $fh_unix "      if `echo \$\{local_libs\[@\]\} | grep -wq \$lib_name` ; then"
+        puts $fh_unix "        line=\"\$lib_name=xsim.dir/\$lib_name\""
+        puts $fh_unix "        local_mappings+=(\"\$lib_name\")"
+        puts $fh_unix "      fi"
+        puts $fh_unix "      # Add to updated library mapping collection"
+        puts $fh_unix "      updated_mappings+=(\"\$line\")"
+        puts $fh_unix "    done < \"\$file_backup\""
+        puts $fh_unix "    # Append local libraries not found originally from xsim.ini"
+        puts $fh_unix "    for (( i=0; i<\$\{#local_libs\[*\]\}; i++ )); do"
+        puts $fh_unix "      lib_name=\"\$\{local_libs\[i\]\}\""
+        puts $fh_unix "      if `echo \$\{local_mappings\[@\]\} | grep -wvq \$lib_name` ; then"
+        puts $fh_unix "        line=\"\$lib_name=xsim.dir/\$lib_name\""
+        puts $fh_unix "        updated_mappings+=(\"\$line\")"
+        puts $fh_unix "      fi"
+        puts $fh_unix "    done"
+        puts $fh_unix "    # Write updated mappings in xsim.ini"
+        puts $fh_unix "    rm -f \$file"
+        puts $fh_unix "    for (( i=0; i<\$\{#updated_mappings\[*\]\}; i++ )); do"
+        puts $fh_unix "      lib_name=\"\$\{updated_mappings\[i\]\}\""
+        puts $fh_unix "      echo \$lib_name >> \$file"
+        puts $fh_unix "    done"
+        puts $fh_unix "  else"
+        puts $fh_unix "    for (( i=0; i<\$\{#local_libs\[*\]\}; i++ )); do"
+        puts $fh_unix "      lib_name=\"\$\{local_libs\[i\]\}\""
+        puts $fh_unix "      mapping=\"\$lib_name=xsim.dir/\$lib_name\""
+        puts $fh_unix "      echo \$mapping >> \$file"
+        puts $fh_unix "    done"
         puts $fh_unix "  fi"
         puts $fh_unix "\}\n"
 
@@ -3262,15 +3136,15 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
             set dir $::env(XILINX_VIVADO)
           }
           if { {} != $dir } {
-            set clibs_dir [file normalize [file join $dir "data/xsim"]]
-            set ip_file [file join $clibs_dir "ip" "xsim_ip.ini"]
-            set target_file [file join $launch_dir "xsim.ini"]
+            set clibs_dir [file normalize "$dir/data/xsim"]
+            set ip_file "$clibs_dir/ip/xsim_ip.ini"
+            set target_file "$launch_dir/xsim.ini"
             if { [file exists $ip_file] } {
               if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                 send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
               }
             } else {
-              set ip_file [file join $dir "xsim.ini"]
+              set ip_file "$clibs_dir/xsim.ini"
               if { [file exists $ip_file] } {
                 if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                   send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
@@ -3283,9 +3157,10 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
         }
       } else {
         if {$::tcl_platform(platform) == "windows"} {
-          if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-            set ip_file [file join $a_sim_vars(s_lib_map_path) "xsim.ini"]
-            set target_file [file join $launch_dir "xsim.ini"]
+          set lmp [xps_get_lib_map_path $simulator 1]
+          if { {} != $lmp } {
+            set ip_file "$lmp/xsim.ini"
+            set target_file "$launch_dir/xsim.ini"
             if { [file exists $ip_file] } {
               if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                 send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
@@ -3296,7 +3171,27 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
       }
     }
     "riviera" -
-    "activehdl" {}
+    "activehdl" {
+      puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
+      puts $fh_unix "    src_file=\"\$lib_map_path/\$file\""
+      puts $fh_unix "    cp \$src_file ."
+      puts $fh_unix "  fi"
+      puts $fh_unix "\}\n"
+
+      # physically copy library.cfg file to run dir for windows
+      if {$::tcl_platform(platform) == "windows"} {
+        set lmp [xps_get_lib_map_path $simulator]
+        if { {} != $lmp } {
+          set ini_file "$lmp/library.cfg"
+          set target_file "$launch_dir/library.cfg"
+          if { [file exists $ini_file] } {
+            if {[catch {file copy -force $ini_file $target_file} error_msg] } {
+              send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ini_file' to '$launch_dir' : $error_msg\n"
+            }
+          }
+        }
+      }
+    }
     "modelsim" -
     "questa" {
       puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
@@ -3307,9 +3202,10 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
 
       # physically copy modelsim.ini file to run dir for windows
       if {$::tcl_platform(platform) == "windows"} {
-        if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-          set ini_file [file join $a_sim_vars(s_lib_map_path) "modelsim.ini"]
-          set target_file [file join $launch_dir "modelsim.ini"]
+        set lmp [xps_get_lib_map_path $simulator]
+        if { {} != $lmp } {
+          set ini_file "$lmp/modelsim.ini"
+          set target_file "$launch_dir/modelsim.ini"
           if { [file exists $ini_file] } {
             if {[catch {file copy -force $ini_file $target_file} error_msg] } {
               send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ini_file' to '$launch_dir' : $error_msg\n"
@@ -3370,7 +3266,7 @@ proc xps_create_vcs_do_file { dir } {
 
   variable a_sim_vars
 
-  set do_file [file join $dir $a_sim_vars(do_filename)]
+  set do_file "$dir/$a_sim_vars(do_filename)"
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id exportsim-Tcl-048 ERROR "failed to open file to write ($do_file)\n"
@@ -3392,7 +3288,7 @@ proc xps_create_irun_do_file { dir } {
 
   variable a_sim_vars
 
-  set do_file [file join $dir $a_sim_vars(do_filename)]
+  set do_file "$dir/$a_sim_vars(do_filename)"
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id exportsim-Tcl-048 ERROR "failed to open file to write ($do_file)\n"
@@ -3412,9 +3308,10 @@ proc xps_write_xsim_setup_file { launch_dir } {
   # Return Value:
 
   variable a_sim_vars
+  variable l_compiled_libraries
   set top $a_sim_vars(s_top)
   set filename "xsim.ini"
-  set file [file normalize [file join $launch_dir $filename]]
+  set file [file normalize "$launch_dir/$filename"]
   set fh 0
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-049 "Failed to open file to write ($file)\n"
@@ -3425,6 +3322,45 @@ proc xps_write_xsim_setup_file { launch_dir } {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
     puts $fh "$lib=xsim.dir/$lib_name"
+  }
+
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
+  if { $b_reference_xpm_library } {
+    set filename "xsim.ini"
+    set lib_name "xpm"
+    set b_mapping_set 0
+    set lmp [xps_get_lib_map_path "xsim" 1]
+    if { {} != $lmp } {
+      set dir $lmp
+      set ini_file "$dir/$filename"
+      if { [file exists $ini_file] } {
+        puts $fh "$lib_name=${dir}/$lib_name"
+        set b_mapping_set 1
+      }
+    }
+    if { !$b_mapping_set } {
+      set dir $::env(XILINX_VIVADO)
+      set dir [file normalize "$dir/data/xsim"]
+      set ini_file [file normalize "$dir/$filename"]
+      if { [file exists $ini_file] } {
+        puts $fh "$lib_name=${dir}/$lib_name"
+      }
+    }
   }
   close $fh
 }
@@ -3438,13 +3374,13 @@ proc xps_write_xsim_prj { dir srcs_dir } {
   set top $a_sim_vars(s_top)
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set filename "vlog.prj"
-    set file [file normalize [file join $dir $filename]]
+    set file [file normalize "$dir/$filename"]
     xps_write_prj $dir $file "VERILOG" $srcs_dir
   }
 
   if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
     set filename "vhdl.prj"
-    set file [file normalize [file join $dir $filename]]
+    set file [file normalize "$dir/$filename"]
     xps_write_prj $dir $file "VHDL" $srcs_dir
   }
 }
@@ -3522,7 +3458,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
         set target_dir $srcs_dir
         if { {} != $ip_file } {
           set ip_name [file rootname [file tail $ip_file]]
-          set ip_dir [file join $srcs_dir "ip" $ip_name $lib] 
+          set ip_dir "$srcs_dir/ip/$ip_name/$lib"
           if { ![file exists $ip_dir] } {
             if {[catch {file mkdir $ip_dir} error_msg] } {
               send_msg_id exportsim-Tcl-050 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -3592,7 +3528,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
   }
 
   if { {VERILOG} == $ft } {
-    puts $fh "\nverilog [xps_get_top_library] \"glbl.v\""
+    puts $fh "\nverilog [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)] \"glbl.v\""
   }
   puts $fh "\nnosort"
 
@@ -3615,7 +3551,7 @@ proc xps_get_xsim_verilog_options { launch_dir opts_arg } {
     if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
       lappend unique_incl_dirs $incl_dir
       if { $a_sim_vars(b_absolute_path) } {
-        set incl_dir "[xps_resolve_file_path $incl_dir $launch_dir]"
+        set incl_dir "[xcs_resolve_file_path $incl_dir $launch_dir]"
       } else {
         set incl_dir "[xcs_get_relative_file_path $incl_dir $launch_dir]"
       }
@@ -3632,7 +3568,7 @@ proc xps_get_xsim_verilog_options { launch_dir opts_arg } {
       if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
         lappend unique_incl_dirs $incl_dir
         if { $a_sim_vars(b_absolute_path) } {
-          set incl_dir "[xps_resolve_file_path $incl_dir $launch_dir]"
+          set incl_dir "[xcs_resolve_file_path $incl_dir $launch_dir]"
         } else {
           set incl_dir "[xcs_get_relative_file_path $incl_dir $launch_dir]"
         }
@@ -3669,12 +3605,12 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
   # Return Value:
 
   variable a_sim_vars
-  variable l_ip_static_libs
+  variable l_compiled_libraries
   set filename "compile.do"
   if { $a_sim_vars(b_single_step) } {
     set filename "run.do"
   }
-  set do_file [file normalize [file join $dir $filename]]
+  set do_file [file normalize "$dir/$filename"]
   set fh 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id exportsim-Tcl-055 ERROR "Failed to open file to write ($do_file)\n"
@@ -3695,19 +3631,18 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
       set b_default_lib true
     }
     set lib_path "$lib_dir/$lib"
-    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_compiled_libraries]) } {
       continue
     }
     puts $fh "vlib $lib_path"
   }
   if { !$b_default_lib } {
     puts $fh "vlib $lib_dir/$default_lib"
-    puts $fh "vlib $lib_dir/$default_lib"
   }
   puts $fh ""
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
-    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
+    if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_compiled_libraries]) } {
       # no op
     } else {
       puts $fh "vmap $lib $lib_dir/$lib"
@@ -3780,7 +3715,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
       if { {} != $ip_file } {
         set ip_name [file rootname [file tail $ip_file]]
         set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
-        set ip_dir [file join $srcs_dir "ip" $ip_name $lib] 
+        set ip_dir "$srcs_dir/ip/$ip_name/$lib"
         if { ![file exists $ip_dir] } {
           if {[catch {file mkdir $ip_dir} error_msg] } {
             send_msg_id exportsim-Tcl-056 ERROR "failed to create the directory ($ip_dir): $error_msg\n"
@@ -3832,7 +3767,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
 
   # compile glbl file
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-    puts $fh "\nvlog -work [xps_get_top_library] \"glbl.v\""
+    puts $fh "\nvlog -work [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)] \"glbl.v\""
   }
   if { $a_sim_vars(b_single_step) } {
     set cmd_str [xps_get_simulation_cmdline_modelsim $simulator]
@@ -3852,8 +3787,9 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
 
   variable a_sim_vars
   variable l_generics
+  variable l_compiled_libraries
   set filename "elaborate.do"
-  set do_file [file normalize [file join $dir $filename]]
+  set do_file [file normalize "$dir/$filename"]
   set fh 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id exportsim-Tcl-058 ERROR "Failed to open file to write ($do_file)\n"
@@ -3864,7 +3800,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
     "modelsim" {
     }
     "questa" {
-      set top_lib [xps_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       set arg_list [list "+acc" "-l" "elaborate.log"]
       if { !$a_sim_vars(b_32bit) } {
         set arg_list [linsert $arg_list 0 "-64"]
@@ -3874,24 +3810,43 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       }
       set t_opts [join $arg_list " "]
       set arg_list [list]
-      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-        set arg_list [linsert $arg_list end "-L" "unisims_ver"]
-        set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
-      }
-      # add secureip
-      set arg_list [linsert $arg_list end "-L" "secureip"]
-      # add design libraries
+      # add user design libraries
       set design_libs [xps_get_design_libs]
       foreach lib $design_libs {
         if {[string length $lib] == 0} { continue; }
         lappend arg_list "-L"
         lappend arg_list "$lib"
       }
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
+        set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+        set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
+      }
+      # add secureip
+      set arg_list [linsert $arg_list end "-L" "secureip"]
+      # reference XPM modules from precompiled libs if param is set
+      set b_reference_xpm_library 0
+      [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+      # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+      # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+      if { $b_reference_xpm_library } {
+        if { $a_sim_vars(b_use_static_lib) } {
+          if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+            set b_reference_xpm_library 0
+          }
+        } else {
+          set b_reference_xpm_library 0
+        }
+      }
+
+      if { $b_reference_xpm_library } {
+        set arg_list [linsert $arg_list end "-L" "xpm"]
+      }
       set default_lib $a_sim_vars(default_lib)
       lappend arg_list "-work"
       lappend arg_list $default_lib
       set d_libs [join $arg_list " "]
-      set top_lib [xps_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       set arg_list [list]
       lappend arg_list "vopt"
       xps_append_config_opts arg_list $simulator "vopt"
@@ -3919,14 +3874,14 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   variable a_sim_vars
   set b_absolute_path $a_sim_vars(b_absolute_path)
   set filename $a_sim_vars(do_filename)
-  set do_file [file normalize [file join $dir $filename]]
+  set do_file [file normalize "$dir/$filename"]
   set fh 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id exportsim-Tcl-059 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
   set wave_do_filename "wave.do"
-  set wave_do_file [file normalize [file join $dir $wave_do_filename]]
+  set wave_do_file [file normalize "$dir/$wave_do_filename"]
   xps_create_wave_do_file $wave_do_file
   set cmd_str {}
   switch $simulator {
@@ -3958,7 +3913,7 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   puts $fh "view signals\n"
   set top $a_sim_vars(s_top)
   set udo_filename $top;append udo_filename ".udo"
-  set udo_file [file normalize [file join $dir $udo_filename]]
+  set udo_file [file normalize "$dir/$udo_filename"]
   xps_create_udo_file $udo_file
   puts $fh "do \{$top.udo\}"
   set runtime "run -all"
@@ -3967,8 +3922,8 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   }
   puts $fh "\n$runtime"
   set tcl_src_files [list]
-  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
-  xps_find_files tcl_src_files $filter $dir
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
+  xcs_find_files tcl_src_files $a_sim_vars(sp_tcl_obj) $filter $dir $a_sim_vars(b_absolute_path) $a_sim_vars(fs_obj)
   if {[llength $tcl_src_files] > 0} {
     puts $fh ""
     foreach file $tcl_src_files {
@@ -4011,7 +3966,7 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
 
   variable a_sim_vars
   variable l_generics
-
+  variable l_compiled_libraries
   set args [list]
   switch -regexp -- $simulator {
     "modelsim" {
@@ -4040,17 +3995,37 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   }
   set t_opts [join $args " "]
   set args [list]
-  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-    set args [linsert $args end "-L" "unisims_ver"]
-    set args [linsert $args end "-L" "unimacro_ver"]
-  }
-  set args [linsert $args end "-L" "secureip"]
+  # add user design libraries
   set design_libs [xps_get_design_libs]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args "-L"
     lappend args "$lib"
     #lappend args "[string tolower $lib]"
+  }
+  if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
+    set args [linsert $args end "-L" "unisims_ver"]
+    set args [linsert $args end "-L" "unimacro_ver"]
+  }
+  set args [linsert $args end "-L" "secureip"]
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
+  if { $b_reference_xpm_library } {
+    set args [linsert $args end "-L" "xpm"]
   }
   set default_lib $a_sim_vars(default_lib)
   if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
@@ -4060,7 +4035,7 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
     lappend args $default_lib
   }
   set d_libs [join $args " "]
-  set top_lib [xps_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   set args [list "vsim" $t_opts]
   if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
     set args [list "asim" $t_opts]
@@ -4112,6 +4087,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   variable l_defines
   variable l_generics
   variable l_include_dirs
+  variable l_compiled_libraries
   set args [list]
   xps_append_config_opts args "xsim" "xelab"
   #lappend args "-wto [get_property ID [current_project]]"
@@ -4152,6 +4128,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
       lappend args "-generic_top \"$str\""
     }
   }
+  # add user design libraries
   set design_libs [xps_get_design_libs]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -4162,13 +4139,32 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
     lappend args "-L unimacro_ver"
   }
   lappend args "-L secureip"
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
+  }
+
+  if { $b_reference_xpm_library } {
+    lappend args "-L xpm"
+  }
   lappend args "--snapshot [xps_get_snapshot]"
   foreach top [xps_get_tops] {
     lappend args "$top"
   }
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     if { ([lsearch [xps_get_tops] {glbl}] == -1) } {
-      set top_lib [xps_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       lappend args "${top_lib}.glbl"
     }
   }
@@ -4178,7 +4174,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
 
   if {$::tcl_platform(platform) == "windows"} {
     set fh_win 0 
-    set file [file join $launch_dir "elab.opt"]
+    set file "$launch_dir/elab.opt"
     if { [catch {open $file w} fh_win] } {
       send_msg_id exportsim-Tcl-063 ERROR "Failed to open file to write ($file)\n"
     } else {
@@ -4186,7 +4182,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
       close $fh_win
     }
   }
-  puts $fh_unix "  xelab $args_str"
+  puts $fh_unix "  \$xv_path/bin/xelab $args_str"
 }
 
 proc xps_write_xsim_cmdline { fh_unix dir } {
@@ -4195,7 +4191,8 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
   # Return Value:
 
   variable a_sim_vars
-  set args [list "xsim"]
+  set args [list]
+  lappend args "\$xv_path/bin/xsim"
   xps_append_config_opts args "xsim" "xsim"
   lappend args [xps_get_snapshot]
   lappend args "-key"
@@ -4229,7 +4226,7 @@ proc xps_write_xsim_tcl_cmd_file { dir filename } {
   # Return Value:
 
   variable a_sim_vars
-  set file [file normalize [file join $dir $filename]]
+  set file [file normalize "$dir/$filename"]
   set fh 0
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-063 ERROR "Failed to open file to write ($file)\n"
@@ -4252,8 +4249,8 @@ proc xps_write_xsim_tcl_cmd_file { dir filename } {
   puts $fh "\n$runtime"
 
   set tcl_src_files [list]
-  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
-  xps_find_files tcl_src_files $filter $dir
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
+  xcs_find_files tcl_src_files $a_sim_vars(sp_tcl_obj) $filter $dir $a_sim_vars(b_absolute_path) $a_sim_vars(fs_obj)
   if {[llength $tcl_src_files] > 0} {
     puts $fh ""
     foreach file $tcl_src_files {
@@ -4273,7 +4270,7 @@ proc xps_get_tops {} {
   variable a_sim_vars
   set inst_names [list]
   set top $a_sim_vars(s_top)
-  set top_lib [xps_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   set assoc_lib "${top_lib}";append assoc_lib {.}
   set top_names [split $top " "]
   if { [llength $top_names] > 1 } {
@@ -4399,7 +4396,7 @@ proc xps_write_setup { simulator fh_unix } {
       }
     }
     "riviera" -
-    "activehdl" {}
+    "activehdl" -
     "modelsim" -
     "questa" {
       puts $fh_unix "     copy_setup_file \$2"
@@ -4428,7 +4425,7 @@ proc xps_write_setup { simulator fh_unix } {
       }
     }
     "riviera" -
-    "activehdl" {}
+    "activehdl" -
     "modelsim" -
     "questa" {
       puts $fh_unix "     copy_setup_file \$2"
@@ -4475,6 +4472,11 @@ proc xps_write_main { simulator fh_unix launch_dir } {
   if { $a_sim_vars(b_single_step) } {
     # no op
   } else {
+    switch -regexp -- $simulator {
+      "xsim" {
+        puts $fh_unix "xv_path=\"$::env(XILINX_VIVADO)\"\n"
+      }
+    }
     switch -regexp -- $simulator {
       "modelsim" -
       "riviera" -
@@ -4545,15 +4547,15 @@ proc xps_write_main { simulator fh_unix launch_dir } {
     }
   }
 
-  variable l_ip_static_libs
+  variable l_compiled_libraries
   switch $simulator {
     "ies" -
     "vcs" {
       set libs [list]
-      foreach lib [xps_get_compile_order_libs] {
+      foreach lib [xps_get_design_libs] {
         if {[string length $lib] == 0} { continue; }
         if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
-        if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
+        if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_compiled_libraries]) } {
           # no op
         } else {
           lappend libs [string tolower $lib]
@@ -4613,21 +4615,21 @@ proc xps_write_lib_map_path_dir { simulator fh_unix } {
   # Return Value:
 
   variable a_sim_vars
-
   switch -regexp -- $simulator {
     "ies" {
-      set cds_lib_map_path "."
+      set cds_lmp "."
       set cds_file {}
-      if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-        set cds_file [file join $a_sim_vars(s_lib_map_path) "cds.lib"]
+      set lmp [xps_get_lib_map_path $simulator]
+      if { {} != $lmp } {
+        set cds_file "$lmp/cds.lib"
         if { [file exist $cds_file] } {
-          set cds_lib_map_path [file normalize $a_sim_vars(s_lib_map_path)]
+          set cds_lmp $lmp
         } else {
-          send_msg_id exportsim-Tcl-040 ERROR "Failed to find the 'cds.lib' file from the directory specified with the -lib_map_path switch (${cds_file})\n"
+          #send_msg_id exportsim-Tcl-040 ERROR "Failed to find the 'cds.lib' file from the directory specified with the -lib_map_path switch (${cds_file})\n"
         }
       }
       puts $fh_unix "# Set the compiled library directory"
-      puts $fh_unix "ref_lib_dir=\"$cds_lib_map_path\"\n"
+      puts $fh_unix "ref_lib_dir=\"$cds_lmp\"\n"
     }
   }
 }
@@ -4731,8 +4733,8 @@ proc xps_get_bfm_lib { simulator lib_name_arg lib_dir_arg } {
     set lib_path {}
     #send_msg_id exportsim-Tcl-116 INFO "Finding simulator library from 'XILINX_VIVADO'..."
     foreach path [split $xil $path_sep] {
-      set lib_dir [file normalize [file join $path "lib" $platform]] 
-      set file [file join $lib_dir $lib_name]
+      set lib_dir [file normalize "$path/lib/$platform"]
+      set file "$lib_dir/$lib_name"
       if { [file exists $file] } {
         #send_msg_id exportsim-Tcl-117 INFO "Using library:'$file'"
         set simulator_lib $file
@@ -4770,8 +4772,9 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
 
   variable a_sim_vars
   variable l_valid_ip_extns
-
-  set dir_names [list]
+  variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_all_bd_files
+  set d_dir_names [dict create]
   set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
@@ -4789,18 +4792,30 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
     }
   }
   foreach vh_file $vh_files {
-    set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
+    set vh_file_obj {}
+    if { [info exists a_sim_cache_all_design_files_obj($vh_file)] } {
+      set vh_file_obj $a_sim_cache_all_design_files_obj($vh_file)
+    } else {
+      set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
+    }
     # set vh_file [extract_files -files [list "[file tail $vh_file]"] -base_dir $launch_dir/ip_files]
     set vh_file [xps_xtract_file $vh_file]
     if { [get_param project.enableCentralSimRepo] } {
-      set bd_file {}
-      set b_is_bd [xps_is_bd_file $vh_file bd_file]
+      set b_is_bd 0
+      if { [info exists a_sim_cache_all_bd_files($vh_file)] } {
+        set b_is_bd 1
+      } else {
+        set b_is_bd [xcs_is_bd_file $vh_file]
+        if { $b_is_bd } {
+          set a_sim_cache_all_bd_files($vh_file) $b_is_bd
+        }
+      }
       set used_in_values [get_property "USED_IN" $vh_file_obj]
       if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(s_ip_user_files_dir)]
       } else {
         if { $b_is_bd } {
-          set vh_file [xps_fetch_ipi_static_file $vh_file]
+          set vh_file [xcs_fetch_ipi_static_file $vh_file_obj $vh_file $a_sim_vars(s_ipstatic_source_dir)]
         } else {
           set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
@@ -4816,14 +4831,14 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
     set dir [file normalize [file dirname $vh_file]]
 
     if { $a_sim_vars(b_xport_src_files) } {
-      set export_dir [file join $launch_dir "srcs/incl"]
+      set export_dir "$launch_dir/srcs/incl"
       if {[catch {file copy -force $vh_file $export_dir} error_msg] } {
         send_msg_id exportsim-Tcl-065 WARNING "Failed to copy file '$vh_file' to '$export_dir' : $error_msg\n"
       }
     }
 
     if { $a_sim_vars(b_absolute_path) } {
-      set dir "[xps_resolve_file_path $dir $launch_dir]"
+      set dir "[xcs_resolve_file_path $dir $launch_dir]"
     } else {
       if { $ref_dir } {
         if { $a_sim_vars(b_xport_src_files) } {
@@ -4846,13 +4861,10 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
         }
       }
     }
-    lappend dir_names $dir
+    dict append d_dir_names $dir
   }
 
-  if {[llength $dir_names] > 0} {
-    return [lsort -unique $dir_names]
-  }
-  return $dir_names
+  return [dict keys $d_dir_names]
 }
 
 proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
@@ -4864,7 +4876,7 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
   variable l_valid_ip_extns
   variable l_include_dirs
 
-  set dir_names [list]
+  set d_dir_names [dict create]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   set incl_dirs [list]
   set incl_dir_str {}
@@ -4890,7 +4902,7 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
 
     foreach dir $incl_prop_dirs {
       if { $a_sim_vars(b_absolute_path) } {
-        set dir "[xps_resolve_file_path $dir $launch_dir]"
+        set dir "[xcs_resolve_file_path $dir $launch_dir]"
       } else {
         if { $ref_dir } {
           if { $a_sim_vars(b_xport_src_files) } {
@@ -4919,9 +4931,9 @@ proc xps_get_verilog_incl_dirs { simulator launch_dir ref_dir } {
 
   foreach vh_dir $incl_dirs {
     set vh_dir [string trim $vh_dir {\{\}}]
-    lappend dir_names $vh_dir
+    dict append d_dir_names $vh_dir
   }
-  return [lsort -unique $dir_names]
+  return [dict keys $d_dir_names]
 }
 
 proc xps_resolve_incldir { incl_dirs } {
@@ -4958,6 +4970,7 @@ proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
   # Return Value:
 
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
   set ip_name [file tail $tcl_obj]
   set incl_dirs [list]
   set filter "FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\""
@@ -4968,7 +4981,12 @@ proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
     set dir [file dirname $file]
     if { [get_param project.enableCentralSimRepo] } {
       set b_static_ip_file 0
-      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+      set file_obj {}
+      if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+        set file_obj $a_sim_cache_all_design_files_obj($file)
+      } else {
+        set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+      }
       set associated_library {}
       if { {} != $file_obj } {
         if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
@@ -4996,7 +5014,7 @@ proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
       }
     } else {
       if { $a_sim_vars(b_absolute_path) } {
-        set dir "[xps_resolve_file_path $dir $launch_dir]"
+        set dir "[xcs_resolve_file_path $dir $launch_dir]"
       } else {
         if { $a_sim_vars(b_xport_src_files) } {
           set dir "\$ref_dir/incl"
@@ -5020,6 +5038,7 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
   upvar $incl_files_arg      incl_files
 
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
   set filesets       [list]
   set dir            $launch_dir
   set linked_src_set {}
@@ -5032,17 +5051,19 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
     lappend filesets $linked_src_set
   }
   lappend filesets $a_sim_vars(fs_obj)
-  set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\" || FILE_TYPE == \"Verilog Template\""
+  # find verilog files marked as global include and not user disabled
+  set filter "(FILE_TYPE == \"Verilog\"                      || \
+               FILE_TYPE == \"Verilog Header\"               || \
+               FILE_TYPE == \"Verilog/SystemVerilog Header\" || \
+               FILE_TYPE == \"Verilog Template\")            && \
+              (IS_GLOBAL_INCLUDE == 1 && IS_USER_DISABLED == 0)"
   foreach fs_obj $filesets {
-    set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
-    foreach file $vh_files {
-      # skip if not marked as global include
-      if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet -all [list "$file"]] 0]] } {
-        continue
-      }
-      # skip if marked user disabled
-      if { [get_property "IS_USER_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]] } {
-        continue
+    foreach file [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter] {
+      set file_obj {}
+      if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+        set file_obj $a_sim_cache_all_design_files_obj($file)
+      } else {
+        set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
       }
       set file [file normalize [string map {\\ /} $file]]
       if { [lsearch -exact $incl_files_set $file] == -1 } {
@@ -5050,7 +5071,7 @@ proc xps_get_global_include_files { launch_dir incl_file_paths_arg incl_files_ar
         lappend incl_files     $file
         set incl_file_path [file normalize [string map {\\ /} [file dirname $file]]]
         if { $a_sim_vars(b_absolute_path) } {
-          set incl_file_path "[xps_resolve_file_path $incl_file_path $launch_dir]"
+          set incl_file_path "[xcs_resolve_file_path $incl_file_path $launch_dir]"
         } else {
           if { $ref_dir } {
             if { $a_sim_vars(b_xport_src_files) } {
@@ -5093,8 +5114,15 @@ proc xps_xtract_file { file } {
   # Return Value:
 
   variable a_sim_vars
+  variable a_sim_cache_all_design_files_obj
+  
   if { $a_sim_vars(b_extract_ip_sim_files) } {
-    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    set file_obj {}
+    if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    }
     set xcix_ip_path [get_property core_container $file_obj]
     if { {} != $xcix_ip_path } {
       set ip_name [file root [file tail $xcix_ip_path]]
@@ -5102,7 +5130,7 @@ proc xps_xtract_file { file } {
       set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
       # remove leading "../"
       set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
-      set file [file join $ip_ext_dir $ip_file]
+      set file "$ip_ext_dir/$ip_file"
     }
   }
   return $file
@@ -5115,7 +5143,7 @@ proc xps_write_filelist_info { simulator dir } {
   variable a_sim_vars
   variable l_target_simulator
   set fh 0
-  set file [file join $dir "file_info.txt"]
+  set file "$dir/file_info.txt"
   if {[catch {open $file w} fh]} {
     send_msg_id exportsim-Tcl-067 ERROR "failed to open file to write ($file)\n"
     return 1
@@ -5154,9 +5182,9 @@ proc xps_write_filelist_info { simulator dir } {
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set file "glbl.v"
     if { $a_sim_vars(b_absolute_path) } {
-      set file [file normalize [file join $dir $file]]
+      set file [file normalize "$dir/$file"]
     }
-    set top_lib [xps_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
     puts $fh "glbl.v,Verilog,$top_lib,$file"
   }
   close $fh
@@ -5173,7 +5201,7 @@ proc xps_resolve_file { proj_src_file ip_file src_file dir } {
   if { {} == $ip_file } {
     set source_file [string trim $proj_src_file {\"}]
     if { $a_sim_vars(b_absolute_path) } {
-      set src_file "[xps_resolve_file_path $source_file $dir]"
+      set src_file "[xcs_resolve_file_path $source_file $dir]"
     } else {
       set src_file "[xcs_get_relative_file_path $source_file $dir]"
     }
@@ -5188,58 +5216,9 @@ proc xps_resolve_file { proj_src_file ip_file src_file dir } {
       set src_file "srcs/[file tail $proj_src_file]"
     }
     if { $a_sim_vars(b_absolute_path) } {
-      set src_file [file normalize [file join $dir $src_file]]
+      set src_file [file normalize "$dir/$src_file"]
     }
   }
   return $src_file
-}
-
-proc xps_cache_result {args} {
-  # Summary:
-  # Will return already generated results if they exists else it will run the command
-  # NOTICE: The xps_cache_result command can only be used with procs that _do_not_ use upvar
-  #         If you need to cache a proc that leverages upvar, then see 
-  #         export_simulation::a_cache_get_dynamic_sim_file_bd
-  # Argument Usage:
-  # Return Value:
-  variable a_sim_cache_result
-
-  set cache_hash [regsub -all {[\[\]]} $args {|}]; # remove "..."
-  set cache_hash [uplevel expr \"$cache_hash\"]
-
-  #puts "XPS_CACHE_ARGS: '${args}'"
-  #puts "XPS_CACHE_HASH: '${cache_hash}'"
-  
-  # Validation - for every call we compare the cache to the actual values
-  #if { [info exists a_sim_cache_result($cache_hash)] } {
-  #  #puts " CACHE_EXISTS"
-  #  set old $a_sim_cache_result($cache_hash)
-  #  set a_sim_cache_result($cache_hash) [uplevel eval $args]
-  #  if { "$a_sim_cache_result($cache_hash)" != "$old" } {
-  #    error "CACHE_VALIDATION: difference detected, halting flow\n OLD: ${old}\n NEW: $a_sim_cache_result($cache_hash)"
-  #  }
-  #  return $a_sim_cache_result($cache_hash) 
-  #}
-
-  # NOTE: to disable caching (with this proc) comment out this line:
-  if { [info exists a_sim_cache_result($cache_hash)] } { return $a_sim_cache_result($cache_hash) }
-
-  return [set a_sim_cache_result($cache_hash) [uplevel eval $args]]
-}
-
-proc xps_fileset_contain_ips {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set fs_filter "FILESET_TYPE == \"SimulationSrcs\" || FILESET_TYPE == \"DesignSrcs\" || FILESET_TYPE == \"BlockSrcs\""
-  set file_filter "FILE_TYPE == \"IP\" || FILE_TYPE == \"IPX\" || FILE_TYPE == \"DSP Design Sources\" || FILE_TYPE == \"Block Designs\""
-  foreach fs_obj [get_filesets -quiet -filter $fs_filter] {
-    set ip_files [get_files -quiet -all -of_objects $fs_obj -filter $file_filter]
-    if { [llength $ip_files] > 0 } {
-      return true
-    }
-  }
-  return false
 }
 }

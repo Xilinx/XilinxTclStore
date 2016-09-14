@@ -495,7 +495,20 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
 
     # set IP REPO PATHS (if any) for filesets of type "DesignSrcs" or "BlockSrcs"
     if { (({DesignSrcs} == $fs_type) || ({BlockSrcs} == $fs_type)) } {
-      if { ({RTL} == [get_property design_mode [get_filesets $tcl_obj]]) } {
+      # If BlockSet contains only one IP, then this indicates the case of OOC1
+      # This means that we should not write these properties, they are read-only
+      set blockset_is_ooc1 false
+      if { {BlockSrcs} == $fs_type } {
+        set current_fs_files [get_files -of_objects [get_filesets $tcl_obj] -norecurse]
+        if { [llength $current_fs_files] == 1 } {
+          set only_file_in_fs [lindex $current_fs_files 0]
+          set file_type [get_property FILE_TYPE $only_file_in_fs]
+          set blockset_is_ooc1 [expr {$file_type == {IP}} ? true : false]
+        }
+      }
+      if { $blockset_is_ooc1} {
+        # We do not write properties for OOC1 
+      } elseif { ({RTL} == [get_property design_mode [get_filesets $tcl_obj]]) } {
         set repo_paths [get_ip_repo_paths $tcl_obj]
         if { [llength $repo_paths] > 0 } {
           lappend l_script_data "# Set IP repository paths"
@@ -851,7 +864,9 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         # skip step properties
       } else {
         set attr_names [rdi::get_attr_specs -class [get_property class [get_runs $tcl_obj] ]]
-        set prop_type [get_property type [lindex $attr_names [lsearch $attr_names $prop]]]
+        if { [lsearch $attr_names $prop] != -1 } {
+          set prop_type [get_property type [lindex $attr_names [lsearch $attr_names $prop]]]
+        }
       }
     } else {
       set attr_spec [rdi::get_attr_specs -quiet $prop -object [$get_what $tcl_obj]]

@@ -1,4 +1,36 @@
-2.103 compile glbl into top library for target language vhdl
+2.135 reference compiled library from the path specified with -lib_map_path
+2.134 fixed the library search order for user design libraries for behavioral simulation
+2.133 added comment for XPM library referencing
+2.132 removed XPM library and reference design libraries first for post simulation flow
+2.131 support for vhdl 2008
+2.130 pass source file object to extract_files
+2.129 reference cached IP static file object in xcs_find_ipstatic_file_path
+2.128 consider XPM precompiled library for RTL based designs
+2.127 refactored export_fs_non_hdl_data_files proc to common utils
+2.126 refactored procs to common utils
+2.125 refactor common procs to utils
+2.124 export data files to run dir directly, if ip_user_files dir is not specified
+2.123 refactored common procs to utils
+2.122 export and reference static files for remote BD
+2.121 process static files from locked always explicitly
+2.120 refactor procs into common utils
+2.119 fetch all ipdef objects while determining static files from local repo
+2.118 check for local design libraries while mapping and process them
+2.117 construct local design libraries collection for mapping
+2.116 refactored netlist generation common procs to utils
+2.115 compile XPM files locally and donot reference from precompiled libs
+2.114 fixed variable name while calculating the parent composite file path sub-dir length
+2.113 cache unique compile order files for reference
+2.112 continue processing design libraries if ip_repo not found from repoitory value
+2.111 cache unique compile order files for reference
+2.110 set unset all design files variable for caching
+2.109 compile ips from project repository locally having same vlnvr
+2.108 refactor uniquify_cmd_str procedure to use dict keys
+2.107 compile glbl into top library for elaborate
+2.106 compile glbl into top library for vhdl netlist
+2.105 replaced simulator uut with saif_scope
+2.104 add xpm library for elaborate step
+2.103 support for precompiled XPM library
 2.102 fixed support for XPM files for -of_objects
 2.101 support for XPM files for -of_objects
 2.100 add VCOM VHDL file for XPM simulation, CR:947555

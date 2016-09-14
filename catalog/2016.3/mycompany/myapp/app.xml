@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Various Updates</revision_history>
+      <revision_history>Added possibility of SoC prototyping (CPU and FPGA)</revision_history>
       <name>myapp</name>
       <company>mycompany</company>
       <company_display>My Company, Inc.</company_display>

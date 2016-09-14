@@ -42,9 +42,10 @@ proc register_options { simulator } {
     {{elaborate.update}              {bool}   {0}        {Check if unit is up-to-date before writing}}
     {{elaborate.ncelab.more_options} {string} {}         {More NCELAB elaboration options}}
     {{simulate.runtime}              {string} {1000ns}   {Specify simulation run time}}
-    {{simulate.uut}                  {string} {}         {Specify instance name for design under test (default:/uut)}}
+    {{simulate.log_all_signals}      {bool}   {0}        {Log all signals}}
     {{simulate.update}               {bool}   {0}        {Check if unit is up-to-date before writing}}
     {{simulate.ieee_warnings}        {bool}   {1}        {Suppress IEEE warnings}}
+    {{simulate.saif_scope}           {string} {}         {Specify design hierarchy instance name for which power estimation is desired}}
     {{simulate.saif}                 {string} {}         {SAIF filename}}
     {{simulate.ncsim.more_options}   {string} {}         {More NCSIM simulation options}}
   }

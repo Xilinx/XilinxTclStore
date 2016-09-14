@@ -46,6 +46,7 @@ proc xif_init_vars {} {
   set a_vars(b_is_managed)            [get_property managed_ip [current_project]]
   set a_vars(b_use_static_lib)        [get_property sim.use_ip_compiled_libs [current_project]]
   set a_vars(fs_obj)                  [current_fileset -simset]
+  set a_vars(b_lib_map_path_specified) 0
 
   variable compile_order_data         [list]
 
@@ -59,11 +60,12 @@ proc xif_init_vars {} {
 
   variable l_libraries                [list]
   variable l_compiled_libraries       [list]
+  variable l_lib_map_path             [list]
 
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
     variable home
-    source -notrace [file join $home "common" "utils.tcl"] 
+    source -notrace "$home/common/utils.tcl"
   }
 
   # store cached results
@@ -72,6 +74,18 @@ proc xif_init_vars {} {
 
   variable    a_cache_get_dynamic_sim_file_bd
   array unset a_cache_get_dynamic_sim_file_bd
+
+  variable    a_processed_bd_dir
+  array unset a_processed_bd_dir
+
+  variable    a_cache_all_ip_static_files_obj
+  array unset a_cache_all_ip_static_files_obj
+
+  variable    a_cache_all_bd_static_files_obj
+  array unset a_cache_all_bd_static_files_obj
+
+  variable    a_cache_bd_dst_dirs
+  array unset a_cache_bd_dst_dirs
 }
 
 
@@ -82,6 +96,7 @@ proc export_ip_user_files {args} {
   # [-of_objects <arg>]: IP,IPI or a fileset
   # [-ip_user_files_dir <arg>]: Directory path to simulation base directory (for dynamic and other IP non static files)
   # [-ipstatic_source_dir <arg>]: Directory path to the static IP files
+  # [-lib_map_path <arg> = Empty]: Compiled simulation library directory path
   # [-no_script]: Do not export simulation scripts
   # [-sync]: Delete IP/IPI dynamic and simulation script files
   # [-reset]: Delete all IP/IPI static, dynamic and simulation script files
@@ -93,6 +108,7 @@ proc export_ip_user_files {args} {
   # Categories: simulation, xilinxtclstore
 
   variable a_vars
+  variable l_lib_map_path
   variable l_libraries
   variable l_valid_ip_extns
   variable l_compiled_libraries
@@ -102,9 +118,10 @@ proc export_ip_user_files {args} {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-of_objects"          { incr i;set a_vars(sp_of_objects) [lindex $args $i];set a_vars(b_of_objects_specified) 1 }
-      "-ip_user_files_dir"   { incr i;set a_vars(central_dir) [lindex $args $i];set a_vars(b_central_dir_specified) 1 }
-      "-ipstatic_source_dir" { incr i;set a_vars(ipstatic_source_dir) [lindex $args $i];set a_vars(b_ipstatic_source_dir) 1 }
+      "-of_objects"          { incr i;set a_vars(sp_of_objects)       [lindex $args $i];set a_vars(b_of_objects_specified)    1 }
+      "-ip_user_files_dir"   { incr i;set a_vars(central_dir)         [lindex $args $i];set a_vars(b_central_dir_specified)   1 }
+      "-ipstatic_source_dir" { incr i;set a_vars(ipstatic_source_dir) [lindex $args $i];set a_vars(b_ipstatic_source_dir)     1 }
+      "-lib_map_path"        { incr i;set l_lib_map_path              [lindex $args $i];set a_vars(b_lib_map_path_specified)  1 }
       "-no_script"           { set a_vars(b_no_script) 1 }
       "-sync"                { set a_vars(b_sync) 1 }
       "-reset"               { set a_vars(b_reset) 1 }
@@ -140,9 +157,13 @@ proc export_ip_user_files {args} {
   if { $a_vars(b_use_static_lib) } {
     set simulator [string tolower [get_property target_simulator [current_project]]]
     set clibs_dir [get_property compxlib.${simulator}_compiled_library_dir [current_project]]
+    # if lib_map_path specified? use this path instead for finding compiled libraries
+    if { $a_vars(b_lib_map_path_specified) } {
+      set clibs_dir [lindex $l_lib_map_path 0]
+    }
     if { ({xsim} == $simulator) && ({} == $clibs_dir) } {
       set dir $::env(XILINX_VIVADO)
-      set clibs_dir [file normalize [file join $dir "data/xsim"]]
+      set clibs_dir [file normalize "$dir/data/xsim"]
     }
     set l_compiled_libraries [xcs_get_compiled_libraries $clibs_dir]
   }
@@ -194,15 +215,25 @@ proc export_ip_user_files {args} {
   } else {
     # -of_objects not specified? generate sim scripts for all ips/bds
     if { !$a_vars(b_of_objects_specified) } {
+      set lmp_args_str [xif_get_lib_map_path_cmd_str]
       foreach ip_file [get_files -quiet -norecurse -pattern *.xci -pattern *.bd] {
-        export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -ip_user_files_dir $a_vars(base_dir) -ipstatic_source_dir $a_vars(ipstatic_dir) -force
+        export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -ip_user_files_dir $a_vars(base_dir) -ipstatic_source_dir $a_vars(ipstatic_dir) $lmp_args_str -force
       }
     }
+  }
+
+  # delete empty directories from "ip_user_files/ipstatic" if exist
+  if { $a_vars(b_use_static_lib) } {
+    xif_delete_empty_dirs $a_vars(ipstatic_dir)
   }
 
   # clear cache
   array unset a_cache_result
   array unset a_cache_get_dynamic_sim_file_bd
+  array unset a_processed_bd_dir
+  array unset a_cache_all_ip_static_files_obj
+  array unset a_cache_all_bd_static_files_obj
+  array unset a_cache_bd_dst_dirs
 
   return
 }
@@ -231,8 +262,9 @@ proc xif_export_simulation { ip_file } {
       lappend opt_args -ipstatic_source_dir
       lappend opt_args "$ipstatic_source_dir"
     }
+    set lmp_args_str [xif_get_lib_map_path_cmd_str]
     # TODO: speedup
-    eval export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) -force $opt_args
+    eval export_simulation -of_objects [get_files -all -quiet $ip_file] -directory $a_vars(scripts_dir) $lmp_args_str -force $opt_args
   }
 }
 
@@ -316,6 +348,8 @@ proc xif_export_ip { obj } {
   variable a_vars
   variable l_valid_data_file_extns
   variable l_compiled_libraries
+  variable a_cache_all_ip_static_files_obj
+  array unset a_cache_all_ip_static_files_obj
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
@@ -327,16 +361,14 @@ proc xif_export_ip { obj } {
   #
   # static files
   #
+  foreach file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*" && IS_USER_DISABLED==0}] {
+    set name [get_property name $file_obj]
+    set a_cache_all_ip_static_files_obj($name) $file_obj
+  }
   set ip_data [list]
-  foreach src_ip_file [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*ipstatic*"}] {
+  foreach {src_ip_file file_obj} [array get a_cache_all_ip_static_files_obj] {
     set filename [file tail $src_ip_file]
-    set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
     if { {} == $file_obj } { continue; }
-    if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
-      if { [get_property {IS_USER_DISABLED} $file_obj] } {
-        continue;
-      }
-    }
 
     set extracted_static_file_path {}
 
@@ -353,7 +385,7 @@ proc xif_export_ip { obj } {
           set library [get_property library $file_obj]
           if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
             # This is causing performance issues (in case the file was present in ipstatic dir from previous run)
-            #set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
+            #set extracted_static_file_path [xif_get_extracted_static_file_path $file_obj $src_ip_file]
             #lappend l_static_files_to_delete $extracted_static_file_path
             continue
           }
@@ -364,7 +396,7 @@ proc xif_export_ip { obj } {
     lappend l_static_files $src_ip_file
     # not extracted yet? extract it
     if { {} == $extracted_static_file_path } {
-      set extracted_static_file_path [xif_get_extracted_static_file_path $src_ip_file]
+      set extracted_static_file_path [xif_get_extracted_static_file_path $file_obj $src_ip_file]
     }
 
     # if reset requested, delete IP file from ipstatic
@@ -391,12 +423,8 @@ proc xif_export_ip { obj } {
     }
   }
 
-  if { $a_vars(b_use_static_lib) } {
-    xif_delete_empty_dirs $a_vars(ipstatic_dir)
-  }
-
   # set ip instance dir <ip_user_files>/ip/<ip_instance>
-  set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
+  set ip_inst_dir [file normalize "$a_vars(ip_base_dir)/$ip_name"]
 
   # delete dynamic files (ONLY) for non-container ips
   if { $b_container } {
@@ -456,9 +484,9 @@ proc xif_export_ip { obj } {
       if { [lsearch $l_static_files $sim_file_obj] != -1 } { continue }
       if { [lsearch -exact $l_valid_data_file_extns [file extension $sim_file_obj]] >= 0 } { continue }
       if { $b_container } {
-        set ip_name [xif_get_dynamic_core_container_ip_name $sim_file_obj $ip_name]
-        set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
-        xif_delete_ip_inst_dir $ip_inst_dir $ip_name
+        set ip_name_cc [xif_get_dynamic_core_container_ip_name $sim_file_obj $ip_name]
+        set ip_inst_dir [file normalize "$a_vars(ip_base_dir)/$ip_name_cc"]
+        xif_delete_ip_inst_dir $ip_inst_dir $ip_name_cc
       }
     }
 
@@ -484,12 +512,12 @@ proc xif_export_ip { obj } {
   } else {
     # for default and sync flow, the dynamic files will be fetched always
     foreach dynamic_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" || USED_IN=~"*_blackbox_stub"}] {
-      if { [lsearch $l_static_files $dynamic_file_obj] != -1 } { continue }
+      if { [info exists a_cache_all_ip_static_files_obj($dynamic_file_obj)] } { continue }
       if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file_obj]] >= 0 } { continue }
       set file $dynamic_file_obj
       if { $b_container } {
-        set ip_name [xif_get_dynamic_core_container_ip_name $dynamic_file_obj $ip_name]
-        set ip_inst_dir [file normalize [file join $a_vars(ip_base_dir) $ip_name]]
+        set ip_name_cc [xif_get_dynamic_core_container_ip_name $dynamic_file_obj $ip_name]
+        set ip_inst_dir [file normalize "$a_vars(ip_base_dir)/$ip_name_cc"]
         if { $a_vars(b_force) } {
           set dynamic_file_obj [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $dynamic_file_obj]
         } else {
@@ -529,7 +557,7 @@ proc xif_export_ip { obj } {
   return 0
 }
 
-proc xif_get_extracted_static_file_path { src_ip_file } { 
+proc xif_get_extracted_static_file_path { file_obj src_ip_file } { 
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -539,10 +567,10 @@ proc xif_get_extracted_static_file_path { src_ip_file } {
   set ipstatic_file_path {}
 
   # get the parent composite file for this static file
-  set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$src_ip_file"]] 0]]
+  set parent_comp_file [get_property parent_composite_file -quiet $file_obj]
 
   # calculate destination path
-  set ipstatic_file_path [xcs_find_ipstatic_file_path $src_ip_file $parent_comp_file $a_vars(ipstatic_dir)]
+  set ipstatic_file_path [xcs_find_ipstatic_file_path $file_obj $src_ip_file $parent_comp_file $a_vars(ipstatic_dir)]
 
   # skip if file exists
   if { ({} != $ipstatic_file_path) && ([file exists $ipstatic_file_path]) } {
@@ -552,7 +580,7 @@ proc xif_get_extracted_static_file_path { src_ip_file } {
   # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be 
   # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
   if { {} == $parent_comp_file } {
-    set extracted_file [extract_files -no_ip_dir -quiet -files [list "$src_ip_file"] -base_dir $a_vars(ipstatic_dir)]
+    set extracted_file [extract_files -no_ip_dir -quiet -files [list "$file_obj"] -base_dir $a_vars(ipstatic_dir)]
     #puts extracted_file_no_pc=$extracted_file
     set ipstatic_file_path $extracted_file
   } else {
@@ -566,10 +594,10 @@ proc xif_get_extracted_static_file_path { src_ip_file } {
 
     # strip the ip_output_dir path from source ip file and prepend static dir 
     set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
-    set target_extract_dir [file normalize [file join $a_vars(ipstatic_dir) $lib_dir]]
+    set target_extract_dir [file normalize "$a_vars(ipstatic_dir)/$lib_dir"]
     #puts target_extract_dir=$target_extract_dir
 	
-    set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
+    set extracted_file [extract_files -no_path -quiet -files [list "$file_obj"] -base_dir $target_extract_dir]
     #puts extracted_file_with_pc=$extracted_file
 
     set ipstatic_file_path $extracted_file
@@ -591,7 +619,7 @@ proc xif_delete_ip_inst_dir { dir ip_name } {
   }
 
   # sim_scripts/<ip_instance> 
-  set ip_inst_scripts_dir [file normalize [file join $a_vars(scripts_dir) $ip_name]]
+  set ip_inst_scripts_dir [file normalize "$a_vars(scripts_dir)/$ip_name"]
   if { [catch {file delete -force $ip_inst_scripts_dir} _error] } {
     send_msg_id export_ip_user_files-Tcl-010 INFO "Failed to remove IP instance scripts directory:(${ip_inst_scripts_dir}): $_error\n"
   } else {
@@ -646,8 +674,8 @@ proc xif_export_bd { obj } {
   # Return Value:
 
   variable a_vars
-  variable l_valid_data_file_extns
   variable l_compiled_libraries
+  variable a_cache_all_bd_static_files_obj
 
   set ip_name [file root [file tail $obj]]
   set ip_extn [file extension $obj]
@@ -657,10 +685,13 @@ proc xif_export_bd { obj } {
   #
   # static files
   #
-  set l_static_files [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*ipstatic*"}]
-  foreach src_ip_file $l_static_files {
+  foreach file_obj [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*ipstatic*"}] {
+    set name [get_property name $file_obj]
+    set a_cache_all_bd_static_files_obj($name) $file_obj
+  }
+
+  foreach {src_ip_file file_obj} [array get a_cache_all_bd_static_files_obj] {
     set filename [file tail $src_ip_file]
-    set file_obj $src_ip_file
     if { {} == $file_obj } { continue; }
     if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file_obj] } {
@@ -681,7 +712,7 @@ proc xif_export_bd { obj } {
       set b_found [xcs_find_comp comps index $to_match]
     }
     if { !$b_found } {
-      continue;
+      #continue;
     }
 
     set extracted_static_file_path {}
@@ -699,7 +730,7 @@ proc xif_export_bd { obj } {
           set library [get_property library $file_obj]
           if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
             # This is causing performance issues (in case the file was present in ipstatic dir from previous run)
-            #set extracted_static_file_path [xif_get_extracted_static_file_path_bd $comps $index]
+            #set extracted_static_file_path [xif_get_extracted_static_file_path_bd $file_obj $comps $b_found $index]
             #lappend l_static_files_to_delete $extracted_static_file_path
             continue
           }
@@ -709,12 +740,12 @@ proc xif_export_bd { obj } {
 
     # not extracted yet? extract it
     if { {} == $extracted_static_file_path } {
-      set extracted_static_file_path [xif_get_extracted_static_file_path_bd $comps $index]
+      set extracted_static_file_path [xif_get_extracted_static_file_path_bd $file_obj $comps $b_found $index]
     }
 
     # if reset requested, delete IPI file from ipstatic
     if { $a_vars(b_reset) } {
-      if { [file exists $extracted_static_file_path] } {
+      if { ({} != $extracted_static_file_path) && ([file exists $extracted_static_file_path]) } {
         if { [catch {file delete -force $extracted_static_file_path} _error] } {
           #send_msg_id export_ip_user_files-Tcl-003 INFO "Failed to remove static simulation file (${extracted_static_file_path}): $_error\n"
         } else {
@@ -736,12 +767,8 @@ proc xif_export_bd { obj } {
     }
   }
 
-  if { $a_vars(b_use_static_lib) } {
-    xif_delete_empty_dirs $a_vars(ipstatic_dir)
-  }
-
   # set bd instance dir <ip_user_files>/bd/<ip_instance>
-  set bd_inst_dir [file normalize [file join $a_vars(bd_base_dir) $ip_name]]
+  set bd_inst_dir [file normalize "$a_vars(bd_base_dir)/$ip_name"]
 
   # if sync requested delete bd/<bd_instance> and sim_scipts/<bd_instance>
   if { $a_vars(b_sync) || $a_vars(b_reset) } {
@@ -751,7 +778,7 @@ proc xif_export_bd { obj } {
       #send_msg_id export_ip_user_files-Tcl-009 INFO "Deleted BD instance directory:$bd_inst_dir\n"
     }
     # sim_scripts/<bd_instance> 
-    set bd_inst_scripts_dir [file normalize [file join $a_vars(scripts_dir) $ip_name]]
+    set bd_inst_scripts_dir [file normalize "$a_vars(scripts_dir)/$ip_name"]
     if { [catch {file delete -force $bd_inst_scripts_dir} _error] } {
       send_msg_id export_ip_user_files-Tcl-009 INFO "Failed to remove BD instance scripts dirrectory:(${bd_inst_scripts_dir}): $_error\n"
     } else {
@@ -778,57 +805,114 @@ proc xif_export_bd { obj } {
     # no op (for reset, we don't want to refetch the dynamic files. These files will be fetched by generate target or export_ip_user_files flow.)
   } else {
     # for default and sync flow, the dynamic files will be fetched always
-    foreach dynamic_file [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*simulation*"}] {
-      if { [lsearch $l_static_files $dynamic_file] != -1 } { continue }
-      if { {.xci} == [file extension $dynamic_file] } { continue }
-      if { [lsearch -exact $l_valid_data_file_extns [file extension $dynamic_file]] >= 0 } { continue }
-      set dynamic_file [string map {\\ /} $dynamic_file]
-      #puts dynamic_file=$dynamic_file
-  
-      set hdl_dir_file {}
-      set ip_lib_dir {}
-      set target_ip_lib_dir {}
-      set repo_file [xif_get_dynamic_sim_file_bd $ip_name $dynamic_file hdl_dir_file ip_lib_dir target_ip_lib_dir]
-  
-      # iterate over the hdl_dir_file comps and copy to target
-      set comps [lrange [split $hdl_dir_file "/"] 1 end]
-      set src   $ip_lib_dir
-      set dst   $target_ip_lib_dir
-      foreach comp $comps {
-        append src "/";append src $comp
-        append dst "/";append dst $comp
-        #puts src=$src
-        #puts dst=$dst
-        if { [file isdirectory $src] } {
-          if { ![file exists $dst] } {
-            if {[catch {file mkdir $dst} error_msg] } {
-              send_msg_id export_ip_user_files-Tcl-013 ERROR "Failed to create the directory ($dst): $error_msg\n"
-              return 1
-            }
-          }
-        } else {
-          set dst_dir [file dirname $dst]
-           if {[catch {file copy -force $src $dst_dir} error_msg] } {
-            send_msg_id export_ip_user_files-Tcl-014 WARNING "Failed to copy file '$src' to '$dst_dir' : $error_msg\n"
-          }
-        }
-      }
-    }
-  
+    xif_export_bd_dynamic_files $bd_file $ip_name  
     xif_export_mem_init_files_for_bd $obj
   }
 
   return 0
 }
 
-proc xif_get_extracted_static_file_path_bd { comps index } {
+proc xif_export_bd_dynamic_files { bd_file ip_name } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_vars
+  variable a_cache_all_bd_static_files_obj
+  variable l_valid_data_file_extns
+  variable a_cache_bd_dst_dirs
 
+  foreach dynamic_file [get_files -quiet -all -of_objects $bd_file -filter {USED_IN=~"*simulation*"}] {
+    if { [info exists a_cache_all_bd_static_files_obj($dynamic_file)] } { continue }
+    set file_extn [file extension $dynamic_file]
+    if { {.xci} == $file_extn } { continue }
+    if { [lsearch -exact $l_valid_data_file_extns $file_extn] >= 0 } { continue }
+
+    set dynamic_file [string map {\\ /} $dynamic_file]
+    #puts dynamic_file=$dynamic_file
+
+    set hdl_dir_file {}
+    set ip_lib_dir {}
+    set target_ip_lib_dir {}
+    set repo_file [xif_get_dynamic_sim_file_bd $ip_name $dynamic_file hdl_dir_file ip_lib_dir target_ip_lib_dir]
+    if { ({} == $hdl_dir_file) || ({} == $ip_lib_dir) || ({} == $target_ip_lib_dir) } { continue }
+  
+    # prepend slash (/), xif_get_dynamic_sim_file_bd sets the file path without slash
+    set hdl_dir_file "/$hdl_dir_file"
+
+    # hdl_dir_file     :/x/y/z/foo.v or /foo.v 
+    #puts hdl_dir_file_____=$hdl_dir_file
+    # ip_lib_dir       :/a/b/c
+    #puts ip_lib_dir_______=$ip_lib_dir
+    # target_ip_lib_dir:/a/b/c/d/e/f
+    #puts target_ip_lib_dir=$target_ip_lib_dir
+
+    # hdl_dir_file_comps: {} x y z foo.v or {} foo.v
+    set hdl_dir_file_comps [split $hdl_dir_file "/"] 
+    # comps: x y z foo.v or foo.v
+    set comps [lrange $hdl_dir_file_comps 1 end]
+    # foo.v
+    set filename [lindex $comps end]
+    set src_file {}
+    if { [llength $comps] > 1 } {
+      #puts comps=$comps
+      # x/y/z
+      set suffix_dir [join [lrange $comps 1 end-1] "/"]  
+      # /a/b/c/x/y/z
+      set ip_lib_dir "$ip_lib_dir/$suffix_dir"
+      # /a/b/c/d/e/f/x/y/z
+      set target_ip_lib_dir "$target_ip_lib_dir/$suffix_dir"
+      # /a/b/c/x/y/z/foo.v
+      set src_file "$ip_lib_dir/$filename"
+
+      if { ![info exists a_cache_bd_dst_dirs($target_ip_lib_dir)] } {
+        if {[catch {file mkdir $target_ip_lib_dir} error_msg] } {
+          send_msg_id export_ip_user_files-Tcl-013 ERROR "Failed to create the directory ($target_ip_lib_dir): $error_msg\n"
+          continue
+        } else {
+          set a_cache_bd_dst_dirs($target_ip_lib_dir) $filename
+        }
+      }
+    } else {
+      # foo.v
+      set src_file "$ip_lib_dir/$filename"
+    }
+
+    set target_file "$target_ip_lib_dir/$filename"
+    if { ![file exists $target_file] } {
+      if { [file exists $src_file] } {
+        if {[catch {file copy -force $src_file $target_ip_lib_dir} error_msg] } {
+          send_msg_id export_ip_user_files-Tcl-014 WARNING "Failed to copy file '$src_file' to '$target_ip_lib_dir' : $error_msg\n"
+        }
+      }
+    }
+  }
+}
+
+proc xif_get_extracted_static_file_path_bd { src_file_obj comps b_found index } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  variable a_processed_bd_dir
+
+  set dst_file {}
   set file_path_str [join [lrange $comps 0 $index] "/"]
+  if { !$b_found } {
+    set file_path_str {}
+    set library [get_property -quiet library $src_file_obj]
+    if { {} != $library } {
+      set index [lsearch -exact $comps $library]
+      if { $index != -1 } {
+        set file_path_str [join [lrange $comps 0 $index] "/"]
+      }
+    }
+    if { {} == $file_path_str } {
+      # failed to find the file path based on library /<path>/<library>
+      return $dst_file
+    }
+  }
   set ip_lib_dir "$file_path_str"
 
   # /demo/ipshared/xilinx.com/xbip_utils_v3_0
@@ -836,7 +920,7 @@ proc xif_get_extracted_static_file_path_bd { comps index } {
   set ip_lib_dir_name [file tail $ip_lib_dir]
    
   # create target library dir
-  set target_ip_lib_dir [file join $a_vars(ipstatic_dir) $ip_lib_dir_name]
+  set target_ip_lib_dir "$a_vars(ipstatic_dir)/$ip_lib_dir_name"
   if { ![file exists $target_ip_lib_dir] } {
     if {[catch {file mkdir $target_ip_lib_dir} error_msg] } {
       send_msg_id export_ip_user_files-Tcl-012 ERROR "Failed to create the directory ($target_ip_lib_dir): $error_msg\n"
@@ -857,11 +941,15 @@ proc xif_get_extracted_static_file_path_bd { comps index } {
   # /hdl/xbip_utils_v3_0_vh_rfs.vhd
   #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
 
-  set dst_file [file join $target_ip_lib_dir $ip_hdl_sub_dir]
+  set dst_file "$target_ip_lib_dir/$ip_hdl_sub_dir"
   # /demo/project_1/project_1_sim/ipstatic/xbip_utils_v3_0/hdl/xbip_utils_v3_0_vh_rfs.vhd
   #puts dst_file=$dst_file
 
-  xif_copy_bd_static_files_recursive $ip_hdl_dir $target_ip_lib_dir
+  set hash_val "${ip_hdl_dir}_${target_ip_lib_dir}"
+  if { ![info exists a_processed_bd_dir($hash_val)] } { 
+    xif_copy_bd_static_files_recursive $ip_hdl_dir $target_ip_lib_dir
+    set a_processed_bd_dir($hash_val) 'x'
+  }
 
   return $dst_file
 }
@@ -962,7 +1050,7 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   # ip_lib_dir: /demo/project_1/project_1.srcs/sources_1/bd/design_1 
   #puts ip_lib_dir=$ip_lib_dir
 
-  set target_ip_lib_dir [file join $a_vars(bd_base_dir) ${ip_name}]
+  set target_ip_lib_dir "$a_vars(bd_base_dir)/${ip_name}"
   set a_cache_get_dynamic_sim_file_bd("${s_hash}-target_ip_lib_dir") $target_ip_lib_dir
   # target_ip_lib_dir: /demo/project_1/project_1.ip_user_files/bd/design_1
   #puts target_ip_lib_dir=$target_ip_lib_dir
@@ -972,7 +1060,7 @@ proc xif_get_dynamic_sim_file_bd { ip_name dynamic_file hdl_dir_file_arg ip_lib_
   # hdl_dir_file: ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
   #puts hdl_dir_file=$hdl_dir_file
 
-  set repo_file [file join $a_vars(bd_base_dir) $hdl_dir_file]
+  set repo_file "$a_vars(bd_base_dir)/$hdl_dir_file"
   # repo_file: /demo/project_1/project_1.ip_user_files/bd/design_1/ip/design_1_cmpy_0_0/demo_tb/tb_design_1_cmpy_0_0.vhd 
   #puts repo_file=$repo_file
 
@@ -986,11 +1074,12 @@ proc xif_copy_bd_static_files_recursive { src dst } {
 
   variable a_vars
   if { [file isdirectory $src] } {
-    set files [glob -nocomplain -directory $src *]
+    # filter png, xdc files
+    set files [lsearch -all -inline -not -regexp [glob -nocomplain -directory $src *] {[A-Za-z0-9].(png|xdc)$}]
     foreach file $files {
       if { [file isdirectory $file] } {
         set sub_dir [file tail $file]
-        set dst_dir [file join $dst $sub_dir]
+        set dst_dir "$dst/$sub_dir"
         if { ![file exists $dst_dir] } {
           if {[catch {file mkdir $dst_dir} error_msg] } {
             send_msg_id export_ip_user_files-Tcl-015 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
@@ -999,58 +1088,33 @@ proc xif_copy_bd_static_files_recursive { src dst } {
         xif_copy_bd_static_files_recursive $file $dst_dir
       } else {
         set filename [file tail $file]
-        set dst_file [file join $dst $filename]
+        set dst_file "$dst/$filename"
         if { ![file exists $dst] } {
           if {[catch {file mkdir $dst} error_msg] } {
             send_msg_id export_ip_user_files-Tcl-016 WARNING "Failed to create directory '$dst_dir' : $error_msg\n"
           }
         }
 
-        if { [xif_filter $file] } {
-          # filter these files
-        } else {
-          if { (![file exist $dst_file]) || $a_vars(b_force) } {
-            if {[catch {file copy -force $file $dst} error_msg] } {
-              send_msg_id export_ip_user_files-Tcl-017 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
-            } else {
-              #send_msg_id export_ip_user_files-Tcl-018 STATUS " + Exported file:'$dst_file'\n"
-            }
+        if { $a_vars(b_force) || (![file exist $dst_file]) } {
+          if {[catch {file copy -force $file $dst} error_msg] } {
+            send_msg_id export_ip_user_files-Tcl-017 WARNING "Failed to copy file '$file' to '$dst' : $error_msg\n"
+          } else {
+            #send_msg_id export_ip_user_files-Tcl-018 STATUS " + Exported file:'$dst_file'\n"
           }
         }
       }
     }
   } else {
     set filename [file tail $src]
-    set dst_file [file join $dst $filename]
-    if { [xif_filter $src] } {
-      # filter these files
-    } else {
-      if { (![file exist $dst_file]) || $a_vars(b_force) } {
-        if {[catch {file copy -force $src $dst} error_msg] } {
-          send_msg_id export_ip_user_files-Tcl-019 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
-        } else {
-          #send_msg_id export_ip_user_files-Tcl-020 STATUS " + Exported file:'$dst_file'\n"
-        }
+    set dst_file "$dst/$filename"
+    if { (![file exist $dst_file]) || $a_vars(b_force) } {
+      if {[catch {file copy -force $src $dst} error_msg] } {
+        send_msg_id export_ip_user_files-Tcl-019 WARNING "Failed to copy file '$src' to '$dst' : $error_msg\n"
+      } else {
+        #send_msg_id export_ip_user_files-Tcl-020 STATUS " + Exported file:'$dst_file'\n"
       }
     }
   }
-}
-
-proc xif_filter { file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set b_filter 0
-  if { {} == $file } { return $b_filter }
-  set file_extn [string tolower [file extension $file]]
-  switch -- $file_extn {
-    {.xdc} -
-    {.png} {
-      set b_filter 1
-    }
-  }
-  return $b_filter
 }
 
 proc xif_create_mem_dir {} {
@@ -1170,17 +1234,17 @@ proc xif_set_dirs {} {
   }
 
   if { {} == $a_vars(ipstatic_dir) } {
-    set a_vars(ipstatic_dir) [file normalize [file join $a_vars(base_dir) "ipstatic"]]
+    set a_vars(ipstatic_dir) [file normalize "$a_vars(base_dir)/ipstatic"]
   }
 
   # ip dir
-  set a_vars(ip_base_dir) [file join $a_vars(base_dir) "ip"]
+  set a_vars(ip_base_dir) "$a_vars(base_dir)/ip"
 
   # bd dir
-  set a_vars(bd_base_dir) [file join $a_vars(base_dir) "bd"]
+  set a_vars(bd_base_dir) "$a_vars(base_dir)/bd"
 
-  set a_vars(mem_dir) [file normalize [file join $a_vars(base_dir) "mem_init_files"]]
-  set a_vars(scripts_dir) [file normalize [file join $a_vars(base_dir) "sim_scripts"]]
+  set a_vars(mem_dir) [file normalize "$a_vars(base_dir)/mem_init_files"]
+  set a_vars(scripts_dir) [file normalize "$a_vars(base_dir)/sim_scripts"]
 
   # set path separator
   set a_vars(base_dir)     [string map {\\ /} $a_vars(base_dir)]
@@ -1309,30 +1373,29 @@ proc xif_get_dynamic_sim_file { ip_name src_file_obj } {
 
   set file_path_str [join [lrange $comps $index end] "/"]
   #puts file_path_str=$file_path_str
-  set src_file [file join $a_vars(base_dir) "ip" $file_path_str]
+  set src_file "$a_vars(base_dir)/ip/$file_path_str"
   if { $to_match == $ip_name } {
-    set src_file [file join $a_vars(base_dir) "ip" $ip_name $file_path_str]
+    set src_file "$a_vars(base_dir)/ip/$ip_name/$file_path_str"
   }
   #puts out_src_file=$src_file
   return $src_file
 }
 
 proc xif_cache_result {args} {
-  # Summary:
-  # Will return already generated results if they exists else it will run the command
-  # NOTICE: The xif_cache_result command can only be used with procs that _do_not_ use upvar
-  #         If you need to cache a proc that leverages upvar, then see a_cache_get_dynamic_sim_file_bd
+  # Summary: Return calculated results if they exists else execute the command args
+  #          NOTE: do not use this for procs containing upvars (in general), but to
+  #          cache a proc that use upvar, see (a_cache_get_dynamic_sim_file_bd)
   # Argument Usage:
   # Return Value:
   variable a_cache_result
 
-  set cache_hash [regsub -all {[\[\]]} $args {|}]; # replace "[" and "]" with "|"
+  # replace "[" and "]" with "|"
+  set cache_hash [regsub -all {[\[\]]} $args {|}];
   set cache_hash [uplevel expr \"$cache_hash\"]
 
-  # Validation - for every call we compare the cache to the actual values
-  #puts "XIF_CACHE_ARGS: '${args}'"
-  #puts "XIF_CACHE_HASH: '${cache_hash}'"
-
+  # Verify cache with the actual values
+  #puts "CACHE_ARGS=${args}"
+  #puts "CACHE_HASH=${cache_hash}"
   #if { [info exists a_cache_result($cache_hash)] } {
   #  #puts " CACHE_EXISTS"
   #  set old $a_cache_result($cache_hash)
@@ -1340,19 +1403,25 @@ proc xif_cache_result {args} {
   #  if { "$a_cache_result($cache_hash)" != "$old" } {
   #    error "CACHE_VALIDATION: difference detected, halting flow\n OLD: ${old}\n NEW: $a_cache_result($cache_hash)"
   #  }
-  #  return $a_cache_result($cache_hash) 
+  #  return $a_cache_result($cache_hash)
   #}
 
-  # NOTE: to disable caching (with this proc) comment out this line:
+  # NOTE: to disable caching (with this proc) comment this block
   if { [info exists a_cache_result($cache_hash)] } {
+    # return evaluated result
     return $a_cache_result($cache_hash)
   }
+  # end NOTE
 
+  # evaluate first time
   return [set a_cache_result($cache_hash) [uplevel eval $args]]
 }
 
-
 proc xif_valid_object_types { objs allowedTypes } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
   if { [llength $objs] == 0 } {
     return true; # Zero objects is considered a passing condition
   }
@@ -1373,5 +1442,35 @@ proc xif_valid_object_types { objs allowedTypes } {
     return false
   }
   return true
+}
+
+proc xif_get_lib_map_path_cmd_str {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_vars
+  variable l_lib_map_path
+
+  set lmp_args_str {}
+  if { !$a_vars(b_lib_map_path_specified) } {
+    return $lmp_args_str
+  }
+  
+  set lmp_len [llength $l_lib_map_path]
+  if { $lmp_len > 0 } {
+    append lmp_args_str "-lib_map_path \[list \{"
+    set n 0
+    foreach lmp $l_lib_map_path {
+      incr n
+      set lmp [string trim $lmp "\{\} "]
+      append lmp_args_str "\{$lmp\}"
+      if { $n < $lmp_len } {
+        append lmp_args_str " "
+      }
+    }
+    append lmp_args_str "\}\]"
+  }
+  return $lmp_args_str
 }
 }

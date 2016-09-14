@@ -111,7 +111,7 @@ proc usf_vcs_setup_simulation { args } {
   ::tclapp::xilinx::vcs::usf_set_simulator_path "vcs"
 
   # set the simulation flow
-  ::tclapp::xilinx::vcs::usf_set_simulation_flow
+  xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -121,35 +121,61 @@ proc usf_vcs_setup_simulation { args } {
   }
 
   # set default object
-  if { [::tclapp::xilinx::vcs::usf_set_sim_tcl_obj] } {
+  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
     return 1
   }
 
   # initialize VCS simulator variables
   usf_vcs_init_simulation_vars
 
-  # print launch_simulation arg values
-  #::tclapp::xilinx::vcs::usf_print_args
-
   # write functional/timing netlist for post-* simulation
-  ::tclapp::xilinx::vcs::usf_write_design_netlist
+  set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
+                                                           $a_sim_vars(s_simulation_flow) \
+                                                           $a_sim_vars(s_type)            \
+                                                           $a_sim_vars(s_sim_top)         \
+                                                           $a_sim_vars(s_launch_dir)      \
+                                 ]
 
   # prepare IP's for simulation
-  #::tclapp::xilinx::vcs::usf_prepare_ip_for_simulation
+  # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
+
+  # find/copy synopsys_sim.setup file into run dir
+  set clibs_dir [usf_vcs_verify_compiled_lib]
 
   variable l_compiled_libraries
-  if { $a_sim_vars(b_use_static_lib) } {
-    set clibs_dir [get_property compxlib.vcs_compiled_library_dir [current_project]]
-    set l_compiled_libraries [xcs_get_compiled_libraries $clibs_dir]
+  set b_reference_xpm_library 0
+  if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
+     if { [get_param project.usePreCompiledXPMLibForSim] } {
+      set b_reference_xpm_library 1
+    }
+  }
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
+    set l_local_ip_libs [xcs_get_libs_from_local_repo]
+    if { {} != $clibs_dir } {
+      set libraries [xcs_get_compiled_libraries $clibs_dir]
+      # filter local ip definitions
+      foreach lib $libraries {
+        if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+          continue
+        } else {
+          lappend l_compiled_libraries $lib
+        }
+      }
+    }
   }
 
   # generate mem files
-  ::tclapp::xilinx::vcs::usf_generate_mem_files_for_simulation
-
-  usf_vcs_verify_compiled_lib
+  xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # fetch the compile order for the specified object
   ::tclapp::xilinx::vcs::usf_xport_data_files
+
+  # cache all design files
+  variable a_sim_cache_all_design_files_obj
+  foreach file_obj [get_files -quiet -all] {
+    set name [get_property -quiet name $file_obj]
+    set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
 
   # fetch design files
   set global_files_str {}
@@ -241,15 +267,13 @@ proc usf_vcs_verify_compiled_lib {} {
     set compiled_lib_dir $dir
   }
   # 1. check -lib_map_path
-  if { $a_sim_vars(b_use_static_lib) } {
-    # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      if { [file exists $a_sim_vars(s_lib_map_path)] } {
-        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
-      } else {
-        send_msg_id USF-VCS-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
-      }
+  # is -lib_map_path specified and point to valid location?
+  if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+    if { [file exists $a_sim_vars(s_lib_map_path)] } {
+      set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+    } else {
+      send_msg_id USF-VCS-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
     }
   }
   # 1a. find setup file from current working directory
@@ -264,7 +288,7 @@ proc usf_vcs_verify_compiled_lib {} {
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
    send_msg_id USF-VCS-007 INFO "Using synopsys_sim.setup from '$compiled_lib_dir/synopsys_sim.setup'\n"
-   return
+   return $compiled_lib_dir
   }
   if { $b_scripts_only } {
     send_msg_id USF-VCS-018 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
@@ -273,6 +297,8 @@ proc usf_vcs_verify_compiled_lib {} {
   }
   send_msg_id USF-VCS-009 INFO \
      "Please set the 'COMPXLIB.VCS_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for VCS.\n"
+
+  return $compiled_lib_dir
 }
 
 proc usf_vcs_write_setup_files {} {
@@ -282,6 +308,7 @@ proc usf_vcs_write_setup_files {} {
 
   variable a_sim_vars
   variable l_ip_static_libs
+  variable l_local_design_libraries
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow)
@@ -325,14 +352,19 @@ proc usf_vcs_write_setup_files {} {
     if { ({work} == $lib) } { continue; }
     lappend libs [string tolower $lib]
   }
-  set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+  set default_lib [string tolower $a_sim_vars(default_top_library)]
   if { [lsearch -exact $libs $default_lib] == -1 } {
     lappend libs $default_lib
   }
   set dir_name "vcs"
   foreach lib_name $libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {
-      continue
+      # continue if no local library found or continue if precompiled library (not local) and library is not default
+      if { $lib_name != $default_lib } {        
+        if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib_name $l_local_design_libraries]) } {
+          continue
+        }
+      }
     }
     set lib_dir [file join $dir_name $lib_name]
     set lib_dir_path [file normalize [string map {\\ /} [file join $dir $lib_dir]]]
@@ -399,8 +431,7 @@ proc usf_vcs_write_compile_script {} {
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
-  set scr_filename "compile";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
+  set scr_filename "compile";append scr_filename [xcs_get_script_extn "vcs"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -520,7 +551,7 @@ proc usf_vcs_write_compile_script {} {
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
-    set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] } {
       set work_lib_sw {}
       if { {work} != $top_lib } {
@@ -541,7 +572,7 @@ proc usf_vcs_write_compile_script {} {
       if { ({timing} == $::tclapp::xilinx::vcs::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
-        set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         set work_lib_sw {}
         if { {work} != $top_lib } {
           set work_lib_sw "-work $top_lib "
@@ -565,6 +596,8 @@ proc usf_vcs_write_elaborate_script {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
@@ -574,7 +607,7 @@ proc usf_vcs_write_elaborate_script {} {
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
-  set scr_filename "elaborate";append scr_filename [::tclapp::xilinx::vcs::usf_get_script_extn]
+  set scr_filename "elaborate";append scr_filename [xcs_get_script_extn "vcs"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -588,7 +621,7 @@ proc usf_vcs_write_elaborate_script {} {
     puts $fh_scr "bin_path=\"$tool_path\"\n"
   }
   set tool "vcs"
-  set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list]
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
     lappend arg_list {-debug_pp}
@@ -607,7 +640,7 @@ proc usf_vcs_write_elaborate_script {} {
   }
 
   if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
-    set arg_list [linsert $arg_list end "+pulse_r/$path_delay +pulse_int_r/$int_delay"]
+    set arg_list [linsert $arg_list end "+pulse_r/$path_delay +pulse_int_r/$int_delay +pulse_e/$path_delay +pulse_int_e/$int_delay"]
   }
   set arg_list [linsert $arg_list end "-l" "elaborate.log"]
   if { [get_property 32bit $fs_obj] } {
@@ -616,6 +649,9 @@ proc usf_vcs_write_elaborate_script {} {
      set arg_list [linsert $arg_list 0 "-full64"]
   }
 
+  #
+  # user design and xpm libraries will be resolved by setup file
+  #
   if { ({post-synthesis} == $mode) || ({post-implementation} == $mode) } {
     if { {Verilog} == $target_lang } {
       lappend arg_list "-liblist"
@@ -726,7 +762,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
 
   if { $b_add_glbl } {
-    set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
   }
 }
@@ -735,6 +771,8 @@ proc usf_vcs_write_simulate_script {} {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
 
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
@@ -770,7 +808,7 @@ proc usf_vcs_write_simulate_script {} {
   set do_filename "${top}_simulate.do"
   ::tclapp::xilinx::vcs::usf_create_do_file "vcs" $do_filename
   set tool "${top}_simv"
-  set top_lib [::tclapp::xilinx::vcs::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list "-ucli" "-licqueue" "-l" "simulate.log"]
 
   set more_sim_options [string trim [get_property "VCS.SIMULATE.VCS.MORE_OPTIONS" $fs_obj]]
@@ -875,9 +913,10 @@ proc usf_vcs_create_setup_script {} {
 
   variable a_sim_vars
   variable l_ip_static_libs
+  variable l_local_design_libraries
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set top $::tclapp::xilinx::vcs::a_sim_vars(s_sim_top)
-  set filename "setup";append filename [::tclapp::xilinx::vcs::usf_get_script_extn]
+  set filename "setup";append filename [xcs_get_script_extn "vcs"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -908,7 +947,10 @@ proc usf_vcs_create_setup_script {} {
   set design_libs [usf_vcs_get_design_libs $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
-      continue
+      # continue if no local library found or continue if this library is precompiled (not local)
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+        continue
+      }
     }
     if { {} == $lib } {
       continue;
@@ -919,7 +961,7 @@ proc usf_vcs_create_setup_script {} {
     lappend libs [string tolower $lib]
   }
 
-  set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+  set default_lib [string tolower $a_sim_vars(default_top_library)]
   if { [lsearch -exact $libs $default_lib] == -1 } {
     lappend libs $default_lib
   }

@@ -112,7 +112,7 @@ proc usf_questa_setup_simulation { args } {
   ::tclapp::xilinx::questa::usf_set_simulator_path "questa"
 
   # set the simulation flow
-  ::tclapp::xilinx::questa::usf_set_simulation_flow
+  xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -122,36 +122,61 @@ proc usf_questa_setup_simulation { args } {
   }
 
   # set default object
-  if { [::tclapp::xilinx::questa::usf_set_sim_tcl_obj] } {
+  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
     return 1
   }
 
   # initialize Questa simulator variables
   usf_questa_init_simulation_vars
 
-  # print launch_simulation arg values
-  #::tclapp::xilinx::questa::usf_print_args
-
   # write functional/timing netlist for post-* simulation
-  ::tclapp::xilinx::questa::usf_write_design_netlist
+  set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
+                                                           $a_sim_vars(s_simulation_flow) \
+                                                           $a_sim_vars(s_type)            \
+                                                           $a_sim_vars(s_sim_top)         \
+                                                           $a_sim_vars(s_launch_dir)      \
+                                 ]
 
   # prepare IP's for simulation
-  #::tclapp::xilinx::questa::usf_prepare_ip_for_simulation
+  # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
+
+  # find/copy modelsim.ini file into run dir
+  set clibs_dir [usf_questa_verify_compiled_lib]
 
   variable l_compiled_libraries
-  if { $a_sim_vars(b_use_static_lib) } {
-    set clibs_dir [get_property compxlib.questa_compiled_library_dir [current_project]]
-    set l_compiled_libraries [xcs_get_compiled_libraries $clibs_dir]
+  set b_reference_xpm_library 0
+  if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
+     if { [get_param project.usePreCompiledXPMLibForSim] } {
+      set b_reference_xpm_library 1
+    }
+  }
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
+    set l_local_ip_libs [xcs_get_libs_from_local_repo]
+    if { {} != $clibs_dir } {
+      set libraries [xcs_get_compiled_libraries $clibs_dir]
+      # filter local ip definitions
+      foreach lib $libraries {
+        if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+          continue
+        } else {
+          lappend l_compiled_libraries $lib
+        }
+      }
+    }
   }
 
   # generate mem files
-  ::tclapp::xilinx::questa::usf_generate_mem_files_for_simulation
-
-  # find/copy modelsim.ini file into run dir
-  usf_questa_verify_compiled_lib
+  xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # fetch the compile order for the specified object
   ::tclapp::xilinx::questa::usf_xport_data_files
+
+  # cache all design files
+  variable a_sim_cache_all_design_files_obj
+  foreach file_obj [get_files -quiet -all] {
+    set name [get_property -quiet name $file_obj]
+    set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
 
   # fetch design files
   set global_files_str {}
@@ -249,7 +274,7 @@ proc usf_questa_verify_compiled_lib {} {
         } else {
           send_msg_id USF-questa-025 ERROR \
             "The INI file specified with the MODELSIM environment variable is not accessible. Please check the file permissions.\n"
-          return 1
+          return $compiled_lib_dir
         }
       }
     }
@@ -261,15 +286,13 @@ proc usf_questa_verify_compiled_lib {} {
     set compiled_lib_dir $dir
   }
   # 2a. check -lib_map_path
-  if { $a_sim_vars(b_use_static_lib) } {
-    # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      if { [file exists $a_sim_vars(s_lib_map_path)] } {
-        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
-      } else {
-        send_msg_id USF-Questa-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
-      }
+  # is -lib_map_path specified and point to valid location?
+  if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+    if { [file exists $a_sim_vars(s_lib_map_path)] } {
+      set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+    } else {
+      send_msg_id USF-Questa-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
     }
   }
   # 3. not found? find modelsim.ini from current working directory
@@ -314,7 +337,7 @@ proc usf_questa_verify_compiled_lib {} {
       }
     }
   }
-  return 0
+  return $compiled_lib_dir
 }
 
 proc usf_questa_write_setup_files {} {
@@ -450,9 +473,9 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
 
   variable a_sim_vars
   variable l_ip_static_libs
+  variable l_local_design_libraries
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
   set b_absolute_path $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path)
   set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
@@ -495,7 +518,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
 
   set b_default_lib false
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  set default_lib $a_sim_vars(default_top_library)
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { $default_lib == $lib } {
@@ -503,7 +526,10 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     }
     set lib_path "msim/$lib"
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
-      continue
+      # continue if no local library found or continue if this library is precompiled (not local)
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+        continue
+      }
     }
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/$lib_path"
@@ -524,13 +550,15 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
-      # no op
-    } else {
-      if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
-        puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
-      } else {
-        puts $fh "${tool_path_str}vmap $lib msim/$lib"
+      # continue if no local library found or continue if this library is precompiled (not local)
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+        continue
       }
+    }
+    if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+      puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
+    } else {
+      puts $fh "${tool_path_str}vmap $lib msim/$lib"
     }
   }
   if { !$b_default_lib } {
@@ -647,7 +675,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]]
     if { [::tclapp::xilinx::questa::usf_compile_glbl_file "questa" $b_load_glbl $::tclapp::xilinx::questa::a_sim_vars(l_design_files)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
       puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
     }
@@ -658,7 +686,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
         # This is not supported, netlist will be verilog always
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
+        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         set file_str "-work $top_lib \"${glbl_file}\""
         puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
       }
@@ -741,7 +769,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   # Return Value:
 
   variable a_sim_vars
-
+  variable l_compiled_libraries
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow)
@@ -769,23 +797,6 @@ proc usf_questa_get_elaboration_cmdline {} {
     lappend arg_list "+$acc"
   }
 
-  set path_delay 0
-  set int_delay 0
-  set tpd_prop "TRANSPORT_PATH_DELAY"
-  set tid_prop "TRANSPORT_INT_DELAY"
-  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
-    set path_delay [get_property $tpd_prop $fs_obj]
-  }
-  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
-    set int_delay [get_property $tid_prop $fs_obj]
-  }
-
-  if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
-    lappend arg_list "+transport_int_delays"
-    lappend arg_list "+pulse_r/$path_delay"
-    lappend arg_list "+pulse_int_r/$int_delay"
-  }
-
   set vhdl_generics [list]
   set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
   if { [llength $vhdl_generics] > 0 } {
@@ -800,9 +811,19 @@ proc usf_questa_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $::tclapp::xilinx::questa::a_sim_vars(l_design_files)
+  set design_libs [usf_questa_get_design_libs $design_files]
 
   # add simulation libraries
   set arg_list [list]
+
+  # add user design libraries
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    lappend arg_list "-L"
+    lappend arg_list "$lib"
+    #lappend arg_list "[string tolower $lib]"
+  }
+
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ({Verilog} == $target_lang) } {
@@ -839,21 +860,34 @@ proc usf_questa_get_elaboration_cmdline {} {
   # add secureip
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
-  # add design libraries
-  set design_libs [usf_questa_get_design_libs $design_files]
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} { continue; }
-    lappend arg_list "-L"
-    lappend arg_list "$lib"
-    #lappend arg_list "[string tolower $lib]"
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
+    }
   }
 
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  if { $b_reference_xpm_library } {
+    # pass xpm library reference for behavioral simulation only
+    if { {behav_sim} == $sim_flow } {
+      set arg_list [linsert $arg_list end "-L" "xpm"]
+    }
+  }
+
   lappend arg_list "-work"
-  lappend arg_list $default_lib
+  lappend arg_list $a_sim_vars(default_top_library)
   
   set d_libs [join $arg_list " "]
-  set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
@@ -870,9 +904,10 @@ proc usf_questa_get_simulation_cmdline {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set flow $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow)
+  set sim_flow $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
 
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
@@ -880,6 +915,25 @@ proc usf_questa_get_simulation_cmdline {} {
 
   set tool "vsim"
   set arg_list [list "$tool"]
+
+  set path_delay 0
+  set int_delay 0
+  set tpd_prop "TRANSPORT_PATH_DELAY"
+  set tid_prop "TRANSPORT_INT_DELAY"
+  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+    set path_delay [get_property $tpd_prop $fs_obj]
+  }
+  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+    set int_delay [get_property $tid_prop $fs_obj]
+  }
+
+  if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
+    lappend arg_list "+transport_int_delays"
+    lappend arg_list "+pulse_e/$path_delay"
+    lappend arg_list "+pulse_int_e/$int_delay"
+    lappend arg_list "+pulse_r/$path_delay"
+    lappend arg_list "+pulse_int_r/$int_delay"
+  }
 
   set more_sim_options [string trim [get_property "QUESTA.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
@@ -900,15 +954,32 @@ proc usf_questa_get_simulation_cmdline {} {
   if { [get_param "project.allowSharedLibraryType"] } {
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
       if { {Shared Library} == [get_property FILE_TYPE $file] } {
-        lappend arg_list "-sv_lib libsls"
-        break
+        set file_dir [file dirname $file]
+        set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
+
+        if { [get_param "project.copyShLibsToCurrRunDir"] } {
+          if { [file exists $file] } {
+            if { [catch {file copy -force $file $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)} error_msg] } {
+              send_msg_id USF_Questa-010 ERROR "Failed to copy file ($file): $error_msg\n"
+            } else {
+              send_msg_id USF_Questa-011 INFO "File '$file' copied to run dir:'$::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)'\n"
+            }
+          }
+          set file_dir "."
+        }
+
+        set file_name [file tail $file]
+        if { [string match "lib*so" $file_name] } {
+          # remove ".so" from libraryname 
+          set file_name [string range $file_name 0 end-3]
+        }
+        lappend arg_list "-sv_root \"$file_dir\" -sv_lib $file_name"
       }
     }
   }
 
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
   lappend arg_list "-lib"
-  lappend arg_list $default_lib
+  lappend arg_list $a_sim_vars(default_top_library)
   lappend arg_list "${top}_opt"
 
   set cmd_str [join $arg_list " "]
@@ -958,7 +1029,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
 
   if { $b_add_glbl } {
-    set top_lib [::tclapp::xilinx::questa::usf_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
   }
 }
@@ -985,8 +1056,16 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   usf_questa_create_wave_do_file $wave_do_file
   set cmd_str [usf_questa_get_simulation_cmdline]
   usf_add_quit_on_error $fh "simulate"
+  
+  if { [get_param "project.allowSharedLibraryType"] } {
+    puts $fh "set xv_lib_path \"$::env(RDI_LIBDIR)\""
+  }
 
   puts $fh "$cmd_str"
+  if { [get_property "QUESTA.SIMULATE.IEEE_WARNINGS" $fs_obj] } {
+    puts $fh "\nset NumericStdNoWarnings 1"
+    puts $fh "set StdArithNoWarnings 1"
+  }
   puts $fh "\ndo \{$wave_do_filename\}"
   puts $fh "\nview wave"
   puts $fh "view structure"
@@ -1000,15 +1079,21 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   # generate saif file for power estimation
   set saif [get_property "QUESTA.SIMULATE.SAIF" $fs_obj] 
   if { {} != $saif } {
-    set uut [get_property "QUESTA.SIMULATE.UUT" $fs_obj] 
+    set uut {}
+    [catch {set uut [get_property -quiet "QUESTA.SIMULATE.UUT" $fs_obj]} msg]
+    set saif_scope [get_property "QUESTA.SIMULATE.SAIF_SCOPE" $fs_obj]
+    if { {} != $saif_scope } {
+      set uut $saif_scope
+    }
     if { {} == $uut } {
       set uut "/$top/uut/*"
     }
+    set simulator "questa"
     if { ({functional} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) || \
          ({timing} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) } {
-      puts $fh "power add -r -in -inout -out -internal [::tclapp::xilinx::questa::usf_resolve_uut_name uut]\n"
+      puts $fh "power add -r -in -inout -out -internal [xcs_resolve_uut_name $simulator uut]\n"
     } else {
-      puts $fh "power add -in -inout -out -internal [::tclapp::xilinx::questa::usf_resolve_uut_name uut]\n"
+      puts $fh "power add -in -inout -out -internal [xcs_resolve_uut_name $simulator uut]\n"
     }
   }
   # create custom UDO file
@@ -1045,8 +1130,9 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
 
   # add TCL sources
   set tcl_src_files [list]
-  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
-  ::tclapp::xilinx::questa::usf_find_files tcl_src_files $filter
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
+  set sim_obj $::tclapp::xilinx::questa::a_sim_vars(s_simset)
+  xcs_find_files tcl_src_files $::tclapp::xilinx::questa::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) $sim_obj
   if {[llength $tcl_src_files] > 0} {
     puts $fh ""
     foreach file $tcl_src_files {
@@ -1099,7 +1185,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
 
-  set scr_filename $step;append scr_filename [::tclapp::xilinx::questa::usf_get_script_extn]
+  set scr_filename $step;append scr_filename [xcs_get_script_extn "questa"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -1128,9 +1214,35 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
 
-    if {({compile} == $step)} {
+    # TODO: once vsim picks the "so"s path at runtime , we can remove the following code
+    if { {simulate} == $step } {
       if { [get_param "project.allowSharedLibraryType"] } {
+        puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
         puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+
+        set args_list [list]
+        foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
+          set file_type [get_property FILE_TYPE $file]
+          set file_dir [file dirname $file] 
+          set file_name [file tail $file] 
+
+          if { {Shared Library} == $file_type } {
+            set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
+            if { ![info exists a_shared_lib_dirs($file_dir)] } {
+              set a_shared_lib_dirs($file_dir) $file_dir
+              lappend args_list "$file_dir"
+            }
+          }
+        }
+
+        if { [llength $args_list] != 0 } {
+          set cmd_args [join $args_list ":"]
+          if { [get_param "project.copyShLibsToCurrRunDir"] } {
+            puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+          } else {
+            puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+          }
+        }
       }
     }
 
@@ -1170,49 +1282,6 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     puts $fh_scr "exit 0"
   }
 
-  if {({compile} == $step)} {
-    set b_sw_lib 0
-    set args_list [list]
-    if { [get_param "project.allowSharedLibraryType"] } {
-      if {$::tcl_platform(platform) == "unix"} {
-        set b_default_sw_lib 0
-        foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
-          set file_dir [file dirname $file]
-          set file_name [file tail $file]
-          set final_file_name $file_dir\/$file_name
-          if [string match "lib*so" $file_name] {
-            # remove "lib" from prefix and ".so" extension
-            set file_name [string range $file_name 3 end-3]
-            set final_file_name "-l$file_name"
-            set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
-          }
-
-          if { {Shared Library} == [get_property FILE_TYPE $file] } {
-            if { $b_default_sw_lib == 0 } {
-              lappend args_list "\ng++ -shared -o libsls.so -L\$xv_lib_path/ -lxaxi_tlm -Wl,-rpath -Wl,\$xv_lib_path/ -lsystemc -L$file_dir\/ $final_file_name"
-              # file_dir already set in g++ command? donot add
-              if { [info exists a_shared_lib_dirs($file_dir) ] == 0 } {
-                lappend args_list "-Wl,-rpath -Wl,$file_dir"
-                set a_shared_lib_dirs($file_dir) $file_dir
-              }
-              incr b_default_sw_lib 1
-              incr b_sw_lib 1
-            } else {
-              lappend args_list "-L$file_dir\/ $final_file_name"
-              if { [info exists a_shared_lib_dirs($file_dir)] == 0 } {
-                lappend args_list "-Wl,-rpath -Wl,$file_dir"
-                set a_shared_lib_dirs($file_dir) $file_dir
-              }
-            }
-          }
-        }
-      }
-    }
-
-    if { $b_sw_lib == 1} {
-      puts $fh_scr [join $args_list " "]
-    }
-  }
   close $fh_scr
 }
 
