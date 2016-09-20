@@ -3910,7 +3910,13 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   puts $fh "\ndo \{$wave_do_filename\}"
   puts $fh "\nview wave"
   puts $fh "view structure"
-  puts $fh "view signals\n"
+  switch $simulator {
+    "modelsim" -
+    "questa" {
+      puts $fh "view signals"
+    }
+  }
+  puts $fh ""
   set top $a_sim_vars(s_top)
   set udo_filename $top;append udo_filename ".udo"
   set udo_file [file normalize "$dir/$udo_filename"]
