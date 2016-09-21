@@ -1,3 +1,4 @@
+2.140 pass wdb file if specified with xsim.simulate.wdb
 2.139 added comment for XPM library referencing
 2.138 removed XPM library and reference design libraries first for post simulation flow
 2.137 support for vhdl 2008
