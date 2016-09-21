@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added comment for XPM library referencing</revision_history>
+      <revision_history>pass wdb file if specified with xsim.simulate.wdb</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

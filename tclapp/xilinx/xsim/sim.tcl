@@ -854,10 +854,12 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
 
   # get the wdb file information
   set wdf_file [get_property "XSIM.SIMULATE.WDB" $fs_obj]
+  set b_add_wdb 0
   if { {} == $wdf_file } {
     set wdf_file $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot);append wdf_file ".wdb"
     #set wdf_file "xsim";append wdf_file ".wdb"
   } else {
+    set b_add_wdb 1
     set wdf_file [file normalize $wdf_file]
   }
 
@@ -932,12 +934,12 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
         }
       }
     }
-    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $b_batch]
+    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
     puts $fh_scr "ExecStep \$xv_path/bin/xsim $cmd_args"
   } else {
     puts $fh_scr "@echo off"
     puts $fh_scr "set xv_path=[usf_get_rdi_bin_path]"
-    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $b_batch]
+    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
     puts $fh_scr "call %xv_path%/xsim $cmd_args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
@@ -949,7 +951,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   close $fh_scr
 
   set b_batch 0
-  set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $b_batch]
+  set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
     # scripts only
@@ -1284,7 +1286,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
 }
 
-proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view b_batch } {
+proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_add_wdb b_batch } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1325,6 +1327,16 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view b_batch } {
       }
     }
   }
+
+  if { $b_add_wdb } {
+    lappend args_list "-wdb"
+    if { $b_batch } {
+      lappend args_list "$wdb_file"
+    } else {
+      lappend args_list "\{$wdb_file\}"
+    }
+  }
+    
   #set log_file ${snapshot};append log_file ".log"
   set log_file "simulate";append log_file ".log"
   lappend args_list "-log"
