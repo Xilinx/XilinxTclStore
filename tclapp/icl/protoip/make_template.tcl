@@ -286,12 +286,12 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
         	# this branch was added by Bulat
             set soc_input [lshift args]
             if {$soc_input == {}} {
-               puts " -E- NO input specified."
+               puts " -E- NO SoC input specified."
                incr error
             } else {
 				set records [split $soc_input ":"]
 				if {[lindex $records 1] == {}} {
-					puts " -E- input vector [lindex $records 0]: NO lengths specified."
+					puts " -E- SoC input vector [lindex $records 0]: NO lengths specified."
 					incr error
 				} 
 
@@ -318,7 +318,7 @@ proc ::tclapp::icl::protoip::make_template::make_template { args } {
         	# this branch was added by Bulat
             set soc_output [lshift args]
             if {$soc_input == {}} {
-               puts " -E- NO input specified."
+               puts " -E- NO SoC input specified."
                incr error
             } else {
 				set records [split $soc_output ":"]
