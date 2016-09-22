@@ -1,3 +1,4 @@
+3.209 fixed simulator variable name for vcs_mx ncsim values
 3.208 removed -single_step switch from export_simulation help
 3.207 pass -sv2k12 for compiling system verilog files
 3.206 reference compiled library from the path specified with -lib_map_path
