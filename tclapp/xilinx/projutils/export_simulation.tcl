@@ -310,10 +310,10 @@ proc xps_set_target_simulator {} {
     }
   } else {
     if { {vcs_mx} == $a_sim_vars(s_simulator) } {
-      set $a_sim_vars(s_simulator) "vcs"
+      set a_sim_vars(s_simulator) "vcs"
     }
     if { {ncsim} == $a_sim_vars(s_simulator) } {
-      set $a_sim_vars(s_simulator) "ies"
+      set a_sim_vars(s_simulator) "ies"
     }
     lappend l_target_simulator $a_sim_vars(s_simulator)
   }
