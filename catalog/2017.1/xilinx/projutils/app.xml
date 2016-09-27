@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed simulator variable name for vcs_mx ncsim values</revision_history>
+      <revision_history>create library dir if it does not exist while writing analyze order file</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
