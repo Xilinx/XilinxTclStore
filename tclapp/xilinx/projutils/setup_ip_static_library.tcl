@@ -1401,6 +1401,11 @@ proc isl_write_analyze_order_file { filelist_arg ip_lib_dir order_file } {
     }
     close $fh
   } else {
+    if { ![file exists $ip_lib_dir] } {
+      if {[catch {file mkdir $ip_lib_dir} error_msg] } {
+        send_msg_id setup_ip_static_library-Tcl-029 WARNING "Failed to create directory '$ip_lib_dir' : $error_msg\n"
+      }
+    }
     if {[catch {open $file w} fh]} {
       send_msg_id setup_ip_static_library-Tcl-027 ERROR "failed to open file for write ($file)\n"
       return
