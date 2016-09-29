@@ -48,6 +48,10 @@ proc usf_init_vars {} {
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
+  # initialize ip repository dir
+  set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
+  set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
+
   set a_sim_vars(s_tool_bin_path)    {}
 
   set a_sim_vars(sp_tcl_obj)         {}
@@ -124,6 +128,9 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_all_bd_files
   array unset a_sim_cache_all_bd_files
+
+  variable a_sim_cache_parent_comp_files
+  array unset a_sim_cache_parent_comp_files
 
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
@@ -377,9 +384,9 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(dynamic_repo_dir)]
       } else {
         if { $b_is_bd } {
-          set vh_file [xcs_fetch_ipi_static_file $vh_file_obj $vh_file $a_sim_vars(ipstatic_dir)]
+          set vh_file [xcs_fetch_ipi_static_header_file $vh_file_obj $vh_file $a_sim_vars(ipstatic_dir) $a_sim_vars(s_ip_repo_dir)]
         } else {
-          set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir)]
+          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir) $a_sim_vars(s_ip_repo_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
             if { [file exists $vh_file_path] } {
               set vh_file $vh_file_path

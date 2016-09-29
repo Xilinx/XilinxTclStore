@@ -166,6 +166,7 @@ proc export_simulation {args} {
   array unset a_sim_cache_all_design_files_obj
   array unset a_sim_cache_all_bd_files
   array unset a_sim_cache_parent_comp_files
+  array unset a_sim_cache_ip_repo_header_files
 
   return
 }
@@ -206,6 +207,11 @@ proc xps_init_vars {} {
   set a_sim_vars(b_of_objects_specified)        0
   set a_sim_vars(s_ip_user_files_dir) ""
   set a_sim_vars(s_ipstatic_source_dir) ""
+
+  # initialize ip repository dir
+  set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
+  set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
+
   set a_sim_vars(b_ip_user_files_dir_specified)        0
   set a_sim_vars(b_ipstatic_source_dir_specified)        0
   set a_sim_vars(b_directory_specified)         0
@@ -285,12 +291,14 @@ proc xps_init_vars {} {
   variable a_sim_cache_gen_mem_files
   variable a_sim_cache_all_bd_files
   variable a_sim_cache_parent_comp_files
+  variable a_sim_cache_ip_repo_header_files
 
   array unset a_sim_cache_result
   array unset a_sim_cache_extract_source_from_repo
   array unset a_sim_cache_gen_mem_files
   array unset a_sim_cache_all_bd_files
   array unset a_sim_cache_parent_comp_files
+  array unset a_sim_cache_ip_repo_header_files
 }
 }
 
@@ -4809,9 +4817,9 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(s_ip_user_files_dir)]
       } else {
         if { $b_is_bd } {
-          set vh_file [xcs_fetch_ipi_static_file $vh_file_obj $vh_file $a_sim_vars(s_ipstatic_source_dir)]
+          set vh_file [xcs_fetch_ipi_static_header_file $vh_file_obj $vh_file $a_sim_vars(s_ipstatic_source_dir) $a_sim_vars(s_ip_repo_dir)]
         } else {
-          set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir)]
+          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir) $a_sim_vars(s_ip_repo_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
             if { [file exists $vh_file_path] } {
               set vh_file $vh_file_path

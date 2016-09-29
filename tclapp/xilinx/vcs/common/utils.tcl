@@ -207,6 +207,81 @@ proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
   return $dst_cip_file
 }
 
+proc xcs_fetch_ip_static_header_file { file vh_file_obj ipstatic_dir ip_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # fetch verilog header files from ip_user_files/ipstatic, if param is false (old behavior)
+  if { ![get_param project.includeIPStaticVHFileDirsFromRepo] } {
+    return [xcs_fetch_ip_static_file $file $vh_file_obj $ipstatic_dir]
+  }
+
+  variable a_sim_cache_ip_repo_header_files
+
+  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
+  set src_ip_file $file
+  set src_ip_file [string map {\\ /} $src_ip_file]
+  #puts src_ip_file=$src_ip_file
+
+  # get parent composite file path dir
+  set comp_file [get_property parent_composite_file -quiet $vh_file_obj] 
+  set comp_file_dir [file dirname $comp_file]
+  set comp_file_dir [string map {\\ /} $comp_file_dir]
+  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2
+  #puts comp_file_dir=$comp_file_dir
+
+  # strip parent dir from file path dir
+  set lib_file_path {}
+  # axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
+
+  set src_file_dirs  [file split [file normalize $src_ip_file]]
+  set comp_file_dirs [file split [file normalize $comp_file_dir]]
+  set src_file_len [llength $src_file_dirs]
+  set comp_dir_len [llength $comp_file_dirs]
+
+  set index 1
+  #puts src_file_dirs=$src_file_dirs
+  #puts com_file_dirs=$comp_file_dirs
+  while { [lindex $src_file_dirs $index] == [lindex $comp_file_dirs $index] } {
+    incr index
+    if { ($index == $src_file_len) || ($index == $comp_dir_len) } {
+      break;
+    }
+  }
+  set lib_file_path [join [lrange $src_file_dirs $index end] "/"]
+  #puts lib_file_path=$lib_file_path
+
+  set dst_cip_file {}
+  # find and cache ip header file from repository, if it exist
+  set vh_file_name [file tail $src_ip_file]
+  set ip_lib_dir_name [lindex [split $lib_file_path "/"] 0]
+  set repo_lib_dir "$ip_repo_dir/$ip_lib_dir_name"
+  if { [file exists $repo_lib_dir] } {
+    set vh_file_key "${repo_lib_dir}#$vh_file_name"
+    if { [info exists a_sim_cache_ip_repo_header_files($vh_file_key)] } {
+      set dst_cip_file $a_sim_cache_ip_repo_header_files($vh_file_key)
+    } else {
+      set dst_cip_file [xcs_get_ip_header_file_from_repo $ip_repo_dir $ip_lib_dir_name $vh_file_name]
+      if { ({} != $dst_cip_file) && [file exist $dst_cip_file] } {
+        set a_sim_cache_ip_repo_header_files($vh_file_key) $dst_cip_file
+        return $dst_cip_file
+      }
+    }
+  }
+  if { ({} != $dst_cip_file) && [file exist $dst_cip_file] } {
+    return $dst_cip_file
+  }
+  
+  #
+  # file not found from repository, calculate from ipstatic dir now
+  #
+  set dst_cip_file [file join $ipstatic_dir $lib_file_path]
+  # /tmp/tp/tp.ip_user_files/ipstatic/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
+  #puts dst_cip_file=$dst_cip_file
+  return $dst_cip_file
+}
+
 proc xcs_find_comp { comps_arg index_arg to_match } {
   # Summary:
   # Argument Usage:
@@ -1591,6 +1666,93 @@ proc xcs_fetch_ipi_static_file { src_file_obj file ipstatic_dir } {
   return $dst_cip_file
 }
 
+proc xcs_fetch_ipi_static_header_file { src_file_obj file ipstatic_dir ip_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # fetch verilog header files from ip_user_files/ipstatic, if param is false (old behavior)
+  if { ![get_param project.includeIPStaticVHFileDirsFromRepo] } {
+    return [xcs_fetch_ipi_static_file $src_file_obj $file $ipstatic_dir]
+  }
+
+  variable a_sim_cache_ip_repo_header_files
+
+  set src_ip_file $file
+
+  set comps [lrange [split $src_ip_file "/"] 0 end]
+  set to_match "xilinx.com"
+  set index 0
+  set b_found [xcs_find_comp comps index $to_match]
+  if { !$b_found } {
+    set to_match "user_company"
+    set b_found [xcs_find_comp comps index $to_match]
+  }
+  if { !$b_found } {
+    set index -1
+    set library [get_property -quiet library $src_file_obj]
+    if { {} != $library } {
+      set index [lsearch -exact $comps $library]
+    }
+    if { ({} == $library) || (-1 == $index) } {
+      return $src_ip_file
+    }
+  }
+
+  set file_path_str [join [lrange $comps 0 $index] "/"]
+  set ip_lib_dir "$file_path_str"
+
+  #puts ip_lib_dir=$ip_lib_dir
+  set ip_lib_dir_name [file tail $ip_lib_dir]
+
+  set dst_cip_file {}
+  # find and cache ip header file from repository, if it exist
+  set vh_file_name [file tail $src_ip_file]
+  set repo_lib_dir "$ip_repo_dir/$ip_lib_dir_name"
+  if { [file exists $repo_lib_dir] } {
+    set vh_file_key "${repo_lib_dir}#$vh_file_name"
+    if { [info exists a_sim_cache_ip_repo_header_files($vh_file_key)] } {
+      set dst_cip_file $a_sim_cache_ip_repo_header_files($vh_file_key)
+    } else {
+      set dst_cip_file [xcs_get_ip_header_file_from_repo $ip_repo_dir $ip_lib_dir_name $vh_file_name]
+      if { ({} != $dst_cip_file) && [file exist $dst_cip_file] } {
+        set a_sim_cache_ip_repo_header_files($vh_file_key) $dst_cip_file
+        return $dst_cip_file
+      }
+    }
+  }
+  if { ({} != $dst_cip_file) && [file exist $dst_cip_file] } {
+    return $dst_cip_file
+  }
+  
+  #
+  # file not found from repository, calculate from ipstatic dir now
+  #
+  set target_ip_lib_dir "$ipstatic_dir/$ip_lib_dir_name"
+  #puts target_ip_lib_dir=$target_ip_lib_dir
+
+  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
+  set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
+  set ip_hdl_dir "$ip_hdl_dir"
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
+  #puts ip_hdl_dir=$ip_hdl_dir
+  incr index
+
+  set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
+  # /hdl/xbip_utils_v3_0_vh_rfs.vhd
+  #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
+
+  set dst_cip_file "$target_ip_lib_dir/$ip_hdl_sub_dir"
+  #puts dst_cip_file=$dst_cip_file
+
+  # repo static file does not exist? maybe generate_target or export_ip_user_files was not executed, fall-back to project src file
+  if { ![file exists $dst_cip_file] } {
+    return $src_ip_file
+  }
+
+  return $dst_cip_file
+}
+
 proc xcs_set_simulation_flow { s_simset s_mode s_type s_flow_dir_key_arg s_simulation_flow_arg } {
   # Summary:
   # Argument Usage:
@@ -2101,4 +2263,53 @@ proc xcs_export_fs_non_hdl_data_files { s_simset s_launch_dir dynamic_repo_dir }
     lappend data_files $file_obj
   }
   xcs_export_data_files $s_launch_dir $dynamic_repo_dir $data_files
+}
+
+proc xcs_get_ip_header_file_from_repo { repo_dir ip_lib_dir_name vh_file_name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set ip_vh_file {}
+  set ip_dir "$repo_dir/$ip_lib_dir_name"
+  set ip_xml "$ip_dir/component.xml"
+
+  # make sure component.xml exists for the ip in repo dir
+  if { ![file exists $ip_xml] } {
+    return $ip_vh_file
+  }
+  # open xml and get the object
+  set ip_comp [ipx::open_core -set_current false $ip_xml]
+  if { {} == $ip_comp } {
+    return $ip_vh_file
+  }
+  foreach file_group [ipx::get_file_groups -of $ip_comp] {
+    set file_group_type [get_property type $file_group]
+
+    # make sure we are dealing with simulation file group only
+    if { ([string last "simulation" $file_group_type] != -1) && ($file_group_type != "examples_simulation") } {
+      set static_sim_files [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group]
+      foreach static_file $static_sim_files {
+        set file_entry [split $static_file { }]
+        lassign $file_entry file_key comp_ref file_group_name ip_file
+        set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
+
+        set b_is_include [get_property is_include [ipx::get_files $ip_file -of_objects $file_group]]
+        # make sure we are dealing with verilog type and is marked as include
+        if { (({verilogSource} == $file_type) || ({systemVerilogSource} == $file_type)) && $b_is_include } {
+
+          # make sure we are dealing with the exact header file fetched from repository for the given ip source file
+          # from project (for locked IPs, the header file name could be different than in repository in which case
+          # the file from ipstatic dir will be used and referenced if it exist, else will be referenced from project)
+
+          set repo_vh_file_name [file tail $ip_file]
+          if { $repo_vh_file_name == $vh_file_name } {
+            set ip_vh_file "$ip_dir/$ip_file"
+            return $ip_vh_file
+          }
+        }
+      }
+    }
+  }
+  return $ip_vh_file
 }
