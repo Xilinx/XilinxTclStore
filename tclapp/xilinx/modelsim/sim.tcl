@@ -951,7 +951,11 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   set tool "vsim"
-  set arg_list [list "-voptargs=\"+acc\""]
+  set arg_list [list]
+  if { [get_property "MODELSIM.ELABORATE.ACC" $fs_obj] } {
+    set vopt_args "-voptargs=\"+acc\""
+    lappend arg_list $vopt_args
+  }
 
   set path_delay 0
   set int_delay 0
