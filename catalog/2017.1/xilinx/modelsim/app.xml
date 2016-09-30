@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference IP static verilog header file directory path from repository</revision_history>
+      <revision_history>do not pass +acc if elaborate.acc is not set</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
