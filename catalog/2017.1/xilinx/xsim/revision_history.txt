@@ -1,3 +1,4 @@
+2.142 update help text for -debug
 2.141 reference IP static verilog header file directory path from repository
 2.140 pass wdb file if specified with xsim.simulate.wdb
 2.139 added comment for XPM library referencing
