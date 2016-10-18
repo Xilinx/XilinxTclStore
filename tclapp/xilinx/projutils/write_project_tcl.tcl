@@ -914,8 +914,17 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
     # re-align values
     set cur_val [get_target_bool_val $def_val $cur_val]
-
-    set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
+    set abs_proj_file_path [get_property $prop [$get_what $tcl_obj]]
+    
+    set path_match [string match $proj_dir* $abs_proj_file_path]
+    if { $path_match == 1 &&  $a_global_vars(b_absolute_path) != 1 } {
+      # changing the absolute path to relative
+      set abs_path_length [string length $proj_dir]
+      set proj_file_path [string replace $abs_proj_file_path 0 $abs_path_length "\$proj_dir/"]
+      set prop_entry "[string tolower $prop]#$proj_file_path"
+    } else {
+      set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
+    }  
 
     # fix paths wrt the original project dir
     if {([string equal -nocase $prop "top_file"]) && ($cur_val != "") } {
