@@ -1729,6 +1729,11 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
         continue
       }
 
+      # Fix for CR-939211 
+      if { ([file extension $file] == ".bd") && ([string equal -nocase $file_prop "generate_synth_checkpoint"] || [string equal -nocase $file_prop "synth_checkpoint_mode"]) } {
+        continue
+      }
+
       set prop_type [get_property type [rdi::get_attr_specs $file_prop -object $file_object]]
       set def_val [list_property_value -default $file_prop $file_object]
       set cur_val [get_property $file_prop $file_object]
@@ -2036,13 +2041,14 @@ proc write_specified_partition_definition { proj_dir proj_name pDef } {
 
   set get_what "get_partition_defs"
   
-  set pdefName   [get_property name        [$get_what $pDef]]
-  set moduleName [get_property module_name [$get_what $pDef]]
-  set library    [get_property library     [$get_what $pDef]]
+  set pdefName           [get_property name        [$get_what $pDef]]
+  set moduleName         [get_property module_name [$get_what $pDef]]
+  set pdef_library       [get_property library     [$get_what $pDef]]
+  set default_library    [get_property default_lib [current_project]]
 
-  set cmd_str "create_partition_def -name $pdefName -module $moduleName" 
-  if { $library != "" } {
-    set cmd_str "$cmd_str -library $library"
+  set cmd_str "create_partition_def -name $pdefName -module $moduleName"
+  if { ($pdef_library != "") && (![string equal $pdef_library $default_library]) } {
+    set cmd_str "$cmd_str -library $pdef_library"
   }
 
   lappend l_script_data "# Create '$pdefName' partition definition"
