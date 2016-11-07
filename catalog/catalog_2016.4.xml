@@ -2,7 +2,7 @@
 <catalog>
   <remote>master</remote>
   <support_commit_id>f2f2c8d9db8b7129479347fb60ba01e3a8243721</support_commit_id>
-  <release>2016.3</release>
+  <release>2016.4</release>
   <revision>2.4</revision>
   <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,spyglass,protoip,pcbutils,diff,profiler,junit,tk_tunnel</app_display_order>
   <apps>
