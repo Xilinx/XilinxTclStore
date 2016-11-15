@@ -6,6 +6,7 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
+set auto_index(::tclapp::aldec::common::helpers::usf_aldec_correctSetupArgs) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_aldec_appendSimulationCoverageOptions) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_aldec_appendCompilationCoverageOptions) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_aldec_getSimulatorName) [list source [file join $dir helpers.tcl]]

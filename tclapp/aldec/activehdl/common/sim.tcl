@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.7
+package require ::tclapp::aldec::common::helpers 1.9
 
-package provide ::tclapp::aldec::common::sim 1.7
+package provide ::tclapp::aldec::common::sim 1.9
 
 namespace eval ::tclapp::aldec::common {
 
@@ -148,9 +148,11 @@ proc usf_setup_args { args } {
   # [-simset <arg>]: Name of the simulation fileset
   # [-mode <arg>]: Simulation mode. Values: behavioral, post-synthesis, post-implementation
   # [-type <arg>]: Netlist type. Values: functional, timing. This is only applicable when mode is set to post-synthesis or post-implementation
-  # [-scripts_only]: Only generate scripts
+  # [-scripts_only]: (obsolete) Only generate scripts
+  # [-generate_scripts_only]: (internal) Only generate scripts
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
+  # [-lib_map_path <arg>]: Precompiled simulation library directory path
   # [-install_path <arg>]: Custom ModelSim installation directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-run_dir <arg>]: Simulation run directory
@@ -171,9 +173,10 @@ proc usf_setup_args { args } {
       "-simset"         { incr i;set ::tclapp::aldec::common::helpers::a_sim_vars(s_simset) [lindex $args $i] }
       "-mode"           { incr i;set ::tclapp::aldec::common::helpers::a_sim_vars(s_mode) [lindex $args $i] }
       "-type"           { incr i;set ::tclapp::aldec::common::helpers::a_sim_vars(s_type) [lindex $args $i] }
-      "-scripts_only"   { set ::tclapp::aldec::common::helpers::a_sim_vars(b_scripts_only) 1 }
+      "-scripts_only|-generate_scripts_only"   { set ::tclapp::aldec::common::helpers::a_sim_vars(b_scripts_only) 1 }
       "-of_objects"     { incr i;set ::tclapp::aldec::common::helpers::a_sim_vars(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::aldec::common::helpers::a_sim_vars(b_absolute_path) 1 }
+      "-lib_map_path"   { incr i;set ::tclapp::aldec::common::helpers::a_sim_vars(s_lib_map_path) [lindex $args $i] }
       "-install_path"   { incr i;set ::tclapp::aldec::common::helpers::a_sim_vars(s_install_path) [lindex $args $i] }
       "-batch"          { set ::tclapp::aldec::common::helpers::a_sim_vars(b_batch) 1 }
       "-run_dir"        { incr i;set ::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir) [lindex $args $i] }
@@ -182,8 +185,7 @@ proc usf_setup_args { args } {
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id USF-[usf_aldec_getSimulatorName]-84 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
-          return 1
+          send_msg_id USF-[usf_aldec_getSimulatorName]-84 WARNING "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
         }
       }
     }
@@ -279,7 +281,11 @@ proc usf_aldec_mapLibraryCfg { fh } {
     Riviera { set librariesLocation [get_property COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR [current_project]] }
     ActiveHDL { set librariesLocation [get_property COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR [current_project]] }
   }
-  
+
+  if { $librariesLocation == "" || ![file isfile [file join $librariesLocation library.cfg]] } {
+    set librariesLocation $::tclapp::aldec::common::helpers::a_sim_vars(s_lib_map_path)
+  }
+
   if { $librariesLocation == "" } {
     return
   }
