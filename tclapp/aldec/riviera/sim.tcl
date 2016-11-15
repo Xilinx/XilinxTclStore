@@ -89,8 +89,8 @@ proc export_simulation { args } {
     switch -regexp -- $option {
       "-lib_map_path"   { incr i; append switches " -lib_map_path \{[lindex $args $i]\}" }
       "-run_dir"        { incr i; append switches " -run_dir \{[lindex $args $i]\}" }
-      "-mode"        { incr i; append switches " -mode \{[lindex $args $i]\}" }
-      "-type"        { incr i; append switches " -type \{[lindex $args $i]\}" }
+      "-mode"        { incr i; append switches " -mode [lindex $args $i]" }
+      "-type"        { incr i; append switches " -type [lindex $args $i]" }
     }
   }  
 
