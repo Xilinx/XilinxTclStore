@@ -178,6 +178,10 @@ proc usf_modelsim_setup_simulation { args } {
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
 
+  variable a_sim_cache_sv_pkg_libs
+  # cache all system verilog package libraries
+  xcs_find_sv_pkg_libs
+
   # fetch design files
   set global_files_str {}
   set ::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) \

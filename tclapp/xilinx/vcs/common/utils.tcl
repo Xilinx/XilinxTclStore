@@ -2313,3 +2313,84 @@ proc xcs_get_ip_header_file_from_repo { repo_dir ip_lib_dir_name vh_file_name } 
   }
   return $ip_vh_file
 }
+
+proc xcs_find_sv_pkg_libs { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set ip_comps [list]
+  foreach ip [get_ips -all -quiet] {
+    set ip_file [get_property ip_file $ip]
+    set ip_filename [file rootname $ip_file];append ip_filename ".xml"
+    if { ![file exists $ip_filename] } {
+      send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
+    }
+    lappend ip_comps $ip_filename
+  }
+
+  foreach ip_xml $ip_comps {
+    set ip_comp [ipx::open_core -set_current false $ip_xml]
+    set vlnv    [get_property vlnv $ip_comp]
+    foreach file_group [ipx::get_file_groups -of $ip_comp] {
+      set type [get_property type $file_group]
+      if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
+        set sub_lib_cores [get_property component_subcores $file_group]
+        if { [llength $sub_lib_cores] == 0 } {
+          continue
+        }
+        # reverse the order of sub-cores
+        set ordered_sub_cores [list]
+        foreach sub_vlnv $sub_lib_cores {
+          set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_vlnv]
+        }
+        #puts "$vlnv=$ordered_sub_cores"
+        foreach sub_vlnv $ordered_sub_cores {
+          xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
+        }
+      }
+    }
+    ipx::unload_core $ip_comp
+  }
+}
+
+proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_cache_sv_pkg_libs
+
+  set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
+  set ip_xml  [get_property xml_file_name $ip_def]
+  set ip_comp [ipx::open_core -set_current false $ip_xml]
+
+  foreach file_group [ipx::get_file_groups -of $ip_comp] {
+    set type [get_property type $file_group]
+    if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
+      set sub_lib_cores [get_property component_subcores $file_group]
+      set ordered_sub_cores [list]
+      foreach sub_vlnv $sub_lib_cores {
+        set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_vlnv]
+      }
+      #puts " +$vlnv=$ordered_sub_cores"
+      foreach sub_vlnv $ordered_sub_cores {
+        xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
+      }
+      foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
+        set file_entry [split $static_file { }]
+        lassign $file_entry file_key comp_ref file_group_name file_path
+        set ip_file [lindex $file_entry 3]
+        set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
+        if { {systemVerilogSource} == $file_type } {
+          set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+          if { ({} != $library) && ({xil_defaultlib} != $library) } {
+            if { ![info exists a_sim_cache_sv_pkg_libs($library)] } {
+              set a_sim_cache_sv_pkg_libs($library) "x"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -138,6 +138,9 @@ proc usf_init_vars {} {
   variable a_sim_cache_ip_repo_header_files
   array unset a_sim_cache_ip_repo_header_files
 
+  variable a_sim_cache_sv_pkg_libs
+  array unset a_sim_cache_sv_pkg_libs
+
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::xsim::_xcs_defined] } {
     variable home
