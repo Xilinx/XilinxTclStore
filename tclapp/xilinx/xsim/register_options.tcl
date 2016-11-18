@@ -50,6 +50,7 @@ proc register_options { simulator } {
     {{elaborate.xelab.more_options}  {string}      {}                                                   {More XELAB elaboration options}}
     {{simulate.runtime}              {string}      {1000ns}                                             {Specify simulation run time}}
     {{simulate.log_all_signals}      {bool}        {0}                                                  {Log all signals}}
+    {{simulate.custom_tcl}           {string}      {}                                                   {Specify name of the custom TCL file}}
     {{simulate.wdb}                  {string}      {}                                                   {Specify waveform database file}}
     {{simulate.saif_scope}           {string}      {}                                                   {Specify design hierarchy instance name for which power estimation is desired}}
     {{simulate.saif}                 {string}      {}                                                   {SAIF filename}}

@@ -1158,7 +1158,16 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   usf_modelsim_write_header $fh $do_file
   set wave_do_filename $top;append wave_do_filename "_wave.do"
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
-  usf_modelsim_create_wave_do_file $wave_do_file
+  set custom_wave_do_file [get_property "MODELSIM.SIMULATE.CUSTOM_WAVE_DO" $fs_obj]
+  if { {} != $custom_wave_do_file } {
+    set wave_do_filename $custom_wave_do_file
+    # custom wave do specified, delete existing auto generated wave do file from run dir
+    if { [file exists $wave_do_file] } {
+      [catch {file delete -force $wave_do_file} error_msg]
+    }
+  } else {
+    usf_modelsim_create_wave_do_file $wave_do_file
+  }
   set cmd_str [usf_modelsim_get_simulation_cmdline]
   if { [get_param "project.enable2StepFlowForModelSim"] } {
     set cmd_str [usf_modelsim_get_simulation_cmdline_2step]

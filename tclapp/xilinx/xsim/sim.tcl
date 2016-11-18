@@ -903,7 +903,15 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   }
 
   set cmd_file ${top};append cmd_file ".tcl"
-  usf_xsim_write_cmd_file $cmd_file $b_add_wave
+  if { {} == [get_property "XSIM.SIMULATE.CUSTOM_TCL" $fs_obj] } {
+    usf_xsim_write_cmd_file $cmd_file $b_add_wave
+  } else {
+    # custom tcl specified, delete existing auto generated tcl file from run dir
+    set cmd_file [file normalize [file join $dir $cmd_file]]
+    if { [file exists $cmd_file] } {
+      [catch {file delete -force $cmd_file} error_msg]
+    }
+  }
 
   set scr_filename "simulate";append scr_filename [xcs_get_script_extn "xsim"]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -1312,7 +1320,7 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
   lappend args_list "-key"
   lappend args_list "\{[usf_xsim_get_running_simulation_obj_key]\}"
 
-  set user_cmd_file [get_property "XSIM.TCLBATCH" $fs_obj]
+  set user_cmd_file [get_property "XSIM.SIMULATE.CUSTOM_TCL" $fs_obj]
   if { {} != $user_cmd_file } {
     set cmd_file $user_cmd_file
   }

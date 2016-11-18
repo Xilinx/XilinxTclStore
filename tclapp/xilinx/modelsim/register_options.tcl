@@ -46,6 +46,7 @@ proc register_options { simulator } {
     {{simulate.log_all_signals}    {bool}   {0}                                     {Log all signals}}
     {{simulate.custom_do}          {string} {}                                      {Specify name of the custom do file}}
     {{simulate.custom_udo}         {string} {}                                      {Specify name of the custom user do file}}
+    {{simulate.custom_wave_do}     {string} {}                                      {Specify name of the custom wave do file}}
     {{simulate.sdf_delay}          {enum}   {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}} {Delay type}}
     {{simulate.ieee_warnings}      {bool}   {1}                                     {Suppress IEEE warnings}}
     {{simulate.saif_scope}         {string} {}                                      {Specify design hierarchy instance name for which power estimation is desired}}
