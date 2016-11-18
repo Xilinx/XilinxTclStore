@@ -1,3 +1,4 @@
+2.139 support for the custom wave do and tcl file
 2.138 support for the system verilog library packages
 2.137 do not pass +acc if elaborate.acc is not set
 2.136 reference IP static verilog header file directory path from repository
