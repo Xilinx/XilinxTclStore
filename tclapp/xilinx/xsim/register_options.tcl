@@ -33,6 +33,7 @@ proc register_options { simulator } {
     return 1
   }
   set options {
+    {{compile.tcl.pre}               {string}      {}                                                   {Specify pre-compile step TCL hook}}
     {{compile.xvhdl.nosort}          {bool}        {1}                                                  {Do not sort VHDL files}}
     {{compile.xvlog.nosort}          {bool}        {1}                                                  {Do not sort Verilog files}}
     {{compile.xvlog.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
@@ -48,6 +49,7 @@ proc register_options { simulator } {
     {{elaborate.rangecheck}          {bool}        {0}                                                  {Enable runtime value range check for VHDL}}
     {{elaborate.sdf_delay}           {enum}        {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
     {{elaborate.xelab.more_options}  {string}      {}                                                   {More XELAB elaboration options}}
+    {{simulate.tcl.post}             {string}      {}                                                   {Specify post-simulate step TCL hook}}
     {{simulate.runtime}              {string}      {1000ns}                                             {Specify simulation run time}}
     {{simulate.log_all_signals}      {bool}        {0}                                                  {Log all signals}}
     {{simulate.custom_tcl}           {string}      {}                                                   {Specify name of the custom TCL file}}

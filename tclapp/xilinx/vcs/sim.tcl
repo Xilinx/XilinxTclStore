@@ -442,8 +442,16 @@ proc usf_vcs_write_compile_script {} {
   ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$tool_path\"\n"
+    puts $fh_scr "bin_path=\"$tool_path\""
   }
+
+  # write tcl pre hook
+  set tcl_pre_hook [get_property VCS.COMPILE.TCL.PRE $fs_obj]
+  if { {} != $tcl_pre_hook } {
+    puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
+    ::tclapp::xilinx::vcs::usf_write_shell_step_fn $fh_scr
+  }
+  puts $fh_scr ""
 
   ::tclapp::xilinx::vcs::usf_set_ref_dir $fh_scr
   set tool "vhdlan"
@@ -476,6 +484,16 @@ proc usf_vcs_write_compile_script {} {
 
   puts $fh_scr "\n# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+
+  # add tcl pre hook
+  if { {} != $tcl_pre_hook } {
+    set vivado_cmd_str "-mode batch -notrace -nojournal -source \"$tcl_pre_hook\""
+    set cmd "vivado $vivado_cmd_str"
+    puts $fh_scr "echo \"$cmd\""
+    set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+    puts $fh_scr "ExecStep $full_cmd\n"
+  }
+
   puts $fh_scr "# compile design source files"
   set log "unknown.log"
   

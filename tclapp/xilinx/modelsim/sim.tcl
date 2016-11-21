@@ -502,6 +502,15 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
 
   usf_modelsim_write_header $fh $do_file
+
+  # write tcl pre hook for windows
+  if {$::tcl_platform(platform) == "windows"} {
+    set tcl_pre_hook [get_property MODELSIM.COMPILE.TCL.PRE $fs_obj]
+    if { {} != $tcl_pre_hook } {
+      puts $fh "\nsource \"$tcl_pre_hook\"" 
+    }
+  }
+
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
     # no op
   } else {
@@ -1220,6 +1229,12 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     puts $fh "do \{$udo_file\}"
   }
 
+  # write tcl post hook for windows
+  set tcl_post_hook [get_property MODELSIM.SIMULATE.TCL.POST $fs_obj]
+  if { {} != $tcl_post_hook } {
+    puts $fh "\nsource \"$tcl_post_hook\"" 
+  }
+
   set rt [string trim [get_property "MODELSIM.SIMULATE.RUNTIME" $fs_obj]]
   if { {} == $rt } {
     # no runtime specified
@@ -1320,13 +1335,28 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     }
   }
 
+  # write tcl pre hook
+  set tcl_pre_hook [get_property MODELSIM.COMPILE.TCL.PRE $fs_obj]
+
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
     if { {} != $tool_path } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
+    if { {} != $tcl_pre_hook } {
+      puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
+    }
     ::tclapp::xilinx::modelsim::usf_write_shell_step_fn $fh_scr
+    # add tcl pre hook
+    if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
+      set vivado_cmd_str "-mode batch -notrace -nojournal -source \"$tcl_pre_hook\""
+      set cmd "vivado $vivado_cmd_str"
+      puts $fh_scr "echo \"$cmd\""
+      set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+      puts $fh_scr "ExecStep $full_cmd"
+    }
+
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
       puts $fh_scr "ExecStep source ./$do_filename 2>&1 | tee -a $log_filename"
     } else {

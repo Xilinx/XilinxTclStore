@@ -519,6 +519,12 @@ proc usf_create_do_file { simulator do_filename } {
       puts $fh_do "dump -add / -depth 0"
     }
 
+    # write tcl post hook
+    set tcl_post_hook [get_property VCS.SIMULATE.TCL.POST $fs_obj]
+    if { {} != $tcl_post_hook } {
+      puts $fh_do "\nsource \"$tcl_post_hook\"\n"
+    }
+
     set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]
     if { {} == $rt } {
       # no runtime specified

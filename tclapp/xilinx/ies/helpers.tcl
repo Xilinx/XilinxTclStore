@@ -524,6 +524,12 @@ proc usf_create_do_file { simulator do_filename } {
       puts $fh_do "$db -waveform"
     }
 
+    # write tcl post hook
+    set tcl_post_hook [get_property IES.SIMULATE.TCL.POST $fs_obj]
+    if { {} != $tcl_post_hook } {
+      puts $fh_do "\nsource \"$tcl_post_hook\""
+    }
+
     set rt [string trim [get_property "IES.SIMULATE.RUNTIME" $fs_obj]]
     if { {} == $rt } {
       # no runtime specified

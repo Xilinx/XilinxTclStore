@@ -632,6 +632,20 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     puts $fh_scr "set xv_path=[usf_get_rdi_bin_path]"
   }
 
+  # write tcl pre hook
+  set tcl_pre_hook [get_property XSIM.COMPILE.TCL.PRE $fs_obj]
+  if { {} != $tcl_pre_hook } {
+    set vivado_cmd_str "-mode batch -notrace -nojournal -source \"$tcl_pre_hook\""
+    set cmd "vivado $vivado_cmd_str"
+    puts $fh_scr "echo \"$cmd\""
+    if {$::tcl_platform(platform) == "unix"} {
+      set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+      puts $fh_scr "ExecStep $full_cmd"
+    } else {
+      puts $fh_scr "call %xv_path%/vivado $vivado_cmd_str"
+    }
+  }
+  
   # write verilog prj if design contains verilog sources 
   if { $b_contain_verilog_srcs } {
     set vlog_filename ${top};append vlog_filename "_vlog.prj"
@@ -1443,6 +1457,13 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
 
   if { [get_property "XSIM.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
     puts $fh_scr "log_wave -r /"
+  }
+
+  # write tcl post hook
+  set tcl_post_hook [get_property XSIM.SIMULATE.TCL.POST $fs_obj]
+  if { {} != $tcl_post_hook } {
+    set cmd_str "\nsource -notrace \"$tcl_post_hook\""
+    puts $fh_scr $cmd_str
   }
 
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]

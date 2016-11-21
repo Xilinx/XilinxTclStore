@@ -34,6 +34,7 @@ proc register_options { simulator } {
     return 1
   }
   set options {
+    {{compile.tcl.pre}             {string} {}                                      {Specify pre-compile step TCL hook}}
     {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008}}}   {Specify VHDL syntax}}
     {{compile.use_explicit_decl}   {bool}   {1}                                     {Log all signals}}
     {{compile.load_glbl}           {bool}   {1}                                     {Load GLBL module}}
@@ -42,6 +43,7 @@ proc register_options { simulator } {
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
     {{elaborate.acc}               {enum}   {{acc=npr} {acc=npr} {{acc=npr} {acc} {None}}} {Enable access to simulation objects that might be optimized by default (default:npr)}}
     {{elaborate.vopt.more_options} {string} {}                                      {More VOPT elaboration options}}
+    {{simulate.tcl.post}           {string} {}                                      {Specify post-simulate step TCL hook}}
     {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.log_all_signals}    {bool}   {0}                                     {Log all signals}}
     {{simulate.custom_do}          {string} {}                                      {Specify name of the custom do file}}
