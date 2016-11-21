@@ -1,3 +1,4 @@
+2.31 support for the pre and post TCL hooks
 2.30 support for the custom wave do and tcl file
 2.29 support for the system verilog library packages
 2.28 reference IP static verilog header file directory path from repository

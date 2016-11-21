@@ -1,3 +1,4 @@
+2.145 support for the pre and post TCL hooks
 2.144 support for the custom wave do and tcl file
 2.143 support for the system verilog library packages
 2.142 update help text for -debug
