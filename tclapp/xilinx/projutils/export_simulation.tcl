@@ -1924,16 +1924,28 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
     }
   }
 
-  lappend arg_list  "-top $a_sim_vars(default_lib).$a_sim_vars(s_top)" \
-                    "-f $filename"
+  lappend arg_list  "-top $a_sim_vars(default_lib).$a_sim_vars(s_top)"
+  set run_file $filename
+  if { $a_sim_vars(b_absolute_path) } {
+    set run_file "\"$launch_dir/$run_file\""
+  }
+  lappend arg_list  "-f $run_file"
 
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     lappend arg_list "-top glbl"
-    lappend arg_list "glbl.v"
+    set gfile "glbl.v"
+    if { $a_sim_vars(b_absolute_path) } {
+      set gfile "\"$launch_dir/$gfile\""
+    }
+    lappend arg_list "$gfile"
   }
 
   if { $a_sim_vars(b_xport_src_files) } {
-    lappend arg_list "+incdir+\"srcs/incl\""
+    set incl_file_dir "srcs/incl"
+    if { $a_sim_vars(b_absolute_path) } {
+      set incl_file_dir "$srcs_dir/incl"
+    }
+    lappend arg_list "+incdir+\"$incl_file_dir\""
   } else {
     set prefix_ref_dir "false"
     set uniq_dirs [list]
@@ -2152,7 +2164,7 @@ proc xps_write_run_steps { simulator fh_unix } {
   puts $fh_unix "\}\n"
 }
 
-proc xps_set_initial_cmd { simulator fh cmd_str src_file file_type lib opts_str prev_file_type_arg prev_lib_arg log_arg } {
+proc xps_set_initial_cmd { simulator fh cmd_str srcs_dir src_file file_type lib opts_str prev_file_type_arg prev_lib_arg log_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2192,7 +2204,11 @@ proc xps_set_initial_cmd { simulator fh cmd_str src_file file_type lib opts_str 
         }
         puts $fh "-makelib ies/$lib $opts\\"
         if { $a_sim_vars(b_xport_src_files) } {
-          puts $fh "  srcs/$src_file \\"
+          if { $a_sim_vars(b_absolute_path) } {
+            puts $fh "  $srcs_dir/$src_file \\"
+          } else {
+            puts $fh "  srcs/$src_file \\"
+          }
         } else {
           puts $fh "  $src_file \\"
         }
@@ -2359,9 +2375,9 @@ proc xps_write_compile_order_for_ies_vcs { simulator fh launch_dir srcs_dir } {
     if { $b_first } {
       set b_first false
       if { $a_sim_vars(b_xport_src_files) } {
-        xps_set_initial_cmd $simulator $fh $cmd_str $proj_src_filename $file_type $lib {} prev_file_type prev_lib log
+        xps_set_initial_cmd $simulator $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib {} prev_file_type prev_lib log
       } else {
-        xps_set_initial_cmd $simulator $fh $cmd_str $src_file $file_type $lib {} prev_file_type prev_lib log
+        xps_set_initial_cmd $simulator $fh $cmd_str $srcs_dir $src_file $file_type $lib {} prev_file_type prev_lib log
       }
     } else {
       if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
@@ -2370,7 +2386,11 @@ proc xps_write_compile_order_for_ies_vcs { simulator fh launch_dir srcs_dir } {
           if { $a_sim_vars(b_xport_src_files) } {
             switch $simulator {
               "ies" {
-                puts $fh "  srcs/$proj_src_filename \\"
+                if { $a_sim_vars(b_absolute_path) } {
+                  puts $fh "  $srcs_dir/$proj_src_filename \\"
+                } else {
+                  puts $fh "  srcs/$proj_src_filename \\"
+                }
               }
             }
           } else {
@@ -2414,9 +2434,9 @@ proc xps_write_compile_order_for_ies_vcs { simulator fh launch_dir srcs_dir } {
           "vcs"    { puts $fh "$redirect_cmd_str $log\n" }
         }
         if { $a_sim_vars(b_xport_src_files) } {
-          xps_set_initial_cmd $simulator $fh $cmd_str $proj_src_filename $file_type $lib {} prev_file_type prev_lib log
+          xps_set_initial_cmd $simulator $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib {} prev_file_type prev_lib log
         } else {
-          xps_set_initial_cmd $simulator $fh $cmd_str $src_file $file_type $lib {} prev_file_type prev_lib log
+          xps_set_initial_cmd $simulator $fh $cmd_str $srcs_dir $src_file $file_type $lib {} prev_file_type prev_lib log
         }
         set b_appended true
       }
@@ -2444,7 +2464,11 @@ proc xps_write_compile_order_for_ies_vcs { simulator fh launch_dir srcs_dir } {
       switch -regexp -- $simulator {
         "ies" {
           puts $fh "-makelib ies/$a_sim_vars(default_lib) \\"
-          puts $fh "  glbl.v"
+          set file "glbl.v"
+          if { $a_sim_vars(b_absolute_path) } {
+            set file "\"$launch_dir/$file\""
+          }
+          puts $fh "  $file"
           puts $fh "-endlib"
         }
       }
@@ -3514,9 +3538,9 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
       #if { $b_first } {
       #  set b_first false
       #  if { $a_sim_vars(b_xport_src_files) } {
-      #    xps_set_initial_cmd "xsim" $fh $cmd_str $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
+      #    xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
       #  } else {
-      #    xps_set_initial_cmd "xsim" $fh $cmd_str $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
+      #    xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
       #  }
       #} else {
       #  if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
@@ -3525,9 +3549,9 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
       #  } else {
       #    puts $fh ""
       #    if { $a_sim_vars(b_xport_src_files) } {
-      #      xps_set_initial_cmd "xsim" $fh $cmd_str $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
+      #      xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
       #    } else {
-      #      xps_set_initial_cmd "xsim" $fh $cmd_str $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
+      #      xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
       #    }
       #    set b_appended true
       #  }
@@ -3687,9 +3711,9 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
           set proj_src_filename [file tail $proj_src_file]
           set ip_name [file rootname [file tail $ip_file]]
           set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
-          set source_file "srcs/$proj_src_filename"
+          set source_file "$srcs_dir/$proj_src_filename"
         } else {
-          set source_file "srcs/[file tail $proj_src_file]"
+          set source_file "$srcs_dir/[file tail $proj_src_file]"
         }
         set src_file "\"$source_file\""
       }
@@ -3756,14 +3780,14 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
 
     if { $b_first } {
       set b_first false
-      xps_set_initial_cmd $simulator $fh $cmd_str $src_file $file_type $lib {} prev_file_type prev_lib log
+      xps_set_initial_cmd $simulator $fh $cmd_str $srcs_dir $src_file $file_type $lib {} prev_file_type prev_lib log
     } else {
       if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
         puts $fh "$src_file \\"
         set b_redirect true
       } else {
         puts $fh ""
-        xps_set_initial_cmd $simulator $fh $cmd_str $src_file $file_type $lib {} prev_file_type prev_lib log
+        xps_set_initial_cmd $simulator $fh $cmd_str $srcs_dir $src_file $file_type $lib {} prev_file_type prev_lib log
         set b_appended true
       }
     }
@@ -3775,7 +3799,12 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
 
   # compile glbl file
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-    puts $fh "\nvlog -work [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)] \"glbl.v\""
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
+    set file "glbl.v"
+    if { $a_sim_vars(b_absolute_path) } {
+      set file "$dir/$file"
+    }
+    puts $fh "\nvlog -work $top_lib \"$file\""
   }
   if { $a_sim_vars(b_single_step) } {
     set cmd_str [xps_get_simulation_cmdline_modelsim $simulator]
