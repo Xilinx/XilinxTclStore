@@ -2039,7 +2039,12 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
         if { {work} != $top_lib } {
           set sw "-work $top_lib"
         }
-        puts $fh_unix "  vlogan $sw \$vlogan_opts +v2k \\\n    glbl.v \\\n  2>&1 | tee -a vlogan.log"
+
+        set gfile "glbl.v"
+        if { $a_sim_vars(b_absolute_path) } {
+          set gfile "\"$launch_dir/$gfile\""
+        }
+        puts $fh_unix "  vlogan $sw \$vlogan_opts +v2k \\\n    $gfile \\\n  2>&1 | tee -a vlogan.log"
       }
     }
   }
@@ -3560,9 +3565,14 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
   }
 
   if { {VERILOG} == $ft } {
-    puts $fh "\nverilog [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)] \"glbl.v\""
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
+    set gfile "glbl.v"
+    if { $a_sim_vars(b_absolute_path) } {
+      set gfile "$launch_dir/$gfile"
+    }
+    puts $fh "verilog $top_lib \"$gfile\""
   }
-  puts $fh "\nnosort"
+  puts $fh "nosort"
 
   close $fh
 }
@@ -3804,7 +3814,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
     if { $a_sim_vars(b_absolute_path) } {
       set file "$dir/$file"
     }
-    puts $fh "\nvlog -work $top_lib \"$file\""
+    puts $fh "\nvlog -work $top_lib \\\n\"$file\""
   }
   if { $a_sim_vars(b_single_step) } {
     set cmd_str [xps_get_simulation_cmdline_modelsim $simulator]
