@@ -1,3 +1,4 @@
+3.217 fixed glbl source file paths for absolute
 3.216 fixed source file paths for absolute and export source file options
 3.215 support for the system verilog library packages
 3.214 do not write generate_synth_checkpoint and synth_checkpoint mode for bd files
