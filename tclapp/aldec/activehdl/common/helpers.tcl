@@ -8,11 +8,26 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.7
+package provide ::tclapp::aldec::common::helpers 1.9
 
 namespace eval ::tclapp::aldec::common {
 
 namespace eval helpers {
+
+proc usf_aldec_correctSetupArgs { args } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # Projects created prior to Vivado 2016.1 with enabled "generate scripts only" option, and imported into newer Vivado, 
+  # still pass -scripts_only switch, but it doesn't exist anymore in gui so we need to remove it from args
+  if { [version -short] < 2016.1 } {
+    return
+  }
+  
+  upvar $args _args
+  regsub -- {-scripts_only} $_args "" _args
+}
 
 proc usf_aldec_appendSimulationCoverageOptions { _optionsList } {
   # Summary:
@@ -185,6 +200,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_comp_file)        {}
   set a_sim_vars(b_absolute_path)    0
   set a_sim_vars(s_install_path)     {}
+  set a_sim_vars(s_lib_map_path)     {}
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0

@@ -8,14 +8,10 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.7
+package require ::tclapp::aldec::common::helpers 1.9
 
 namespace eval ::tclapp::aldec::activehdl {
-  namespace export register_options
-}
 
-
-namespace eval ::tclapp::aldec::activehdl {
 proc register_options { simulator } {
   # Summary: define simulation fileset options
   # Argument Usage:
