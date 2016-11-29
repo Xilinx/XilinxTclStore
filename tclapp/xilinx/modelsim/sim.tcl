@@ -178,7 +178,6 @@ proc usf_modelsim_setup_simulation { args } {
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
 
-  variable a_sim_cache_sv_pkg_libs
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs
 
@@ -822,6 +821,15 @@ proc usf_modelsim_get_elaboration_cmdline {} {
 
   # add simulation libraries
   set arg_list [list]
+
+  # add sv pkg libraries
+  #variable a_sim_sv_pkg_libs
+  #foreach lib $a_sim_sv_pkg_libs {
+  #  if { [lsearch $design_libs $lib] == -1 } {
+  #    lappend arg_list "-L"
+  #    lappend arg_list "$lib"
+  #  }
+  #}
 
   # add user design libraries
   foreach lib $design_libs {

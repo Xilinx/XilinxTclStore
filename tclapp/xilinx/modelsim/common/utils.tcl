@@ -2319,6 +2319,7 @@ proc xcs_find_sv_pkg_libs { } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_sv_pkg_libs
   set ip_comps [list]
   foreach ip [get_ips -all -quiet] {
     set ip_file [get_property ip_file $ip]
@@ -2348,6 +2349,20 @@ proc xcs_find_sv_pkg_libs { } {
         foreach sub_vlnv $ordered_sub_cores {
           xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
         }
+        foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
+          set file_entry [split $static_file { }]
+          lassign $file_entry file_key comp_ref file_group_name file_path
+          set ip_file [lindex $file_entry 3]
+          set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
+          if { {systemVerilogSource} == $file_type } {
+            set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+            if { ({} != $library) && ({xil_defaultlib} != $library) } {
+              if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+                lappend a_sim_sv_pkg_libs $library
+              }
+            }
+          }
+        }
       }
     }
     ipx::unload_core $ip_comp
@@ -2359,7 +2374,7 @@ proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_cache_sv_pkg_libs
+  variable a_sim_sv_pkg_libs
 
   set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
   set ip_xml  [get_property xml_file_name $ip_def]
@@ -2385,8 +2400,8 @@ proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
         if { {systemVerilogSource} == $file_type } {
           set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
           if { ({} != $library) && ({xil_defaultlib} != $library) } {
-            if { ![info exists a_sim_cache_sv_pkg_libs($library)] } {
-              set a_sim_cache_sv_pkg_libs($library) "x"
+            if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+              lappend a_sim_sv_pkg_libs $library
             }
           }
         }

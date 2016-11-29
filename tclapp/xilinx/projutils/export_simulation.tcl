@@ -146,7 +146,6 @@ proc export_simulation {args} {
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
 
-  variable a_sim_cache_sv_pkg_libs
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs
 
@@ -171,7 +170,6 @@ proc export_simulation {args} {
   array unset a_sim_cache_all_bd_files
   array unset a_sim_cache_parent_comp_files
   array unset a_sim_cache_ip_repo_header_files
-  array unset a_sim_cache_sv_pkg_libs
 
   return
 }
@@ -283,6 +281,8 @@ proc xps_init_vars {} {
   variable l_include_dirs  [list]
   variable l_defines       [list]
   variable l_generics      [list]
+
+  variable a_sim_sv_pkg_libs [list]
   
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::projutils::_xcs_defined] } {
@@ -297,7 +297,6 @@ proc xps_init_vars {} {
   variable a_sim_cache_all_bd_files
   variable a_sim_cache_parent_comp_files
   variable a_sim_cache_ip_repo_header_files
-  variable a_sim_cache_sv_pkg_libs
 
   array unset a_sim_cache_result
   array unset a_sim_cache_extract_source_from_repo
@@ -305,7 +304,6 @@ proc xps_init_vars {} {
   array unset a_sim_cache_all_bd_files
   array unset a_sim_cache_parent_comp_files
   array unset a_sim_cache_ip_repo_header_files
-  array unset a_sim_cache_sv_pkg_libs
 }
 }
 
@@ -2741,7 +2739,7 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
   upvar $opts_arg opts
   variable a_sim_vars
   variable l_defines
-  variable a_sim_cache_sv_pkg_libs
+  variable a_sim_sv_pkg_libs
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   switch $tool {
     "vcom" {
@@ -2786,7 +2784,7 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
         if { [string equal -nocase $file_type "systemverilog"] } {
           lappend opts "-sv"
           # append sv pkg libs
-          foreach sv_pkg_lib [array names a_sim_cache_sv_pkg_libs] {
+          foreach sv_pkg_lib $a_sim_sv_pkg_libs {
             lappend opts "-L $sv_pkg_lib"
           }
         }
@@ -3859,6 +3857,16 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       set arg_list [list]
       # add user design libraries
       set design_libs [xps_get_design_libs]
+
+      # add sv pkg libraries
+      #variable a_sim_sv_pkg_libs
+      #foreach lib $a_sim_sv_pkg_libs {
+      #  if { [lsearch $design_libs $lib] == -1 } {
+      #    lappend arg_list "-L"
+      #    lappend arg_list "$lib"
+      #  }
+      #}
+
       foreach lib $design_libs {
         if {[string length $lib] == 0} { continue; }
         lappend arg_list "-L"
@@ -4508,7 +4516,7 @@ proc xps_write_main { simulator fh_unix launch_dir } {
   # Return Value:
 
   variable a_sim_vars
-  variable a_sim_cache_sv_pkg_libs
+  variable a_sim_sv_pkg_libs
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
   set copyright   [lindex $version_txt 2]
@@ -4549,7 +4557,7 @@ proc xps_write_main { simulator fh_unix launch_dir } {
         if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-m64"] }
         if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
           # append sv pkg libs
-          foreach sv_pkg_lib [array names a_sim_cache_sv_pkg_libs] {
+          foreach sv_pkg_lib $a_sim_sv_pkg_libs {
             lappend arg_list "-L $sv_pkg_lib"
           }
           puts $fh_unix "xvlog_opts=\"[join $arg_list " "]\""

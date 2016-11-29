@@ -1025,6 +1025,12 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
             lappend ip_libs $library
           }
 
+          if { {system_verilog} == $type } {
+            if { [lsearch $sv_libs $library] == -1 } {
+              lappend sv_libs $library
+            }
+          }
+
           if { [regexp {microblaze_mcs_v} $library] } {
             set mcs_lib_name $library
           } else {

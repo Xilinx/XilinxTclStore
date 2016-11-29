@@ -221,7 +221,6 @@ proc usf_xsim_setup_simulation { args } {
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
 
-  variable a_sim_cache_sv_pkg_libs
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs
 
@@ -589,7 +588,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   upvar $scr_filename_arg scr_filename
   variable a_sim_vars
   variable a_xsim_vars
-  variable a_sim_cache_sv_pkg_libs
+  variable a_sim_sv_pkg_libs
  
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
@@ -712,7 +711,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       lappend xvlog_arg_list "--relax"
     }
     # append sv pkg libs
-    foreach sv_pkg_lib [array names a_sim_cache_sv_pkg_libs] {
+    foreach sv_pkg_lib $a_sim_sv_pkg_libs {
       lappend xvlog_arg_list "-L $sv_pkg_lib"
     }
     lappend xvlog_arg_list "-prj $vlog_filename"

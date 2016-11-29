@@ -136,8 +136,7 @@ proc usf_init_vars {} {
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
 
-  variable a_sim_cache_sv_pkg_libs
-  array unset a_sim_cache_sv_pkg_libs
+  variable a_sim_sv_pkg_libs [list]
 
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::questa::_xcs_defined] } {
@@ -1290,7 +1289,7 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
 
   upvar $opts_arg opts
   variable a_sim_vars
-  variable a_sim_cache_sv_pkg_libs
+  variable a_sim_sv_pkg_libs
 
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
   set s_64bit {-64}
@@ -1337,7 +1336,7 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
       if { [string equal -nocase $file_type "systemverilog"] } {
         lappend opts "-sv"
         # append sv pkg libs
-        foreach sv_pkg_lib [array names a_sim_cache_sv_pkg_libs] {
+        foreach sv_pkg_lib $a_sim_sv_pkg_libs {
           lappend opts "-L $sv_pkg_lib"
         }
       }
