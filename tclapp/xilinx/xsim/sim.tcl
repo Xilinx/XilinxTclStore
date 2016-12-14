@@ -1461,8 +1461,16 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   # write tcl post hook
   set tcl_post_hook [get_property XSIM.SIMULATE.TCL.POST $fs_obj]
   if { {} != $tcl_post_hook } {
-    set cmd_str "\nsource -notrace \"$tcl_post_hook\""
-    puts $fh_scr $cmd_str
+    puts $fh_scr "\n# execute post tcl file"
+    puts $fh_scr "set rc \[catch \{"
+    puts $fh_scr "  puts \"source $tcl_post_hook\""
+    puts $fh_scr "  source \"$tcl_post_hook\""
+    puts $fh_scr "\} result\]"
+    puts $fh_scr "if \{\$rc\} \{"
+    puts $fh_scr "  \[catch \{send_msg_id USF-simtcl-1 ERROR \"\$result\"\}\]"
+    puts $fh_scr "  \[catch \{send_msg_id USF-simtcl-2 ERROR \"Script failed:$tcl_post_hook\"\}\]"
+    #puts $fh_scr "  return -code error"
+    puts $fh_scr "\}"
   }
 
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]

@@ -527,7 +527,16 @@ proc usf_create_do_file { simulator do_filename } {
     # write tcl post hook
     set tcl_post_hook [get_property IES.SIMULATE.TCL.POST $fs_obj]
     if { {} != $tcl_post_hook } {
-      puts $fh_do "\nsource \"$tcl_post_hook\""
+      puts $fh_do "\n# execute post tcl file"
+      puts $fh_do "set rc \[catch \{"
+      puts $fh_do "  puts \"source $tcl_post_hook\""
+      puts $fh_do "  source \"$tcl_post_hook\""
+      puts $fh_do "\} result\]"
+      puts $fh_do "if \{\$rc\} \{"
+      puts $fh_do "  puts \"\$result\""
+      puts $fh_do "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
+      #puts $fh_do "  return -code error"
+      puts $fh_do "\}"
     }
 
     set rt [string trim [get_property "IES.SIMULATE.RUNTIME" $fs_obj]]

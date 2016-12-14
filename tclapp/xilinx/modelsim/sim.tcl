@@ -1237,10 +1237,19 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     puts $fh "do \{$udo_file\}"
   }
 
-  # write tcl post hook for windows
+  # write tcl post hook
   set tcl_post_hook [get_property MODELSIM.SIMULATE.TCL.POST $fs_obj]
   if { {} != $tcl_post_hook } {
-    puts $fh "\nsource \"$tcl_post_hook\"" 
+    puts $fh "\n# execute post tcl file"
+    puts $fh "set rc \[catch \{"
+    puts $fh "  puts \"source $tcl_post_hook\""
+    puts $fh "  source \"$tcl_post_hook\""
+    puts $fh "\} result\]"
+    puts $fh "if \{\$rc\} \{"
+    puts $fh "  puts \"\$result\""
+    puts $fh "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
+    #puts $fh "  return -code error"
+    puts $fh "\}"
   }
 
   set rt [string trim [get_property "MODELSIM.SIMULATE.RUNTIME" $fs_obj]]
