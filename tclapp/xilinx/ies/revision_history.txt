@@ -1,3 +1,4 @@
+3.32 catch exception and print message while sourcing post tcl code hook
 3.31 add SV package library for the parent core
 3.30 support for the pre and post TCL hooks
 3.29 support for the system verilog library packages

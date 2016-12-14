@@ -1,3 +1,4 @@
+2.142 catch exception and print message while sourcing post tcl code hook
 2.141 add SV package library for the parent core
 2.140 support for the pre and post TCL hooks
 2.139 support for the custom wave do and tcl file
