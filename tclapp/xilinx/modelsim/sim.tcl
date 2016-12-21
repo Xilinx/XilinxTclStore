@@ -378,19 +378,10 @@ proc usf_modelsim_write_compile_script {} {
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
 
   set do_filename {}
-  # is custom do file specified?
-  set custom_do_file [get_property "MODELSIM.SIMULATE.CUSTOM_DO" $fs_obj]
-  if { {} != $custom_do_file } {
-    send_msg_id USF-ModelSim-014 INFO "Using custom 'do' file '$custom_do_file'...\n"
-    set do_filename $custom_do_file
-  } else {
-    set do_filename $top;append do_filename "_compile.do"
-    set do_file [file normalize [file join $dir $do_filename]]
-
-    send_msg_id USF-ModelSim-015 INFO "Creating automatic 'do' files...\n"
-
-    usf_modelsim_create_do_file_for_compilation $do_file
-  }
+  set do_filename $top;append do_filename "_compile.do"
+  set do_file [file normalize [file join $dir $do_filename]]
+  send_msg_id USF-ModelSim-015 INFO "Creating automatic 'do' files...\n"
+  usf_modelsim_create_do_file_for_compilation $do_file
 
   # write compile.sh/.bat
   usf_modelsim_write_driver_shell_script $do_filename "compile"
@@ -404,6 +395,7 @@ proc usf_modelsim_write_elaborate_script {} {
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+
   set do_filename {}
   set do_filename $top;append do_filename "_elaborate.do"
   set do_file [file normalize [file join $dir $do_filename]]
@@ -421,10 +413,19 @@ proc usf_modelsim_write_simulate_script {} {
   set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]
+
   set do_filename {}
-  set do_filename $top;append do_filename "_simulate.do"
-  set do_file [file normalize [file join $dir $do_filename]]
-  usf_modelsim_create_do_file_for_simulation $do_file
+  # is custom do file specified?
+  set custom_do_file [get_property "MODELSIM.SIMULATE.CUSTOM_DO" $fs_obj]
+  if { {} != $custom_do_file } {
+    send_msg_id USF-ModelSim-014 INFO "Using custom 'do' file '$custom_do_file'...\n"
+    set do_filename $custom_do_file
+  } else {
+    set do_filename $top;append do_filename "_simulate.do"
+    set do_file [file normalize [file join $dir $do_filename]]
+    
+    usf_modelsim_create_do_file_for_simulation $do_file
+  }
 
   # write elaborate.sh/.bat
   usf_modelsim_write_driver_shell_script $do_filename "simulate"
@@ -1375,7 +1376,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     }
 
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      puts $fh_scr "ExecStep source ./$do_filename 2>&1 | tee -a $log_filename"
+      puts $fh_scr "ExecStep source $do_filename 2>&1 | tee -a $log_filename"
     } else {
       if { {} != $tool_path } {
         puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
