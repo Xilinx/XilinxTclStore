@@ -692,19 +692,6 @@ proc get_ip_repo_paths { tcl_obj } {
   return $repo_path_list
 }
 
-proc is_deprecated { prop } {
-  # Summary: filter deprecated properties
-  # Argument Usage:
-  # Return Value:
-  # true (1) if found, false (1) otherwise
-
-  set prop [string toupper $prop]
-  if { $prop == "BOARD" } {
-    return 1
-  }
-  return 0
-}
-
 proc filter { prop val { file {} } } {
   # Summary: filter special properties
   # This helper command is used to script help.
@@ -806,15 +793,13 @@ proc write_properties { prop_info_list get_what tcl_obj } {
       set elem [split $x "#"]
       set name [lindex $elem 0]
       set value [lindex $elem 1]
-      if { [regexp "more options" $name] } {
-        set cmd_str "set_property -name {$name} -value {$value} -objects"
-      } elseif { ([is_ip_readonly_prop $name]) && ([string equal $get_what "get_files"]) } {
+      if { ([is_ip_readonly_prop $name]) && ([string equal $get_what "get_files"]) } {
         set cmd_str "if \{ !\[get_property \"is_locked\" \$file_obj\] \} \{"
         lappend l_script_data "$cmd_str"
-        set cmd_str "  set_property \"$name\" \"$value\""
+        set cmd_str "  set_property -name \"$name\" -value \"$value\" -objects"
         set b_add_closing_brace 1
       } else {
-        set cmd_str "set_property \"$name\" \"$value\""
+        set cmd_str "set_property -name \"$name\" -value \"$value\" -objects"
       }
       if { [string equal $get_what "get_files"] } {
         lappend l_script_data "$cmd_str \$file_obj"
@@ -854,8 +839,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
   set properties [list_property [$get_what $tcl_obj]]
 
   foreach prop $properties {
-    if { [is_deprecated $prop] } { continue }
-
+    if { [is_deprecated_property $prop] } { continue }
     # skip read-only properties
     if { [lsearch $read_only_props $prop] != -1 } { continue }
 
@@ -1131,7 +1115,9 @@ proc is_deprecated_property { property } {
 
   set property [string tolower $property]
 
-  if { [string equal $property "runtime"] ||
+  if { [string equal $property "board"] ||
+       [string equal $property "compxlib.compiled_library_dir"] ||
+       [string equal $property "runtime"] ||
        [string equal $property "unit_under_test"] ||
        [string equal $property "xelab.snapshot"] ||
        [string equal $property "xelab.debug_level"] ||
@@ -1146,6 +1132,7 @@ proc is_deprecated_property { property } {
        [string equal $property "xsim.view"] ||
        [string equal $property "xsim.wdb"] ||
        [string equal $property "xsim.saif"] ||
+       [string equal $property "xsim.tclbatch"] ||
        [string equal $property "xsim.more_options"] ||
        [string equal $property "modelsim.custom_do"] ||
        [string equal $property "modelsim.custom_udo"] ||
@@ -1159,7 +1146,12 @@ proc is_deprecated_property { property } {
        [string equal $property "modelsim.64bit"] ||
        [string equal $property "modelsim.vsim_more_options"] ||
        [string equal $property "modelsim.vlog_more_options"] ||
-       [string equal $property "modelsim.vcom_more_options"] } {
+       [string equal $property "modelsim.vcom_more_options"] ||
+       [string equal $property "xsim.simulate.uut"] ||
+       [string equal $property "modelsim.simulate.uut"] ||
+       [string equal $property "questa.simulate.uut"] ||
+       [string equal $property "ies.simulate.uut"] ||
+       [string equal $property "vcs.simulate.uut"] } {
      return true
   }
   return false
