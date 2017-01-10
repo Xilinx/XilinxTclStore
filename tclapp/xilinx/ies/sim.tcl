@@ -656,17 +656,6 @@ proc usf_ies_write_elaborate_script {} {
     set arg_list [linsert $arg_list end "$more_elab_options"]
   }
 
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::xilinx::ies::usf_is_axi_bfm_ip] } {
-    set simulator_lib [usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list 0 "-loadvpi \"$simulator_lib:xilinx_register_systf\""]
-    } else {
-      send_msg_id USF-IES-020 "CRITICAL WARNING" \
-         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
-  }
-
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]

@@ -962,17 +962,6 @@ proc usf_questa_get_simulation_cmdline {} {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
 
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::xilinx::questa::usf_is_axi_bfm_ip] } {
-    set simulator_lib [usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
-    } else {
-      send_msg_id USF-Questa-020 "CRITICAL WARNING" \
-        "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
-  }
-
   if { [get_param "project.allowSharedLibraryType"] } {
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
       if { {Shared Library} == [get_property FILE_TYPE $file] } {
@@ -1326,16 +1315,6 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     }
   } else {
     puts $fh_scr "@echo off"
-    if { ({simulate} == $step) && [get_property 32bit $fs_obj] } {
-      if { [::tclapp::xilinx::questa::usf_is_axi_bfm_ip] } {
-        set simulator_lib [usf_get_simulator_lib_for_bfm]
-        if { {} != $simulator_lib } {
-          set vivado_lib [file normalize [file dirname $simulator_lib]]
-          set vivado_lib [string map {/ \\\\} $vivado_lib]
-          puts $fh_scr "set PATH=$vivado_lib;%PATH%"
-        }
-      }
-    }
     if { {} != $tool_path } {
       puts $fh_scr "set bin_path=$tool_path"
       puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"

@@ -1223,59 +1223,6 @@ proc usf_get_platform {} {
   }
   return $platform
 }
-
-proc usf_is_axi_bfm_ip {} {
-  # Summary: Finds VLNV property value for the IP and checks to see if the IP is AXI_BFM
-  # Argument Usage:
-  # Return Value:
-  # true (1) if specified IP is axi_bfm, false (0) otherwise
-
-  foreach ip [get_ips -all -quiet] {
-    set ip_def [lindex [split [get_property "IPDEF" [get_ips -all -quiet $ip]] {:}] 2]
-    set ip_def_obj [get_ipdefs -quiet -regexp .*${ip_def}.*]
-    #puts ip_def_obj=$ip_def_obj
-    if { {} != $ip_def_obj } {
-      set value [get_property "VLNV" $ip_def_obj]
-      #puts is_axi_bfm_ip=$value
-      if { ([regexp -nocase {axi_bfm} $value]) || ([regexp -nocase {processing_system7} $value]) } {
-        return 1
-      }
-    }
-  }
-  return 0
-}
-
-proc usf_get_simulator_lib_for_bfm {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set simulator_lib {}
-  set xil           $::env(XILINX_VIVADO)
-  set path_sep      {:}
-  set lib_extn      {.so}
-  set platform      [::tclapp::xilinx::ies::usf_get_platform]
-
-  set lib_name "libxil_ncsim";append lib_name $lib_extn
-  if { {} != $xil } {
-    append platform ".o"
-    set lib_path {}
-    send_msg_id USF-IES-116 INFO "Finding simulator library from 'XILINX_VIVADO'..."
-    foreach path [split $xil $path_sep] {
-      set file [file normalize [file join $path "lib" $platform $lib_name]]
-      if { [file exists $file] } {
-        send_msg_id USF-IES-117 INFO "Using library:'$file'"
-        set simulator_lib $file
-        break
-      } else {
-        send_msg_id USF-IES-118 WARNING "Library not found:'$file'"
-      }
-    }
-  } else {
-    send_msg_id USF-IES-066 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
-  }
-  return $simulator_lib
-}
 }
 
 #

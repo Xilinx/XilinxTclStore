@@ -697,17 +697,6 @@ proc usf_vcs_write_elaborate_script {} {
     set arg_list [linsert $arg_list end "$more_elab_options"]
   }
 
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::xilinx::vcs::usf_is_axi_bfm_ip] } {
-    set simulator_lib [usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list 0 "-load \"$simulator_lib:xilinx_register_systf\""]
-    } else {
-      send_msg_id USF-VCS-020 "CRITICAL WARNING" \
-         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
-  }
-
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
   set tool_path_val "\$bin_path/$tool"
@@ -810,17 +799,6 @@ proc usf_vcs_write_simulate_script {} {
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
-  }
-
-  # update ld_library_path for AXI-BFM
-  if { [::tclapp::xilinx::vcs::usf_is_axi_bfm_ip] } {
-    if { {} != [usf_get_simulator_lib_for_bfm] } {
-      set simulator_lib_path $::env(RDI_LIBDIR)
-      if { {} != $simulator_lib_path } {
-        puts $fh_scr "# simulator library path setting"
-        puts $fh_scr "LD_LIBRARY_PATH=$simulator_lib_path:\$LD_LIBRARY_PATH\n"
-      }
-    }
   }
 
   set do_filename "${top}_simulate.do"

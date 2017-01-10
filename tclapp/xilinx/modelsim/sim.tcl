@@ -938,17 +938,6 @@ proc usf_modelsim_get_simulation_cmdline {} {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
 
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {
-    set simulator_lib [usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
-    } else {
-      send_msg_id USF-ModelSim-005 "CRITICAL WARNING" \
-         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
-  }
-
   lappend arg_list "-lib"
   lappend arg_list $a_sim_vars(default_top_library)
   lappend arg_list "${top}_opt"
@@ -1007,17 +996,6 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set more_sim_options [string trim [get_property "MODELSIM.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
     set arg_list [linsert $arg_list end "$more_sim_options"]
-  }
-
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {
-    set simulator_lib [usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
-    } else {
-      send_msg_id USF-ModelSim-020 "CRITICAL WARNING" \
-         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
   }
 
   set t_opts [join $arg_list " "]
@@ -1386,16 +1364,6 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     }
   } else {
     puts $fh_scr "@echo off"
-    if { ({simulate} == $step) && [get_property 32bit $fs_obj] } {
-      if { [::tclapp::xilinx::modelsim::usf_is_axi_bfm_ip] } {
-        set simulator_lib [usf_get_simulator_lib_for_bfm]
-        if { {} != $simulator_lib } {
-          set vivado_lib [file normalize [file dirname $simulator_lib]]
-          set vivado_lib [string map {/ \\\\} $vivado_lib]
-          puts $fh_scr "set PATH=$vivado_lib;%PATH%"
-        }
-      }
-    }
     if { {} != $tool_path } {
       puts $fh_scr "set bin_path=$tool_path"
       puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"

@@ -229,8 +229,6 @@ proc xps_init_vars {} {
   set a_sim_vars(default_lib)         "xil_defaultlib"
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(b_use_static_lib)    0
-  set a_sim_vars(b_is_ies_axi_bfm)    0
-  set a_sim_vars(ies_bfm_lib_name)    {}
 
   variable l_lib_map_path             [list]
   variable l_compile_order_files      [list]
@@ -1953,10 +1951,6 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
         lappend arg_list "+incdir+\"$dir\""
       }
     }
-  }
-
-  if { $a_sim_vars(b_is_ies_axi_bfm) } {
-    lappend arg_list "-loadvpi \"\$bfm_lib_dir/$a_sim_vars(ies_bfm_lib_name):xilinx_register_systf\""
   }
 
   if { $a_sim_vars(b_runtime_specified) } {
@@ -4043,17 +4037,6 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   if { [llength $l_generics] > 0 } {
     xps_append_generics $l_generics args
   }
-  if { [xps_is_axi_bfm_ip] } {
-    set lib_name {}
-    set lib_dir  {}
-    set simulator_lib [xps_get_bfm_lib "modelsim" lib_name lib_dir]
-    if { {} != $simulator_lib } {
-      set args [linsert $args end "-pli \"$simulator_lib\""]
-    } else {
-      send_msg_id exportsim-Tcl-020 "CRITICAL WARNING" \
-        "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
-  }
   set t_opts [join $args " "]
   set args [list]
   # add user design libraries
@@ -4120,17 +4103,6 @@ proc xps_get_simulation_cmdline_questa {} {
   lappend args "vsim"
   xps_append_config_opts args "questa" "vsim"
   lappend args "-t 1ps"
-  if { [xps_is_axi_bfm_ip] } {
-    set lib_name {}
-    set lib_dir  {}
-    set simulator_lib [xps_get_bfm_lib $simulator lib_name lib_dir]
-    if { {} != $simulator_lib } {
-      set args [linsert $args end "-pli \"$simulator_lib\""]
-    } else {
-      send_msg_id exportsim-Tcl-020 "CRITICAL WARNING" \
-        "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
-  }
   set default_lib $a_sim_vars(default_lib)
   lappend args "-lib"
   lappend args $default_lib
@@ -4591,18 +4563,6 @@ proc xps_write_main { simulator fh_unix launch_dir } {
         xps_append_config_opts arg_list "vcs" "vcs"
         set arg_list [linsert $arg_list end "-debug_pp" "-t" "ps" "-licqueue" "-l" "elaborate.log"]
         if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-full64"] }
-        # design contains ax-bfm ip? insert bfm library
-        if { [xps_is_axi_bfm_ip] } {
-          set lib_name {}
-          set lib_dir  {}
-          set simulator_lib [xps_get_bfm_lib $simulator lib_name lib_dir]
-          if { {} != $simulator_lib } {
-            set arg_list [linsert $arg_list 0 "-load \"$simulator_lib:xilinx_register_systf\""]
-          } else {
-            send_msg_id exportsim-Tcl-020 "CRITICAL WARNING" \
-              "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-          }
-        }
         puts $fh_unix "vcs_elab_opts=\"[join $arg_list " "]\""
         set arg_list [list]
         xps_append_config_opts arg_list $simulator "simv"
@@ -4629,27 +4589,6 @@ proc xps_write_main { simulator fh_unix launch_dir } {
       }
       puts $fh_unix "# Design libraries"
       puts $fh_unix "design_libs=([join $libs " "])"
-    }
-  }
-
-  switch $simulator {
-    "ies" {
-      # design contains ax-bfm ip? insert bfm library
-      set bfm_lib_name {}
-      set a_sim_vars(b_is_ies_axi_bfm) 0
-      if { [xps_is_axi_bfm_ip] } {
-        set lib_dir {}
-        set simulator_lib [xps_get_bfm_lib "ies" bfm_lib_name lib_dir]
-        if { {} != $simulator_lib } {
-          puts $fh_unix "\n# BFM simulator library directory"
-          puts $fh_unix "bfm_lib_dir=\"$lib_dir\""
-          set a_sim_vars(b_is_ies_axi_bfm) 1
-          set a_sim_vars(ies_bfm_lib_name) $bfm_lib_name
-        } else {
-          send_msg_id exportsim-Tcl-020 "CRITICAL WARNING" \
-             "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-        }
-      }
     }
   }
 
@@ -4720,27 +4659,6 @@ proc xps_write_check_args { fh_unix } {
   puts $fh_unix "\}\n"
 }
 
-proc xps_is_axi_bfm_ip {} {
-  # Summary: Finds VLNV property value for the IP and checks to see if the IP is AXI_BFM
-  # Argument Usage:
-  # Return Value:
-  # true (1) if specified IP is axi_bfm, false (0) otherwise
-
-  foreach ip [get_ips -all -quiet] {
-    set ip_def [lindex [split [get_property "IPDEF" [get_ips -all -quiet $ip]] {:}] 2]
-    set ip_def_obj [get_ipdefs -quiet -regexp .*${ip_def}.*]
-    #puts ip_def_obj=$ip_def_obj
-    if { {} != $ip_def_obj } {
-      set value [get_property "VLNV" $ip_def_obj]
-      #puts is_axi_bfm_ip=$value
-      if { ([regexp -nocase {axi_bfm} $value]) || ([regexp -nocase {processing_system7} $value]) } {
-        return 1
-      }
-    }
-  }
-  return 0
-}
-
 proc xps_get_plat {} {
   # Summary:
   # Argument Usage:
@@ -4761,58 +4679,6 @@ proc xps_get_plat {} {
     }
   }
   return $platform
-}
-
-proc xps_get_bfm_lib { simulator lib_name_arg lib_dir_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $lib_name_arg lib_name
-  upvar $lib_dir_arg lib_dir
-
-  set simulator_lib {}
-  set xil           {}
-  if { [info exists ::env(XILINX_VIVADO)] } {
-    set xil $::env(XILINX_VIVADO)
-  }
-  set path_sep      {;}
-  set lib_extn      {.dll}
-  set platform      [xps_get_plat]
-
-  if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
-  if {$::tcl_platform(platform) == "unix"} { set lib_extn {.so} }
-
-  set lib_name {}
-  switch -regexp -- $simulator {
-    "modelsim" -
-    "riviera" -
-    "activehdl" -
-    "questa"   { set lib_name "libxil_vsim" }
-    "ies"      { set lib_name "libxil_ncsim" }
-    "vcs"      { set lib_name "libxil_vcs" }
-  }
-
-  set lib_name $lib_name$lib_extn
-  if { {} != $xil } {
-    append platform ".o"
-    set lib_path {}
-    #send_msg_id exportsim-Tcl-116 INFO "Finding simulator library from 'XILINX_VIVADO'..."
-    foreach path [split $xil $path_sep] {
-      set lib_dir [file normalize "$path/lib/$platform"]
-      set file "$lib_dir/$lib_name"
-      if { [file exists $file] } {
-        #send_msg_id exportsim-Tcl-117 INFO "Using library:'$file'"
-        set simulator_lib $file
-        break
-      } else {
-        send_msg_id exportsim-Tcl-118 WARNING "Library not found:'$file'"
-      }
-    }
-  } else {
-    send_msg_id exportsim-Tcl-064 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
-  }
-  return $simulator_lib
 }
 
 proc xps_get_incl_files_from_ip { launch_dir tcl_obj } {
