@@ -1,3 +1,4 @@
+2.36 refactored procs into common utils
 2.35 removed axi-bfm library referencing
 2.34 fixed custom do file for simulate step
 2.33 catch exception and print message while sourcing post tcl code hook
