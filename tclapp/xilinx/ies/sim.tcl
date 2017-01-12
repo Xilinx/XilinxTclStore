@@ -453,7 +453,7 @@ proc usf_ies_write_compile_script {} {
   set tcl_pre_hook [get_property IES.COMPILE.TCL.PRE $fs_obj]
   if { {} != $tcl_pre_hook } {
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
-    ::tclapp::xilinx::ies::usf_write_shell_step_fn $fh_scr
+    xcs_write_shell_step_fn $fh_scr
   }
   puts $fh_scr ""
 

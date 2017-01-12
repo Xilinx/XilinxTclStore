@@ -1343,7 +1343,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     if { {} != $tcl_pre_hook } {
       puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     }
-    ::tclapp::xilinx::modelsim::usf_write_shell_step_fn $fh_scr
+    xcs_write_shell_step_fn $fh_scr
     # add tcl pre hook
     if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
       set vivado_cmd_str "-mode batch -notrace -nojournal -source \"$tcl_pre_hook\""

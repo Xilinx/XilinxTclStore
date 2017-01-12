@@ -1191,38 +1191,6 @@ proc usf_found_errors_in_file { token } {
   }
   return 0
 }
-
-proc usf_write_shell_step_fn { fh } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  puts $fh "ExecStep()"
-  puts $fh "\{"
-  puts $fh "\"\$@\""
-  puts $fh "RETVAL=\$?"
-  puts $fh "if \[ \$RETVAL -ne 0 \]"
-  puts $fh "then"
-  puts $fh "exit \$RETVAL"
-  puts $fh "fi"
-  puts $fh "\}"
-}
-
-proc usf_get_platform {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
- 
-  variable a_sim_vars
-  set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
-  set platform {}
-  set b_32_bit [get_property 32bit $fs_obj]
-  set platform "lnx64"
-  if { $b_32_bit } {
-    set platform "lnx32"
-  }
-  return $platform
-}
 }
 
 #

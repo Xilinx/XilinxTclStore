@@ -2409,3 +2409,43 @@ proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
     }
   }
 }
+
+proc xcs_write_shell_step_fn { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  puts $fh "ExecStep()"
+  puts $fh "\{"
+  puts $fh "\"\$@\""
+  puts $fh "RETVAL=\$?"
+  puts $fh "if \[ \$RETVAL -ne 0 \]"
+  puts $fh "then"
+  puts $fh "exit \$RETVAL"
+  puts $fh "fi"
+  puts $fh "\}"
+}
+
+proc xcs_get_platform { fs_obj } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set platform {}
+  set os $::tcl_platform(platform)
+  set b_32_bit [get_property 32bit $fs_obj]
+  if { {windows} == $os } {
+    set platform "win64"
+    if { $b_32_bit } {
+      set platform "win32"
+    }
+  }
+
+  if { {unix} == $os } {
+    set platform "lnx64"
+    if { $b_32_bit } {
+      set platform "lnx32"
+    }
+  }
+  return $platform
+}

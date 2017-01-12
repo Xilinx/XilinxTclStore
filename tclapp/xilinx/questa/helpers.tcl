@@ -903,47 +903,6 @@ proc usf_launch_script { simulator step } {
   }
   return 0
 }
-
-proc usf_write_shell_step_fn { fh } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  puts $fh "ExecStep()"
-  puts $fh "\{"
-  puts $fh "\"\$@\""
-  puts $fh "RETVAL=\$?"
-  puts $fh "if \[ \$RETVAL -ne 0 \]"
-  puts $fh "then"
-  puts $fh "exit \$RETVAL"
-  puts $fh "fi"
-  puts $fh "\}"
-}
-
-proc usf_get_platform {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  variable a_sim_vars
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
-  set platform {}
-  set os $::tcl_platform(platform)
-  set b_32_bit [get_property 32bit $fs_obj]
-  if { {windows} == $os } {
-    set platform "win64"
-    if { $b_32_bit } {
-      set platform "win32"
-    }
-  }
-
-  if { {unix} == $os } {
-    set platform "lnx64"
-    if { $b_32_bit } {
-      set platform "lnx32"
-    }
-  }
-  return $platform
-}
 }
 
 #

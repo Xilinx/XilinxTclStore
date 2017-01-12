@@ -950,22 +950,6 @@ proc usf_found_errors_in_file { token } {
   }
   return 0
 }
-
-proc usf_write_shell_step_fn { fh } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  puts $fh "ExecStep()"
-  puts $fh "\{"
-  puts $fh "\"\$@\""
-  puts $fh "RETVAL=\$?"
-  puts $fh "if \[ \$RETVAL -ne 0 \]"
-  puts $fh "then"
-  puts $fh "exit \$RETVAL"
-  puts $fh "fi"
-  puts $fh "\}"
-}
 }
 
 #
@@ -1064,24 +1048,6 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   return $incl_dirs
 }
 
-proc usf_append_compiler_options { tool file_type opts_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $opts_arg opts
-  variable a_sim_vars
-  set fs_obj [get_filesets $a_sim_vars(s_simset)] 
-  switch $tool {
-    "vhdl" {
-      #lappend opts "\$${tool}_opts"
-    }
-    "verilog" {
-      #lappend opts "\$${tool}_opts"
-    }
-  }
-}
-
 proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   # Summary:
   # Argument Usage:
@@ -1138,7 +1104,6 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
-    usf_append_compiler_options $compiler $file_type arg_list
     set arg_list [linsert $arg_list end "$associated_library" "$global_files_str" "\"$file\""]
   }
  

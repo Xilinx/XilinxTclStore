@@ -449,7 +449,7 @@ proc usf_vcs_write_compile_script {} {
   set tcl_pre_hook [get_property VCS.COMPILE.TCL.PRE $fs_obj]
   if { {} != $tcl_pre_hook } {
     puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
-    ::tclapp::xilinx::vcs::usf_write_shell_step_fn $fh_scr
+    xcs_write_shell_step_fn $fh_scr
   }
   puts $fh_scr ""
 

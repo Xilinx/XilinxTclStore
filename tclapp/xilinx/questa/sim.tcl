@@ -1291,7 +1291,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       }
     }
 
-    ::tclapp::xilinx::questa::usf_write_shell_step_fn $fh_scr
+    xcs_write_shell_step_fn $fh_scr
 
     if {$::tcl_platform(platform) == "unix"} {
       # add tcl pre hook
