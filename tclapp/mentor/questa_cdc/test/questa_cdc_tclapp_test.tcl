@@ -9,5 +9,5 @@ update_compile_order -fileset sim_1
 source $test_dir/../write_questa_cdc_script.tcl
 
 set design_top [find_top]
-puts "::tclapp::mentor::questa_cdc::write_questa_cdc_script $design_top -od $test_dir/test1_out"
-::tclapp::mentor::questa_cdc::write_questa_cdc_script $design_top -od $test_dir/test1_out
+puts "::tclapp::mentor::questa_cdc::write_questa_cdc_script $design_top -output_directory $test_dir/test1_out"
+::tclapp::mentor::questa_cdc::write_questa_cdc_script $design_top -output_directory $test_dir/test1_out
