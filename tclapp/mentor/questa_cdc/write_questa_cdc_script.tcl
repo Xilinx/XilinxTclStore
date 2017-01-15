@@ -1,4 +1,4 @@
-# Usage: write_questa_cdc_script <top_module> [-od <output_directory>]
+# Usage: write_questa_cdc_script <top_module> [-output_directory <output_directory>]
 ###############################################################################
 #
 # write_questa_cdc_script.tcl (Routine for Mentor Graphics Questa CDC Application)
@@ -59,33 +59,48 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   return $new_lib
 }
 
-proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {top_module args} {
+proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   # Summary : This proc generates the Questa CDC script file
 
   # Argument Usage:
   # top_module : Provide the design top name
-  # [-od <arg>]: Specify the output directory to generate the scripts in
+  # [-output_directory <arg>]: Specify the output directory to generate the scripts in
 
   # Return Value: Returns '0' on successful completion
 
   # Categories: xilinxtclstore, mentor, questa_cdc
 
   set userOD "."
+  set top_module ""
   # Parse the arguments
+  if { [llength $args] > 3 } {
+    puts "** ERROR : Extra arguments passed to the proc."
+    puts "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\]"
+    return 1
+  }
+  if { ([llength $args] > 1) && ([lsearch -exact $args "-output_directory"] == "-1") } {
+    puts "** ERROR : Incorrect arguments passed to the proc, arguments '$args'"
+    puts "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\]"
+    return 1
+  }
   for {set i 0} {$i < [llength $args]} {incr i} {
-    if { [lindex $args $i] == "-od" } {
+    if { [lindex $args $i] == "-output_directory" } {
       incr i
       set userOD "[lindex $args $i]"
       if { $userOD == "" } {
         puts "** ERROR : Specified output directory can't be null."
+        puts "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\]"
         return 1
-      } else {
       }
     } else {
-      puts "** ERROR : Unknow option [lindex $args $i]."
-      return 1
+      set top_module [lindex $args $i]
     }
+  }
+  if { $top_module == "" } {
+    puts "** ERROR : No top_module specified to the proc."
+    puts "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\]"
+    return 1
   }
   if { $userOD == "." } {
     puts "INFO: Output files will be generated at [file join [pwd] $userOD]"
@@ -182,17 +197,21 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {top_module args} {
 
   set load_lib_line ""
   if {[regexp {virtexu|kintexu} $arch_name]} {
-    if {[file exists $vivado_dir/data/parts/xilinx/$arch_name/$arch_name/devint/$arch_name.lib]} {
-      set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name/devint/$arch_name.lib"
-    } elseif {[file exists $vivado_dir/data/parts/xilinx/$arch_name/$arch_name/$arch_name.lib]} {
-      set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name/devint/$arch_name.lib"
+    ## Following path works for 2014.4
+    if {[file exists $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib]} {
+      set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib"
+    ## Following path works for 2016.2
+    } elseif {[file exists $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name/timing/prod_ver1/$arch_name.lib]} {
+      set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name/timing/prod_ver1/$arch_name.lib"
     } else {
       puts "INFO: No liberty files found for architecture: $arch_name."
       set load_lib_line ""
     }
   } else {
+    ## Following path works for 2016.2
     if {[file exists $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name.lib]} {
       set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name.lib"
+    ## Following path works for 2014.4
     } elseif {[file exists $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib]} {
       set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib"
     } else {
@@ -201,7 +220,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {top_module args} {
     }
   }
 
-puts "$load_lib_line"
+  puts "DEBUG: Load lib: $load_lib_line"
 
   ## Blackbox unisims
 #  link_design -part [get_parts [get_property PART [current_project]]]
@@ -253,6 +272,7 @@ puts "$load_lib_line"
       puts "INFO: Collecting files for IP $ip_ref ($ip_name)"
       set files [get_files -compile_order sources -used_in synthesis -of_objects $ip]
     } else {
+      set ip $top_module
       set ip_name $top_module
       set ip_ref  $top_module
       set files [get_files -norecurse -compile_order sources -used_in synthesis]
@@ -330,6 +350,21 @@ puts "$load_lib_line"
       }
     }
 
+    ## Check that the header files of a specific IP really exists in all the libraries' lists for this IP
+    foreach f $files {
+      set ft [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
+      set fn [get_property NAME [lindex [get_files -all $f] 0]]
+      if {[string match $ft "Verilog Header"]} {
+        foreach lib $lib_file_order {
+          set lang $lib_file_lang($lib)
+          if { ([regexp {Verilog} $lang]) && ([lsearch -exact $lib_file_array($lib) $fn] == "-1") } {
+            set lib_file_array($lib) [concat $lib_file_array($lib) " " $fn]
+            puts $lib_file_array($lib)
+          }
+        }
+      }
+    }
+
     puts "DEBUG: IP= $ip_ref IPINST = $ip_name has following libraries $lib_file_order" 
 
     # For each library, list the files
@@ -339,7 +374,7 @@ puts "$load_lib_line"
         puts "INFO: Obtaining list of files for design= $ip_ref, library= $lib"
         set lang $lib_file_lang($lib)
         set incdirs [list ]
-        array set incdir_ar {}
+        array unset incdir_ar 
         ## Create list of include files
         if {[regexp {Verilog} $lang]} {
           foreach f [split $lib_file_array($lib)] {
