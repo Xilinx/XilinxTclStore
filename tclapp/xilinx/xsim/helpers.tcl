@@ -254,50 +254,6 @@ proc usf_is_option_registered_on_simulator { prop_name simulator } {
   return false
 }
 
-proc usf_xport_data_files { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable s_data_files_filter
-  variable s_non_hdl_data_files_filter
-  variable l_valid_ip_extns
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
-    send_msg_id USF-XSim-036 INFO "Inspecting IP design source files for '$a_sim_vars(s_sim_top)'...\n"
-
-    # export ip data files to run dir
-    if { [get_param "project.copyDataFilesForSim"] } {
-      set ip_filter "FILE_TYPE == \"IP\""
-      set ip_name [file tail $tcl_obj]
-      set data_files [list]
-      set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
-      # non-hdl data files 
-      foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
-        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
-          if { [get_property {IS_USER_DISABLED} $file] } {
-            continue;
-          }
-        }
-        lappend data_files $file
-      }
-      xcs_export_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $data_files
-    }
-  } elseif { [xcs_is_fileset $tcl_obj] } {
-    send_msg_id USF-XSim-037 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
-    # export all fileset data files to run dir
-    if { [get_param "project.copyDataFilesForSim"] } {
-      xcs_export_fs_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $s_data_files_filter
-    }
-    # export non-hdl data files to run dir
-    xcs_export_fs_non_hdl_data_files $a_sim_vars(s_simset) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
-  } else {
-    send_msg_id USF-XSim-038 INFO "Unsupported object source: $tcl_obj\n"
-    return 1
-  }
-}
-
 proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   # Summary:
   # Argument Usage:

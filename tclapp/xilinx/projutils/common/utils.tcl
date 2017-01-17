@@ -2367,6 +2367,19 @@ proc xcs_find_sv_pkg_libs { } {
     }
     ipx::unload_core $ip_comp
   }
+
+  # find SV package libraries from the design
+  set filter "FILE_TYPE == \"SystemVerilog\""
+  foreach sv_file_obj [get_files -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
+    if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
+      set library [get_property -quiet "LIBRARY" $sv_file_obj]
+      if { {} != $library } {
+        if { [lsearch -exact $a_sim_sv_pkg_libs $library] == -1 } {
+          lappend a_sim_sv_pkg_libs $library
+        }
+      }
+    }
+  }
 }
 
 proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
@@ -2448,4 +2461,51 @@ proc xcs_get_platform { fs_obj } {
     }
   }
   return $platform
+}
+
+proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable s_data_files_filter
+  variable s_non_hdl_data_files_filter
+  variable l_valid_ip_extns
+
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+    send_msg_id SIM-utils-053 INFO "Inspecting IP design source files for '$top'...\n"
+
+    # export ip data files to run dir
+    if { [get_param "project.copyDataFilesForSim"] } {
+      set ip_filter "FILE_TYPE == \"IP\""
+      set ip_name [file tail $tcl_obj]
+      set data_files [list]
+      set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
+
+      # non-hdl data files
+      foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
+        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+          if { [get_property {IS_USER_DISABLED} $file] } {
+            continue;
+          }
+        }
+        lappend data_files $file
+      }
+      xcs_export_data_files $launch_dir $dynamic_repo_dir $data_files
+    }
+  } elseif { [xcs_is_fileset $tcl_obj] } {
+    send_msg_id SIM-utils-054 INFO "Inspecting design source files for '$top' in fileset '$tcl_obj'...\n"
+
+    # export all fileset data files to run dir
+    if { [get_param "project.copyDataFilesForSim"] } {
+      xcs_export_fs_data_files $launch_dir $dynamic_repo_dir $s_data_files_filter
+    }
+
+    # export non-hdl data files to run dir
+    xcs_export_fs_non_hdl_data_files $simset $launch_dir $dynamic_repo_dir
+
+  } else {
+    send_msg_id SIM-utils-055 INFO "Unsupported object source: $tcl_obj\n"
+    return 1
+  }
 }

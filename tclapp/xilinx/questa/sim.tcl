@@ -169,7 +169,7 @@ proc usf_questa_setup_simulation { args } {
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # fetch the compile order for the specified object
-  ::tclapp::xilinx::questa::usf_xport_data_files
+  xcs_xport_data_files $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_simset) $a_sim_vars(s_sim_top) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
 
   # cache all design files
   variable a_sim_cache_all_design_files_obj
