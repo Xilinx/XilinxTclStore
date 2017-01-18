@@ -460,7 +460,14 @@ proc usf_ies_write_compile_script {} {
   ::tclapp::xilinx::ies::usf_set_ref_dir $fh_scr
 
   set tool "ncvhdl"
-  set arg_list [list "-messages" "-RELAX" "-logfile" "${tool}.log" "-append_log"]
+  set arg_list [list "-messages"]
+
+  if { [get_property "IES.COMPILE.RELAX" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-relax"]
+  }
+
+  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
+
   if { [get_property 32bit $fs_obj] } {
     # donot pass os type
   } else {
