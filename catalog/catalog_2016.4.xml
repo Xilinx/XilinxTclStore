@@ -4,13 +4,13 @@
   <support_commit_id>f2f2c8d9db8b7129479347fb60ba01e3a8243721</support_commit_id>
   <release>2016.4</release>
   <revision>2.4</revision>
-  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,spyglass,protoip,pcbutils,diff,profiler,junit,tk_tunnel</app_display_order>
+  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,questa_cdc,spyglass,protoip,pcbutils,diff,profiler,junit,tk_tunnel</app_display_order>
   <apps>
     <app>
       <name>activehdl</name>
       <company>aldec</company>
-      <commit_id>a302298cd95e7d1598340b511b8e97e03ed6e245</commit_id>
-      <revision>1.8</revision>
+      <commit_id>4ac41407421d302a7c2397850b042200f5cb9470</commit_id>
+      <revision>1.9</revision>
     </app>
     <app>
       <name>debugutils</name>
@@ -21,7 +21,7 @@
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>15a14551f56569dd4d68cfcc07863b16be09204e</commit_id>
+      <commit_id>4ac41407421d302a7c2397850b042200f5cb9470</commit_id>
       <revision>1.30</revision>
     </app>
     <app>
@@ -97,10 +97,16 @@
       <revision>2.27</revision>
     </app>
     <app>
+      <name>questa_cdc</name>
+      <company>mentor</company>
+      <commit_id>4ac41407421d302a7c2397850b042200f5cb9470</commit_id>
+      <revision>1.0</revision>
+    </app>
+    <app>
       <name>riviera</name>
       <company>aldec</company>
-      <commit_id>a302298cd95e7d1598340b511b8e97e03ed6e245</commit_id>
-      <revision>1.8</revision>
+      <commit_id>4ac41407421d302a7c2397850b042200f5cb9470</commit_id>
+      <revision>1.9</revision>
     </app>
     <app>
       <name>spyglass</name>
