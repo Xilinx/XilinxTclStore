@@ -1,4 +1,4 @@
-# Usage: write_questa_cdc_script <top_module> [-output_directory <output_directory>]
+# Usage: write_questa_cdc_script <top_module> [-output_directory <output_directory>] [-use_existing_xdc]
 ###############################################################################
 #
 # write_questa_cdc_script.tcl (Routine for Mentor Graphics Questa CDC Application)
@@ -66,6 +66,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   # Argument Usage:
   # top_module : Provide the design top name
   # [-output_directory <arg>]: Specify the output directory to generate the scripts in
+  # [-use_existing_xdc]: Ignore running write_xdc command to generate the SDC file of the synthesized design, and use the input constraints file instead
 
   # Return Value: Returns '0' on successful completion
 
@@ -73,16 +74,18 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   set userOD "."
   set top_module ""
+  set use_existing_xdc 0
+  set usage_msg "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\] \[-use_existing_xdc\]"
   # Parse the arguments
-  if { [llength $args] > 3 } {
+  if { [llength $args] > 4 } {
     puts "** ERROR : Extra arguments passed to the proc."
-    puts "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\]"
+    puts $usage_msg
     return 1
   }
-  if { ([llength $args] > 1) && ([lsearch -exact $args "-output_directory"] == "-1") } {
-    puts "** ERROR : Incorrect arguments passed to the proc, arguments '$args'"
-    puts "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\]"
-    return 1
+  # Generate help message
+  if { ([llength $args] >= 1) && ([lsearch -exact $args "-help"] != "-1") } {
+    puts $usage_msg
+    return 0
   }
   for {set i 0} {$i < [llength $args]} {incr i} {
     if { [lindex $args $i] == "-output_directory" } {
@@ -90,16 +93,18 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       set userOD "[lindex $args $i]"
       if { $userOD == "" } {
         puts "** ERROR : Specified output directory can't be null."
-        puts "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\]"
+        puts $usage_msg
         return 1
       }
+    } elseif { [lindex $args $i] == "-use_existing_xdc" } {
+      set use_existing_xdc 1
     } else {
       set top_module [lindex $args $i]
     }
   }
   if { $top_module == "" } {
     puts "** ERROR : No top_module specified to the proc."
-    puts "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\]"
+    puts $usage_msg
     return 1
   }
   if { $userOD == "." } {
@@ -198,22 +203,26 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   set load_lib_line ""
   if {[regexp {virtexu|kintexu} $arch_name]} {
     ## Following path works for 2014.4
-    if {[file exists $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib]} {
-      set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib"
+    set lib_file_path1 "$vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib"
     ## Following path works for 2016.2
-    } elseif {[file exists $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name/timing/prod_ver1/$arch_name.lib]} {
-      set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name/timing/prod_ver1/$arch_name.lib"
+    set lib_file_path2 [lindex [glob -nocomplain $vivado_dir/data/parts/xilinx/$arch_name/*/$arch_name/timing/prod_ver1/$arch_name.lib] 0]
+    if {[file exists $lib_file_path1]} {
+      set load_lib_line "netlist load lib $lib_file_path1"
+    } elseif {[file exists $lib_file_path2]} {
+      set load_lib_line "netlist load lib $lib_file_path2"
     } else {
       puts "INFO: No liberty files found for architecture: $arch_name."
       set load_lib_line ""
     }
   } else {
-    ## Following path works for 2016.2
-    if {[file exists $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name.lib]} {
-      set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name.lib"
     ## Following path works for 2014.4
-    } elseif {[file exists $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib]} {
-      set load_lib_line "netlist load lib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib"
+    set lib_file_path1 $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib
+    ## Following path works for 2016.2
+    set lib_file_path2 [lindex [glob -nocomplain $vivado_dir/data/parts/xilinx/$arch_name/*/$arch_name.lib] 0]
+    if {[file exists $lib_file_path1]} {
+      set load_lib_line "netlist load lib $lib_file_path1"
+    } elseif {[file exists $lib_file_path2]} {
+      set load_lib_line "netlist load lib $lib_file_path2"
     } else {
       puts "INFO: No liberty files found for architecture: $arch_name."
       set load_lib_line ""
@@ -550,13 +559,30 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   puts $qcdc_run_fh "\$QFT_HOME/bin/qverify -c -licq -l qcdc_${top_module}.log -od $cdc_out_dir -do \"\\"
   puts $qcdc_run_fh "\tonerror {exit 1}; \\"
   puts $qcdc_run_fh "\tdo $qcdc_ctrl; \\"
+
   ## Get the constraints file
-  set constr_fileset [current_fileset -constrset]
-  set files [get_files -all -of [get_filesets $constr_fileset] *]
-  foreach file $files {
-    set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $constr_fileset] $file] 0]]
-    if { $ft == "XDC" } {
-      puts $qcdc_run_fh "\tsdc load $file; \\"
+  if { $use_existing_xdc == 1 } {
+    puts "INFO : Using existing XDC files."
+    set constr_fileset [current_fileset -constrset]
+    set files [get_files -all -of [get_filesets $constr_fileset] *]
+    foreach file $files {
+      set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $constr_fileset] $file] 0]]
+      if { $ft == "XDC" } {
+        puts $qcdc_run_fh "\tsdc load $file; \\"
+      }
+    }
+  } else {
+    set sdc_out_file "${top_module}_syn.sdc"
+    puts "INFO : Running write_xdc command to generate the XDC file of the synthesized design"
+    puts "     : Executing write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force"
+    if { [catch {write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force} result] } {
+      puts "** ERROR : Can't generate SDC file for the design."
+      puts "         : Please run the synthesis step, or open the synthesized design then re-run the script."
+      puts "         : You can use '-use_existing_xdc' option with the script to ignore generating the SDC file and use the input XDC files."
+      set rc 8
+      return $rc
+    } else {
+      puts $qcdc_run_fh "\tsdc load $sdc_out_file; \\"
     }
   }
   puts $qcdc_run_fh "\t$load_lib_line; \\"
