@@ -2280,6 +2280,26 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
 
   # write fileset file properties for local files (imported sources)
   write_reconfigmodule_file_properties $reconfigModule $fs_name $proj_dir $l_local_file_list "local"
+
+  # move sub-design files (XCI/BD) of reconfig modules from sources fileset to reconfig-module (RM) fileset
+  add_reconfigmodule_subdesign_files $reconfigModule
+}
+
+proc add_reconfigmodule_subdesign_files { reconfigModule } {
+  # Summary: 
+  # Argument Usage: 
+  # Return Value:
+
+  variable l_script_data
+
+  foreach rmSubdesignFileset [get_property subdesign_filesets $reconfigModule] {
+    foreach fileObj [get_files -quiet -norecurse -of_objects [get_filesets $rmSubdesignFileset]] {
+      set rel_file_path "\"\$origin_dir/[get_relative_file_path_for_source $fileObj [get_script_execution_dir]]"
+      lappend l_script_data "set path \"\[file normalize $rel_file_path\"\]\""
+      lappend l_script_data "move_files -of_objects \$obj \[get_files \$path\]"
+      lappend l_script_data ""
+    }
+  }
 }
 
 proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_file_list file_category } {
