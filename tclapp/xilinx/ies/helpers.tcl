@@ -1133,9 +1133,9 @@ proc usf_found_errors_in_file { token } {
   foreach line $log_data {
     set line_str [string trim $line]
     switch $token {
-      {ncvlog}    { if { [regexp {^ncvlog:} $line_str] && ([regexp {\*E} $line_str] || [regexp {\*F} $line_str]) } { set retval 1;break } }
-      {ncvhdl}    { if { [regexp {^ncvhdl:} $line_str] && ([regexp {\*E} $line_str] || [regexp {\*F} $line_str]) } { set retval 1;break } }
-      {elaborate} { if { [regexp {^ncelab:} $line_str] && ([regexp {\*E} $line_str] || [regexp {\*F} $line_str]) } { set retval 1;break } }
+      {ncvlog}    { if { [regexp {^ncvlog} $line_str] && ([regexp {\*E} $line_str] || [regexp {\*F} $line_str]) } { set retval 1;break } }
+      {ncvhdl}    { if { [regexp {^ncvhdl} $line_str] && ([regexp {\*E} $line_str] || [regexp {\*F} $line_str]) } { set retval 1;break } }
+      {elaborate} { if { [regexp {^ncelab} $line_str] && ([regexp {\*E} $line_str] || [regexp {\*F} $line_str]) } { set retval 1;break } }
     }
   }
 
