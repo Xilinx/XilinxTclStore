@@ -1,3 +1,4 @@
+3.40 find xpm libraries from the design
 3.39 find system verilog libraries from the design and add to SV package list
 3.38 refactored procs into common utils
 3.37 removed axi-bfm library referencing

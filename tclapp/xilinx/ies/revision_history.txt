@@ -1,3 +1,4 @@
+3.38 find xpm libraries from the design
 3.37 fixed error token strings while parsing log
 3.36 pass relax option value for the compile step
 3.35 find system verilog libraries from the design and add to SV package list
