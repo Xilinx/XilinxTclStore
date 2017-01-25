@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed error token strings while parsing log</revision_history>
+      <revision_history>find xpm libraries from the design</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

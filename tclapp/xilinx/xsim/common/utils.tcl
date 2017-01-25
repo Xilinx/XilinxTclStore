@@ -2509,3 +2509,29 @@ proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
     return 1
   }
 }
+
+proc xcs_get_xpm_libraries {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_xpm_libraries
+  set l_xpm_libraries [list]
+
+  # fetch xpm libraries from project property
+  set proj_obj [current_project]
+  set prop_xpm_libs [get_property -quiet "XPM_LIBRARIES" $proj_obj]
+
+  # fetch xpm libraries from design graph
+  set dg_xpm_libs [auto_detect_xpm -quiet -search_ips -no_set_property]
+
+  # join libraries and add unique to collection
+  set all_xpm_libs [concat $prop_xpm_libs $dg_xpm_libs]
+  if { [llength $all_xpm_libs] > 0 } {
+    foreach lib $all_xpm_libs {
+      if { [lsearch $l_xpm_libraries $lib] == -1 } {
+        lappend l_xpm_libraries $lib
+      }
+    }
+  }
+}

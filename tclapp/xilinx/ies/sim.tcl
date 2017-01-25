@@ -130,6 +130,9 @@ proc usf_ies_setup_simulation { args } {
   # initialize IES simulator variables
   usf_ies_init_simulation_vars
 
+  # initialize XPM libraries (if any)
+  xcs_get_xpm_libraries
+
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
                                                            $a_sim_vars(s_simulation_flow) \
@@ -145,8 +148,9 @@ proc usf_ies_setup_simulation { args } {
   set clibs_dir [usf_ies_verify_compiled_lib]
 
   variable l_compiled_libraries
+  variable l_xpm_libraries
   set b_reference_xpm_library 0
-  if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
+  if { [llength $l_xpm_libraries] > 0 } {
      if { [get_param project.usePreCompiledXPMLibForSim] } {
       set b_reference_xpm_library 1
     }

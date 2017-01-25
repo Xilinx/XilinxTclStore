@@ -146,6 +146,9 @@ proc export_simulation {args} {
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
 
+  # initialize XPM libraries (if any)
+  xcs_get_xpm_libraries
+
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs
 
@@ -230,6 +233,9 @@ proc xps_init_vars {} {
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(b_use_static_lib)    0
 
+  # list of xpm libraries
+  variable l_xpm_libraries [list]
+
   variable l_lib_map_path             [list]
   variable l_compile_order_files      [list]
   variable l_compile_order_files_uniq [list]
@@ -237,7 +243,6 @@ proc xps_init_vars {} {
   variable l_compiled_libraries       [list]
   variable l_local_design_libraries   [list]
 
-  # ip static libraries
   variable l_simulators               [list xsim modelsim questa ies vcs riviera activehdl]
   variable l_target_simulator         [list]
 
@@ -943,8 +948,9 @@ proc xps_get_files { simulator launch_dir } {
   }
 
   if { $b_compile_xpm_library } {
+    variable l_xpm_libraries
     set b_using_xpm_libraries false
-    foreach library [get_property xpm_libraries [current_project]] {
+    foreach library $l_xpm_libraries {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set compiler [xcs_get_compiler_name $simulator $file_type]

@@ -67,6 +67,9 @@ proc usf_init_vars {} {
   # ip static libraries
   variable l_ip_static_libs          [list]
 
+  # list of xpm libraries
+  variable l_xpm_libraries [list]
+
   # ip file extension types
   variable l_valid_ip_extns          [list]
   set l_valid_ip_extns               [list ".xci" ".bd" ".slx"]
@@ -523,9 +526,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   }
 
   if { $b_compile_xpm_library } {
-    set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
+    variable l_xpm_libraries
     set b_using_xpm_libraries false
-    foreach library $xpm_libraries {
+    foreach library $l_xpm_libraries {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
