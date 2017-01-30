@@ -1,3 +1,4 @@
+2.40 fetch sv files in quiet mode as those may not be part of compile order
 2.39 find xpm libraries from the design
 2.38 fixed error token strings while parsing log
 2.37 find system verilog libraries from the design and add to SV package list
