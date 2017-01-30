@@ -2370,7 +2370,7 @@ proc xcs_find_sv_pkg_libs { } {
 
   # find SV package libraries from the design
   set filter "FILE_TYPE == \"SystemVerilog\""
-  foreach sv_file_obj [get_files -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
+  foreach sv_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
     if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
       set library [get_property -quiet "LIBRARY" $sv_file_obj]
       if { {} != $library } {
