@@ -1,3 +1,4 @@
+3.42 source user tcl file from wrapper generated in run directory
 3.41 fetch sv files in quiet mode as those may not be part of compile order
 3.40 find xpm libraries from the design
 3.39 find system verilog libraries from the design and add to SV package list

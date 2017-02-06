@@ -1,3 +1,4 @@
+3.226 source user tcl file from wrapper generated in run directory
 3.225 fetch sv files in quiet mode as those may not be part of compile order
 3.224 find xpm libraries from the design
 3.223 move sub-design files of reconfig modules from sources fileset to reconfig-module fileset
