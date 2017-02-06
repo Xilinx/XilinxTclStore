@@ -233,6 +233,9 @@ proc xps_init_vars {} {
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(b_use_static_lib)    0
 
+  # wrapper file for executing user tcl (not supported currently in export_sim)
+  set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
+
   # list of xpm libraries
   variable l_xpm_libraries [list]
 

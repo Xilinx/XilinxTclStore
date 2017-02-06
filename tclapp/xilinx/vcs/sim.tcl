@@ -491,7 +491,13 @@ proc usf_vcs_write_compile_script {} {
 
   # add tcl pre hook
   if { {} != $tcl_pre_hook } {
-    set vivado_cmd_str "-mode batch -notrace -nojournal -source \"$tcl_pre_hook\""
+    if { ![file exists $tcl_pre_hook] } {
+      [catch {send_msg_id USF-VCS-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+    }
+    set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+    xcs_delete_backup_log $tcl_wrapper_file $dir
+    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+    set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
     set cmd "vivado $vivado_cmd_str"
     puts $fh_scr "echo \"$cmd\""
     set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"

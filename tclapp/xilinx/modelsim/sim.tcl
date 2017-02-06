@@ -507,14 +507,6 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   usf_modelsim_write_header $fh $do_file
 
-  # write tcl pre hook for windows
-  if {$::tcl_platform(platform) == "windows"} {
-    set tcl_pre_hook [get_property MODELSIM.COMPILE.TCL.PRE $fs_obj]
-    if { {} != $tcl_pre_hook } {
-      puts $fh "\nsource \"$tcl_pre_hook\"" 
-    }
-  }
-
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
     # no op
   } else {
@@ -1307,6 +1299,8 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
   set b_batch $::tclapp::xilinx::modelsim::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
@@ -1350,7 +1344,13 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     xcs_write_shell_step_fn $fh_scr
     # add tcl pre hook
     if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
-      set vivado_cmd_str "-mode batch -notrace -nojournal -source \"$tcl_pre_hook\""
+      if { ![file exists $tcl_pre_hook] } {
+        [catch {send_msg_id USF-ModelSim-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+      }
+      set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+      xcs_delete_backup_log $tcl_wrapper_file $dir
+      xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+      set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
       set cmd "vivado $vivado_cmd_str"
       puts $fh_scr "echo \"$cmd\""
       set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
@@ -1367,9 +1367,40 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
       }
     }
   } else {
+    # windows
     puts $fh_scr "@echo off"
     if { {} != $tool_path } {
       puts $fh_scr "set bin_path=$tool_path"
+      if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
+        set xv $::env(XILINX_VIVADO)
+        set xv [string map {\\\\ /} $xv]
+        set xv_path $xv
+ 
+        # check if its a cygwin drive mapping (/cygdrive/c/<path>), if yes, then replace with (c:/<path>)
+        set xv_comps [split $xv "/"]
+        if { "cygdrive" == [lindex $xv_comps 1] } {
+          set drive [lindex $xv_comps 2]
+          append drive ":/"
+          set xv_path [join [lrange $xv_comps 3 end] "/"]
+          set xv_path [file join $drive $xv_path]
+        }
+
+        # fix slashes
+        set xv_path [string map {/ \\} $xv_path]
+        puts $fh_scr "set xv_path=$xv_path"
+
+        if { ![file exists $tcl_pre_hook] } {
+          [catch {send_msg_id USF-ModelSim-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+        }
+        set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+        xcs_delete_backup_log $tcl_wrapper_file $dir
+        xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+        set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+        set cmd "vivado $vivado_cmd_str"
+        puts $fh_scr "echo \"$cmd\""
+        set full_cmd "%xv_path%/bin/vivado $vivado_cmd_str"
+        puts $fh_scr "call $full_cmd"
+      }
       puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
     } else {
       puts $fh_scr "call vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"

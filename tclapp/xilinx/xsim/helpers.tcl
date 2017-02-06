@@ -126,6 +126,9 @@ proc usf_init_vars {} {
   # netlist file
   set a_sim_vars(s_netlist_file)            {}
 
+  # wrapper file for executing user tcl
+  set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
+
   variable a_sim_cache_result
   array unset a_sim_cache_result
 
