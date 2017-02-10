@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>source user tcl file from wrapper generated in run directory</revision_history>
+      <revision_history>call get_files in quiet mode to hide warnings when project does not contain sources</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
