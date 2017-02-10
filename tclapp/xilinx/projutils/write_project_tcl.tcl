@@ -228,12 +228,12 @@ proc write_project_tcl_script {} {
 
 
     # re-parse source fileset compile order for the current top
-    if {[llength [get_files -compile_order sources -used_in synthesis]] > 1} {
+    if {[llength [get_files -quiet -compile_order sources -used_in synthesis]] > 1} {
       update_compile_order -fileset [current_fileset] -quiet
     }
 
     # re-parse simlulation fileset compile order for the current top
-    if {[llength [get_files -compile_order sources -used_in simulation]] > 1} {
+    if {[llength [get_files -quiet -compile_order sources -used_in simulation]] > 1} {
       update_compile_order -fileset [current_fileset -simset] -quiet
     }
   }
@@ -500,7 +500,7 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
       # This means that we should not write these properties, they are read-only
       set blockset_is_ooc1 false
       if { {BlockSrcs} == $fs_type } {
-        set current_fs_files [get_files -of_objects [get_filesets $tcl_obj] -norecurse]
+        set current_fs_files [get_files -quiet -of_objects [get_filesets $tcl_obj] -norecurse]
         if { [llength $current_fs_files] == 1 } {
           set only_file_in_fs [lindex $current_fs_files 0]
           set file_type [get_property FILE_TYPE $only_file_in_fs]
@@ -934,7 +934,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
       set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
       set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
-      set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+      set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
       set file_props [list_property $file_object]
 
       if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -1117,6 +1117,7 @@ proc is_deprecated_property { property } {
 
   if { [string equal $property "board"] ||
        [string equal $property "compxlib.compiled_library_dir"] ||
+       [string equal $property "dsa.build_flow"] ||
        [string equal $property "runtime"] ||
        [string equal $property "unit_under_test"] ||
        [string equal $property "xelab.snapshot"] ||
@@ -1181,14 +1182,14 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   set import_coln [list]
   set add_file_coln [list]
 
-  foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
+  foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj]] {
     if { [file extension $file] == ".xcix" } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
 
     # fetch first object
-    set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+    set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
     set file_props [list_property $file_object]
 
     if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -1317,14 +1318,14 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
     return
   }
 
-  foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
+  foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj]] {
     lappend l_script_data "# Add/Import constrs file and set constrs file properties"
     set constrs_file  {}
     set file_category {}
     set path_dirs     [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin         [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file      [join [lrange $path_dirs $begin+1 end] "/"]
-    set file_object   [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+    set file_object   [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
     set file_props    [list_property $file_object]
 
     # constrs sources imported? 
@@ -1474,9 +1475,9 @@ proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_
 
   set file_object ""
   if { [string equal $file_category "local"] } {
-    set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
+    set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
   } elseif { [string equal $file_category "remote"] } {
-    set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+    set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
   }
 
   # get the constrs file properties
@@ -1706,9 +1707,9 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
 
     set file_object ""
     if { [string equal $file_category "local"] } {
-      set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
+      set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
     } elseif { [string equal $file_category "remote"] } {
-      set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+      set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
     }
 
     set file_props [list_property $file_object]
@@ -1944,7 +1945,7 @@ proc is_ip_fileset { fileset } {
   set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
   set b_found false
   foreach ip $ips {
-    if { [get_property generate_synth_checkpoint [lindex [get_files -all $ip] 0]] } {
+    if { [get_property generate_synth_checkpoint [lindex [get_files -quiet -all $ip] 0]] } {
       set b_found true
       break
     }
@@ -2170,13 +2171,13 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   set import_coln [list]
   set add_file_coln [list]
  
-  foreach file [get_files -norecurse -of_objects $reconfigModule] {
+  foreach file [get_files -quiet -norecurse -of_objects $reconfigModule] {
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
 
     # fetch first object
-    set file_object [lindex [get_files -of_objects $reconfigModule [list $file]] 0]
+    set file_object [lindex [get_files -quiet -of_objects $reconfigModule [list $file]] 0]
     set file_props [list_property $file_object]
 
     if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -2347,9 +2348,9 @@ proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_fi
 
     set file_object ""
     if { [string equal $file_category "local"] } {
-      set file_object [lindex [get_files -of_objects [get_filesets -of_objects $reconfigModule] [list "*$file"]] 0]
+      set file_object [lindex [get_files -quiet -of_objects [get_filesets -of_objects $reconfigModule] [list "*$file"]] 0]
     } elseif { [string equal $file_category "remote"] } {
-      set file_object [lindex [get_files -of_objects [get_filesets -of_objects $reconfigModule] [list $file]] 0]
+      set file_object [lindex [get_files -quiet -of_objects [get_filesets -of_objects $reconfigModule] [list $file]] 0]
     }
 
     set file_props [list_property $file_object]
