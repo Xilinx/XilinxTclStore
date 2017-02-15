@@ -1,0 +1,63 @@
+2.139 added comment for XPM library referencing
+2.138 removed XPM library and reference design libraries first for post simulation flow
+2.137 support for vhdl 2008
+2.136 pass source file object to extract_files
+2.135 do not pass sv switches for shared library
+2.134 reference cached IP static file object in xcs_find_ipstatic_file_path
+2.133 log all signals in the design
+2.132 consider XPM precompiled library for RTL based designs
+2.131 refactored export_fs_non_hdl_data_files proc to common utils
+2.130 refactored procs to common utils
+2.129 refactor common procs to utils
+2.128 export data files to run dir directly, if ip_user_files dir is not specified
+2.127 copy shared libraries into run dir
+2.126 refactored common procs to utils
+2.125 export and reference static files for remote BD
+2.124 process static files from locked always explicitly
+2.123 refactor procs into common utils
+2.122 fetch all ipdef objects while determining static files from local repo
+2.121 construct local design libraries collection for mapping
+2.120 refactored netlist generation common procs to utils
+2.119 compile XPM files locally and donot reference from precompiled libs
+2.118 fixed variable name while calculating the parent composite file path sub-dir length
+2.117 cache unique compile order files for reference
+2.116 continue processing design libraries if ip_repo not found from repoitory value
+2.115 do not fetch compiled library info from data dir
+2.114 cache unique compile order files for reference
+2.113 set unset all design files variable for caching
+2.112 compile ips from project repository locally having same vlnvr
+2.111 changed to warning from critical warning
+2.110 refactor uniquify_cmd_str procedure to use dict keys
+2.109 pass pulse_e, pulse_int_e for post impl timing flows
+2.108 support logging all signals
+2.107 compile glbl into top library for elaborate
+2.106 compile glbl into top library for vhdl netlist
+2.105 update local mappings not found in xsim.ini
+2.104 replaced simulator uut with saif_scope
+2.103 add xpm library for elaborate step
+2.102 support for precompiled XPM library
+2.101 support for XPM files for -of_objects
+2.100 add VCOM VHDL file for XPM simulation, CR:947555
+2.99 set absolute path for xpm files
+2.98 pass clibs directory while checking for compiled libraries
+2.97 updated progress message for compile step
+2.96 set absolute path for glbl.v if absolute_path switch specified
+2.95 define proc to return true if system verilog source found
+2.94 fixed tcl syntax error while fetching libraries
+2.93 check for null file object before checking for used in property
+2.92 fetch IPI static files for old IP definitions
+2.91 localize undefined IP libraries in xsim initialization file
+2.90 export and compile static files for the older IP libraries
+2.89 print warning if file not found from repo
+2.88 support for verilog header
+2.87 use default current scope if uut instance not specified
+2.86 support for referencing old ips from previous projects
+2.85 replace data dir env with the compiled library path in xsim.ini
+2.84 support for the new verilog header type
+2.83 use compxlib compiled library directory for precompiled flow
+2.82 control IP pre-compiled flow via param
+2.81 moved procs to utils.tcl
+2.80 add pwd to LD_LIBRARY_PATH
+2.79 refactored procs in utils.tcl
+2.78 source utils.tcl with notrace
+2.77 re-structured common helper procedures in utils

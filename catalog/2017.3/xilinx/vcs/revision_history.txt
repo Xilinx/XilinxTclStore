@@ -1,0 +1,59 @@
+3.31 reference compiled library from the path specified with -lib_map_path
+3.30 added comment for XPM library referencing
+3.29 removed XPM library and reference design libraries first for post simulation flow
+3.28 support for vhdl 2008
+3.27 fixed library variable name while calculating local IP libraries
+3.26 pass source file object to extract_files
+3.25 reference cached IP static file object in xcs_find_ipstatic_file_path
+3.24 consider XPM precompiled library for RTL based designs
+3.23 refactored export_fs_non_hdl_data_files proc to common utils
+3.22 refactored procs to common utils
+3.21 refactor common procs to utils
+3.20 export data files to run dir directly, if ip_user_files dir is not specified
+3.19 refactored common procs to utils
+3.18 export and reference static files for remote BD
+3.17 process static files from locked always explicitly
+3.16 refactor procs into common utils
+3.15 fetch all ipdef objects while determining static files from local repo
+3.14 check for local design libraries while mapping and process them
+3.13 construct local design libraries collection for mapping
+3.12 refactored netlist generation common procs to utils
+3.11 compile XPM files locally and donot reference from precompiled libs
+3.10 fixed variable name while calculating the parent composite file path sub-dir length
+3.09 cache unique compile order files for reference
+3.08 continue processing design libraries if ip_repo not found from repoitory value
+3.07 cache unique compile order files for reference
+3.06 set unset all design files variable for caching
+3.05 compile ips from project repository locally having same vlnvr
+3.04 refactor uniquify_cmd_str procedure to use dict keys
+3.03 pass pulse_e, pulse_int_e for post impl timing flows
+3.02 support logging all signals
+3.01 compile glbl into top library for elaborate
+3.00 compile glbl into top library for vhdl netlist
+2.99 replaced simulator uut with saif_scope
+2.98 add xpm library for elaborate step
+2.97 support for precompiled XPM library
+2.96 support for XPM files for -of_objects
+2.95 add VCOM VHDL file for XPM simulation, CR:947555
+2.94 set absolute path for xpm files
+2.93 pass clibs directory while checking for compiled libraries
+2.92 updated progress message for compile step
+2.91 set absolute path for glbl.v if absolute_path switch specified
+2.90 define proc to return true if system verilog source found
+2.89 fixed tcl syntax error while fetching libraries
+2.88 check for null file object before checking for used in property
+2.87 fetch IPI static files for old IP definitions
+2.86 add wave for batch flow only
+2.85 export and compile static files for the older IP libraries
+2.84 print warning if file not found from repo
+2.83 support for verilog header
+2.82 support for referencing old ips from previous projects
+2.81 support for the new verilog header type
+2.80 control IP pre-compiled flow via param
+2.79 reference synopsys_sim.setup from install at the end in setup script
+2.78 reference synopsys_sim.setup from install at the end
+2.77 define ipstatic variable
+2.76 moved procs to utils.tcl
+2.75 refactored procs in utils.tcl
+2.74 source utils.tcl with notrace
+2.73 re-structured common helper procedures in utils
