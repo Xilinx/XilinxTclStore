@@ -2314,18 +2314,25 @@ proc xcs_get_ip_header_file_from_repo { repo_dir ip_lib_dir_name vh_file_name } 
   return $ip_vh_file
 }
 
-proc xcs_find_sv_pkg_libs { } {
+proc xcs_find_sv_pkg_libs { run_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_sv_pkg_libs
+  set tmp_dir "$run_dir/_tmp_ip_comp_"
   set ip_comps [list]
   foreach ip [get_ips -all -quiet] {
     set ip_file [get_property ip_file $ip]
     set ip_filename [file rootname $ip_file];append ip_filename ".xml"
     if { ![file exists $ip_filename] } {
-      send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
+      # extract files
+      set ip_file_obj [get_files -all -quiet $ip_filename]
+      set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
+      if { ![file exists $ip_filename] } {
+        send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
+        continue;
+      }
     }
     lappend ip_comps $ip_filename
   }
@@ -2366,6 +2373,11 @@ proc xcs_find_sv_pkg_libs { } {
       }
     }
     ipx::unload_core $ip_comp
+  }
+
+  # delete tmp dir
+  if { [file exists $tmp_dir] } {
+   [catch {file delete -force $tmp_dir} error_msg]
   }
 
   # find SV package libraries from the design
