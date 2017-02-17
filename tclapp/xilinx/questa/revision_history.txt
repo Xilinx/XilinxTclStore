@@ -1,3 +1,4 @@
+2.42 extract xml comp files for finding SV pkg libraries
 2.41 source user tcl file from wrapper generated in run directory
 2.40 fetch sv files in quiet mode as those may not be part of compile order
 2.39 find xpm libraries from the design

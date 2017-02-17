@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>source user tcl file from wrapper generated in run directory</revision_history>
+      <revision_history>extract xml comp files for finding SV pkg libraries</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
