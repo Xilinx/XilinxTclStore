@@ -8,11 +8,33 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.9
+package provide ::tclapp::aldec::common::helpers 1.10
 
 namespace eval ::tclapp::aldec::common {
 
 namespace eval helpers {
+
+proc usf_aldec_is_file_disabled { _file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set isDisabled 0
+  catch { set isDisabled [get_property IS_USER_DISABLED [get_files -quiet $_file]] }
+  return $isDisabled
+}
+
+proc usf_aldec_get_vivado_version {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { [regexp {[0-9]{4}\.[0-9]+} [version -short] value] } {
+    return $value
+  } else {
+    return 0.0
+  }
+}
 
 proc usf_aldec_correctSetupArgs { args } {
   # Summary:
@@ -21,7 +43,7 @@ proc usf_aldec_correctSetupArgs { args } {
 
   # Projects created prior to Vivado 2016.1 with enabled "generate scripts only" option, and imported into newer Vivado, 
   # still pass -scripts_only switch, but it doesn't exist anymore in gui so we need to remove it from args
-  if { [version -short] < 2016.1 } {
+  if { [usf_aldec_get_vivado_version] < 2016.1 } {
     return
   }
   
@@ -505,8 +527,8 @@ proc usf_write_design_netlist {} {
   # generate netlist
   set net_filename     [usf_get_netlist_filename];append net_filename "$extn"
   set sdf_filename     [usf_get_netlist_filename];append sdf_filename ".sdf"
-  set net_file         [file normalize [file join $a_sim_vars(s_launch_dir) $net_filename]]
-  set sdf_file         [file normalize [file join $a_sim_vars(s_launch_dir) $sdf_filename]]
+  set net_file         [usf_file_normalize [file join $a_sim_vars(s_launch_dir) $net_filename]]
+  set sdf_file         [usf_file_normalize [file join $a_sim_vars(s_launch_dir) $sdf_filename]]
   set netlist_cmd_args [usf_get_netlist_writer_cmd_args $extn]
   set sdf_cmd_args     [usf_get_sdf_writer_cmd_args]
   set design_mode      [get_property DESIGN_MODE [current_fileset]]
@@ -932,13 +954,13 @@ proc usf_copy_glbl_file {} {
   variable a_sim_vars
   set run_dir $a_sim_vars(s_launch_dir)
 
-  set target_glbl_file [file normalize [file join $run_dir "glbl.v"]]
+  set target_glbl_file [usf_file_normalize [file join $run_dir "glbl.v"]]
   if { [file exists $target_glbl_file] } {
     return
   }
 
   set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
-  set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
+  set src_glbl_file [usf_file_normalize [file join $data_dir "verilog/src/glbl.v"]]
 
   if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
     send_msg_id USF-[usf_aldec_getSimulatorName]-26 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
@@ -1131,7 +1153,7 @@ proc usf_aldec_set_simulator_path {} {
       send_msg_id USF-[usf_aldec_getSimulatorName]-36 INFO "Using simulator executables from '$bin_path'\n"
     }
   } else {
-    set install_path [file normalize [string map {\\ /} $install_path]]
+    set install_path [usf_file_normalize [string map {\\ /} $install_path]]
     set install_path [string trimright $install_path {/}]
     set bin_path $install_path
     set tool_path [file join $install_path $tool_name]
@@ -1485,11 +1507,11 @@ proc usf_launch_script { step } {
   set scr_file ${step}$extn
   set run_dir $a_sim_vars(s_launch_dir)
 
-  set shell_script_file [file normalize [file join $run_dir $scr_file]]
+  set shell_script_file [usf_file_normalize [file join $run_dir $scr_file]]
   usf_make_file_executable $shell_script_file
 
   if { $a_sim_vars(b_scripts_only) } {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-45 INFO "Script generated:[file normalize [file join $run_dir $scr_file]]"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-45 INFO "Script generated:[usf_file_normalize [file join $run_dir $scr_file]]"
     return 0
   }
 
@@ -1677,6 +1699,11 @@ proc usf_get_simulator_lib_for_bfm {} {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  if { [usf_aldec_get_vivado_version] >= 2017.1 } {
+    return
+  }
+
   set simulator_lib {}
   set xil           $::env(XILINX_VIVADO)
   set path_sep      {;}
@@ -1693,7 +1720,7 @@ proc usf_get_simulator_lib_for_bfm {} {
     set lib_path {}
     send_msg_id USF-[usf_aldec_getSimulatorName]-50 INFO "Finding simulator library from 'XILINX_VIVADO'..."
     foreach path [split $xil $path_sep] {
-      set file [file normalize [file join $path "lib" $platform $lib_name]]
+      set file [usf_file_normalize [file join $path "lib" $platform $lib_name]]
       if { [file exists $file] } {
         send_msg_id USF-[usf_aldec_getSimulatorName]-51 INFO "Using library:'$file'"
         set simulator_lib $file
@@ -1705,6 +1732,11 @@ proc usf_get_simulator_lib_for_bfm {} {
   } else {
     send_msg_id USF-[usf_aldec_getSimulatorName]-53 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
   }
+
+  if { $simulator_lib == {} } {
+    send_msg_id USF-[usf_aldec_getSimulatorName]-54 ERROR "Failed to locate simulator library from 'XILINX' environment variable."
+  }
+
   return $simulator_lib
 }
 }
@@ -1729,7 +1761,7 @@ proc usf_get_netlist_extn { warning } {
   if { (({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type))) } {
     set extn {.v}
     if { $warning } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-54 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-55 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
     }
   }
   return $extn
@@ -1784,16 +1816,16 @@ proc usf_export_data_files { data_files } {
       }
       set target_file [file join $export_dir [file tail $file]]
       if { [get_param project.enableCentralSimRepo] } {
-        set mem_init_dir [file normalize [file join $a_sim_vars(dynamic_repo_dir) "mem_init_files"]]
+        set mem_init_dir [usf_file_normalize [file join $a_sim_vars(dynamic_repo_dir) "mem_init_files"]]
         set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
         if {[catch {file copy -force $data_file $export_dir} error_msg] } {
-          send_msg_id USF-[usf_aldec_getSimulatorName]-55 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
+          send_msg_id USF-[usf_aldec_getSimulatorName]-56 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
         } else {
-          send_msg_id USF-[usf_aldec_getSimulatorName]-56 INFO "Exported '$target_file'\n"
+          send_msg_id USF-[usf_aldec_getSimulatorName]-57 INFO "Exported '$target_file'\n"
         }
       } else {
         set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $export_dir]
-        send_msg_id USF-[usf_aldec_getSimulatorName]-57 INFO "Exported '$target_file'\n"
+        send_msg_id USF-[usf_aldec_getSimulatorName]-58 INFO "Exported '$target_file'\n"
       }
     }
   }
@@ -1867,14 +1899,14 @@ proc usf_get_files_from_block_filesets { filter_type } {
   set used_in_val "simulation"
   set fs_objs [get_filesets -filter $filter]
   if { [llength $fs_objs] > 0 } {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-58 INFO "Finding block fileset files..."
+    send_msg_id USF-[usf_aldec_getSimulatorName]-59 INFO "Finding block fileset files..."
     foreach fs_obj $fs_objs {
       set fs_name [get_property "NAME" $fs_obj]
-      send_msg_id USF-[usf_aldec_getSimulatorName]-59 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-60 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
       #set files [usf_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]]
       set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]
       if { [llength $files] == 0 } {
-        send_msg_id USF-[usf_aldec_getSimulatorName]-60 INFO "No files found in '$fs_name'\n"
+        send_msg_id USF-[usf_aldec_getSimulatorName]-61 INFO "No files found in '$fs_name'\n"
         continue
       } else {
         foreach file $files {
@@ -1894,7 +1926,7 @@ proc usf_remove_duplicate_files { compile_order_files } {
   set file_list [list]
   set compile_order [list]
   foreach file $compile_order_files {
-    set normalized_file_path [file normalize [string map {\\ /} $file]]
+    set normalized_file_path [usf_file_normalize [string map {\\ /} $file]]
     if { [lsearch -exact $file_list $normalized_file_path] == -1 } {
       lappend file_list $normalized_file_path
       lappend compile_order $file
@@ -2033,7 +2065,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
         }
       }
     }
-    set file_path [file normalize [string map {\\ /} [file dirname $vh_file]]]
+    set file_path [usf_file_normalize [string map {\\ /} [file dirname $vh_file]]]
     if { [lsearch -exact $unique_paths $file_path] == -1 } {
       if { $a_sim_vars(b_absolute_path) } {
         set incl_file_path "[usf_resolve_file_path $file_path]"
@@ -2079,11 +2111,11 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
       }
 
       set file [usf_xtract_file $file]
-      set file [file normalize [string map {\\ /} $file]]
+      set file [usf_file_normalize [string map {\\ /} $file]]
       if { [lsearch -exact $incl_files_set $file] == -1 } {
         lappend incl_files_set $file
         lappend incl_files     $file
-        set incl_file_path [file normalize [string map {\\ /} [file dirname $file]]]
+        set incl_file_path [usf_file_normalize [string map {\\ /} [file dirname $file]]]
         if { $a_sim_vars(b_absolute_path) } {
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
@@ -2140,6 +2172,52 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   return $incl_dirs
 }
 
+proc usf_file_normalize { _path } {
+  # Summary: On Windows 'file normalize' changes a link path into a target path, which fools relative paths calculation. This procedure does simplified normalization for links on Windows.
+  # Argument Usage:
+  # Return Value:
+
+  if { $::tcl_platform(platform) != {windows} } {
+    return [file normalize $_path]
+  }
+
+  # check if it is a link
+  set itIsLink 0
+  set path {}
+
+  foreach element [file split $_path] {
+    set path [file join $path $element]
+    if { [catch { file link $path }] } {
+      continue
+    }
+    set itIsLink 1
+    break
+  }
+
+  if { !$itIsLink } {
+    return [file normalize $_path]
+  }
+
+  # do simplified normalization
+  set elements {}
+  foreach element [file split $_path] {
+    if { $element == "." } {
+      continue
+    } elseif { $element == ".." } {
+      set elements [lreplace $elements end end]
+    } else {
+      lappend elements $element
+    }
+  }
+
+  set path {}
+  foreach element $elements {
+    set path [file join $path $element]
+  }
+
+  return $path
+}
+
 proc usf_get_relative_file_path { file_path_to_convert relative_to } {
   # Summary: Get the relative path wrt to path specified
   # Argument Usage:
@@ -2157,14 +2235,15 @@ proc usf_get_relative_file_path { file_path_to_convert relative_to } {
     return $file_path_to_convert
   }
 
-  set cwd [file normalize [pwd]]
+  set cwd [usf_file_normalize [pwd]]
   # is relative_to "relative"? convert to absolute as well wrt cwd
   if { [file pathtype $relative_to] eq "relative" } {
     set relative_to [file join $cwd $relative_to]
   }
+  
   # normalize
-  set file_path_to_convert [file normalize $file_path_to_convert]
-  set relative_to          [file normalize $relative_to]
+  set file_path_to_convert [usf_file_normalize $file_path_to_convert]
+  set relative_to          [usf_file_normalize $relative_to]
   set file_path $file_path_to_convert
   set file_comps        [file split $file_path]
   set relative_to_comps [file split $relative_to]
@@ -2174,13 +2253,15 @@ proc usf_get_relative_file_path { file_path_to_convert relative_to } {
   set rt_comps_len [llength $relative_to_comps]
   # compare each dir element of file_to_convert and relative_to, set the flag and
   # get the final index till these sub-dirs matched
-  while { [lindex $file_comps $index] == [lindex $relative_to_comps $index] } {
+  while { $::tcl_platform(platform) == {windows} && [string equal -nocase [lindex $file_comps $index] [lindex $relative_to_comps $index]] 
+    || $::tcl_platform(platform) != {windows} && [string equal [lindex $file_comps $index] [lindex $relative_to_comps $index]] } {
     if { !$found_match } { set found_match true }
     incr index
     if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
       break;
     }
   }
+
   # any common dirs found? convert path to relative
   if { $found_match } {
     set parent_dir_path ""
@@ -2223,9 +2304,9 @@ proc usf_resolve_file_path { file_dir_path_to_convert } {
   # Relative path wrt the path specified
 
   variable a_sim_vars
-  set ref_dir [file normalize [string map {\\ /} $a_sim_vars(s_launch_dir)]]
+  set ref_dir [usf_file_normalize [string map {\\ /} $a_sim_vars(s_launch_dir)]]
   set ref_comps [lrange [split $ref_dir "/"] 1 end]
-  set file_comps [lrange [split [file normalize [string map {\\ /} $file_dir_path_to_convert]] "/"] 1 end]
+  set file_comps [lrange [split [usf_file_normalize [string map {\\ /} $file_dir_path_to_convert]] "/"] 1 end]
   set index 1
   while { [lindex $ref_comps $index] == [lindex $file_comps $index] } {
     incr index
@@ -2380,11 +2461,11 @@ proc usf_make_file_executable { file } {
 
   if {$::tcl_platform(platform) == "unix"} {
     if {[catch {exec chmod a+x $file} error_msg] } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-61 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-62 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   } else {
     if {[catch {exec attrib /D -R $file} error_msg] } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-62 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-63 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   }
 }
@@ -2407,22 +2488,22 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
   if { [get_property "IS_IP_BEHAV_LANG_SUPPORTED" $comp_file] } {
     # does ip generated simulation products? if not, generate them
     if { ![get_property "IS_IP_GENERATED_SIM" $comp_file] } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-63 INFO "Generating simulation products for IP '$ip_name'...\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-64 INFO "Generating simulation products for IP '$ip_name'...\n"
       set delivered_targets [get_property delivered_targets [get_ips -quiet ${ip_name}]]
       if { [regexp -nocase {simulation} $delivered_targets] } {
         generate_target {simulation} [get_files [list "$comp_file"]] -force
       }
     } else {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-64 INFO "IP '$ip_name' is upto date for simulation\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-65 INFO "IP '$ip_name' is upto date for simulation\n"
     }
   } elseif { [get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file] } {
     # make sure ip is up-to-date
     if { ![get_property "IS_IP_GENERATED" $comp_file] } {
       generate_target {all} [get_files [list "$comp_file"]] -force
-      send_msg_id USF-[usf_aldec_getSimulatorName]-65 INFO "Generating functional netlist for IP '$ip_name'...\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-66 INFO "Generating functional netlist for IP '$ip_name'...\n"
       usf_generate_ip_netlist $comp_file runs_to_launch
     } else {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-66 INFO "IP '$ip_name' is upto date for all products\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-67 INFO "IP '$ip_name' is upto date for all products\n"
     }
   } else {
     # at this point, ip doesnot support behavioral language and synth check point is false, so advise
@@ -2437,7 +2518,7 @@ proc usf_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
     } else {
       # no synthesis, so no recommendation to do a synth checkpoint.
     }
-    send_msg_id USF-[usf_aldec_getSimulatorName]-67 WARNING "$error_msg\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-68 WARNING "$error_msg\n"
     #return 1
   }
 }
@@ -2451,20 +2532,20 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
   set comp_file_obj [get_files [list "$comp_file"]]
   set comp_file_fs  [get_property "FILESET_NAME" $comp_file_obj]
   if { ![get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file_obj] } {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-68 INFO "Generate synth checkpoint is 'false':$comp_file\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-69 INFO "Generate synth checkpoint is 'false':$comp_file\n"
     # if synth checkpoint read-only, return
     if { [get_property "IS_IP_SYNTH_CHECKPOINT_READONLY" $comp_file_obj] } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-69 WARNING "Synth checkpoint property is 'readonly' ... skipping:$comp_file\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-70 WARNING "Synth checkpoint property is 'readonly' ... skipping:$comp_file\n"
       return
     }
     # set property to create a DCP/structural simulation file
-    send_msg_id USF-[usf_aldec_getSimulatorName]-70 INFO "Setting synth checkpoint for generating simulation netlist:$comp_file\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-71 INFO "Setting synth checkpoint for generating simulation netlist:$comp_file\n"
     set_property "GENERATE_SYNTH_CHECKPOINT" true $comp_file_obj
   } else {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-71 INFO "Generate synth checkpoint is set:$comp_file\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-72 INFO "Generate synth checkpoint is set:$comp_file\n"
   }
   # block fileset name is based on the basename of the IP
-  set src_file [file normalize $comp_file]
+  set src_file [usf_file_normalize $comp_file]
   set ip_basename [file root [file tail $src_file]]
   # block-fileset may not be created at this point, so quiet if not found
   set block_fs_obj [get_filesets -quiet $ip_basename]
@@ -2472,16 +2553,16 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
   if { {} == $block_fs_obj } {
     create_fileset -blockset "$ip_basename"
     set block_fs_obj [get_filesets $ip_basename]
-    send_msg_id USF-[usf_aldec_getSimulatorName]-72 INFO "Block-fileset created:$block_fs_obj"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-73 INFO "Block-fileset created:$block_fs_obj"
     # set fileset top
     set comp_file_top [get_property "IP_TOP" $comp_file_obj]
     set_property "TOP" $comp_file_top [get_filesets $ip_basename]
     # move sub-design to block-fileset
-    send_msg_id USF-[usf_aldec_getSimulatorName]-73 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-74 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
     move_files -fileset [get_filesets $ip_basename] [get_files -of_objects [get_filesets $comp_file_fs] $src_file] 
   }
   if { {BlockSrcs} != [get_property "FILESET_TYPE" $block_fs_obj] } {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-74 ERROR "Given source file is not associated with a design source fileset.\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-75 ERROR "Given source file is not associated with a design source fileset.\n"
     return 1
   }
   # construct block-fileset run for the netlist
@@ -2490,7 +2571,7 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
     reset_run $run_name
   }
   lappend runs_to_launch $run_name
-  send_msg_id USF-[usf_aldec_getSimulatorName]-75 INFO "Run scheduled for '$ip_basename':$run_name\n"
+  send_msg_id USF-[usf_aldec_getSimulatorName]-76 INFO "Run scheduled for '$ip_basename':$run_name\n"
 }
 
 proc usf_get_testbench_files_from_ip { file_type_filter } {
@@ -2528,7 +2609,7 @@ proc usf_get_bin_path { tool_name path_sep } {
   set path_value $::env(PATH)
   set bin_path {}
   foreach path [split $path_value $path_sep] {
-    set exe_file [file normalize [file join $path $tool_name]]
+    set exe_file [usf_file_normalize [file join $path $tool_name]]
     if { [file exists $exe_file] } {
       set bin_path $path
       break
@@ -2730,10 +2811,10 @@ proc usf_aldec_check_errors { step results_log_arg } {
   set run_dir $a_sim_vars(s_launch_dir)
 
   set retval 0
-  set log [file normalize [file join $run_dir ${step}.log]]
+  set log [usf_file_normalize [file join $run_dir ${step}.log]]
   set fh 0
   if {[catch {open $log r} fh]} {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-76 WARNING "Failed to open file to read ($log)\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-77 WARNING "Failed to open file to read ($log)\n"
   } else {
     set log_data [read $fh]
     close $fh
@@ -2757,7 +2838,7 @@ proc usf_aldec_check_errors { step results_log_arg } {
     }
   }
   if { $retval } {
-    [catch {send_msg_id USF-[usf_aldec_getSimulatorName]-77 INFO "Step results log file:'$log'\n"}]
+    [catch {send_msg_id USF-[usf_aldec_getSimulatorName]-78 INFO "Step results log file:'$log'\n"}]
     return 1
   }
   return 0
@@ -2809,7 +2890,7 @@ proc usf_find_files { src_files_arg filter } {
           continue;
         }
       }
-      set file [file normalize $file]
+      set file [usf_file_normalize $file]
       if { $a_sim_vars(b_absolute_path) } {
         set file "[usf_resolve_file_path $file]"
       } else {
@@ -2840,7 +2921,7 @@ proc usf_find_files { src_files_arg filter } {
             continue;
           }
         }
-        set file [file normalize $file]
+        set file [usf_file_normalize $file]
         if { $a_sim_vars(b_absolute_path) } {
           set file "[usf_resolve_file_path $file]"
         } else {
@@ -2906,7 +2987,7 @@ proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip
     set src_file [usf_get_source_from_repo $ip_file $src_file $launch_dir b_is_static b_is_dynamic]
     set b_static_ip_file $b_is_static
     if { (!$b_is_static) && (!$b_is_dynamic) } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-78 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-79 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
     }
     # phase-2
     if { $b_is_static } {
@@ -3016,7 +3097,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   
             # strip the ip_output_dir path from source ip file and prepend static dir
             set lib_dir [usf_get_sub_file_path $src_ip_file_dir $ip_output_dir]
-            set target_extract_dir [file normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
+            set target_extract_dir [usf_file_normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
             #puts target_extract_dir=$target_extract_dir
   
             set dst_cip_file [extract_files -no_path -quiet -files [list "$ip_static_file"] -base_dir $target_extract_dir]
@@ -3131,8 +3212,8 @@ proc usf_fetch_ip_static_file { file vh_file_obj } {
   set lib_file_path {}
   # axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
 
-  set src_file_dirs  [file split [file normalize $src_ip_file]]
-  set comp_file_dirs [file split [file normalize $comp_file_dir]]
+  set src_file_dirs  [file split [usf_file_normalize $src_ip_file]]
+  set comp_file_dirs [file split [usf_file_normalize $comp_file_dir]]
   set src_file_len [llength $src_file_dirs]
   set comp_dir_len [llength $comp_file_dir]
 
@@ -3237,7 +3318,7 @@ proc usf_get_dynamic_sim_file_core_container { src_file } {
     return $repo_src_file
   }
 
-  #send_msg_id exportsim-Tcl-79 WARNING "Corresponding IP user file does not exist:'$repo_src_file'!, using default:'$src_file'"
+  #send_msg_id exportsim-Tcl-80 WARNING "Corresponding IP user file does not exist:'$repo_src_file'!, using default:'$src_file'"
   return $src_file
 }
 
@@ -3341,8 +3422,8 @@ proc usf_get_sub_file_path { src_file_path dir_path_to_remove } {
   # Argument Usage:
   # Return Value:
 
-  set src_path_comps [file split [file normalize $src_file_path]]
-  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
+  set src_path_comps [file split [usf_file_normalize $src_file_path]]
+  set dir_path_comps [file split [usf_file_normalize $dir_path_to_remove]]
 
   set src_path_len [llength $src_path_comps]
   set dir_path_len [llength $dir_path_comps]
@@ -3405,14 +3486,14 @@ proc usf_find_ipstatic_file_path { src_ip_file parent_comp_file } {
     if { $b_found } {
       set file_path_str [join [lrange $comps $index end] "/"]
       #puts file_path_str=$file_path_str
-      set dest_file [file normalize [file join $a_sim_vars(ipstatic_dir) $file_path_str]]
+      set dest_file [usf_file_normalize [file join $a_sim_vars(ipstatic_dir) $file_path_str]]
     }
   } else {
     set parent_ip_name [file root [file tail $parent_comp_file]]
     set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
     set src_ip_file_dir [file dirname $src_ip_file]
     set lib_dir [usf_get_sub_file_path $src_ip_file_dir $ip_output_dir]
-    set target_extract_dir [file normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
+    set target_extract_dir [usf_file_normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
     set dest_file [file join $target_extract_dir $filename]
   }
   return $dest_file
@@ -3499,7 +3580,7 @@ proc usf_get_top { top_arg } {
   set fs_name [get_property "NAME" $fs_obj]
   set top [get_property "TOP" $fs_obj]
   if { {} == $top } {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-80 ERROR "Top module not set for fileset '$fs_name'. Please ensure that a valid \
+    send_msg_id USF-[usf_aldec_getSimulatorName]-81 ERROR "Top module not set for fileset '$fs_name'. Please ensure that a valid \
        value is provided for 'top'. The value for 'top' can be set/changed using the 'Top Module Name' field under\
        'Project Settings', or using the 'set_property top' Tcl command (e.g. set_property top <name> \[current_fileset\])."
     return 1

@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.9
+package require ::tclapp::aldec::common::helpers 1.10
 
 namespace eval ::tclapp::aldec::activehdl {
 
@@ -30,6 +30,7 @@ proc register_options { simulator } {
   }
 
   set options {
+    {{compile.tcl.pre}             {string} {}                        {Specify pre-compile step TCL hook}}
     {{compile.vhdl_syntax}         {enum}   {93 93 {93 2002 2008}}   {Specify VHDL standard}}
     {{compile.vlog_syntax}         {enum}   {2005 2005 {1995 2001 2005}}   {Specify Verilog standard}}
     {{compile.sv_syntax}         {enum}   {2012 2012 {2005 2009 2012}}   {Specify SystemVerilog standard}}
@@ -57,6 +58,9 @@ proc register_options { simulator } {
     {{elaborate.access}            {bool}   {0}                                     {Enable access to objects optimized by default}}
     {{elaborate.unifast}           {bool}   {0}                                     {Enable fast simulation models}}
 
+    {{simulate.custom_do}          {string} {}                                      {Specify name of the custom DO file}}
+    {{simulate.custom_udo}         {string} {}                                      {Specify name of the custom user DO file}}
+    {{simulate.tcl.post}           {string} {}                                      {Specify post-simulate step TCL hook}}
     {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.log_all_signals}    {bool}   {0}                                     {Log all signals in simulation database}}
     {{simulate.debug}    {bool}   {0}                                     {Enable debugging features}}

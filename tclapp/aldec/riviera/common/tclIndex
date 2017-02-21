@@ -6,6 +6,8 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
+set auto_index(::tclapp::aldec::common::helpers::usf_aldec_is_file_disabled) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::aldec::common::helpers::usf_aldec_get_vivado_version) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_aldec_correctSetupArgs) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_aldec_appendSimulationCoverageOptions) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_aldec_appendCompilationCoverageOptions) [list source [file join $dir helpers.tcl]]
@@ -62,6 +64,7 @@ set auto_index(::tclapp::aldec::common::helpers::usf_get_header_include_paths) [
 set auto_index(::tclapp::aldec::common::helpers::usf_add_unique_incl_paths) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_get_global_include_files) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_get_incl_dirs_from_ip) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::aldec::common::helpers::usf_file_normalize) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_get_relative_file_path) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_resolve_file_path) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_is_ip) [list source [file join $dir helpers.tcl]]
@@ -113,7 +116,6 @@ set auto_index(::tclapp::aldec::common::sim::usf_setup_args) [list source [file 
 set auto_index(::tclapp::aldec::common::sim::usf_aldec_write_setup_files) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_aldec_write_compile_script) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_write_simulate_script) [list source [file join $dir sim.tcl]]
-set auto_index(::tclapp::aldec::common::sim::usf_create_udo_file) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_aldec_mapLibraryCfg) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_aldec_create_do_file_for_compilation) [list source [file join $dir sim.tcl]]
 set auto_index(::tclapp::aldec::common::sim::usf_aldec_get_elaboration_cmdline) [list source [file join $dir sim.tcl]]

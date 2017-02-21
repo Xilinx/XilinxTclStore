@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export_simulation procedure and support for -lib_map_path switch added</revision_history>
+      <revision_history>Files grouped to speed up compilation. AXI-BFM settings updated. Pre/post tcl hooks added.</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
