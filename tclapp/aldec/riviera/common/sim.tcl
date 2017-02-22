@@ -241,6 +241,7 @@ proc usf_write_simulate_script {} {
   set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
 
   set do_filename [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.CUSTOM_DO] $fs_obj]
+  ::tclapp::aldec::common::helpers::usf_aldec_get_file_path_from_project do_filename
 
   if { ![file isfile $do_filename] || [::tclapp::aldec::common::helpers::usf_aldec_is_file_disabled $do_filename] } {
 
@@ -339,6 +340,7 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   usf_aldec_createDesignIfNeeded $fh
 
   set tcl_pre_hook [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.TCL.PRE] $fs_obj]
+  ::tclapp::aldec::common::helpers::usf_aldec_get_file_path_from_project tcl_pre_hook
   if { [file isfile $tcl_pre_hook] && ![::tclapp::aldec::common::helpers::usf_aldec_is_file_disabled $tcl_pre_hook] } {
     puts $fh "\nsource \{$tcl_pre_hook\}\n"
   } elseif { $tcl_pre_hook != "" } {
@@ -652,6 +654,7 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   puts $fh ""
 
   set customDoFile [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.CUSTOM_UDO] $fs_obj]
+  ::tclapp::aldec::common::helpers::usf_aldec_get_file_path_from_project customDoFile
   if { [file isfile $customDoFile] && ![::tclapp::aldec::common::helpers::usf_aldec_is_file_disabled $customDoFile] } {
     puts $fh "do \{$customDoFile\}\n"
   } elseif { $customDoFile != "" } {
@@ -699,6 +702,7 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   }
 
   set tcl_post_hook [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.TCL.POST] $fs_obj]
+  ::tclapp::aldec::common::helpers::usf_aldec_get_file_path_from_project tcl_post_hook
   if { [file isfile $tcl_post_hook] && ![::tclapp::aldec::common::helpers::usf_aldec_is_file_disabled $tcl_post_hook] } {
     puts $fh "\nsource \{$tcl_post_hook\}\n"
   } elseif { $tcl_post_hook != "" } {

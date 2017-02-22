@@ -6,6 +6,7 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
+set auto_index(::tclapp::aldec::common::helpers::usf_aldec_get_file_path_from_project) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_aldec_is_file_disabled) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_aldec_get_vivado_version) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::usf_aldec_correctSetupArgs) [list source [file join $dir helpers.tcl]]

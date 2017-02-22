@@ -14,6 +14,19 @@ namespace eval ::tclapp::aldec::common {
 
 namespace eval helpers {
 
+proc usf_aldec_get_file_path_from_project { _file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $_file file
+
+  set tmp [lindex [get_files -quiet $file] 0]
+  if { $tmp != "" } {
+    set file $tmp
+  }
+}
+
 proc usf_aldec_is_file_disabled { _file } {
   # Summary:
   # Argument Usage:
