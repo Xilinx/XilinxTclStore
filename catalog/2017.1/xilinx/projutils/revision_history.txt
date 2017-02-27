@@ -1,3 +1,4 @@
+3.230 fixed include_dirs property value to relative wrt origin dir and skip deprecated verilog_dir
 3.228 extract xml comp files for finding SV pkg libraries
 3.227 call get_files in quiet mode to hide warnings when project does not contain sources
 3.226 source user tcl file from wrapper generated in run directory
