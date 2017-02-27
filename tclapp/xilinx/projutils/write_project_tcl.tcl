@@ -924,17 +924,6 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       }
     }
 
-    # re-align tcl pre/post hook paths wrt origin dir
-    if { [regexp -nocase "\.tcl\.pre" $prop] || [regexp -nocase "\.tcl\.post" $prop] } {
-      if { [llength $cur_val] > 0 } {
-        if { !$a_global_vars(b_absolute_path) } {
-          set incl_path $abs_proj_file_path
-          set rel_path "\[file normalize \"\$origin_dir/[get_relative_file_path_for_source $incl_path [get_script_execution_dir]]\"\]"
-          set prop_entry "[string tolower $prop]#$rel_path"
-        }
-      }
-    }
-
     # fix paths wrt the original project dir
     if {([string equal -nocase $prop "top_file"]) && ($cur_val != "") } {
       set file $cur_val
@@ -1127,15 +1116,6 @@ proc write_simulator_props { prefix get_what tcl_obj prop_info_list_arg } {
     set cur_val [get_property $prop $tcl_obj]
     set cur_val [get_target_bool_val $def_val $cur_val]
     set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
-
-    # re-align tcl pre/post hook paths wrt origin dir
-    if { [regexp -nocase "\.tcl\.pre" $prop] || [regexp -nocase "\.tcl\.post" $prop] } {
-      if { !$a_global_vars(b_absolute_path) } {
-        set rel_path "\[file normalize \"\$origin_dir/[get_relative_file_path_for_source $cur_val [get_script_execution_dir]]\"\]"
-        set prop_entry "[string tolower $prop]#$rel_path"
-      }
-    }
-
     if { $def_val != $cur_val } {
       lappend prop_info_list $prop_entry
     }
