@@ -129,6 +129,9 @@ proc usf_questa_setup_simulation { args } {
   # initialize Questa simulator variables
   usf_questa_init_simulation_vars
 
+  # initialize XPM libraries (if any)
+  xcs_get_xpm_libraries
+
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
                                                            $a_sim_vars(s_simulation_flow) \
@@ -144,8 +147,9 @@ proc usf_questa_setup_simulation { args } {
   set clibs_dir [usf_questa_verify_compiled_lib]
 
   variable l_compiled_libraries
+  variable l_xpm_libraries
   set b_reference_xpm_library 0
-  if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
+  if { [llength $l_xpm_libraries] > 0 } {
      if { [get_param project.usePreCompiledXPMLibForSim] } {
       set b_reference_xpm_library 1
     }
@@ -169,7 +173,7 @@ proc usf_questa_setup_simulation { args } {
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # fetch the compile order for the specified object
-  ::tclapp::xilinx::questa::usf_xport_data_files
+  xcs_xport_data_files $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_simset) $a_sim_vars(s_sim_top) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
 
   # cache all design files
   variable a_sim_cache_all_design_files_obj
@@ -177,6 +181,9 @@ proc usf_questa_setup_simulation { args } {
     set name [get_property -quiet name $file_obj]
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
+
+  # cache all system verilog package libraries
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
 
   # fetch design files
   set global_files_str {}
@@ -373,19 +380,10 @@ proc usf_questa_write_compile_script {} {
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
 
   set do_filename {}
-  # is custom do file specified?
-  set custom_do_file [get_property "QUESTA.SIMULATE.CUSTOM_DO" $fs_obj]
-  if { {} != $custom_do_file } {
-    send_msg_id USF-Questa-014 INFO "Using custom 'do' file '$custom_do_file'...\n"
-    set do_filename $custom_do_file
-  } else {
-    set do_filename $top;append do_filename "_compile.do"
-    set do_file [file normalize [file join $dir $do_filename]]
-
+  set do_filename $top;append do_filename "_compile.do"
+  set do_file [file normalize [file join $dir $do_filename]]
     send_msg_id USF-Questa-015 INFO "Creating automatic 'do' files...\n"
-
-    usf_questa_create_do_file_for_compilation $do_file
-  }
+  usf_questa_create_do_file_for_compilation $do_file
 
   # write compile.sh/.bat
   usf_questa_write_driver_shell_script $do_filename "compile"
@@ -399,6 +397,7 @@ proc usf_questa_write_elaborate_script {} {
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
+
   set do_filename {}
   set do_filename $top;append do_filename "_elaborate.do"
   set do_file [file normalize [file join $dir $do_filename]]
@@ -416,10 +415,19 @@ proc usf_questa_write_simulate_script {} {
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
+
   set do_filename {}
-  set do_filename $top;append do_filename "_simulate.do"
-  set do_file [file normalize [file join $dir $do_filename]]
-  usf_questa_create_do_file_for_simulation $do_file
+  # is custom do file specified?
+  set custom_do_file [get_property "QUESTA.SIMULATE.CUSTOM_DO" $fs_obj]
+  if { {} != $custom_do_file } {
+    send_msg_id USF-Questa-014 INFO "Using custom 'do' file '$custom_do_file'...\n"
+    set do_filename $custom_do_file
+  } else {
+    set do_filename $top;append do_filename "_simulate.do"
+    set do_file [file normalize [file join $dir $do_filename]]
+
+    usf_questa_create_do_file_for_simulation $do_file
+  }
 
   # write elaborate.sh/.bat
   usf_questa_write_driver_shell_script $do_filename "simulate"
@@ -496,6 +504,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
 
   usf_questa_write_header $fh $do_file
+
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
     # no op
   } else {
@@ -816,6 +825,15 @@ proc usf_questa_get_elaboration_cmdline {} {
   # add simulation libraries
   set arg_list [list]
 
+  # add sv pkg libraries
+  #variable a_sim_sv_pkg_libs
+  #foreach lib $a_sim_sv_pkg_libs {
+  #  if { [lsearch $design_libs $lib] == -1 } {
+  #    lappend arg_list "-L"
+  #    lappend arg_list "$lib"
+  #  }
+  #}
+
   # add user design libraries
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -940,17 +958,6 @@ proc usf_questa_get_simulation_cmdline {} {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
 
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::xilinx::questa::usf_is_axi_bfm_ip] } {
-    set simulator_lib [usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
-    } else {
-      send_msg_id USF-Questa-020 "CRITICAL WARNING" \
-        "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
-  }
-
   if { [get_param "project.allowSharedLibraryType"] } {
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
       if { {Shared Library} == [get_property FILE_TYPE $file] } {
@@ -1053,7 +1060,17 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   usf_questa_write_header $fh $do_file
   set wave_do_filename $top;append wave_do_filename "_wave.do"
   set wave_do_file [file normalize [file join $dir $wave_do_filename]]
-  usf_questa_create_wave_do_file $wave_do_file
+  set custom_wave_do_file [get_property "QUESTA.SIMULATE.CUSTOM_WAVE_DO" $fs_obj]
+  if { {} != $custom_wave_do_file } {
+    set wave_do_filename $custom_wave_do_file
+    # custom wave do specified, delete existing auto generated wave do file from run dir
+    if { [file exists $wave_do_file] } {
+      [catch {file delete -force $wave_do_file} error_msg]
+    }
+  } else {
+    usf_questa_create_wave_do_file $wave_do_file
+  }
+
   set cmd_str [usf_questa_get_simulation_cmdline]
   usf_add_quit_on_error $fh "simulate"
   
@@ -1105,6 +1122,21 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     puts $fh "do \{$top.udo\}"
   } else {
     puts $fh "do \{$udo_file\}"
+  }
+
+  # write tcl post hook for windows
+  set tcl_post_hook [get_property QUESTA.SIMULATE.TCL.POST $fs_obj]
+  if { {} != $tcl_post_hook } {
+    puts $fh "\n# execute post tcl file"
+    puts $fh "set rc \[catch \{"
+    puts $fh "  puts \"source $tcl_post_hook\""
+    puts $fh "  source \"$tcl_post_hook\""
+    puts $fh "\} result\]"
+    puts $fh "if \{\$rc\} \{"
+    puts $fh "  puts \"\$result\""
+    puts $fh "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
+    #puts $fh "  return -code error"
+    puts $fh "\}"
   }
 
   set rt [string trim [get_property "QUESTA.SIMULATE.RUNTIME" $fs_obj]]
@@ -1179,6 +1211,8 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
   set b_batch $::tclapp::xilinx::questa::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
@@ -1206,6 +1240,9 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       set s_64bit {-64}
     }
   }
+
+  # write tcl pre hook
+  set tcl_pre_hook [get_property QUESTA.COMPILE.TCL.PRE $fs_obj]
 
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
@@ -1246,9 +1283,33 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       }
     }
 
-    ::tclapp::xilinx::questa::usf_write_shell_step_fn $fh_scr
+    if {$::tcl_platform(platform) == "unix"} {
+      if { {} != $tcl_pre_hook } {
+        puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
+      }
+    }
+
+    xcs_write_shell_step_fn $fh_scr
+
+    if {$::tcl_platform(platform) == "unix"} {
+      # add tcl pre hook
+      if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
+        if { ![file exists $tcl_pre_hook] } {
+          [catch {send_msg_id USF-Questa-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+        }
+        set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+        xcs_delete_backup_log $tcl_wrapper_file $dir
+        xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+        set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+        set cmd "vivado $vivado_cmd_str"
+        puts $fh_scr "echo \"$cmd\""
+        set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+        puts $fh_scr "ExecStep $full_cmd"
+      }
+    }
+
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      puts $fh_scr "ExecStep source ./$do_filename 2>&1 | tee -a $log_filename"
+      puts $fh_scr "ExecStep source $do_filename 2>&1 | tee -a $log_filename"
     } else {
       if { {} != $tool_path } {
         puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
@@ -1257,19 +1318,40 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       }
     }
   } else {
+    # windows
     puts $fh_scr "@echo off"
-    if { ({simulate} == $step) && [get_property 32bit $fs_obj] } {
-      if { [::tclapp::xilinx::questa::usf_is_axi_bfm_ip] } {
-        set simulator_lib [usf_get_simulator_lib_for_bfm]
-        if { {} != $simulator_lib } {
-          set vivado_lib [file normalize [file dirname $simulator_lib]]
-          set vivado_lib [string map {/ \\\\} $vivado_lib]
-          puts $fh_scr "set PATH=$vivado_lib;%PATH%"
-        }
-      }
-    }
     if { {} != $tool_path } {
       puts $fh_scr "set bin_path=$tool_path"
+      if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
+        set xv $::env(XILINX_VIVADO)
+        set xv [string map {\\\\ /} $xv]
+        set xv_path $xv
+ 
+        # check if its a cygwin drive mapping (/cygdrive/c/<path>), if yes, then replace with (c:/<path>)
+        set xv_comps [split $xv "/"]
+        if { "cygdrive" == [lindex $xv_comps 1] } {
+          set drive [lindex $xv_comps 2]
+          append drive ":/"
+          set xv_path [join [lrange $xv_comps 3 end] "/"]
+          set xv_path [file join $drive $xv_path]
+        }
+
+        # fix slashes
+        set xv_path [string map {/ \\} $xv_path]
+        puts $fh_scr "set xv_path=$xv_path"
+
+        if { ![file exists $tcl_pre_hook] } {
+          [catch {send_msg_id USF-ModelSim-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+        }
+        set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+        xcs_delete_backup_log $tcl_wrapper_file $dir
+        xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+        set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+        set cmd "vivado $vivado_cmd_str"
+        puts $fh_scr "echo \"$cmd\""
+        set full_cmd "%xv_path%/bin/vivado $vivado_cmd_str"
+        puts $fh_scr "call $full_cmd"
+      }
       puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
     } else {
       puts $fh_scr "call vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"

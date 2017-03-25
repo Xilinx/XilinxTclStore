@@ -49,6 +49,10 @@ proc usf_init_vars {} {
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
+  # initialize ip repository dir
+  set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
+  set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
+
   set a_sim_vars(s_tool_bin_path)    {}
 
   set a_sim_vars(sp_tcl_obj)         {}
@@ -61,6 +65,9 @@ proc usf_init_vars {} {
   variable l_local_design_libraries  [list]
   # ip static libraries
   variable l_ip_static_libs          [list]
+
+  # list of xpm libraries
+  variable l_xpm_libraries [list]
 
   # global files
   variable global_files_value        {}
@@ -119,6 +126,9 @@ proc usf_init_vars {} {
   # netlist file
   set a_sim_vars(s_netlist_file)            {}
 
+  # wrapper file for executing user tcl
+  set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
+
   variable a_sim_cache_result
   array unset a_sim_cache_result
 
@@ -130,6 +140,11 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
+
+  variable a_sim_cache_ip_repo_header_files
+  array unset a_sim_cache_ip_repo_header_files
+
+  variable a_sim_sv_pkg_libs [list]
 
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   if { ! [info exists ::tclapp::xilinx::xsim::_xcs_defined] } {
@@ -245,50 +260,6 @@ proc usf_is_option_registered_on_simulator { prop_name simulator } {
   return false
 }
 
-proc usf_xport_data_files { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable s_data_files_filter
-  variable s_non_hdl_data_files_filter
-  variable l_valid_ip_extns
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
-    send_msg_id USF-XSim-036 INFO "Inspecting IP design source files for '$a_sim_vars(s_sim_top)'...\n"
-
-    # export ip data files to run dir
-    if { [get_param "project.copyDataFilesForSim"] } {
-      set ip_filter "FILE_TYPE == \"IP\""
-      set ip_name [file tail $tcl_obj]
-      set data_files [list]
-      set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
-      # non-hdl data files 
-      foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
-        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
-          if { [get_property {IS_USER_DISABLED} $file] } {
-            continue;
-          }
-        }
-        lappend data_files $file
-      }
-      xcs_export_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $data_files
-    }
-  } elseif { [xcs_is_fileset $tcl_obj] } {
-    send_msg_id USF-XSim-037 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
-    # export all fileset data files to run dir
-    if { [get_param "project.copyDataFilesForSim"] } {
-      xcs_export_fs_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $s_data_files_filter
-    }
-    # export non-hdl data files to run dir
-    xcs_export_fs_non_hdl_data_files $a_sim_vars(s_simset) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
-  } else {
-    send_msg_id USF-XSim-038 INFO "Unsupported object source: $tcl_obj\n"
-    return 1
-  }
-}
-
 proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   # Summary:
   # Argument Usage:
@@ -341,9 +312,9 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(dynamic_repo_dir)]
       } else {
         if { $b_is_bd } {
-          set vh_file [xcs_fetch_ipi_static_file $vh_file_obj $vh_file $a_sim_vars(ipstatic_dir)]
+          set vh_file [xcs_fetch_ipi_static_header_file $vh_file_obj $vh_file $a_sim_vars(ipstatic_dir) $a_sim_vars(s_ip_repo_dir)]
         } else {
-          set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir)]
+          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir) $a_sim_vars(s_ip_repo_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
             if { [file exists $vh_file_path] } {
               set vh_file $vh_file_path
@@ -531,9 +502,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   }
 
   if { $b_compile_xpm_library } {
-    set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
+    variable l_xpm_libraries
     set b_using_xpm_libraries false
-    foreach library $xpm_libraries {
+    foreach library $l_xpm_libraries {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
@@ -941,22 +912,6 @@ proc usf_found_errors_in_file { token } {
   }
   return 0
 }
-
-proc usf_write_shell_step_fn { fh } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  puts $fh "ExecStep()"
-  puts $fh "\{"
-  puts $fh "\"\$@\""
-  puts $fh "RETVAL=\$?"
-  puts $fh "if \[ \$RETVAL -ne 0 \]"
-  puts $fh "then"
-  puts $fh "exit \$RETVAL"
-  puts $fh "fi"
-  puts $fh "\}"
-}
 }
 
 #
@@ -1055,24 +1010,6 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   return $incl_dirs
 }
 
-proc usf_append_compiler_options { tool file_type opts_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $opts_arg opts
-  variable a_sim_vars
-  set fs_obj [get_filesets $a_sim_vars(s_simset)] 
-  switch $tool {
-    "vhdl" {
-      #lappend opts "\$${tool}_opts"
-    }
-    "verilog" {
-      #lappend opts "\$${tool}_opts"
-    }
-  }
-}
-
 proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   # Summary:
   # Argument Usage:
@@ -1129,7 +1066,6 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
-    usf_append_compiler_options $compiler $file_type arg_list
     set arg_list [linsert $arg_list end "$associated_library" "$global_files_str" "\"$file\""]
   }
  

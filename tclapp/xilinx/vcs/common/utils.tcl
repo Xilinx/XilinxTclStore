@@ -207,6 +207,81 @@ proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
   return $dst_cip_file
 }
 
+proc xcs_fetch_ip_static_header_file { file vh_file_obj ipstatic_dir ip_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # fetch verilog header files from ip_user_files/ipstatic, if param is false (old behavior)
+  if { ![get_param project.includeIPStaticVHFileDirsFromRepo] } {
+    return [xcs_fetch_ip_static_file $file $vh_file_obj $ipstatic_dir]
+  }
+
+  variable a_sim_cache_ip_repo_header_files
+
+  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
+  set src_ip_file $file
+  set src_ip_file [string map {\\ /} $src_ip_file]
+  #puts src_ip_file=$src_ip_file
+
+  # get parent composite file path dir
+  set comp_file [get_property parent_composite_file -quiet $vh_file_obj] 
+  set comp_file_dir [file dirname $comp_file]
+  set comp_file_dir [string map {\\ /} $comp_file_dir]
+  # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2
+  #puts comp_file_dir=$comp_file_dir
+
+  # strip parent dir from file path dir
+  set lib_file_path {}
+  # axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
+
+  set src_file_dirs  [file split [file normalize $src_ip_file]]
+  set comp_file_dirs [file split [file normalize $comp_file_dir]]
+  set src_file_len [llength $src_file_dirs]
+  set comp_dir_len [llength $comp_file_dirs]
+
+  set index 1
+  #puts src_file_dirs=$src_file_dirs
+  #puts com_file_dirs=$comp_file_dirs
+  while { [lindex $src_file_dirs $index] == [lindex $comp_file_dirs $index] } {
+    incr index
+    if { ($index == $src_file_len) || ($index == $comp_dir_len) } {
+      break;
+    }
+  }
+  set lib_file_path [join [lrange $src_file_dirs $index end] "/"]
+  #puts lib_file_path=$lib_file_path
+
+  set dst_cip_file {}
+  # find and cache ip header file from repository, if it exist
+  set vh_file_name [file tail $src_ip_file]
+  set ip_lib_dir_name [lindex [split $lib_file_path "/"] 0]
+  set repo_lib_dir "$ip_repo_dir/$ip_lib_dir_name"
+  if { [file exists $repo_lib_dir] } {
+    set vh_file_key "${repo_lib_dir}#$vh_file_name"
+    if { [info exists a_sim_cache_ip_repo_header_files($vh_file_key)] } {
+      set dst_cip_file $a_sim_cache_ip_repo_header_files($vh_file_key)
+    } else {
+      set dst_cip_file [xcs_get_ip_header_file_from_repo $ip_repo_dir $ip_lib_dir_name $vh_file_name]
+      if { ({} != $dst_cip_file) && [file exist $dst_cip_file] } {
+        set a_sim_cache_ip_repo_header_files($vh_file_key) $dst_cip_file
+        return $dst_cip_file
+      }
+    }
+  }
+  if { ({} != $dst_cip_file) && [file exist $dst_cip_file] } {
+    return $dst_cip_file
+  }
+  
+  #
+  # file not found from repository, calculate from ipstatic dir now
+  #
+  set dst_cip_file [file join $ipstatic_dir $lib_file_path]
+  # /tmp/tp/tp.ip_user_files/ipstatic/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
+  #puts dst_cip_file=$dst_cip_file
+  return $dst_cip_file
+}
+
 proc xcs_find_comp { comps_arg index_arg to_match } {
   # Summary:
   # Argument Usage:
@@ -1591,6 +1666,93 @@ proc xcs_fetch_ipi_static_file { src_file_obj file ipstatic_dir } {
   return $dst_cip_file
 }
 
+proc xcs_fetch_ipi_static_header_file { src_file_obj file ipstatic_dir ip_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # fetch verilog header files from ip_user_files/ipstatic, if param is false (old behavior)
+  if { ![get_param project.includeIPStaticVHFileDirsFromRepo] } {
+    return [xcs_fetch_ipi_static_file $src_file_obj $file $ipstatic_dir]
+  }
+
+  variable a_sim_cache_ip_repo_header_files
+
+  set src_ip_file $file
+
+  set comps [lrange [split $src_ip_file "/"] 0 end]
+  set to_match "xilinx.com"
+  set index 0
+  set b_found [xcs_find_comp comps index $to_match]
+  if { !$b_found } {
+    set to_match "user_company"
+    set b_found [xcs_find_comp comps index $to_match]
+  }
+  if { !$b_found } {
+    set index -1
+    set library [get_property -quiet library $src_file_obj]
+    if { {} != $library } {
+      set index [lsearch -exact $comps $library]
+    }
+    if { ({} == $library) || (-1 == $index) } {
+      return $src_ip_file
+    }
+  }
+
+  set file_path_str [join [lrange $comps 0 $index] "/"]
+  set ip_lib_dir "$file_path_str"
+
+  #puts ip_lib_dir=$ip_lib_dir
+  set ip_lib_dir_name [file tail $ip_lib_dir]
+
+  set dst_cip_file {}
+  # find and cache ip header file from repository, if it exist
+  set vh_file_name [file tail $src_ip_file]
+  set repo_lib_dir "$ip_repo_dir/$ip_lib_dir_name"
+  if { [file exists $repo_lib_dir] } {
+    set vh_file_key "${repo_lib_dir}#$vh_file_name"
+    if { [info exists a_sim_cache_ip_repo_header_files($vh_file_key)] } {
+      set dst_cip_file $a_sim_cache_ip_repo_header_files($vh_file_key)
+    } else {
+      set dst_cip_file [xcs_get_ip_header_file_from_repo $ip_repo_dir $ip_lib_dir_name $vh_file_name]
+      if { ({} != $dst_cip_file) && [file exist $dst_cip_file] } {
+        set a_sim_cache_ip_repo_header_files($vh_file_key) $dst_cip_file
+        return $dst_cip_file
+      }
+    }
+  }
+  if { ({} != $dst_cip_file) && [file exist $dst_cip_file] } {
+    return $dst_cip_file
+  }
+  
+  #
+  # file not found from repository, calculate from ipstatic dir now
+  #
+  set target_ip_lib_dir "$ipstatic_dir/$ip_lib_dir_name"
+  #puts target_ip_lib_dir=$target_ip_lib_dir
+
+  # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
+  set ip_hdl_dir [join [lrange $comps 0 $index] "/"]
+  set ip_hdl_dir "$ip_hdl_dir"
+  # /demo/ipshared/xilinx.com/xbip_utils_v3_0/hdl
+  #puts ip_hdl_dir=$ip_hdl_dir
+  incr index
+
+  set ip_hdl_sub_dir [join [lrange $comps $index end] "/"]
+  # /hdl/xbip_utils_v3_0_vh_rfs.vhd
+  #puts ip_hdl_sub_dir=$ip_hdl_sub_dir
+
+  set dst_cip_file "$target_ip_lib_dir/$ip_hdl_sub_dir"
+  #puts dst_cip_file=$dst_cip_file
+
+  # repo static file does not exist? maybe generate_target or export_ip_user_files was not executed, fall-back to project src file
+  if { ![file exists $dst_cip_file] } {
+    return $src_ip_file
+  }
+
+  return $dst_cip_file
+}
+
 proc xcs_set_simulation_flow { s_simset s_mode s_type s_flow_dir_key_arg s_simulation_flow_arg } {
   # Summary:
   # Argument Usage:
@@ -2101,4 +2263,332 @@ proc xcs_export_fs_non_hdl_data_files { s_simset s_launch_dir dynamic_repo_dir }
     lappend data_files $file_obj
   }
   xcs_export_data_files $s_launch_dir $dynamic_repo_dir $data_files
+}
+
+proc xcs_get_ip_header_file_from_repo { repo_dir ip_lib_dir_name vh_file_name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set ip_vh_file {}
+  set ip_dir "$repo_dir/$ip_lib_dir_name"
+  set ip_xml "$ip_dir/component.xml"
+
+  # make sure component.xml exists for the ip in repo dir
+  if { ![file exists $ip_xml] } {
+    return $ip_vh_file
+  }
+  # open xml and get the object
+  set ip_comp [ipx::open_core -set_current false $ip_xml]
+  if { {} == $ip_comp } {
+    return $ip_vh_file
+  }
+  foreach file_group [ipx::get_file_groups -of $ip_comp] {
+    set file_group_type [get_property type $file_group]
+
+    # make sure we are dealing with simulation file group only
+    if { ([string last "simulation" $file_group_type] != -1) && ($file_group_type != "examples_simulation") } {
+      set static_sim_files [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group]
+      foreach static_file $static_sim_files {
+        set file_entry [split $static_file { }]
+        lassign $file_entry file_key comp_ref file_group_name ip_file
+        set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
+
+        set b_is_include [get_property is_include [ipx::get_files $ip_file -of_objects $file_group]]
+        # make sure we are dealing with verilog type and is marked as include
+        if { (({verilogSource} == $file_type) || ({systemVerilogSource} == $file_type)) && $b_is_include } {
+
+          # make sure we are dealing with the exact header file fetched from repository for the given ip source file
+          # from project (for locked IPs, the header file name could be different than in repository in which case
+          # the file from ipstatic dir will be used and referenced if it exist, else will be referenced from project)
+
+          set repo_vh_file_name [file tail $ip_file]
+          if { $repo_vh_file_name == $vh_file_name } {
+            set ip_vh_file "$ip_dir/$ip_file"
+            return $ip_vh_file
+          }
+        }
+      }
+    }
+  }
+  return $ip_vh_file
+}
+
+proc xcs_find_sv_pkg_libs { run_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_sv_pkg_libs
+  set tmp_dir "$run_dir/_tmp_ip_comp_"
+  set ip_comps [list]
+  foreach ip [get_ips -all -quiet] {
+    set ip_file [get_property ip_file $ip]
+    set ip_filename [file rootname $ip_file];append ip_filename ".xml"
+    if { ![file exists $ip_filename] } {
+      # extract files
+      set ip_file_obj [get_files -all -quiet $ip_filename]
+      set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
+      if { ![file exists $ip_filename] } {
+        send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
+        continue;
+      }
+    }
+    lappend ip_comps $ip_filename
+  }
+
+  foreach ip_xml $ip_comps {
+    set ip_comp [ipx::open_core -set_current false $ip_xml]
+    set vlnv    [get_property vlnv $ip_comp]
+    foreach file_group [ipx::get_file_groups -of $ip_comp] {
+      set type [get_property type $file_group]
+      if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
+        set sub_lib_cores [get_property component_subcores $file_group]
+        if { [llength $sub_lib_cores] == 0 } {
+          continue
+        }
+        # reverse the order of sub-cores
+        set ordered_sub_cores [list]
+        foreach sub_vlnv $sub_lib_cores {
+          set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_vlnv]
+        }
+        #puts "$vlnv=$ordered_sub_cores"
+        foreach sub_vlnv $ordered_sub_cores {
+          xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
+        }
+        foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
+          set file_entry [split $static_file { }]
+          lassign $file_entry file_key comp_ref file_group_name file_path
+          set ip_file [lindex $file_entry 3]
+          set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
+          if { {systemVerilogSource} == $file_type } {
+            set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+            if { ({} != $library) && ({xil_defaultlib} != $library) } {
+              if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+                lappend a_sim_sv_pkg_libs $library
+              }
+            }
+          }
+        }
+      }
+    }
+    ipx::unload_core $ip_comp
+  }
+
+  # delete tmp dir
+  if { [file exists $tmp_dir] } {
+   [catch {file delete -force $tmp_dir} error_msg]
+  }
+
+  # find SV package libraries from the design
+  set filter "FILE_TYPE == \"SystemVerilog\""
+  foreach sv_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
+    if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
+      set library [get_property -quiet "LIBRARY" $sv_file_obj]
+      if { {} != $library } {
+        if { [lsearch -exact $a_sim_sv_pkg_libs $library] == -1 } {
+          lappend a_sim_sv_pkg_libs $library
+        }
+      }
+    }
+  }
+}
+
+proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_sv_pkg_libs
+
+  set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
+  set ip_xml  [get_property xml_file_name $ip_def]
+  set ip_comp [ipx::open_core -set_current false $ip_xml]
+
+  foreach file_group [ipx::get_file_groups -of $ip_comp] {
+    set type [get_property type $file_group]
+    if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
+      set sub_lib_cores [get_property component_subcores $file_group]
+      set ordered_sub_cores [list]
+      foreach sub_vlnv $sub_lib_cores {
+        set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_vlnv]
+      }
+      #puts " +$vlnv=$ordered_sub_cores"
+      foreach sub_vlnv $ordered_sub_cores {
+        xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
+      }
+      foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
+        set file_entry [split $static_file { }]
+        lassign $file_entry file_key comp_ref file_group_name file_path
+        set ip_file [lindex $file_entry 3]
+        set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
+        if { {systemVerilogSource} == $file_type } {
+          set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+          if { ({} != $library) && ({xil_defaultlib} != $library) } {
+            if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+              lappend a_sim_sv_pkg_libs $library
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+proc xcs_write_shell_step_fn { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  puts $fh "ExecStep()"
+  puts $fh "\{"
+  puts $fh "\"\$@\""
+  puts $fh "RETVAL=\$?"
+  puts $fh "if \[ \$RETVAL -ne 0 \]"
+  puts $fh "then"
+  puts $fh "exit \$RETVAL"
+  puts $fh "fi"
+  puts $fh "\}"
+}
+
+proc xcs_get_platform { fs_obj } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set platform {}
+  set os $::tcl_platform(platform)
+  set b_32_bit [get_property 32bit $fs_obj]
+  if { {windows} == $os } {
+    set platform "win64"
+    if { $b_32_bit } {
+      set platform "win32"
+    }
+  }
+
+  if { {unix} == $os } {
+    set platform "lnx64"
+    if { $b_32_bit } {
+      set platform "lnx32"
+    }
+  }
+  return $platform
+}
+
+proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable s_data_files_filter
+  variable s_non_hdl_data_files_filter
+  variable l_valid_ip_extns
+
+  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+    send_msg_id SIM-utils-053 INFO "Inspecting IP design source files for '$top'...\n"
+
+    # export ip data files to run dir
+    if { [get_param "project.copyDataFilesForSim"] } {
+      set ip_filter "FILE_TYPE == \"IP\""
+      set ip_name [file tail $tcl_obj]
+      set data_files [list]
+      set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
+
+      # non-hdl data files
+      foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
+        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+          if { [get_property {IS_USER_DISABLED} $file] } {
+            continue;
+          }
+        }
+        lappend data_files $file
+      }
+      xcs_export_data_files $launch_dir $dynamic_repo_dir $data_files
+    }
+  } elseif { [xcs_is_fileset $tcl_obj] } {
+    send_msg_id SIM-utils-054 INFO "Inspecting design source files for '$top' in fileset '$tcl_obj'...\n"
+
+    # export all fileset data files to run dir
+    if { [get_param "project.copyDataFilesForSim"] } {
+      xcs_export_fs_data_files $launch_dir $dynamic_repo_dir $s_data_files_filter
+    }
+
+    # export non-hdl data files to run dir
+    xcs_export_fs_non_hdl_data_files $simset $launch_dir $dynamic_repo_dir
+
+  } else {
+    send_msg_id SIM-utils-055 INFO "Unsupported object source: $tcl_obj\n"
+    return 1
+  }
+}
+
+proc xcs_get_xpm_libraries {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_xpm_libraries
+  set l_xpm_libraries [list]
+
+  # fetch xpm libraries from project property
+  set proj_obj [current_project]
+  set prop_xpm_libs [get_property -quiet "XPM_LIBRARIES" $proj_obj]
+
+  # fetch xpm libraries from design graph
+  set dg_xpm_libs [auto_detect_xpm -quiet -search_ips -no_set_property]
+
+  # join libraries and add unique to collection
+  set all_xpm_libs [concat $prop_xpm_libs $dg_xpm_libs]
+  if { [llength $all_xpm_libs] > 0 } {
+    foreach lib $all_xpm_libs {
+      if { [lsearch $l_xpm_libraries $lib] == -1 } {
+        lappend l_xpm_libraries $lib
+      }
+    }
+  }
+}
+
+proc xcs_write_tcl_wrapper { tcl_pre_hook tcl_wrapper_file run_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set proj_obj  [current_project]
+  set proj_dir  [get_property directory $proj_obj]
+  set proj_name [get_property name $proj_obj]
+
+  set proj_file [file normalize [file join $proj_dir $proj_name]]
+  append proj_file ".xpr"
+
+  set file [file normalize [file join $run_dir $tcl_wrapper_file]]
+  set fh 0
+  if { [catch {open $file w} fh] } {
+    send_msg_id SIM-utils-056 INFO "Failed to open file for write: $file\n"
+    return 1
+  }
+  puts $fh "################################################################################"
+  puts $fh "# File name: $tcl_wrapper_file"
+  puts $fh "# Purpose  : This is an internal file that is auto generated by Vivado to source"
+  puts $fh "#            the user tcl file."
+  puts $fh "################################################################################"
+  puts $fh "open_project \"$proj_file\""
+  puts $fh "set rc \[catch \{"
+  puts $fh "  source -notrace \"$tcl_pre_hook\""
+  puts $fh "\} result\]"
+  puts $fh "if \{\$rc\} \{"
+  puts $fh "  puts \"\$result\""
+  puts $fh "  puts \"ERROR: Script failed:\\\"$tcl_pre_hook\\\"\""
+  puts $fh "\}"
+  puts $fh "close_project"
+  close $fh
+}
+
+proc xcs_delete_backup_log { tcl_wrapper_file dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  foreach log_file [glob -nocomplain -directory $dir ${tcl_wrapper_file}_*.backup.log] {
+    [catch {file delete -force $log_file} error_msg]
+  }
 }

@@ -33,6 +33,7 @@ proc register_options { simulator } {
     return 1
   }
   set options {
+    {{compile.tcl.pre}               {string} {}         {Specify pre-compile step TCL hook}}
     {{compile.v93}                   {bool}   {1}        {Enable VHDL93 features}}
     {{compile.relax}                 {bool}   {1}        {Enable relaxed VHDL interpretation}}
     {{compile.load_glbl}             {bool}   {1}        {Load GLBL module}}
@@ -41,6 +42,7 @@ proc register_options { simulator } {
     {{compile.ncvlog.more_options}   {string} {}         {More NCVLOG compilation options}}
     {{elaborate.update}              {bool}   {0}        {Check if unit is up-to-date before writing}}
     {{elaborate.ncelab.more_options} {string} {}         {More NCELAB elaboration options}}
+    {{simulate.tcl.post}             {string} {}         {Specify post-simulate step TCL hook}}
     {{simulate.runtime}              {string} {1000ns}   {Specify simulation run time}}
     {{simulate.log_all_signals}      {bool}   {0}        {Log all signals}}
     {{simulate.update}               {bool}   {0}        {Check if unit is up-to-date before writing}}

@@ -1,3 +1,18 @@
+2.42 extract xml comp files for finding SV pkg libraries
+2.41 source user tcl file from wrapper generated in run directory
+2.40 fetch sv files in quiet mode as those may not be part of compile order
+2.39 find xpm libraries from the design
+2.38 fixed error token strings while parsing log
+2.37 find system verilog libraries from the design and add to SV package list
+2.36 refactored procs into common utils
+2.35 removed axi-bfm library referencing
+2.34 fixed custom do file for simulate step
+2.33 catch exception and print message while sourcing post tcl code hook
+2.32 add SV package library for the parent core
+2.31 support for the pre and post TCL hooks
+2.30 support for the custom wave do and tcl file
+2.29 support for the system verilog library packages
+2.28 reference IP static verilog header file directory path from repository
 2.27 reference compiled library from the path specified with -lib_map_path
 2.26 fixed the library search order for user design libraries for behavioral simulation
 2.25 added comment for XPM library referencing

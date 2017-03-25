@@ -33,11 +33,13 @@ proc register_options { simulator } {
     return 1
   }
   set options {
+    {{compile.tcl.pre}              {string} {}        {Specify pre-compile step TCL hook}}
     {{compile.load_glbl}            {bool}   {1}       {Load GLBL module}}
     {{compile.vhdlan.more_options}  {string} {}        {More VHDLAN compilation options}}
     {{compile.vlogan.more_options}  {string} {}        {More VLOGAN compilation options}}
     {{elaborate.debug_pp}           {bool}   {1}       {Enable post-process debug access}}
     {{elaborate.vcs.more_options}   {string} {}        {More VCS elaboration options}}
+    {{simulate.tcl.post}            {string} {}        {Specify post-simulate step TCL hook}}
     {{simulate.runtime}             {string} {1000ns}  {Specify simulation run time}}
     {{simulate.log_all_signals}     {bool}   {0}       {Log all signals}}
     {{simulate.saif_scope}          {string} {}        {Specify design hierarchy instance name for which power estimation is desired}}

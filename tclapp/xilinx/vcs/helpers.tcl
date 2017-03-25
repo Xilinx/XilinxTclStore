@@ -48,6 +48,10 @@ proc usf_init_vars {} {
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
+  # initialize ip repository dir
+  set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
+  set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
+
   set a_sim_vars(s_tool_bin_path)    {}
 
   set a_sim_vars(sp_tcl_obj)         {}
@@ -61,6 +65,9 @@ proc usf_init_vars {} {
   variable l_local_design_libraries  [list]
   # ip static libraries
   variable l_ip_static_libs          [list]
+
+  # list of xpm libraries
+  variable l_xpm_libraries [list]
 
   # ip file extension types
   variable l_valid_ip_extns          [list]
@@ -116,6 +123,9 @@ proc usf_init_vars {} {
   # netlist file
   set a_sim_vars(s_netlist_file)            {}
 
+  # wrapper file for executing user tcl
+  set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
+
   variable a_sim_cache_result
   array unset a_sim_cache_result
 
@@ -124,6 +134,9 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_all_bd_files
   array unset a_sim_cache_all_bd_files
+
+  variable a_sim_cache_parent_comp_files
+  array unset a_sim_cache_parent_comp_files
 
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
@@ -280,50 +293,6 @@ proc usf_set_ref_dir { fh } {
   puts $fh ""
 } 
 
-proc usf_xport_data_files { } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  variable s_data_files_filter
-  variable s_non_hdl_data_files_filter
-  variable l_valid_ip_extns
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
-    send_msg_id USF-VCS-032 INFO "Inspecting IP design source files for '$a_sim_vars(s_sim_top)'...\n"
-
-    # export ip data files to run dir
-    if { [get_param "project.copyDataFilesForSim"] } {
-      set ip_filter "FILE_TYPE == \"IP\""
-      set ip_name [file tail $tcl_obj]
-      set data_files [list]
-      set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
-      # non-hdl data files 
-      foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
-        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
-          if { [get_property {IS_USER_DISABLED} $file] } {
-            continue;
-          }
-        }
-        lappend data_files $file
-      }
-      xcs_export_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $data_files
-    }
-  } elseif { [xcs_is_fileset $tcl_obj] } {
-    send_msg_id USF-VCS-033 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
-    # export all fileset data files to run dir
-    if { [get_param "project.copyDataFilesForSim"] } {
-      xcs_export_fs_data_files $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) $s_data_files_filter
-    }
-    # export non-hdl data files to run dir
-    xcs_export_fs_non_hdl_data_files $a_sim_vars(s_simset) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
-  } else {
-    send_msg_id USF-VCS-034 INFO "Unsupported object source: $tcl_obj\n"
-    return 1
-  }
-}
-
 proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   # Summary:
   # Argument Usage:
@@ -377,9 +346,9 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
         set vh_file [xcs_fetch_header_from_dynamic $vh_file $b_is_bd $a_sim_vars(dynamic_repo_dir)]
       } else {
         if { $b_is_bd } {
-          set vh_file [xcs_fetch_ipi_static_file $vh_file_obj $vh_file $a_sim_vars(ipstatic_dir)]
+          set vh_file [xcs_fetch_ipi_static_header_file $vh_file_obj $vh_file $a_sim_vars(ipstatic_dir) $a_sim_vars(s_ip_repo_dir)]
         } else {
-          set vh_file_path [xcs_fetch_ip_static_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir)]
+          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir) $a_sim_vars(s_ip_repo_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
             if { [file exists $vh_file_path] } {
               set vh_file $vh_file_path
@@ -510,6 +479,27 @@ proc usf_create_do_file { simulator do_filename } {
     
     if { [get_property "VCS.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
       puts $fh_do "dump -add / -depth 0"
+    }
+
+    # write tcl post hook
+    set tcl_post_hook [get_property VCS.SIMULATE.TCL.POST $fs_obj]
+    if { {} != $tcl_post_hook } {
+      puts $fh_do "\n# execute post tcl file"
+      if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
+        puts $fh_do "set rc \[catch \{"
+        puts $fh_do "  puts \"source $tcl_post_hook\""
+        puts $fh_do "  source \"$tcl_post_hook\""
+        puts $fh_do "\} result\]"
+        puts $fh_do "if \{\$rc\} \{"
+        puts $fh_do "  puts \"\$result\""
+        puts $fh_do "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
+        #puts $fh_do "  return -code error"
+        puts $fh_do "\}"
+      } else {
+        # TODO: catch mechanism not working in VCS GUI
+        puts $fh_do "  puts \"source $tcl_post_hook\""
+        puts $fh_do "  source \"$tcl_post_hook\""
+      }
     }
 
     set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]
@@ -732,9 +722,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   }
 
   if { $b_compile_xpm_library } {
-    set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
+    variable l_xpm_libraries
     set b_using_xpm_libraries false
-    foreach library $xpm_libraries {
+    foreach library $l_xpm_libraries {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
@@ -1168,91 +1158,6 @@ proc usf_found_errors_in_file { token } {
     return 1
   }
   return 0
-}
-
-proc usf_write_shell_step_fn { fh } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  puts $fh "ExecStep()"
-  puts $fh "\{"
-  puts $fh "\"\$@\""
-  puts $fh "RETVAL=\$?"
-  puts $fh "if \[ \$RETVAL -ne 0 \]"
-  puts $fh "then"
-  puts $fh "exit \$RETVAL"
-  puts $fh "fi"
-  puts $fh "\}"
-}
-
-proc usf_get_platform {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
-  set platform {}
-  set b_32_bit [get_property 32bit $fs_obj]
-  set platform "lnx64"
-  if { $b_32_bit } {
-    set platform "lnx32"
-  }
-  return $platform
-}
-  
-proc usf_is_axi_bfm_ip {} {
-  # Summary: Finds VLNV property value for the IP and checks to see if the IP is AXI_BFM
-  # Argument Usage:
-  # Return Value:
-  # true (1) if specified IP is axi_bfm, false (0) otherwise
-
-  foreach ip [get_ips -all -quiet] {
-    set ip_def [lindex [split [get_property "IPDEF" [get_ips -all -quiet $ip]] {:}] 2]
-    set ip_def_obj [get_ipdefs -quiet -regexp .*${ip_def}.*]
-    #puts ip_def_obj=$ip_def_obj
-    if { {} != $ip_def_obj } {
-      set value [get_property "VLNV" $ip_def_obj]
-      #puts is_axi_bfm_ip=$value
-      if { ([regexp -nocase {axi_bfm} $value]) || ([regexp -nocase {processing_system7} $value]) } {
-        return 1
-      }
-    }
-  }
-  return 0
-}
-
-proc usf_get_simulator_lib_for_bfm {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set simulator_lib {}
-  set xil           $::env(XILINX_VIVADO)
-  set path_sep      {:}
-  set lib_extn      {.so}
-  set platform      [::tclapp::xilinx::vcs::usf_get_platform]
-
-  set lib_name "libxil_vcs";append lib_name $lib_extn
-  if { {} != $xil } {
-    append platform ".o"
-    set lib_path {}
-    send_msg_id USF-VCS-116 INFO "Finding simulator library from 'XILINX_VIVADO'..."
-    foreach path [split $xil $path_sep] {
-      set file [file normalize [file join $path "lib" $platform $lib_name]]
-      if { [file exists $file] } {
-        send_msg_id USF-VCS-117 INFO "Using library:'$file'"
-        set simulator_lib $file
-        break
-      } else {
-        send_msg_id USF-VCS-118 WARNING "Library not found:'$file'"
-      }
-    }
-  } else {
-    send_msg_id USF-VCS-065 ERROR "Environment variable 'XILINX_VIVADO' is not set!"
-  }
-  return $simulator_lib
 }
 }
 

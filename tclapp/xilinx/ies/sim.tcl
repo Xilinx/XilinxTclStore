@@ -130,6 +130,9 @@ proc usf_ies_setup_simulation { args } {
   # initialize IES simulator variables
   usf_ies_init_simulation_vars
 
+  # initialize XPM libraries (if any)
+  xcs_get_xpm_libraries
+
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
                                                            $a_sim_vars(s_simulation_flow) \
@@ -145,8 +148,9 @@ proc usf_ies_setup_simulation { args } {
   set clibs_dir [usf_ies_verify_compiled_lib]
 
   variable l_compiled_libraries
+  variable l_xpm_libraries
   set b_reference_xpm_library 0
-  if { [llength [get_property -quiet xpm_libraries [current_project]]] > 0 } {
+  if { [llength $l_xpm_libraries] > 0 } {
      if { [get_param project.usePreCompiledXPMLibForSim] } {
       set b_reference_xpm_library 1
     }
@@ -170,7 +174,7 @@ proc usf_ies_setup_simulation { args } {
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # fetch the compile order for the specified object
-  ::tclapp::xilinx::ies::usf_xport_data_files
+  xcs_xport_data_files $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_simset) $a_sim_vars(s_sim_top) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
 
   # cache all design files
   variable a_sim_cache_all_design_files_obj
@@ -446,12 +450,28 @@ proc usf_ies_write_compile_script {} {
   ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$tool_path\"\n"
+    puts $fh_scr "bin_path=\"$tool_path\""
   }
+
+  # write tcl pre hook
+  set tcl_pre_hook [get_property IES.COMPILE.TCL.PRE $fs_obj]
+  if { {} != $tcl_pre_hook } {
+    puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
+    xcs_write_shell_step_fn $fh_scr
+  }
+  puts $fh_scr ""
+
   ::tclapp::xilinx::ies::usf_set_ref_dir $fh_scr
 
   set tool "ncvhdl"
-  set arg_list [list "-messages" "-RELAX" "-logfile" "${tool}.log" "-append_log"]
+  set arg_list [list "-messages"]
+
+  if { [get_property "IES.COMPILE.RELAX" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-relax"]
+  }
+
+  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
+
   if { [get_property 32bit $fs_obj] } {
     # donot pass os type
   } else {
@@ -489,6 +509,22 @@ proc usf_ies_write_compile_script {} {
 
   puts $fh_scr "\n# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+
+  # add tcl pre hook
+  if { {} != $tcl_pre_hook } {
+    if { ![file exists $tcl_pre_hook] } {
+      [catch {send_msg_id USF-IES-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+    }
+    set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+    xcs_delete_backup_log $tcl_wrapper_file $dir
+    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+    set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+    set cmd "vivado $vivado_cmd_str"
+    puts $fh_scr "echo \"$cmd\""
+    set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+    puts $fh_scr "ExecStep $full_cmd\n"
+  }
+
   puts $fh_scr "# compile design source files"
 
   set b_first true
@@ -635,17 +671,6 @@ proc usf_ies_write_elaborate_script {} {
   set more_elab_options [string trim [get_property "IES.ELABORATE.NCELAB.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_elab_options } {
     set arg_list [linsert $arg_list end "$more_elab_options"]
-  }
-
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::xilinx::ies::usf_is_axi_bfm_ip] } {
-    set simulator_lib [usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list 0 "-loadvpi \"$simulator_lib:xilinx_register_systf\""]
-    } else {
-      send_msg_id USF-IES-020 "CRITICAL WARNING" \
-         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
   }
 
   puts $fh_scr "# set ${tool} command line args"
