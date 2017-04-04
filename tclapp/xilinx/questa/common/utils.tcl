@@ -2328,7 +2328,9 @@ proc xcs_find_sv_pkg_libs { run_dir } {
     if { ![file exists $ip_filename] } {
       # extract files
       set ip_file_obj [get_files -all -quiet $ip_filename]
-      set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
+      if { {} != $ip_file_obj } {
+        set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
+      }
       if { ![file exists $ip_filename] } {
         send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
         continue;

@@ -2175,24 +2175,24 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   set l_remote_file_list [list]
 
   # return if empty fileset
-  if {[llength [get_files -quiet -of_objects $reconfigModule]] == 0 } {
+  if {[llength [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]]] == 0 } {
     lappend l_script_data "# Empty (no sources present)\n"
     return
   }
 
-  set fileset [get_filesets -of_objects [get_reconfig_modules $reconfigModule]]
+  set fileset [get_filesets -of_objects $reconfigModule]
   set fs_name [get_property name $fileset]
 
   set import_coln [list]
   set add_file_coln [list]
  
-  foreach file [get_files -quiet -norecurse -of_objects $reconfigModule] {
+  foreach file [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]] {
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
 
     # fetch first object
-    set file_object [lindex [get_files -quiet -of_objects $reconfigModule [list $file]] 0]
+    set file_object [lindex [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule] [list $file]] 0]
     set file_props [list_property $file_object]
 
     if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -2335,6 +2335,9 @@ proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_fi
   variable l_local_files
   variable l_remote_files
   
+  set l_local_files  [list]
+  set l_remote_files [list]
+
   set tcl_obj [get_filesets -of_objects $reconfigModule]
 
   lappend l_script_data "# Set '$reconfigModule' fileset file properties for $file_category files"
@@ -2363,9 +2366,9 @@ proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_fi
 
     set file_object ""
     if { [string equal $file_category "local"] } {
-      set file_object [lindex [get_files -quiet -of_objects [get_filesets -of_objects $reconfigModule] [list "*$file"]] 0]
+      set file_object [lindex [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule] [list "*$file"]] 0]
     } elseif { [string equal $file_category "remote"] } {
-      set file_object [lindex [get_files -quiet -of_objects [get_filesets -of_objects $reconfigModule] [list $file]] 0]
+      set file_object [lindex [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule] [list $file]] 0]
     }
 
     set file_props [list_property $file_object]
