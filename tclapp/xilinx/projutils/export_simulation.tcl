@@ -1929,7 +1929,9 @@ proc xps_write_single_step_for_ies { fh_unix launch_dir srcs_dir } {
     }
   }
 
-  lappend arg_list  "-top $a_sim_vars(default_lib).$a_sim_vars(s_top)"
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
+
+  lappend arg_list  "-top ${top_lib}.$a_sim_vars(s_top)"
   set run_file $filename
   if { $a_sim_vars(b_absolute_path) } {
     set run_file "\"$launch_dir/$run_file\""
@@ -3902,7 +3904,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       }
       set default_lib $a_sim_vars(default_lib)
       lappend arg_list "-work"
-      lappend arg_list $default_lib
+      lappend arg_list $top_lib
       set d_libs [join $arg_list " "]
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       set arg_list [list]
@@ -4080,15 +4082,14 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   if { $b_reference_xpm_library } {
     set args [linsert $args end "-L" "xpm"]
   }
-  set default_lib $a_sim_vars(default_lib)
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
     lappend args "-O5"
   } else {
     lappend args "-lib"
-    lappend args $default_lib
+    lappend args $top_lib
   }
   set d_libs [join $args " "]
-  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
   set args [list "vsim" $t_opts]
   if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
     set args [list "asim" $t_opts]
@@ -4107,16 +4108,23 @@ proc xps_get_simulation_cmdline_questa {} {
   # Return Value:
 
   variable a_sim_vars
+
   set simulator "questa"
   set args [list]
   lappend args "vsim"
+
   xps_append_config_opts args "questa" "vsim"
+
   lappend args "-t 1ps"
-  set default_lib $a_sim_vars(default_lib)
+
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
+
   lappend args "-lib"
-  lappend args $default_lib
+  lappend args $top_lib
   lappend args "$a_sim_vars(s_top)_opt"
+
   set cmd_str [join $args " "]
+
   return $cmd_str
 }
 
