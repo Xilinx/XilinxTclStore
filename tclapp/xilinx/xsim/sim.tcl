@@ -628,11 +628,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
-    puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     xcs_write_shell_step_fn $fh_scr
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set xv_path=[usf_get_rdi_bin_path]"
   }
 
   # write tcl pre hook
@@ -649,10 +647,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     set cmd "vivado $vivado_cmd_str"
     puts $fh_scr "echo \"$cmd\""
     if {$::tcl_platform(platform) == "unix"} {
-      set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+      set full_cmd "vivado $vivado_cmd_str"
       puts $fh_scr "ExecStep $full_cmd"
     } else {
-      puts $fh_scr "call %xv_path%/vivado $vivado_cmd_str"
+      puts $fh_scr "call vivado $vivado_cmd_str"
     }
   }
   
@@ -737,11 +735,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
-      set full_cmd "\$xv_path/bin/xvlog $xvlog_cmd_str 2>&1 | tee $log_cmd_str"
+      set full_cmd "xvlog $xvlog_cmd_str 2>&1 | tee $log_cmd_str"
       puts $fh_scr "ExecStep $full_cmd"
     } else {
       set log_cmd_str " -log xvlog.log"
-      puts $fh_scr "call %xv_path%/xvlog $s_dbg_sw $xvlog_cmd_str$log_cmd_str"
+      puts $fh_scr "call xvlog $s_dbg_sw $xvlog_cmd_str$log_cmd_str"
       puts $fh_scr "call type xvlog.log > $log_filename"
     }
   }
@@ -794,11 +792,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
-      set full_cmd "\$xv_path/bin/xvhdl $xvhdl_cmd_str 2>&1 | tee -a $log_cmd_str"
+      set full_cmd "xvhdl $xvhdl_cmd_str 2>&1 | tee -a $log_cmd_str"
       puts $fh_scr "ExecStep $full_cmd"
     } else {
       set log_cmd_str " -log xvhdl.log"
-      puts $fh_scr "call %xv_path%/xvhdl $s_dbg_sw $xvhdl_cmd_str$log_cmd_str"
+      puts $fh_scr "call xvhdl $s_dbg_sw $xvhdl_cmd_str$log_cmd_str"
       if { $b_contain_verilog_srcs } {
         puts $fh_scr "call type xvhdl.log >> $log_filename"
       } else {
@@ -846,7 +844,6 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
 
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
-    puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
 
     if { [get_param "project.allowSharedLibraryType"] } {
       puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
@@ -854,12 +851,11 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
 
     xcs_write_shell_step_fn $fh_scr
     set args [usf_xsim_get_xelab_cmdline_args]
-    puts $fh_scr "ExecStep \$xv_path/bin/xelab $args"
+    puts $fh_scr "ExecStep xelab $args"
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set xv_path=[usf_get_rdi_bin_path]"
     set args [usf_xsim_get_xelab_cmdline_args]
-    puts $fh_scr "call %xv_path%/xelab $s_dbg_sw $args"
+    puts $fh_scr "call xelab $s_dbg_sw $args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr ":END"
@@ -947,7 +943,6 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   set b_batch 1
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
-    puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     xcs_write_shell_step_fn $fh_scr
     
     # TODO: once xsim picks the "so"s path at runtime , we can remove the following code
@@ -976,12 +971,11 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
       }
     }
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
-    puts $fh_scr "ExecStep \$xv_path/bin/xsim $cmd_args"
+    puts $fh_scr "ExecStep xsim $cmd_args"
   } else {
     puts $fh_scr "@echo off"
-    puts $fh_scr "set xv_path=[usf_get_rdi_bin_path]"
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
-    puts $fh_scr "call %xv_path%/xsim $cmd_args"
+    puts $fh_scr "call xsim $cmd_args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr ":END"
