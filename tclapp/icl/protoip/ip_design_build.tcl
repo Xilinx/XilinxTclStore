@@ -877,11 +877,26 @@ set project_name [lindex $args 0]
 			
 			# #######################################  
 			# #######################################  
-			# Extract Algorithm pre implementation information (resources and latency)
+			# Extract Algorithm pre implementation information (resources and latency)		
+
+
+			# at some point between 2016.2 and 2017.1 the reportport file name has changed. Handle both new and old names
+			set target_file_1 ""
+			append target_file_1 "ip_design/build/prj/"  $project_name "/solution1/syn/report/foo_foo_user_csynth.rpt" 
+
+			set target_file_2 ""
+			append target_file_2 "ip_design/build/prj/"  $project_name "/solution1/syn/report/foo_user_csynth.rpt"
+
+			if ([file exists $target_file_1]) {
+				set target_file $target_file_1
+			}
+
+			if ([file exists $target_file_2]) {
+				set target_file $target_file_2
+			}
+
 			
-			set target_file ""
-			append target_file "ip_design/build/prj/"  $project_name "/solution1/syn/report/foo_foo_user_csynth.rpt"
-			
+
 			# #######################################  
 			# Extract timing information
 			
