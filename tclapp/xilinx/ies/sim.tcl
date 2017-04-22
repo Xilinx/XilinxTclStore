@@ -113,7 +113,7 @@ proc usf_ies_setup_simulation { args } {
   ::tclapp::xilinx::ies::usf_set_simulator_path "ies"
  
   # set the simulation flow
-  ::tclapp::xilinx::ies::usf_set_simulation_flow
+  xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -123,35 +123,65 @@ proc usf_ies_setup_simulation { args } {
   }
 	
   # set default object
-  if { [::tclapp::xilinx::ies::usf_set_sim_tcl_obj] } {
+  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
     return 1
   }
 
   # initialize IES simulator variables
   usf_ies_init_simulation_vars
 
-  # print launch_simulation arg values
-  #::tclapp::xilinx::ies::usf_print_args
+  # initialize XPM libraries (if any)
+  xcs_get_xpm_libraries
 
   # write functional/timing netlist for post-* simulation
-  ::tclapp::xilinx::ies::usf_write_design_netlist
+  set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
+                                                           $a_sim_vars(s_simulation_flow) \
+                                                           $a_sim_vars(s_type)            \
+                                                           $a_sim_vars(s_sim_top)         \
+                                                           $a_sim_vars(s_launch_dir)      \
+                                 ]
 
   # prepare IP's for simulation
-  #::tclapp::xilinx::ies::usf_prepare_ip_for_simulation
+  # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
+
+  # find/copy cds.lib file into run dir
+  set clibs_dir [usf_ies_verify_compiled_lib]
 
   variable l_compiled_libraries
-  if { $a_sim_vars(b_use_static_lib) } {
-    set clibs_dir [get_property compxlib.ies_compiled_library_dir [current_project]]
-    set l_compiled_libraries [xcs_get_compiled_libraries $clibs_dir]
+  variable l_xpm_libraries
+  set b_reference_xpm_library 0
+  if { [llength $l_xpm_libraries] > 0 } {
+     if { [get_param project.usePreCompiledXPMLibForSim] } {
+      set b_reference_xpm_library 1
+    }
+  }
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
+    set l_local_ip_libs [xcs_get_libs_from_local_repo]
+    if { {} != $clibs_dir } {
+      set libraries [xcs_get_compiled_libraries $clibs_dir]
+      # filter local ip definitions
+      foreach lib $libraries {
+        if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+          continue
+        } else {
+          lappend l_compiled_libraries $lib
+        }
+      }
+    }
   }
 
   # generate mem files
-  ::tclapp::xilinx::ies::usf_generate_mem_files_for_simulation 
-
-  usf_ies_verify_compiled_lib
+  xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # fetch the compile order for the specified object
-  ::tclapp::xilinx::ies::usf_xport_data_files
+  xcs_xport_data_files $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_simset) $a_sim_vars(s_sim_top) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
+
+  # cache all design files
+  variable a_sim_cache_all_design_files_obj
+  foreach file_obj [get_files -quiet -all] {
+    set name [get_property -quiet name $file_obj]
+    set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
 
   # fetch design files
   set global_files_str {}
@@ -243,15 +273,13 @@ proc usf_ies_verify_compiled_lib {} {
     set compiled_lib_dir $dir
   }
   # 1. check -lib_map_path
-  if { $a_sim_vars(b_use_static_lib) } {
-    # is -lib_map_path specified and point to valid location?
-    if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
-      set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
-      if { [file exists $a_sim_vars(s_lib_map_path)] } {
-        set compiled_lib_dir $a_sim_vars(s_lib_map_path)
-      } else {
-        send_msg_id USF-IES-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
-      }
+  # is -lib_map_path specified and point to valid location?
+  if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+    if { [file exists $a_sim_vars(s_lib_map_path)] } {
+      set compiled_lib_dir $a_sim_vars(s_lib_map_path)
+    } else {
+      send_msg_id USF-IES-010 WARNING "The path specified with the -lib_map_path does not exist:'$a_sim_vars(s_lib_map_path)'\n"
     }
   }
   # 1a. find cds.lib from current working directory
@@ -266,7 +294,7 @@ proc usf_ies_verify_compiled_lib {} {
   if { {} != $compiled_lib_dir } {
    set ::tclapp::xilinx::ies::a_ies_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
    send_msg_id USF-IES-007 INFO "Using cds.lib from '$compiled_lib_dir/cds.lib'\n"
-   return
+   return $compiled_lib_dir
   }
   if { $b_scripts_only } {
     send_msg_id USF-IES-018 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
@@ -275,6 +303,8 @@ proc usf_ies_verify_compiled_lib {} {
   }
   send_msg_id USF-IES-009 INFO \
      "Please set the 'COMPXLIB.IES_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for IES.\n"
+
+  return $compiled_lib_dir
 }
 
 proc usf_ies_write_setup_files {} {
@@ -284,6 +314,7 @@ proc usf_ies_write_setup_files {} {
   
   variable a_sim_vars
   variable l_ip_static_libs
+  variable l_local_design_libraries
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
 
@@ -310,10 +341,13 @@ proc usf_ies_write_setup_files {} {
   }
   set dir_name "ies"
   set b_default_lib false
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
+  set default_lib $a_sim_vars(default_top_library)
   foreach lib_name $libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {
-      continue
+      # continue if no local library found or if this library is precompiled (not local)
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib_name $l_local_design_libraries]) } {
+        continue
+      }
     }
     set lib_dir [file join $dir_name $lib_name]
     set lib_dir_path [file normalize [string map {\\ /} [file join $dir $lib_dir]]]
@@ -403,9 +437,7 @@ proc usf_ies_write_compile_script {} {
   set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
 
-  set default_lib [get_property "DEFAULT_LIB" [current_project]]
-
-  set filename "compile";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
+  set filename "compile";append filename [xcs_get_script_extn "ies"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
 
@@ -418,12 +450,28 @@ proc usf_ies_write_compile_script {} {
   ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$tool_path\"\n"
+    puts $fh_scr "bin_path=\"$tool_path\""
   }
+
+  # write tcl pre hook
+  set tcl_pre_hook [get_property IES.COMPILE.TCL.PRE $fs_obj]
+  if { {} != $tcl_pre_hook } {
+    puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
+    xcs_write_shell_step_fn $fh_scr
+  }
+  puts $fh_scr ""
+
   ::tclapp::xilinx::ies::usf_set_ref_dir $fh_scr
 
   set tool "ncvhdl"
-  set arg_list [list "-messages" "-RELAX" "-logfile" "${tool}.log" "-append_log"]
+  set arg_list [list "-messages"]
+
+  if { [get_property "IES.COMPILE.RELAX" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-relax"]
+  }
+
+  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
+
   if { [get_property 32bit $fs_obj] } {
     # donot pass os type
   } else {
@@ -461,6 +509,22 @@ proc usf_ies_write_compile_script {} {
 
   puts $fh_scr "\n# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+
+  # add tcl pre hook
+  if { {} != $tcl_pre_hook } {
+    if { ![file exists $tcl_pre_hook] } {
+      [catch {send_msg_id USF-IES-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+    }
+    set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+    xcs_delete_backup_log $tcl_wrapper_file $dir
+    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+    set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+    set cmd "vivado $vivado_cmd_str"
+    puts $fh_scr "echo \"$cmd\""
+    set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+    puts $fh_scr "ExecStep $full_cmd\n"
+  }
+
   puts $fh_scr "# compile design source files"
 
   set b_first true
@@ -510,7 +574,7 @@ proc usf_ies_write_compile_script {} {
     set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
     if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
       puts $fh_scr "\n# compile glbl module"
       if { {} != $tool_path } {
@@ -526,7 +590,7 @@ proc usf_ies_write_compile_script {} {
         # This is not supported, netlist will be verilog always
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         set file_str "-work $top_lib \"${glbl_file}\""
         puts $fh_scr "\n# compile glbl module"
         if { {} != $tool_path } {
@@ -547,7 +611,7 @@ proc usf_ies_write_elaborate_script {} {
   # Return Value:
 
   variable a_sim_vars
-
+  variable l_compiled_libraries
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set sim_flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
@@ -557,7 +621,7 @@ proc usf_ies_write_elaborate_script {} {
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
-  set filename "elaborate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
+  set filename "elaborate";append filename [xcs_get_script_extn "ies"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
 
@@ -574,7 +638,7 @@ proc usf_ies_write_elaborate_script {} {
   }
 
   set tool "ncelab"
-  set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list "-relax -access +rwc -namemap_mixgen"]
 
   set path_delay 0
@@ -589,7 +653,7 @@ proc usf_ies_write_elaborate_script {} {
   }
 
   if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
-    set arg_list [linsert $arg_list end "-pulse_r $path_delay -pulse_int_r $int_delay"]
+    set arg_list [linsert $arg_list end "-pulse_r $path_delay -pulse_int_r $int_delay -pulse_e $path_delay -pulse_int_e $int_delay"]
   }
 
   set arg_list [linsert $arg_list end "-messages -logfile elaborate.log"]
@@ -609,22 +673,21 @@ proc usf_ies_write_elaborate_script {} {
     set arg_list [linsert $arg_list end "$more_elab_options"]
   }
 
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::xilinx::ies::usf_is_axi_bfm_ip] } {
-    set simulator_lib [usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list 0 "-loadvpi \"$simulator_lib:xilinx_register_systf\""]
-    } else {
-      send_msg_id USF-IES-020 "CRITICAL WARNING" \
-         "Failed to locate the simulator library from 'XILINX_VIVADO' environment variable. Library does not exist.\n"
-    }
-  }
-
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
+  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
 
   set arg_list [list]
   # add simulation libraries
+
+  # add user design libraries
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} {
+      continue;
+    }
+    lappend arg_list "-libname"
+    lappend arg_list "[string tolower $lib]"
+  }
 
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
@@ -662,14 +725,27 @@ proc usf_ies_write_elaborate_script {} {
   # add secureip
   set arg_list [linsert $arg_list end "-libname" "secureip"]
 
-  # add design libraries
-  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} {
-      continue;
+  # reference XPM modules from precompiled libs if param is set
+  set b_reference_xpm_library 0
+  [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
+
+  # for precompile flow, if xpm library not found from precompiled libs, compile it locally
+  # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
+  if { $b_reference_xpm_library } {
+    if { $a_sim_vars(b_use_static_lib) } {
+      if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
+        set b_reference_xpm_library 0
+      }
+    } else {
+      set b_reference_xpm_library 0
     }
-    lappend arg_list "-libname"
-    lappend arg_list "[string tolower $lib]"
+  }
+
+  if { $b_reference_xpm_library } {
+    # pass xpm library reference for behavioral simulation only
+    if { {behav_sim} == $sim_flow } {
+      set arg_list [linsert $arg_list end "-libname" "xpm"]
+    }
   }
 
   puts $fh_scr "\n# set design libraries"
@@ -744,7 +820,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
 
   if { $b_add_glbl } {
-    set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
   }
 }
@@ -754,13 +830,14 @@ proc usf_ies_write_simulate_script {} {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
   set b_scripts_only $::tclapp::xilinx::ies::a_sim_vars(b_scripts_only)
   set tool_path $::tclapp::xilinx::ies::a_sim_vars(s_tool_bin_path)
 
-  set filename "simulate";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
+  set filename "simulate";append filename [xcs_get_script_extn "ies"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
 
@@ -781,7 +858,7 @@ proc usf_ies_write_simulate_script {} {
   ::tclapp::xilinx::ies::usf_create_do_file "ies" $do_filename
 	
   set tool "ncsim"
-  set top_lib [::tclapp::xilinx::ies::usf_get_top_library]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list "-logfile" "simulate.log"]
   if { [get_property 32bit $fs_obj] } {
     # donot pass os type
@@ -900,9 +977,10 @@ proc usf_ies_create_setup_script {} {
 
   variable a_sim_vars
   variable l_ip_static_libs
+  variable l_local_design_libraries
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
-  set filename "setup";append filename [::tclapp::xilinx::ies::usf_get_script_extn]
+  set filename "setup";append filename [xcs_get_script_extn "ies"]
   set scr_file [file normalize [file join $dir $filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
@@ -933,7 +1011,10 @@ proc usf_ies_create_setup_script {} {
   set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
-      continue
+      # continue if no local library found or continue if this library is precompiled (not local)
+      if { ([llength $l_local_design_libraries] == 0) || (![xcs_is_local_ip_lib $lib $l_local_design_libraries]) } {
+        continue
+      }
     }
     if { {} == $lib } {
       continue;
@@ -941,7 +1022,7 @@ proc usf_ies_create_setup_script {} {
     lappend libs [string tolower $lib]
   }
 
-  set default_lib [string tolower [get_property "DEFAULT_LIB" [current_project]]]
+  set default_lib [string tolower $a_sim_vars(default_top_library)]
   if { [lsearch -exact $libs $default_lib] == -1 } {
     lappend libs $default_lib
   }

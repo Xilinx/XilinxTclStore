@@ -1,0 +1,4 @@
+1.9 export_simulation procedure and support for -lib_map_path switch added
+1.8 Fixed system file
+1.7 Update 1.7: Add mappings for libraries from compiled library location.
+1.6 Update 1.6: Coverage options.

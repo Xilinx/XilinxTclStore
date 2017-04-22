@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for XPM files for -of_objects</revision_history>
+      <revision_history>reference compiled library from the path specified with -lib_map_path</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

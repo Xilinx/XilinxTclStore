@@ -69,6 +69,13 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nets {} {
       set nets [get_nets -quiet -of $nodes]
       return $nets
     }
+    zynquplus -
+    kintexuplus -
+    virtexuplus {
+      set nodes [::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_ultrascale_plus]
+      set nets [get_nets -quiet -of $nodes]
+      return $nets
+    }
     default {
       puts " -E- architecture $architecture is not supported."
       incr error
@@ -103,6 +110,12 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes {} {
       set res [::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_ultrascale]
       return $res
     }
+    zynquplus -
+    kintexuplus -
+    virtexuplus {
+      set res [::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_ultrascale_plus]
+      return $res
+    }
     default {
       puts " -E- architecture $architecture is not supported."
       incr error
@@ -112,6 +125,47 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes {} {
     error " -E- some error(s) happened. Cannot continue"
   }
   return -code ok
+}
+
+proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_ultrascale_plus {} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+
+  set chip_SLRs [get_slrs]
+  set bot_SLR [lindex $chip_SLRs 0]
+  set top_SLR [lindex $chip_SLRs end]
+  array set clock_regions {}
+  set sll_nodes [list]
+
+  foreach SLR [lsort -decreasing [lrange $chip_SLRs 0 end-1]] {
+    set clock_regions($SLR) [get_clock_regions -of $SLR]
+#     regexp {X(\d*)Y(\d*)} [lindex [lsort $clock_regions($SLR)] 0] all clock_regions_minx($SLR) clock_regions_miny($SLR)
+#     regexp {X(\d*)Y(\d*)} [lindex [lsort $clock_regions($SLR)] end] all clock_regions_maxx($SLR) clock_regions_maxy($SLR)
+    regexp {X(\d*)Y(\d*)} [lindex [lsort $clock_regions($SLR)] 0] - Xmin Ymin
+    regexp {X(\d*)Y(\d*)} [lindex [lsort $clock_regions($SLR)] end] - Xmax Ymax
+    set clock_regions_minx($SLR) [::tclapp::xilinx::designutils::min $Xmin $Xmax]
+    set clock_regions_maxx($SLR) [::tclapp::xilinx::designutils::max $Xmin $Xmax]
+    set clock_regions_miny($SLR) [::tclapp::xilinx::designutils::min $Ymin $Ymax]
+    set clock_regions_maxy($SLR) [::tclapp::xilinx::designutils::max $Ymin $Ymax]
+    for {set x $clock_regions_minx($SLR)} {$x<=$clock_regions_maxx($SLR)} {incr x} {
+      set clock_region "X${x}Y$clock_regions_maxy($SLR)"
+      set all_SLLs($clock_region) [get_nodes -quiet -of [get_tiles -quiet LAG_LAG_X*Y* -of [get_clock_regions -quiet $clock_region]] -regexp -filter {NAME =~ .*UBUMP\d.*}]
+      set baseClockRegion [get_property -quiet BASE_CLOCK_REGION [lindex $all_SLLs($clock_region) 0]]
+      set tiles [lsort [get_tiles -of $all_SLLs($clock_region)]]
+#       regexp {LAG_LAG_X(\d*)Y(\d*)} [lindex $tiles 0] all CLB_col_min LagunaY
+#       regexp {LAG_LAG_X(\d*)Y(\d*)} [lindex $tiles end] all CLB_col_max LagunaY
+      regexp {LAG_LAG_X(\d*)Y(\d*)} [lindex $tiles 0] - Xmin LagunaY
+      regexp {LAG_LAG_X(\d*)Y(\d*)} [lindex $tiles end] - Xmax LagunaY
+      set CLB_col_min [::tclapp::xilinx::designutils::min $Xmin $Xmax]
+      set CLB_col_max [::tclapp::xilinx::designutils::max $Xmin $Xmax]
+      set used_SLLs($SLR:$clock_region:$CLB_col_min) [get_nodes -quiet -of [get_nets -quiet -of [get_nodes -of [get_tiles -quiet LAG_LAG_X${CLB_col_min}Y* -of [get_clock_regions -quiet $clock_region]] -regexp -filter {NAME =~ .*UBUMP\d.*}]] -filter BASE_CLOCK_REGION=~$baseClockRegion&&NAME=~LAG_LAG_X${CLB_col_min}Y*UBUMP*]
+      set used_SLLs($SLR:$clock_region:$CLB_col_max) [get_nodes -quiet -of [get_nets -quiet -of [get_nodes -of [get_tiles -quiet LAG_LAG_X${CLB_col_max}Y* -of [get_clock_regions -quiet $clock_region]] -regexp -filter {NAME =~ .*UBUMP\d.*}]] -filter BASE_CLOCK_REGION=~$baseClockRegion&&NAME=~LAG_LAG_X${CLB_col_max}Y*UBUMP*]
+      foreach el $used_SLLs($SLR:$clock_region:$CLB_col_min) { lappend sll_nodes $el }
+      foreach el $used_SLLs($SLR:$clock_region:$CLB_col_max) { lappend sll_nodes $el }
+    }
+  }
+  return $sll_nodes
 }
 
 proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_ultrascale {} {
@@ -163,7 +217,7 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_7serie {} {
   # Categories: xilinxtclstore, designutils
 
   set sllList [list]
-  
+
   # For non-clock nets
   set slvTiles [get_tiles -quiet T_TERM_INT_SLV*]
 #   set slvTiles [get_tiles -quiet T_TERM_INT_SLV* -filter "SLR_REGION_ID == <REGION_ID>"]
@@ -172,7 +226,7 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_7serie {} {
       set wireList [get_wires -quiet -of $node]
       # SLLs have a large number of wires - normal vlongs have < 20
       if {[llength $wireList] > 100} {
-        #	    puts "DEBUG:  SLL - $node"
+        #     puts "DEBUG:  SLL - $node"
         lappend sllList $node
       }
     }
@@ -182,7 +236,7 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_7serie {} {
   set slvTiles [get_tiles -quiet CLK_TERM_*]
   foreach node [get_nodes -quiet -of $slvTiles] {
     if {[llength [get_nets -quiet -of $node]] > 0} {
-      #	    puts "DEBUG:  SLL - $node"
+      #     puts "DEBUG:  SLL - $node"
       lappend sllList $node
     }
   }

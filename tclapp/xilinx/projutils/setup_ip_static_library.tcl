@@ -116,11 +116,11 @@ proc setup_ip_static_library {args} {
       return
     }
   } else {
-    if { {} != [current_project -quiet] } {
-      [catch {send_msg_id setup_ip_static_library-Tcl-005 ERROR \
-       "Detected a project in opened state. Please close this project and re-run this command again.\n"} err]
-      return
-    }
+    #if { {} != [current_project -quiet] } {
+      #[catch {send_msg_id setup_ip_static_library-Tcl-005 ERROR \
+      # "Detected a project in opened state. Please close this project and re-run this command again.\n"} err]
+      #return
+    #}
   }
 
   if { $a_isl_vars(b_dir_specified) } {
@@ -906,7 +906,7 @@ proc isl_extract_repo_static_files { } {
   variable a_isl_vars
   variable l_ip_repo_paths
 
-  create_project -in_memory
+  create_project -in_memory -hide
   if { [llength $l_ip_repo_paths] > 0 } {
     foreach repo_path [split [get_property ip_repo_paths [current_project]] " "] {
       lappend l_ip_repo_paths $repo_path
@@ -969,7 +969,7 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
 
   foreach ip_xml $ip_component_filelist {
     set ip_dir  [file dirname $ip_xml]
-    set ip_comp [ipx::open_core $ip_xml]
+    set ip_comp [ipx::open_core -set_current false $ip_xml]
     set ip_def_name [get_property name $ip_comp]
     set vlnv    [get_property vlnv $ip_comp]
     puts -nonewline "."
@@ -996,8 +996,9 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
           set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_vlnv]
         } 
         #puts "$vlnv=$ordered_sub_cores"
+        set sv_libs [list]
         foreach sub_vlnv $ordered_sub_cores {
-          isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs
+          isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs
         }
 
         set ip_lib_dir {}
@@ -1024,6 +1025,12 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
             lappend ip_libs $library
           }
 
+          if { {system_verilog} == $type } {
+            if { [lsearch $sv_libs $library] == -1 } {
+              lappend sv_libs $library
+            }
+          }
+
           if { [regexp {microblaze_mcs_v} $library] } {
             set mcs_lib_name $library
           } else {
@@ -1038,7 +1045,12 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
               send_msg_id setup_ip_static_library-Tcl-022 ERROR "failed to create the directory ($ip_lib_dir)): $error_msg\n"
             }
           }
-          set data "$library,$full_ip_file_path,$type,static"
+          set sv_libs_str {}
+          if { [llength $sv_libs] > 0 } {
+            set sv_libs_str [join $sv_libs ","]
+            set sv_libs_str ",$sv_libs_str"
+          }
+          set data "$library,$full_ip_file_path,$type,static$sv_libs_str"
           lappend file_paths "$full_ip_file_path,$type"
           isl_add_to_compile_order $library $data
         }
@@ -1065,20 +1077,21 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
   return $current_index
 }
 
-proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
+proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_isl_vars
   upvar ip_libs_arg ip_libs
+  upvar $sv_libs_arg sv_libs
 
   set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
   set ip_def_comps [split $ip_def {:}]
   set ip_def_name  [lindex $ip_def_comps 2]
   set ip_xml  [get_property xml_file_name $ip_def]
   set ip_dir  [file dirname $ip_xml]
-  set ip_comp [ipx::open_core $ip_xml]
+  set ip_comp [ipx::open_core -set_current false $ip_xml]
   foreach file_group [ipx::get_file_groups -of $ip_comp] {
     set type [get_property type $file_group]
     if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
@@ -1089,7 +1102,7 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
       } 
       #puts " +$vlnv=$ordered_sub_cores"
       foreach sub_vlnv $ordered_sub_cores {
-        isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs
+        isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs
       }
       set ip_lib_dir {}
       set file_paths [list]
@@ -1113,6 +1126,11 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg } {
         set full_ip_file_path [file normalize [file join $ip_dir $ip_file]]
         if { [lsearch $ip_libs $library] == -1 } {
           lappend ip_libs $library
+        }
+        if { {system_verilog} == $type } {
+          if { [lsearch $sv_libs $library] == -1 } {
+            lappend sv_libs $library
+          }
         }
 
         if { [regexp {microblaze_mcs_v} $library] } {
@@ -1401,6 +1419,11 @@ proc isl_write_analyze_order_file { filelist_arg ip_lib_dir order_file } {
     }
     close $fh
   } else {
+    if { ![file exists $ip_lib_dir] } {
+      if {[catch {file mkdir $ip_lib_dir} error_msg] } {
+        send_msg_id setup_ip_static_library-Tcl-029 WARNING "Failed to create directory '$ip_lib_dir' : $error_msg\n"
+      }
+    }
     if {[catch {open $file w} fh]} {
       send_msg_id setup_ip_static_library-Tcl-027 ERROR "failed to open file for write ($file)\n"
       return

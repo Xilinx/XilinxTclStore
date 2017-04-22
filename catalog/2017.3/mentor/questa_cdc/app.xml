@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Initial version</revision_history>
+      <name>questa_cdc</name>
+      <company>mentor</company>
+      <company_display>Mentor Graphics, Inc.</company_display>
+      <summary>This is a Mentor Graphics app to generate the script file of the design to run it in Questa CDC. The App takes user inputs for the design-top name and an optional argument for the output directory in which the script files will be generated: eg-: write_questa_cdc_script top -output_directory QCDC_FILES, where top is the design-top and QCDC_FILES is the name of the output directory. To run Questa CDC, ensure that the required software and the licenses are available. You can run Questa CDC though the command: sh qcdc_run.sh.</summary>
+      <display>Mentor Graphics Questa CDC</display>
+      <procs>
+        <proc>
+          <name>write_questa_cdc_script</name>
+          <summary>This proc generates the Questa CDC script file</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

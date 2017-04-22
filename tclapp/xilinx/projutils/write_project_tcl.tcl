@@ -228,12 +228,12 @@ proc write_project_tcl_script {} {
 
 
     # re-parse source fileset compile order for the current top
-    if {[llength [get_files -compile_order sources -used_in synthesis]] > 1} {
+    if {[llength [get_files -quiet -compile_order sources -used_in synthesis]] > 1} {
       update_compile_order -fileset [current_fileset] -quiet
     }
 
     # re-parse simlulation fileset compile order for the current top
-    if {[llength [get_files -compile_order sources -used_in simulation]] > 1} {
+    if {[llength [get_files -quiet -compile_order sources -used_in simulation]] > 1} {
       update_compile_order -fileset [current_fileset -simset] -quiet
     }
   }
@@ -242,6 +242,7 @@ proc write_project_tcl_script {} {
   wr_create_project $proj_dir $proj_name $part_name
   wr_project_properties $proj_dir $proj_name
   wr_filesets $proj_dir $proj_name
+  wr_prflow $proj_dir $proj_name
   wr_runs $proj_dir $proj_name
   wr_proj_info $proj_name
 
@@ -495,7 +496,20 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
 
     # set IP REPO PATHS (if any) for filesets of type "DesignSrcs" or "BlockSrcs"
     if { (({DesignSrcs} == $fs_type) || ({BlockSrcs} == $fs_type)) } {
-      if { ({RTL} == [get_property design_mode [get_filesets $tcl_obj]]) } {
+      # If BlockSet contains only one IP, then this indicates the case of OOC1
+      # This means that we should not write these properties, they are read-only
+      set blockset_is_ooc1 false
+      if { {BlockSrcs} == $fs_type } {
+        set current_fs_files [get_files -quiet -of_objects [get_filesets $tcl_obj] -norecurse]
+        if { [llength $current_fs_files] == 1 } {
+          set only_file_in_fs [lindex $current_fs_files 0]
+          set file_type [get_property FILE_TYPE $only_file_in_fs]
+          set blockset_is_ooc1 [expr {$file_type == {IP}} ? true : false]
+        }
+      }
+      if { $blockset_is_ooc1} {
+        # We do not write properties for OOC1 
+      } elseif { ({RTL} == [get_property design_mode [get_filesets $tcl_obj]]) } {
         set repo_paths [get_ip_repo_paths $tcl_obj]
         if { [llength $repo_paths] > 0 } {
           lappend l_script_data "# Set IP repository paths"
@@ -678,19 +692,6 @@ proc get_ip_repo_paths { tcl_obj } {
   return $repo_path_list
 }
 
-proc is_deprecated { prop } {
-  # Summary: filter deprecated properties
-  # Argument Usage:
-  # Return Value:
-  # true (1) if found, false (1) otherwise
-
-  set prop [string toupper $prop]
-  if { $prop == "BOARD" } {
-    return 1
-  }
-  return 0
-}
-
 proc filter { prop val { file {} } } {
   # Summary: filter special properties
   # This helper command is used to script help.
@@ -792,15 +793,13 @@ proc write_properties { prop_info_list get_what tcl_obj } {
       set elem [split $x "#"]
       set name [lindex $elem 0]
       set value [lindex $elem 1]
-      if { [regexp "more options" $name] } {
-        set cmd_str "set_property -name {$name} -value {$value} -objects"
-      } elseif { ([is_ip_readonly_prop $name]) && ([string equal $get_what "get_files"]) } {
+      if { ([is_ip_readonly_prop $name]) && ([string equal $get_what "get_files"]) } {
         set cmd_str "if \{ !\[get_property \"is_locked\" \$file_obj\] \} \{"
         lappend l_script_data "$cmd_str"
-        set cmd_str "  set_property \"$name\" \"$value\""
+        set cmd_str "  set_property -name \"$name\" -value \"$value\" -objects"
         set b_add_closing_brace 1
       } else {
-        set cmd_str "set_property \"$name\" \"$value\""
+        set cmd_str "set_property -name \"$name\" -value \"$value\" -objects"
       }
       if { [string equal $get_what "get_files"] } {
         lappend l_script_data "$cmd_str \$file_obj"
@@ -840,10 +839,17 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
   set properties [list_property [$get_what $tcl_obj]]
 
   foreach prop $properties {
-    if { [is_deprecated $prop] } { continue }
-
+    if { [is_deprecated_property $prop] } { continue }
     # skip read-only properties
     if { [lsearch $read_only_props $prop] != -1 } { continue }
+
+    # skip writing PR-Configuration, attached right after creation of impl run
+    if { ([get_property pr_flow [current_project]] == 1) && [string equal $type "run"] } {
+      set isImplRun [get_property is_implementation [$get_what $tcl_obj]]
+      if { ($isImplRun == 1) && [string equal -nocase $prop "pr_configuration"] } {
+        continue
+      }
+    }
 
     set prop_type "unknown"
     if { [string equal $type "run"] } {
@@ -851,7 +857,9 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         # skip step properties
       } else {
         set attr_names [rdi::get_attr_specs -class [get_property class [get_runs $tcl_obj] ]]
-        set prop_type [get_property type [lindex $attr_names [lsearch $attr_names $prop]]]
+        if { [lsearch $attr_names $prop] != -1 } {
+          set prop_type [get_property type [lindex $attr_names [lsearch $attr_names $prop]]]
+        }
       }
     } else {
       set attr_spec [rdi::get_attr_specs -quiet $prop -object [$get_what $tcl_obj]]
@@ -882,10 +890,39 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       continue
     }
 
+    # do not set default_rm for partitionDef initially as RM is not created at time of creation of pdef
+    if { [string equal $type "partitionDef"] && 
+         [string equal -nocase $prop "default_rm"] } {
+      continue
+    }
+
     # re-align values
     set cur_val [get_target_bool_val $def_val $cur_val]
+    set abs_proj_file_path [get_property $prop [$get_what $tcl_obj]]
+    
+    set path_match [string match $proj_dir* $abs_proj_file_path]
+    if { $path_match == 1 &&  $a_global_vars(b_absolute_path) != 1 } {
+      # changing the absolute path to relative
+      set abs_path_length [string length $proj_dir]
+      set proj_file_path [string replace $abs_proj_file_path 0 $abs_path_length "\$proj_dir/"]
+      set prop_entry "[string tolower $prop]#$proj_file_path"
+    } else {
+      set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
+    }  
 
-    set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
+    # re-align include dir path wrt origin dir
+    if { [string equal -nocase $prop "include_dirs"] } {
+      if { [llength $abs_proj_file_path] > 0 } {
+        if { !$a_global_vars(b_absolute_path) } {
+          set incl_paths $abs_proj_file_path
+          set rel_paths [list]
+          foreach path $incl_paths {
+            lappend rel_paths "\[file normalize \"\$origin_dir/[get_relative_file_path_for_source $path [get_script_execution_dir]]\"\]"
+          }
+          set prop_entry "[string tolower $prop]#[join $rel_paths " "]"
+        }
+      }
+    }
 
     # fix paths wrt the original project dir
     if {([string equal -nocase $prop "top_file"]) && ($cur_val != "") } {
@@ -911,7 +948,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
       set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
       set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
-      set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+      set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
       set file_props [list_property $file_object]
 
       if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -1092,7 +1129,11 @@ proc is_deprecated_property { property } {
 
   set property [string tolower $property]
 
-  if { [string equal $property "runtime"] ||
+  if { [string equal $property "board"] ||
+       [string equal $property "verilog_dir"] ||
+       [string equal $property "compxlib.compiled_library_dir"] ||
+       [string equal $property "dsa.build_flow"] ||
+       [string equal $property "runtime"] ||
        [string equal $property "unit_under_test"] ||
        [string equal $property "xelab.snapshot"] ||
        [string equal $property "xelab.debug_level"] ||
@@ -1107,6 +1148,7 @@ proc is_deprecated_property { property } {
        [string equal $property "xsim.view"] ||
        [string equal $property "xsim.wdb"] ||
        [string equal $property "xsim.saif"] ||
+       [string equal $property "xsim.tclbatch"] ||
        [string equal $property "xsim.more_options"] ||
        [string equal $property "modelsim.custom_do"] ||
        [string equal $property "modelsim.custom_udo"] ||
@@ -1120,7 +1162,12 @@ proc is_deprecated_property { property } {
        [string equal $property "modelsim.64bit"] ||
        [string equal $property "modelsim.vsim_more_options"] ||
        [string equal $property "modelsim.vlog_more_options"] ||
-       [string equal $property "modelsim.vcom_more_options"] } {
+       [string equal $property "modelsim.vcom_more_options"] ||
+       [string equal $property "xsim.simulate.uut"] ||
+       [string equal $property "modelsim.simulate.uut"] ||
+       [string equal $property "questa.simulate.uut"] ||
+       [string equal $property "ies.simulate.uut"] ||
+       [string equal $property "vcs.simulate.uut"] } {
      return true
   }
   return false
@@ -1150,14 +1197,14 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   set import_coln [list]
   set add_file_coln [list]
 
-  foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
+  foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj]] {
     if { [file extension $file] == ".xcix" } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
 
     # fetch first object
-    set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+    set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
     set file_props [list_property $file_object]
 
     if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
@@ -1286,14 +1333,14 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
     return
   }
 
-  foreach file [get_files -norecurse -of_objects [get_filesets $tcl_obj]] {
+  foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj]] {
     lappend l_script_data "# Add/Import constrs file and set constrs file properties"
     set constrs_file  {}
     set file_category {}
     set path_dirs     [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin         [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file      [join [lrange $path_dirs $begin+1 end] "/"]
-    set file_object   [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+    set file_object   [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
     set file_props    [list_property $file_object]
 
     # constrs sources imported? 
@@ -1443,9 +1490,9 @@ proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_
 
   set file_object ""
   if { [string equal $file_category "local"] } {
-    set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
+    set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
   } elseif { [string equal $file_category "remote"] } {
-    set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+    set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
   }
 
   # get the constrs file properties
@@ -1544,19 +1591,47 @@ proc write_specified_run { proj_dir proj_name runs } {
       set parent_run_str " -parent_run $parent_run"
     }
 
+    set fileset_type [get_property fileset_type [get_property srcset [$get_what $tcl_obj]]]
+    set isImplRun    [get_property is_implementation [$get_what $tcl_obj]]
+    set isPRProject  [get_property pr_flow [current_project]]
+
     set def_flow_type_val  [list_property_value -default flow [$get_what $tcl_obj]]
     set cur_flow_type_val  [get_property flow [$get_what $tcl_obj]]
     set def_strat_type_val [list_property_value -default strategy [$get_what $tcl_obj]]
     set cur_strat_type_val [get_property strategy [$get_what $tcl_obj]]
 
+    set isChildImplRun 0
+    if { $isPRProject == 1 && $isImplRun == 1 && $parent_run != "" } {
+      set isChildImplRun [get_property is_implementation [$get_what $parent_run]]
+      if { $isChildImplRun == 1 } {
+        set prConfig [get_property pr_configuration [get_runs $tcl_obj]]
+        if { [get_pr_configurations $prConfig] == "" } {
+#         review this change. Either skip this run creation or flag error while sourcing script...???
+          continue
+        }
+      }
+    }
+
+    set cmd_str "  create_run -name $tcl_obj -part $part -flow {$cur_flow_type_val} -strategy \"$cur_strat_type_val\""
+
+    if { $isChildImplRun == 1 } {
+      set cmd_str "  $cmd_str -pr_config $prConfig"
+    }
+
     lappend l_script_data "# Create '$tcl_obj' run (if not found)"
     lappend l_script_data "if \{\[string equal \[get_runs -quiet $tcl_obj\] \"\"\]\} \{"
-    set cmd_str "  create_run -name $tcl_obj -part $part -flow {$cur_flow_type_val} -strategy \"$cur_strat_type_val\""
     lappend l_script_data "$cmd_str -constrset $constrs_set$parent_run_str"
     lappend l_script_data "\} else \{"
     lappend l_script_data "  set_property strategy \"$cur_strat_type_val\" \[get_runs $tcl_obj\]"
     lappend l_script_data "  set_property flow \"$cur_flow_type_val\" \[get_runs $tcl_obj\]"
     lappend l_script_data "\}"
+
+    if { ($isImplRun == 1) && ($isPRProject == 1 && $isChildImplRun == 0) && ({DesignSrcs} == $fileset_type) } {
+      set prConfig [get_property pr_configuration [get_runs $tcl_obj]]
+      if { [get_pr_configurations $prConfig] != "" } {
+        lappend l_script_data "set_property pr_configuration $prConfig \[get_runs $tcl_obj\]"
+      }
+    }
 
     lappend l_script_data "set obj \[$get_what $tcl_obj\]"
     write_props $proj_dir $proj_name $get_what $tcl_obj "run"
@@ -1632,10 +1707,10 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
       lappend l_remote_files $file
     } else {}
   }
-   
+  
   foreach file $l_file_list {
     set file [string trim $file "\""]
-  
+ 
     # fix file path for local files
     if { [string equal $file_category "local"] } {
       set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
@@ -1647,9 +1722,9 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
 
     set file_object ""
     if { [string equal $file_category "local"] } {
-      set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
+      set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list "*$file"]] 0]
     } elseif { [string equal $file_category "remote"] } {
-      set file_object [lindex [get_files -of_objects [get_filesets $fs_name] [list $file]] 0]
+      set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
     }
 
     set file_props [list_property $file_object]
@@ -1659,6 +1734,11 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     foreach file_prop $file_props {
       set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
       if { [string equal $is_readonly "1"] } {
+        continue
+      }
+
+      # Fix for CR-939211 
+      if { ([file extension $file] == ".bd") && ([string equal -nocase $file_prop "generate_synth_checkpoint"] || [string equal -nocase $file_prop "synth_checkpoint_mode"]) } {
         continue
       }
 
@@ -1854,6 +1934,24 @@ proc is_ip_fileset { fileset } {
   # true (1) if success, false (0) otherwise
 
   # make sure fileset is block fileset type
+  set isPRFlow [get_property pr_flow [current_project]]
+  set isRMFileset 0
+
+  if { $isPRFlow == 1 } {
+    set allReconfigModules [get_reconfig_modules]
+    foreach reconfigmodule $allReconfigModules {
+      set rmFileset [get_filesets -of_objects [get_reconfig_modules $reconfigmodule]]
+      if { [string equal $rmFileset $fileset] } {
+        set isRMFileset 1
+        break
+      }
+    }
+  }
+
+  if { $isRMFileset == 1 } {
+    return false
+  }
+
   if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
     return false
   }
@@ -1862,7 +1960,7 @@ proc is_ip_fileset { fileset } {
   set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
   set b_found false
   foreach ip $ips {
-    if { [get_property generate_synth_checkpoint [lindex [get_files -all $ip] 0]] } {
+    if { [get_property generate_synth_checkpoint [lindex [get_files -quiet -all $ip] 0]] } {
       set b_found true
       break
     }
@@ -1904,5 +2002,441 @@ proc is_ip_run { run } {
   
   set fileset [get_property srcset [get_runs $run]]
   return [is_ip_fileset $fileset]
+}
+
+proc wr_prflow { proj_dir proj_name } {
+  # Summary: write partial reconfiguration and properties 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # proj_name: project name
+  # Return Value:
+  # None
+
+  if { [get_property pr_flow [current_project]] == 0 } {
+    return
+  }
+
+  # write below properties only if it's a pr project
+  wr_pdefs $proj_dir $proj_name
+  wr_reconfigModules $proj_dir $proj_name
+  wr_prConf $proj_dir $proj_name 
+}
+
+proc wr_pdefs { proj_dir proj_name } {
+  # Summary: write partial reconfiguration and properties 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # proj_name: project name
+  # Return Value:
+  # None
+
+  # write pDef i.e. create partition def
+  set partitionDefs [get_partition_def]
+  
+  foreach partitionDef $partitionDefs {
+    write_specified_partition_definition $proj_dir $proj_name $partitionDef
+  }
+}
+ 
+proc write_specified_partition_definition { proj_dir proj_name pDef } {
+  # Summary: write the specified partition definition
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none 
+
+  variable l_script_data
+
+  set get_what "get_partition_defs"
+  
+  set pdefName           [get_property name        [$get_what $pDef]]
+  set moduleName         [get_property module_name [$get_what $pDef]]
+  set pdef_library       [get_property library     [$get_what $pDef]]
+  set default_library    [get_property default_lib [current_project]]
+
+  set cmd_str "create_partition_def -name $pdefName -module $moduleName"
+  if { ($pdef_library != "") && (![string equal $pdef_library $default_library]) } {
+    set cmd_str "$cmd_str -library $pdef_library"
+  }
+
+  lappend l_script_data "# Create '$pdefName' partition definition"
+  lappend l_script_data "$cmd_str"
+
+  lappend l_script_data "set obj \[$get_what $pDef\]"
+  write_props $proj_dir $proj_name $get_what $pDef "partitionDef"
+}
+
+proc wr_reconfigModules { proj_dir proj_name } {
+  # Summary: write reconfiguration modules for RPs 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # proj_name: project name
+  # Return Value:
+  # None
+
+  # write  reconfigurations modules
+  set reconfigModules [get_reconfig_modules]
+
+  foreach rm $reconfigModules {
+    write_specified_reconfig_module $proj_dir $proj_name $rm
+  }
+}
+
+proc write_specified_reconfig_module { proj_dir proj_name reconfModule } {
+  # Summary: write the specified partial reconfiguration module information 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none 
+
+  variable l_script_data
+
+  set get_what "get_reconfig_modules"
+  
+  # fetch all the run attritubes and properties of passed reconfig modules
+  set name             [get_property name          [$get_what $reconfModule]]
+  set partitionDefName [get_property partition_def [$get_what $reconfModule]]
+  set isGateLevelSet   [get_property is_gate_level [$get_what $reconfModule]]
+
+  lappend l_script_data "# Create '$reconfModule' reconfigurable module"
+  lappend l_script_data "set partitionDef \[get_partition_defs $partitionDefName\]"
+
+  if { $isGateLevelSet } {
+    set moduleName      [get_property module_name [$get_what $reconfModule]]
+    if { $moduleName == "" } {
+      return
+    }
+    lappend l_script_data "create_reconfig_module -name $name -top $moduleName -partition_def \$partitionDef -gate_level"    
+  } else {
+    lappend l_script_data "create_reconfig_module -name $name -partition_def \$partitionDef"
+  }
+
+  # write default_rm property for pDef if RM and its corresponding property for pDef->defaultRM is same
+  set defaultRM_for_pDef [get_property default_rm [get_partition_def $partitionDefName]]
+  
+  if { [string equal $reconfModule $defaultRM_for_pDef] } {
+    lappend l_script_data "set_property default_rm $reconfModule \$partitionDef" 
+  }
+
+  lappend l_script_data "set obj \[$get_what $reconfModule\]"
+  write_props $proj_dir $proj_name $get_what $reconfModule "reconfigModule"  
+
+  write_reconfigmodule_files $proj_dir $proj_name $reconfModule
+}
+
+proc wr_prConf {proj_dir proj_name} {
+  # Summary: write reconfiguration modules for RPs 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # proj_name: project name
+  # Return Value:
+  # None
+
+  # write pr configurations
+  set prConfigurations [get_pr_configurations]
+
+  foreach prConfig $prConfigurations {
+    write_specified_prConfiguration $proj_dir $proj_name $prConfig
+  }
+}
+
+proc write_specified_prConfiguration { proj_dir proj_name prConfig } {
+  # Summary: write the specified pr reconfiguration 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none 
+
+  variable l_script_data
+
+  set get_what "get_pr_configurations"
+
+  # fetch pr config properties
+  set name           [get_property name [$get_what $prConfig]]
+  
+  lappend l_script_data "# Create '$prConfig' pr configurations"
+  lappend l_script_data "create_pr_configuration -name $name"
+
+  lappend l_script_data "set obj \[$get_what $prConfig\]"
+  write_props $proj_dir $proj_name $get_what $prConfig "prConfiguration"
+}
+
+proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
+  # Summary: write file and file properties 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none
+ 
+  variable a_global_vars
+  variable l_script_data
+
+  set l_local_file_list [list]
+  set l_remote_file_list [list]
+
+  # return if empty fileset
+  if {[llength [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]]] == 0 } {
+    lappend l_script_data "# Empty (no sources present)\n"
+    return
+  }
+
+  set fileset [get_filesets -of_objects $reconfigModule]
+  set fs_name [get_property name $fileset]
+
+  set import_coln [list]
+  set add_file_coln [list]
+ 
+  foreach file [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]] {
+    set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
+    set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
+    set src_file [join [lrange $path_dirs $begin+1 end] "/"]
+
+    # fetch first object
+    set file_object [lindex [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule] [list $file]] 0]
+    set file_props [list_property $file_object]
+
+    if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
+
+      # import files
+      set imported_path [get_property "imported_from" $file]
+      set rel_file_path [get_relative_file_path_for_source $file [get_script_execution_dir]]
+      set proj_file_path "\$origin_dir/$rel_file_path"
+
+      set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
+
+      if { $a_global_vars(b_arg_no_copy_srcs) } {
+        # add to the local collection
+        lappend l_remote_file_list $file
+        if { $a_global_vars(b_absolute_path) } {
+          lappend add_file_coln "$file"
+        } else {
+          lappend add_file_coln "\"\[file normalize \"$proj_file_path\"\]\""
+        }
+      } else {
+        # add to the import collection
+        lappend l_local_file_list $file
+        if { $a_global_vars(b_absolute_path) } {
+          lappend import_coln "$file"
+        } else {
+          lappend import_coln "\"\[file normalize \"$proj_file_path\"\]\""
+        }
+      }
+
+    } else {
+      set file "\"$file\""
+
+      # is local? add to local project, add to collection and then import this collection by default unless -no_copy_sources is specified
+      if { [is_local_to_project $file] } {
+        if { $a_global_vars(b_arg_dump_proj_info) } {
+          set src_file "\$PSRCDIR/$src_file"
+        }
+
+        # add to the import collection
+        set file_no_quotes [string trim $file "\""]
+        set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
+        lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
+        lappend l_local_file_list $file
+      } else {
+        lappend l_remote_file_list $file
+      }
+
+      # add file to collection
+      if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
+        set file_no_quotes [string trim $file "\""]
+        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+        set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
+        lappend add_file_coln "$file1"
+      } else {
+        lappend add_file_coln "$file"
+      }
+
+      # set flag that local sources were found and print warning at the end
+      if { !$a_global_vars(b_local_sources) } {
+        set a_global_vars(b_local_sources) 1
+      }
+    }
+  }
+ 
+  if {[llength $add_file_coln]>0} { 
+    lappend l_script_data "set files \[list \\"
+    foreach file $add_file_coln {
+      if { $a_global_vars(b_absolute_path) } {
+        lappend l_script_data " $file\\"
+      } else {
+        if { $a_global_vars(b_arg_no_copy_srcs) } {
+          lappend l_script_data " $file\\"
+        } else {
+          set file_no_quotes [string trim $file "\""]
+          set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+          lappend l_script_data " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
+        }
+      }
+    }
+    lappend l_script_data "\]"
+    lappend l_script_data "add_files -norecurse -of_objects \[get_reconfig_modules $reconfigModule\] \$files"
+    lappend l_script_data ""
+  }
+
+  # now import local files if -no_copy_sources is not specified
+  if { ! $a_global_vars(b_arg_no_copy_srcs)} {
+    if { [llength $import_coln] > 0 } {
+      lappend l_script_data "# Import local files from the original project"
+      lappend l_script_data "set files \[list \\"
+      foreach ifile $import_coln {
+        lappend l_script_data " $ifile\\"
+      }
+      lappend l_script_data "\]"
+      lappend l_script_data "import_files -of_objects \[get_reconfig_modules $reconfigModule\] \$files"
+      lappend l_script_data ""
+    }
+  }
+
+  # write fileset file properties for remote files (added sources)
+  write_reconfigmodule_file_properties $reconfigModule $fs_name $proj_dir $l_remote_file_list "remote"
+
+  # write fileset file properties for local files (imported sources)
+  write_reconfigmodule_file_properties $reconfigModule $fs_name $proj_dir $l_local_file_list "local"
+
+  # move sub-design files (XCI/BD) of reconfig modules from sources fileset to reconfig-module (RM) fileset
+  add_reconfigmodule_subdesign_files $reconfigModule
+}
+
+proc add_reconfigmodule_subdesign_files { reconfigModule } {
+  # Summary: 
+  # Argument Usage: 
+  # Return Value:
+
+  variable l_script_data
+
+  foreach rmSubdesignFileset [get_property subdesign_filesets $reconfigModule] {
+    foreach fileObj [get_files -quiet -norecurse -of_objects [get_filesets $rmSubdesignFileset]] {
+      set rel_file_path "\"\$origin_dir/[get_relative_file_path_for_source $fileObj [get_script_execution_dir]]"
+      lappend l_script_data "set path \"\[file normalize $rel_file_path\"\]\""
+      lappend l_script_data "move_files -of_objects \$obj \[get_files \$path\]"
+      lappend l_script_data ""
+    }
+  }
+}
+
+proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_file_list file_category } {
+  # Summary: 
+  # Write fileset file properties for local and remote files
+  # Argument Usage: 
+  # reconfigModule : object to inspect
+  # fs_name: fileset name
+  # l_file_list: list of files (local or remote)
+  # file_category: file catwgory (local or remote)
+  # Return Value:
+  # none
+
+
+  variable a_global_vars
+  variable l_script_data
+  variable l_local_files
+  variable l_remote_files
+  
+  set l_local_files  [list]
+  set l_remote_files [list]
+
+  set tcl_obj [get_filesets -of_objects $reconfigModule]
+
+  lappend l_script_data "# Set '$reconfigModule' fileset file properties for $file_category files"
+  set file_prop_count 0
+
+  # collect local/remote files
+  foreach file $l_file_list {
+    if { [string equal $file_category "local"] } {
+      lappend l_local_files $file
+    } elseif { [string equal $file_category "remote"] } {
+      lappend l_remote_files $file
+    } else {}
+  }
+ 
+  foreach file $l_file_list {
+    set file [string trim $file "\""]
+ 
+    # fix file path for local files
+    if { [string equal $file_category "local"] } {
+      set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
+      set src_file [join [lrange $path_dirs end-1 end] "/"]
+      set src_file [string trimleft $src_file "/"]
+      set src_file [string trimleft $src_file "\\"]
+      set file $src_file
+    }
+
+    set file_object ""
+    if { [string equal $file_category "local"] } {
+      set file_object [lindex [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule] [list "*$file"]] 0]
+    } elseif { [string equal $file_category "remote"] } {
+      set file_object [lindex [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule] [list $file]] 0]
+    }
+
+    set file_props [list_property $file_object]
+    set prop_info_list [list]
+    set prop_count 0
+
+    foreach file_prop $file_props {
+      set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
+      if { [string equal $is_readonly "1"] } {
+        continue
+      }
+
+      set prop_type [get_property type [rdi::get_attr_specs $file_prop -object $file_object]]
+      set def_val [list_property_value -default $file_prop $file_object]
+      set cur_val [get_property $file_prop $file_object]
+
+      # filter special properties
+      if { [filter $file_prop $cur_val $file] } { continue }
+
+      # re-align values
+      set cur_val [get_target_bool_val $def_val $cur_val]
+
+      set dump_prop_name [string tolower ${fs_name}_file_${file_prop}]
+      set prop_entry ""
+      if { [string equal $file_category "local"] } {
+        set prop_entry "[string tolower $file_prop]#[get_property $file_prop $file_object]"
+      } elseif { [string equal $file_category "remote"] } {
+        set prop_value_entry [get_property $file_prop $file_object]
+        set prop_entry "[string tolower $file_prop]#$prop_value_entry"
+      } else {}
+
+      if { $a_global_vars(b_arg_all_props) } {
+        lappend prop_info_list $prop_entry
+        incr prop_count
+      } else {
+        if { $def_val != $cur_val } {
+          lappend prop_info_list $prop_entry
+          incr prop_count
+        }
+      }
+
+      if { $a_global_vars(b_arg_dump_proj_info) } {
+        puts $a_global_vars(def_val_fh) "[file tail $file]=$file_prop ($prop_type) :DEFAULT_VALUE ($def_val)==CURRENT_VALUE ($cur_val)"
+        puts $a_global_vars(dp_fh) "$dump_prop_name=$cur_val"
+      }
+    }
+    # write properties now
+    if { $prop_count>0 } {
+      if { {remote} == $file_category } {
+        if { $a_global_vars(b_absolute_path) } {
+          lappend l_script_data "set file \"$file\""
+        } else {
+          lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
+          lappend l_script_data "set file \[file normalize \$file\]"
+        }
+      } else {
+        lappend l_script_data "set file \"$file\""
+      }
+      lappend l_script_data "set obj \[get_files -of_objects \[get_reconfig_modules $reconfigModule\] \[list \"*\$file\"\]\]"
+      set get_what "get_files -of_objects "
+      write_properties $prop_info_list $get_what $tcl_obj
+      incr file_prop_count
+    }
+  }
+
+  if { $file_prop_count == 0 } {
+    lappend l_script_data "# None"
+  }
+  lappend l_script_data ""
 }
 }
