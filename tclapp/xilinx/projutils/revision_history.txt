@@ -1,3 +1,4 @@
+3.234 support for Xcelium parallel simulator
 3.233 call Vivado simulator executables from the current Vivado install PATH setting
 3.232 fixed top library to be passed for elaborate step
 3.231 check for empty source file object before extracting
