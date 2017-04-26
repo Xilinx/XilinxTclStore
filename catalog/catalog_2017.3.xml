@@ -4,7 +4,7 @@
   <support_commit_id>f2f2c8d9db8b7129479347fb60ba01e3a8243721</support_commit_id>
   <release>2017.3</release>
   <revision>2.4</revision>
-  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,vcs,riviera,activehdl,questa_cdc,spyglass,protoip,pcbutils,diff,profiler,junit,tk_tunnel</app_display_order>
+  <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,xcelium,vcs,riviera,activehdl,questa_cdc,spyglass,protoip,pcbutils,diff,profiler,junit,tk_tunnel</app_display_order>
   <apps>
     <app>
       <name>activehdl</name>
@@ -35,6 +35,12 @@
       <company>xilinx</company>
       <commit_id>47d9f1e2e8513005eeb00c36f94f3015203b2a2e</commit_id>
       <revision>3.42</revision>
+    </app>
+    <app>
+      <name>xcelium</name>
+      <company>xilinx</company>
+      <commit_id/>
+      <revision>1.0</revision>
     </app>
     <app>
       <name>incrcompile</name>

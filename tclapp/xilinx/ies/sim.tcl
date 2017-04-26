@@ -119,7 +119,7 @@ proc usf_ies_setup_simulation { args } {
     # no op
   } else {
     # extract ip simulation files
-    ::tclapp::xilinx::ies::usf_extract_ip_files
+    xcs_extract_ip_files a_sim_vars(b_extract_ip_sim_files)
   }
 	
   # set default object
@@ -461,7 +461,7 @@ proc usf_ies_write_compile_script {} {
   }
   puts $fh_scr ""
 
-  ::tclapp::xilinx::ies::usf_set_ref_dir $fh_scr
+  xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
 
   set tool "ncvhdl"
   set arg_list [list "-messages"]
@@ -572,7 +572,7 @@ proc usf_ies_write_compile_script {} {
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
-    if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)] } {
+    if { [xcs_compile_glbl_file "ies" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
