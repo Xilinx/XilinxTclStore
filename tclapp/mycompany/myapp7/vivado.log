@@ -1,0 +1,42 @@
+#-----------------------------------------------------------
+# Vivado v2017.3.0 (64-bit)
+# SW Build 1865557 on Tue May  2 21:07:49 MDT 2017
+# IP Build 1865239 on Tue May  2 23:01:06 MDT 2017
+# Start of session at: Thu May  4 16:15:48 2017
+# Process ID: 30135
+# Current directory: /wrk/xhdhdnobkup1/rkunwark/XilinxTclStore/XilinxTclStore/tclapp/mycompany/myapp7
+# Command line: vivado -mode tcl
+# Log file: /wrk/xhdhdnobkup1/rkunwark/XilinxTclStore/XilinxTclStore/tclapp/mycompany/myapp7/vivado.log
+# Journal file: /wrk/xhdhdnobkup1/rkunwark/XilinxTclStore/XilinxTclStore/tclapp/mycompany/myapp7/vivado.jou
+#-----------------------------------------------------------
+INFO: [Common 17-1269] XILINX_LOCAL_USER_DATA is set to 'yes', using local Tcl Store at '/home/rkunwark/.Xilinx/Vivado/2017.3/XilinxTclStore'.
+INFO: [Common 17-748] XILINX_TCLAPP_REPO is set to '/wrk/xhdhdnobkup1/rkunwark/XilinxTclStore/XilinxTclStore/'. Refresh XilinxTclStore catalog is disabled when XILINX_TCLAPP_REPO is set.
+INFO: [Common 17-1460] Use of init.tcl in /home/rkunwark/.Xilinx/Vivado/init.tcl is deprecated. Please use Vivado_init.tcl 
+Sourcing tcl script '/home/rkunwark/.Xilinx/Vivado/init.tcl'
+source test/test.tcl 
+# set appName {mycompany::myapp7}
+# set listInstalledApps [::tclapp::list_apps]
+# set test_dir [file normalize [file dirname [info script]]]
+# puts "== Test directory: $test_dir"
+== Test directory: /wrk/xhdhdnobkup1/rkunwark/XilinxTclStore/XilinxTclStore/tclapp/mycompany/myapp7/test
+# set tclapp_repo [file normalize [file join $test_dir .. .. ..]]
+# puts "== Application directory: $tclapp_repo"
+== Application directory: /wrk/xhdhdnobkup1/rkunwark/XilinxTclStore/XilinxTclStore/tclapp
+# if {[lsearch -exact $listInstalledApps $appName] != -1} {
+#   # Uninstall the app if it is already installed
+#   ::tclapp::unload_app $appName
+# }
+# catch "package forget ::tclapp::${appName}"
+# ::tclapp::load_app $appName
+# package require ::tclapp::${appName}
+# puts "script is invoked from $test_dir"
+script is invoked from /wrk/xhdhdnobkup1/rkunwark/XilinxTclStore/XilinxTclStore/tclapp/mycompany/myapp7/test
+# if {[lsearch -exact $listInstalledApps $appName] == -1} {
+#   ::tclapp::unload_app $appName
+# }
+# return 0
+0
+clear
+WARNING: [Common 17-259] Unknown Tcl command 'clear' sending command to the OS shell for execution. It is recommended to use 'exec' to send the command to the OS shell.
+exit
+INFO: [Common 17-206] Exiting Vivado at Thu May  4 16:16:50 2017...
