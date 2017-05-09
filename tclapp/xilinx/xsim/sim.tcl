@@ -653,7 +653,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       puts $fh_scr "call vivado $vivado_cmd_str"
     }
   }
-  
+
+  set b_first true
+  set prev_lib  {}
+  set prev_file_type {}
+ 
   # write verilog prj if design contains verilog sources 
   if { $b_contain_verilog_srcs } {
     set vlog_filename ${top};append vlog_filename "_vlog.prj"
@@ -670,10 +674,27 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set file_type   [lindex $fargs 1]
       set lib         [lindex $fargs 2]
       set cmd_str     [lindex $fargs 3]
-      set b_static_ip [lindex $fargs 4]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
       if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
       switch $type {
-        {VERILOG} { puts $fh_vlog $cmd_str }
+        {VERILOG} {
+          if { $a_sim_vars(b_group_files_by_library) } {
+            if { $b_first } {
+              set b_first false
+              usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+            } else {
+              if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+                puts $fh_vlog "\"$src_file\" \\"
+              } else {
+                puts $fh_vlog ""
+                usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+              }
+            }
+          } else {
+            puts $fh_vlog $cmd_str
+          }
+        }
       }
     }
 
@@ -744,6 +765,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
   }
   
+  set b_first true
+  set prev_lib  {}
+  set prev_file_type {}
+
   # write vhdl prj if design contains vhdl sources 
   if { $b_contain_vhdl_srcs } {
     set vhdl_filename ${top};append vhdl_filename "_vhdl.prj"
@@ -760,10 +785,27 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set file_type   [lindex $fargs 1]
       set lib         [lindex $fargs 2]
       set cmd_str     [lindex $fargs 3]
-      set b_static_ip [lindex $fargs 4]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
       if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
       switch $type {
-        {VHDL}    { puts $fh_vhdl $cmd_str }
+        {VHDL} {
+          if { $a_sim_vars(b_group_files_by_library) } {
+            if { $b_first } {
+              set b_first false
+              usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+            } else {
+              if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+                puts $fh_vhdl "\"$src_file\" \\"
+              } else {
+                puts $fh_vhdl ""
+                usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+              }
+            }
+          } else {
+            puts $fh_vhdl $cmd_str
+          }
+        }
       }
     }
     # nosort? (vhdl)
@@ -1663,6 +1705,22 @@ proc usf_xsim_get_design_libs { design_files } {
     }
   }
   return $libs
+}
+
+proc usf_xsim_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg } {
+  # Summary: Print compiler command line and store previous file type and library information
+  # Argument Usage:
+  # Return Value:
+  # None
+
+  upvar $prev_file_type_arg prev_file_type
+  upvar $prev_lib_arg  prev_lib
+
+  puts $fh_scr "$cmd_str \\"
+  puts $fh_scr "\"$src_file\" \\"
+
+  set prev_file_type $file_type
+  set prev_lib $lib
 }
 
 proc usf_xsim_map_pre_compiled_libs { fh } {

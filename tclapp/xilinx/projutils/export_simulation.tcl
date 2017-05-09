@@ -2214,11 +2214,11 @@ proc xps_set_initial_cmd { simulator fh cmd_str srcs_dir src_file file_type lib 
       if { $a_sim_vars(b_single_step) } {
        # 
       } else {
-        puts $fh "$cmd_str \\"
+        puts $fh "$cmd_str ${opts_str} \\"
         if { $a_sim_vars(b_xport_src_files) } {
-          puts $fh "srcs/$src_file ${opts_str} \\"
+          puts $fh "srcs/$src_file \\"
         } else {
-          puts $fh "$src_file ${opts_str} \\"
+          puts $fh "$src_file \\"
         }
       }
     }
@@ -3516,8 +3516,6 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
-  set b_redirect false
-  set b_appended false
 
   foreach file $a_sim_vars(l_design_files) {
     set fargs         [split $file {|}]
@@ -3606,37 +3604,30 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
         }
       }
 
-      if { $a_sim_vars(b_xport_src_files) } {
-        puts $fh "$cmd_str $proj_src_filename ${opts_str}"
+      if { $b_first } {
+        set b_first false
+        if { $a_sim_vars(b_xport_src_files) } {
+          xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
+        } else {
+          xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
+        }
       } else {
-        puts $fh "$cmd_str $src_file ${opts_str}"
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+          puts $fh "$src_file \\"
+        } else {
+          puts $fh ""
+          if { $a_sim_vars(b_xport_src_files) } {
+            xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
+          } else {
+            xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
+          }
+        }
       }
-      # TODO: this does not work for verilog defines
-      #if { $b_first } {
-      #  set b_first false
-      #  if { $a_sim_vars(b_xport_src_files) } {
-      #    xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
-      #  } else {
-      #    xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
-      #  }
-      #} else {
-      #  if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-      #    puts $fh "$src_file \\"
-      #    set b_redirect true
-      #  } else {
-      #    puts $fh ""
-      #    if { $a_sim_vars(b_xport_src_files) } {
-      #      xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
-      #    } else {
-      #      xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
-      #    }
-      #    set b_appended true
-      #  }
-      #}
     }
   }
 
   if { {VERILOG} == $ft } {
+    puts $fh ""
     set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
     set gfile "glbl.v"
     if { $a_sim_vars(b_absolute_path) } {
@@ -3644,7 +3635,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
     }
     puts $fh "verilog $top_lib \"$gfile\""
   }
-  puts $fh "nosort"
+  puts $fh "\nnosort"
 
   close $fh
 }

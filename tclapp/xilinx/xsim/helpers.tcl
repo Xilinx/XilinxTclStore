@@ -48,6 +48,8 @@ proc usf_init_vars {} {
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  
+  set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   # initialize ip repository dir
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
@@ -948,7 +950,11 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
-    set arg_list [linsert $arg_list end "$associated_library" "$global_files_str" "\"$file\""]
+    if { $a_sim_vars(b_group_files_by_library) } {
+      set arg_list [linsert $arg_list end "$associated_library" "$global_files_str"]
+    } else {
+      set arg_list [linsert $arg_list end "$associated_library" "$global_files_str" "\"$file\""]
+    }
   }
  
   # append other options (-i, --include, -d) for verilog sources 
@@ -958,7 +964,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
 
   set file_str [join $arg_list " "]
   set type [xcs_get_file_type_category $file_type]
-  set cmd_str "$type|$file_type|$associated_library|$file_str|$b_static_ip_file"
+  set cmd_str "$type|$file_type|$associated_library|$file_str|$file|$b_static_ip_file"
   return $cmd_str
 }
 
