@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>refactored procs into utils</revision_history>
+      <revision_history>reference user specified XPM data if param set</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

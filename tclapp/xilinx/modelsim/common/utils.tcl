@@ -1282,7 +1282,19 @@ proc xcs_get_common_xpm_vhdl_files {} {
   # Return Value:
 
   set files [list]
-  lappend files [xcs_get_path_from_data "ip/xpm/xpm_VCOMP.vhd"]
+  # is override param dir specified?
+  set ip_dir [get_param "project.xpm.overrideIPDir"]
+  if { ({} != $ip_dir) && [file exists $ip_dir] } {
+    set comp_file "$ip_dir/xpm_VCOMP.vhd"
+    if { ![file exists $comp_file] } {
+      set file [xcs_get_path_from_data "ip/xpm/xpm_VCOMP.vhd"]
+      send_msg_id SIM-utils-020 WARNING "The component file does not exist! '$comp_file'. Using default: '$file'\n"
+      set comp_file $file
+    }
+    lappend files $comp_file
+  } else {
+    lappend files [xcs_get_path_from_data "ip/xpm/xpm_VCOMP.vhd"]
+  }
   return $files
 }
 
