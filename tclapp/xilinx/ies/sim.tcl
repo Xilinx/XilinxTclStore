@@ -339,7 +339,7 @@ proc usf_ies_write_setup_files {} {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
   }
-  set dir_name "ies"
+  set dir_name "ies_lib"
   set b_default_lib false
   set default_lib $a_sim_vars(default_top_library)
   foreach lib_name $libs {
@@ -1029,11 +1029,12 @@ proc usf_ies_create_setup_script {} {
 
   puts $fh_scr "  libs=([join $libs " "])"
   puts $fh_scr "  file=\"cds.lib\""
+  set design_lib "${simulator}_lib"
   if { $::tclapp::xilinx::ies::a_sim_vars(b_absolute_path) } {
-    set lib_dir_path [file normalize [string map {\\ /} [file join $dir $simulator]]]
+    set lib_dir_path [file normalize [string map {\\ /} [file join $dir $design_lib]]]
     puts $fh_scr "  dir=\"$lib_dir_path\"\n"
   } else {
-    puts $fh_scr "  dir=\"$simulator\"\n"
+    puts $fh_scr "  dir=\"$design_lib\"\n"
   }
   puts $fh_scr "  if \[\[ -e \$file \]\]; then"
   puts $fh_scr "    rm -f \$file"

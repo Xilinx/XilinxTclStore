@@ -360,7 +360,7 @@ proc usf_vcs_write_setup_files {} {
   if { [lsearch -exact $libs $default_lib] == -1 } {
     lappend libs $default_lib
   }
-  set dir_name "vcs"
+  set dir_name "vcs_lib"
   foreach lib_name $libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {
       # continue if no local library found or continue if precompiled library (not local) and library is not default
@@ -975,11 +975,12 @@ proc usf_vcs_create_setup_script {} {
 
   puts $fh_scr "  libs=([join $libs " "])"
   puts $fh_scr "  file=\"synopsys_sim.setup\""
+  set design_lib "${simulator}_lib"
   if { $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) } {
-    set lib_dir_path [file normalize [string map {\\ /} [file join $dir $simulator]]]
+    set lib_dir_path [file normalize [string map {\\ /} [file join $dir ${design_lib}]]]
     puts $fh_scr "  dir=\"$lib_dir_path\"\n"
   } else {
-    puts $fh_scr "  dir=\"$simulator\"\n"
+    puts $fh_scr "  dir=\"${design_lib}\"\n"
   }
   puts $fh_scr "  if \[\[ -e \$file \]\]; then"
   puts $fh_scr "    rm -f \$file"

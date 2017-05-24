@@ -2218,7 +2218,7 @@ proc xps_set_initial_cmd { simulator fh cmd_str srcs_dir src_file file_type lib 
         } elseif { [string equal -nocase $file_type "vhdl 2008"] } {
           set opts "-v200x "
         }
-        puts $fh "-makelib $simulator/$lib $opts\\"
+        puts $fh "-makelib ${simulator}_lib/$lib $opts\\"
         if { $a_sim_vars(b_xport_src_files) } {
           if { $a_sim_vars(b_absolute_path) } {
             puts $fh "  $srcs_dir/$src_file \\"
@@ -2487,7 +2487,7 @@ proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_
       switch -regexp -- $simulator {
         "ies" -
         "xcelium" {
-          puts $fh "-makelib $simulator/$a_sim_vars(default_lib) \\"
+          puts $fh "-makelib ${simulator}_lib/$a_sim_vars(default_lib) \\"
           set file "glbl.v"
           if { $a_sim_vars(b_absolute_path) } {
             set file "\"$launch_dir/$file\""
@@ -4668,7 +4668,7 @@ proc xps_write_main { simulator fh_unix launch_dir } {
     "xcelium" -
     "vcs" {
       puts $fh_unix "\n# Simulation root library directory"
-      puts $fh_unix "sim_lib_dir=\"$simulator\""
+      puts $fh_unix "sim_lib_dir=\"${simulator}_lib\""
     }
   }
 
