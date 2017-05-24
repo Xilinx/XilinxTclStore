@@ -447,7 +447,7 @@ proc usf_ies_write_compile_script {} {
   }
 
   puts $fh_scr "#!/bin/bash -f"
-  ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "compile" "ies"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
@@ -631,7 +631,7 @@ proc usf_ies_write_elaborate_script {} {
   }
  
   puts $fh_scr "#!/bin/bash -f"
-  ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "elaborate" "ies"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
@@ -847,7 +847,7 @@ proc usf_ies_write_simulate_script {} {
   }
 
   puts $fh_scr "#!/bin/bash -f"
-  ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "simulate" "ies"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
@@ -989,7 +989,7 @@ proc usf_ies_create_setup_script {} {
   }
 
   puts $fh_scr "#!/bin/bash -f"
-  ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "setup" "ies"
 
   puts $fh_scr "\n# Script usage"
   puts $fh_scr "usage()"

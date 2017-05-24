@@ -443,7 +443,7 @@ proc usf_vcs_write_compile_script {} {
     return 1
   }
   puts $fh_scr "#!/bin/sh -f"
-  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "compile" "vcs"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
@@ -644,7 +644,7 @@ proc usf_vcs_write_elaborate_script {} {
     return 1
   }
   puts $fh_scr "#!/bin/sh -f"
-  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "elaborate" "vcs"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
@@ -806,7 +806,7 @@ proc usf_vcs_write_simulate_script {} {
   }
  
   puts $fh_scr "#!/bin/sh -f"
-  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $file
+  xcs_write_script_header $fh_scr "simulate" "vcs"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
@@ -932,7 +932,7 @@ proc usf_vcs_create_setup_script {} {
   }
 
   puts $fh_scr "#!/bin/sh -f"
-  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "setup" "vcs"
 
   puts $fh_scr "\n# Script usage"
   puts $fh_scr "usage()"

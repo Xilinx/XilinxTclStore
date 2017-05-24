@@ -628,9 +628,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
+    xcs_write_script_header $fh_scr "compile" "xsim"
     xcs_write_shell_step_fn $fh_scr
   } else {
     puts $fh_scr "@echo off"
+    xcs_write_script_header $fh_scr "compile" "xsim"
   }
 
   # write tcl pre hook
@@ -886,6 +888,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
 
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
+    xcs_write_script_header $fh_scr "elaborate" "xsim"
 
     if { [get_param "project.allowSharedLibraryType"] } {
       puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
@@ -896,6 +899,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     puts $fh_scr "ExecStep xelab $args"
   } else {
     puts $fh_scr "@echo off"
+    xcs_write_script_header $fh_scr "elaborate" "xsim"
     set args [usf_xsim_get_xelab_cmdline_args]
     puts $fh_scr "call xelab $s_dbg_sw $args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
@@ -985,6 +989,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
   set b_batch 1
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
+    xcs_write_script_header $fh_scr "simulate" "xsim"
     xcs_write_shell_step_fn $fh_scr
     
     # TODO: once xsim picks the "so"s path at runtime , we can remove the following code
@@ -1016,6 +1021,7 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
     puts $fh_scr "ExecStep xsim $cmd_args"
   } else {
     puts $fh_scr "@echo off"
+    xcs_write_script_header $fh_scr "simulate" "xsim"
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
     puts $fh_scr "call xsim $cmd_args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"

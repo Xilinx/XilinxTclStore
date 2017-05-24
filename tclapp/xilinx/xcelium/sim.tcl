@@ -449,6 +449,7 @@ proc usf_xcelium_write_compile_script {} {
   }
 
   puts $fh_scr "#!/bin/bash -f"
+  xcs_write_script_header $fh_scr "compile" "xcelium"
   ::tclapp::xilinx::xcelium::usf_write_script_header_info $fh_scr $scr_file
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
@@ -633,6 +634,7 @@ proc usf_xcelium_write_elaborate_script {} {
   }
  
   puts $fh_scr "#!/bin/bash -f"
+  xcs_write_script_header $fh_scr "elaborate" "xcelium"
   ::tclapp::xilinx::xcelium::usf_write_script_header_info $fh_scr $scr_file
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
@@ -849,6 +851,7 @@ proc usf_xcelium_write_simulate_script {} {
   }
 
   puts $fh_scr "#!/bin/bash -f"
+  xcs_write_script_header $fh_scr "simulate" "xcelium"
   ::tclapp::xilinx::xcelium::usf_write_script_header_info $fh_scr $scr_file
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"

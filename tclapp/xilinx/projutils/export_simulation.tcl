@@ -516,7 +516,7 @@ proc xps_readme { dir } {
   }
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
+  set copyright   [lindex $version_txt 3]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
 
@@ -602,7 +602,7 @@ proc xps_write_simulator_readme { simulator dir } {
   }
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
+  set copyright   [lindex $version_txt 3]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
   set extn ".sh"
@@ -693,26 +693,6 @@ proc xps_create_srcs_dir { dir } {
     }
   }
   return $srcs_dir
-}
-
-proc xps_get_simulator_pretty_name { name } {
-  # Summary:
-  # Argument Usage:
-  # none
-  # Return Value:
- 
-  set pretty_name {}
-  switch -regexp -- $name {
-    "xsim"     { set pretty_name "Xilinx Vivado Simulator" }
-    "modelsim" { set pretty_name "Mentor Graphics ModelSim Simulator" }
-    "questa"   { set pretty_name "Mentor Graphics Questa Advanced Simulator" }
-    "ies"      { set pretty_name "Cadence Incisive Enterprise Simulator" }
-    "xcelium"  { set pretty_name "Cadence Xcelium Parallel Simulator" }
-    "vcs"      { set pretty_name "Synopsys Verilog Compiler Simulator" }
-    "riviera"  { set pretty_name "Aldec Riviera-PRO Simulator" }
-    "activehdl" { set pretty_name "Aldec Active-HDL Simulator" }
-  }
-  return $pretty_name
 }
 
 proc xps_set_target_obj { obj } {
@@ -1618,7 +1598,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
   foreach simulator $l_target_simulator {
     # initialize and fetch compiled libraries for precompile flow
     set l_compiled_libraries [xps_get_compiled_libraries $simulator l_local_ip_libs]
-    set simulator_name [xps_get_simulator_pretty_name $simulator] 
+    set simulator_name [xcs_get_simulator_pretty_name $simulator] 
     #puts ""
     send_msg_id exportsim-Tcl-035 INFO \
       "Exporting simulation files for \"[string toupper $simulator]\" ($simulator_name)...\n"
@@ -2533,15 +2513,16 @@ proc xps_write_header { simulator fh_unix } {
  
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
+  set copyright   [lindex $version_txt 3]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
   set extn ".sh"
   set script_file $a_sim_vars(s_script_filename)$extn
   puts $fh_unix "#!/bin/bash -f"
+  puts $fh_unix "#*********************************************************************************************************\n"
   puts $fh_unix "# $product (TM) $version_id\n#"
   puts $fh_unix "# Filename    : $a_sim_vars(s_script_filename)$extn"
-  puts $fh_unix "# Simulator   : [xps_get_simulator_pretty_name $simulator]"
+  puts $fh_unix "# Simulator   : [xcs_get_simulator_pretty_name $simulator]"
   puts $fh_unix "# Description : Simulation script for compiling, elaborating and verifying the project source files."
   puts $fh_unix "#               The script will automatically create the design libraries sub-directories in the run"
   puts $fh_unix "#               directory, add the library logical mappings in the simulator setup file, create default"
@@ -2567,7 +2548,7 @@ proc xps_write_header { simulator fh_unix } {
       puts $fh_unix "# Additional references - 'Xilinx Vivado Design Suite User Guide:Logic simulation (UG900)'\n#"
     }
   }
-  puts $fh_unix "# ********************************************************************************************************\n"
+  puts $fh_unix "#*********************************************************************************************************\n"
 }
 
 proc xps_write_elaboration_cmds { simulator fh_unix dir} {
@@ -4575,7 +4556,7 @@ proc xps_write_main { simulator fh_unix launch_dir } {
   variable a_sim_sv_pkg_libs
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
+  set copyright   [lindex $version_txt 3]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
 

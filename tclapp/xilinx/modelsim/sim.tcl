@@ -1335,6 +1335,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
+    xcs_write_script_header $fh_scr $step "modelsim"
     if { {} != $tool_path } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
@@ -1370,6 +1371,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     # windows
     puts $fh_scr "@echo off"
     if { {} != $tool_path } {
+      xcs_write_script_header $fh_scr $step "modelsim"
       puts $fh_scr "set bin_path=$tool_path"
       if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
         set xv $::env(XILINX_VIVADO)
