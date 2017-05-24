@@ -1,3 +1,4 @@
+3.48 compile files into simulator library dir with _lib suffix
 3.47 add copyright version header in script files
 3.46 reference user specified XPM data if param set
 3.45 refactored procs into utils
