@@ -1,3 +1,4 @@
+3.237 add copyright version header in script files
 3.236 reference user specified XPM data if param set
 3.235 group compile order files by library
 3.234 support for Xcelium parallel simulator
