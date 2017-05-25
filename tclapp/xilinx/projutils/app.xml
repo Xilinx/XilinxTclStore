@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>compile files into simulator library dir with _lib suffix</revision_history>
+      <revision_history>add software build info in script header</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
