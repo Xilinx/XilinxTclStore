@@ -1,3 +1,4 @@
+2.160 compile files into simulator library dir with _lib suffix
 2.159 add copyright version header in script files
 2.158 reference user specified XPM data if param set
 2.157 group compile order files by library
