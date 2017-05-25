@@ -179,6 +179,11 @@ proc usf_xsim_setup_simulation { args } {
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
+  # initialize compiled design library
+  if { [get_param "simulation.compileDesignLibsToXSimLib"] } {
+    set a_sim_vars(compiled_design_lib) "xsim_lib"
+  }
+
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
                                                            $a_sim_vars(s_simulation_flow) \
@@ -235,6 +240,11 @@ proc usf_xsim_setup_simulation { args } {
      [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
+
+  # create custom library directory (xsim_lib)
+  if { [get_param "simulation.compileDesignLibsToXSimLib"] } {
+    usf_xsim_create_lib_dir
+  }
  
   set b_create_default_ini 1
   set b_reference_xpm_library 0
@@ -305,6 +315,7 @@ proc usf_realign_local_mappings { ini_file l_local_design_libraries_arg } {
   # Return Value:
 
   upvar $l_local_design_libraries_arg l_local_libraries
+  variable a_sim_vars
 
   if { ![file exists $ini_file] } {
     return
@@ -325,7 +336,7 @@ proc usf_realign_local_mappings { ini_file l_local_design_libraries_arg } {
     if { [string length $line] == 0 } { continue; }
     set library [string trim [lindex [split $line "="] 0]]
     if { [lsearch -exact $l_local_libraries $library] != -1 } {
-      set line "$library=xsim.dir/$library"
+      set line "$library=$a_sim_vars(compiled_design_lib)/$library"
       lappend l_local_mappings_found_in_ini $library
     }
     lappend l_updated_mappings $line
@@ -334,7 +345,7 @@ proc usf_realign_local_mappings { ini_file l_local_design_libraries_arg } {
   # add local libraries not found in ini
   foreach library $l_local_libraries {
     if { [lsearch -exact $l_local_mappings_found_in_ini $library] == -1 } {
-      lappend l_updated_mappings "$library=xsim.dir/$library"
+      lappend l_updated_mappings "$library=$a_sim_vars(compiled_design_lib)/$library"
     }
   }
 
@@ -537,7 +548,7 @@ proc usf_xsim_write_setup_file {} {
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
-    puts $fh "$lib=xsim.dir/$lib_name"
+    puts $fh "$lib=$a_sim_vars(compiled_design_lib)/$lib_name"
   }
 
   # reference XPM modules from precompiled libs if param is set
@@ -582,6 +593,23 @@ proc usf_xsim_write_setup_file {} {
   }
   
   close $fh
+}
+
+proc usf_xsim_create_lib_dir {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set dir $a_sim_vars(s_launch_dir)
+  set design_lib_dir "$dir/$a_sim_vars(compiled_design_lib)"
+
+  if { ![file exists $design_lib_dir] } {
+    if { [catch {file mkdir $design_lib_dir} error_msg] } {
+      send_msg_id USF-XSim-013 ERROR "Failed to create the directory ($design_lib_dir): $error_msg\n"
+      return 1
+    }
+  }
 }
 
 proc usf_xsim_write_compile_script { scr_filename_arg } {

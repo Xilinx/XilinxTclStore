@@ -190,8 +190,8 @@ proc usf_questa_setup_simulation { args } {
   set ::tclapp::xilinx::questa::a_sim_vars(l_design_files) \
      [xcs_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
 
-  # create setup file
-  #usf_questa_write_setup_files
+  # create library directory
+  usf_questa_create_lib_dir
 
   return 0
 }
@@ -347,27 +347,20 @@ proc usf_questa_verify_compiled_lib {} {
   return $compiled_lib_dir
 }
 
-proc usf_questa_write_setup_files {} {
+proc usf_questa_create_lib_dir {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
+  set design_lib_dir "$dir/questa_lib"
 
-  # msim lib dir
-  set lib_dir [file normalize [file join $dir "msim"]]
-  if { [file exists $lib_dir] } {
-    if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id USF-Questa-012 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
+  if { ![file exists $design_lib_dir] } {
+    if { [catch {file mkdir $design_lib_dir} error_msg] } {
+      send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($design_lib_dir): $error_msg\n"
       return 1
     }
   }
-
-  #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
-  #  return 1
-  #}
 }
 
 proc usf_questa_write_compile_script {} {
@@ -510,14 +503,15 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   } else {
     usf_add_quit_on_error $fh "compile"
   }
-  
-  set lib_dir_path [file normalize [string map {\\ /} $dir]]
+ 
+  set design_lib_dir "$dir/modelsim_lib" 
+  set lib_dir_path [file normalize [string map {\\ /} $design_lib_dir]]
   if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
     puts $fh "${tool_path_str}vlib $lib_dir_path/work"
     puts $fh "${tool_path_str}vlib $lib_dir_path/msim\n"
   } else {
-    puts $fh "${tool_path_str}vlib work"
-    puts $fh "${tool_path_str}vlib msim\n"
+    puts $fh "${tool_path_str}vlib questa_lib/work"
+    puts $fh "${tool_path_str}vlib questa_lib/msim\n"
   }
 
   set design_libs [usf_questa_get_design_libs $::tclapp::xilinx::questa::a_sim_vars(l_design_files)]
@@ -543,14 +537,14 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/$lib_path"
     } else {
-      puts $fh "${tool_path_str}vlib $lib_path"
+      puts $fh "${tool_path_str}vlib questa_lib/$lib_path"
     }
   }
   if { !$b_default_lib } {
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/msim/$default_lib"
     } else {
-      puts $fh "${tool_path_str}vlib msim/$default_lib"
+      puts $fh "${tool_path_str}vlib questa_lib/msim/$default_lib"
     }
   }
    
@@ -567,14 +561,14 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
     } else {
-      puts $fh "${tool_path_str}vmap $lib msim/$lib"
+      puts $fh "${tool_path_str}vmap $lib questa_lib/msim/$lib"
     }
   }
   if { !$b_default_lib } {
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vmap $default_lib $lib_dir_path/msim/$default_lib"
     } else {
-      puts $fh "${tool_path_str}vmap $default_lib msim/$default_lib"
+      puts $fh "${tool_path_str}vmap $default_lib questa_lib/msim/$default_lib"
     }
   }
 

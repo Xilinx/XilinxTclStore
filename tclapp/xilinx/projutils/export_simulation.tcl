@@ -3346,6 +3346,17 @@ proc xps_write_lib_dir { simulator fh_unix launch_dir } {
       puts $fh_unix "  done"
       puts $fh_unix "\}\n"
     }
+    "modelsim" -
+    "questa" {
+      puts $fh_unix "# Create design library directory"
+      puts $fh_unix "create_lib_dir()\n\{"
+      puts $fh_unix "  lib_dir=\"${simulator}_lib\""
+      puts $fh_unix "  if \[\[ -e \$lib_dir \]\]; then"
+      puts $fh_unix "    rm -rf \$sim_lib_dir"
+      puts $fh_unix "  fi\n"
+      puts $fh_unix "  mkdir $\lib_dir\n"
+      puts $fh_unix "\}\n"
+    }
   }
 }
 
@@ -3702,10 +3713,13 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
     send_msg_id exportsim-Tcl-055 ERROR "Failed to open file to write ($do_file)\n"
     return 1
   }
-  puts $fh "vlib work"
-  set lib_dir "msim"
+  set design_lib_dir "${simulator}_lib"
+  set lib_dir "$design_lib_dir/msim"
   if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
+    puts $fh "vlib work"
     set lib_dir $simulator
+  } else {
+    puts $fh "vlib ${design_lib_dir}/work"
   }
   puts $fh "vlib $lib_dir\n"
   set design_libs [xps_get_design_libs] 
@@ -4412,10 +4426,13 @@ proc xps_write_reset { simulator fh_unix } {
                            "xelab.log" "xsim.log" "run.log" "xvhdl.pb" "xvlog.pb" "$a_sim_vars(s_top).wdb"]
       set file_dir_list [list "xsim.dir"]
     }
-    "modelsim" -
+    "modelsim" {
+      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
+      set file_dir_list [list "modelsim_lib"]
+    }
     "questa" {
       set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
-      set file_dir_list [list "work" "msim"]
+      set file_dir_list [list "questa_lib"]
     }
     "riviera" {
       set file_list [list "compile.log" "elaboration.log" "simulate.log" "dataset.asdb"]
@@ -4454,6 +4471,8 @@ proc xps_write_reset { simulator fh_unix } {
   puts $fh_unix "    fi"
   puts $fh_unix "  done"
   switch -regexp -- $simulator {
+    "modelsim" -
+    "questa" -
     "ies" -
     "xcelium" -
     "vcs" {
@@ -4536,6 +4555,8 @@ proc xps_write_setup { simulator fh_unix } {
   }
   puts $fh_unix "  esac\n"
   switch -regexp -- $simulator {
+    "modelsim" -
+    "questa" -
     "ies" -
     "xcelium" -
     "vcs" {
