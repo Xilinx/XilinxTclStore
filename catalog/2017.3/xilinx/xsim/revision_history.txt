@@ -1,3 +1,4 @@
+2.162 do not pass m64 switch to xvlog and xvhdl
 2.161 add software build info in script header
 2.160 compile files into simulator library dir with _lib suffix
 2.159 add copyright version header in script files
