@@ -643,11 +643,6 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     return 1
   }
 
-  set s_plat_sw "-m64"
-  if { [get_property 32bit $fs_obj] } {
-    set s_plat_sw "-m32"
-  }
-
   set s_dbg_sw {}
   set dbg $::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode)
   if { $dbg } {
@@ -763,7 +758,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     close $fh_vlog
 
-    set xvlog_arg_list [list "$s_plat_sw"]
+    set xvlog_arg_list [list]
     if { [get_property "XSIM.COMPILE.INCREMENTAL" $fs_obj] } {
       lappend xvlog_arg_list "--incr"
     }
@@ -845,7 +840,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     close $fh_vhdl
 
-    set xvhdl_arg_list [list "$s_plat_sw"]
+    set xvhdl_arg_list [list]
     if { [get_property "XSIM.COMPILE.INCREMENTAL" $fs_obj] } {
       lappend xvhdl_arg_list "--incr"
     }
