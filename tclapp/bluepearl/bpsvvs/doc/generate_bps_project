@@ -1,0 +1,5 @@
+
+  Description: Generate a Blue Pearl Visual Verification project file
+
+  Example:
+     generate_bps_project

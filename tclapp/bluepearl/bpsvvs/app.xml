@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <name>bpsvvs</name>
+      <company>bluepearl</company>
+      <company_display>Blue Pearl Software, Inc</company_display>
+      <display>Blue Pearl Visual Verification Suite</display>
+      <pkg_require>Vivado 2017.1</pkg_require>
+      <procs>
+        <proc>
+          <name>generate_bps_project</name>
+          <summary/>
+        </proc>
+        <proc>
+          <name>launch_bps</name>
+          <summary/>
+        </proc>
+        <proc>
+          <name>update_vivado_into_bps</name>
+          <summary/>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

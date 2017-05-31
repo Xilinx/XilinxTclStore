@@ -1,0 +1,5 @@
+
+  Description: Generate a BPS project file and launch the BPS product
+  
+  Example:
+     launch_bps
