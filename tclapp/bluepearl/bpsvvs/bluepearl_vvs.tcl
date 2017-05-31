@@ -9,7 +9,7 @@
 #  * Updated Initial Version
 #
 ###############################################################################
-package require Vivado 1.2017.1
+package require Vivado 1.2014.1
 
 namespace eval ::tclapp::bluepearl::bpsvvs {
     # Export procs that should be allowed to import into other namespaces

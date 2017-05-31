@@ -6,7 +6,7 @@
       <company>bluepearl</company>
       <company_display>Blue Pearl Software, Inc</company_display>
       <display>Blue Pearl Visual Verification Suite</display>
-      <pkg_require>Vivado 2017.1</pkg_require>
+      <pkg_require>Vivado 2014.1</pkg_require>
       <procs>
         <proc>
           <name>generate_bps_project</name>
