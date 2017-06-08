@@ -9,7 +9,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ##
-## Version:        2016.08.23
+## Version:        2017.06.05
 ## Tool Version:   Vivado 2013.1
 ## Description:    This package provides a simple way to handle formatted tables
 ##
@@ -252,6 +252,8 @@ namespace eval ::tclapp::xilinx::designutils {
 ########################################################################################
 
 ########################################################################################
+## 2017.06.05 - Fixed example code
+## 2016.10.04 - Added support for -inline (import)
 ## 2016.08.23 - Updated default alignment for template 'deviceview'
 ## 2016.06.30 - Fixed issue with 'delcolumns', 'delrows' methods
 ## 2016.06.24 - Added 'search', 'filter', 'prependcell' methods
@@ -2742,6 +2744,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   set help 0
   set filename {}
   set csvDelimiter {,}
+  set inlineContent {}
   if {[llength $args] == 0} { incr help }
   while {[llength $args]} {
     set name [lshift args]
@@ -2753,6 +2756,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
       -f -
       -file {
            set filename [lshift args]
+      }
+      -i -
+      -inline {
+           set inlineContent [lshift args]
       }
       -h -
       -help {
@@ -2773,7 +2780,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   if {$help} {
     puts [format {
   Usage: <prettyTableObject> import
-              -file <filename>
+              [-file <filename>]
+              [-inline <inline_CSV_content>]
               [-delimiter <csv_delimiter>]
               [-help|-h]
 
@@ -2782,6 +2790,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   Example:
      <prettyTableObject> import -file table.csv
      <prettyTableObject> import -file table.csv -delimiter ,
+     <prettyTableObject> import -inline {
+"Pin","Slow Max","Slow Min","Fast Max","Fast Min"
+"CLKDIV->CLK","0.418","0.345"
+"CLK->CLKDIV","0.481","0.391"
+"CLKOUT0","0.403","0.345","0.208","0.166"
+"CLKOUT2","0.403","0.345","0.208","0.166"
+    }
 } ]
     # HELP -->
     return {}
@@ -2791,36 +2806,62 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
     error " -E- some error(s) happened. Cannot continue"
   }
 
-  if {![file exists $filename]} {
+  if {![file exists $filename] && ($filename != {})} {
     error " -E- file '$filename' does not exist"
   }
 
-  # Reset object but preserve some of the parameters
-  set limit $params(maxNumRows)
-#   set displayLimit $params(maxNumRowsToDisplay)
-  eval $self reset
-  set params(maxNumRows) $limit
-#   set params(maxNumRowsToDisplay) $displayLimit
+  if {$filename != {}} {
+    # Reset object but preserve some of the parameters
+    set limit $params(maxNumRows)
+#     set displayLimit $params(maxNumRowsToDisplay)
+    eval $self reset
+    set params(maxNumRows) $limit
+#     set params(maxNumRowsToDisplay) $displayLimit
 
-  set FH [open $filename]
-  set first 1
-  set count 0
-  while {![eof $FH]} {
-    gets $FH line
-    # Skip comments and empty lines
-    if {[regexp {^\s*#} $line]} { continue }
-    if {[regexp {^\s*$} $line]} { continue }
-    if {$first} {
-      set header [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
-      set first 0
-    } else {
-      $self addrow [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
-      incr count
+    set FH [open $filename]
+    set first 1
+    set count 0
+    while {![eof $FH]} {
+      gets $FH line
+      # Skip comments and empty lines
+      if {[regexp {^\s*#} $line]} { continue }
+      if {[regexp {^\s*$} $line]} { continue }
+      if {$first} {
+        set header [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
+        set first 0
+      } else {
+        $self addrow [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
+        incr count
+      }
     }
+    close $FH
+    puts " -I- Header: $header"
+    puts " -I- Number of imported row(s): $count"
+  } elseif {$inlineContent != {}} {
+    # Reset object but preserve some of the parameters
+    set limit $params(maxNumRows)
+#     set displayLimit $params(maxNumRowsToDisplay)
+    eval $self reset
+    set params(maxNumRows) $limit
+#     set params(maxNumRowsToDisplay) $displayLimit
+
+    set first 1
+    set count 0
+    foreach line [split $inlineContent \n] {
+      # Skip comments and empty lines
+      if {[regexp {^\s*#} $line]} { continue }
+      if {[regexp {^\s*$} $line]} { continue }
+      if {$first} {
+        set header [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
+        set first 0
+      } else {
+        $self addrow [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
+        incr count
+      }
+    }
+    puts " -I- Header: $header"
+    puts " -I- Number of imported row(s): $count"
   }
-  close $FH
-  puts " -I- Header: $header"
-  puts " -I- Number of imported row(s): $count"
   return 0
 }
 
@@ -3601,12 +3642,12 @@ if {0} {
       set userClockRoot [get_property -quiet USER_CLOCK_ROOT $net]
 
       if {$clockRoot != {}} {
-        regexp {^X([0-9]+)Y([0-9]+)$} clockRoot - X Y
+        regexp {^X([0-9]+)Y([0-9]+)$} $clockRoot - X Y
         $tbl prependcell $X $Y "(R) "
       }
 
       if {$userClockRoot != {}} {
-        regexp {^X([0-9]+)Y([0-9]+)$} userClockRoot - X Y
+        regexp {^X([0-9]+)Y([0-9]+)$} $userClockRoot - X Y
         $tbl prependcell $X $Y "(U) "
       }
 
