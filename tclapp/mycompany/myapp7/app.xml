@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>1.0 Initial Commit</revision_history>
+      <name>myapp7</name>
+      <pkg_require>Vivado 2017.1</pkg_require>
+      <author>Rahul Kunwar</author>
+      <company>mycompany</company>
+      <company_display>MY COMPANY</company_display>
+      <summary>test app</summary>
+      <display>MY APP7</display>
+      <procs>
+        <proc>
+          <name>myproc1</name>
+          <summary/>
+        </proc>
+        <proc>
+          <name>myproc2</name>
+          <summary/>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
