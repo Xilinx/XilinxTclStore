@@ -1,3 +1,4 @@
+2.158 use global incremental property on simulation fileset
 2.157 add software build info in script header
 2.156 compile files into simulator library dir with _lib suffix
 2.155 add copyright version header in script files
