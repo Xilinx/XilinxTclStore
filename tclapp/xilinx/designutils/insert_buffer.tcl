@@ -1187,7 +1187,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insertBufferOnPin {pin {buffe
   }
 
   # Is a LUT being inserted?
-  if {[get_property -quiet PRIMITIVE_GROUP $bufCellRef] == {LUT}} {
+  if {([get_property -quiet PRIMITIVE_GROUP $bufCellRef] == {LUT}) || ([get_property -quiet PRIMITIVE_SUBGROUP $bufCellRef] == {LUT})} {
     set_property INIT "10" $bufCell
 #     set_property BEL "A6LUT" $bufCell
 #     set_property MARK_DEBUG TRUE $bufNet
@@ -1285,7 +1285,7 @@ proc ::tclapp::xilinx::designutils::insert_buffer::insertBufferOnNet {net {buffe
   connect_net -verbose -hier -net $bufInNet -obj [list $bufSrcPin $bufInPin]
 
   # Is a LUT being inserted?
-  if {[get_property -quiet PRIMITIVE_GROUP $bufCellRef] == {LUT}} {
+  if {([get_property -quiet PRIMITIVE_GROUP $bufCellRef] == {LUT}) || ([get_property -quiet PRIMITIVE_SUBGROUP $bufCellRef] == {LUT})} {
     set_property INIT "10" $bufCell
 #     set_property BEL "A6LUT" $bufCell
 #     set_property MARK_DEBUG TRUE $bufInNet
