@@ -46,7 +46,6 @@ proc register_options { simulator } {
     {{compile.v93}                   {bool}   {1}        {Enable VHDL93 features}}
     {{compile.relax}                 {bool}   {1}        {Enable relaxed VHDL interpretation}}
     {{compile.load_glbl}             {bool}   {1}        {Load GLBL module}}
-    {{compile.update}                {bool}   {1}        {Check if unit is up-to-date before writing}}
     {{compile.xmvhdl.more_options}   {string} {}         {More XMVHDL compilation options}}
     {{compile.xmvlog.more_options}   {string} {}         {More XMVLOG compilation options}}
     {{elaborate.update}              {bool}   {0}        {Check if unit is up-to-date before writing}}

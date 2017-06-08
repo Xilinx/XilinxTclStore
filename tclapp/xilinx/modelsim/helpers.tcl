@@ -1051,7 +1051,7 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
     "vlog" {
       if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
         set arg_list [list $s_64bit]
-        if { [get_property "MODELSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+        if { [get_property "INCREMENTAL" $fs_obj] } {
           lappend arg_list "-incr"
         }
         set more_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]

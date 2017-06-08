@@ -45,7 +45,6 @@ proc register_options { simulator } {
     {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008}}}   {Specify VHDL syntax}}
     {{compile.use_explicit_decl}   {bool}   {1}                                     {Log all signals}}
     {{compile.load_glbl}           {bool}   {1}                                     {Load GLBL module}}
-    {{compile.incremental}         {bool}   {1}                                     {Perform incremental compilation}}
     {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
     {{elaborate.acc}               {enum}   {{acc=npr} {acc=npr} {{acc=npr} {acc} {None}}} {Enable access to simulation objects that might be optimized by default (default:npr)}}

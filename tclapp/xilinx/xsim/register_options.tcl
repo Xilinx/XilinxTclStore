@@ -45,7 +45,6 @@ proc register_options { simulator } {
     {{compile.xvlog.nosort}          {bool}        {1}                                                  {Do not sort Verilog files}}
     {{compile.xvlog.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
     {{compile.xvhdl.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
-    {{compile.incremental}           {bool}        {0}                                                  {Perform incremental compilation}}
     {{compile.xvlog.more_options}    {string}      {}                                                   {More XVLOG compilation options}}
     {{compile.xvhdl.more_options}    {string}      {}                                                   {More XVHDL compilation options}}
     {{elaborate.snapshot}            {string}      {}                                                   {Specify name of the simulation snapshot}}

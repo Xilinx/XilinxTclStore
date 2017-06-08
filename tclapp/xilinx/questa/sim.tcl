@@ -589,7 +589,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
 
   set vlog_arg_list [list]
-  if { [get_property "QUESTA.COMPILE.INCREMENTAL" $fs_obj] } {
+  if { [get_property "INCREMENTAL" $fs_obj] } {
     lappend vlog_arg_list "-incr"
   }
   set more_vlog_options [string trim [get_property "QUESTA.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]

@@ -481,7 +481,7 @@ proc usf_xcelium_write_compile_script {} {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
 
-  if { [get_property "XCELIUM.COMPILE.UPDATE" $fs_obj] } {
+  if { [get_property "INCREMENTAL" $fs_obj] } {
     set arg_list [linsert $arg_list end "-update"]
   }
 
@@ -501,7 +501,7 @@ proc usf_xcelium_write_compile_script {} {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
 
-  if { [get_property "XCELIUM.COMPILE.UPDATE" $fs_obj] } {
+  if { [get_property "INCREMENTAL" $fs_obj] } {
     set arg_list [linsert $arg_list end "-update"]
   }
 

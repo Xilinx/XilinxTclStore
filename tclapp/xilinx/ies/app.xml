@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add software build info in script header</revision_history>
+      <revision_history>use global incremental property on simulation fileset</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -759,7 +759,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     close $fh_vlog
 
     set xvlog_arg_list [list]
-    if { [get_property "XSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+    if { [get_property "INCREMENTAL" $fs_obj] } {
       lappend xvlog_arg_list "--incr"
     }
     if { [get_property "XSIM.COMPILE.XVLOG.RELAX" $fs_obj] } {
@@ -841,7 +841,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     close $fh_vhdl
 
     set xvhdl_arg_list [list]
-    if { [get_property "XSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+    if { [get_property "INCREMENTAL" $fs_obj] } {
       lappend xvhdl_arg_list "--incr"
     }
     if { [get_property "XSIM.COMPILE.XVHDL.RELAX" $fs_obj] } {
@@ -1119,7 +1119,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   } 
 
   # --incr
-  if { [get_property "XSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+  if { [get_property "INCREMENTAL" $fs_obj] } {
     lappend args_list "--incr"
   }
 
