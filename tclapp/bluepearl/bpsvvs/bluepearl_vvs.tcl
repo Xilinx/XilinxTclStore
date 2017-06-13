@@ -30,7 +30,7 @@ proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files projec
                 set lib "work"
             }
 
-            set libOption "-lib $lib "
+            set libOption "-work $lib "
             if {[string match $lib "work"]} {
                 set libOption {}
             } 
