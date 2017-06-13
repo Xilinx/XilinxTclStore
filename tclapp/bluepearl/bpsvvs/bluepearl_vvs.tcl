@@ -20,6 +20,7 @@ namespace eval ::tclapp::bluepearl::bpsvvs {
 
 proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files project } {
     puts $project "# $fileGroupName"
+    set filesMissing 0
     foreach file $files {
         set fileName [get_property NAME [lindex [get_files -all $file] 0]]
         set fileType [get_property FILE_TYPE [lindex [get_files -all $file] 0]]
@@ -37,13 +38,15 @@ proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files projec
 
             if {![file exists $fileName]} {
                 puts "WARNING: File '$fileName' does not exist, but is required for proper synthesis.";
-                puts "#The following file does not exist, but is required for proper synthesis.";
+                puts $project "#The following file does not exist, but is required for proper synthesis.";
                 puts -nonewline $project "#"
+                set filesMissing 1
             }
             puts $project "BPS::add_input_files $libOption{$fileName}"
         }
     }
     puts $project "\n"
+    return $filesMissing
 }
 
 proc ::tclapp::bluepearl::bpsvvs::getTopModule {} {
@@ -118,16 +121,25 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
     set ips [get_ips -quiet *]
     puts "INFO: Found [llength $ips] IPs in the design"
 
+    set missingFiles 0
+
     foreach ip $ips {
         set ipDef [get_property IPDEF $ip]
         set ipName [get_property NAME $ip]
 
         set files [get_files -quiet -compile_order sources -used_in synthesis -of_objects $ip]
-        addFilesToProject "IP $ipName" $files $ofs
+        set fileMissing [addFilesToProject "IP $ipName" $files $ofs]
+        if { $fileMissing || $missingFiles } {
+            set missingFiles 1
+        }
     }
 
     set files [get_files -norecurse -compile_order sources -used_in synthesis]
     addFilesToProject "User Files" $files $ofs 
+
+    if { $missingFiles } {
+        puts $ofs "set auto_create_black_boxes true"
+    }
 
     close $ofs
 
