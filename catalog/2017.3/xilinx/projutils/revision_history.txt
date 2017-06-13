@@ -1,3 +1,4 @@
+3.241 reference precompiled AXI-VIP library
 3.240 add software build info in script header
 3.239 compile files into simulator library dir with _lib suffix
 3.238 compile files into simulator library dir with _lib suffix

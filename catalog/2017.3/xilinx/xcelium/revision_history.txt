@@ -1,3 +1,4 @@
+1.6 reference precompiled AXI-VIP library
 1.5 use global incremental property on simulation fileset
 1.4 add software build info in script header
 1.3 compile files into simulator library dir with _lib suffix
