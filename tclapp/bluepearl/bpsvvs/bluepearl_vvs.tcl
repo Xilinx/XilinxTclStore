@@ -70,7 +70,7 @@ proc ::tclapp::bluepearl::bpsvvs::getProjectFile {} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
-    puts "Generating BPS Project File"
+    puts "INFO: Generating Blue Pearl tcl project file"
     # Summary : This proc generates the Blue Pearl tcl project file
     # Argument Usage:
     # Return Value: Returns '1' on successful completion
@@ -180,6 +180,13 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
         return 0
     }
 
+    puts "INFO: Generating Blue Pearl tcl project file $bpsProjectFile"
+    set aOK [generate_bps_project]
+    if { $aOK != 0 } {
+        puts stderr "ERROR: Problem generating project file $bpsProjectFile"
+        return 0
+    }
+
     set runs [get_runs]
 
     puts "INFO: Searching for implementation run"
@@ -226,16 +233,21 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
         puts "INFO: Writing Blue Pearl tcl executable file to file $execFile"
     }
 
-    puts $ofs "BPS::update_vivado_results -impl_dir {$loc} -timing $timingRep -util $utilRep -power $powerRep"
+    puts $ofs "BPS::update_vivado_results -impl_dir {$loc} -timing {$timingRep} -util {$utilRep} -power {$powerRep}"
     puts $ofs "exit"
     close $ofs
 
     puts "INFO: Launching BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile"
-    if {[catch {eval [list exec BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile} results]} {
+    set wd [pwd]
+    set projectDir [get_property DIRECTORY [current_project]]
+    cd $projectDir
+    if {[catch {eval [list exec BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile]} results]} {
         puts stderr "ERROR: Problems launching BluePearlCLI"
-        puts stderr "ERROR: $results launching BluePearlCLI"
+        puts stderr "ERROR: $results"
+        cd $wd
         return 0
     }   
+    cd $wd
     puts $results
     return 1
 }
