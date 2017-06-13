@@ -204,19 +204,39 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
 
     puts "INFO: Running reports for data extraction"
     puts "INFO: Running timing report"
-    report_timing -file [file join $loc bps_timing_report.txt]
+    set timingRep [file join $loc bps_timing_report.txt]
+    report_timing -file $timingRep
     puts "INFO: Running utilization report"
+    set utilRep [file join $loc bps_utilization_report.txt]
     report_utilization -file [file join $loc bps_utilization_report.txt]
     puts "INFO: Running power report"
-    report_power -file [file join $loc bps_power_report.txt]
+    set powerRep [file join $loc bps_power_report.txt]
+    report_power -file $powerRep
 
-    puts "INFO: Launching BluePearlCLI -output Results -e \"BPS::update_vivado_results -impl_dir {$loc} -timing bps_timing_report.txt -util bps_utilization_report.txt -power bps_power_report.txt; exit\""
-    if {[catch {eval [list exec BluePearlCLI -e [list BPS::update_vivado_results -impl_dir $loc -timing bps_timing_report.txt -util bps_utilization_report.txt -power bps_power_report.txt; exit]]} results]} {
-        puts stderr "ERROR: Problems launching BluePearlVVE $results"
+    ## Open output file to write
+    set projectDir [get_property DIRECTORY [current_project]]
+    set topModule [getTopModule]
+    set execFile [file join $projectDir ${topModule}.execfile.tcl]
+    if { [catch {open $execFile w} result] } {
+        puts stderr "ERROR: Could not open $execFile for writing"
+        puts stderr "$result"
+        return 1
+    } else {
+        set ofs $result
+        puts "INFO: Writing Blue Pearl tcl executable file to file $execFile"
+    }
+
+    puts $ofs "BPS::update_vivado_results -impl_dir {$loc} -timing $timingRep -util $utilRep -power $powerRep"
+    puts $ofs "exit"
+    close $ofs
+
+    puts "INFO: Launching BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile"
+    if {[catch {eval [list exec BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile} results]} {
+        puts stderr "ERROR: Problems launching BluePearlCLI"
+        puts stderr "ERROR: $results launching BluePearlCLI"
         return 0
     }   
     puts $results
-
     return 1
 }
 
