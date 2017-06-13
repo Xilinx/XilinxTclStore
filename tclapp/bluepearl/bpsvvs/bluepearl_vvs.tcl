@@ -109,6 +109,7 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
     puts $ofs "\n"
     puts $ofs "set BPS::project_results_dir Results"
     puts $ofs "\n"
+    puts $ofs "BPS::set_msg_check_package Xilinx"
     puts $ofs "BPS::set_xilinx_library 2016.4"
     puts $ofs "\n"
     puts $ofs "BPS::set_check_enabled -enabled false *"
