@@ -836,6 +836,14 @@ proc usf_questa_get_elaboration_cmdline {} {
     #lappend arg_list "[string tolower $lib]"
   }
 
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend arg_list "-L"
+      lappend arg_list "xilinx_vip"
+    }
+  }
+
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ({Verilog} == $target_lang) } {

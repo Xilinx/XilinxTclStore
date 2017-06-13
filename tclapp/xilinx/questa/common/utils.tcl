@@ -2497,6 +2497,21 @@ proc xcs_get_ip_header_file_from_repo { repo_dir ip_lib_dir_name vh_file_name } 
   return $ip_vh_file
 }
 
+proc xcs_design_contain_sv_ip { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  foreach ip_obj [get_ips -all -quiet] {
+    set ipdef [get_property -quiet IPDEF $ip_obj]
+    set ip_name [lindex [split $ipdef ":"] 2]
+    if { [regexp -nocase {axi_vip} $ip_name] } {
+      return true
+    }
+  }
+  return false
+}
+
 proc xcs_find_sv_pkg_libs { run_dir } {
   # Summary:
   # Argument Usage:
@@ -2575,6 +2590,13 @@ proc xcs_find_sv_pkg_libs { run_dir } {
           lappend a_sim_sv_pkg_libs $library
         }
       }
+    }
+  }
+
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend a_sim_sv_pkg_libs "xilinx_vip"
     }
   }
 }

@@ -1909,6 +1909,13 @@ proc xps_write_single_step_for_ies_xcelium { simulator fh_unix launch_dir srcs_d
     }
   }
 
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend base_libs "xilinx_vip"
+    }
+  }
+
   foreach lib $base_libs {
     lappend arg_list "-reflib \"\$ref_lib_dir/$lib:$lib\""
   }
@@ -4115,6 +4122,12 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
     lappend args "$lib"
     #lappend args "[string tolower $lib]"
   }
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend args "-L xilinx_vip"
+    }
+  }
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     set args [linsert $args end "-L" "unisims_ver"]
     set args [linsert $args end "-L" "unimacro_ver"]
@@ -4240,6 +4253,12 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args "-L $lib"
+  }
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend args "-L xilinx_vip"
+    }
   }
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     lappend args "-L unisims_ver"

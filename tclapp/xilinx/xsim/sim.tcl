@@ -1242,6 +1242,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-L $lib"
   }
 
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend arg_list "-L xilinx_vip"
+    }
+  }
+
   # add simulation libraries
   # post* simulation
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
