@@ -205,9 +205,9 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
     puts "INFO: Running timing report"
     report_timing -file [file join $loc bps_timing_report.txt]
     puts "INFO: Running utilization report"
-    report_timing -file [file join $loc bps_utilization_report.txt]
+    report_utilization -file [file join $loc bps_utilization_report.txt]
     puts "INFO: Running power report"
-    report_timing -file [file join $loc bps_power_report.txt]
+    report_power -file [file join $loc bps_power_report.txt]
 
     puts "INFO: Launching BluePearlCLI -output Results -e \"BPS::update_vivado_results -impl_dir {$loc} -timing bps_timing_report.txt -util bps_utilization_report.txt -power bps_power_report.txt; exit\""
     if {[catch {eval [list exec BluePearlCLI -e [list BPS::update_vivado_results -impl_dir $loc -timing bps_timing_report.txt -util bps_utilization_report.txt -power bps_power_report.txt; exit]]} results]} {
