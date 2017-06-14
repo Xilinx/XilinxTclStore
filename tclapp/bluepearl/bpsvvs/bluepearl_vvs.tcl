@@ -188,16 +188,19 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
     }
 
     set runs [get_runs]
-
-    puts "INFO: Searching for implementation run"
+    set srcSet [current_fileset -srcset]
+    puts "INFO: Searching for implementation run for SRCSET $srcSet"
     set synthRun {}
     set implRun {}
     foreach run $runs {
         set flowType [get_property FLOW $run]
-        if {[string match "*Implementation*" $flowType]} {
+        set isImpl [get_property IS_IMPLEMENTATION $run]
+        if {!$isImpl} {
+            continue;
+        }
+        set implSrcSet [get_property SRCSET $run]
+        if {[string match $srcSet $implSrcSet]} {
             set implRun $run
-        } else {
-            set syntRun $run
         }
     }
     if { $implRun == {} } {
@@ -212,7 +215,7 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
     puts "INFO: Running reports for data extraction"
     puts "INFO: Running timing report"
     set timingRep [file join $loc bps_timing_report.txt]
-    report_timing -file $timingRep
+    report_timing -path_type summary -file $timingRep
     puts "INFO: Running utilization report"
     set utilRep [file join $loc bps_utilization_report.txt]
     report_utilization -file [file join $loc bps_utilization_report.txt]
@@ -233,7 +236,9 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
         puts "INFO: Writing Blue Pearl tcl executable file to file $execFile"
     }
 
-    puts $ofs "BPS::update_vivado_results -impl_dir {$loc} -timing {$timingRep} -util {$utilRep} -power {$powerRep}"
+    puts $ofs "BPS::update_vivado_results -timing {$timingRep}"
+    puts $ofs "BPS::update_vivado_results -utilization {$utilRep}"
+    puts $ofs "BPS::update_vivado_results -power {$powerRep}"
     puts $ofs "exit"
     close $ofs
 
