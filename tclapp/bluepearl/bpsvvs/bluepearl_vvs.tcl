@@ -215,7 +215,7 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
     puts "INFO: Running reports for data extraction"
     puts "INFO: Running timing report"
     set timingRep [file join $loc bps_timing_report.txt]
-    report_timing -path_type summary -file $timingRep
+    report_timing -file $timingRep
     puts "INFO: Running utilization report"
     set utilRep [file join $loc bps_utilization_report.txt]
     report_utilization -file [file join $loc bps_utilization_report.txt]
