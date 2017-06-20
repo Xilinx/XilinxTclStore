@@ -2529,85 +2529,85 @@ proc xcs_find_sv_pkg_libs { run_dir } {
 
   variable a_sim_sv_pkg_libs
 
-  # add xilinx vip library
-  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
-    if { [xcs_design_contain_sv_ip] } {
-      lappend a_sim_sv_pkg_libs "xilinx_vip"
-    }
-  } else {
-    set tmp_dir "$run_dir/_tmp_ip_comp_"
-    set ip_comps [list]
-    foreach ip [get_ips -all -quiet] {
-      set ip_file [get_property ip_file $ip]
-      set ip_filename [file rootname $ip_file];append ip_filename ".xml"
-      if { ![file exists $ip_filename] } {
-        # extract files
-        set ip_file_obj [get_files -all -quiet $ip_filename]
-        if { {} != $ip_file_obj } {
-          set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
-        }
-        if { ![file exists $ip_filename] } {
-          send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
-          continue;
-        }
+  set tmp_dir "$run_dir/_tmp_ip_comp_"
+  set ip_comps [list]
+  foreach ip [get_ips -all -quiet] {
+    set ip_file [get_property ip_file $ip]
+    set ip_filename [file rootname $ip_file];append ip_filename ".xml"
+    if { ![file exists $ip_filename] } {
+      # extract files
+      set ip_file_obj [get_files -all -quiet $ip_filename]
+      if { {} != $ip_file_obj } {
+        set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
       }
-      lappend ip_comps $ip_filename
+      if { ![file exists $ip_filename] } {
+        send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
+        continue;
+      }
     }
-  
-    foreach ip_xml $ip_comps {
-      set ip_comp [ipx::open_core -set_current false $ip_xml]
-      set vlnv    [get_property vlnv $ip_comp]
-      foreach file_group [ipx::get_file_groups -of $ip_comp] {
-        set type [get_property type $file_group]
-        if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
-          set sub_lib_cores [get_property component_subcores $file_group]
-          if { [llength $sub_lib_cores] == 0 } {
-            continue
-          }
-          # reverse the order of sub-cores
-          set ordered_sub_cores [list]
-          foreach sub_vlnv $sub_lib_cores {
-            set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_vlnv]
-          }
-          #puts "$vlnv=$ordered_sub_cores"
-          foreach sub_vlnv $ordered_sub_cores {
-            xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
-          }
-          foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
-            set file_entry [split $static_file { }]
-            lassign $file_entry file_key comp_ref file_group_name file_path
-            set ip_file [lindex $file_entry 3]
-            set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
-            if { {systemVerilogSource} == $file_type } {
-              set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
-              if { ({} != $library) && ({xil_defaultlib} != $library) } {
-                if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
-                  lappend a_sim_sv_pkg_libs $library
-                }
+    lappend ip_comps $ip_filename
+  }
+
+  foreach ip_xml $ip_comps {
+    set ip_comp [ipx::open_core -set_current false $ip_xml]
+    set vlnv    [get_property vlnv $ip_comp]
+    foreach file_group [ipx::get_file_groups -of $ip_comp] {
+      set type [get_property type $file_group]
+      if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
+        set sub_lib_cores [get_property component_subcores $file_group]
+        if { [llength $sub_lib_cores] == 0 } {
+          continue
+        }
+        # reverse the order of sub-cores
+        set ordered_sub_cores [list]
+        foreach sub_vlnv $sub_lib_cores {
+          set ordered_sub_cores [linsert $ordered_sub_cores 0 $sub_vlnv]
+        }
+        #puts "$vlnv=$ordered_sub_cores"
+        foreach sub_vlnv $ordered_sub_cores {
+          xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
+        }
+        foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
+          set file_entry [split $static_file { }]
+          lassign $file_entry file_key comp_ref file_group_name file_path
+          set ip_file [lindex $file_entry 3]
+          set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
+          if { {systemVerilogSource} == $file_type } {
+            set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+            if { ({} != $library) && ({xil_defaultlib} != $library) } {
+              if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+                lappend a_sim_sv_pkg_libs $library
               }
             }
           }
         }
       }
-      ipx::unload_core $ip_comp
     }
-  
-    # delete tmp dir
-    if { [file exists $tmp_dir] } {
-     [catch {file delete -force $tmp_dir} error_msg]
-    }
-  
-    # find SV package libraries from the design
-    set filter "FILE_TYPE == \"SystemVerilog\""
-    foreach sv_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
-      if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
-        set library [get_property -quiet "LIBRARY" $sv_file_obj]
-        if { {} != $library } {
-          if { [lsearch -exact $a_sim_sv_pkg_libs $library] == -1 } {
-            lappend a_sim_sv_pkg_libs $library
-          }
+    ipx::unload_core $ip_comp
+  }
+
+  # delete tmp dir
+  if { [file exists $tmp_dir] } {
+   [catch {file delete -force $tmp_dir} error_msg]
+  }
+
+  # find SV package libraries from the design
+  set filter "FILE_TYPE == \"SystemVerilog\""
+  foreach sv_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
+    if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
+      set library [get_property -quiet "LIBRARY" $sv_file_obj]
+      if { {} != $library } {
+        if { [lsearch -exact $a_sim_sv_pkg_libs $library] == -1 } {
+          lappend a_sim_sv_pkg_libs $library
         }
       }
+    }
+  }
+
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend a_sim_sv_pkg_libs "xilinx_vip"
     }
   }
 }
