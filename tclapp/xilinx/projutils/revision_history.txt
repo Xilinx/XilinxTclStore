@@ -1,3 +1,4 @@
+3.243 additionally reference precompiled AXI-VIP library if param is set
 3.242 reference precompiled AXI-VIP library if param is set
 3.241 reference precompiled AXI-VIP library
 3.240 add software build info in script header

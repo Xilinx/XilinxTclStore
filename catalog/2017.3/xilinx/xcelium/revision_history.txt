@@ -1,3 +1,4 @@
+1.8 additionally reference precompiled AXI-VIP library if param is set
 1.7 reference precompiled AXI-VIP library if param is set
 1.6 reference precompiled AXI-VIP library
 1.5 use global incremental property on simulation fileset
