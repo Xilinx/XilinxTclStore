@@ -1,3 +1,4 @@
+3.50 reference precompiled AXI-VIP library if param is set
 3.49 reference precompiled AXI-VIP library
 3.48 use global incremental property on simulation fileset
 3.47 add software build info in script header
