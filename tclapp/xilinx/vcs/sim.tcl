@@ -361,13 +361,6 @@ proc usf_vcs_write_setup_files {} {
     lappend libs $default_lib
   }
 
-  # add xilinx vip library
-  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
-    if { [xcs_design_contain_sv_ip] } {
-      lappend libs "xilinx_vip"
-    }
-  }
-
   set dir_name "vcs_lib"
   foreach lib_name $libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {

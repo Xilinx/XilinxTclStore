@@ -3910,6 +3910,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
   variable a_sim_vars
   variable l_generics
   variable l_compiled_libraries
+  variable a_sim_sv_pkg_libs
   set filename "elaborate.do"
   set do_file [file normalize "$dir/$filename"]
   set fh 0
@@ -3949,6 +3950,14 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
         lappend arg_list "-L"
         lappend arg_list "$lib"
       }
+
+      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
+        # append sv pkg libs
+        foreach sv_pkg_lib $a_sim_sv_pkg_libs {
+          lappend arg_list "-L $sv_pkg_lib"
+        }
+      }
+
       if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
         set arg_list [linsert $arg_list end "-L" "unisims_ver"]
         set arg_list [linsert $arg_list end "-L" "unimacro_ver"]

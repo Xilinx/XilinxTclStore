@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>additionally reference precompiled AXI-VIP library if param is set</revision_history>
+      <revision_history>pass xilinx_vip library</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
