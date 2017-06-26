@@ -1,3 +1,4 @@
+2.167 reference xilinx_vip precompiled library
 2.166 additionally reference precompiled AXI-VIP library if param is set
 2.165 reference precompiled AXI-VIP library if param is set
 2.164 reference precompiled AXI-VIP library
