@@ -1612,6 +1612,10 @@ proc xps_write_sim_script { run_dir data_files filename } {
     if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
       set a_sim_vars(s_top) [file tail [file root $tcl_obj]]
       #send_msg_id exportsim-Tcl-026 INFO "Inspecting IP design source files for '$a_sim_vars(s_top)'...\n"
+
+      # check if IP support current simulator
+      xps_print_message_for_unsupported_simulator_ip $tcl_obj $simulator
+
       if {[xps_write_script $simulator $dir $filename]} {
         return 1
       }
@@ -1624,6 +1628,10 @@ proc xps_write_sim_script { run_dir data_files filename } {
         fileset. The top can be set on the simulation fileset by running: set_property top <top_module> \[current_fileset -simset\]\n"
         #set a_sim_vars(s_top) "unknown"
       }
+
+      # check if IP support current simulator (all ips from this fileset)
+      xps_print_message_for_unsupported_simulator_fileset $tcl_obj $simulator
+     
       if {[xps_write_script $simulator $dir $filename]} {
         return 1
       }
@@ -5267,5 +5275,32 @@ proc xps_resolve_file { proj_src_file ip_file src_file dir } {
     }
   }
   return $src_file
+}
+
+proc xps_print_message_for_unsupported_simulator_ip { ip simulator } {
+  # Summary: check if IP support current simulator
+  # Argument Usage:
+  # Return Value:
+
+  set ip_filename [file tail $ip]
+  set ip_name [file rootname [file tail $ip_filename]]
+  set invalid_simulators [get_property unsupported_simulators [get_ips -quiet $ip_name]]
+  if { [lsearch -nocase $invalid_simulators $simulator] != -1 } {
+    [catch {send_msg_id exportsim-Tcl-068 ERROR "Simulation of '${ip_name}' is not supported for '$simulator' simulator. Please contact the IP provider to add support for this simulator.\n"} error]
+  }
+}
+
+proc xps_print_message_for_unsupported_simulator_fileset { fs_obj simulator } {
+  # Summary: check if all IPs in fileset support current simulator
+  # Argument Usage:
+  # Return Value:
+
+  foreach ip_obj [get_ips -all -quiet] {
+    set ip_file [get_property -quiet ip_file $ip_obj]
+    set extn [string tolower [file extension $ip_file]]
+    if { ({.xci} == $extn) } {
+      xps_print_message_for_unsupported_simulator_ip $ip_file $simulator
+    }
+  }
 }
 }
