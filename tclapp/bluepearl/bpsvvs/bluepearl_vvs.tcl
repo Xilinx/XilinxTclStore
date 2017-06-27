@@ -119,6 +119,13 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
     puts $ofs "set root_module $topModule" 
     puts $ofs "\n"
 
+	set fileSet [current_fileset -srcset]
+    set includeDirs [get_property include_dirs $fileSet]
+	if { $includeDirs != "" } {
+	   puts $ofs "set veri_include_dirs {$includeDirs}"
+	   puts $ofs "\n"
+	}
+	
     set ips [get_ips -quiet *]
     puts "INFO: Found [llength $ips] IPs in the design"
 
