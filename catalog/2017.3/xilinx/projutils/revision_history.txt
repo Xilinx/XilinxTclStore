@@ -1,3 +1,4 @@
+3.246 fixed bug while fetching unsupported simulators from ip
 3.245 reference xilinx_vip precompiled library
 3.244 check simulator validity and print message for IP instance
 3.243 additionally reference precompiled AXI-VIP library if param is set
