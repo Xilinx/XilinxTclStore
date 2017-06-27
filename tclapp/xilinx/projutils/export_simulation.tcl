@@ -5291,11 +5291,19 @@ proc xps_print_message_for_unsupported_simulator_ip { ip simulator } {
   # Argument Usage:
   # Return Value:
 
+  set extn [string tolower [file extension $ip]]
+  if { ({.bd} == $extn) } {
+    return
+  }
+
   set ip_filename [file tail $ip]
   set ip_name [file rootname [file tail $ip_filename]]
-  set invalid_simulators [get_property unsupported_simulators [get_ips -quiet $ip_name]]
-  if { [lsearch -nocase $invalid_simulators $simulator] != -1 } {
-    [catch {send_msg_id exportsim-Tcl-068 ERROR "Simulation of '${ip_name}' is not supported for '$simulator' simulator. Please contact the IP provider to add support for this simulator.\n"} error]
+  set ip_props [list_property [get_ips -all $ip_name]]
+  if { [lsearch -nocase $ip_props "unsupported_simulators"] != -1 } {
+    set invalid_simulators [get_property -quiet unsupported_simulators [get_ips -quiet $ip_name]]
+    if { [lsearch -nocase $invalid_simulators $simulator] != -1 } {
+      [catch {send_msg_id exportsim-Tcl-068 ERROR "Simulation of '${ip_name}' is not supported for '$simulator' simulator. Please contact the IP provider to add support for this simulator.\n"} error]
+    }
   }
 }
 
