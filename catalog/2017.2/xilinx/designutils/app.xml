@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added support for UltraScale Plus (get_sll_nets, get_sll_nodes)</revision_history>
+      <revision_history>Updated insert_buffer.tcl to better support UltraScale/UltraScale Plus. Minor update to prettyTable.</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

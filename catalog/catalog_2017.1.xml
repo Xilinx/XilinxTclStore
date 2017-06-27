@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <remote>master</remote>
+  <remote>2017.1</remote>
   <support_commit_id>f2f2c8d9db8b7129479347fb60ba01e3a8243721</support_commit_id>
   <release>2017.1</release>
   <revision>2.4</revision>
@@ -21,8 +21,8 @@
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>55853120dc3c12047b801898129d9c17feb7dce2</commit_id>
-      <revision>1.30</revision>
+      <commit_id>eb5eb2e4c69c4dfe0ab2af9c7a6ec53b29fe2dcb</commit_id>
+      <revision>1.31</revision>
     </app>
     <app>
       <name>diff</name>
