@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::icl::protoip 2.0 [list source [file join $dir protoip.tcl]]
+package ifneeded ::tclapp::icl::protoip 2.1 [list source [file join $dir protoip.tcl]]
