@@ -1112,12 +1112,6 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-wto $id"
   }
 
-  if { [get_property 32bit $fs_obj] } {
-    lappend args_list "-m32"
-  } else {
-    lappend args_list "-m64"
-  } 
-
   # --incr
   if { [get_property "INCREMENTAL" $fs_obj] } {
     lappend args_list "--incr"
