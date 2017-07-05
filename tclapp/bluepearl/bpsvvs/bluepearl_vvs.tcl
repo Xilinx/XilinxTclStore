@@ -25,7 +25,13 @@ proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files projec
         set fileName [get_property NAME [lindex [get_files -all $file] 0]]
         set fileType [get_property FILE_TYPE [lindex [get_files -all $file] 0]]
         if {[string match $fileType "Verilog"] || [string match $fileType "Verilog Header"] || [string match $fileType "SystemVerilog"] || [string match $fileType "VHDL"]} {
-            set fileSetName [get_property FILESET_NAME [lindex [get_files -all $file] 0]]
+            upvar allFiles lclAllFiles
+            set pos [lsearch $lclAllFiles $fileName]
+            if {$pos != -1} {
+                continue
+            }
+            lappend lclAllFiles $fileName
+            
             set lib [get_property LIBRARY [lindex [get_files -all $file] 0]]
             if {[string match $lib "xil_defaultlib"]} {
                 set lib "work"
@@ -70,6 +76,10 @@ proc ::tclapp::bluepearl::bpsvvs::getProjectFile {} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
+    if { ![check_bps_env] } {
+        return 0
+    }
+
     puts "INFO: Generating Blue Pearl tcl project file"
     # Summary : This proc generates the Blue Pearl tcl project file
     # Argument Usage:
@@ -130,6 +140,7 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
     puts "INFO: Found [llength $ips] IPs in the design"
 
     set missingFiles 0
+    set allFiles [list]
 
     foreach ip $ips {
         set ipDef [get_property IPDEF $ip]
@@ -158,6 +169,10 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
 
 
 proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
+    if { ![check_bps_env] } {
+        return 0
+    }
+
     set bpsProjectFile [getProjectFile]
     if { $bpsProjectFile == {} } {
         puts stderr "ERROR: Current project is not set"
@@ -172,16 +187,37 @@ proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
     }
 
     puts "INFO: Launching BluePearlVVE '$bpsProjectFile'"
+    set vvs [auto_execok BluePearlVVE]
+    puts "INFO: Using $vvs"
 
-    if {[catch {eval [list exec BluePearlVVE $bpsProjectFile &]} results]} {
+    if {[catch {eval [list exec BluePearlVVS $bpsProjectFile &]} results]} {
         puts stderr "ERROR: Problems launching BluePearlVVE $results"
+        puts stderr "ERROR: $results"
+        puts stderr "ERROR: Please check your path."
         return 0
     }   
 
     return 1
 }
+proc ::tclapp::bluepearl::bpsvvs::check_bps_env {} {
+    set cli [auto_execok BluePearlCLI]
+    if { $cli == {} } {
+        puts stderr "ERROR: BluePearlCLI could not be found. Please check path."
+        return 0;
+    }
+    set vve [auto_execok BluePearlVVE]
+    if { $vve == {} } {
+        puts stderr "ERROR: BluePearlVVE could not be found. Please check path."
+        return 0;
+    }
+    return 1
+}
 
 proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
+    if { ![check_bps_env] } {
+        return 0
+    }
+
     set bpsProjectFile [getProjectFile]
     if { $bpsProjectFile == {} } {
         return 0
@@ -222,9 +258,10 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
     puts "INFO: Running reports for data extraction"
     puts "INFO: Running timing report"
     set timingRep [file join $loc bps_timing_report.txt]
-    report_timing_summary -warn_on_violations -max_paths 1 -file $timingRep
+    report_timing_summary -max_paths 1 -file $timingRep
     puts "INFO: Running utilization report"
     set utilRep [file join $loc bps_utilization_report.txt]
+
     report_utilization -file [file join $loc bps_utilization_report.txt]
     puts "INFO: Running power report"
     set powerRep [file join $loc bps_power_report.txt]
@@ -232,6 +269,15 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
 
     ## Open output file to write
     set projectDir [get_property DIRECTORY [current_project]]
+
+    set utilConfigFile [file join $projectDir Xilinx_Vivado_utilconfig.xml]
+    if {[file exists $utilConfigFile]} {
+        set utilConfig "-config_file {$utilConfigFile}"
+    } else {
+        set utilConfig ""
+    }
+
+
     set topModule [getTopModule]
     set execFile [file join $projectDir ${topModule}.execfile.tcl]
     if { [catch {open $execFile w} result] } {
@@ -244,18 +290,21 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
     }
 
     puts $ofs "BPS::update_vivado_results -timing {$timingRep}"
-    puts $ofs "BPS::update_vivado_results -utilization {$utilRep}"
+    puts $ofs "BPS::update_vivado_results -utilization {$utilRep} $utilConfig"
     puts $ofs "BPS::update_vivado_results -power {$powerRep}"
     puts $ofs "exit"
     close $ofs
 
     puts "INFO: Launching BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile"
+    set cli [auto_execok BluePearlCLI]
+    puts "INFO: Using $cli"
     set wd [pwd]
     set projectDir [get_property DIRECTORY [current_project]]
     cd $projectDir
     if {[catch {eval [list exec BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile]} results]} {
         puts stderr "ERROR: Problems launching BluePearlCLI"
         puts stderr "ERROR: $results"
+        puts stderr "ERROR: Please check your path."
         cd $wd
         return 0
     }   
