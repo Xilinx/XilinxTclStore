@@ -39,6 +39,7 @@ proc write_project_tcl {args} {
   # [-no_copy_sources]: Do not import sources even if they were local in the original project
   # [-absolute_path]: Make all file paths absolute wrt the original project directory
   # [-dump_project_info]: Write object values
+  # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
   # file: Name of the tcl script file to generate
 
   # Return Value:
@@ -62,6 +63,7 @@ proc write_project_tcl {args} {
       "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
       "-absolute_path"        { set a_global_vars(b_absolute_path) 1 }
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
+      "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -104,6 +106,16 @@ proc write_project_tcl {args} {
     send_msg_id Vivado-projutils-004 ERROR "Tcl Script '$a_global_vars(script_file)' already exist. Use -force option to overwrite.\n"
     return
   }
+ 
+  if { [get_files -quiet *.bd] eq "" } { set a_global_vars(b_arg_use_bd_files) 1 }
+ 
+  # -no_copy_sources cannot be used without -use_bd_files
+  if { $a_global_vars(b_arg_no_copy_srcs) && !$a_global_vars(b_arg_use_bd_files) } {
+    send_msg_id Vivado-projutils-019 ERROR "This design contains BD sources. The option -no_copy_sources cannot be used without -use_bd_files.\
+      Please remove -no_copy_sources if you wish to write out BD's as procs in the project tcl, otherwise add the option -use_bd_files to directly\
+      include the *.bd files to the new project \n"
+    return
+  }
 
   # set script file directory path
   set a_global_vars(s_path_to_script_dir) [file normalize $file_path]
@@ -124,6 +136,7 @@ variable l_script_data [list]
 variable l_local_files [list]
 variable l_remote_files [list]
 variable b_project_board_set 0
+variable l_added_bds [list]
 
 # set file types to filter
 variable l_filetype_filter [list]
@@ -169,6 +182,12 @@ proc reset_global_vars {} {
   set a_global_vars(dp_fh)                0
   set a_global_vars(def_val_fh)           0
   set a_global_vars(script_file)          ""
+  
+  if { [get_param project.enableMergedProjTcl] } {
+    set a_global_vars(b_arg_use_bd_files)   0
+  } else {
+    set a_global_vars(b_arg_use_bd_files) 1
+  }
 
   set l_script_data                       [list]
   set l_local_files                       [list]
@@ -242,6 +261,9 @@ proc write_project_tcl_script {} {
   wr_create_project $proj_dir $proj_name $part_name
   wr_project_properties $proj_dir $proj_name
   wr_filesets $proj_dir $proj_name
+  if { !$a_global_vars(b_arg_use_bd_files) } {
+    wr_bd
+  }
   wr_prflow $proj_dir $proj_name
   wr_runs $proj_dir $proj_name
   wr_proj_info $proj_name
@@ -436,6 +458,172 @@ proc wr_project_properties { proj_dir proj_name } {
   }
 
   write_props $proj_dir $proj_name $get_what $tcl_obj "project"
+}
+
+proc write_bd_as_proc { bd_file } {
+  # Summary: writes out BD creation steps as a proc
+  # Argument: BD file
+  # Return Value: None
+
+  variable l_added_bds
+  variable l_bd_proc_calls
+  variable l_script_data
+  variable temp_offset
+  variable l_open_bds
+
+  if { [lsearch $l_added_bds $bd_file] != -1 } { return }
+  
+  set to_close 1
+  
+  # Add sources referenced in the BD
+  add_references $bd_file
+
+
+  # Open BD in stealth mode, if not already open
+  set bd_filename [file tail $bd_file]
+  if { [lsearch $l_open_bds $bd_filename] != -1 } {
+    set to_close 0
+  } else {
+    open_bd_design -stealth [ get_files $bd_filename ]
+  }
+  current_bd_design [get_bd_designs [file rootname $bd_filename]]
+  
+  # write the BD as a proc to a temp file
+  write_bd_tcl -no_project_wrapper ./temp_$temp_offset.tcl -force
+  
+  # Set non default properties for the BD
+  wr_bd_properties $bd_file
+  
+  # Close BD if opened in stealth mode
+  if {$to_close == 1 } {
+    #close_bd_design -stealth [ get_files $bd_file ]
+#close_bd_design [get_bd_designs [file rootname $bd_filename]]
+     close_bd_design [get_bd_designs [file rootname $bd_filename]]
+  }
+
+  # Get proc call
+  if {[catch {open "./temp_$temp_offset.tcl" r} fp]} {
+    send_msg_id Vivado-projutils-020 ERROR "failed to write out proc for $bd_file \n"
+    return 1
+  }
+  # TODO no need to read whole file, just second line will do
+  set file_data [read $fp ]
+  set split_proc [split $file_data]
+  set proc_index 7
+  set str [lindex $split_proc $proc_index] 
+  close $fp
+  
+  if { [string equal [lindex $split_proc [expr {$proc_index-1}] ] "proc"]
+        && [regexp {^cr_bd_.*} $str]
+  } then {
+    append str " \"\""
+    lappend l_bd_proc_calls $str
+    lappend l_script_data "\n"
+    lappend l_script_data $file_data
+    lappend l_added_bds $bd_file
+  }
+
+  # delete temp file
+  file delete "./temp_$temp_offset.tcl"
+  incr temp_offset
+}
+
+proc wr_bd_properties { file } {
+  # Summary: writes non default BD properties
+  # Argument: the .BD file
+  # Return Value: none
+  variable bd_prop_steps
+
+  set bd_name [get_property FILE_NAME [current_bd_design]]
+  set bd_props [list_property [ get_files $file ] ]
+  set read_only_props [rdi::get_attr_specs -object [get_files $file] -filter {is_readonly}]
+
+  foreach prop $bd_props {
+    # Fix for CR-939211 
+    if { [lsearch $read_only_props $prop] != -1 
+         || [string equal -nocase $prop "generate_synth_checkpoint"] 
+         || [string equal -nocase $prop "synth_checkpoint_mode"] 
+         || [string equal -nocase $prop "file_type" ]
+    } then  { continue }
+    set def_val [list_property_value -default $prop [ get_files $file ] ]
+    set cur_val [get_property $prop [get_files $file ] ]
+    if { $def_val ne $cur_val } {
+      append bd_prop_steps "set_property $prop $cur_val \[get_files $bd_name \] \n"
+    }
+  }
+}
+
+proc add_references { sub_design } {
+  # Summary: Looks for sources referenced in the block design and adds them
+  # Argument: sub_design file
+  # Return Value: None
+
+  variable l_script_data
+  variable l_added_bds
+
+  # Getting references, if any
+
+  set refs [ get_referenced_sources [ get_files $sub_design ] ]
+  foreach file $refs {
+    if { [file extension $file ] ==".bd" } {
+      if { [lsearch $l_added_bds $file] != -1 } { continue }
+
+      # Write out referred bd as a proc
+      write_bd_as_proc $file
+    } else {
+      # Skip adding file if it's already part of the project
+      #if { [get_files $file ] ne "" } { continue }
+      lappend l_script_data "import_files -quiet -fileset [current_fileset -srcset] $file"
+    }
+  }  
+}
+
+proc wr_bd {} {
+  # Summary: write procs to create BD's
+  # Return Value: None
+  
+  variable a_global_vars
+  variable l_script_data
+  variable l_added_bds 
+  variable temp_offset 1
+  variable l_bd_proc_calls [list]
+  variable l_open_bds [list]
+
+  # String that will hold commands to set BD properties
+  variable bd_prop_steps "\n# Setting BD properties \n"
+
+  # Get already opened BD designs
+  set open_bd_names [get_bd_designs]
+  foreach bd_name $open_bd_names {
+    lappend l_open_bds [get_property FILE_NAME [get_bd_designs $bd_name]]
+  }
+
+  # Get all BD files in the design
+  set bd_files [get_files *.bd]
+  lappend l_script_data "\n# Adding sources referenced in BDs, if any"
+
+  foreach bd_file $bd_files {
+    # Making sure BD is not locked
+    set is_locked [get_property IS_LOCKED [get_files $bd_file ] ]
+    if { $is_locked == 1 } {
+      file delete $a_global_vars(script_file)
+      send_msg_id Vivado-projutils-018 ERROR "Project tcl cannot be written as the design contains one or more \
+      locked/out-of-date design(s). Please run report_ip_status and update the design.\n"
+      return 1
+    }
+
+    # Write out bd as a proc
+    write_bd_as_proc $bd_file
+  }
+
+  # Add calls to create_bd_* procs
+  lappend l_script_data "\n# Calls to create block designs";
+  foreach {call} $l_bd_proc_calls {
+    lappend l_script_data $call
+  }
+
+
+  lappend l_script_data $bd_prop_steps
 }
 
 proc wr_filesets { proj_dir proj_name } {
@@ -1203,6 +1391,8 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
   foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj]] {
     if { [file extension $file] == ".xcix" } { continue }
+    # Skip import of BD files if -use_bd_files is not provided
+    if { [file extension $file] == ".bd" && !$a_global_vars(b_arg_use_bd_files) } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
@@ -2191,8 +2381,13 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
 
   set import_coln [list]
   set add_file_coln [list]
+  set bd_list [list]
  
   foreach file [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]] {
+    if { [file extension $file ] ==".bd" && !$a_global_vars(b_arg_use_bd_files)} {
+      lappend bd_list $file
+      continue
+    }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
@@ -2260,6 +2455,13 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
       if { !$a_global_vars(b_local_sources) } {
         set a_global_vars(b_local_sources) 1
       }
+    }
+  }
+
+  if {[llength $bd_list] > 0 } {
+    foreach bd_file $bd_list {
+      set filename [file tail $bd_file]
+      lappend l_script_data " move_files \[ get_files $filename \] -of_objects \[get_reconfig_modules $reconfigModule\]"
     }
   }
  
