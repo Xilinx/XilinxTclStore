@@ -853,6 +853,10 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
     set prop_type "unknown"
     if { [string equal $type "run"] } {
+      # skip steps.<step_name>.reports dynamic read only property (to be populated by creation of reports)
+      if { [regexp -nocase "STEPS\..*\.REPORTS" $prop] } {
+        continue;
+      }
       if { [regexp "STEPS" $prop] } {
         # skip step properties
       } else {
@@ -1635,6 +1639,8 @@ proc write_specified_run { proj_dir proj_name runs } {
 
     lappend l_script_data "set obj \[$get_what $tcl_obj\]"
     write_props $proj_dir $proj_name $get_what $tcl_obj "run"
+
+    write_report_strategy $tcl_obj
   }
 }
 
@@ -2438,5 +2444,82 @@ proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_fi
     lappend l_script_data "# None"
   }
   lappend l_script_data ""
+}
+
+proc write_report_strategy { run } {
+  # Summary: 
+  # delete all reports associated with run, then recreate each one by one as per its configuration.
+  # Argument Usage:
+  # run FCO:
+  # Return Value: none
+
+  set retVal [get_param project.enableReportConfiguration]
+  if { $retVal == 0 } {
+    return
+  }
+  set reports [get_report_configs -of_objects [get_runs $run]]
+  if { [llength $reports] == 0 } {
+    return
+  }
+
+  variable l_script_data
+
+  lappend l_script_data "set reports \[get_report_configs -of_objects \$obj\]"
+  lappend l_script_data "if { \[llength \$reports \] > 0 } {"
+  lappend l_script_data "  delete_report_config \[get_report_configs -of_objects \$obj\]"
+  lappend l_script_data "}"
+
+  foreach report $reports {
+    set report_name [get_property name $report]
+    set report_spec [get_property report_type $report]
+    set step [get_property run_step $report]
+
+    lappend l_script_data "# Create '$report' report (if not found)"
+    lappend l_script_data "if \{ \[ string equal \[get_report_configs -of_objects \[get_runs $run\] $report\] \"\" \] \} \{"
+    lappend l_script_data "  create_report_configs -name $report_name -report_type $report_spec -steps $step -runs $run"
+    lappend l_script_data "\}"
+
+    lappend l_script_data "set obj \[get_report_configs -of_objects \[get_runs $run\] $report\]"
+    lappend l_script_data "if { \$obj != \"\" } {"
+    write_report_props $report
+    lappend l_script_data "}"
+  }
+}
+
+proc write_report_props { report } {
+  # Summary: 
+  # iterate over all report options and send all non default values to -->set_property <property> <curr_value> [report FCO]
+  # Argument Usage: 
+  # report FCO: 
+  # Return Value: none
+
+  variable l_script_data
+  variable a_global_vars
+
+  set obj_name [get_property name $report]
+  set read_only_props [rdi::get_attr_specs -class [get_property class $report] -filter {is_readonly}]
+  set prop_info_list [list]
+  set properties [list_property $report]
+
+  foreach prop $properties {
+    if { [lsearch $read_only_props $prop] != -1 } { continue }
+
+    set def_val [list_property_value -default $prop $report]
+    set cur_val [get_property $prop $report]
+
+    # filter special properties
+    if { [filter $prop $cur_val] } { continue }
+
+    set cur_val [get_target_bool_val $def_val $cur_val]
+    set prop_entry "[string tolower $prop]#[get_property $prop $report]"
+
+    if { $a_global_vars(b_arg_all_props) } {
+      lappend prop_info_list $prop_entry
+    } elseif { $def_val != $cur_val } {
+      lappend prop_info_list $prop_entry
+    }
+  }
+
+  write_properties $prop_info_list "get_report_configs" $report
 }
 }
