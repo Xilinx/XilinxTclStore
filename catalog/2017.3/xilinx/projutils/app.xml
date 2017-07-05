@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>recreate report strategy with the run</revision_history>
+      <revision_history>open block design in stealth mode and write out procs to create BDs in the design instead of directly importing/adding the bd sources</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

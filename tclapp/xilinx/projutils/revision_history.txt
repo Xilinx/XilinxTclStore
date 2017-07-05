@@ -1,3 +1,4 @@
+3.248 open block design in stealth mode and write out procs to create BDs in the design instead of directly importing/adding the bd sources
 3.247 recreate report strategy with the run
 3.246 fixed bug while fetching unsupported simulators from ip
 3.245 reference xilinx_vip precompiled library
