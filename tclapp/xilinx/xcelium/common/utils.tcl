@@ -155,7 +155,13 @@ proc xcs_compile_glbl_file { simulator b_load_glbl design_files s_simset s_simul
       return 1
     }
     return 0
+  } elseif { [xcs_glbl_dependency_for_xpm] } {
+    if { $b_load_glbl } {
+      return 1
+    }
+    return 0
   }
+
   # target lang is vhdl and glbl is added as top for post-implementation and post-synthesis and load glbl set (default)
   if { ((({VHDL} == $target_lang) || ({VHDL 2008} == $target_lang)) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
     return 1
@@ -202,6 +208,12 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
       {VERILOG} {
         set b_verilog_srcs 1
       }
+    }
+  }
+
+  if { [xcs_glbl_dependency_for_xpm] } {
+    if { !$b_verilog_srcs } {
+      set b_verilog_srcs 1
     }
   }
 
@@ -2891,4 +2903,23 @@ proc xcs_write_script_header { fh step simulator } {
   puts $fh "$cmt usage: $filename"
   puts $fh "$cmt"
   puts $fh "$cmt ****************************************************************************"
+}
+
+proc xcs_glbl_dependency_for_xpm {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_xpm_libraries
+
+  foreach library $l_xpm_libraries {
+    foreach file [rdi::get_xpm_files -library_name $library] {
+      set filebase [file root [file tail $file]]
+      # xpm_cdc core has depedency on glbl
+      if { {xpm_cdc} == $filebase } {
+        return 1
+      }
+    }
+  }
+  return 0
 }
