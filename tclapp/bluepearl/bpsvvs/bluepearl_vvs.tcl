@@ -245,12 +245,10 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
     findIncludeDirs $files 
 
 	if { $includeDirs != "" } {
-        puts $ofs "set veri_include_dirs \[list"
         foreach incdir $includeDirs {
             set curr [relto $projectDir $incdir]
-            puts $ofs "    \[file join \$BPS::project_rel_to_dir $curr\]"
+            puts $ofs "set veri_include_dirs \[lappend veri_include_dirs \[file join \$BPS::project_rel_to_dir $curr\]\]"
         }
-        puts $ofs "\]\n" 
 	}
 	
     puts "INFO: Generating project for IP"
