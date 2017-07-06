@@ -310,7 +310,7 @@ proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
     set vvs [auto_execok BluePearlVVE]
     puts "INFO: Using $vvs"
 
-    if {[catch {eval [list exec BluePearlVVS $bpsProjectFile &]} results]} {
+    if {[catch {eval [list exec BluePearlVVE $bpsProjectFile &]} results]} {
         puts stderr "ERROR: Problems launching BluePearlVVE $results"
         puts stderr "ERROR: $results"
         puts stderr "ERROR: Please check your path."
