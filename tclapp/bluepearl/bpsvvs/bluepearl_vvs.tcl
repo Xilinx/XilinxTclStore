@@ -61,6 +61,8 @@ proc ::tclapp::bluepearl::bpsvvs::isProtected { fileName } {
         return 1
     } elseif { [string match *c_addsub* $fileName] } {
         return 1
+    } elseif { [string match *c_counter_binary* $fileName] } {
+        return 1
     } elseif { [string match *c_reg_fd* $fileName] } {
         return 1
     } elseif { [string match *axi_utils_v2_0* $fileName] } {
@@ -75,7 +77,7 @@ proc ::tclapp::bluepearl::bpsvvs::isProtected { fileName } {
         return 1
     } elseif { [string match *c_gate_bit_* $fileName] } {
         return 1
-    } elseif { [string match *xff2_* $fileName] } {
+    } elseif { [string match *xfft_* $fileName] } {
         return 1
     } else {
         return 0
