@@ -249,6 +249,7 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
             set curr [relto $projectDir $incdir]
             puts $ofs "set veri_include_dirs \[lappend veri_include_dirs \[file join \$BPS::project_rel_to_dir $curr\]\]"
         }
+        puts $ofs ""
 	}
 	
     puts "INFO: Generating project for IP"
