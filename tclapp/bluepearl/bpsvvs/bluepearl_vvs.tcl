@@ -18,13 +18,105 @@ namespace eval ::tclapp::bluepearl::bpsvvs {
     namespace export update_vivado_into_bps
 }
 
+proc ::tclapp::bluepearl::bpsvvs::relto {reltodir file} {
+    set dirList [file split [file normalize $reltodir]]
+    set fileList [file split [file normalize $file]]
+    global tcl_platform
+    set os $tcl_platform(os)
+    if {[string match -nocase *windows* $os]} {
+        if {![string equal -nocase [lindex $fileList 0] [lindex $dirList 0]]} {
+            return $file
+        }
+    } else {
+        if {![string equal [lindex $fileList 0] [lindex $dirList 0]]} {
+            return $file
+        }
+    }
+
+    while {[string equal [lindex $fileList 0] [lindex $dirList 0]] && [llength $dirList]>0 && [llength $fileList]>0} {
+        set fileList [lreplace $fileList 0 0]
+        set dirList [lreplace $dirList 0 0]
+    }
+
+    set prefix ""
+    if {[llength $fileList] == 0} {
+        set prefix [list .]
+    }
+    for {set ii 0} {$ii < [llength $dirList]} {incr ii} {
+        lappend prefix ..
+    }
+    return [eval file join $prefix $fileList]
+}
+
+proc ::tclapp::bluepearl::bpsvvs::isProtected { fileName } {
+    if { [string match *blk_mem_gen* $fileName] } {
+        return 1
+    } elseif { [string match *fifo_generator* $fileName] } {
+        return 1
+    } elseif { [string match *mult_gen* $fileName] } {
+        return 1
+    } elseif { [string match *xbip_addsub* $fileName] } {
+        return 1
+    } elseif { [string match *dist_mem_gen* $fileName] } {
+        return 1
+    } elseif { [string match *c_addsub* $fileName] } {
+        return 1
+    } elseif { [string match *c_reg_fd* $fileName] } {
+        return 1
+    } elseif { [string match *axi_utils_v2_0* $fileName] } {
+        return 1
+    } elseif { [string match *c_mux_bit* $fileName] } {
+        return 1
+    } elseif { [string match *cmpy_* $fileName] } {
+        return 1
+    } elseif { [string match *floating_point_* $fileName] } {
+        return 1
+    } elseif { [string match *xbip_counter_* $fileName] } {
+        return 1
+    } elseif { [string match *c_gate_bit_* $fileName] } {
+        return 1
+    } elseif { [string match *xff2_* $fileName] } {
+        return 1
+    } else {
+        return 0
+    }
+}
+
+proc ::tclapp::bluepearl::bpsvvs::findIncludeDirs { files } {
+    upvar includeDirs lclIncludeDirs
+
+    foreach file $files {
+        set fileObject [lindex [get_files -all [list $file]] 0]
+        set fileName [get_property NAME $fileObject]
+        set fileType [get_property FILE_TYPE $fileObject]
+        set isHeader [get_property IS_GLOBAL_INCLUDE $fileObject]
+
+        if {$isHeader || [string match $fileType "Verilog Header"]} {
+            set dir [file dirname $fileName]
+            set pos [lsearch $lclIncludeDirs $dir]
+            if {$pos != -1} {
+                continue
+            }
+            lappend lclIncludeDirs $dir
+        }
+    }
+}
+
 proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files project } {
     puts $project "# $fileGroupName"
+    set projectDir [get_property DIRECTORY [current_project]]
     set filesMissing 0
+    set fileCount 0
     foreach file $files {
-        set fileName [get_property NAME [lindex [get_files -all $file] 0]]
-        set fileType [get_property FILE_TYPE [lindex [get_files -all $file] 0]]
-        if {[string match $fileType "Verilog"] || [string match $fileType "Verilog Header"] || [string match $fileType "SystemVerilog"] || [string match $fileType "VHDL"]} {
+        set fileObject [lindex [get_files -all [list $file]] 0]
+        set fileName [get_property NAME $fileObject]
+        set fileType [get_property FILE_TYPE $fileObject]
+        set isHeader [get_property IS_GLOBAL_INCLUDE $fileObject]
+        if {[string match $fileType "Verilog"] || [string match $fileType "SystemVerilog"] || [string match $fileType "VHDL"]} {
+            if {$isHeader} {
+                continue
+            }
+
             upvar allFiles lclAllFiles
             set pos [lsearch $lclAllFiles $fileName]
             if {$pos != -1} {
@@ -32,7 +124,7 @@ proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files projec
             }
             lappend lclAllFiles $fileName
             
-            set lib [get_property LIBRARY [lindex [get_files -all $file] 0]]
+            set lib [get_property LIBRARY $fileObject]
             if {[string match $lib "xil_defaultlib"]} {
                 set lib "work"
             }
@@ -47,9 +139,18 @@ proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files projec
                 puts $project "#The following file does not exist, but is required for proper synthesis.";
                 puts -nonewline $project "#"
                 set filesMissing 1
+            } elseif { [isProtected $fileName] } {
+                puts "INFO: File '$fileName' is protected.";
+                puts -nonewline $project "#"
+                set filesMissing 1
             }
-            puts $project "BPS::add_input_files $libOption{$fileName}"
+            set relToFile [relto $projectDir $fileName]
+            puts $project "BPS::add_input_files $libOption\[list \[file join \$BPS::project_rel_to_dir $relToFile\]\]"
+            incr fileCount 
         }
+    }
+    if {$fileCount == 0} {
+        puts $project "# No files are required"
     }
     puts $project "\n"
     return $filesMissing
@@ -80,13 +181,12 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
         return 0
     }
 
-    puts "INFO: Generating Blue Pearl tcl project file"
     # Summary : This proc generates the Blue Pearl tcl project file
     # Argument Usage:
     # Return Value: Returns '1' on successful completion
     # Categories: xilinxtclstore, blue pearl, visual verification suite
 
-    puts "Calling ::tclapp::bluepearl::bpsvvs::generate_bps_project"
+    puts "INFO: Calling ::tclapp::bluepearl::bpsvvs::generate_bps_project"
 
     ## Vivado install dir
     set vivado_dir $::env(XILINX_VIVADO)
@@ -99,20 +199,20 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
 
     set bpsProjectFile [getProjectFile]
     if {[file exists $bpsProjectFile]} {
-        puts "INFO: Backing up $bpsProjectFile"
+        puts "INFO: Backing up {$bpsProjectFile}"
         file copy -force $bpsProjectFile [file join ${bpsProjectFile}.bak]
     }
 
-    puts "INFO: Generating Blue Pearl tcl project file $bpsProjectFile"
+    puts "INFO: Generating Blue Pearl tcl project file {$bpsProjectFile}"
 
     ## Open output file to write
     if { [catch {open $bpsProjectFile w} result] } {
-        puts stderr "ERROR: Could not open $bpsProjectFile for writing"
+        puts stderr "ERROR: Could not open {$bpsProjectFile} for writing"
         puts stderr "$result"
         return 1
     } else {
         set ofs $result
-        puts "INFO: Writing Blue Pearl tcl project file to file $bpsProjectFile"
+        puts "INFO: Writing Blue Pearl tcl project file to file {$bpsProjectFile}"
     }
 
     puts $ofs "#Blue Pearl Visual Verification Suite Project File Generated by Vivado Generator version 1.0"
@@ -129,14 +229,31 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
     puts $ofs "set root_module $topModule" 
     puts $ofs "\n"
 
+    set projectDir [get_property DIRECTORY [current_project]]
+    puts $ofs "set BPS::project_rel_to_dir \[list $projectDir\]"
+    puts $ofs "\n"
+
 	set fileSet [current_fileset -srcset]
     set includeDirs [get_property include_dirs $fileSet]
+    set ips [get_ips -quiet *]
+
+    foreach ip $ips {
+        set files [get_files -quiet -compile_order sources -used_in synthesis -of_objects $ip]
+        findIncludeDirs $files
+    }
+    set files [get_files -norecurse -compile_order sources -used_in synthesis]
+    findIncludeDirs $files 
+
 	if { $includeDirs != "" } {
-	   puts $ofs "set veri_include_dirs {$includeDirs}"
-	   puts $ofs "\n"
+        puts $ofs "set veri_include_dirs \[list"
+        foreach incdir $includeDirs {
+            set curr [relto $projectDir $incdir]
+            puts $ofs "    \[file join \$BPS::project_rel_to_dir $curr\]"
+        }
+        puts $ofs "\]\n" 
 	}
 	
-    set ips [get_ips -quiet *]
+    puts "INFO: Generating project for IP"
     puts "INFO: Found [llength $ips] IPs in the design"
 
     set missingFiles 0
@@ -153,8 +270,11 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
         }
     }
 
+    puts "INFO: Finished generating project for IP"
+    puts "INFO: Generating project for User Files"
     set files [get_files -norecurse -compile_order sources -used_in synthesis]
     addFilesToProject "User Files" $files $ofs 
+    puts "INFO: Finished generating project for User Files"
 
     if { $missingFiles } {
         puts $ofs "set auto_create_black_boxes true"
@@ -179,7 +299,7 @@ proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
         return 0
     }
 
-    puts "INFO: Generating Blue Pearl tcl project file $bpsProjectFile"
+    puts "INFO: Generating Blue Pearl tcl project file {$bpsProjectFile}"
     set aOK [generate_bps_project]
     if { $aOK != 0 } {
         puts stderr "ERROR: Problem generating project file $bpsProjectFile"
@@ -223,7 +343,7 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
         return 0
     }
 
-    puts "INFO: Generating Blue Pearl tcl project file $bpsProjectFile"
+    puts "INFO: Generating Blue Pearl tcl project file {$bpsProjectFile}"
     set aOK [generate_bps_project]
     if { $aOK != 0 } {
         puts stderr "ERROR: Problem generating project file $bpsProjectFile"
@@ -286,7 +406,7 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
         return 1
     } else {
         set ofs $result
-        puts "INFO: Writing Blue Pearl tcl executable file to file $execFile"
+        puts "INFO: Writing Blue Pearl tcl executable file to file {$execFile}"
     }
 
     puts $ofs "BPS::update_vivado_results -timing {$timingRep}"
