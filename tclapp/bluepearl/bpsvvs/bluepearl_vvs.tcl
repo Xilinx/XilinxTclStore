@@ -2,7 +2,7 @@
 #
 # bluepearl_vvs.tcl (Routine for Bluepearl Visual Verification Suite App.)
 #
-# Script created on 6/2017 by Satrajit Pal (Blue Pearl Software, Inc) 
+# Script created on 6/2017 by Scott Aron Bloom (Blue Pearl Software, Inc) 
 #                                 Scott Aron Bloom
 #
 # 2017.1 - v1.1 (rev 1.1)
@@ -18,7 +18,9 @@ namespace eval ::tclapp::bluepearl::bpsvvs {
     namespace export update_vivado_into_bps
 }
 
-proc ::tclapp::bluepearl::bpsvvs::relto {reltodir file} {
+proc ::tclapp::bluepearl::bpsvvs::relto {lint_files [glob <WORKING_DIR>/tclapp/mycompany/myapp/*.tcl]reltodir file} {
+pd
+
     set dirList [file split [file normalize $reltodir]]
     set fileList [file split [file normalize $file]]
     global tcl_platform
@@ -179,14 +181,14 @@ proc ::tclapp::bluepearl::bpsvvs::getProjectFile {} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
-    if { ![check_bps_env] } {
-        return 0
-    }
-
     # Summary : This proc generates the Blue Pearl tcl project file
     # Argument Usage:
     # Return Value: Returns '1' on successful completion
     # Categories: xilinxtclstore, blue pearl, visual verification suite
+
+    if { ![check_bps_env] } {
+        return 0
+    }
 
     puts "INFO: Calling ::tclapp::bluepearl::bpsvvs::generate_bps_project"
 
@@ -288,7 +290,6 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
     return 0
 }
 
-
 proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
     if { ![check_bps_env] } {
         return 0
@@ -320,6 +321,7 @@ proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
 
     return 1
 }
+
 proc ::tclapp::bluepearl::bpsvvs::check_bps_env {} {
     set cli [auto_execok BluePearlCLI]
     if { $cli == {} } {

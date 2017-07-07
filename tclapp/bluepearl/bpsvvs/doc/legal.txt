@@ -1,2 +1,18 @@
 Copyright (c) 2017, Blue Pearl Software
 All rights reserved.
+
+  This source code belongs to Blue Pearl Software Inc.
+  It is considered trade secret and confidential, and is not to be used
+  by parties who have not received written authorization
+  from Blue Pearl Software Inc.
+ 
+  Only authorized users are allowed to use, copy and modify
+  this software provided that the above copyright notice
+  remains in all copies of this software.
+
+=================================================================================================
+This file must be included in <app>/doc/legal.txt for all accepted contributions to the Xilinx Tcl Store.
+All contributors must date and digitally sign once below in order to submit to the Xilinx Tcl Store
+<YYYYMMDD Date>::<github id>::<Full Name>
+=================================================================================================
+20170707::scott-aron-bloom::Scott Aron Bloom 
