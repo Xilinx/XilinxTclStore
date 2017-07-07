@@ -18,9 +18,7 @@ namespace eval ::tclapp::bluepearl::bpsvvs {
     namespace export update_vivado_into_bps
 }
 
-proc ::tclapp::bluepearl::bpsvvs::relto {lint_files [glob <WORKING_DIR>/tclapp/mycompany/myapp/*.tcl]reltodir file} {
-pd
-
+proc ::tclapp::bluepearl::bpsvvs::relto {reltodir file} {
     set dirList [file split [file normalize $reltodir]]
     set fileList [file split [file normalize $file]]
     global tcl_platform
