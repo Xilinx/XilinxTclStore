@@ -19,6 +19,16 @@ namespace eval ::tclapp::bluepearl::bpsvvs {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::relto {reltodir file} {
+    # Summary: returns the relative path of $file to $reltodir
+
+    # Argument Usage:
+    # reltodir: The relative directory
+    # file: The file or directory to return a relative path of
+
+    # Return Value: the relative path of $file to $reltodir
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+
     set dirList [file split [file normalize $reltodir]]
     set fileList [file split [file normalize $file]]
     global tcl_platform
@@ -49,6 +59,15 @@ proc ::tclapp::bluepearl::bpsvvs::relto {reltodir file} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::isProtected { fileName } {
+    # Summary: returns if the file is considered protected
+
+    # Argument Usage:
+    # fileName: The filename to check
+
+    # Return Value: true or false
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+
     if { [string match *blk_mem_gen* $fileName] } {
         return 1
     } elseif { [string match *fifo_generator* $fileName] } {
@@ -85,6 +104,16 @@ proc ::tclapp::bluepearl::bpsvvs::isProtected { fileName } {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::findIncludeDirs { files } {
+    # Summary: finds the include directories for a given list of files from an IP file list
+    #          modifies the variable includeDirs of the calling function
+
+    # Argument Usage:
+    # files: The list of files from an IP file list
+
+    # Return Value: none 
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+
     upvar includeDirs lclIncludeDirs
 
     foreach file $files {
@@ -104,8 +133,19 @@ proc ::tclapp::bluepearl::bpsvvs::findIncludeDirs { files } {
     }
 }
 
-proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files project } {
-    puts $project "# $fileGroupName"
+proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files projectFS } {
+    # Summary: Adds files to the project from for a given list of files from an IP file list
+
+    # Argument Usage:
+    # fileGroupName: The name of the file list, typically the name of the IP
+    # files: the file list from the IP block
+    # projectFS: the project file stream
+
+    # Return Value: true if a file was missing or protected 
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+
+    puts $projectFS "# $fileGroupName"
     set projectDir [get_property DIRECTORY [current_project]]
     set filesMissing 0
     set fileCount 0
@@ -138,27 +178,35 @@ proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files projec
 
             if {![file exists $fileName]} {
                 puts "WARNING: File '$fileName' does not exist, but is required for proper synthesis.";
-                puts $project "#The following file does not exist, but is required for proper synthesis.";
-                puts -nonewline $project "#"
+                puts $projectFS "#The following file does not exist, but is required for proper synthesis.";
+                puts -nonewline $projectFS "#"
                 set filesMissing 1
             } elseif { [isProtected $fileName] } {
                 puts "INFO: File '$fileName' is protected.";
-                puts -nonewline $project "#"
+                puts -nonewline $projectFS "#"
                 set filesMissing 1
             }
             set relToFile [relto $projectDir $fileName]
-            puts $project "BPS::add_input_files $libOption\[list \[file join \$BPS::project_rel_to_dir $relToFile\]\]"
+            puts $projectFS "BPS::add_input_files $libOption\[list \[file join \$BPS::project_rel_to_dir $relToFile\]\]"
             incr fileCount 
         }
     }
     if {$fileCount == 0} {
-        puts $project "# No files are required"
+        puts $projectFS "# No files are required"
     }
-    puts $project "\n"
+    puts $projectFS "\n"
     return $filesMissing
 }
 
 proc ::tclapp::bluepearl::bpsvvs::getTopModule {} {
+    # Summary: determines the top module for the project
+
+    # Argument Usage:
+
+    # Return Value: returns the name of the top module
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+
     if { [catch {find_top}] } {
         puts stderr "ERROR: Current project is not set"
         return ""
@@ -168,6 +216,14 @@ proc ::tclapp::bluepearl::bpsvvs::getTopModule {} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::getProjectFile {} {
+    # Summary: determines the name of the project file
+
+    # Argument Usage:
+
+    # Return Value: returns the name of the project file
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+
     if { [catch {find_top}] } {
         puts stderr "ERROR: Current project is not set"
         return ""
@@ -178,11 +234,37 @@ proc ::tclapp::bluepearl::bpsvvs::getProjectFile {} {
     return $bpsProjectFile
 }
 
-proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
-    # Summary : This proc generates the Blue Pearl tcl project file
+proc ::tclapp::bluepearl::bpsvvs::check_bps_env {} {
+    # Summary : checks the Blue Pearl environment for proper setup in the path
+
     # Argument Usage:
-    # Return Value: Returns '1' on successful completion
-    # Categories: xilinxtclstore, blue pearl, visual verification suite
+
+    # Return Value: Returns '1' on successful completion '0' on failure
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+
+    set cli [auto_execok BluePearlCLI]
+    if { $cli == {} } {
+        puts stderr "ERROR: BluePearlCLI could not be found. Please check path."
+        return 0;
+    }
+    set vve [auto_execok BluePearlVVE]
+    if { $vve == {} } {
+        puts stderr "ERROR: BluePearlVVE could not be found. Please check path."
+        return 0;
+    }
+    return 1
+}
+
+
+proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
+    # Summary : Generates the Blue Pearl tcl project file
+
+    # Argument Usage:
+
+    # Return Value: Returns '1' on successful completion '0' on failure
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
 
     if { ![check_bps_env] } {
         return 0
@@ -289,6 +371,14 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
+    # Summary : Launch Blue Pearl Visual Verification Suite
+
+    # Argument Usage:
+
+    # Return Value: Returns '1' on successful completion '0' on failure
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+
     if { ![check_bps_env] } {
         return 0
     }
@@ -320,21 +410,15 @@ proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
     return 1
 }
 
-proc ::tclapp::bluepearl::bpsvvs::check_bps_env {} {
-    set cli [auto_execok BluePearlCLI]
-    if { $cli == {} } {
-        puts stderr "ERROR: BluePearlCLI could not be found. Please check path."
-        return 0;
-    }
-    set vve [auto_execok BluePearlVVE]
-    if { $vve == {} } {
-        puts stderr "ERROR: BluePearlVVE could not be found. Please check path."
-        return 0;
-    }
-    return 1
-}
-
 proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
+    # Summary : updates the current results into the Blue Pearl Visual Verification Suite
+
+    # Argument Usage:
+
+    # Return Value: Returns '1' on successful completion '0' on failure
+
+    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+
     if { ![check_bps_env] } {
         return 0
     }
