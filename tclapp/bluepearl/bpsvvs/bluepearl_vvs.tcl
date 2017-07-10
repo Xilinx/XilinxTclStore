@@ -5,8 +5,8 @@
 # Script created on 6/2017 by Scott Aron Bloom (Blue Pearl Software, Inc) 
 #                                 Scott Aron Bloom
 #
-# 2017.1 - v1.1 (rev 1.1)
-#  * Updated Initial Version
+# 2017.1 - v1.0 (rev 1.0)
+#  * Initial Version
 #
 ###############################################################################
 package require Vivado 1.2014.1

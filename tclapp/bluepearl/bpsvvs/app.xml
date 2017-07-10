@@ -2,7 +2,7 @@
 <catalog>
     <apps>
         <app>
-            <revision_history>Initial Revision</revision_history>
+            <revision_history>1.0 Initial Revision</revision_history>
             <name>bpsvvs</name>
             <pkg_require>Vivado 2014.1</pkg_require>
             <company>bluepearl</company>
