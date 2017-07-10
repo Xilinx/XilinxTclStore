@@ -19,7 +19,7 @@ namespace eval ::tclapp::bluepearl::bpsvvs {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::relto {reltodir file} {
-    # Summary: returns the relative path of $file to $reltodir
+    # Summary: Returns the relative path of $file to $reltodir
 
     # Argument Usage:
     # reltodir: The relative directory
@@ -27,7 +27,7 @@ proc ::tclapp::bluepearl::bpsvvs::relto {reltodir file} {
 
     # Return Value: the relative path of $file to $reltodir
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     set dirList [file split [file normalize $reltodir]]
     set fileList [file split [file normalize $file]]
@@ -59,14 +59,14 @@ proc ::tclapp::bluepearl::bpsvvs::relto {reltodir file} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::isProtected { fileName } {
-    # Summary: returns if the file is considered protected
+    # Summary: Returns true if the file is considered protected
 
     # Argument Usage:
     # fileName: The filename to check
 
     # Return Value: true or false
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     if { [string match *blk_mem_gen* $fileName] } {
         return 1
@@ -104,7 +104,7 @@ proc ::tclapp::bluepearl::bpsvvs::isProtected { fileName } {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::findIncludeDirs { files } {
-    # Summary: finds the include directories for a given list of files from an IP file list
+    # Summary: Finds the include directories for a given list of files from an IP file list
     #          modifies the variable includeDirs of the calling function
 
     # Argument Usage:
@@ -112,7 +112,7 @@ proc ::tclapp::bluepearl::bpsvvs::findIncludeDirs { files } {
 
     # Return Value: none 
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     upvar includeDirs lclIncludeDirs
 
@@ -143,7 +143,7 @@ proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files projec
 
     # Return Value: true if a file was missing or protected 
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     puts $projectFS "# $fileGroupName"
     set projectDir [get_property DIRECTORY [current_project]]
@@ -199,13 +199,13 @@ proc ::tclapp::bluepearl::bpsvvs::addFilesToProject { fileGroupName files projec
 }
 
 proc ::tclapp::bluepearl::bpsvvs::getTopModule {} {
-    # Summary: determines the top module for the project
+    # Summary: Determines the top module for the project
 
     # Argument Usage:
 
     # Return Value: returns the name of the top module
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     if { [catch {find_top}] } {
         puts stderr "ERROR: Current project is not set"
@@ -216,13 +216,13 @@ proc ::tclapp::bluepearl::bpsvvs::getTopModule {} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::getProjectFile {} {
-    # Summary: determines the name of the project file
+    # Summary: Determines the name of the project file
 
     # Argument Usage:
 
     # Return Value: returns the name of the project file
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     if { [catch {find_top}] } {
         puts stderr "ERROR: Current project is not set"
@@ -235,13 +235,13 @@ proc ::tclapp::bluepearl::bpsvvs::getProjectFile {} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::check_bps_env {} {
-    # Summary : checks the Blue Pearl environment for proper setup in the path
+    # Summary : Checks the Blue Pearl environment for proper setup in the path
 
     # Argument Usage:
 
     # Return Value: Returns '1' on successful completion '0' on failure
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     set cli [auto_execok BluePearlCLI]
     if { $cli == {} } {
@@ -258,23 +258,19 @@ proc ::tclapp::bluepearl::bpsvvs::check_bps_env {} {
 
 
 proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
-    # Summary : Generates the Blue Pearl tcl project file
+    # Summary : Generates the Blue Pearl Tcl project file
 
     # Argument Usage:
 
     # Return Value: Returns '1' on successful completion '0' on failure
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     if { ![check_bps_env] } {
         return 0
     }
 
     puts "INFO: Calling ::tclapp::bluepearl::bpsvvs::generate_bps_project"
-
-    ## Vivado install dir
-    set vivado_dir $::env(XILINX_VIVADO)
-    puts "INFO: Using Vivado installation directory $vivado_dir"
 
     if { [catch {find_top}] } {
         puts stderr "ERROR: Current project is not set"
@@ -371,13 +367,13 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
-    # Summary : Launch Blue Pearl Visual Verification Suite
+    # Summary : Launches Blue Pearl Visual Verification Suite
 
     # Argument Usage:
 
     # Return Value: Returns '1' on successful completion '0' on failure
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     if { ![check_bps_env] } {
         return 0
@@ -411,13 +407,13 @@ proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
 }
 
 proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
-    # Summary : updates the current results into the Blue Pearl Visual Verification Suite
+    # Summary : Updates the current results into the Blue Pearl Visual Verification Suite
 
     # Argument Usage:
 
     # Return Value: Returns '1' on successful completion '0' on failure
 
-    # Categories: xilinxtclstore, bpsvvs, blue pearl, visual verification suite
+    # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
     if { ![check_bps_env] } {
         return 0
