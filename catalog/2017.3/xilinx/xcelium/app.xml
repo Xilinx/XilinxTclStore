@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>compile glbl if XPM_CDC core is being referenced in the design</revision_history>
+      <revision_history>support for systemC source compilation</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

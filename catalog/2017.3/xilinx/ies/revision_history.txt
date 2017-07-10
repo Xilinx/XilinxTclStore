@@ -1,3 +1,4 @@
+3.53 support for systemC source compilation
 3.52 compile glbl if XPM_CDC core is being referenced in the design
 3.51 additionally reference precompiled AXI-VIP library if param is set
 3.50 reference precompiled AXI-VIP library if param is set

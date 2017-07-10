@@ -1,3 +1,4 @@
+2.164 support for systemC source compilation
 2.163 compile glbl if XPM_CDC core is being referenced in the design
 2.162 reference xilinx_vip precompiled library
 2.161 additionally reference precompiled AXI-VIP library if param is set
