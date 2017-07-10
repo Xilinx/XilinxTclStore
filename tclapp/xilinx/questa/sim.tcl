@@ -144,7 +144,7 @@ proc usf_questa_setup_simulation { args } {
   # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # find/copy modelsim.ini file into run dir
-  set clibs_dir [usf_questa_verify_compiled_lib]
+  set a_sim_vars(s_clibs_dir) [usf_questa_verify_compiled_lib]
 
   variable l_compiled_libraries
   variable l_xpm_libraries
@@ -156,8 +156,8 @@ proc usf_questa_setup_simulation { args } {
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
-    if { {} != $clibs_dir } {
-      set libraries [xcs_get_compiled_libraries $clibs_dir]
+    if { {} != $a_sim_vars(s_clibs_dir) } {
+      set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir)]
       # filter local ip definitions
       foreach lib $libraries {
         if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
@@ -722,11 +722,14 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
   set b_batch $::tclapp::xilinx::questa::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
   set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
+  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
   set DS "\\\\"
   if {$::tcl_platform(platform) == "unix"} {
     set DS "/"
@@ -749,6 +752,24 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
     usf_add_quit_on_error $fh "elaborate"
   }
 
+  # write sccom cmd line
+  if { $a_sim_vars(b_contain_systemc_sources) } {
+    # systemc
+    set args [list]
+    lappend args "sccom -link"
+    set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
+    if { {} != $more_opts } {
+      lappend args "$more_opts"
+    }
+    foreach lib [xcs_get_sc_libs] {
+      lappend args "-lib $lib"
+    }
+    lappend args "-lib $a_sim_vars(default_top_library)"
+    lappend args "-work $a_sim_vars(default_top_library)"
+    set cmd_str [join $args " "]
+    puts $fh "$cmd_str"
+  }
+ 
   set cmd_str [usf_questa_get_elaboration_cmdline]
   puts $fh "${tool_path_str}$cmd_str"
 

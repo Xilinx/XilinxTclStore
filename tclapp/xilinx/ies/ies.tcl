@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::ies {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::ies 3.52
+package provide ::tclapp::xilinx::ies 3.53

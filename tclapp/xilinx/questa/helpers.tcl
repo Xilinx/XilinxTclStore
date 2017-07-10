@@ -40,6 +40,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_absolute_path)    0
   set a_sim_vars(s_install_path)     {}
   set a_sim_vars(s_lib_map_path)     {}
+  set a_sim_vars(s_clibs_dir)        {}
   set a_sim_vars(b_install_path_specified)    0
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
@@ -48,6 +49,8 @@ proc usf_init_vars {} {
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+
+  set a_sim_vars(b_contain_systemc_sources) 0
 
   # initialize ip repository dir
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
@@ -135,9 +138,6 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_all_bd_files
   array unset a_sim_cache_all_bd_files
-
-  variable a_sim_cache_parent_comp_files
-  array unset a_sim_cache_parent_comp_files
 
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
@@ -503,6 +503,50 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
   }
+
+  if { [get_param "project.usePreCompiledSystemCLibForSim"] } {
+    # design contain systemc sources?
+    set simulator "questa"
+    set prefix_ref_dir false
+    set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+    set sc_files [get_files -quiet -all -filter $sc_filter]
+    if { [llength $sc_files] > 0 } {
+      set g_files {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      # fetch systemc include files (.h)
+      set l_incl_dir [list]
+      foreach dir [xcs_get_systemc_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        lappend l_incl_dir "-I \"$dir\""
+      }
+
+      # get the xtlm include dir from compiled library
+      set dir "$a_sim_vars(s_clibs_dir)/xtlm/include"
+
+      # get relative file path for the compiled library
+      set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      lappend l_incl_dir "-I \"$relative_dir\""
+
+      foreach file $sc_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+        if { {.cpp} == $file_extn } {
+          # set flag
+          if { !$a_sim_vars(b_contain_systemc_sources) } {
+            set a_sim_vars(b_contain_systemc_sources) true
+          }
+          set file_type "SystemC"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
+          }
+        }
+      }
+    }
+  }
+
   return $files
 }
 
@@ -1067,6 +1111,15 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         }
       }
     }
+    "sccom" {
+      set arg_list [list $s_64bit]
+      set more_opts [get_property questa.compile.sccom.more_options $fs_obj]
+      if { {} != $more_opts } {
+        lappend arg_list "$more_opts"
+      }
+      set cmd_str [join $arg_list " "]
+      lappend opts $cmd_str
+    }
   }
 }
 
@@ -1177,6 +1230,8 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
 
   # append include dirs for verilog sources
   if { {vlog} == $compiler } {
+    set arg_list [concat $arg_list $l_incl_dirs_opts]
+  } elseif { {sccom} == $compiler } {
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   }
 

@@ -136,7 +136,6 @@ variable l_script_data [list]
 variable l_local_files [list]
 variable l_remote_files [list]
 variable b_project_board_set 0
-variable l_added_bds [list]
 
 # set file types to filter
 variable l_filetype_filter [list]
@@ -484,7 +483,7 @@ proc write_bd_as_proc { bd_file } {
   if { [lsearch $l_open_bds $bd_filename] != -1 } {
     set to_close 0
   } else {
-    open_bd_design -stealth [ get_files $bd_filename ]
+    open_bd_design -stealth [ get_files $bd_file ]
   }
   current_bd_design [get_bd_designs [file rootname $bd_filename]]
   
@@ -539,14 +538,11 @@ proc wr_bd_properties { file } {
   set read_only_props [rdi::get_attr_specs -object [get_files $file] -filter {is_readonly}]
 
   foreach prop $bd_props {
-    # Fix for CR-939211 
-    if { [lsearch $read_only_props $prop] != -1 
-         || [string equal -nocase $prop "generate_synth_checkpoint"] 
-         || [string equal -nocase $prop "synth_checkpoint_mode"] 
-         || [string equal -nocase $prop "file_type" ]
-    } then  { continue }
-    set def_val [list_property_value -default $prop [ get_files $file ] ]
-    set cur_val [get_property $prop [get_files $file ] ]
+     if { [lsearch $read_only_props $prop] != -1 
+           || [string equal -nocase $prop "file_type" ]
+     } then { continue }
+     set def_val [list_property_value -default $prop [ get_files $file ] ]
+     set cur_val [get_property $prop [get_files $file ] ]
     if { $def_val ne $cur_val } {
       append bd_prop_steps "set_property $prop $cur_val \[get_files $bd_name \] \n"
     }
@@ -573,7 +569,8 @@ proc add_references { sub_design } {
     } else {
       # Skip adding file if it's already part of the project
       #if { [get_files $file ] ne "" } { continue }
-      lappend l_script_data "import_files -quiet -fileset [current_fileset -srcset] $file"
+      lappend l_script_data "if { \[get_files [file tail $file]\] == \"\" } {"
+      lappend l_script_data "  import_files -quiet -fileset [current_fileset -srcset] $file\n}"
     }
   }  
 }
@@ -589,6 +586,8 @@ proc wr_bd {} {
   variable l_bd_proc_calls [list]
   variable l_open_bds [list]
 
+  set l_added_bds [list]
+
   # String that will hold commands to set BD properties
   variable bd_prop_steps "\n# Setting BD properties \n"
 
@@ -599,8 +598,8 @@ proc wr_bd {} {
   }
 
   # Get all BD files in the design
-  set bd_files [get_files *.bd]
-  lappend l_script_data "\n# Adding sources referenced in BDs, if any"
+  set bd_files [get_files -norecurse *.bd]
+  lappend l_script_data "\n# Adding sources referenced in BDs, if not already added"
 
   foreach bd_file $bd_files {
     # Making sure BD is not locked

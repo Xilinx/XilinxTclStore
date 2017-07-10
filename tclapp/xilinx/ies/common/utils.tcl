@@ -2287,6 +2287,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
         "SystemVerilog"                {set compiler "vlog"}
+        "SystemC"                      {set compiler "sccom"}
       }
     }
     "riviera" -
@@ -2922,4 +2923,77 @@ proc xcs_glbl_dependency_for_xpm {} {
     }
   }
   return 0
+}
+
+proc xcs_get_systemc_incl_dirs { simulator launch_dir s_ip_user_files_dir b_xport_src_files b_absolute_path { ref_dir "true" } } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set incl_dirs [list]
+  set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+  set uniq_incl_dirs [list]
+
+  foreach file [get_files -all -filter $sc_filter] {
+    set file_extn [file extension $file]
+
+    # consider header (.h) files only
+    if { {.h} != $file_extn } {
+      continue
+    }
+
+    # fetch header file
+    set sc_header_file [xcs_fetch_header_from_dynamic $file false $s_ip_user_files_dir]
+    set dir [file normalize [file dirname $sc_header_file]]
+
+    # is export_source_files? copy to local incl dir
+    if { $b_xport_src_files } {
+      set export_dir "$launch_dir/srcs/incl"
+      if {[catch {file copy -force $sc_header_file $export_dir} error_msg] } {
+        send_msg_id SIM-utils-057 INFO "Failed to copy file '$vh_file' to '$export_dir' : $error_msg\n"
+      }
+    }
+
+    # make absolute
+    if { $b_absolute_path } {
+      set dir "[xcs_resolve_file_path $dir $launch_dir]"
+    } else {
+      if { $ref_dir } {
+        if { $b_xport_src_files } {
+          set dir "\$ref_dir/incl"
+          if { ({modelsim} == $simulator) || ({questa} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
+            set dir "srcs/incl"
+          }
+        } else {
+          if { ({modelsim} == $simulator) || ({questa} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
+            set dir "[xcs_get_relative_file_path $dir $launch_dir]"
+          } else {
+            set dir "\$ref_dir/[xcs_get_relative_file_path $dir $launch_dir]"
+          }
+        }
+      } else {
+        if { $b_xport_src_files } {
+          set dir "srcs/incl"
+        } else {
+          set dir "[xcs_get_relative_file_path $dir $launch_dir]"
+        }
+      }
+    }
+    if { [lsearch -exact $uniq_incl_dirs $dir] == -1 } {
+      lappend uniq_incl_dirs $dir
+      lappend incl_dirs "$dir"
+    }
+  }
+  return $incl_dirs
+}
+
+proc xcs_get_sc_libs {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set sc_libs [list]
+  lappend sc_libs "xtlm"
+
+  return $sc_libs
 }

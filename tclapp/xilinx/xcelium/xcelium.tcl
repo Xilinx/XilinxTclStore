@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::xcelium {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::xcelium 1.9
+package provide ::tclapp::xilinx::xcelium 2.0
