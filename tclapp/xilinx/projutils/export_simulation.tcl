@@ -1070,7 +1070,7 @@ proc xps_get_files { simulator launch_dir } {
     }
   }
 
-  if { [get_param "project.usePreCompiledSystemCLibForSim"] } {
+  if { [get_param "project.enableSystemCSupport"] } {
     # design contain systemc sources? 
     set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
     set sc_files [get_files -quiet -all -filter $sc_filter]

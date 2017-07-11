@@ -504,7 +504,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
   }
 
-  if { [get_param "project.usePreCompiledSystemCLibForSim"] } {
+  if { [get_param "project.enableSystemCSupport"] } {
     # design contain systemc sources?
     set simulator "questa"
     set prefix_ref_dir false
