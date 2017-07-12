@@ -756,7 +756,13 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   if { $a_sim_vars(b_contain_systemc_sources) } {
     # systemc
     set args [list]
-    lappend args "sccom -link"
+    lappend args "sccom"
+    if { [get_property 32bit $fs_obj] } {
+      lappend args {-32}
+    } else {
+      lappend args {-64}
+    }
+    lappend args "-link"
     set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
     if { {} != $more_opts } {
       lappend args "$more_opts"
