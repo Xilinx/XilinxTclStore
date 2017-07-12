@@ -33,4 +33,12 @@ if { ![file exists "./$name/$name.runs/impl_1/bps_utilization_report.txt"] } {
 }
 close_project
 
+# Cleaning
+file delete -force ./${name}
+
+# Uninstall the app if it was not already installed when starting the script
+if {[lsearch -exact $listInstalledApps $appName] == -1} {
+  ::tclapp::unload_app $appName
+}
+
 puts "TEST_PASSED"
