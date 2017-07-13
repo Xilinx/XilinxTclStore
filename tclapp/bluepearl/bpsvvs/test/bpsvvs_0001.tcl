@@ -36,15 +36,7 @@ if { ![file exists "./$name/bp_install_check.bluepearl_generated.tcl"] } {
 if { ![file exists "./$name/bp_install_check.execfile.tcl/"] } {
     error "TEST_FAILED"
 }
-if { ![file exists "./$name/$name.runs/impl_1/bps_timing_report.txt"] } {
-    error "TEST_FAILED"
-}
-if { ![file exists "./$name/$name.runs/impl_1/bps_power_report.txt"] } {
-    error "TEST_FAILED"
-}
-if { ![file exists "./$name/$name.runs/impl_1/bps_utilization_report.txt"] } {
-    error "TEST_FAILED"
-}
+
 close_project
 
 # Cleaning

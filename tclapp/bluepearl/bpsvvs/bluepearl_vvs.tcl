@@ -456,17 +456,33 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
     open_run $implRun
     set loc [get_property DIRECTORY $implRun]
 
-    puts "INFO: Running reports for data extraction"
-    puts "INFO: Running timing report"
-    set timingRep [file join $loc bps_timing_report.txt]
-    report_timing_summary -max_paths 1 -file $timingRep
-    puts "INFO: Running utilization report"
-    set utilRep [file join $loc bps_utilization_report.txt]
 
-    report_utilization -file [file join $loc bps_utilization_report.txt]
-    puts "INFO: Running power report"
-    set powerRep [file join $loc bps_power_report.txt]
-    report_power -file $powerRep
+    set topModule [getTopModule]
+    puts "INFO: Running/Finding reports for data extraction"
+
+    set timingRep [file join $loc ${topModule}_timing_summary_routed.rpt]
+    if {[file exists $timingRep]} {
+        puts "INFO: Using existing timing report '$timingRep'"
+    } else {
+        puts "INFO: Running timing report"
+        report_timing_summary -max_paths 1 -file $timingRep
+    }
+
+    set utilRep [file join $loc ${topModule}_utilization_placed.rpt]
+    if {[file exists $utilRep]} {
+        puts "INFO: Using existing utilization report '$utilRep'"
+    } else {
+        puts "INFO: Running utilization report"
+        report_utilization -file [file join $loc bps_utilization_report.txt]
+    }
+
+    set powerRep [file join $loc ${topModule}_power_routed.rpt]
+    if {[file exists $powerRep]} {
+        puts "INFO: Using existing power report '$powerRep'"
+    } else {
+        puts "INFO: Running power report"
+        report_power -file $powerRep
+    }
 
     ## Open output file to write
     set projectDir [get_property DIRECTORY [current_project]]
@@ -479,7 +495,6 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
     }
 
 
-    set topModule [getTopModule]
     set execFile [file join $projectDir ${topModule}.execfile.tcl]
     if { [catch {open $execFile w} result] } {
         puts stderr "ERROR: Could not open $execFile for writing"
