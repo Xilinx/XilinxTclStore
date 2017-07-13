@@ -16,6 +16,8 @@ namespace eval ::tclapp::bluepearl::bpsvvs {
     namespace export generate_bps_project
     namespace export launch_bps
     namespace export update_vivado_into_bps
+    variable runBPS
+    set runBPS 1
 }
 
 proc ::tclapp::bluepearl::bpsvvs::relto {reltodir file} {
@@ -243,6 +245,12 @@ proc ::tclapp::bluepearl::bpsvvs::check_bps_env {} {
 
     # Categories: xilinxtclstore, bpsvvs, bluepearl, visualverificationsuite
 
+    variable runBPS
+    if { !$runBPS } {
+        puts "INFO: Running BPS has been disabled"
+        return 1
+    }
+
     set cli [auto_execok BluePearlCLI]
     if { $cli == {} } {
         puts stderr "ERROR: BluePearlCLI could not be found. Please check path."
@@ -393,15 +401,18 @@ proc ::tclapp::bluepearl::bpsvvs::launch_bps {} {
     }
 
     puts "INFO: Launching BluePearlVVE '$bpsProjectFile'"
-    set vvs [auto_execok BluePearlVVE]
-    puts "INFO: Using $vvs"
+    variable runBPS
+    if { $runBPS } {
+        set vvs [auto_execok BluePearlVVE]
+        puts "INFO: Using $vvs"
 
-    if {[catch {eval [list exec BluePearlVVE $bpsProjectFile &]} results]} {
-        puts stderr "ERROR: Problems launching BluePearlVVE $results"
-        puts stderr "ERROR: $results"
-        puts stderr "ERROR: Please check your path."
-        return 0
-    }   
+        if {[catch {eval [list exec BluePearlVVE $bpsProjectFile &]} results]} {
+            puts stderr "ERROR: Problems launching BluePearlVVE $results"
+            puts stderr "ERROR: $results"
+            puts stderr "ERROR: Please check your path."
+            return 0
+        }   
+    }
 
     return 1
 }
@@ -512,18 +523,23 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
     close $ofs
 
     puts "INFO: Launching BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile"
-    set cli [auto_execok BluePearlCLI]
-    puts "INFO: Using $cli"
     set wd [pwd]
     set projectDir [get_property DIRECTORY [current_project]]
     cd $projectDir
-    if {[catch {eval [list exec BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile]} results]} {
-        puts stderr "ERROR: Problems launching BluePearlCLI"
-        puts stderr "ERROR: $results"
-        puts stderr "ERROR: Please check your path."
-        cd $wd
-        return 0
-    }   
+    variable runBPS
+    if { $runBPS } {
+        set cli [auto_execok BluePearlCLI]
+        puts "INFO: Using $cli"
+        if {[catch {eval [list exec BluePearlCLI -output Results -tcl $bpsProjectFile -tcl $execFile]} results]} {
+            puts stderr "ERROR: Problems launching BluePearlCLI"
+            puts stderr "ERROR: $results"
+            puts stderr "ERROR: Please check your path."
+            cd $wd
+            return 0
+        }   
+    } else {
+        set results "BluePearlCLI not run"
+    }
     cd $wd
     puts $results
     return 1

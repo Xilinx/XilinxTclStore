@@ -19,6 +19,9 @@ if {[lsearch -exact $listInstalledApps $appName] != -1} {
 catch "package forget ::tclapp::${appName}"
 ::tclapp::load_app $appName
 package require ::tclapp::${appName}
+
+#disable running of BPS
+set ::tclapp::${appName}::runBPS 0
   
 set name "bpsvvs_0001"
 

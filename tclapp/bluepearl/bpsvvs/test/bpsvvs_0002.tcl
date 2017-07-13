@@ -20,6 +20,9 @@ catch "package forget ::tclapp::${appName}"
 ::tclapp::load_app $appName
 package require ::tclapp::${appName}
   
+#disable running of BPS
+set ::tclapp::${appName}::runBPS 0
+  
 set name "bpsvvs_0002"
 
 create_project -force $name ./$name
