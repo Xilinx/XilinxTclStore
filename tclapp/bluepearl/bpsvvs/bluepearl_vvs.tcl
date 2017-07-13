@@ -473,7 +473,7 @@ proc ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps {} {
         puts "INFO: Using existing utilization report '$utilRep'"
     } else {
         puts "INFO: Running utilization report"
-        report_utilization -file [file join $loc bps_utilization_report.txt]
+        report_utilization -file [file join $loc $utilRep]
     }
 
     set powerRep [file join $loc ${topModule}_power_routed.rpt]
