@@ -1,0 +1,26 @@
+Blue Pearl Software, Visual Verification Suite 
+
+This directory contains the **bpsvvs** app provided by Blue Pearl's
+Visual Verification Suite
+
+All Tcl procs, variables, etc. must be defined within the
+::tclapp::mycompany::myapp namespace.  No globals of any kind are
+allowed.
+
+### bpsvs commands list 
+::tclapp::bluepearl::bpsvvs::generate_bps_project 
+::tclapp::bluepearl::bpsvvs::launch_bps 
+::tclapp::bluepearl::bpsvvs::update_vivado_into_bps 
+Vivado% auto_mkindex .
+
+================================================================
+USING THIS APP FROM VIVADO
+================================================================
+### After your Vivado design has been loaded
+Vivado% package require ::tclapp::bluepearl::bpsvvs
+Vivado% ::tclapp::bluepearl::bpsvvs::generate_bps_project
+Vivado% ::tclapp::bluepearl::bpsvvs::launch_bps
+### After your Vivado design has been implemented
+Vivado% ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps
+
+
