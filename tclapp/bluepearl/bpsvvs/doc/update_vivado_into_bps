@@ -1,0 +1,10 @@
+
+  Description: Import implementation data into VVS
+
+     This command takes implementation information from Vivado
+     regarding frequency, power, and utilization and formats that
+     information for display using the Visual Verification Suite's
+     Management Dashboard.
+   
+  Example:
+     update_vivado_into_bps 

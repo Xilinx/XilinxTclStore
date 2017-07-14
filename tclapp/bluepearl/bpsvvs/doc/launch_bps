@@ -1,0 +1,9 @@
+
+  Description: Launch the Blue Pearl Visual Verification Suite on the current design
+  
+     This command opens the Visual Verification Suite using 
+     information from Vivado on source files, root module name, and
+     optional parameters such as the include directory.
+  
+  Example:
+     launch_bps
