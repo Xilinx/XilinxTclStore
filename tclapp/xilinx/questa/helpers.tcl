@@ -45,6 +45,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
+  set a_sim_vars(b_int_systemc_mode) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
@@ -504,7 +505,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
   }
 
-  if { [get_param "project.enableSystemCSupport"] } {
+  if { $a_sim_vars(b_int_systemc_mode) } {
     # design contain systemc sources?
     set simulator "questa"
     set prefix_ref_dir false
@@ -1112,13 +1113,15 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
       }
     }
     "sccom" {
-      set arg_list [list $s_64bit]
-      set more_opts [get_property questa.compile.sccom.more_options $fs_obj]
-      if { {} != $more_opts } {
-        lappend arg_list "$more_opts"
+      if { $a_sim_vars(b_int_systemc_mode) } {
+        set arg_list [list $s_64bit]
+        set more_opts [get_property questa.compile.sccom.more_options $fs_obj]
+        if { {} != $more_opts } {
+          lappend arg_list "$more_opts"
+        }
+        set cmd_str [join $arg_list " "]
+        lappend opts $cmd_str
       }
-      set cmd_str [join $arg_list " "]
-      lappend opts $cmd_str
     }
   }
 }

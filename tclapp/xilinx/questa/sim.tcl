@@ -222,6 +222,7 @@ proc usf_questa_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_systemc_mode]: SystemC mode (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -247,6 +248,7 @@ proc usf_questa_setup_args { args } {
       "-run_dir"        { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_launch_dir) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
+      "-int_systemc_mode" { set ::tclapp::xilinx::questa::a_sim_vars(b_int_systemc_mode) 1 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -753,27 +755,29 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   }
 
   # write sccom cmd line
-  if { $a_sim_vars(b_contain_systemc_sources) } {
-    # systemc
-    set args [list]
-    lappend args "sccom"
-    if { [get_property 32bit $fs_obj] } {
-      lappend args {-32}
-    } else {
-      lappend args {-64}
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_contain_systemc_sources) } {
+      # systemc
+      set args [list]
+      lappend args "sccom"
+      if { [get_property 32bit $fs_obj] } {
+        lappend args {-32}
+      } else {
+        lappend args {-64}
+      }
+      lappend args "-link"
+      set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
+      if { {} != $more_opts } {
+        lappend args "$more_opts"
+      }
+      foreach lib [xcs_get_sc_libs] {
+        lappend args "-lib $lib"
+      }
+      lappend args "-lib $a_sim_vars(default_top_library)"
+      lappend args "-work $a_sim_vars(default_top_library)"
+      set cmd_str [join $args " "]
+      puts $fh "$cmd_str"
     }
-    lappend args "-link"
-    set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
-    if { {} != $more_opts } {
-      lappend args "$more_opts"
-    }
-    foreach lib [xcs_get_sc_libs] {
-      lappend args "-lib $lib"
-    }
-    lappend args "-lib $a_sim_vars(default_top_library)"
-    lappend args "-work $a_sim_vars(default_top_library)"
-    set cmd_str [join $args " "]
-    puts $fh "$cmd_str"
   }
  
   set cmd_str [usf_questa_get_elaboration_cmdline]
