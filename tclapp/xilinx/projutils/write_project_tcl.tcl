@@ -56,8 +56,24 @@ proc write_project_tcl {args} {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-paths_relative_to"    { incr i;set a_global_vars(s_relative_to) [file normalize [lindex $args $i]] }
-      "-target_proj_dir"      { incr i;set a_global_vars(s_target_proj_dir) [lindex $args $i] }
+      "-paths_relative_to" { 
+        incr i;
+        if { [regexp {^-} [lindex $args $i]] } {
+          send_msg_id Vivado-projutils-021 ERROR "Missing value for the $option option.\
+            Please provide a valid path/directory name immediately following '$option'"
+          return
+        }
+        set a_global_vars(s_relative_to) [file normalize [lindex $args $i]] 
+      }
+      "-target_proj_dir" { 
+        incr i;
+        if { [regexp {^-} [lindex $args $i]] } {
+          send_msg_id Vivado-projutils-021 ERROR "Missing value for the $option option.\
+            Please provide a valid path/directory name immediately following '$option'"
+          return
+        }
+        set a_global_vars(s_target_proj_dir) [lindex $args $i] 
+      }
       "-force"                { set a_global_vars(b_arg_force) 1 }
       "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
       "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
@@ -469,6 +485,7 @@ proc write_bd_as_proc { bd_file } {
   variable l_script_data
   variable temp_offset
   variable l_open_bds
+  variable temp_dir
 
   if { [lsearch $l_added_bds $bd_file] != -1 } { return }
   
@@ -488,7 +505,11 @@ proc write_bd_as_proc { bd_file } {
   current_bd_design [get_bd_designs [file rootname $bd_filename]]
   
   # write the BD as a proc to a temp file
-  write_bd_tcl -no_project_wrapper ./temp_$temp_offset.tcl -force
+  while { [file exists [file join $temp_dir "temp_$temp_offset.tcl"]] } {
+    incr temp_offset
+  } 
+  set temp_bd_file [file join $temp_dir "temp_$temp_offset.tcl"]
+  write_bd_tcl -no_project_wrapper $temp_bd_file
   
   # Set non default properties for the BD
   wr_bd_properties $bd_file
@@ -501,7 +522,7 @@ proc write_bd_as_proc { bd_file } {
   }
 
   # Get proc call
-  if {[catch {open "./temp_$temp_offset.tcl" r} fp]} {
+  if {[catch {open $temp_bd_file r} fp]} {
     send_msg_id Vivado-projutils-020 ERROR "failed to write out proc for $bd_file \n"
     return 1
   }
@@ -523,7 +544,7 @@ proc write_bd_as_proc { bd_file } {
   }
 
   # delete temp file
-  file delete "./temp_$temp_offset.tcl"
+  file delete $temp_bd_file
   incr temp_offset
 }
 
@@ -532,6 +553,7 @@ proc wr_bd_properties { file } {
   # Argument: the .BD file
   # Return Value: none
   variable bd_prop_steps
+  variable a_global_vars
 
   set bd_name [get_property FILE_NAME [current_bd_design]]
   set bd_props [list_property [ get_files $file ] ]
@@ -541,12 +563,16 @@ proc wr_bd_properties { file } {
      if { [lsearch $read_only_props $prop] != -1 
            || [string equal -nocase $prop "file_type" ]
      } then { continue }
+    if { $a_global_vars(b_arg_all_props) } {
+      append bd_prop_steps "set_property $prop $cur_val \[get_files $bd_name \] \n"
+    } else {
      set def_val [list_property_value -default $prop [ get_files $file ] ]
      set cur_val [get_property $prop [get_files $file ] ]
     if { $def_val ne $cur_val } {
       append bd_prop_steps "set_property $prop $cur_val \[get_files $bd_name \] \n"
     }
   }
+ }
 }
 
 proc add_references { sub_design } {
@@ -585,6 +611,7 @@ proc wr_bd {} {
   variable temp_offset 1
   variable l_bd_proc_calls [list]
   variable l_open_bds [list]
+  variable temp_dir
 
   set l_added_bds [list]
 
@@ -600,6 +627,15 @@ proc wr_bd {} {
   # Get all BD files in the design
   set bd_files [get_files -norecurse *.bd]
   lappend l_script_data "\n# Adding sources referenced in BDs, if not already added"
+
+  # Create temp directory for BD procs
+  set temp_dir [ file join [file dirname $a_global_vars(script_file)] .Xiltemp ]  
+  set clean_temp 1
+  if { [file isdirectory $temp_dir] } {
+    set clean_temp 0
+  } else {
+    file mkdir $temp_dir
+  }
 
   foreach bd_file $bd_files {
     # Making sure BD is not locked
@@ -621,8 +657,12 @@ proc wr_bd {} {
     lappend l_script_data $call
   }
 
-
   lappend l_script_data $bd_prop_steps
+
+  # Delete temp directory
+  if { $clean_temp == 1} {
+    file delete -force $temp_dir
+  }
 }
 
 proc wr_filesets { proj_dir proj_name } {
