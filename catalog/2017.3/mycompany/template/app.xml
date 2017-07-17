@@ -8,8 +8,7 @@
       <procs>
         <proc>
           <name>my_command1</name>
-          <summary>Multi-lines summary of 
-what the proc is doing</summary>
+          <summary>Multi-lines summary of &#10;what the proc is doing</summary>
         </proc>
         <proc>
           <name>my_command2</name>

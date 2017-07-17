@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>change param name for systemC simulation</revision_history>
+      <revision_history>fixes for issues found during bash</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

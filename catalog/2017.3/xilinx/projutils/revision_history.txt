@@ -1,3 +1,4 @@
+3.252 fixes for issues found during bash
 3.251 change param name for systemC simulation
 3.250 support for systemC source compilation
 3.249 compile glbl if XPM_CDC core is being referenced in the design
