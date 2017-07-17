@@ -1,3 +1,4 @@
+2.57 pass internal switch to control systemC simulation
 2.56 pass os mode type switch to sccom
 2.55 change param name for systemC simulation
 2.54 support for systemC source compilation

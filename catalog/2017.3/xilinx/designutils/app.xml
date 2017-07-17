@@ -116,7 +116,10 @@
         </proc>
         <proc>
           <name>reapply_iostandard</name>
-          <summary>This command queries the tool-chosen defaults from implementation &#10;and &quot;apply&quot; them so it looks like the user did it from the beginning. &#10;This complies with the bit export restriction that all ios be LOCd and &#10;explicitly set to an IO Standard</summary>
+          <summary>This command queries the tool-chosen defaults from implementation 
+and &quot;apply&quot; them so it looks like the user did it from the beginning. 
+This complies with the bit export restriction that all ios be LOCd and 
+explicitly set to an IO Standard</summary>
         </proc>
         <proc>
           <name>remove_buffer</name>
