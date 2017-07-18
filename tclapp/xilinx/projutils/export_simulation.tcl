@@ -4301,20 +4301,6 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   variable l_compiled_libraries
   set args [list]
   xps_append_config_opts args "xsim" "xelab"
-  #lappend args "-wto [get_property ID [current_project]]"
-  #if { !$a_sim_vars(b_32bit) } { lappend args "-m64" }
-  #set prefix_ref_dir "false"
-  #foreach incl_dir [xps_get_verilog_incl_file_dirs "xsim" $launch_dir $prefix_ref_dir] {
-  #  set dir [string map {\\ /} $incl_dir]
-  #  lappend args "--include \"$dir\""
-  #}
-  #set unique_incl_dirs [list]
-  #foreach incl_dir $l_include_dirs {
-  #  if { [lsearch -exact $unique_incl_dirs $incl_dir] == -1 } {
-  #    lappend unique_incl_dirs $incl_dir
-  #    lappend args "-i $incl_dir"
-  #  }
-  #}
   if { [llength $l_defines] > 0 } {
     foreach element $l_defines {
       set key_val_pair [split $element "="]
@@ -4724,7 +4710,6 @@ proc xps_write_main { simulator fh_unix launch_dir } {
       "xsim" {
         set arg_list [list]
         xps_append_config_opts arg_list "xsim" "xvlog"
-        if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-m64"] }
         if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
           # append sv pkg libs
           foreach sv_pkg_lib $a_sim_sv_pkg_libs {
@@ -4734,7 +4719,6 @@ proc xps_write_main { simulator fh_unix launch_dir } {
         }
         set arg_list [list]
         xps_append_config_opts arg_list "xsim" "xvhdl"
-        if { !$a_sim_vars(b_32bit) } { set arg_list [linsert $arg_list 0 "-m64"] }
         if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
           puts $fh_unix "xvhdl_opts=\"[join $arg_list " "]\""
         }
