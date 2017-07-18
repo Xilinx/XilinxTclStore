@@ -33,6 +33,7 @@ proc write_project_tcl {args} {
 
   # Argument Usage: 
   # [-paths_relative_to <arg> = Script output directory path]: Override the reference directory variable for source file relative paths
+  # [-origin_dir_override <arg>]: Set 'origin_dir' directory variable to the specified value (Default is value specified with the -paths_relative_to switch)
   # [-target_proj_dir <arg> = Current project directory path]: Directory where the project needs to be restored
   # [-force]: Overwrite existing tcl script file
   # [-all_properties]: Write all properties (default & non-default) for the project object(s)
@@ -40,6 +41,7 @@ proc write_project_tcl {args} {
   # [-absolute_path]: Make all file paths absolute wrt the original project directory
   # [-dump_project_info]: Write object values
   # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
+  # [-internal]: Print basic header information in the generated tcl script
   # file: Name of the tcl script file to generate
 
   # Return Value:
@@ -74,12 +76,14 @@ proc write_project_tcl {args} {
         }
         set a_global_vars(s_target_proj_dir) [lindex $args $i] 
       }
+      "-origin_dir_override"  { incr i;set a_global_vars(s_origin_dir_override) [lindex $args $i] }
       "-force"                { set a_global_vars(b_arg_force) 1 }
       "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
       "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
       "-absolute_path"        { set a_global_vars(b_absolute_path) 1 }
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
+      "-internal"             { set a_global_vars(b_internal) 1 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -185,10 +189,12 @@ proc reset_global_vars {} {
 
   set a_global_vars(s_relative_to)        {.}
   set a_global_vars(s_path_to_script_dir) ""
+  set a_global_vars(s_origin_dir_override) "" 
   set a_global_vars(s_target_proj_dir)    ""
   set a_global_vars(b_arg_force)          0
   set a_global_vars(b_arg_no_copy_srcs)   0
   set a_global_vars(b_absolute_path)      0
+  set a_global_vars(b_internal)           0
   set a_global_vars(b_arg_all_props)      0
   set a_global_vars(b_arg_dump_proj_info) 0
   set a_global_vars(b_local_sources)      0
@@ -307,8 +313,13 @@ proc write_project_tcl_script {} {
     absolute path only, in the generated script. As such, the generated script will only work in the same filesystem where those absolute paths are accessible."
   } else {
     if { "." != $a_global_vars(s_relative_to) } {
-      send_msg_id Vivado-projutils-017 INFO "Please note that the -paths_relative_to switch was specified, hence the project source files will be referenced\n\
-      wrt the path that was specified with this switch. The 'origin_dir' variable is set to this path in the generated script."
+      if { {} == $a_global_vars(s_origin_dir_override) } {
+        send_msg_id Vivado-projutils-017 INFO "Please note that the -paths_relative_to switch was specified, hence the project source files will be referenced\n\
+        wrt the path that was specified with this switch. The 'origin_dir' variable is set to this path in the generated script."
+      } else {
+        send_msg_id Vivado-projutils-017 INFO "Please note that the -paths_relative_to switch was specified, hence the project source files will be referenced wrt the\n\
+        path that was specified with this switch. The 'origin_dir' variable is set to '$a_global_vars(s_origin_dir_override)' in the generated script."
+      }
     } else {
       send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wrt the 'origin_dir' variable in the\n\
       generated script. When this script is executed from the output directory, these source files will be referenced wrt this 'origin_dir' path value.\n\
@@ -344,7 +355,11 @@ proc wr_create_project { proj_dir name part_name } {
   variable l_script_data
 
   lappend l_script_data "# Set the reference directory for source file relative paths (by default the value is script directory path)"
-  lappend l_script_data "set origin_dir \"$a_global_vars(s_relative_to)\""
+  set relative_to "$a_global_vars(s_relative_to)"
+  if { {} != $a_global_vars(s_origin_dir_override) } {
+    set relative_to "$a_global_vars(s_origin_dir_override)"
+  }
+  lappend l_script_data "set origin_dir \"$relative_to\""
   lappend l_script_data ""
   set var_name "origin_dir_loc"
   lappend l_script_data "# Use origin directory path location variable, if specified in the tcl shell"
@@ -371,10 +386,17 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "  puts \"Usage:\""
   lappend l_script_data "  puts \"Name                   Description\""
   lappend l_script_data "  puts \"-------------------------------------------------------------------------\""
-  lappend l_script_data "  puts \"\\\[--origin_dir <path>\\\]  Determine source file paths wrt this path. Default\""
-  lappend l_script_data "  puts \"                       origin_dir path value is \\\".\\\", otherwise, the value\""
-  lappend l_script_data "  puts \"                       that was set with the \\\"-paths_relative_to\\\" switch\""
-  lappend l_script_data "  puts \"                       when this script was generated.\\n\""
+  if { {} == $a_global_vars(s_origin_dir_override) } {
+    lappend l_script_data "  puts \"\\\[--origin_dir <path>\\\]  Determine source file paths wrt this path. Default\""
+    lappend l_script_data "  puts \"                       origin_dir path value is \\\".\\\", otherwise, the value\""
+    lappend l_script_data "  puts \"                       that was set with the \\\"-paths_relative_to\\\" switch\""
+    lappend l_script_data "  puts \"                       when this script was generated.\\n\""
+  } else {
+    lappend l_script_data "  puts \"\\\[--origin_dir <path>\\\]  Determine source file paths wrt this path. Default\""
+    lappend l_script_data "  puts \"                       origin_dir path value is \\\".\\\", otherwise, the value\""
+    lappend l_script_data "  puts \"                       that was set with the \\\"-origin_dir_override\\\" switch\""
+    lappend l_script_data "  puts \"                       when this script was generated.\\n\""
+  }
   lappend l_script_data "  puts \"\\\[--help\\\]               Print help information for this script\""
   lappend l_script_data "  puts \"-------------------------------------------------------------------------\\n\""
   lappend l_script_data "  exit 0"
@@ -845,7 +867,8 @@ proc write_header { proj_dir proj_name file } {
   set version_id  [join [lrange $version 1 end] " "]
 
   set tcl_file [file tail $file]
-  puts $a_global_vars(fh) "#\n# $product (TM) $version_id"
+  puts $a_global_vars(fh) "#*****************************************************************************************"
+  puts $a_global_vars(fh) "# $product (TM) $version_id"
   puts $a_global_vars(fh) "#\n# $tcl_file: Tcl script for re-creating project '$proj_name'\n#"
   puts $a_global_vars(fh) "# Generated by $product on $a_global_vars(curr_time)"
   puts $a_global_vars(fh) "# $copyright"
@@ -856,32 +879,34 @@ proc write_header { proj_dir proj_name file } {
   puts $a_global_vars(fh) "# * Note that the runs in the created project will be configured the same way as the"
   puts $a_global_vars(fh) "#   original project, however they will not be launched automatically. To regenerate the"
   puts $a_global_vars(fh) "#   run results please launch the synthesis/implementation runs as needed.\n#"
-  puts $a_global_vars(fh) "#*****************************************************************************************"
-  puts $a_global_vars(fh) "# NOTE: In order to use this script for source control purposes, please make sure that the"
-  puts $a_global_vars(fh) "#       following files are added to the source control system:-"
-  puts $a_global_vars(fh) "#"
-  puts $a_global_vars(fh) "# 1. This project restoration tcl script (${tcl_file}) that was generated."
-  puts $a_global_vars(fh) "#"
-  puts $a_global_vars(fh) "# 2. The following source(s) files that were local or imported into the original project."
-  puts $a_global_vars(fh) "#    (Please see the '\$orig_proj_dir' and '\$origin_dir' variable setting below at the start of the script)\n#"
+  if { !$a_global_vars(b_internal) } {
+    puts $a_global_vars(fh) "#*****************************************************************************************"
+    puts $a_global_vars(fh) "# NOTE: In order to use this script for source control purposes, please make sure that the"
+    puts $a_global_vars(fh) "#       following files are added to the source control system:-"
+    puts $a_global_vars(fh) "#"
+    puts $a_global_vars(fh) "# 1. This project restoration tcl script (${tcl_file}) that was generated."
+    puts $a_global_vars(fh) "#"
+    puts $a_global_vars(fh) "# 2. The following source(s) files that were local or imported into the original project."
+    puts $a_global_vars(fh) "#    (Please see the '\$orig_proj_dir' and '\$origin_dir' variable setting below at the start of the script)\n#"
 
-  if {[llength $l_local_files] == 0} {
-    puts $a_global_vars(fh) "#    <none>"
-  } else {
-    foreach line $l_local_files {
-      puts $a_global_vars(fh) "#    $line"
+    if {[llength $l_local_files] == 0} {
+      puts $a_global_vars(fh) "#    <none>"
+    } else {
+      foreach line $l_local_files {
+        puts $a_global_vars(fh) "#    $line"
+      }
     }
-  }
-  puts $a_global_vars(fh) "#"
-  puts $a_global_vars(fh) "# 3. The following remote source files that were added to the original project:-\n#"
-  if {[llength $l_remote_files] == 0} {
-    puts $a_global_vars(fh) "#    <none>"
-  } else {
-    foreach line $l_remote_files {
-      puts $a_global_vars(fh) "#    $line"
+    puts $a_global_vars(fh) "#"
+    puts $a_global_vars(fh) "# 3. The following remote source files that were added to the original project:-\n#"
+    if {[llength $l_remote_files] == 0} {
+      puts $a_global_vars(fh) "#    <none>"
+    } else {
+      foreach line $l_remote_files {
+        puts $a_global_vars(fh) "#    $line"
+      }
     }
+    puts $a_global_vars(fh) "#"
   }
-  puts $a_global_vars(fh) "#"
   puts $a_global_vars(fh) "#*****************************************************************************************\n"
 }
 
