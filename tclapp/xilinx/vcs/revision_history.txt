@@ -1,3 +1,4 @@
+3.56 initial support for systemC source compilation
 3.55 support for systemC source compilation
 3.54 compile glbl if XPM_CDC core is being referenced in the design
 3.53 reference xilinx_vip precompiled library

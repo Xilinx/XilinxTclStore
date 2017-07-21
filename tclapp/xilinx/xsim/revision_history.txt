@@ -1,3 +1,4 @@
+2.171 initial support for systemC source compilation
 2.170 support for systemC source compilation
 2.169 compile glbl if XPM_CDC core is being referenced in the design
 2.168 donot pass m64 switch for xelab
