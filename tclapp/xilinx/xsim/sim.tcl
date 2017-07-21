@@ -216,6 +216,8 @@ proc usf_xsim_setup_simulation { args } {
       }
     }
   }
+  
+  set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
 
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
@@ -394,6 +396,7 @@ proc usf_xsim_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_systemc_mode]: SystemC mode (internal use)
  
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -417,6 +420,7 @@ proc usf_xsim_setup_args { args } {
       "-run_dir"        { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
+      "-int_systemc_mode" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -871,6 +875,76 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       }
     }
   }
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_contain_systemc_sources) } {
+      set sc_filename "${top}_xsc.prj"
+      set sc_file [file normalize [file join $dir $sc_filename]]
+      set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+      set sc_files [get_files -quiet -all -filter $sc_filter]
+      if { [llength $sc_files] > 0 } {
+        set fh 0
+        if {[catch {open $sc_file w} fh]} {
+          send_msg_id USF-XSim-016 ERROR "Failed to open file to write ($sc_file)\n"
+          return 1
+        }
+        puts $fh "# compile SystemC design source files"
+        foreach file $sc_files {
+          set file_extn [file extension $file]
+          if { {.h} == $file_extn } {
+            continue
+          }
+          set file "[xcs_get_relative_file_path $file $dir]"
+          puts $fh $file
+        }
+        close $fh
+
+        set xsc_arg_list [list]
+        lappend xsc_arg_list "-c"
+        set more_xsc_options [string trim [get_property "XSIM.COMPILE.XSC.MORE_OPTIONS" $fs_obj]]
+        if { {} != $more_xsc_options } {
+          set xsc_arg_list [linsert $xsc_arg_list end "$more_xsc_options"]
+        }
+
+        # fetch systemc include files (.h)
+        set simulator "xsim"
+        set prefix_ref_dir false
+        set l_incl_dirs [list]
+        foreach dir [xcs_get_systemc_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+          lappend l_incl_dirs "$dir"
+        }
+        # get the xtlm include dir from compiled library
+        set dir "$a_sim_vars(s_clibs_dir)/ip/xtlm/include"
+
+        # get relative file path for the compiled library
+        set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        lappend l_incl_dirs "$relative_dir"
+        if { [llength $l_incl_dirs] > 0 } {
+          lappend xsc_arg_list "--gcc_compile_options"
+          set incl_dir_strs [list]
+          foreach incl_dir $l_incl_dirs {
+            lappend incl_dir_strs "-I$incl_dir"
+          }
+          set incl_dir_cmd_str [join $incl_dir_strs " "]
+          lappend xsc_arg_list "\"$incl_dir_cmd_str\""
+        }
+        lappend xsc_arg_list "-work $a_sim_vars(default_top_library)"
+        lappend xsc_arg_list "-f $sc_filename"
+        set xsc_cmd_str [join $xsc_arg_list " "]
+
+        puts $fh_scr "\necho \"xsc $xsc_cmd_str\""
+        if {$::tcl_platform(platform) == "unix"} {
+          set log_cmd_str $log_filename
+          set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
+          puts $fh_scr "ExecStep $full_cmd"
+        } else {
+          set log_cmd_str " -log $log_filename"
+          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str$log_cmd_str"
+          puts $fh_scr "call type xsc.log >> $log_filename"
+        }
+      }
+    }
+  }
   
   if {$::tcl_platform(platform) != "unix"} {
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
@@ -918,11 +992,25 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     }
 
     xcs_write_shell_step_fn $fh_scr
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+        set args [usf_xsim_get_xsc_elab_cmdline_args]
+        puts $fh_scr "\nExecStep xsc $args"
+      }
+    }
     set args [usf_xsim_get_xelab_cmdline_args]
     puts $fh_scr "ExecStep xelab $args"
   } else {
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr "elaborate" "xsim"
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+        set args [usf_xsim_get_xsc_elab_cmdline_args]
+        puts $fh_scr "call xsc $s_dbg_sw $args"
+        puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
+        puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
+      }
+    }
     set args [usf_xsim_get_xelab_cmdline_args]
     puts $fh_scr "call xelab $s_dbg_sw $args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
@@ -1302,6 +1390,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
 
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+      lappend args_list "-sv_lib dpi"
+    }
+  }
+
   # snapshot
   lappend args_list "--snapshot $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)"
 
@@ -1340,6 +1434,32 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { {} != $other_opts } {
     lappend args_list "$other_opts"
   }
+
+  set cmd_args [join $args_list " "]
+  return $cmd_args
+}
+
+proc usf_xsim_get_xsc_elab_cmdline_args {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set top $a_sim_vars(s_sim_top)
+  set dir $a_sim_vars(s_launch_dir)
+  set sim_flow $a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set args_list [list]
+
+  lappend args_list "--shared"
+  # other options
+  set other_opts [get_property "XSIM.ELABORATE.XSC.MORE_OPTIONS" $fs_obj]
+  if { {} != $other_opts } {
+    lappend args_list "$other_opts"
+  }
+  lappend args_list "-lib $a_sim_vars(default_top_library)"
 
   set cmd_args [join $args_list " "]
   return $cmd_args

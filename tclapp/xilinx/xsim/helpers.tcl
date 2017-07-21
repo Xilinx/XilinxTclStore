@@ -40,14 +40,18 @@ proc usf_init_vars {} {
   set a_sim_vars(b_absolute_path)    0
   set a_sim_vars(s_install_path)     {}
   set a_sim_vars(s_lib_map_path)     {}
+  set a_sim_vars(s_clibs_dir)        {}
   set a_sim_vars(compiled_library_dir) {}
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
+  set a_sim_vars(b_int_systemc_mode) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+
+  set a_sim_vars(b_contain_systemc_sources) 0
   
   set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set a_sim_vars(compiled_design_lib) "xsim.dir"
@@ -502,6 +506,38 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
   }
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    # design contain systemc sources?
+    set simulator "xsim"
+    set prefix_ref_dir false
+    set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+    set sc_files [get_files -quiet -all -filter $sc_filter]
+    if { [llength $sc_files] > 0 } {
+      set g_files {}
+      set l_incl_dir_opts {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      foreach file $sc_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+        if { {.cpp} == $file_extn } {
+          # set flag
+          if { !$a_sim_vars(b_contain_systemc_sources) } {
+            set a_sim_vars(b_contain_systemc_sources) true
+          }
+          set file_type "SystemC"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
+          }
+        }
+      }
+    }
+  }
+
   return $files
 }
 

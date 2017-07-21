@@ -2276,6 +2276,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" {set compiler "verilog"}
         "SystemVerilog"                {set compiler "sv"}
+        "SystemC"                      {set compiler "xsc"}
       }
     }
     "modelsim" -
