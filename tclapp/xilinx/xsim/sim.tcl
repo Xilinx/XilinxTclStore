@@ -915,6 +915,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         }
         # get the xtlm include dir from compiled library
         set dir "$a_sim_vars(s_clibs_dir)/ip/xtlm/include"
+        if { ![file exists $dir] } {
+          set dir "$a_sim_vars(s_clibs_dir)/xtlm/include"
+        }
 
         # get relative file path for the compiled library
         set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
