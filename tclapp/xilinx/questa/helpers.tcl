@@ -1114,7 +1114,10 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
     }
     "sccom" {
       if { $a_sim_vars(b_int_systemc_mode) } {
-        set arg_list [list $s_64bit]
+        set arg_list [list]
+        if {$::tcl_platform(platform) == "unix"} {
+          lappend arg_list $s_64bit
+        }
         set more_opts [get_property questa.compile.sccom.more_options $fs_obj]
         if { {} != $more_opts } {
           lappend arg_list "$more_opts"
