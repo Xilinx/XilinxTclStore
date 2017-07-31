@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
   <remote>2017.3-dev</remote>
-  <support_commit_id>f2f2c8d9db8b7129479347fb60ba01e3a8243721</support_commit_id>
+  <support_commit_id>6a2cba20d1913a59c1f774095af1f854f4a5b7f5</support_commit_id>
   <release>2017.3</release>
-  <revision>2.4</revision>
+  <revision>2.5</revision>
   <app_display_order>ultrafast,debugutils,designutils,projutils,incrcompile,xsim,modelsim,questa,ies,xcelium,vcs,riviera,activehdl,questa_cdc,spyglass,protoip,pcbutils,diff,profiler,junit,tk_tunnel</app_display_order>
   <apps>
     <app>
