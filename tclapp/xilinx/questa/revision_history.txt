@@ -1,3 +1,4 @@
+2.59 call sccom as part of script execution step and not from the elaborate do file
 2.58 initial support for systemC source compilation
 2.57 pass internal switch to control systemC simulation
 2.56 pass os mode type switch to sccom
