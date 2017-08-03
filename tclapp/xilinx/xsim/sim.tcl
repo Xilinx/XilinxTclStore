@@ -451,6 +451,7 @@ proc usf_xsim_verify_compiled_lib {} {
       if { [usf_copy_ini_file $a_sim_vars(s_lib_map_path)] } {
         return 1
       }  
+      usf_resolve_rdi_datadir $run_dir $a_sim_vars(s_lib_map_path)
       set a_sim_vars(compiled_library_dir) $a_sim_vars(s_lib_map_path)
       return 0
     } else {
@@ -461,14 +462,20 @@ proc usf_xsim_verify_compiled_lib {} {
 
   # 2. if empty property (default), calculate default install location
   set dir [get_property "COMPXLIB.XSIM_COMPILED_LIBRARY_DIR" [current_project]]
+  set b_resolve_rdi_datadir_env false
   if { {} == $dir } {
     set dir $::env(XILINX_VIVADO)
     set dir [file normalize [file join $dir "data/xsim"]]
+  } else {
+    set b_resolve_rdi_datadir_env true
   }
   set file [file normalize [file join $dir $filename]]
   if { [file exists $file] } {
     if { [usf_copy_ini_file $dir] } {
      return 1
+    }
+    if { $b_resolve_rdi_datadir_env } {
+      usf_resolve_rdi_datadir $run_dir $dir
     }
     set a_sim_vars(compiled_library_dir) $dir
     return 0
@@ -526,7 +533,119 @@ proc usf_copy_ini_file { dir } {
       return 0
     }
   }
+
   return 0
+}
+
+proc usf_resolve_rdi_datadir { run_dir cxl_prop_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { ![get_param "simulation.resolveDataDirEnvPathForXSim"] } {
+    return 0
+  }
+
+  set ini_file "$run_dir/xsim.ini"
+  if { ![file exists $ini_file] } {
+    return 0
+  }
+
+  set fh 0
+  if { [catch {open $ini_file r} fh] } {
+    [catch {send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($file)\n"} error]
+    return 0
+  }
+  set ini_data [read $fh]
+  close $fh
+
+  set libs [list]
+  set ini_data [split $ini_data "\n"]
+  foreach line $ini_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^--} $line] } { continue; }
+    set library_name [lindex [split $line "="] 0]
+    lappend libs $library_name
+  }
+  [catch {file delete -force $ini_file} error_msg]
+
+  # now recreate xsim.ini with the directory mappings from the path specified with compxlib.xsim_compiled_library_dir property
+  set fh 0
+  if { [catch {open $ini_file w} fh] } {
+    [catch {send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($file)\n"} error]
+    return 0
+  }
+  foreach library $libs {
+    if { {} == $library } { continue; }
+    puts $fh "$library=[usf_resolve_compiled_library_dir $cxl_prop_dir $library]"
+  }
+  close $fh
+  return 0
+}
+
+proc usf_resolve_compiled_library_dir { cxl_prop_dir library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # internal vhdl libraries
+  if { ($library == "ieee"              ) ||
+       ($library == "ieee_2008"         ) ||
+       ($library == "ieee_proposed"     ) ||
+       ($library == "ieee_proposed_2008") ||
+       ($library == "std"               ) ||
+       ($library == "std_2008"          ) ||
+       ($library == "synopsys"          ) ||
+       ($library == "synopsys_2008"     ) ||
+       ($library == "vl"                ) ||
+       ($library == "vl_2008"           ) } {
+
+    set dir "$cxl_prop_dir/vhdl/$library"
+    if { [file exists $dir] } {
+      return $dir
+    }
+  }
+
+  # vhdl base libraries
+  if { ($library == "unifast" ) ||
+       ($library == "unimacro") ||
+       ($library == "unisim"  ) } {
+
+    set dir "$cxl_prop_dir/vhdl/$library"
+    if { [file exists $dir] } {
+      return $dir
+    } else {
+      set dir "$cxl_prop_dir/$library"
+      return $dir
+    }
+  }
+
+  # verilog base libraries
+  if { ($library == "secureip"    ) ||
+       ($library == "unifast_ver" ) ||
+       ($library == "unimacro_ver") ||
+       ($library == "unisims_ver" ) ||
+       ($library == "simprims_ver") } {
+
+    set dir "$cxl_prop_dir/verilog/$library"
+    if { [file exists $dir] } {
+      return $dir
+    } else {
+      set dir "$cxl_prop_dir/$library"
+      return $dir
+    }
+  }
+
+  # ips
+  set dir "$cxl_prop_dir/ip/$library"
+  if { [file exists $dir] } {
+    return $dir
+  }
+ 
+  # default
+  set dir "$cxl_prop_dir/$library"
+  return $dir
 }
 
 proc usf_xsim_write_setup_file {} {
@@ -773,11 +892,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     foreach sv_pkg_lib $a_sim_sv_pkg_libs {
       lappend xvlog_arg_list "-L $sv_pkg_lib"
     }
-    lappend xvlog_arg_list "-prj $vlog_filename"
     set more_xvlog_options [string trim [get_property "XSIM.COMPILE.XVLOG.MORE_OPTIONS" $fs_obj]]
     if { {} != $more_xvlog_options } {
       set xvlog_arg_list [linsert $xvlog_arg_list end "$more_xvlog_options"]
     }
+    lappend xvlog_arg_list "-prj $vlog_filename"
     set xvlog_cmd_str [join $xvlog_arg_list " "]
 
     set cmd "xvlog $xvlog_cmd_str"
