@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.10
+package require ::tclapp::aldec::common::helpers 1.11
 
 namespace eval ::tclapp::aldec::riviera {
 
@@ -21,11 +21,11 @@ proc register_options { simulator } {
 
   variable options
   if { {} == $simulator } {
-    send_msg_id USF-[::tclapp::aldec::common::helpers::usf_getSimulatorName]-98 ERROR "Simulator not specified.\n"
+    send_msg_id USF-[::tclapp::aldec::common::helpers::usf_getSimulatorName]-3 ERROR "Simulator not specified.\n"
   }
   # is simulator registered?
   if { {-1} == [lsearch [get_simulators] $simulator] } {
-    send_msg_id USF-[::tclapp::aldec::common::helpers::usf_getSimulatorName]-99 ERROR "Simulator '$simulator' is not registered\n"
+    send_msg_id USF-[::tclapp::aldec::common::helpers::usf_getSimulatorName]-4 ERROR "Simulator '$simulator' is not registered\n"
     return 1
   }
 

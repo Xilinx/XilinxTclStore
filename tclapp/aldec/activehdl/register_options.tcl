@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.10
+package require ::tclapp::aldec::common::helpers 1.11
 
 namespace eval ::tclapp::aldec::activehdl {
 
