@@ -607,7 +607,7 @@ proc add_references { sub_design } {
 
   # Getting references, if any
 
-  set refs [ get_referenced_sources [ get_files $sub_design ] ]
+  set refs [ get_files -references -of_objects [ get_files $sub_design ] ]
   foreach file $refs {
     if { [file extension $file ] ==".bd" } {
       if { [lsearch $l_added_bds $file] != -1 } { continue }
