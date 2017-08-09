@@ -10,4 +10,4 @@ namespace eval ::tclapp::mentor::questa_cdc {
     }
 
 }
-package provide ::tclapp::mentor::questa_cdc 1.0
+package provide ::tclapp::mentor::questa_cdc 1.1
