@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>initial support for systemC source compilation</revision_history>
+      <revision_history>Using &apos;get_files -references&apos; instead of &apos;get_referenced_sources&apos;</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

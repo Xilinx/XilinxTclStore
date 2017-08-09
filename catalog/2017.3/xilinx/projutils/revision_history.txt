@@ -1,3 +1,4 @@
+3.256 Using 'get_files -references' instead of 'get_referenced_sources'
 3.255 initial support for systemC source compilation
 3.254 remove m64 switch for XSim
 3.253 support for origin dir override
