@@ -1,3 +1,4 @@
+2.167 reference xilinx_vip if requires_vip property is set on the IP instance
 2.166 reference xilinx_vip if requires_vip property is set on the IP
 2.165 initial support for systemC source compilation
 2.164 support for systemC source compilation

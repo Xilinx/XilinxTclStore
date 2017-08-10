@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference xilinx_vip if requires_vip property is set on the IP</revision_history>
+      <revision_history>reference xilinx_vip if requires_vip property is set on the IP instance</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

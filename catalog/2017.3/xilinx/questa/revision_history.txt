@@ -1,3 +1,4 @@
+2.62 reference xilinx_vip if requires_vip property is set on the IP instance
 2.61 reference xilinx_vip if requires_vip property is set on the IP
 2.60 disable systemc support
 2.59 call sccom as part of script execution step and not from the elaborate do file
