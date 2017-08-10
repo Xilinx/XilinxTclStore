@@ -1,3 +1,4 @@
+3.257 reference xilinx_vip package with requires vip property on the ip component
 3.256 Using 'get_files -references' instead of 'get_referenced_sources'
 3.255 initial support for systemC source compilation
 3.254 remove m64 switch for XSim
