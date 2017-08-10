@@ -1069,52 +1069,6 @@ proc xps_get_files { simulator launch_dir } {
       }
     }
   }
-
-  if { [get_param "project.enableSystemCSupport"] } {
-    # design contain systemc sources? 
-    set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
-    set sc_files [get_files -quiet -all -filter $sc_filter]
-    if { [llength $sc_files] > 0 } {
-      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
-      # fetch systemc include files (.h)
-      set l_incl_dir [list]
-      foreach dir [xcs_get_systemc_incl_dirs $simulator $launch_dir $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
-        lappend l_incl_dir "-I \"$dir\""
-      }
-
-      # get the xtlm include dir from compiled library
-      set dir "[xps_get_lib_map_path $simulator]/xtlm/include"
-
-      # get relative file path for the compiled library
-      set relative_dir "[xcs_get_relative_file_path $dir $launch_dir]"
-      lappend l_incl_dir "-I \"$relative_dir\""
-  
-      foreach file $sc_files {
-        set file_extn [file extension $file]
-        if { {.h} == $file_extn } {
-          continue
-        }
-
-        if { {.cpp} == $file_extn } {
-          # set flag
-          if { !$a_sim_vars(b_contain_systemc_sources) } {
-            set a_sim_vars(b_contain_systemc_sources) true
-          }
-  
-          set file_type "SystemC"
-          set compiler [xcs_get_compiler_name $simulator $file_type]
-  
-          set l_other_opts [list]
-          xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_incl_dir l_other_opts
-          set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type false $compiler l_other_opts l_incl_dir]
-          if { {} != $cmd_str } {
-            lappend files $cmd_str
-            lappend compile_order_files $file
-          }
-        }
-      }
-    }
-  }
   return $files
 }
 

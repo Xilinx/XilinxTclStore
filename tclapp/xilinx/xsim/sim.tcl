@@ -1020,10 +1020,6 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
         set xsc_arg_list [list]
         lappend xsc_arg_list "-c"
-        set more_xsc_options [string trim [get_property "XSIM.COMPILE.XSC.MORE_OPTIONS" $fs_obj]]
-        if { {} != $more_xsc_options } {
-          set xsc_arg_list [linsert $xsc_arg_list end "$more_xsc_options"]
-        }
 
         # fetch systemc include files (.h)
         set simulator "xsim"
@@ -1576,11 +1572,6 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   set args_list [list]
 
   lappend args_list "--shared"
-  # other options
-  set other_opts [get_property "XSIM.ELABORATE.XSC.MORE_OPTIONS" $fs_obj]
-  if { {} != $other_opts } {
-    lappend args_list "$other_opts"
-  }
   lappend args_list "-lib $a_sim_vars(default_top_library)"
 
   if { $a_sim_vars(b_int_systemc_mode) } {

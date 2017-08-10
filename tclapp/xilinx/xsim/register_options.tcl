@@ -45,7 +45,6 @@ proc register_options { simulator } {
     {{compile.xvlog.nosort}          {bool}        {1}                                                  {Do not sort Verilog files}}
     {{compile.xvlog.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
     {{compile.xvhdl.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
-    {{compile.xsc.more_options}      {string}      {}                                                   {More XSC compilation options}}
     {{compile.xvlog.more_options}    {string}      {}                                                   {More XVLOG compilation options}}
     {{compile.xvhdl.more_options}    {string}      {}                                                   {More XVHDL compilation options}}
     {{elaborate.snapshot}            {string}      {}                                                   {Specify name of the simulation snapshot}}
@@ -55,7 +54,6 @@ proc register_options { simulator } {
     {{elaborate.load_glbl}           {bool}        {1}                                                  {Load GLBL module}}
     {{elaborate.rangecheck}          {bool}        {0}                                                  {Enable runtime value range check for VHDL}}
     {{elaborate.sdf_delay}           {enum}        {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
-    {{elaborate.xsc.more_options}    {string}      {}                                                   {More XSC elaboration options}}
     {{elaborate.xelab.more_options}  {string}      {}                                                   {More XELAB elaboration options}}
     {{simulate.tcl.post}             {string}      {}                                                   {Specify post-simulate step TCL hook}}
     {{simulate.runtime}              {string}      {1000ns}                                             {Specify simulation run time}}
