@@ -8,6 +8,7 @@ namespace eval ::tclapp::mentor::questa_cdc {
     if {[lsearch -exact $::auto_path $home] == -1} {
     lappend ::auto_path $home
     }
-
+    ## Keep an environment variable with the path of the script
+    set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 }
 package provide ::tclapp::mentor::questa_cdc 1.1

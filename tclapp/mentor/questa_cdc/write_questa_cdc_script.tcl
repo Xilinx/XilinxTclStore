@@ -68,6 +68,8 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   # [-output_directory <arg>]: Specify the output directory to generate the scripts in
   # [-use_existing_xdc]: Ignore running write_xdc command to generate the SDC file of the synthesized design, and use the input constraints file instead
   # [-run <arg>]: Run Questa CDC and invoke the UI of Questa CDC debug after generating the running scripts, default behavior is to stop after the generation of the scripts
+  # [-add_button]: Add a button to run Questa CDC in Vivado UI.
+  # [-remove_button]: Remove the Questa CDC button from Vivado UI.
 
   # Return Value: Returns '0' on successful completion
 
@@ -744,9 +746,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
   return $rc
 }
-
-## Keep an environment variable with the path of the script
-set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa CDC script
 namespace import tclapp::mentor::questa_cdc::*

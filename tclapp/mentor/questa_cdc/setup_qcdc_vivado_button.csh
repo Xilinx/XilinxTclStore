@@ -39,6 +39,13 @@ if ( ! -e "$rootdir/write_questa_cdc_script.tcl" ) then
   exit 1
 endif
 
+## Check if it is sourced from Vivado installation or Questa CDC installation
+## If it is a Vivado installation, then we need to source questa_cdc.tcl:
+##   Because it has the environment variable definition for QUESTA_CDC_TCL_SCRIPT_PATH, which is used to add the logo of Questa CDC to the button in Vivado UI.
+if ( -e "$rootdir/questa_cdc.tcl" ) then
+  echo "source $rootdir/questa_cdc.tcl" >> $setup_file
+endif
+
 echo "source $rootdir/write_questa_cdc_script.tcl" >> $setup_file
 if ( $remove == 0 ) then
   echo "write_questa_cdc_script -add_button"  >> $setup_file
