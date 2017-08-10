@@ -1,3 +1,4 @@
+3.57 reference xilinx_vip if requires_vip property is set on the IP
 3.56 initial support for systemC source compilation
 3.55 support for systemC source compilation
 3.54 compile glbl if XPM_CDC core is being referenced in the design

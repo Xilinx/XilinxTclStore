@@ -1,3 +1,4 @@
+2.176 reference xilinx_vip if requires_vip property is set on the IP
 2.175 disable systemc support
 2.174 reference xtlm library for elaboration
 2.173 replace data dir env with the path specified with the project property if param is set
