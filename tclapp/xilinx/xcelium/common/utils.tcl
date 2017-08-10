@@ -2525,7 +2525,7 @@ proc xcs_design_contain_sv_ip { } {
   # Argument Usage:
   # Return Value:
 
-  foreach ip_obj [get_ips -all -quiet] } {
+  foreach ip_obj [get_ips -all -quiet] {
     set b_requires_vip [get_property -quiet requires_vip [get_ips $ip_obj]]
     if { $b_requires_vip } {
       return true
