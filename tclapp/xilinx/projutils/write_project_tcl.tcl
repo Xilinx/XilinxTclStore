@@ -616,7 +616,6 @@ proc add_references { sub_design } {
       write_bd_as_proc $file
     } else {
       # Skip adding file if it's already part of the project
-      #if { [get_files $file ] ne "" } { continue }
       lappend l_script_data "if { \[get_files [file tail $file]\] == \"\" } {"
       lappend l_script_data "  import_files -quiet -fileset [current_fileset -srcset] $file\n}"
     }
@@ -1000,6 +999,8 @@ proc is_local_to_project { file } {
   # true (1), if file is local to the project (inside project directory structure)
   # false (0), if file is outside the project directory structure
 
+  # Remove quotes for proper normalize output
+  set file [string trim $file "\""]
   set dir [get_property directory [current_project]]
   set proj_comps [split [string trim [file normalize [string map {\\ /} $dir]]] "/"]
   set file_comps [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
@@ -1216,15 +1217,12 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       } else {
         # is file new inside project?
         if { [is_local_to_project $file] } {
-          # is file inside fileset dir?
-          if { [regexp "^${fs_name}/" $src_file] } {
-            set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
-          } else {
-            set file_no_quotes [string trim $file "\""]
-            set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
-            set proj_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
-            #set proj_file_path "$file"
-          }
+          set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
+          set local_constrs_file [join [lrange $path_dirs end-1 end] "/"]
+          set local_constrs_file [string trimleft $local_constrs_file "/"]
+          set local_constrs_file [string trimleft $local_constrs_file "\\"]
+          set file $local_constrs_file
+          set proj_file_path "\[get_files *$local_constrs_file\]"
         } else {
           if { $a_global_vars(b_absolute_path) } {
             set proj_file_path "$file"
@@ -1455,7 +1453,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
   foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj]] {
     if { [file extension $file] == ".xcix" } { continue }
-    # Skip import of BD files if -use_bd_files is not provided
+    # Skip direct import/add of BD files if -use_bd_files is not provided
     if { [file extension $file] == ".bd" && !$a_global_vars(b_arg_use_bd_files) } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
@@ -1502,45 +1500,36 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         }
 
         # add to the import collection
-        set file_no_quotes [string trim $file "\""]
-        set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
-        lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
+        if { $a_global_vars(b_absolute_path) } {
+          lappend import_coln [file normalize [string trim $file "\""]]
+        } else {
+          set file_no_quotes [string trim $file "\""]
+          set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
+          lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
+        }
         lappend l_local_file_list $file
       } else {
+        if {$a_global_vars(b_absolute_path) } {
+          lappend add_file_coln [string trim $file "\""]
+        } else {
+          set file_no_quotes [string trim $file "\""]
+          set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
+          lappend add_file_coln "\"\[file normalize \"$org_file_path\"\]\""
+        }
         lappend l_remote_file_list $file
       }
 
-      # add file to collection
-      if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
-        set file_no_quotes [string trim $file "\""]
-        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
-        set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
-        lappend add_file_coln "$file1"
-      } else {
-        lappend add_file_coln "$file"
-      }
-
-      # set flag that local sources were found and print warning at the end
-      if { !$a_global_vars(b_local_sources) } {
-        set a_global_vars(b_local_sources) 1
-      }
     }
+  }
+  # set flag that local sources were found and print warning at the end
+  if { (!$a_global_vars(b_local_sources)) && ([llength l_local_file_list] > 0) } {
+    set a_global_vars(b_local_sources) 1
   }
    
   if {[llength $add_file_coln]>0} { 
     lappend l_script_data "set files \[list \\"
     foreach file $add_file_coln {
-      if { $a_global_vars(b_absolute_path) } {
         lappend l_script_data " $file\\"
-      } else {
-        if { $a_global_vars(b_arg_no_copy_srcs) } {
-          lappend l_script_data " $file\\"
-        } else {
-          set file_no_quotes [string trim $file "\""]
-          set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
-          lappend l_script_data " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
-        }
-      }
     }
     lappend l_script_data "\]"
     lappend l_script_data "add_files -norecurse -fileset \$obj \$files"
@@ -1548,23 +1537,36 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   }
 
   # now import local files if -no_copy_sources is not specified
-  if { ! $a_global_vars(b_arg_no_copy_srcs)} {
     if { [llength $import_coln] > 0 } {
-      lappend l_script_data "# Import local files from the original project"
-      lappend l_script_data "set files \[list \\"
-      foreach ifile $import_coln {
-        lappend l_script_data " $ifile\\"
-      }
-      lappend l_script_data "\]"
-      # is this a IP block fileset? if yes, import files into current source fileset
-      if { [is_ip_fileset $tcl_obj] } {
-        lappend l_script_data "set imported_files \[import_files -fileset [current_fileset -srcset] \$files\]"
-      } else {
-        lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
-      }
+       if { ! $a_global_vars(b_arg_no_copy_srcs)} {
+          lappend l_script_data "# Import local files from the original project"
+          lappend l_script_data "set files \[list \\"
+          foreach ifile $import_coln {
+            lappend l_script_data " $ifile\\"
+          }
+          lappend l_script_data "\]"
+          # is this a IP block fileset? if yes, import files into current source fileset
+          if { [is_ip_fileset $tcl_obj] } {
+            lappend l_script_data "set imported_files \[import_files -fileset [current_fileset -srcset] \$files\]"
+          } else {
+            lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
+          }
+       } else {
+          lappend l_script_data "# Add local files from the original project (-no_copy_sources specified)"
+          lappend l_script_data "set files \[list \\"
+          foreach ifile $import_coln {
+            lappend l_script_data " $ifile\\"
+          }
+          lappend l_script_data "\]"
+          # is this a IP block fileset? if yes, add files into current source fileset
+          if { [is_ip_fileset $tcl_obj] } {
+            lappend l_script_data "set added_files \[add_files -fileset [current_fileset -srcset] \$files\]"
+          } else {
+            lappend l_script_data "set added_files \[add_files -fileset $tcl_obj \$files\]"
+          }
+       }
       lappend l_script_data ""
-    }
-  }
+    } 
 
   # write fileset file properties for remote files (added sources)
   write_fileset_file_properties $tcl_obj $fs_name $proj_dir $l_remote_file_list "remote"
@@ -2515,10 +2517,6 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
         lappend add_file_coln "$file"
       }
 
-      # set flag that local sources were found and print warning at the end
-      if { !$a_global_vars(b_local_sources) } {
-        set a_global_vars(b_local_sources) 1
-      }
     }
   }
 
