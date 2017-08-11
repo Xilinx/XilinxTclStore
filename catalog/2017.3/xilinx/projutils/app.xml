@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixed improper handling of local/native files in the project. Added handling of -no_copy_sources and -absolute_path where it was missing.</revision_history>
+      <revision_history>fetch requires_vip property on the fetched IP object</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

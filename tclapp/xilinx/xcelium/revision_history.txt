@@ -1,3 +1,4 @@
+2.4 fetch requires_vip property on the fetched IP object
 2.3 reference xilinx_vip if requires_vip property is set on the IP instance
 2.2 reference xilinx_vip if requires_vip property is set on the IP
 2.1 initial support for systemC source compilation

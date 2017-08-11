@@ -1,3 +1,4 @@
+3.262 fetch requires_vip property on the fetched IP object
 3.261 Fixed improper handling of local/native files in the project. Added handling of -no_copy_sources and -absolute_path where it was missing.
 3.260 reference xilinx_vip if requires_vip property is set on the IP instance
 3.259 reference xilinx_vip if requires_vip property is set on the IP
