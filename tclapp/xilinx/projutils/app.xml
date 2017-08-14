@@ -38,6 +38,10 @@
           <name>write_project_tcl</name>
           <summary>Export Tcl script for re-creating the current project</summary>
         </proc>
+        <proc>
+          <name>create_bd_partition_def</name>
+          <summary>Create partition definition from a level of hierarchy cell</summary>
+        </proc>
       </procs>
     </app>
   </apps>
