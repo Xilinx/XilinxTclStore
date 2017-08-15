@@ -1671,7 +1671,11 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
       if { $b_batch } {
         lappend args_list "$wcfg_file"
       } else {
-        lappend args_list "\{$wcfg_file\}"
+        if { [regexp "\\s+" $wcfg_file match] } {
+          lappend args_list "\{\{$wcfg_file\}\}"
+        } else {
+          lappend args_list "\{$wcfg_file\}"
+        }
       }
     }
   }
