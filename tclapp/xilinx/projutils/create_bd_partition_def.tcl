@@ -107,11 +107,11 @@ proc cpd_create_bd_partition {} {
     set_property PR_FLOW true [current_project]
   }
 
-  set cur_cell      [get_bd_cell $a_cpd_vars(cell_path)]
-  set cur_cell_name [get_property name [get_cells $a_cpd_vars(cell_path)]]
+  set cur_cell_obj  [get_bd_cell $a_cpd_vars(cell_path)]
+  set cur_cell_name [get_property name $cur_cell_obj]
   set curdesign     [current_bd_design]
 
-  create_bd_design -cell [get_bd_cells $cur_cell] $a_cpd_vars(rm_name)
+  create_bd_design -cell $cur_cell_obj $a_cpd_vars(rm_name)
   set new_mod [create_partition_def -name $pd_name -module $a_cpd_vars(rm_name)]
 
   create_reconfig_module -name $a_cpd_vars(rm_name) -partition_def $new_mod -define_from $a_cpd_vars(rm_name)
@@ -119,8 +119,8 @@ proc cpd_create_bd_partition {} {
 
   set new_pdcell_obj [create_bd_cell -type module -reference $new_mod ${cur_cell_name}_temp]
 
-  replace_bd_cell [get_bd_cells ${cur_cell}] $new_pdcell_obj
-  delete_bd_objs  [get_bd_cells ${cur_cell}]
+  replace_bd_cell $cur_cell_obj $new_pdcell_obj
+  delete_bd_objs  $cur_cell_obj 
 
   set_property name ${cur_cell_name} $new_pdcell_obj
 }
