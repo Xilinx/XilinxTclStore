@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>initial version of create_bd_partition_def utility to create partition definition from level of hierarchy</revision_history>
+      <revision_history>fixed bd cell vars to use current cell object</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
