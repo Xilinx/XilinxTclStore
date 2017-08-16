@@ -1,0 +1,6 @@
+1.30 Added support for UltraScale Plus (get_sll_nets, get_sll_nodes)
+1.29 Various enhancements to prettyTable
+1.28 Miscellaneous enhancements (timing_report_to_verilog, convert_muxfx_to_luts, create_combined_mig_io_design)
+1.27 Fixed missing header inside CSV file + minor enhancements (prettyTable)
+1.26 Enhancements to prettyTable
+1.25 Robustness and runtime improvement for insert_buffer.tcl
