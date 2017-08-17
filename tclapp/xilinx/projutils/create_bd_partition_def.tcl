@@ -10,9 +10,6 @@
 ####################################################################################
 package require Vivado 1.2014.1
 
-namespace eval ::tclapp::xilinx::projutils {
-  namespace export create_bd_partition_def
-}
 
 namespace eval ::tclapp::xilinx::projutils {
 
