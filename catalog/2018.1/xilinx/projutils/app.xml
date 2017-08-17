@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed bd cell vars to use current cell object</revision_history>
+      <revision_history>do not export proc</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -17,10 +17,6 @@
         <proc>
           <name>copy_run</name>
           <summary>Copy a run from an already existing run, source-run, to a new copy of that run, destination-run.</summary>
-        </proc>
-        <proc>
-          <name>create_bd_partition_def</name>
-          <summary>Create a partition definition from a level of hierarchy cell</summary>
         </proc>
         <proc>
           <name>export_bd_synth</name>
