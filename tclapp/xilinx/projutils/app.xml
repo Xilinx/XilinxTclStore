@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not export proc</revision_history>
+      <revision_history>copy_run changes to make sure report strategy is copied correctly to newly created run</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

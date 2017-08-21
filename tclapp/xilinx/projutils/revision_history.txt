@@ -1,3 +1,4 @@
+3.266 copy_run changes to make sure report strategy is copied correctly to newly created run
 3.265 do not export proc
 3.264 fixed bd cell vars to use current cell object
 3.263 initial version of create_bd_partition_def utility to create partition definition from level of hierarchy
