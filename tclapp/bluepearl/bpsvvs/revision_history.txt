@@ -1,1 +1,5 @@
-1.0 Initial Revision
+1.1 
+  Fix for missing verilog include files 
+  Fix for nonsynthesizable IP not auto black boxing
+1.0 
+  Initial Revision
