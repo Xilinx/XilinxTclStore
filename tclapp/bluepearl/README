@@ -1,39 +1,24 @@
-MyCompany Tcl Apps (demonstration)
+Blue Pearl Software, Visual Verification Suite 
 
-This directory is the top-level directory for Tcl Apps provided
-by MyCompany.
+This directory contains the **bpsvvs** app provided by Blue Pearl's
+Visual Verification Suite
 
-The only Tcl file within this directory is a manually copied
-pkgIndex.tcl file.  The file pkgIndex.tcl is the same in all
-provider directories.
+All Tcl procs, variables, etc. must be defined within the
+::tclapp::mycompany::myapp namespace.  No globals of any kind are
+allowed.
+
+### bpsvs commands list 
+::tclapp::bluepearl::bpsvvs::generate_bps_project 
+::tclapp::bluepearl::bpsvvs::launch_bps 
+::tclapp::bluepearl::bpsvvs::update_vivado_into_bps 
+Vivado% auto_mkindex .
 
 ================================================================
-CREATING A NEW TCL APP
+USING THIS APP FROM VIVADO
 ================================================================
-To create a new Tcl App simply make a new directory with the 
-name of the App, e.g.
-
-% mkdir myapp
-
-In the app directory you can add any number of Tcl files that 
-together make up the app. The only requirement is that the app
-directory contains one Tcl file with the same name as the app, 
-e.g. myapp.tcl with at least this content
-
-% cat myapp/myapp.tcl
-################################################################
-namespace eval ::tclapp::mycompany::myapp {
-
-    # Allow Tcl to find tclIndex
-    variable home [file join [pwd] [file dirname [info script]]]
-    if {[lsearch -exact $::auto_path $home] == -1} {
-	lappend ::auto_path $home
-    }
-
-}
-package provide ::tclapp::mycompany::myapp 1.0
-################################################################
-
-No other files in myapp/ should use the 'package provide' command.
-
-Now follow the directions in the myapp/README file.
+### After your Vivado design has been loaded
+Vivado% package require ::tclapp::bluepearl::bpsvvs
+Vivado% ::tclapp::bluepearl::bpsvvs::generate_bps_project
+Vivado% ::tclapp::bluepearl::bpsvvs::launch_bps
+### After your Vivado design has been implemented
+Vivado% ::tclapp::bluepearl::bpsvvs::update_vivado_into_bps
