@@ -329,6 +329,9 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
         set files [get_files -quiet -compile_order sources -used_in synthesis -of_objects $ip]
         findIncludeDirs $files
     }
+    set files [get_files -filter {FILE_TYPE == "Verilog Header"} -of [get_filesets]]
+    findIncludeDirs $files 
+
     set files [get_files -norecurse -compile_order sources -used_in synthesis]
     findIncludeDirs $files 
 
@@ -351,7 +354,11 @@ proc ::tclapp::bluepearl::bpsvvs::generate_bps_project {} {
         set ipName [get_property NAME $ip]
 
         set files [get_files -quiet -compile_order sources -used_in synthesis -of_objects $ip]
-        set fileMissing [addFilesToProject "IP $ipName" $files $ofs]
+        if {[llength $files] == 0} {
+            set fileMissing 1
+        } else {
+            set fileMissing [addFilesToProject "IP $ipName" $files $ofs]
+        }
         if { $fileMissing || $missingFiles } {
             set missingFiles 1
         }
