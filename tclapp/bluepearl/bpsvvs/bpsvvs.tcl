@@ -10,7 +10,7 @@ namespace eval ::tclapp::bluepearl::bpsvvs {
     }
 
 }
-package provide ::tclapp::bluepearl::bpsvvs 1.0
+package provide ::tclapp::bluepearl::bpsvvs 1.1
 # this is a comment
 # this is another comment
 # this is a 3rd comment line
