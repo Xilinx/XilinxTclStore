@@ -15,8 +15,8 @@
     <app>
       <name>bpsvvs</name>
       <company>bluepearl</company>
-      <commit_id>5fc6244ac6afabde564473995c2dfcde3eb093d2</commit_id>
-      <revision>1.0</revision>
+      <commit_id>c2f6301e208b934e834f61d55f06f449faba922f</commit_id>
+      <revision>1.1</revision>
     </app>
     <app>
       <name>debugutils</name>
