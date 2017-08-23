@@ -2453,13 +2453,10 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   set bd_list [list]
  
   foreach file [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]] {
-<<<<<<< HEAD
     if { [file extension $file ] ==".bd" && !$a_global_vars(b_arg_use_bd_files)} {
       lappend bd_list $file
       continue
     }
-=======
->>>>>>> master
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
     set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
