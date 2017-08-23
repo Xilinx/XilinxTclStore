@@ -1,3 +1,5 @@
+3.232 return reconfig module sub-design files
+3.231 check for empty source file object before extracting
 3.230 fixed include_dirs property value to relative wrt origin dir and skip deprecated verilog_dir
 3.228 extract xml comp files for finding SV pkg libraries
 3.227 call get_files in quiet mode to hide warnings when project does not contain sources

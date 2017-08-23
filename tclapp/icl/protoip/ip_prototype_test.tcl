@@ -370,7 +370,7 @@ if {$error==0} {
 			#added by Bulat
 			set OS [lindex $::tcl_platform(os) 0]
 			if { $OS == "Linux" } {
-    			set status [ catch { exec matlab -nojvm -nosplash -nodesktop -r test_HIL($project_name_to_Matlab)} output ]
+    			set status [ catch { exec matlab -nojvm -nosplash -nodesktop -r test_HIL($project_name_to_Matlab) >@stdout} output ]
 			} else {
     			set status [ catch { exec matlab.exe -nojvc -nosplash -nodesktop -r test_HIL($project_name_to_Matlab)} output ]
 			}

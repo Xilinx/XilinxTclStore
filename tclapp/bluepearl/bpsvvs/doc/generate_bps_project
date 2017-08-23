@@ -1,0 +1,10 @@
+
+  Description: Generate a Blue Pearl Visual Verification project file
+
+     This command generates the Blue Pearl Tcl project file using 
+     information from Vivado on source files, root module name, and
+     optional parameters such as the include directory, but does
+     not start the Visual Verification Suite.
+  
+  Example:
+     generate_bps_project

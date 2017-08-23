@@ -74,6 +74,10 @@ proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
     set board_name {}
     set type_eth {}
     set mem_base_address {}
+    set soc_input_vectors {}
+    set soc_input_vectors_length {}
+    set soc_output_vectors {}
+    set soc_output_vectors_length {}
     set returnString 0
     while {[llength $args]} {
       set name [lshift args]
@@ -110,6 +114,72 @@ proc ::tclapp::icl::protoip::soc_prototype_load::soc_prototype_load { args } {
 				incr error
              } 
 	     }
+
+
+	 	-soc_input - 
+        {^-s(o(c(_(i(n(p(ut?)?)?)?)?)?)?)?$} {
+        	# this branch was added by Bulat
+            set soc_input [lshift args]
+            if {$soc_input == {}} {
+               puts " -E- NO input specified."
+               incr error
+            } else {
+				set records [split $soc_input ":"]
+				if {[lindex $records 1] == {}} {
+					puts " -E- input vector [lindex $records 0]: NO lengths specified."
+					incr error
+				} 
+
+				lappend soc_input_vectors [lindex $records 0]
+				lappend soc_input_vectors_length [lindex $records 1]
+	
+				#correctness checks:
+				
+				#vector length
+				if {[string is integer -strict [lindex $records 1]]==1} {
+					if {[lindex $records 1]<1} {
+						puts " -E- SoC nput vector [lindex $records 0]: length must be an integer greater than 0."
+						incr error
+					}
+				} else {
+					puts " -E- SoC input vector [lindex $records 0]: length must be an integer greater than 0."
+					incr error
+				}
+			}
+	     }
+
+	     -soc_output -
+        {^-s(o(c(_(o(u(t(p(ut?)?)?)?)?)?)?)?)?$} {
+        	# this branch was added by Bulat
+            set soc_output [lshift args]
+            if {$soc_output == {}} {
+               puts " -E- NO SoC output specified."
+               incr error
+            } else {
+				set records [split $soc_output ":"]
+				if {[lindex $records 1] == {}} {
+					puts " -E- SoC output vector [lindex $records 0]: NO lengths specified."
+					incr error
+				} 
+
+				lappend soc_output_vectors [lindex $records 0]
+				lappend soc_output_vectors_length [lindex $records 1]
+	
+				#correctness checks:
+				
+				#vector length
+				if {[string is integer -strict [lindex $records 1]]==1} {
+					if {[lindex $records 1]<1} {
+						puts " -E- SoC output vector [lindex $records 0]: length must be an integer greater than 0."
+						incr error
+					}
+				} else {
+					puts " -E- SoC output vector [lindex $records 0]: length must be an integer greater than 0."
+					incr error
+				}
+			}
+	     }	 
+
         -usage -
 		  {^-u(s(a(ge?)?)?)?$} -
 		  -help -
@@ -253,22 +323,22 @@ if {$error==0} {
 			}
 
 			set num_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 1 ]]
-			set soc_input_vectors {}
-			set soc_input_vectors_length {}
+			set old_soc_input_vectors {}
+			set old_soc_input_vectors_length {}
 			
 			for {set i 0} {$i < $num_soc_input_vectors} {incr i} {
-				lappend soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
-				lappend soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
+				lappend old_soc_input_vectors [lindex $data [expr [lsearch $data "#soc_Input"] + 2 + ($i * 5) ]]
+				lappend old_soc_input_vectors_length [lindex $data [expr [lsearch $data "#soc_Input"] + 3 + ($i * 5) ]]
 			}		
 			
 			
 			set num_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 1 ]]
-			set soc_output_vectors {}
-			set soc_output_vectors_length {}
+			set old_soc_output_vectors {}
+			set old_soc_output_vectors_length {}
 			
 			for {set i 0} {$i < $num_soc_output_vectors} {incr i} {
-				lappend soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
-				lappend soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
+				lappend old_soc_output_vectors [lindex $data [expr [lsearch $data "#soc_Output"] + 2 + ($i * 5) ]]
+				lappend old_soc_output_vectors_length [lindex $data [expr [lsearch $data "#soc_Output"] + 3 + ($i * 5) ]]
 			}
 			#end added by Bulat
 			
@@ -326,6 +396,50 @@ if {$error==0} {
 				}
 				incr m
 			}
+
+			#added by Bulat
+			set m 0
+			foreach i $soc_input_vectors {
+				set position [lsearch -exact $old_soc_input_vectors $i]
+				puts $position
+				if {$position !=-1} {
+					set old_soc_input_vectors [lreplace $old_soc_input_vectors $position $position $i]
+					set old_soc_input_vectors_length [lreplace $old_soc_input_vectors_length $position $position [lindex $soc_input_vectors_length $m]]
+				} else {
+				
+					set tmp_error ""
+					append tmp_error " -E- NO soc_input vector " $i " found. Use the -usage option for more details."
+					error $tmp_error
+
+				}
+				
+				incr m
+			}
+
+			set m 0
+			foreach i $soc_output_vectors {
+				set position [lsearch -exact $old_soc_output_vectors $i]
+				puts $position
+				if {$position !=-1} {
+					set old_soc_output_vectors [lreplace $old_soc_output_vectors $position $position $i]
+					set old_soc_output_vectors_length [lreplace $old_soc_output_vectors_length $position $position [lindex $soc_output_vectors_length $m]]
+				} else {
+				
+					set tmp_error ""
+					append tmp_error " -E- NO soc_input vector " $i " found. Use the -usage option for more details."
+					error $tmp_error
+
+				}
+				
+				incr m
+			}
+
+			set soc_input_vectors $old_soc_input_vectors 
+			set soc_input_vectors_length $old_soc_input_vectors_length 
+			set soc_output_vectors $old_soc_output_vectors 
+			set soc_output_vectors_length $old_soc_output_vectors_length 
+
+			#end added by Bulat
 			
 
 			set type_test "none"

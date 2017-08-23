@@ -1,1 +1,2 @@
-2.0 Added possibility of SoC prototyping (CPU and FPGA)
+2.1 Fixed bugs and improved SoC flow
+2.0 Fixed bugs and improved SoC prototyping flow

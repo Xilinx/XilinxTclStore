@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.10
+package require ::tclapp::aldec::common::helpers 1.11
 
-package provide ::tclapp::aldec::common::sim 1.10
+package provide ::tclapp::aldec::common::sim 1.11
 
 namespace eval ::tclapp::aldec::common {
 
@@ -42,15 +42,17 @@ proc compile { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
-  
+  usf_setup_args $args
+  set onlyGenerateScripts $::tclapp::aldec::common::helpers::a_sim_vars(b_scripts_only)
   set simulatorName [::tclapp::aldec::common::helpers::usf_aldec_getSimulatorName]
 
   send_msg_id USF-${simulatorName}-82 INFO "${simulatorName}::Compile design"
   usf_aldec_write_compile_script
-
-  set proc_name [lindex [split [info level 0] " "] 0]
-  set step [lindex [split $proc_name {:}] end]
-  ::tclapp::aldec::common::helpers::usf_launch_script $step
+  if { !$onlyGenerateScripts } {
+    set proc_name [lindex [split [info level 0] " "] 0]
+    set step [lindex [split $proc_name {:}] end]
+    ::tclapp::aldec::common::helpers::usf_launch_script $step
+  }
 }
 
 proc elaborate { args } {
@@ -67,7 +69,8 @@ proc simulate { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
-
+  usf_setup_args $args
+  set onlyGenerateScripts $::tclapp::aldec::common::helpers::a_sim_vars(b_scripts_only)
   set dir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
   
   set simulatorName [::tclapp::aldec::common::helpers::usf_aldec_getSimulatorName]
@@ -75,11 +78,13 @@ proc simulate { args } {
   send_msg_id USF-${simulatorName}-83 INFO "${simulatorName}::Simulate design"
   usf_write_simulate_script
 
-  set proc_name [lindex [split [info level 0] " "] 0]
-  set step [lindex [split $proc_name {:}] end]
-  ::tclapp::aldec::common::helpers::usf_launch_script $step
+  if { !$onlyGenerateScripts } {
+    set proc_name [lindex [split [info level 0] " "] 0]
+    set step [lindex [split $proc_name {:}] end]
+    ::tclapp::aldec::common::helpers::usf_launch_script $step
+  }
 
-  if { $::tclapp::aldec::common::helpers::a_sim_vars(b_scripts_only) } {
+  if { $onlyGenerateScripts } {
     set fh 0
     set file [::tclapp::aldec::common::helpers::usf_file_normalize [file join $dir "simulate.log"]]
     if {[catch {open $file w} fh]} {
@@ -557,7 +562,7 @@ proc usf_aldec_get_simulation_cmdline {} {
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   set tool "asim"
-  set arg_list [list "$tool" "-t 1ps"]
+  set arg_list [list "$tool"]
 
   ::tclapp::aldec::common::helpers::usf_aldec_appendSimulationCoverageOptions arg_list
 
@@ -629,6 +634,26 @@ proc usf_aldec_getDefaultDatasetName {} {
   }  
 }
 
+proc usf_aldec_write_run_string_to_file { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
+  set rt [string trim [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.RUNTIME] $fs_obj]]
+  if { {} == $rt } {
+    # no runtime specified
+    puts $fh "run"
+  } else {
+    set rt_value [string tolower $rt]
+    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+      puts $fh "run -all"
+    } else {
+      puts $fh "run $rt"
+    }
+  }
+}
+
 proc usf_aldec_create_do_file_for_simulation { do_file } {
   # Summary:
   # Argument Usage:
@@ -636,8 +661,6 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
 
   set top $::tclapp::aldec::common::helpers::a_sim_vars(s_sim_top)
   set dir $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
-  set b_batch $::tclapp::aldec::common::helpers::a_sim_vars(b_batch)
-  set b_scripts_only $::tclapp::aldec::common::helpers::a_sim_vars(b_scripts_only)
   set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
   set fh 0
   if {[catch {open $do_file w} fh]} {
@@ -686,20 +709,18 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
     }
   }
 
-  puts $fh "wave *"
-
-  set rt [string trim [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.RUNTIME] $fs_obj]]
-  if { {} == $rt } {
-    # no runtime specified
-    puts $fh "\nrun"
-  } else {
-    set rt_value [string tolower $rt]
-    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-      puts $fh "\nrun -all"
-    } else {
-      puts $fh "\nrun $rt"
-    }
+  puts $fh "if { !\[batch_mode\] } {"
+  puts $fh "\twave *"
+  puts -nonewline $fh "}" 
+  if { !$b_log_all_signals } {
+    puts $fh " else {"
+    puts $fh "\tlog *"
+    puts $fh "}"
   }
+
+  puts $fh "\n"
+
+  usf_aldec_write_run_string_to_file $fh
 
   set tcl_post_hook [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.TCL.POST] $fs_obj]
   ::tclapp::aldec::common::helpers::usf_aldec_get_file_path_from_project tcl_post_hook
@@ -738,10 +759,10 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
     puts $fh ""
   }
 
-  if { $b_batch || $b_scripts_only } {
-    puts $fh "\nendsim"
-    puts $fh "\n[usf_aldec_getQuitCmd]"
-  }
+  puts $fh "if \[batch_mode\] {"
+  puts $fh "\tendsim"
+  puts $fh "\t[usf_aldec_getQuitCmd]"
+  puts $fh "}"
 
   close $fh
 }

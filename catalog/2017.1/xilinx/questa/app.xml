@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>extract xml comp files for finding SV pkg libraries</revision_history>
+      <revision_history>check for empty source file object before extracting</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
