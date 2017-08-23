@@ -508,6 +508,7 @@ proc write_bd_as_proc { bd_file } {
   variable temp_offset
   variable l_open_bds
   variable temp_dir
+  variable bd_prop_steps
 
   if { [lsearch $l_added_bds $bd_file] != -1 } { return }
   
@@ -560,6 +561,7 @@ proc write_bd_as_proc { bd_file } {
   } then {
     append str " \"\""
     lappend l_bd_proc_calls $str
+    lappend l_bd_proc_calls $bd_prop_steps
     lappend l_script_data "\n"
     lappend l_script_data $file_data
     lappend l_added_bds $bd_file
@@ -577,6 +579,7 @@ proc wr_bd_properties { file } {
   variable bd_prop_steps
   variable a_global_vars
 
+  set bd_prop_steps ""
   set bd_name [get_property FILE_NAME [current_bd_design]]
   set bd_props [list_property [ get_files $file ] ]
   set read_only_props [rdi::get_attr_specs -object [get_files $file] -filter {is_readonly}]
