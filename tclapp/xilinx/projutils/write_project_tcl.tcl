@@ -2743,7 +2743,7 @@ proc write_report_strategy { run } {
 
     lappend l_script_data "# Create '$report' report (if not found)"
     lappend l_script_data "if \{ \[ string equal \[get_report_configs -of_objects \[get_runs $run\] $report\] \"\" \] \} \{"
-    lappend l_script_data "  create_report_configs -name $report_name -report_type $report_spec -steps $step -runs $run"
+    lappend l_script_data "  create_report_configs -report_name $report_name -report_type $report_spec -steps $step -runs $run"
     lappend l_script_data "\}"
 
     lappend l_script_data "set obj \[get_report_configs -of_objects \[get_runs $run\] $report\]"
