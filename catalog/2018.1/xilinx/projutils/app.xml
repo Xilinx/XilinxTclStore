@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>changing switch &apos;-name&apos; to &apos;report_name&apos; in create_report_configs</revision_history>
+      <revision_history>write_project_tcl: bug fixes, copy_run: skipping read_only dynamic properties</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
