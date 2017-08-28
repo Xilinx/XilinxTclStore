@@ -297,8 +297,8 @@ proc setReportProps { new_report ref_report } {
   set all_property_names  [ concat $all_property_names $options_prop_names]
 
   foreach property_name $all_property_names {
-    if { $property_name == "NAME" } {
-      #ideally it will be read only property, still skipping it as dont wanna overwrite name
+    if { [string equal -nocase $property_name "OPTIONS.pb"] || [string equal -nocase $property_name "OPTIONS.rpx"] } {
+      #skipping read_only property
       continue
     }
 

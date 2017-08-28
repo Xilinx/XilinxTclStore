@@ -588,11 +588,15 @@ proc wr_bd_properties { file } {
      if { [lsearch $read_only_props $prop] != -1 
            || [string equal -nocase $prop "file_type" ]
      } then { continue }
+    set def_val [list_property_value -default $prop [ get_files $file ] ]
+    set cur_val [get_property $prop [get_files $file ] ]
+
+    if { [string length $def_val] == 0 } { set def_val \"\" }
+    if { [string length $cur_val] == 0 } { set cur_val \"\" }
+
     if { $a_global_vars(b_arg_all_props) } {
       append bd_prop_steps "set_property $prop $cur_val \[get_files $bd_name \] \n"
     } else {
-     set def_val [list_property_value -default $prop [ get_files $file ] ]
-     set cur_val [get_property $prop [get_files $file ] ]
     if { $def_val ne $cur_val } {
       append bd_prop_steps "set_property $prop $cur_val \[get_files $bd_name \] \n"
     }
@@ -610,7 +614,7 @@ proc add_references { sub_design } {
 
   # Getting references, if any
 
-  set refs [ get_files -references -of_objects [ get_files $sub_design ] ]
+  set refs [ get_files -quiet -references -of_objects [ get_files $sub_design ] ]
   foreach file $refs {
     if { [file extension $file ] ==".bd" } {
       if { [lsearch $l_added_bds $file] != -1 } { continue }
@@ -676,12 +680,10 @@ proc wr_bd {} {
   }
 
   # Add calls to create_bd_* procs
-  lappend l_script_data "\n# Calls to create block designs";
+  lappend l_script_data "\n# Creating block designs and setting properties";
   foreach {call} $l_bd_proc_calls {
     lappend l_script_data $call
   }
-
-  lappend l_script_data $bd_prop_steps
 
   # Delete temp directory
   if { $clean_temp == 1} {
@@ -2769,6 +2771,10 @@ proc write_report_props { report } {
   set properties [list_property $report]
 
   foreach prop $properties {
+    if { [string equal -nocase $prop "OPTIONS.pb"] || [string equal -nocase $prop "OPTIONS.rpx"] } {
+      #skipping read_only property
+      continue
+    }
     if { [lsearch $read_only_props $prop] != -1 } { continue }
 
     set def_val [list_property_value -default $prop $report]
