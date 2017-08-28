@@ -1,3 +1,4 @@
+3.268 changing switch '-name' to 'report_name' in create_report_configs
 3.267 Writing BD properties individually right after their creation
 3.266 copy_run changes to make sure report strategy is copied correctly to newly created run
 3.265 do not export proc
