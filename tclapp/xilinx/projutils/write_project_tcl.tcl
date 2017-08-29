@@ -591,8 +591,8 @@ proc wr_bd_properties { file } {
     set def_val [list_property_value -default $prop [ get_files $file ] ]
     set cur_val [get_property $prop [get_files $file ] ]
 
-    if { [string length $def_val] == 0 } { set def_val \"\" }
-    if { [string length $cur_val] == 0 } { set cur_val \"\" }
+    set def_val \"$def_val\"
+    set cur_val \"$cur_val\"
 
     if { $a_global_vars(b_arg_all_props) } {
       append bd_prop_steps "set_property $prop $cur_val \[get_files $bd_name \] \n"
