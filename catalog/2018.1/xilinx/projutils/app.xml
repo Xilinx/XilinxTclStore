@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>write_project_tcl: bug fixes, copy_run: skipping read_only dynamic properties</revision_history>
+      <revision_history>support for creating custom project with new -project_name switch</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
