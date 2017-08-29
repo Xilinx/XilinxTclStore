@@ -1426,6 +1426,11 @@ proc usf_questa_get_sccom_cmd_args {} {
     }
     lappend args "-link"
 
+    set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
+    if { {} != $more_opts } {
+      lappend args "$more_opts"
+    }
+
     foreach lib [xcs_get_sc_libs] {
       lappend args "-lib $lib"
     }
