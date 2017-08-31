@@ -367,8 +367,13 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "  set origin_dir \$::$var_name"
   lappend l_script_data "\}"
 
-  lappend l_script_data ""  
+  lappend l_script_data "" 
+  set var_name "user_project_name"
   lappend l_script_data "# Set the project name\nset project_name \"$name\"\n"
+  lappend l_script_data "# Use project name variable, if specified in the tcl shell"
+  lappend l_script_data "if \{ \[info exists ::$var_name\] \} \{"
+  lappend l_script_data "  set project_name \$::$var_name"
+  lappend l_script_data "\}\n"
 
   lappend l_script_data "variable script_file"
   lappend l_script_data "set script_file \"[file tail $a_global_vars(script_file)]\"\n"
