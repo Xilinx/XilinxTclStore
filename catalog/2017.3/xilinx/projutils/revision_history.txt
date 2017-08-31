@@ -1,4 +1,4 @@
-3.270 adding quotes to property values in wr_bd_properties for proper handling of empty and multi-word properties
+3.270 support for creating custom project with new -project_name switch
 3.269 write_project_tcl: bug fixes, copy_run: skipping read_only dynamic properties
 3.268 changing switch '-name' to 'report_name' in create_report_configs
 3.267 Writing BD properties individually right after their creation
