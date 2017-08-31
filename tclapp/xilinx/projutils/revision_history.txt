@@ -1,3 +1,4 @@
+3.273 support for creating custom project with global var
 3.272 support for systemc options
 3.271 adding quotes to property values in wr_bd_properties for proper handling of empty and multi-word properties
 3.270 support for creating custom project with new -project_name switch
