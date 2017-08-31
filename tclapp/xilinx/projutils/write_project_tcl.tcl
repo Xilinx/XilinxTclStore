@@ -367,7 +367,13 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "  set origin_dir \$::$var_name"
   lappend l_script_data "\}"
 
-  lappend l_script_data ""
+  lappend l_script_data "" 
+  set var_name "user_project_name"
+  lappend l_script_data "# Set the project name\nset project_name \"$name\"\n"
+  lappend l_script_data "# Use project name variable, if specified in the tcl shell"
+  lappend l_script_data "if \{ \[info exists ::$var_name\] \} \{"
+  lappend l_script_data "  set project_name \$::$var_name"
+  lappend l_script_data "\}\n"
 
   lappend l_script_data "variable script_file"
   lappend l_script_data "set script_file \"[file tail $a_global_vars(script_file)]\"\n"
@@ -382,6 +388,7 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "  puts \"Syntax:\""
   lappend l_script_data "  puts \"\$script_file\""
   lappend l_script_data "  puts \"\$script_file -tclargs \\\[--origin_dir <path>\\\]\""
+  lappend l_script_data "  puts \"\$script_file -tclargs \\\[--project_name <name>\\\]\""
   lappend l_script_data "  puts \"\$script_file -tclargs \\\[--help\\\]\\n\""
   lappend l_script_data "  puts \"Usage:\""
   lappend l_script_data "  puts \"Name                   Description\""
@@ -397,6 +404,9 @@ proc wr_create_project { proj_dir name part_name } {
     lappend l_script_data "  puts \"                       that was set with the \\\"-origin_dir_override\\\" switch\""
     lappend l_script_data "  puts \"                       when this script was generated.\\n\""
   }
+  lappend l_script_data "  puts \"\\\[--project_name <name>\\\] Create project with the specified name. Default\""
+  lappend l_script_data "  puts \"                       name is the name of the project from where this\""
+  lappend l_script_data "  puts \"                       script was generated.\\n\""
   lappend l_script_data "  puts \"\\\[--help\\\]               Print help information for this script\""
   lappend l_script_data "  puts \"-------------------------------------------------------------------------\\n\""
   lappend l_script_data "  exit 0"
@@ -405,8 +415,9 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "  for \{set i 0\} \{\$i < \[llength \$::argc\]\} \{incr i\} \{"
   lappend l_script_data "    set option \[string trim \[lindex \$::argv \$i\]\]"
   lappend l_script_data "    switch -regexp -- \$option \{"
-  lappend l_script_data "      \"--origin_dir\" \{ incr i; set origin_dir \[lindex \$::argv \$i\] \}"
-  lappend l_script_data "      \"--help\"       \{ help \}"
+  lappend l_script_data "      \"--origin_dir\"   \{ incr i; set origin_dir \[lindex \$::argv \$i\] \}"
+  lappend l_script_data "      \"--project_name\" \{ incr i; set project_name \[lindex \$::argv \$i\] \}"
+  lappend l_script_data "      \"--help\"         \{ help \}"
   lappend l_script_data "      default \{"
   lappend l_script_data "        if \{ \[regexp \{^-\} \$option\] \} \{"
   lappend l_script_data "          puts \"ERROR: Unknown option '\$option' specified, please type '\$script_file -tclargs --help' for usage info.\\n\""
@@ -434,15 +445,15 @@ proc wr_create_project { proj_dir name part_name } {
   # set target project directory path if specified. If not, create project dir in current dir.
   set target_dir $a_global_vars(s_target_proj_dir)
   if { {} == $target_dir } {
-    set tcl_cmd "create_project $name ./$name -part $part_name"
+    set tcl_cmd "create_project \$\{project_name\} ./\$\{project_name\} -part $part_name"
   } else {
     # is specified target proj dir == current dir? 
     set cwd [file normalize [string map {\\ /} [pwd]]]
     set dir [file normalize [string map {\\ /} $target_dir]]
     if { [string equal $cwd $dir] } {
-      set tcl_cmd "create_project $name -part $part_name"
+      set tcl_cmd "create_project \$project_name -part $part_name"
     } else {
-      set tcl_cmd "create_project $name \"$target_dir\" -part $part_name"
+      set tcl_cmd "create_project \$project_name \"$target_dir\" -part $part_name"
     }
   }
       
@@ -452,7 +463,7 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data $tcl_cmd
 
   if { $a_global_vars(b_arg_dump_proj_info) } {
-    puts $a_global_vars(dp_fh) "project_name=$name"
+    puts $a_global_vars(dp_fh) "project_name=\$\{project_name\}"
   }
 
   lappend l_script_data ""
@@ -487,7 +498,7 @@ proc wr_project_properties { proj_dir proj_name } {
   set get_what "get_projects"
 
   lappend l_script_data "# Set project properties"
-  lappend l_script_data "set obj \[$get_what $tcl_obj\]"
+  lappend l_script_data "set obj \[current_project\]"
 
   # is project "board_part" set already?
   if { [string length [get_property "board_part" $tcl_obj]] > 0 } {
@@ -850,7 +861,7 @@ proc wr_proj_info { proj_name } {
 
   variable l_script_data
 
-  lappend l_script_data "\nputs \"INFO: Project created:$proj_name\""
+  lappend l_script_data "\nputs \"INFO: Project created:\$project_name\""
 }
 
 proc write_header { proj_dir proj_name file } {
@@ -1080,6 +1091,40 @@ proc write_properties { prop_info_list get_what tcl_obj } {
   lappend l_script_data ""
 }
 
+proc align_project_properties { prop proj_name proj_file_path } {
+  # Summary:
+  # Argument Usage: 
+  # Return Value:
+
+  variable a_global_vars
+
+  set dir_suffix {}
+  if { {} == $prop } {
+    return $proj_file_path
+  }
+
+  # align project properties to have project name variable
+  if {[string equal -nocase $prop "ip_output_repo"] ||
+      [string equal -nocase $prop "sim.ipstatic.compiled_library_dir"] } {
+    set dir_suffix "cache"
+  } else {
+  if {[string equal -nocase $prop "sim.central_dir"]   ||
+      [string equal -nocase $prop "ip.user_files_dir"] ||
+      [string equal -nocase $prop "sim.ipstatic.source_dir"] } {
+    set dir_suffix "ip_user_files"
+  }}
+
+  set match_str "${proj_name}/${proj_name}.${dir_suffix}"
+  set proj_file_path [string map {\\ /} $proj_file_path]
+  if { [regexp $match_str $proj_file_path] } {
+    set proj_file_path [regsub -all "${proj_name}" $proj_file_path "\$\{project_name\}"]
+  } else {
+    set match_str "${proj_name}.${dir_suffix}"
+    set proj_file_path [regsub "${proj_name}\.${dir_suffix}" $proj_file_path "\$\{project_name\}\.${dir_suffix}"]
+  }
+  return $proj_file_path
+}
+
 proc write_props { proj_dir proj_name get_what tcl_obj type } {
   # Summary: write first class object properties
   # This helper command is used to script help.
@@ -1163,13 +1208,15 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
     set abs_proj_file_path [get_property $prop [$get_what $tcl_obj]]
     
     set path_match [string match $proj_dir* $abs_proj_file_path]
-    if { $path_match == 1 &&  $a_global_vars(b_absolute_path) != 1 } {
+    if { ($path_match == 1) && ($a_global_vars(b_absolute_path) != 1) } {
       # changing the absolute path to relative
       set abs_path_length [string length $proj_dir]
       set proj_file_path [string replace $abs_proj_file_path 0 $abs_path_length "\$proj_dir/"]
+      set proj_file_path [align_project_properties $prop $proj_name $proj_file_path]
       set prop_entry "[string tolower $prop]#$proj_file_path"
     } else {
-      set prop_entry "[string tolower $prop]#[get_property $prop [$get_what $tcl_obj]]"
+      set abs_proj_file_path [align_project_properties $prop $proj_name $abs_proj_file_path]
+      set prop_entry "[string tolower $prop]#$abs_proj_file_path"
     }  
 
     # re-align include dir path wrt origin dir
@@ -1217,7 +1264,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         if { $a_global_vars(b_arg_no_copy_srcs) } {
           set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
         } else {
-          set proj_file_path "\$proj_dir/${proj_name}.srcs/$src_file"
+          set proj_file_path "\$proj_dir/\$project_name.srcs/$src_file"
         }
       } else {
         # is file new inside project?
@@ -1257,6 +1304,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       if {[lsearch -exact $path_dirs "$cache_dir"] > 0} {
         set dir_path [join [lrange $path_dirs [lsearch -exact $path_dirs "$cache_dir"] end] "/"]
         set compile_lib_dir_path "\$proj_dir/$dir_path"
+        set compile_lib_dir_path [regsub $cache_dir $compile_lib_dir_path "\$\{project_name\}\.cache"]
       }
       set prop_entry "[string tolower $prop]#$compile_lib_dir_path"
     }
