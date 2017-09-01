@@ -1,3 +1,4 @@
+3.275 skip project properties if not end with cache or ip_user_files
 3.274 support for SystemC file type while determining files for XSC
 3.273 support for creating custom project with global var
 3.272 support for systemc options
