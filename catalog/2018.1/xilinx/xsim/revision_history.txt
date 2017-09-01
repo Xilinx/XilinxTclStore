@@ -1,3 +1,4 @@
+2.181 support for SystemC file type while determining files for XSC
 2.180 support for systemc options
 2.179 wrap view option value for wcfg file in curly braces if contain spaces
 2.178 fetch requires_vip property on the fetched IP object

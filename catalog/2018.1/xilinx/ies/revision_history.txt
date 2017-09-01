@@ -1,3 +1,4 @@
+3.58 support for SystemC file type while determining files for XSC
 3.57 fetch requires_vip property on the fetched IP object
 3.56 reference xilinx_vip if requires_vip property is set on the IP instance
 3.55 reference xilinx_vip if requires_vip property is set on the IP
