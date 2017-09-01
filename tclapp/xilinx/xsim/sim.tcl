@@ -1002,21 +1002,28 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
       set sc_files [get_files -quiet -all -filter $sc_filter]
       if { [llength $sc_files] > 0 } {
-        set fh 0
-        if {[catch {open $sc_file w} fh]} {
+        set fh_sc 0
+        if {[catch {open $sc_file w} fh_sc]} {
           send_msg_id USF-XSim-016 ERROR "Failed to open file to write ($sc_file)\n"
           return 1
         }
-        puts $fh "# compile SystemC design source files"
-        foreach file $sc_files {
-          set file_extn [file extension $file]
-          if { {.h} == $file_extn } {
-            continue
+        puts $fh_sc "# compile SystemC design source files"
+        foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
+          set fargs       [split $file {|}]
+          set type        [lindex $fargs 0]
+          set file_type   [lindex $fargs 1]
+          set lib         [lindex $fargs 2]
+          set cmd_str     [lindex $fargs 3]
+          set src_file    [lindex $fargs 4]
+          set b_static_ip [lindex $fargs 5]
+          if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+          switch $type {
+            {SYSTEMC} {
+              puts $fh_sc "\"$src_file\""
+            }
           }
-          set file "[xcs_get_relative_file_path $file $dir]"
-          puts $fh $file
         }
-        close $fh
+        close $fh_sc
 
         set xsc_arg_list [list]
         lappend xsc_arg_list "-c"
@@ -1041,6 +1048,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         # get relative file path for the compiled library
         set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
         lappend l_incl_dirs "$relative_dir"
+        variable l_systemc_incl_dirs
+        set l_systemc_incl_dirs $l_incl_dirs
         if { [llength $l_incl_dirs] > 0 } {
           lappend xsc_arg_list "--gcc_compile_options"
           set incl_dir_strs [list]
@@ -1372,13 +1381,6 @@ proc usf_xsim_get_xelab_cmdline_args {} {
      if { {sdfmax} == $delay } { lappend args_list "--maxdelay" }
   }
  
-  # --include
-  #set prefix_ref_dir "false"
-  #foreach incl_dir [::tclapp::xilinx::xsim::usf_get_include_file_dirs $::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $prefix_ref_dir] {
-  #  set dir [string map {\\ /} $incl_dir]
-  #  lappend args_list "--include \"$dir\""
-  #}
-
   if { [get_param "project.allowSharedLibraryType"] } {
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
       set file_type [get_property FILE_TYPE $file]
@@ -1555,6 +1557,14 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set other_opts [get_property "XSIM.ELABORATE.XELAB.MORE_OPTIONS" $fs_obj]
   if { {} != $other_opts } {
     lappend args_list "$other_opts"
+  }
+
+  # --include
+  variable l_systemc_incl_dirs
+  if { [llength $l_systemc_incl_dirs] > 0 } {
+    foreach dir $l_systemc_incl_dirs {
+      lappend args_list "--include \"$dir\""
+    }
   }
 
   set cmd_args [join $args_list " "]

@@ -811,6 +811,9 @@ proc xcs_get_file_type_category { file_type } {
     {Verilog/SystemVerilog Header} {
       set type {VERILOG}
     }
+    {SystemC} {
+      set type {SYSTEMC}
+    }
   }
   return $type
 }
