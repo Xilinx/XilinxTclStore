@@ -1114,6 +1114,11 @@ proc align_project_properties { prop proj_name proj_file_path } {
     set dir_suffix "ip_user_files"
   }}
 
+  # skip other properties
+  if { {} == $dir_suffix } {
+    return $proj_file_path
+  }
+
   set match_str "${proj_name}/${proj_name}.${dir_suffix}"
   set proj_file_path [string map {\\ /} $proj_file_path]
   if { [regexp $match_str $proj_file_path] } {
