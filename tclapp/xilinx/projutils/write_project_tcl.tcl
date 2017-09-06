@@ -369,10 +369,10 @@ proc wr_create_project { proj_dir name part_name } {
 
   lappend l_script_data "" 
   set var_name "user_project_name"
-  lappend l_script_data "# Set the project name\nset project_name \"$name\"\n"
+  lappend l_script_data "# Set the project name\nset _xil_proj_name_ \"$name\"\n"
   lappend l_script_data "# Use project name variable, if specified in the tcl shell"
   lappend l_script_data "if \{ \[info exists ::$var_name\] \} \{"
-  lappend l_script_data "  set project_name \$::$var_name"
+  lappend l_script_data "  set _xil_proj_name_ \$::$var_name"
   lappend l_script_data "\}\n"
 
   lappend l_script_data "variable script_file"
@@ -416,7 +416,7 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "    set option \[string trim \[lindex \$::argv \$i\]\]"
   lappend l_script_data "    switch -regexp -- \$option \{"
   lappend l_script_data "      \"--origin_dir\"   \{ incr i; set origin_dir \[lindex \$::argv \$i\] \}"
-  lappend l_script_data "      \"--project_name\" \{ incr i; set project_name \[lindex \$::argv \$i\] \}"
+  lappend l_script_data "      \"--project_name\" \{ incr i; set _xil_proj_name_ \[lindex \$::argv \$i\] \}"
   lappend l_script_data "      \"--help\"         \{ help \}"
   lappend l_script_data "      default \{"
   lappend l_script_data "        if \{ \[regexp \{^-\} \$option\] \} \{"
@@ -445,15 +445,15 @@ proc wr_create_project { proj_dir name part_name } {
   # set target project directory path if specified. If not, create project dir in current dir.
   set target_dir $a_global_vars(s_target_proj_dir)
   if { {} == $target_dir } {
-    set tcl_cmd "create_project \$\{project_name\} ./\$\{project_name\} -part $part_name"
+    set tcl_cmd "create_project \$\{_xil_proj_name_\} ./\$\{_xil_proj_name_\} -part $part_name"
   } else {
     # is specified target proj dir == current dir? 
     set cwd [file normalize [string map {\\ /} [pwd]]]
     set dir [file normalize [string map {\\ /} $target_dir]]
     if { [string equal $cwd $dir] } {
-      set tcl_cmd "create_project \$project_name -part $part_name"
+      set tcl_cmd "create_project \$\{_xil_proj_name_\} -part $part_name"
     } else {
-      set tcl_cmd "create_project \$project_name \"$target_dir\" -part $part_name"
+      set tcl_cmd "create_project \$\{_xil_proj_name_\} \"$target_dir\" -part $part_name"
     }
   }
       
@@ -463,7 +463,7 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data $tcl_cmd
 
   if { $a_global_vars(b_arg_dump_proj_info) } {
-    puts $a_global_vars(dp_fh) "project_name=\$\{project_name\}"
+    puts $a_global_vars(dp_fh) "project_name=\$\{_xil_proj_name_\}"
   }
 
   lappend l_script_data ""
@@ -861,7 +861,7 @@ proc wr_proj_info { proj_name } {
 
   variable l_script_data
 
-  lappend l_script_data "\nputs \"INFO: Project created:\$project_name\""
+  lappend l_script_data "\nputs \"INFO: Project created:\${_xil_proj_name_}\""
 }
 
 proc write_header { proj_dir proj_name file } {
@@ -1122,10 +1122,10 @@ proc align_project_properties { prop proj_name proj_file_path } {
   set match_str "${proj_name}/${proj_name}.${dir_suffix}"
   set proj_file_path [string map {\\ /} $proj_file_path]
   if { [regexp $match_str $proj_file_path] } {
-    set proj_file_path [regsub -all "${proj_name}" $proj_file_path "\$\{project_name\}"]
+    set proj_file_path [regsub -all "${proj_name}" $proj_file_path "\$\{_xil_proj_name_\}"]
   } else {
     set match_str "${proj_name}.${dir_suffix}"
-    set proj_file_path [regsub "${proj_name}\.${dir_suffix}" $proj_file_path "\$\{project_name\}\.${dir_suffix}"]
+    set proj_file_path [regsub "${proj_name}\.${dir_suffix}" $proj_file_path "\$\{_xil_proj_name_\}\.${dir_suffix}"]
   }
   return $proj_file_path
 }
@@ -1269,7 +1269,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         if { $a_global_vars(b_arg_no_copy_srcs) } {
           set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
         } else {
-          set proj_file_path "\$proj_dir/\$project_name.srcs/$src_file"
+          set proj_file_path "\$proj_dir/\$\{_xil_proj_name_\}.srcs/$src_file"
         }
       } else {
         # is file new inside project?
@@ -1309,7 +1309,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       if {[lsearch -exact $path_dirs "$cache_dir"] > 0} {
         set dir_path [join [lrange $path_dirs [lsearch -exact $path_dirs "$cache_dir"] end] "/"]
         set compile_lib_dir_path "\$proj_dir/$dir_path"
-        set compile_lib_dir_path [regsub $cache_dir $compile_lib_dir_path "\$\{project_name\}\.cache"]
+        set compile_lib_dir_path [regsub $cache_dir $compile_lib_dir_path "\$\{_xil_proj_name_\}\.cache"]
       }
       set prop_entry "[string tolower $prop]#$compile_lib_dir_path"
     }
