@@ -181,6 +181,9 @@ proc usf_vcs_setup_simulation { args } {
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
 
+  # cache all system verilog package libraries
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
+
   # fetch design files
   set global_files_str {}
   set ::tclapp::xilinx::vcs::a_sim_vars(l_design_files) \

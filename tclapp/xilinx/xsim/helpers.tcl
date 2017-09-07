@@ -296,7 +296,7 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
 
   # --include
   set prefix_ref_dir "false"
-  foreach incl_dir [usf_get_include_file_dirs $global_files_str $prefix_ref_dir] {
+  foreach incl_dir [concat [usf_get_include_file_dirs $global_files_str $prefix_ref_dir] [xcs_get_vip_include_dirs]] {
     set incl_dir [string map {\\ /} $incl_dir]
     lappend opts "--include \"$incl_dir\""
   }

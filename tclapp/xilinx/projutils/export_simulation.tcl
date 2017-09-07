@@ -912,7 +912,7 @@ proc xps_get_files { simulator launch_dir } {
   set l_incl_dirs_opts [list]
   set l_verilog_incl_dirs [list]
   set uniq_dirs [list]
-  foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir $prefix_ref_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
+  foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir $prefix_ref_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir] [xcs_get_vip_include_dirs]] {
     lappend l_verilog_incl_dirs $dir
     if { {vcs} == $simulator } {
       set dir [string trim $dir "\""]
@@ -1978,7 +1978,7 @@ proc xps_write_single_step_for_ies_xcelium { simulator fh_unix launch_dir srcs_d
   } else {
     set prefix_ref_dir "false"
     set uniq_dirs [list]
-    foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir $prefix_ref_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir]] {
+    foreach dir [concat [xps_get_verilog_incl_dirs $simulator $launch_dir $prefix_ref_dir] [xps_get_verilog_incl_file_dirs $simulator $launch_dir $prefix_ref_dir] [xcs_get_vip_include_dirs]] {
       if { [lsearch -exact $uniq_dirs $dir] == -1 } {
         lappend uniq_dirs $dir
         lappend arg_list "+incdir+\"$dir\""
