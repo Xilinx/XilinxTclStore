@@ -279,7 +279,7 @@ proc recreateReportStrategy { run } {
 
     #replace run name if it exists in report name initial
     set new_report_name [string replace $report_name 0 $runNameRange $run]
-    set report [create_report_configs -report_name $new_report_name -report_type $report_spec -steps $step -runs $run]
+    set report [create_report_config -report_name $new_report_name -report_type $report_spec -steps $step -runs $run]
     set new_report  [get_report_configs -of_objects [get_runs $run] $report]
     if { $new_report != "" } {
       setReportProps $new_report $ref_report
