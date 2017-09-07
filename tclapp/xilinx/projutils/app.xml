@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>change internal project name variable to _xil_proj_name_</revision_history>
+      <revision_history>Updating create_report_configs to be a singular command</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
