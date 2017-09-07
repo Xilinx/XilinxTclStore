@@ -39,8 +39,8 @@
     <app>
       <name>ies</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>3.57</revision>
+      <commit_id>a688753ba06bff90a2bcdfcf0e6f7fa3c20975cb</commit_id>
+      <revision>3.58</revision>
     </app>
     <app>
       <name>incrcompile</name>
@@ -57,8 +57,8 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>2.168</revision>
+      <commit_id>a688753ba06bff90a2bcdfcf0e6f7fa3c20975cb</commit_id>
+      <revision>2.169</revision>
     </app>
     <app>
       <name>myapp</name>
@@ -87,7 +87,7 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>2af02474fed962026c44112957232ae76e895f82</commit_id>
+      <commit_id>a688753ba06bff90a2bcdfcf0e6f7fa3c20975cb</commit_id>
       <revision>3.273</revision>
     </app>
     <app>
@@ -99,8 +99,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>2.63</revision>
+      <commit_id>a688753ba06bff90a2bcdfcf0e6f7fa3c20975cb</commit_id>
+      <revision>2.64</revision>
     </app>
     <app>
       <name>questa_cdc</name>
@@ -141,20 +141,20 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>3.59</revision>
+      <commit_id>a688753ba06bff90a2bcdfcf0e6f7fa3c20975cb</commit_id>
+      <revision>3.60</revision>
     </app>
     <app>
       <name>xcelium</name>
       <company>xilinx</company>
-      <commit_id>20a348b84edf83de025a8d1f130cc7f42c380b72</commit_id>
-      <revision>2.4</revision>
+      <commit_id>a688753ba06bff90a2bcdfcf0e6f7fa3c20975cb</commit_id>
+      <revision>2.5</revision>
     </app>
     <app>
       <name>xsim</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>2.179</revision>
+      <commit_id>a688753ba06bff90a2bcdfcf0e6f7fa3c20975cb</commit_id>
+      <revision>2.180</revision>
     </app>
   </apps>
 </catalog>
