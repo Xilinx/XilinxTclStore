@@ -1,3 +1,4 @@
+3.61 call xcs_compile_glbl_file to determine if glbl.v needs to be compiled
 3.60 reference xilinx_vip include directory for ovm/uvm based designs
 3.59 fetch requires_vip property on the fetched IP object
 3.58 reference xilinx_vip if requires_vip property is set on the IP instance
