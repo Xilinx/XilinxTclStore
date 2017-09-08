@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updating create_report_configs to be a singular command</revision_history>
+      <revision_history>reference xilinx_vip include directory for ovm/uvm based designs</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

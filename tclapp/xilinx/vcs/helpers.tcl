@@ -138,8 +138,7 @@ proc usf_init_vars {} {
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
 
-  variable a_sim_cache_parent_comp_files
-  array unset a_sim_cache_parent_comp_files
+  variable a_sim_sv_pkg_libs [list]
 
 }
 
@@ -530,7 +529,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   send_msg_id USF-VCS-101 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
   set uniq_dirs [list]
-  foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}]] {
+  foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}] [xcs_get_vip_include_dirs]] {
     if { [lsearch -exact $uniq_dirs $dir] == -1 } {
       lappend uniq_dirs $dir
       lappend l_incl_dirs_opts "+incdir+$dir"
@@ -704,7 +703,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   send_msg_id USF-VCS-106 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
   set uniq_dirs [list]
-  foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}]] {
+  foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}] [xcs_get_vip_include_dirs]] {
     if { [lsearch -exact $uniq_dirs $dir] == -1 } {
       lappend uniq_dirs $dir
       lappend l_incl_dirs_opts "+incdir+$dir"
