@@ -582,9 +582,9 @@ proc usf_vcs_write_compile_script {} {
   }
 
   # compile glbl file
+  set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   if { {behav_sim} == $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow) } {
-    set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
-    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       set work_lib_sw {}
       if { {work} != $top_lib } {
@@ -605,18 +605,19 @@ proc usf_vcs_write_compile_script {} {
       if { ({timing} == $::tclapp::xilinx::vcs::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
-        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-        set work_lib_sw {}
-        if { {work} != $top_lib } {
-          set work_lib_sw "-work $top_lib "
-        }
-        xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set file_str "${work_lib_sw}\"${glbl_file}\""
-        puts $fh_scr "\n# compile glbl module"
-        if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
-        } else {
-          puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+        if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+          set work_lib_sw {}
+          if { {work} != $top_lib } {
+            set work_lib_sw "-work $top_lib "
+          }
+          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
+          set file_str "${work_lib_sw}\"${glbl_file}\""
+          puts $fh_scr "\n# compile glbl module"
+          if { {} != $tool_path } {
+            puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          } else {
+            puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          }
         }
       }
     }
@@ -769,16 +770,18 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_top_level_glbl_inst_set 1
   }
 
+  set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
   if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $b_verilog_sim_netlist } {
     if { {behav_sim} == $sim_flow } {
-      set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
       if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
         set b_add_glbl 1
       }
     } else {
       # for post* sim flow add glbl top if design contains verilog sources or verilog netlist add glbl top if not set earlier
       if { !$b_top_level_glbl_inst_set } {
-        set b_add_glbl 1
+        if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+          set b_add_glbl 1
+        }
       }
     }
   }
