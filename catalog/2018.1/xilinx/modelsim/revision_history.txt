@@ -1,3 +1,20 @@
+2.168 fetch requires_vip property on the fetched IP object
+2.167 reference xilinx_vip if requires_vip property is set on the IP instance
+2.166 reference xilinx_vip if requires_vip property is set on the IP
+2.165 initial support for systemC source compilation
+2.164 support for systemC source compilation
+2.163 compile glbl if XPM_CDC core is being referenced in the design
+2.162 reference xilinx_vip precompiled library
+2.161 additionally reference precompiled AXI-VIP library if param is set
+2.160 reference precompiled AXI-VIP library if param is set
+2.159 reference precompiled AXI-VIP library
+2.158 use global incremental property on simulation fileset
+2.157 add software build info in script header
+2.156 compile files into simulator library dir with _lib suffix
+2.155 add copyright version header in script files
+2.154 reference user specified XPM data if param set
+2.153 refactored procs into utils
+2.152 check for empty source file object before extracting
 2.151 extract xml comp files for finding SV pkg libraries
 2.150 source user tcl file from wrapper generated in run directory
 2.149 fetch sv files in quiet mode as those may not be part of compile order

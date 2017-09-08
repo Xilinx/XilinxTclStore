@@ -11,7 +11,8 @@
       <procs>
         <proc>
           <name>accept_connection</name>
-          <summary>This proc is the callback function when the server receives a connection request &#10;Tk / Server command</summary>
+          <summary>This proc is the callback function when the server receives a connection request 
+Tk / Server command</summary>
         </proc>
         <proc>
           <name>ask</name>
@@ -23,7 +24,8 @@
         </proc>
         <proc>
           <name>broadcast</name>
-          <summary>This command broadcasts a command / response to all clients from the server &#10;Tk / Server command</summary>
+          <summary>This command broadcasts a command / response to all clients from the server 
+Tk / Server command</summary>
         </proc>
         <proc>
           <name>choose_color</name>
@@ -35,11 +37,13 @@
         </proc>
         <proc>
           <name>connect_to_server</name>
-          <summary>This proc is called to connect a client to a server, it will wait until it is connected &#10;Tk / Client command</summary>
+          <summary>This proc is called to connect a client to a server, it will wait until it is connected 
+Tk / Client command</summary>
         </proc>
         <proc>
           <name>exec_push_return</name>
-          <summary>Executes a command locally and broadcasts the return to the client (called by rexec_wait) &#10;Tk / Server command</summary>
+          <summary>Executes a command locally and broadcasts the return to the client (called by rexec_wait) 
+Tk / Server command</summary>
         </proc>
         <proc>
           <name>failed</name>
@@ -51,7 +55,10 @@
         </proc>
         <proc>
           <name>launch_server</name>
-          <summary>Starts the server that the Tk commands will be sent to (launched from client) &#10;The user can bypass calling this proc and launch the server with a custom command, like: &#10;exec xterm -iconic -e /usr/local/tclsh ./custom_start_server.tcl &amp; &#10;User / Client command</summary>
+          <summary>Starts the server that the Tk commands will be sent to (launched from client) 
+The user can bypass calling this proc and launch the server with a custom command, like: 
+exec xterm -iconic -e /usr/local/tclsh ./custom_start_server.tcl &amp; 
+User / Client command</summary>
         </proc>
         <proc>
           <name>msg</name>
@@ -67,11 +74,13 @@
         </proc>
         <proc>
           <name>rexec</name>
-          <summary>Executes a command on the Tk server (remote exec) &#10;User / Client command</summary>
+          <summary>Executes a command on the Tk server (remote exec) 
+User / Client command</summary>
         </proc>
         <proc>
           <name>rexec_wait</name>
-          <summary>Executes a command on the Tk server (remote exec), and waits for the response/return &#10;User / Client command</summary>
+          <summary>Executes a command on the Tk server (remote exec), and waits for the response/return 
+User / Client command</summary>
         </proc>
         <proc>
           <name>save_file</name>
@@ -79,27 +88,33 @@
         </proc>
         <proc>
           <name>socket_event</name>
-          <summary>This proc is called when a socket event occurs &#10;Tk / Client command</summary>
+          <summary>This proc is called when a socket event occurs 
+Tk / Client command</summary>
         </proc>
         <proc>
           <name>start_client</name>
-          <summary>Starts the client that will be sending the Tk commands &#10;User / Client command</summary>
+          <summary>Starts the client that will be sending the Tk commands 
+User / Client command</summary>
         </proc>
         <proc>
           <name>start_server</name>
-          <summary>This command launches the listening service on the server &#10;User / Server command (normally called from the start_server.tcl script)</summary>
+          <summary>This command launches the listening service on the server 
+User / Server command (normally called from the start_server.tcl script)</summary>
         </proc>
         <proc>
           <name>stdin_event</name>
-          <summary>This proc is called when a stdin event occurs &#10;Tk / Server command</summary>
+          <summary>This proc is called when a stdin event occurs 
+Tk / Server command</summary>
         </proc>
         <proc>
           <name>wait</name>
-          <summary>This proc will wait for a specified time &#10;Tk / Client command</summary>
+          <summary>This proc will wait for a specified time 
+Tk / Client command</summary>
         </proc>
         <proc>
           <name>wait_for_response</name>
-          <summary>Waits for client_return to be set (called by rexec_wait) &#10;Tk / Client command</summary>
+          <summary>Waits for client_return to be set (called by rexec_wait) 
+Tk / Client command</summary>
         </proc>
       </procs>
     </app>

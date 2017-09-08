@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Files grouped to speed up compilation. AXI-BFM settings updated. Pre/post tcl hooks added.</revision_history>
+      <revision_history>Fixed bug with -scripts_only switch. Changed generated simulation script - now simulation works differently in batch mode. Removed fixed simulation resolution.</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

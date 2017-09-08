@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>extract xml comp files for finding SV pkg libraries</revision_history>
+      <revision_history>fetch requires_vip property on the fetched IP object</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

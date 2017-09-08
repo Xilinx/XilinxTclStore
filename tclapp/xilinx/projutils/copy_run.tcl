@@ -162,6 +162,11 @@ proc copy_run_ {} {
   lappend create_run_cmd "-strategy"
   lappend create_run_cmd [ get_property STRATEGY $m_cpr_options(run_to_copy) ]
   
+  if { [get_param project.enableReportConfiguration] } {
+    lappend create_run_cmd "-report_strategy"
+    lappend create_run_cmd [ get_property REPORT_STRATEGY $m_cpr_options(run_to_copy) ]
+  }
+  
   if { $m_cpr_options(verbose) } {
     lappend create_run_cmd "-verbose"
   } else {
@@ -209,6 +214,10 @@ proc copy_run_ {} {
       continue; # property is in ignore list, skipping
     }
 
+    if { [regexp -nocase "STEPS\..*\.REPORTS" $property_name] } {
+      continue;
+    }
+
     set default_value [ list_property_value -default $property_name $new_run ]
     set old_value     [ get_property $property_name $m_cpr_options(run_to_copy) ]
 
@@ -238,8 +247,79 @@ proc copy_run_ {} {
     }
   }
 
+  recreateReportStrategy $new_run
+
   return $new_run
 }
 
+proc recreateReportStrategy { run } {
+  # Summary: 
+  # delete all reports associated with run, then copies them from referenced run
+
+  variable m_cpr_options
+
+  if { ! [get_param project.enableReportConfiguration] } {
+    return
+  }
+
+  delete_report_config [get_report_configs -of_objects $run]
+
+  set reports [get_report_configs -of_objects $m_cpr_options(run_to_copy)]
+  if { [llength $reports] == 0 } {
+    return
+  }
+
+  foreach ref_report $reports {
+    set report_name [get_property name        $ref_report]
+    set report_spec [get_property report_type $ref_report]
+    set step        [get_property run_step    $ref_report]
+
+    set runNameRange [string length $m_cpr_options(run_to_copy)]
+    set runNameRange [expr {$runNameRange - 1}]
+
+    #replace run name if it exists in report name initial
+    set new_report_name [string replace $report_name 0 $runNameRange $run]
+    set report [create_report_config -report_name $new_report_name -report_type $report_spec -steps $step -runs $run]
+    set new_report  [get_report_configs -of_objects [get_runs $run] $report]
+    if { $new_report != "" } {
+      setReportProps $new_report $ref_report
+    }
+  }
+}
+
+proc setReportProps { new_report ref_report } {
+  # Summary: 
+  # sets report configuration properties as present in referenced run
+
+  set report_value_pairs  [ dict create ]
+  set all_property_names  [ rdi::get_attr_specs -object $ref_report -filter { (! IS_READONLY) && (IS_TCL) } ]
+  set options_prop_names  [ lsearch -regexp -all -inline [ list_property $ref_report ] "OPTIONS\\." ] 
+  set all_property_names  [ concat $all_property_names $options_prop_names]
+
+  foreach property_name $all_property_names {
+    if { [string equal -nocase $property_name "OPTIONS.pb"] || [string equal -nocase $property_name "OPTIONS.rpx"] } {
+      #skipping read_only property
+      continue
+    }
+
+    set default_value [ get_property $property_name $new_report]
+    set curr_value    [ get_property $property_name $ref_report]
+
+    if { [ string equal $default_value $curr_value ] } {
+      continue; # property is default, skipping
+    }
+  
+    dict set report_value_pairs $property_name $curr_value
+  }
+
+  if { [ llength $report_value_pairs ] != 0 } {
+    dict for {name value} $report_value_pairs {
+      set ret [ catch { set_property -name $name -value $value -objects $new_report } error ]
+      if { $ret != 0 } {
+        puts "Error: setting '$name' to '$value' in report '$new_report' failed. $error"
+      }
+    }
+  }
+}
 
 }; # end namespace ::tclapp::xilinx::projutils

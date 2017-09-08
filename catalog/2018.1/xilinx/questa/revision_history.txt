@@ -1,3 +1,24 @@
+2.63 fetch requires_vip property on the fetched IP object
+2.62 reference xilinx_vip if requires_vip property is set on the IP instance
+2.61 reference xilinx_vip if requires_vip property is set on the IP
+2.60 disable systemc support
+2.59 call sccom as part of script execution step and not from the elaborate do file
+2.58 initial support for systemC source compilation
+2.57 pass internal switch to control systemC simulation
+2.56 pass os mode type switch to sccom
+2.55 change param name for systemC simulation
+2.54 support for systemC source compilation
+2.53 compile glbl if XPM_CDC core is being referenced in the design
+2.52 additionally reference precompiled AXI-VIP library if param is set
+2.51 reference precompiled AXI-VIP library if param is set
+2.50 reference precompiled AXI-VIP library
+2.49 use global incremental property on simulation fileset
+2.48 add software build info in script header
+2.47 compile files into simulator library dir with _lib suffix
+2.46 add copyright version header in script files
+2.45 reference user specified XPM data if param set
+2.44 refactored procs into utils
+2.43 check for empty source file object before extracting
 2.42 extract xml comp files for finding SV pkg libraries
 2.41 source user tcl file from wrapper generated in run directory
 2.40 fetch sv files in quiet mode as those may not be part of compile order

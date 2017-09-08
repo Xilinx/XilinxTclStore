@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Initial version</revision_history>
+      <revision_history>support to add button in Vivado UI for Questa CDC</revision_history>
       <name>questa_cdc</name>
       <company>mentor</company>
       <company_display>Mentor Graphics, Inc.</company_display>

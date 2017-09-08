@@ -1,0 +1,16 @@
+2.5 reference xilinx_vip include directory for ovm/uvm based designs
+2.4 fetch requires_vip property on the fetched IP object
+2.3 reference xilinx_vip if requires_vip property is set on the IP instance
+2.2 reference xilinx_vip if requires_vip property is set on the IP
+2.1 initial support for systemC source compilation
+2.0 support for systemC source compilation
+1.9 compile glbl if XPM_CDC core is being referenced in the design
+1.8 additionally reference precompiled AXI-VIP library if param is set
+1.7 reference precompiled AXI-VIP library if param is set
+1.6 reference precompiled AXI-VIP library
+1.5 use global incremental property on simulation fileset
+1.4 add software build info in script header
+1.3 compile files into simulator library dir with _lib suffix
+1.2 add copyright version header in script files
+1.1 reference user specified XPM data if param set
+1.0 Initial app code for Xcelium parallel simulator

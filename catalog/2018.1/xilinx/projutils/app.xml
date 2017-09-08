@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed include_dirs property value to relative wrt origin dir and skip deprecated verilog_dir</revision_history>
+      <revision_history>write_project_tcl: bug fixes, copy_run: skipping read_only dynamic properties</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

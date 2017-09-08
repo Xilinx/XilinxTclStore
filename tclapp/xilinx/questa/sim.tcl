@@ -118,7 +118,7 @@ proc usf_questa_setup_simulation { args } {
     # no op
   } else {
     # extract ip simulation files
-    ::tclapp::xilinx::questa::usf_extract_ip_files
+    xcs_extract_ip_files a_sim_vars(b_extract_ip_sim_files)
   }
 
   # set default object
@@ -144,7 +144,7 @@ proc usf_questa_setup_simulation { args } {
   # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # find/copy modelsim.ini file into run dir
-  set clibs_dir [usf_questa_verify_compiled_lib]
+  set a_sim_vars(s_clibs_dir) [usf_questa_verify_compiled_lib]
 
   variable l_compiled_libraries
   variable l_xpm_libraries
@@ -156,8 +156,8 @@ proc usf_questa_setup_simulation { args } {
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
-    if { {} != $clibs_dir } {
-      set libraries [xcs_get_compiled_libraries $clibs_dir]
+    if { {} != $a_sim_vars(s_clibs_dir) } {
+      set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir)]
       # filter local ip definitions
       foreach lib $libraries {
         if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
@@ -190,8 +190,8 @@ proc usf_questa_setup_simulation { args } {
   set ::tclapp::xilinx::questa::a_sim_vars(l_design_files) \
      [xcs_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
 
-  # create setup file
-  #usf_questa_write_setup_files
+  # create library directory
+  usf_questa_create_lib_dir
 
   return 0
 }
@@ -222,6 +222,7 @@ proc usf_questa_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_systemc_mode]: SystemC mode (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -247,6 +248,7 @@ proc usf_questa_setup_args { args } {
       "-run_dir"        { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_launch_dir) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
+      "-int_systemc_mode" { set ::tclapp::xilinx::questa::a_sim_vars(b_int_systemc_mode) 1 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -347,27 +349,20 @@ proc usf_questa_verify_compiled_lib {} {
   return $compiled_lib_dir
 }
 
-proc usf_questa_write_setup_files {} {
+proc usf_questa_create_lib_dir {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
+  set design_lib_dir "$dir/questa_lib"
 
-  # msim lib dir
-  set lib_dir [file normalize [file join $dir "msim"]]
-  if { [file exists $lib_dir] } {
-    if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id USF-Questa-012 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
+  if { ![file exists $design_lib_dir] } {
+    if { [catch {file mkdir $design_lib_dir} error_msg] } {
+      send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($design_lib_dir): $error_msg\n"
       return 1
     }
   }
-
-  #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
-  #  return 1
-  #}
 }
 
 proc usf_questa_write_compile_script {} {
@@ -510,14 +505,15 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   } else {
     usf_add_quit_on_error $fh "compile"
   }
-  
-  set lib_dir_path [file normalize [string map {\\ /} $dir]]
+ 
+  set design_lib_dir "$dir/modelsim_lib" 
+  set lib_dir_path [file normalize [string map {\\ /} $design_lib_dir]]
   if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
     puts $fh "${tool_path_str}vlib $lib_dir_path/work"
     puts $fh "${tool_path_str}vlib $lib_dir_path/msim\n"
   } else {
-    puts $fh "${tool_path_str}vlib work"
-    puts $fh "${tool_path_str}vlib msim\n"
+    puts $fh "${tool_path_str}vlib questa_lib/work"
+    puts $fh "${tool_path_str}vlib questa_lib/msim\n"
   }
 
   set design_libs [usf_questa_get_design_libs $::tclapp::xilinx::questa::a_sim_vars(l_design_files)]
@@ -543,14 +539,14 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/$lib_path"
     } else {
-      puts $fh "${tool_path_str}vlib $lib_path"
+      puts $fh "${tool_path_str}vlib questa_lib/$lib_path"
     }
   }
   if { !$b_default_lib } {
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/msim/$default_lib"
     } else {
-      puts $fh "${tool_path_str}vlib msim/$default_lib"
+      puts $fh "${tool_path_str}vlib questa_lib/msim/$default_lib"
     }
   }
    
@@ -567,14 +563,14 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
     } else {
-      puts $fh "${tool_path_str}vmap $lib msim/$lib"
+      puts $fh "${tool_path_str}vmap $lib questa_lib/msim/$lib"
     }
   }
   if { !$b_default_lib } {
     if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vmap $default_lib $lib_dir_path/msim/$default_lib"
     } else {
-      puts $fh "${tool_path_str}vmap $default_lib msim/$default_lib"
+      puts $fh "${tool_path_str}vmap $default_lib questa_lib/msim/$default_lib"
     }
   }
 
@@ -595,7 +591,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
 
   set vlog_arg_list [list]
-  if { [get_property "QUESTA.COMPILE.INCREMENTAL" $fs_obj] } {
+  if { [get_property "INCREMENTAL" $fs_obj] } {
     lappend vlog_arg_list "-incr"
   }
   set more_vlog_options [string trim [get_property "QUESTA.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
@@ -682,7 +678,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]]
-    if { [::tclapp::xilinx::questa::usf_compile_glbl_file "questa" $b_load_glbl $::tclapp::xilinx::questa::a_sim_vars(l_design_files)] } {
+    if { [xcs_compile_glbl_file "questa" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
@@ -728,11 +724,14 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
+
   set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
   set b_batch $::tclapp::xilinx::questa::a_sim_vars(b_batch)
   set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
   set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
+  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
   set DS "\\\\"
   if {$::tcl_platform(platform) == "unix"} {
     set DS "/"
@@ -840,6 +839,14 @@ proc usf_questa_get_elaboration_cmdline {} {
     lappend arg_list "-L"
     lappend arg_list "$lib"
     #lappend arg_list "[string tolower $lib]"
+  }
+
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend arg_list "-L"
+      lappend arg_list "xilinx_vip"
+    }
   }
 
   # post* simulation
@@ -1247,6 +1254,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
+    xcs_write_script_header $fh_scr $step "questa"
     if { {} != $tool_path } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
@@ -1308,6 +1316,15 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       }
     }
 
+    if { ({elaborate} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+      # write sccom cmd line
+      set args [usf_questa_get_sccom_cmd_args]
+      if { [llength $args] > 0 } {
+        set sccom_cmd_str [join $args " "]
+        puts $fh_scr "ExecStep \$bin_path/sccom $sccom_cmd_str 2>&1 | tee $log_filename"
+      }
+    }
+ 
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
       puts $fh_scr "ExecStep source $do_filename 2>&1 | tee -a $log_filename"
     } else {
@@ -1320,6 +1337,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   } else {
     # windows
     puts $fh_scr "@echo off"
+    xcs_write_script_header $fh_scr $step "questa"
     if { {} != $tool_path } {
       puts $fh_scr "set bin_path=$tool_path"
       if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
@@ -1352,8 +1370,28 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         set full_cmd "%xv_path%/bin/vivado $vivado_cmd_str"
         puts $fh_scr "call $full_cmd"
       }
+      if { ({elaborate} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        # write sccom cmd line
+        set args [usf_questa_get_sccom_cmd_args]
+        if { [llength $args] > 0 } {
+          set sccom_cmd_str [join $args " "]
+          puts $fh_scr "call %bin_path%/sccom $sccom_cmd_str"
+          puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
+          puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
+        }
+      }
       puts $fh_scr "call %bin_path%/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
     } else {
+      if { ({elaborate} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        # write sccom cmd line
+        set args [usf_questa_get_sccom_cmd_args]
+        if { [llength $args] > 0 } {
+          set sccom_cmd_str [join $args " "]
+          puts $fh_scr "call sccom $sccom_cmd_str"
+          puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
+          puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
+        }
+      }
       puts $fh_scr "call vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
     }
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
@@ -1365,6 +1403,37 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   }
 
   close $fh_scr
+}
+
+proc usf_questa_get_sccom_cmd_args {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_vars
+
+  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
+  set args [list]
+  
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+    # systemc
+    if {$::tcl_platform(platform) == "unix"} {
+      if { [get_property 32bit $fs_obj] } {
+        lappend args {-32}
+      } else {
+        lappend args {-64}
+      }
+    }
+    lappend args "-link"
+
+    foreach lib [xcs_get_sc_libs] {
+      lappend args "-lib $lib"
+    }
+
+    lappend args "-lib $a_sim_vars(default_top_library)"
+    lappend args "-work $a_sim_vars(default_top_library)"
+  }
+  return $args
 }
 
 proc usf_questa_get_design_libs { files } {
