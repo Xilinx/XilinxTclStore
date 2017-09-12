@@ -1,3 +1,4 @@
+3.279 reference xilinx_vip for non-precompile mode in xsim.ini
 3.278 reference xilinx_vip include directory for ovm/uvm based designs
 3.277 Updating create_report_configs to be a singular command
 3.276 change internal project name variable to _xil_proj_name_
