@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <remote>2017.3-dev</remote>
+  <remote>master</remote>
   <support_commit_id>6a2cba20d1913a59c1f774095af1f854f4a5b7f5</support_commit_id>
   <release>2017.3</release>
   <revision>2.5</revision>
