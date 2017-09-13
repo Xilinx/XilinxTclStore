@@ -3441,6 +3441,7 @@ proc xps_write_xsim_setup_file { launch_dir } {
 
   variable a_sim_vars
   variable l_compiled_libraries
+  variable a_sim_sv_pkg_libs
   set top $a_sim_vars(s_top)
   set filename "xsim.ini"
   set file [file normalize "$launch_dir/$filename"]
@@ -3454,6 +3455,13 @@ proc xps_write_xsim_setup_file { launch_dir } {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
     puts $fh "$lib=xsim.dir/$lib_name"
+  }
+
+  # if xilinx_vip packages referenced, add mapping
+  if { [llength $a_sim_sv_pkg_libs] > 0 } {
+    set lmp [xps_get_lib_map_path "xsim"]
+    set library "xilinx_vip"
+    puts $fh "$library=$lmp/ip/$library"
   }
 
   # reference XPM modules from precompiled libs if param is set

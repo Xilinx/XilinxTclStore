@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference xilinx_vip include directory for ovm/uvm based designs</revision_history>
+      <revision_history>reference xilinx_vip packages for the non-precompile export simulation flow</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

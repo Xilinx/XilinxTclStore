@@ -432,6 +432,39 @@ proc usf_xsim_setup_args { args } {
   }
 }
 
+proc usf_xsim_get_compiled_library_dir {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set filename "xsim.ini"
+  set clibs_dir {}
+  # 1. is -lib_map_path specified and point to valid location?
+  if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    set clibs_dir [file normalize $a_sim_vars(s_lib_map_path)]
+    set ini_file "$clibs_dir/$filename"
+    if { [file exists $ini_file] } {
+      return $clibs_dir
+    }
+  }
+
+  # 2. if empty property (default), calculate default install location
+  set clibs_dir [get_property "COMPXLIB.XSIM_COMPILED_LIBRARY_DIR" [current_project]]
+  if { {} == $clibs_dir } {
+    set clibs_dir $::env(XILINX_VIVADO)
+    set clibs_dir [file normalize [file join $clibs_dir "data/xsim"]]
+  }
+  set ini_file "$clibs_dir/$filename"
+  if { [file exists $ini_file] } {
+    return $clibs_dir
+  }
+
+  # not found, return empty
+  return $clibs_dir
+}
+
 proc usf_xsim_verify_compiled_lib {} {
   # Summary:
   # Argument Usage:
@@ -654,6 +687,7 @@ proc usf_xsim_write_setup_file {} {
   # Return Value:
 
   variable a_sim_vars
+  variable a_sim_sv_pkg_libs
   variable l_compiled_libraries
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
@@ -672,6 +706,13 @@ proc usf_xsim_write_setup_file {} {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
     puts $fh "$lib=$a_sim_vars(compiled_design_lib)/$lib_name"
+  }
+
+  # if xilinx_vip packages referenced, add mapping
+  if { [llength $a_sim_sv_pkg_libs] > 0 } {
+    set library "xilinx_vip"
+    set cxl_prop_dir [usf_xsim_get_compiled_library_dir]
+    puts $fh "$library=[usf_resolve_compiled_library_dir $cxl_prop_dir $library]"
   }
 
   # reference XPM modules from precompiled libs if param is set
