@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixed bug with -scripts_only switch. Changed generated simulation script - now simulation works differently in batch mode. Removed fixed simulation resolution.</revision_history>
+      <revision_history>Generated scripts are now automatically made executable. List of libraries is now included in vlog command.</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
