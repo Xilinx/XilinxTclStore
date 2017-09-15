@@ -559,7 +559,7 @@ proc write_bd_as_proc { bd_file } {
     incr temp_offset
   } 
   set temp_bd_file [file join $temp_dir "temp_$temp_offset.tcl"]
-  write_bd_tcl -no_project_wrapper $temp_bd_file
+  write_bd_tcl -no_project_wrapper -make_local $temp_bd_file
   
   # Set non default properties for the BD
   wr_bd_properties $bd_file
