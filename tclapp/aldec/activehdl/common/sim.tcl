@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.11
+package require ::tclapp::aldec::common::helpers 1.12
 
-package provide ::tclapp::aldec::common::sim 1.11
+package provide ::tclapp::aldec::common::sim 1.12
 
 namespace eval ::tclapp::aldec::common {
 
@@ -90,6 +90,13 @@ proc simulate { args } {
     if {[catch {open $file w} fh]} {
       send_msg_id USF-${simulatorName}-84 ERROR "Failed to open file to write ($file)\n"
     } else {
+  # change file permissions to executable
+      foreach file [list "compile.sh" "simulate.sh"] {
+        set file_path "$dir/$file"
+        if { [file exists $file_path] } {
+         ::tclapp::aldec::common::helpers::usf_make_file_executable $file_path
+        }
+      }
       puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
       close $fh
     }
@@ -399,6 +406,13 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   if { {} != $more_vlog_options } {
     set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
   }
+
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    lappend vlog_arg_list "-l"
+    lappend vlog_arg_list "$lib"
+  }
+
   set vlog_cmd_str [join $vlog_arg_list " "]
   puts $fh "null \[set vlog_opts \{$vlog_cmd_str\}\]"
 

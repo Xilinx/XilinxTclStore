@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.11
+package provide ::tclapp::aldec::common::helpers 1.12
 
 namespace eval ::tclapp::aldec::common {
 
@@ -1622,6 +1622,22 @@ proc usf_get_script_extn {} {
     set scr_extn ".sh"
   }
   return $scr_extn
+}
+
+proc usf_make_file_executable { file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if {$::tcl_platform(platform) == "unix"} {
+    if {[catch {exec chmod a+x $file} error_msg] } {
+      send_msg_id USF-[usf_aldec_getSimulatorName]-96 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+    }
+  } else {
+    if {[catch {exec attrib /D -R $file} error_msg] } {
+      send_msg_id USF-[usf_aldec_getSimulatorName]-96 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+    }
+  }
 }
 
 proc usf_aldec_get_platform {} {
