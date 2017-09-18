@@ -971,6 +971,11 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
     set ip_dir  [file dirname $ip_xml]
     set ip_comp [ipx::open_core -set_current false $ip_xml]
     set ip_def_name [get_property name $ip_comp]
+    set b_requires_vip [get_property -quiet requires_vip $ip_comp]
+    set interface_pkgs [list]
+    if { $b_requires_vip } {
+      lappend interface_pkgs "xilinx_vip"
+    }
     set vlnv    [get_property vlnv $ip_comp]
     puts -nonewline "."
     incr current_index
@@ -998,7 +1003,7 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
         #puts "$vlnv=$ordered_sub_cores"
         set sv_libs [list]
         foreach sub_vlnv $ordered_sub_cores {
-          isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs
+          isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs interface_pkgs
         }
 
         set ip_lib_dir {}
@@ -1050,7 +1055,12 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
             set sv_libs_str [join $sv_libs ","]
             set sv_libs_str ",$sv_libs_str"
           }
-          set data "$library,$full_ip_file_path,$type,static$sv_libs_str"
+          set interface_pkgs_str {}
+          if { [llength $interface_pkgs] > 0 } {
+            set interface_pkgs_str [join $interface_pkgs ","]
+            set interface_pkgs_str ",$interface_pkgs_str"
+          }
+          set data "$library,$full_ip_file_path,$type,static$sv_libs_str$interface_pkgs_str"
           lappend file_paths "$full_ip_file_path,$type"
           isl_add_to_compile_order $library $data
         }
@@ -1077,7 +1087,7 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
   return $current_index
 }
 
-proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg } {
+proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg interface_pkgs_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1085,6 +1095,7 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg } {
   variable a_isl_vars
   upvar ip_libs_arg ip_libs
   upvar $sv_libs_arg sv_libs
+  upvar $interface_pkgs_arg interface_pkgs
 
   set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
   set ip_def_comps [split $ip_def {:}]
@@ -1092,6 +1103,13 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg } {
   set ip_xml  [get_property xml_file_name $ip_def]
   set ip_dir  [file dirname $ip_xml]
   set ip_comp [ipx::open_core -set_current false $ip_xml]
+  set b_requires_vip [get_property -quiet requires_vip $ip_comp]
+  if { $b_requires_vip } {
+    set pkg_name "xilinx_vip"
+    if { [lsearch $interface_pkgs $pkg_name] == -1 } {
+      lappend interface_pkgs $pkg_name
+    }
+  }
   foreach file_group [ipx::get_file_groups -of $ip_comp] {
     set type [get_property type $file_group]
     if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
@@ -1102,7 +1120,7 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg } {
       } 
       #puts " +$vlnv=$ordered_sub_cores"
       foreach sub_vlnv $ordered_sub_cores {
-        isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs
+        isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs interface_pkgs
       }
       set ip_lib_dir {}
       set file_paths [list]

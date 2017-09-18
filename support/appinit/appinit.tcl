@@ -5,6 +5,62 @@
 
 namespace eval ::tclapp::support::appinit {}
 
+proc ::tclapp::support::appinit::check_hook_procs_exists {app {ns ""}} {
+
+    # Summary: Check whether the install and uninstall hook procs exist or not
+
+    # Argument Usage:
+    # app: Full name of app, e.g. ::tclapp::xilinx::diff
+    # [ns=]: Namespace into which the app is registered
+
+    # Return Value:
+    # 1 when both install and uninstall hook for the app exists, otherwise 0. 
+
+    set install_proc $app
+    set uninstall_proc $app
+
+    append install_proc :: "install"
+    append uninstall_proc :: "uninstall"
+  
+    set install_proc_exists [expr {[info procs $install_proc] != ""}]
+    set uninstall_proc_exists [expr {[info procs $uninstall_proc] != ""}]
+
+    if { $install_proc_exists && !$uninstall_proc_exists } {
+      return -code error "Uninstall hook proc is missing for $app"
+    }
+
+    if { !$install_proc_exists && $uninstall_proc_exists } {
+      return -code error "Install hook proc is missing for $app"
+    }
+
+    return $install_proc_exists && $uninstall_proc_exists
+}
+
+proc ::tclapp::support::appinit::install_hook {app {ns ""}} {
+
+    # Summary: Invoke install hook proc of the argument app
+
+    # Argument Usage:
+    # app: Full name of app, e.g. ::tclapp::xilinx::diff
+    # [ns=]: Namespace into which the app is registered
+
+    # Return Value:
+    # Nothing
+
+    set install_proc $app
+    append install_proc :: "install"
+    if {[set result [catch {check_hook_procs_exists $app $ns} resulttext]]} {
+      set einfo $::errorInfo
+      set ecode $::errorCode
+
+      return -code $result -errorcode $ecode -errorinfo $einfo $resulttext
+    }
+
+    if { $resulttext == 1 } {
+      eval $install_proc
+    }
+}
+
 proc ::tclapp::support::appinit::load_app {repo app {ns ""}} {
 
     # Summary: Load the argument app in Vivado
@@ -106,6 +162,30 @@ proc ::tclapp::support::appinit::load_app {repo app {ns ""}} {
     }
 
     return $procs
+}
+
+proc ::tclapp::support::appinit::uninstall_hook {app {ns ""}} {
+    # Summary: Invoke uninstall hook proc of the argument app
+
+    # Argument Usage:
+    # app: Full name of app, e.g. ::tclapp::xilinx::diff
+    # [ns=]: Namespace into which the app is registered
+
+    # Return Value:
+    # Nothing
+
+    set uninstall_proc $app
+    append uninstall_proc :: "uninstall"
+    if {[set result [catch {check_hook_procs_exists $app $ns} resulttext]]} {
+      set einfo $::errorInfo
+      set ecode $::errorCode
+
+      return -code $result -errorcode $ecode -errorinfo $einfo $resulttext
+    }
+
+    if { $resulttext == 1 } {
+      eval $uninstall_proc
+    }
 }
 
 proc ::tclapp::support::appinit::unload_app {app ns} {
@@ -326,4 +406,4 @@ proc ::tclapp::support::appinit::get_proc_metacomment {app procName {metacomment
   return $doc
 }
 
-package provide ::tclapp::support::appinit 1.1
+package provide ::tclapp::support::appinit 1.2

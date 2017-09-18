@@ -13,6 +13,172 @@
 
 variable _xcs_defined 1
 
+proc xcs_create_fs_options_spec { simulator opts } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # create properties on the fileset object
+  foreach { row } $opts  {
+    set name  [lindex $row 0]
+    set type  [lindex $row 1]
+    set value [lindex $row 2]
+    set desc  [lindex $row 3]
+
+    # setup property name
+    set prop_name "${simulator}.${name}"
+
+    set prop_name [string tolower $prop_name]
+
+    # is registered already?
+    if { [xcs_is_option_registered_on_simulator $prop_name $simulator] } {
+      continue;
+    }
+
+    # is enum type?
+    if { {enum} == $type } {
+      set e_value   [lindex $value 0]
+      set e_default [lindex $value 1]
+      set e_values  [lindex $value 2]
+      # create enum property
+      create_property -name "${prop_name}" -type $type -description $desc -enum_values $e_values -default_value $e_default -class fileset -no_register
+    } elseif { {file} == $type } {
+      set f_extns   [lindex $row 4]
+      set f_desc    [lindex $row 5]
+      # create file property
+      set v_default $value
+      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -file_types $f_extns -display_text $f_desc -class fileset -no_register
+    } else {
+      set v_default $value
+      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -class fileset -no_register
+    }
+  }
+  return 0
+}
+
+proc xcs_set_fs_options { fs_obj simulator opts } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  foreach { row } $opts  {
+    set name  [lindex $row 0]
+    set type  [lindex $row 1]
+    set value [lindex $row 2]
+    set desc  [lindex $row 3]
+
+    set prop_name "${simulator}.${name}"
+
+    # is registered already?
+    if { [xcs_is_option_registered_on_simulator $prop_name $simulator] } {
+      continue;
+    }
+
+    # is enum type?
+    if { {enum} == $type } {
+      set e_value   [lindex $value 0]
+      set e_default [lindex $value 1]
+      set e_values  [lindex $value 2]
+      set_property -name "${prop_name}" -value $e_value -objects ${fs_obj}
+    } else {
+      set v_default $value
+      set_property -name "${prop_name}" -value $value -objects ${fs_obj}
+    }
+  }
+  return 0
+}
+
+proc xcs_is_option_registered_on_simulator { prop_name simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set str_1 [string tolower $prop_name]
+  # get registered options from simulator for the current simset
+  foreach option_name [get_property "REGISTERED_OPTIONS" [get_simulators $simulator]] {
+    set str_2 [string tolower $option_name]
+    if { [string compare $str_1 $str_2] == 0 } {
+      return true
+    }
+  }
+  return false
+}
+
+proc xcs_extract_ip_files { b_extract_ip_sim_files_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $b_extract_ip_sim_files_arg b_extract_ip_sim_files
+
+  if { ![get_property corecontainer.enable [current_project]] } {
+    return
+  }
+  set b_extract_ip_sim_files [get_property extract_ip_sim_files [current_project]]
+  if { $b_extract_ip_sim_files } {
+    foreach ip [get_ips -all -quiet] {
+      set xci_ip_name "${ip}.xci"
+      set xcix_ip_name "${ip}.xcix"
+      set xcix_file_path [get_property core_container [get_files -quiet -all ${xci_ip_name}]]
+      if { {} != $xcix_file_path } {
+        [catch {rdi::extract_ip_sim_files -of_objects [get_files -quiet -all ${xcix_ip_name}]} err]
+      }
+    }
+  }
+}
+
+proc xcs_set_ref_dir { fh b_absolute_path s_launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # setup source dir var
+  puts $fh "# directory path for design sources and include directories (if any) wrt this path"
+  if { $b_absolute_path } {
+    puts $fh "origin_dir=\"$s_launch_dir\""
+  } else {
+    puts $fh "origin_dir=\".\""
+  }
+  puts $fh ""
+}
+
+proc xcs_compile_glbl_file { simulator b_load_glbl design_files s_simset s_simulation_flow s_netlist_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set fs_obj      [get_filesets $s_simset]
+  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+  set flow        $s_simulation_flow
+  if { [xcs_contains_verilog $design_files $s_simulation_flow $s_netlist_file] } {
+    if { $b_load_glbl } {
+      return 1
+    }
+    return 0
+  } elseif { [xcs_glbl_dependency_for_xpm] } {
+    if { $b_load_glbl } {
+      return 1
+    }
+    return 0
+  }
+
+  # target lang is vhdl and glbl is added as top for post-implementation and post-synthesis and load glbl set (default)
+  if { ((({VHDL} == $target_lang) || ({VHDL 2008} == $target_lang)) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
+    return 1
+  }
+
+  switch $simulator {
+    {ies} -
+    {xcelium} -
+    {vcs} {
+      if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+        return 1
+      }
+    }
+  }
+  return 0
+}
+
 proc xcs_control_pre_compile_flow { b_static_arg } {
   # Summary:
   # Argument Usage:
@@ -42,6 +208,12 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
       {VERILOG} {
         set b_verilog_srcs 1
       }
+    }
+  }
+
+  if { [xcs_glbl_dependency_for_xpm] } {
+    if { !$b_verilog_srcs } {
+      set b_verilog_srcs 1
     }
   }
 
@@ -1122,7 +1294,19 @@ proc xcs_get_common_xpm_vhdl_files {} {
   # Return Value:
 
   set files [list]
-  lappend files [xcs_get_path_from_data "ip/xpm/xpm_VCOMP.vhd"]
+  # is override param dir specified?
+  set ip_dir [get_param "project.xpm.overrideIPDir"]
+  if { ({} != $ip_dir) && [file exists $ip_dir] } {
+    set comp_file "$ip_dir/xpm_VCOMP.vhd"
+    if { ![file exists $comp_file] } {
+      set file [xcs_get_path_from_data "ip/xpm/xpm_VCOMP.vhd"]
+      send_msg_id SIM-utils-020 WARNING "The component file does not exist! '$comp_file'. Using default: '$file'\n"
+      set comp_file $file
+    }
+    lappend files $comp_file
+  } else {
+    lappend files [xcs_get_path_from_data "ip/xpm/xpm_VCOMP.vhd"]
+  }
   return $files
 }
 
@@ -1861,7 +2045,7 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
     if { ([string match *_changelog* $filename]) && ({.txt} == $extn) } { continue }
 
     # skip mig data files
-    set mig_files [list "xsim_run.sh" "ies_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
+    set mig_files [list "xsim_run.sh" "ies_run.sh" "xcelium_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
     if { [lsearch $mig_files $filename] != -1 } {continue}
 
     set target_file "$export_dir/[file tail $file]"
@@ -2092,6 +2276,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" {set compiler "verilog"}
         "SystemVerilog"                {set compiler "sv"}
+        "SystemC"                      {set compiler "xsc"}
       }
     }
     "modelsim" -
@@ -2103,6 +2288,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
         "SystemVerilog"                {set compiler "vlog"}
+        "SystemC"                      {set compiler "sccom"}
       }
     }
     "riviera" -
@@ -2124,6 +2310,16 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
         "SystemVerilog"                {set compiler "ncvlog"}
+      }
+    }
+    "xcelium" {
+      switch -exact -- $file_type {
+        "VHDL"                         -
+        "VHDL 2008"                    {set compiler "xmvhdl"}
+        "Verilog"                      -
+        "Verilog Header"               -
+        "Verilog/SystemVerilog Header" -
+        "SystemVerilog"                {set compiler "xmvlog"}
       }
     }
     "vcs" {
@@ -2206,6 +2402,7 @@ proc xcs_get_script_extn { simulator } {
 
   switch -exact -- $simulator {
     "ies" -
+    "xcelium" -
     "vcs" {
       set scr_extn ".sh"
     }
@@ -2314,12 +2511,46 @@ proc xcs_get_ip_header_file_from_repo { repo_dir ip_lib_dir_name vh_file_name } 
   return $ip_vh_file
 }
 
+proc xcs_get_vip_ips {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set vip_ips [list "axi_vip" "axi4stream_vip"]
+  return $vip_ips
+}
+
+proc xcs_design_contain_sv_ip { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  foreach ip_obj [get_ips -all -quiet] {
+    set b_requires_vip [get_property -quiet requires_vip $ip_obj]
+    if { $b_requires_vip } {
+      return true
+    }
+  }
+
+  # fallback if property not set
+  set vip_ips [xcs_get_vip_ips]
+  foreach ip_obj [get_ips -all -quiet] {
+    set ipdef [get_property -quiet IPDEF $ip_obj]
+    set ip_name [lindex [split $ipdef ":"] 2]
+    if { [lsearch -nocase $vip_ips $ip_name] != -1 } {
+      return true
+    }
+  }
+  return false
+}
+
 proc xcs_find_sv_pkg_libs { run_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_sv_pkg_libs
+
   set tmp_dir "$run_dir/_tmp_ip_comp_"
   set ip_comps [list]
   foreach ip [get_ips -all -quiet] {
@@ -2394,6 +2625,30 @@ proc xcs_find_sv_pkg_libs { run_dir } {
       }
     }
   }
+
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend a_sim_sv_pkg_libs "xilinx_vip"
+    }
+  }
+}
+
+proc xcs_get_vip_include_dirs {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_sv_pkg_libs
+  set incl_dir {}
+  if { [llength $a_sim_sv_pkg_libs] > 0 } {
+    set data_dir [rdi::get_data_dir -quiet -datafile xilinx_vip]
+    set incl_dir "${data_dir}/xilinx_vip/include"
+    if { [file exists $incl_dir] } {
+      return $incl_dir
+    }
+  }
+  return $incl_dir
 }
 
 proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
@@ -2593,4 +2848,161 @@ proc xcs_delete_backup_log { tcl_wrapper_file dir } {
   foreach log_file [glob -nocomplain -directory $dir ${tcl_wrapper_file}_*.backup.log] {
     [catch {file delete -force $log_file} error_msg]
   }
+}
+
+proc xcs_get_simulator_pretty_name { name } {
+  # Summary:
+  # Argument Usage:
+  # none
+  # Return Value:
+
+  set pretty_name {}
+  switch -regexp -- $name {
+    "xsim"      { set pretty_name "Xilinx Vivado Simulator" }
+    "modelsim"  { set pretty_name "Mentor Graphics ModelSim Simulator" }
+    "questa"    { set pretty_name "Mentor Graphics Questa Advanced Simulator" }
+    "ies"       { set pretty_name "Cadence Incisive Enterprise Simulator" }
+    "xcelium"   { set pretty_name "Cadence Xcelium Parallel Simulator" }
+    "vcs"       { set pretty_name "Synopsys Verilog Compiler Simulator" }
+    "riviera"   { set pretty_name "Aldec Riviera-PRO Simulator" }
+    "activehdl" { set pretty_name "Aldec Active-HDL Simulator" }
+  }
+  return $pretty_name
+}
+
+proc xcs_write_script_header { fh step simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set curr_time    [clock format [clock seconds]]
+  set version_info [split [version] "\n"]
+  set release      [lindex $version_info 0]
+  set swbuild      [lindex $version_info 1]
+  set copyright    [lindex $version_info 3]
+  set product      [lindex [split $release " "] 0]
+  set version_id   [join [lrange $release 1 end] " "]
+  set simulator    [xcs_get_simulator_pretty_name $simulator]
+  set extn ".bat"
+  set cmt  "REM"
+  if {$::tcl_platform(platform) == "unix"} {
+    set extn ".sh"
+    set cmt  "#"
+  }
+  set filename "${step}${extn}"
+
+  set desc {}
+  switch -exact -- $step {
+    "setup"     { set desc "Script for creating setup files and library mappings" }
+    "compile"   { set desc "Script for compiling the simulation design source files" }
+    "elaborate" { set desc "Script for elaborating the compiled design" }
+    "simulate"  { set desc "Script for simulating the design by launching the simulator" }
+  }
+  puts $fh "$cmt ****************************************************************************"
+  puts $fh "$cmt $product (TM) $version_id"
+  puts $fh "$cmt"
+  puts $fh "$cmt Filename    : $filename"  
+  puts $fh "$cmt Simulator   : $simulator"
+  puts $fh "$cmt Description : $desc"
+  puts $fh "$cmt"
+  puts $fh "$cmt Generated by $product on $curr_time"
+  puts $fh "$cmt $swbuild"
+  puts $fh "$cmt"
+  puts $fh "$cmt $copyright"
+  puts $fh "$cmt"
+  puts $fh "$cmt usage: $filename"
+  puts $fh "$cmt"
+  puts $fh "$cmt ****************************************************************************"
+}
+
+proc xcs_glbl_dependency_for_xpm {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_xpm_libraries
+
+  foreach library $l_xpm_libraries {
+    foreach file [rdi::get_xpm_files -library_name $library] {
+      set filebase [file root [file tail $file]]
+      # xpm_cdc core has depedency on glbl
+      if { {xpm_cdc} == $filebase } {
+        return 1
+      }
+    }
+  }
+  return 0
+}
+
+proc xcs_get_systemc_incl_dirs { simulator launch_dir s_ip_user_files_dir b_xport_src_files b_absolute_path { ref_dir "true" } } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set incl_dirs [list]
+  set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+  set uniq_incl_dirs [list]
+
+  foreach file [get_files -all -filter $sc_filter] {
+    set file_extn [file extension $file]
+
+    # consider header (.h) files only
+    if { {.h} != $file_extn } {
+      continue
+    }
+
+    # fetch header file
+    set sc_header_file [xcs_fetch_header_from_dynamic $file false $s_ip_user_files_dir]
+    set dir [file normalize [file dirname $sc_header_file]]
+
+    # is export_source_files? copy to local incl dir
+    if { $b_xport_src_files } {
+      set export_dir "$launch_dir/srcs/incl"
+      if {[catch {file copy -force $sc_header_file $export_dir} error_msg] } {
+        send_msg_id SIM-utils-057 INFO "Failed to copy file '$vh_file' to '$export_dir' : $error_msg\n"
+      }
+    }
+
+    # make absolute
+    if { $b_absolute_path } {
+      set dir "[xcs_resolve_file_path $dir $launch_dir]"
+    } else {
+      if { $ref_dir } {
+        if { $b_xport_src_files } {
+          set dir "\$ref_dir/incl"
+          if { ({modelsim} == $simulator) || ({questa} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
+            set dir "srcs/incl"
+          }
+        } else {
+          if { ({modelsim} == $simulator) || ({questa} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
+            set dir "[xcs_get_relative_file_path $dir $launch_dir]"
+          } else {
+            set dir "\$ref_dir/[xcs_get_relative_file_path $dir $launch_dir]"
+          }
+        }
+      } else {
+        if { $b_xport_src_files } {
+          set dir "srcs/incl"
+        } else {
+          set dir "[xcs_get_relative_file_path $dir $launch_dir]"
+        }
+      }
+    }
+    if { [lsearch -exact $uniq_incl_dirs $dir] == -1 } {
+      lappend uniq_incl_dirs $dir
+      lappend incl_dirs "$dir"
+    }
+  }
+  return $incl_dirs
+}
+
+proc xcs_get_sc_libs {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set sc_libs [list]
+  lappend sc_libs "xtlm"
+
+  return $sc_libs
 }

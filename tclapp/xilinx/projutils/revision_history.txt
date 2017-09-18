@@ -1,4 +1,47 @@
-3.232 return reconfig module sub-design files
+3.277 pass make_local to write_bd_tcl
+3.276 updated and enabled cpr_test_0001.tcl test
+3.275 write BD creation procs for RMs at the time of creating the partition defs and adding modules to it
+3.273 reference xilinx_vip include directory for ovm/uvm based designs
+3.272 skip project properties if not end with cache or ip_user_files
+3.270 support for creating custom project with new -project_name switch
+3.269 write_project_tcl: bug fixes, copy_run: skipping read_only dynamic properties
+3.268 changing switch '-name' to 'report_name' in create_report_configs
+3.267 Writing BD properties individually right after their creation
+3.266 copy_run changes to make sure report strategy is copied correctly to newly created run
+3.265 do not export proc
+3.264 fixed bd cell vars to use current cell object
+3.263 initial version of create_bd_partition_def utility to create partition definition from level of hierarchy
+3.262 fetch requires_vip property on the fetched IP object
+3.261 Fixed improper handling of local/native files in the project. Added handling of -no_copy_sources and -absolute_path where it was missing.
+3.260 reference xilinx_vip if requires_vip property is set on the IP instance
+3.259 reference xilinx_vip if requires_vip property is set on the IP
+3.258 disable systemc support
+3.257 reference xilinx_vip package with requires vip property on the ip component
+3.256 Using 'get_files -references' instead of 'get_referenced_sources'
+3.255 initial support for systemC source compilation
+3.254 remove m64 switch for XSim
+3.253 support for origin dir override
+3.252 fixes for issues found during bash
+3.251 change param name for systemC simulation
+3.250 support for systemC source compilation
+3.249 compile glbl if XPM_CDC core is being referenced in the design
+3.248 open block design in stealth mode and write out procs to create BDs in the design instead of directly importing/adding the bd sources
+3.247 recreate report strategy with the run
+3.246 fixed bug while fetching unsupported simulators from ip
+3.245 reference xilinx_vip precompiled library
+3.244 check simulator validity and print message for IP instance
+3.243 additionally reference precompiled AXI-VIP library if param is set
+3.242 reference precompiled AXI-VIP library if param is set
+3.241 reference precompiled AXI-VIP library
+3.240 add software build info in script header
+3.239 compile files into simulator library dir with _lib suffix
+3.238 compile files into simulator library dir with _lib suffix
+3.237 add copyright version header in script files
+3.236 reference user specified XPM data if param set
+3.235 group compile order files by library
+3.234 support for Xcelium parallel simulator
+3.233 call Vivado simulator executables from the current Vivado install PATH setting
+3.232 fixed top library to be passed for elaborate step
 3.231 check for empty source file object before extracting
 3.230 fixed include_dirs property value to relative wrt origin dir and skip deprecated verilog_dir
 3.228 extract xml comp files for finding SV pkg libraries

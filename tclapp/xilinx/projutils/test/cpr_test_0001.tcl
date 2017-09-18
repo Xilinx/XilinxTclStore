@@ -22,11 +22,13 @@ package require struct
 proc compare_runs { run1 run2 {ignore {}} } {
   puts "Comparing runs '${run1}' and '${run2}'"
   set always_ignore   { DIRECTORY NAME }
-  set ignore          [ concat $always_ignore $ignore ]
-  set properties1     [ list_property $run1 ]
-  set properties2     [ list_property $run2 ]
-  set deltas1         [ ::struct::set difference $properties1 $properties2 ]
-  set deltas2         [ ::struct::set difference $properties2 $properties1 ]
+  set ignore           [ concat $always_ignore $ignore ]
+  set step_report_prop [ lsearch -regexp -all -inline [ list_property $run1 ] "STEPS\\..*\.REPORTS" ] 
+  set ignore           [ concat $ignore $step_report_prop ]
+  set properties1      [ list_property $run1 ]
+  set properties2      [ list_property $run2 ]
+  set deltas1          [ ::struct::set difference $properties1 $properties2 ]
+  set deltas2          [ ::struct::set difference $properties2 $properties1 ]
   if { ( [ llength $deltas1 ] != 0 ) || ( [ llength $deltas2 ] != 0 ) } {
     error "\nERROR: There are differences between the property names on '${run1}' and '${run2}'\n\
     Run 1 is missing : '[ join $deltas2 ',\ ' ]'\n\

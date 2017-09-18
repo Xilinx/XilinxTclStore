@@ -1,0 +1,39 @@
+
+Description:
+
+  Create partition definition from a level of hierarhy. This utility will create
+  a partition definition with its default RM (Reconfigurable Module) from a level
+  of hierarchy in a block design (BD).
+ 
+Arguments:
+
+  -help - (Optional) Print this help.
+
+  -name -  name of partition definition
+  
+  -module -  name of default reconfigurable module name
+
+  -verbose - (Optional) Print verbose messaging.
+
+  <cell> - (Required) hierarchy cell that will be converted to a partition_def
+
+
+Syntax:
+
+  create_bd_partition_def [-help] [-verbose] -name module <cell>
+
+Returns:
+
+  (none) An error will be thrown if the command is not successful
+
+Examples:
+
+  The following command will create a partition definition names 'my_pd' for hierarchy
+  level '/my_hier0'. Default RM name is 'my_rm':-
+
+  % create_bd_partition_def -name my_pd -module my_rm /my_hier0
+
+See Also:
+
+   *  create_partition_def
+   *  create_bd_cell

@@ -40,14 +40,21 @@ proc usf_init_vars {} {
   set a_sim_vars(b_absolute_path)    0
   set a_sim_vars(s_install_path)     {}
   set a_sim_vars(s_lib_map_path)     {}
+  set a_sim_vars(s_clibs_dir)        {}
   set a_sim_vars(compiled_library_dir) {}
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
+  set a_sim_vars(b_int_systemc_mode) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+
+  set a_sim_vars(b_contain_systemc_sources) 0
+  
+  set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
+  set a_sim_vars(compiled_design_lib) "xsim.dir"
 
   # initialize ip repository dir
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
@@ -146,11 +153,6 @@ proc usf_init_vars {} {
 
   variable a_sim_sv_pkg_libs [list]
 
-  # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
-  if { ! [info exists ::tclapp::xilinx::xsim::_xcs_defined] } {
-    variable home
-    source -notrace [file join $home "common" "utils.tcl"] 
-  }
 }
 
 proc usf_create_options { simulator opts } {
@@ -159,105 +161,14 @@ proc usf_create_options { simulator opts } {
   # Return Value:
 
   # create options
-  usf_create_fs_options_spec $simulator $opts
+  xcs_create_fs_options_spec $simulator $opts
 
   if { ![get_property IS_READONLY [current_project]] } {
     # simulation fileset objects
     foreach fs_obj [get_filesets -filter {FILESET_TYPE == SimulationSrcs}] {
-      usf_set_fs_options $fs_obj $simulator $opts
+      xcs_set_fs_options $fs_obj $simulator $opts
     }
   }
-}
-
-proc usf_create_fs_options_spec { simulator opts } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  # create properties on the fileset object
-  foreach { row } $opts  {
-    set name  [lindex $row 0]
-    set type  [lindex $row 1]
-    set value [lindex $row 2]
-    set desc  [lindex $row 3]
-
-    # setup property name
-    set prop_name "${simulator}.${name}"
-
-    set prop_name [string tolower $prop_name]
-
-    # is registered already?
-    if { [usf_is_option_registered_on_simulator $prop_name $simulator] } {
-      continue;
-    }
-
-    # is enum type?
-    if { {enum} == $type } {
-      set e_value   [lindex $value 0]
-      set e_default [lindex $value 1]
-      set e_values  [lindex $value 2]
-      # create enum property
-      create_property -name "${prop_name}" -type $type -description $desc -enum_values $e_values -default_value $e_default -class fileset -no_register
-    } elseif { {file} == $type } {
-      set f_extns   [lindex $row 4]
-      set f_desc    [lindex $row 5]
-      # create file property
-      set v_default $value
-      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -file_types $f_extns -display_text $f_desc -class fileset -no_register
-    } else {
-      set v_default $value
-      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -class fileset -no_register
-    }
-  }
-  return 0
-}
-
-proc usf_set_fs_options { fs_obj simulator opts } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  foreach { row } $opts  {
-    set name  [lindex $row 0]
-    set type  [lindex $row 1]
-    set value [lindex $row 2]
-    set desc  [lindex $row 3]
-
-    set prop_name "${simulator}.${name}"
-
-    # is registered already?
-    if { [usf_is_option_registered_on_simulator $prop_name $simulator] } {
-      continue;
-    }
-
-    # is enum type?
-    if { {enum} == $type } {
-      set e_value   [lindex $value 0]
-      set e_default [lindex $value 1]
-      set e_values  [lindex $value 2]
-      set_property -name "${prop_name}" -value $e_value -objects ${fs_obj}
-    } else {
-      set v_default $value
-      set_property -name "${prop_name}" -value $value -objects ${fs_obj}
-    }
-  }
-  return 0
-}
-
-proc usf_is_option_registered_on_simulator { prop_name simulator } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set str_1 [string tolower $prop_name]
-  # get registered options from simulator for the current simset
-  foreach option_name [get_property "REGISTERED_OPTIONS" [get_simulators $simulator]] {
-    set str_2 [string tolower $option_name]
-    if { [string compare $str_1 $str_2] == 0 } {
-      return true
-    }
-  }
-  return false
 }
 
 proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
@@ -340,28 +251,6 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   return [dict keys $d_dir_names]
 }
 
-proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set fs_obj      [get_filesets $a_sim_vars(s_simset)]
-  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-  set flow        $a_sim_vars(s_simulation_flow)
-  if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
-    if { $b_load_glbl } {
-      return 1
-    }
-    return 0 
-  }
-  # target lang is vhdl and glbl is added as top for post-implementation and post-synthesis and load glbl set (default)
-  if { ((({VHDL} == $target_lang) || ({VHDL 2008} == $target_lang)) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
-    return 1
-  }
-  return 0
-}
-
 proc usf_get_other_verilog_options { global_files_str opts_arg } {
   # Summary:
   # Argument Usage:
@@ -407,7 +296,7 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
 
   # --include
   set prefix_ref_dir "false"
-  foreach incl_dir [usf_get_include_file_dirs $global_files_str $prefix_ref_dir] {
+  foreach incl_dir [concat [usf_get_include_file_dirs $global_files_str $prefix_ref_dir] [xcs_get_vip_include_dirs]] {
     set incl_dir [string map {\\ /} $incl_dir]
     lappend opts "--include \"$incl_dir\""
   }
@@ -617,6 +506,38 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
   }
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    # design contain systemc sources?
+    set simulator "xsim"
+    set prefix_ref_dir false
+    set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+    set sc_files [get_files -quiet -all -filter $sc_filter]
+    if { [llength $sc_files] > 0 } {
+      set g_files {}
+      set l_incl_dir_opts {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      foreach file $sc_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+        if { {.cpp} == $file_extn } {
+          # set flag
+          if { !$a_sim_vars(b_contain_systemc_sources) } {
+            set a_sim_vars(b_contain_systemc_sources) true
+          }
+          set file_type "SystemC"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
+          }
+        }
+      }
+    }
+  }
+
   return $files
 }
 
@@ -1066,7 +987,11 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
-    set arg_list [linsert $arg_list end "$associated_library" "$global_files_str" "\"$file\""]
+    if { $a_sim_vars(b_group_files_by_library) } {
+      set arg_list [linsert $arg_list end "$associated_library" "$global_files_str"]
+    } else {
+      set arg_list [linsert $arg_list end "$associated_library" "$global_files_str" "\"$file\""]
+    }
   }
  
   # append other options (-i, --include, -d) for verilog sources 
@@ -1076,7 +1001,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
 
   set file_str [join $arg_list " "]
   set type [xcs_get_file_type_category $file_type]
-  set cmd_str "$type|$file_type|$associated_library|$file_str|$b_static_ip_file"
+  set cmd_str "$type|$file_type|$associated_library|$file_str|$file|$b_static_ip_file"
   return $cmd_str
 }
 

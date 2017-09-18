@@ -138,14 +138,8 @@ proc usf_init_vars {} {
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
 
-  variable a_sim_cache_parent_comp_files
-  array unset a_sim_cache_parent_comp_files
+  variable a_sim_sv_pkg_libs [list]
 
-  # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
-  if { ! [info exists ::tclapp::xilinx::vcs::_xcs_defined] } {
-    variable home
-    source -notrace [file join $home "common" "utils.tcl"]
-  }
 }
 
 proc usf_create_options { simulator opts } {
@@ -154,144 +148,15 @@ proc usf_create_options { simulator opts } {
   # Return Value:
 
   # create options
-  usf_create_fs_options_spec $simulator $opts
+  xcs_create_fs_options_spec $simulator $opts
 
   if { ![get_property IS_READONLY [current_project]] } {
     # simulation fileset objects
     foreach fs_obj [get_filesets -filter {FILESET_TYPE == SimulationSrcs}] {
-      usf_set_fs_options $fs_obj $simulator $opts
+      xcs_set_fs_options $fs_obj $simulator $opts
     }
   }
 }
-
-proc usf_create_fs_options_spec { simulator opts } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  # create properties on the fileset object
-  foreach { row } $opts  {
-    set name  [lindex $row 0]
-    set type  [lindex $row 1]
-    set value [lindex $row 2]
-    set desc  [lindex $row 3]
-
-    # setup property name
-    set prop_name "${simulator}.${name}"
-
-    set prop_name [string tolower $prop_name]
-
-    # is registered already?
-    if { [usf_is_option_registered_on_simulator $prop_name $simulator] } {
-      continue;
-    }
-
-    # is enum type?
-    if { {enum} == $type } {
-      set e_value   [lindex $value 0]
-      set e_default [lindex $value 1]
-      set e_values  [lindex $value 2]
-      # create enum property
-      create_property -name "${prop_name}" -type $type -description $desc -enum_values $e_values -default_value $e_default -class fileset -no_register
-    } elseif { {file} == $type } {
-      set f_extns   [lindex $row 4]
-      set f_desc    [lindex $row 5]
-      # create file property
-      set v_default $value
-      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -file_types $f_extns -display_text $f_desc -class fileset -no_register
-    } else {
-      set v_default $value
-      create_property -name "${prop_name}" -type $type -description $desc -default_value $v_default -class fileset -no_register
-    }
-  }
-  return 0
-}
-
-proc usf_set_fs_options { fs_obj simulator opts } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  foreach { row } $opts  {
-    set name  [lindex $row 0]
-    set type  [lindex $row 1]
-    set value [lindex $row 2]
-    set desc  [lindex $row 3]
-
-    set prop_name "${simulator}.${name}"
-
-    # is registered already?
-    if { [usf_is_option_registered_on_simulator $prop_name $simulator] } {
-      continue;
-    }
-
-    # is enum type?
-    if { {enum} == $type } {
-      set e_value   [lindex $value 0]
-      set e_default [lindex $value 1]
-      set e_values  [lindex $value 2]
-      set_property -name "${prop_name}" -value $e_value -objects ${fs_obj}
-    } else {
-      set v_default $value
-      set_property -name "${prop_name}" -value $value -objects ${fs_obj}
-    }
-  }
-  return 0
-}
-
-proc usf_is_option_registered_on_simulator { prop_name simulator } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set str_1 [string tolower $prop_name]
-  # get registered options from simulator for the current simset
-  foreach option_name [get_property "REGISTERED_OPTIONS" [get_simulators $simulator]] {
-    set str_2 [string tolower $option_name]
-    if { [string compare $str_1 $str_2] == 0 } {
-      return true
-    }
-  }
-  return false
-}
-
-proc usf_extract_ip_files {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  if { ![get_property corecontainer.enable [current_project]] } {
-    return
-  }
-  set a_sim_vars(b_extract_ip_sim_files) [get_property extract_ip_sim_files [current_project]]
-  if { $a_sim_vars(b_extract_ip_sim_files) } {
-    foreach ip [get_ips -all -quiet] {
-      set xci_ip_name "${ip}.xci"
-      set xcix_ip_name "${ip}.xcix"
-      set xcix_file_path [get_property core_container [get_files -quiet -all ${xci_ip_name}]]
-      if { {} != $xcix_file_path } {
-        [catch {rdi::extract_ip_sim_files -of_objects [get_files -quiet -all ${xcix_ip_name}]} err]
-      }
-    }
-  }
-}
-
-proc usf_set_ref_dir { fh } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  # setup source dir var
-  puts $fh "# directory path for design sources and include directories (if any) wrt this path"
-  if { $a_sim_vars(b_absolute_path) } {
-    puts $fh "origin_dir=\"$a_sim_vars(s_launch_dir)\""
-  } else {
-    puts $fh "origin_dir=\".\""
-  }
-  puts $fh ""
-} 
 
 proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   # Summary:
@@ -408,35 +273,6 @@ proc usf_append_generics { generic_list opts_arg } {
     } 
     lappend opts "-gv $str"
   }
-}
-
-proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set fs_obj      [get_filesets $a_sim_vars(s_simset)]
-  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-  set flow        $a_sim_vars(s_simulation_flow)
-  if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
-    if { $b_load_glbl } {
-      return 1
-    }
-    return 0
-  }
-  # target lang is vhdl and glbl is added as top for post-implementation and post-synthesis and load glbl set (default)
-  if { ((({VHDL} == $target_lang) || ({VHDL 2008} == $target_lang)) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
-    return 1
-  }
-  switch $simulator {
-    {vcs} {
-      if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
-        return 1
-      }
-    }
-  }
-  return 0
 }
 
 proc usf_create_do_file { simulator do_filename } {
@@ -693,7 +529,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   send_msg_id USF-VCS-101 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
   set uniq_dirs [list]
-  foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}]] {
+  foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}] [xcs_get_vip_include_dirs]] {
     if { [lsearch -exact $uniq_dirs $dir] == -1 } {
       lappend uniq_dirs $dir
       lappend l_incl_dirs_opts "+incdir+$dir"
@@ -867,7 +703,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   send_msg_id USF-VCS-106 INFO "Finding include directories and verilog header directory paths..."
   set l_incl_dirs_opts [list]
   set uniq_dirs [list]
-  foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}]] {
+  foreach dir [concat [usf_get_include_dirs] [usf_get_include_file_dirs {}] [xcs_get_vip_include_dirs]] {
     if { [lsearch -exact $uniq_dirs $dir] == -1 } {
       lappend uniq_dirs $dir
       lappend l_incl_dirs_opts "+incdir+$dir"
@@ -983,30 +819,6 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
       lappend compile_order_files $file
     }
   }
-}
-
-proc usf_write_script_header_info { fh file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set version_txt [split [version] "\n"]
-  set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
-  set product     [lindex [split $version " "] 0]
-  set version_id  [join [lrange $version 1 end] " "]
-  set timestamp   [clock format [clock seconds]]
-  set mode_type   $::tclapp::xilinx::vcs::a_sim_vars(s_mode)
-  set name        [file tail $file]
-
-  puts $fh "######################################################################"
-  puts $fh "#"
-  puts $fh "# File name : $name"
-  puts $fh "# Created on: $timestamp"
-  puts $fh "#"
-  puts $fh "# Auto generated by $product for '$mode_type' simulation"
-  puts $fh "#"
-  puts $fh "######################################################################"
 }
 
 proc usf_launch_script { simulator step } {

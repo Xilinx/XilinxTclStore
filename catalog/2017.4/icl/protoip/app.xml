@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added possibility of SoC prototyping (CPU and FPGA)</revision_history>
+      <revision_history>Fixed bugs and improved SoC flow</revision_history>
       <name>protoip</name>
       <pkg_require>Vivado 2015.1</pkg_require>
       <author>Bulat Khusainov</author>

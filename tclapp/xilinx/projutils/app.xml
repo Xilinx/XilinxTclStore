@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>return reconfig module sub-design files</revision_history>
+      <revision_history>pass make_local to write_bd_tcl</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

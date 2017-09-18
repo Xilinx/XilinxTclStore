@@ -33,12 +33,18 @@ proc register_options { simulator } {
     send_msg_id USF-ModelSim-002 ERROR "Simulator '$simulator' is not registered\n"
     return 1
   }
+
+  # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
+  if { ! [info exists ::tclapp::xilinx::modelsim::_xcs_defined] } {
+    variable home
+    source -notrace [file join $home "common" "utils.tcl"]
+  }
+
   set options {
     {{compile.tcl.pre}             {string} {}                                      {Specify pre-compile step TCL hook}}
     {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008}}}   {Specify VHDL syntax}}
     {{compile.use_explicit_decl}   {bool}   {1}                                     {Log all signals}}
     {{compile.load_glbl}           {bool}   {1}                                     {Load GLBL module}}
-    {{compile.incremental}         {bool}   {1}                                     {Perform incremental compilation}}
     {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
     {{elaborate.acc}               {bool}   {1}                                     {Enable access to simulation objects that might be optimized by default}}

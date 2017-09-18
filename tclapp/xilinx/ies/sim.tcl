@@ -119,7 +119,7 @@ proc usf_ies_setup_simulation { args } {
     # no op
   } else {
     # extract ip simulation files
-    ::tclapp::xilinx::ies::usf_extract_ip_files
+    xcs_extract_ip_files a_sim_vars(b_extract_ip_sim_files)
   }
 	
   # set default object
@@ -182,6 +182,9 @@ proc usf_ies_setup_simulation { args } {
     set name [get_property -quiet name $file_obj]
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
+
+  # cache all system verilog package libraries
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
 
   # fetch design files
   set global_files_str {}
@@ -339,7 +342,7 @@ proc usf_ies_write_setup_files {} {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
   }
-  set dir_name "ies"
+  set dir_name "ies_lib"
   set b_default_lib false
   set default_lib $a_sim_vars(default_top_library)
   foreach lib_name $libs {
@@ -447,7 +450,7 @@ proc usf_ies_write_compile_script {} {
   }
 
   puts $fh_scr "#!/bin/bash -f"
-  ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "compile" "ies"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
@@ -461,7 +464,7 @@ proc usf_ies_write_compile_script {} {
   }
   puts $fh_scr ""
 
-  ::tclapp::xilinx::ies::usf_set_ref_dir $fh_scr
+  xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
 
   set tool "ncvhdl"
   set arg_list [list "-messages"]
@@ -478,7 +481,7 @@ proc usf_ies_write_compile_script {} {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
 
-  if { [get_property "IES.COMPILE.UPDATE" $fs_obj] } {
+  if { [get_property "INCREMENTAL" $fs_obj] } {
     set arg_list [linsert $arg_list end "-update"]
   }
 
@@ -498,7 +501,7 @@ proc usf_ies_write_compile_script {} {
     set arg_list [linsert $arg_list 0 "-64bit"]
   }
 
-  if { [get_property "IES.COMPILE.UPDATE" $fs_obj] } {
+  if { [get_property "INCREMENTAL" $fs_obj] } {
     set arg_list [linsert $arg_list end "-update"]
   }
 
@@ -572,7 +575,7 @@ proc usf_ies_write_compile_script {} {
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
-    if { [::tclapp::xilinx::ies::usf_compile_glbl_file "ies" $b_load_glbl $::tclapp::xilinx::ies::a_sim_vars(l_design_files)] } {
+    if { [xcs_compile_glbl_file "ies" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
@@ -631,7 +634,7 @@ proc usf_ies_write_elaborate_script {} {
   }
  
   puts $fh_scr "#!/bin/bash -f"
-  ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "elaborate" "ies"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
@@ -687,6 +690,14 @@ proc usf_ies_write_elaborate_script {} {
     }
     lappend arg_list "-libname"
     lappend arg_list "[string tolower $lib]"
+  }
+
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend arg_list "-libname"
+      lappend arg_list "xilinx_vip"
+    }
   }
 
   # post* simulation
@@ -847,7 +858,7 @@ proc usf_ies_write_simulate_script {} {
   }
 
   puts $fh_scr "#!/bin/bash -f"
-  ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "simulate" "ies"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
@@ -989,7 +1000,7 @@ proc usf_ies_create_setup_script {} {
   }
 
   puts $fh_scr "#!/bin/bash -f"
-  ::tclapp::xilinx::ies::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "setup" "ies"
 
   puts $fh_scr "\n# Script usage"
   puts $fh_scr "usage()"
@@ -1029,11 +1040,12 @@ proc usf_ies_create_setup_script {} {
 
   puts $fh_scr "  libs=([join $libs " "])"
   puts $fh_scr "  file=\"cds.lib\""
+  set design_lib "${simulator}_lib"
   if { $::tclapp::xilinx::ies::a_sim_vars(b_absolute_path) } {
-    set lib_dir_path [file normalize [string map {\\ /} [file join $dir $simulator]]]
+    set lib_dir_path [file normalize [string map {\\ /} [file join $dir $design_lib]]]
     puts $fh_scr "  dir=\"$lib_dir_path\"\n"
   } else {
-    puts $fh_scr "  dir=\"$simulator\"\n"
+    puts $fh_scr "  dir=\"$design_lib\"\n"
   }
   puts $fh_scr "  if \[\[ -e \$file \]\]; then"
   puts $fh_scr "    rm -f \$file"

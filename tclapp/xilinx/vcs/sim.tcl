@@ -117,7 +117,7 @@ proc usf_vcs_setup_simulation { args } {
     # no op
   } else {
     # extract ip simulation files
-    ::tclapp::xilinx::vcs::usf_extract_ip_files
+    xcs_extract_ip_files a_sim_vars(b_extract_ip_sim_files)
   }
 
   # set default object
@@ -180,6 +180,9 @@ proc usf_vcs_setup_simulation { args } {
     set name [get_property -quiet name $file_obj]
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
+
+  # cache all system verilog package libraries
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
 
   # fetch design files
   set global_files_str {}
@@ -360,7 +363,8 @@ proc usf_vcs_write_setup_files {} {
   if { [lsearch -exact $libs $default_lib] == -1 } {
     lappend libs $default_lib
   }
-  set dir_name "vcs"
+
+  set dir_name "vcs_lib"
   foreach lib_name $libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib_name $l_ip_static_libs]) } {
       # continue if no local library found or continue if precompiled library (not local) and library is not default
@@ -443,7 +447,7 @@ proc usf_vcs_write_compile_script {} {
     return 1
   }
   puts $fh_scr "#!/bin/sh -f"
-  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "compile" "vcs"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
@@ -457,7 +461,8 @@ proc usf_vcs_write_compile_script {} {
   }
   puts $fh_scr ""
 
-  ::tclapp::xilinx::vcs::usf_set_ref_dir $fh_scr
+  xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
+
   set tool "vhdlan"
   set arg_list [list]
   if { [get_property 32bit $fs_obj] } {
@@ -577,10 +582,10 @@ proc usf_vcs_write_compile_script {} {
   }
 
   # compile glbl file
+  set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   if { {behav_sim} == $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow) } {
-    set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
-    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-    if { [::tclapp::xilinx::vcs::usf_compile_glbl_file "vcs" $b_load_glbl $::tclapp::xilinx::vcs::a_sim_vars(l_design_files)] } {
+    if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       set work_lib_sw {}
       if { {work} != $top_lib } {
         set work_lib_sw "-work $top_lib "
@@ -600,18 +605,19 @@ proc usf_vcs_write_compile_script {} {
       if { ({timing} == $::tclapp::xilinx::vcs::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
-        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-        set work_lib_sw {}
-        if { {work} != $top_lib } {
-          set work_lib_sw "-work $top_lib "
-        }
-        xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set file_str "${work_lib_sw}\"${glbl_file}\""
-        puts $fh_scr "\n# compile glbl module"
-        if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
-        } else {
-          puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+        if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+          set work_lib_sw {}
+          if { {work} != $top_lib } {
+            set work_lib_sw "-work $top_lib "
+          }
+          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
+          set file_str "${work_lib_sw}\"${glbl_file}\""
+          puts $fh_scr "\n# compile glbl module"
+          if { {} != $tool_path } {
+            puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          } else {
+            puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          }
         }
       }
     }
@@ -643,7 +649,7 @@ proc usf_vcs_write_elaborate_script {} {
     return 1
   }
   puts $fh_scr "#!/bin/sh -f"
-  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "elaborate" "vcs"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
@@ -764,16 +770,18 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_top_level_glbl_inst_set 1
   }
 
+  set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
   if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $b_verilog_sim_netlist } {
     if { {behav_sim} == $sim_flow } {
-      set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
       if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
         set b_add_glbl 1
       }
     } else {
       # for post* sim flow add glbl top if design contains verilog sources or verilog netlist add glbl top if not set earlier
       if { !$b_top_level_glbl_inst_set } {
-        set b_add_glbl 1
+        if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+          set b_add_glbl 1
+        }
       }
     }
   }
@@ -805,7 +813,7 @@ proc usf_vcs_write_simulate_script {} {
   }
  
   puts $fh_scr "#!/bin/sh -f"
-  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $file
+  xcs_write_script_header $fh_scr "simulate" "vcs"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
@@ -931,7 +939,7 @@ proc usf_vcs_create_setup_script {} {
   }
 
   puts $fh_scr "#!/bin/sh -f"
-  ::tclapp::xilinx::vcs::usf_write_script_header_info $fh_scr $scr_file
+  xcs_write_script_header $fh_scr "setup" "vcs"
 
   puts $fh_scr "\n# Script usage"
   puts $fh_scr "usage()"
@@ -974,11 +982,12 @@ proc usf_vcs_create_setup_script {} {
 
   puts $fh_scr "  libs=([join $libs " "])"
   puts $fh_scr "  file=\"synopsys_sim.setup\""
+  set design_lib "${simulator}_lib"
   if { $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) } {
-    set lib_dir_path [file normalize [string map {\\ /} [file join $dir $simulator]]]
+    set lib_dir_path [file normalize [string map {\\ /} [file join $dir ${design_lib}]]]
     puts $fh_scr "  dir=\"$lib_dir_path\"\n"
   } else {
-    puts $fh_scr "  dir=\"$simulator\"\n"
+    puts $fh_scr "  dir=\"${design_lib}\"\n"
   }
   puts $fh_scr "  if \[\[ -e \$file \]\]; then"
   puts $fh_scr "    rm -f \$file"

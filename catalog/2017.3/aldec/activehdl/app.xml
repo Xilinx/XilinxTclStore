@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Files grouped to speed up compilation. AXI-BFM settings updated. Pre/post tcl hooks added.</revision_history>
+      <revision_history>Generated scripts are now automatically made executable. List of libraries is now included in vlog command.</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

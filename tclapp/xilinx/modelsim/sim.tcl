@@ -118,7 +118,7 @@ proc usf_modelsim_setup_simulation { args } {
     # no op
   } else {
     # extract ip simulation files
-    ::tclapp::xilinx::modelsim::usf_extract_ip_files
+    xcs_extract_ip_files a_sim_vars(b_extract_ip_sim_files)
   }
 
   # set default object
@@ -190,8 +190,8 @@ proc usf_modelsim_setup_simulation { args } {
   set ::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) \
      [xcs_uniquify_cmd_str [::tclapp::xilinx::modelsim::usf_get_files_for_compilation global_files_str]]
 
-  # create setup file
-  #usf_modelsim_write_setup_files
+  # create library directory
+  usf_modelsim_create_lib_dir
 
   return 0
 }
@@ -349,27 +349,20 @@ proc usf_modelsim_verify_compiled_lib {} {
   return $compiled_lib_dir
 }
 
-proc usf_modelsim_write_setup_files {} {
+proc usf_modelsim_create_lib_dir {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::modelsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir)
+  set design_lib_dir "$dir/modelsim_lib"
 
-  # msim lib dir
-  set lib_dir [file normalize [file join $dir "msim"]]
-  if { [file exists $lib_dir] } {
-    if {[catch {file delete -force $lib_dir} error_msg] } {
-      send_msg_id USF-ModelSim-012 ERROR "Failed to delete directory ($lib_dir): $error_msg\n"
+  if { ![file exists $design_lib_dir] } {
+    if { [catch {file mkdir $design_lib_dir} error_msg] } {
+      send_msg_id USF-ModelSim-013 ERROR "Failed to create the directory ($design_lib_dir): $error_msg\n"
       return 1
     }
   }
-
-  #if { [catch {file mkdir $lib_dir} error_msg] } {
-  #  send_msg_id USF-ModelSim-013 ERROR "Failed to create the directory ($lib_dir): $error_msg\n"
-  #  return 1
-  #}
 }
 
 proc usf_modelsim_write_compile_script {} {
@@ -513,13 +506,14 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     usf_add_quit_on_error $fh "compile"
   }
 
-  set lib_dir_path [file normalize [string map {\\ /} $dir]]
+  set design_lib_dir "$dir/modelsim_lib"
+  set lib_dir_path [file normalize [string map {\\ /} $design_lib_dir]]
   if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
     puts $fh "${tool_path_str}vlib $lib_dir_path/work" 
     puts $fh "${tool_path_str}vlib $lib_dir_path/msim\n"
   } else {
-    puts $fh "${tool_path_str}vlib work"
-    puts $fh "${tool_path_str}vlib msim\n"
+    puts $fh "${tool_path_str}vlib modelsim_lib/work"
+    puts $fh "${tool_path_str}vlib modelsim_lib/msim\n"
   }
 
   set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
@@ -545,14 +539,14 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/$lib_path"
     } else {
-      puts $fh "${tool_path_str}vlib $lib_path"
+      puts $fh "${tool_path_str}vlib modelsim_lib/$lib_path"
     }
   }
   if { !$b_default_lib } {
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/msim/$default_lib"
     } else {
-      puts $fh "${tool_path_str}vlib msim/$default_lib"
+      puts $fh "${tool_path_str}vlib modelsim_lib/msim/$default_lib"
     }
   }
    
@@ -569,14 +563,14 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
     } else {
-      puts $fh "${tool_path_str}vmap $lib msim/$lib"
+      puts $fh "${tool_path_str}vmap $lib modelsim_lib/msim/$lib"
     }
   }
   if { !$b_default_lib } {
     if { $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vmap $default_lib $lib_dir_path/msim/$default_lib"
     } else {
-      puts $fh "${tool_path_str}vmap $default_lib msim/$default_lib"
+      puts $fh "${tool_path_str}vmap $default_lib modelsim_lib/msim/$default_lib"
     }
   }
 
@@ -597,7 +591,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   }
 
   set vlog_arg_list [list]
-  if { [get_property "MODELSIM.COMPILE.INCREMENTAL" $fs_obj] } {
+  if { [get_property "INCREMENTAL" $fs_obj] } {
     lappend vlog_arg_list "-incr"
   }
   set more_vlog_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
@@ -684,7 +678,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-    if { [::tclapp::xilinx::modelsim::usf_compile_glbl_file "modelsim" $b_load_glbl $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)] } {
+    if { [xcs_compile_glbl_file "modelsim" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
@@ -834,6 +828,14 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     lappend arg_list "-L"
     lappend arg_list "$lib"
     #lappend arg_list "[string tolower $lib]"
+  }
+
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend arg_list "-L"
+      lappend arg_list "xilinx_vip"
+    }
   }
 
   # post* simulation
@@ -1008,6 +1010,14 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
     lappend arg_list "-L"
     lappend arg_list "$lib"
     #lappend arg_list "[string tolower $lib]"
+  }
+
+  # add xilinx vip library
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
+      lappend arg_list "-L"
+      lappend arg_list "xilinx_vip"
+    }
   }
 
   # post* simulation
@@ -1335,6 +1345,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
+    xcs_write_script_header $fh_scr $step "modelsim"
     if { {} != $tool_path } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
@@ -1370,6 +1381,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     # windows
     puts $fh_scr "@echo off"
     if { {} != $tool_path } {
+      xcs_write_script_header $fh_scr $step "modelsim"
       puts $fh_scr "set bin_path=$tool_path"
       if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
         set xv $::env(XILINX_VIVADO)

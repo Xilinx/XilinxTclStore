@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>extract xml comp files for finding SV pkg libraries</revision_history>
+      <revision_history>wrap view option value for wcfg file in curly braces if contain spaces</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
