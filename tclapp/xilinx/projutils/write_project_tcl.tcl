@@ -227,10 +227,26 @@ proc write_project_tcl_script {} {
   variable l_script_data
   variable l_remote_files
   variable l_local_files
+  variable temp_dir
+  variable temp_offset 1
+  variable clean_temp
+  variable l_open_bds [list]
+  variable l_added_bds
 
   set l_script_data [list]
   set l_local_files [list]
   set l_remote_files [list]
+  set l_open_bds [list]
+  set l_added_bds [list]
+  
+  # Create temp directory (if required) for BD procs
+  set temp_dir [ file join [file dirname $a_global_vars(script_file)] .Xiltemp ]  
+  set clean_temp 1
+  if { [file isdirectory $temp_dir] || $a_global_vars(b_arg_use_bd_files) } {
+    set clean_temp 0
+  } else {
+    file mkdir $temp_dir
+  }
 
   # get the project name
   set tcl_obj [current_project]
@@ -282,10 +298,10 @@ proc write_project_tcl_script {} {
   wr_create_project $proj_dir $proj_name $part_name
   wr_project_properties $proj_dir $proj_name
   wr_filesets $proj_dir $proj_name
+  wr_prflow $proj_dir $proj_name
   if { !$a_global_vars(b_arg_use_bd_files) } {
     wr_bd
   }
-  wr_prflow $proj_dir $proj_name
   wr_runs $proj_dir $proj_name
   wr_proj_info $proj_name
 
@@ -543,15 +559,13 @@ proc write_bd_as_proc { bd_file } {
     incr temp_offset
   } 
   set temp_bd_file [file join $temp_dir "temp_$temp_offset.tcl"]
-  write_bd_tcl -no_project_wrapper $temp_bd_file
+  write_bd_tcl -no_project_wrapper -make_local $temp_bd_file
   
   # Set non default properties for the BD
   wr_bd_properties $bd_file
   
   # Close BD if opened in stealth mode
   if {$to_close == 1 } {
-    #close_bd_design -stealth [ get_files $bd_file ]
-#close_bd_design [get_bd_designs [file rootname $bd_filename]]
      close_bd_design [get_bd_designs [file rootname $bd_filename]]
   }
 
@@ -567,15 +581,16 @@ proc write_bd_as_proc { bd_file } {
   set str [lindex $split_proc $proc_index] 
   close $fp
   
+  # Add the BD proc, call to the proc and BD property steps
   if { [string equal [lindex $split_proc [expr {$proc_index-1}] ] "proc"]
         && [regexp {^cr_bd_.*} $str]
   } then {
     append str " \"\""
-    lappend l_bd_proc_calls $str
-    lappend l_bd_proc_calls $bd_prop_steps
     lappend l_script_data "\n"
     lappend l_script_data $file_data
     lappend l_added_bds $bd_file
+    lappend l_script_data $str
+    lappend l_script_data $bd_prop_steps
   }
 
   # delete temp file
@@ -647,12 +662,11 @@ proc wr_bd {} {
   variable a_global_vars
   variable l_script_data
   variable l_added_bds 
-  variable temp_offset 1
-  variable l_bd_proc_calls [list]
+  variable l_bd_proc_calls 
   variable l_open_bds [list]
   variable temp_dir
+  variable clean_temp
 
-  set l_added_bds [list]
 
   # String that will hold commands to set BD properties
   variable bd_prop_steps "\n# Setting BD properties \n"
@@ -667,14 +681,6 @@ proc wr_bd {} {
   set bd_files [get_files -norecurse *.bd]
   lappend l_script_data "\n# Adding sources referenced in BDs, if not already added"
 
-  # Create temp directory for BD procs
-  set temp_dir [ file join [file dirname $a_global_vars(script_file)] .Xiltemp ]  
-  set clean_temp 1
-  if { [file isdirectory $temp_dir] } {
-    set clean_temp 0
-  } else {
-    file mkdir $temp_dir
-  }
 
   foreach bd_file $bd_files {
     # Making sure BD is not locked
@@ -690,11 +696,6 @@ proc wr_bd {} {
     write_bd_as_proc $bd_file
   }
 
-  # Add calls to create_bd_* procs
-  lappend l_script_data "\n# Creating block designs and setting properties";
-  foreach {call} $l_bd_proc_calls {
-    lappend l_script_data $call
-  }
 
   # Delete temp directory
   if { $clean_temp == 1} {
@@ -2398,6 +2399,11 @@ proc wr_reconfigModules { proj_dir proj_name } {
   set reconfigModules [get_reconfig_modules]
 
   foreach rm $reconfigModules {
+    set rm_bds [get_files -quiet -of_objects [get_reconfig_modules $rm] *.bd]
+    foreach rm_bd $rm_bds {
+      write_bd_as_proc $rm_bd
+    }
+
     write_specified_reconfig_module $proj_dir $proj_name $rm
   }
 }
@@ -2638,9 +2644,10 @@ proc add_reconfigmodule_subdesign_files { reconfigModule } {
 
   foreach rmSubdesignFileset [get_property subdesign_filesets $reconfigModule] {
     foreach fileObj [get_files -quiet -norecurse -of_objects [get_filesets $rmSubdesignFileset]] {
-      set rel_file_path "\"\$origin_dir/[get_relative_file_path_for_source $fileObj [get_script_execution_dir]]"
-      lappend l_script_data "set path \"\[file normalize $rel_file_path\"\]\""
-      lappend l_script_data "move_files -of_objects \$obj \[get_files \$path\]"
+      set path_dirs [split [string trim [file normalize [string map {\\ /} $fileObj ]]] "/"]
+      set path [join [lrange $path_dirs end-1 end] "/"]
+      set path [string trimleft $path "/"]
+      lappend l_script_data "move_files -of_objects \$obj \[get_files *$path\]"
       lappend l_script_data ""
     }
   }
