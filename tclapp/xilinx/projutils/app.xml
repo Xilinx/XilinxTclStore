@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference xilinx_vip for non-precompile mode in xsim.ini</revision_history>
+      <revision_history>write_project_tcl - fixes related to rm and bd creation</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
