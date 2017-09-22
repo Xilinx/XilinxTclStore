@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fetch requires_vip property on the fetched IP object</revision_history>
+      <revision_history>call xcs_compile_glbl_file to determine if glbl.v needs to be compiled</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
