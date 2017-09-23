@@ -1,3 +1,4 @@
+3.281 creating only those reports that are associcated with run being copied. Avoid call to delete reports.
 3.280 write_project_tcl - fixes related to rm and bd creation
 3.279 reference xilinx_vip for non-precompile mode in xsim.ini
 3.278 reference xilinx_vip include directory for ovm/uvm based designs
