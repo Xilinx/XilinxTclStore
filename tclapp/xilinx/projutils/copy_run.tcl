@@ -164,7 +164,7 @@ proc copy_run_ {} {
   
   if { [get_param project.enableReportConfiguration] } {
     lappend create_run_cmd "-report_strategy"
-    lappend create_run_cmd [ get_property REPORT_STRATEGY $m_cpr_options(run_to_copy) ]
+    lappend create_run_cmd "No Reports"
   }
   
   if { $m_cpr_options(verbose) } {
@@ -262,12 +262,15 @@ proc recreateReportStrategy { run } {
     return
   }
 
-  delete_report_config [get_report_configs -of_objects $run]
-
   set reports [get_report_configs -of_objects $m_cpr_options(run_to_copy)]
   if { [llength $reports] == 0 } {
     return
   }
+
+  set report_strategy [ get_property REPORT_STRATEGY $m_cpr_options(run_to_copy) ]
+  set_property set_report_strategy_name 1 $run
+  set_property -name REPORT_STRATEGY -value "$report_strategy" -objects $run
+  set_property set_report_strategy_name 0 $run
 
   foreach ref_report $reports {
     set report_name [get_property name        $ref_report]
@@ -280,9 +283,8 @@ proc recreateReportStrategy { run } {
     #replace run name if it exists in report name initial
     set new_report_name [string replace $report_name 0 $runNameRange $run]
     set report [create_report_config -report_name $new_report_name -report_type $report_spec -steps $step -runs $run]
-    set new_report  [get_report_configs -of_objects [get_runs $run] $report]
-    if { $new_report != "" } {
-      setReportProps $new_report $ref_report
+    if { $report != "" } {
+      setReportProps $report $ref_report
     }
   }
 }

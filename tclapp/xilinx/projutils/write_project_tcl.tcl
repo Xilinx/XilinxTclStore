@@ -1933,6 +1933,13 @@ proc write_specified_run { proj_dir proj_name runs } {
 
     set cmd_str "  create_run -name $tcl_obj -part $part -flow {$cur_flow_type_val} -strategy \"$cur_strat_type_val\""
 
+    set retVal [get_param project.enableReportConfiguration]
+    set report_strategy ""
+    if { $retVal == 1 } {
+      set cmd_str "  $cmd_str -report_strategy {No Reports}"
+      set report_strategy [get_property report_strategy $tcl_obj]
+    }
+
     if { $isChildImplRun == 1 } {
       set cmd_str "  $cmd_str -pr_config $prConfig"
     }
@@ -1953,9 +1960,10 @@ proc write_specified_run { proj_dir proj_name runs } {
     }
 
     lappend l_script_data "set obj \[$get_what $tcl_obj\]"
-    write_props $proj_dir $proj_name $get_what $tcl_obj "run"
+    write_report_strategy $tcl_obj $report_strategy
 
-    write_report_strategy $tcl_obj
+    lappend l_script_data "set obj \[$get_what $tcl_obj\]"
+    write_props $proj_dir $proj_name $get_what $tcl_obj "run"
   }
 }
 
@@ -2775,9 +2783,9 @@ proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_fi
   lappend l_script_data ""
 }
 
-proc write_report_strategy { run } {
+proc write_report_strategy { run report_strategy } {
   # Summary: 
-  # delete all reports associated with run, then recreate each one by one as per its configuration.
+  # create report one by one as per its configuration.
   # Argument Usage:
   # run FCO:
   # Return Value: none
@@ -2793,10 +2801,9 @@ proc write_report_strategy { run } {
 
   variable l_script_data
 
-  lappend l_script_data "set reports \[get_report_configs -of_objects \$obj\]"
-  lappend l_script_data "if { \[llength \$reports \] > 0 } {"
-  lappend l_script_data "  delete_report_config \[get_report_configs -of_objects \$obj\]"
-  lappend l_script_data "}"
+  lappend l_script_data "set_property set_report_strategy_name 1 \$obj"
+  lappend l_script_data "set_property report_strategy {$report_strategy} \$obj"
+  lappend l_script_data "set_property set_report_strategy_name 0 \$obj"
 
   foreach report $reports {
     set report_name [get_property name $report]
