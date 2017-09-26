@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>creating only those reports that are associcated with run being copied. Avoid call to delete reports.</revision_history>
+      <revision_history>call vlink to map library.cfg file with the specified compiled library directory</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
