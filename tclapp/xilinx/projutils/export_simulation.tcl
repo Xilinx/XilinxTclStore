@@ -3149,8 +3149,8 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     }
     "riviera" -
     "activehdl" {
-      puts $fh_unix "# Copy library.cfg file"
-      puts $fh_unix "copy_setup_file()"
+      puts $fh_unix "# Map library.cfg file"
+      puts $fh_unix "map_setup_file()"
       puts $fh_unix "\{"
       puts $fh_unix "  file=\"library.cfg\""
     }
@@ -3340,7 +3340,9 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     "activehdl" {
       puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
       puts $fh_unix "    src_file=\"\$lib_map_path/\$file\""
-      puts $fh_unix "    cp \$src_file ."
+      puts $fh_unix "    if \[\[ -e \$src_file \]\]; then"
+      puts $fh_unix "      vmap -link \$lib_map_path"
+      puts $fh_unix "    fi"
       puts $fh_unix "  fi"
       puts $fh_unix "\}\n"
 
@@ -4618,7 +4620,9 @@ proc xps_write_setup { simulator fh_unix } {
       }
     }
     "riviera" -
-    "activehdl" -
+    "activehdl" {
+      puts $fh_unix "     map_setup_file \$2"
+    }
     "modelsim" -
     "questa" {
       puts $fh_unix "     copy_setup_file \$2"
@@ -4647,7 +4651,9 @@ proc xps_write_setup { simulator fh_unix } {
       }
     }
     "riviera" -
-    "activehdl" -
+    "activehdl" {
+      puts $fh_unix "     map_setup_file \$2"
+    }
     "modelsim" -
     "questa" {
       puts $fh_unix "     copy_setup_file \$2"
