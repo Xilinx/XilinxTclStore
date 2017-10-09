@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference xilinx_vip for non-precompile mode in xsim.ini</revision_history>
+      <revision_history>check for file existence before extracting</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

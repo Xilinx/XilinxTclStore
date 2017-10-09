@@ -1,3 +1,4 @@
+2.7 check for file existence before extracting
 2.6 reference xilinx_vip include directory for ovm/uvm based designs
 2.5 support for SystemC file type while determining files for XSC
 2.4 fetch requires_vip property on the fetched IP object
