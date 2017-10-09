@@ -2562,7 +2562,7 @@ proc xcs_find_sv_pkg_libs { run_dir } {
     if { ![file exists $ip_filename] } {
       # extract files
       set ip_file_obj [get_files -all -quiet $ip_filename]
-      if { {} != $ip_file_obj } {
+      if { ({} != $ip_file_obj) && ([file exists $ip_file_obj]) } {
         set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
       }
       if { ![file exists $ip_filename] } {
