@@ -164,7 +164,7 @@ proc copy_run_ {} {
   
   if { [get_param project.enableReportConfiguration] } {
     lappend create_run_cmd "-report_strategy"
-    lappend create_run_cmd [ get_property REPORT_STRATEGY $m_cpr_options(run_to_copy) ]
+    lappend create_run_cmd "No Reports"
   }
   
   if { $m_cpr_options(verbose) } {
@@ -247,7 +247,10 @@ proc copy_run_ {} {
     }
   }
 
-  recreateReportStrategy $new_run
+  if { [catch { recreateReportStrategy $new_run } _err ] } {
+    delete_runs $new_run
+    error $_err
+  }
 
   return $new_run
 }
@@ -262,12 +265,15 @@ proc recreateReportStrategy { run } {
     return
   }
 
-  delete_report_config [get_report_configs -of_objects $run]
-
   set reports [get_report_configs -of_objects $m_cpr_options(run_to_copy)]
   if { [llength $reports] == 0 } {
     return
   }
+
+  set report_strategy [ get_property REPORT_STRATEGY $m_cpr_options(run_to_copy) ]
+  set_property set_report_strategy_name 1 $run
+  set_property -name REPORT_STRATEGY -value "$report_strategy" -objects $run
+  set_property set_report_strategy_name 0 $run
 
   foreach ref_report $reports {
     set report_name [get_property name        $ref_report]
@@ -280,9 +286,8 @@ proc recreateReportStrategy { run } {
     #replace run name if it exists in report name initial
     set new_report_name [string replace $report_name 0 $runNameRange $run]
     set report [create_report_config -report_name $new_report_name -report_type $report_spec -steps $step -runs $run]
-    set new_report  [get_report_configs -of_objects [get_runs $run] $report]
-    if { $new_report != "" } {
-      setReportProps $new_report $ref_report
+    if { $report != "" } {
+      setReportProps $report $ref_report
     }
   }
 }
@@ -306,7 +311,7 @@ proc setReportProps { new_report ref_report } {
     set curr_value    [ get_property $property_name $ref_report]
 
     if { [ string equal $default_value $curr_value ] } {
-      continue; # property is default, skipping
+      continue; # property value is default, skipping
     }
   
     dict set report_value_pairs $property_name $curr_value
@@ -314,10 +319,7 @@ proc setReportProps { new_report ref_report } {
 
   if { [ llength $report_value_pairs ] != 0 } {
     dict for {name value} $report_value_pairs {
-      set ret [ catch { set_property -name $name -value $value -objects $new_report } error ]
-      if { $ret != 0 } {
-        puts "Error: setting '$name' to '$value' in report '$new_report' failed. $error"
-      }
+      set_property -name $name -value $value -objects $new_report
     }
   }
 }
