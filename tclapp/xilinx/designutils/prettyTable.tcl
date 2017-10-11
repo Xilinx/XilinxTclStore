@@ -9,8 +9,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ##
-## Version:        2017.06.05
-## Tool Version:   Vivado 2013.1
+## Version:        2017.10.09
 ## Description:    This package provides a simple way to handle formatted tables
 ##
 ##
@@ -252,6 +251,8 @@ namespace eval ::tclapp::xilinx::designutils {
 ########################################################################################
 
 ########################################################################################
+## 2017.10.09 - Fixed sorting of columns with heterogeneous data ('sort' method)
+##            - Added 'transpose' method
 ## 2017.06.05 - Fixed example code
 ## 2016.10.04 - Added support for -inline (import)
 ## 2016.08.23 - Updated default alignment for template 'deviceview'
@@ -341,7 +342,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable {
   variable n 0
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
   variable params [list indent 0 title {} tableFormat {classic} cellAlignment {left} maxNumRows -1 maxNumRowsToDisplay -1 columnsToDisplay {} origin {topleft} offsetx 0 offsety 0 template {} methods {method}]
-  variable version {2016.08.23}
+  variable version {2017.10.09}
 } ]
 
 #------------------------------------------------------------------------
@@ -676,6 +677,71 @@ proc ::tclapp::xilinx::designutils::prettyTable::lrevert L {
        lappend res [lindex $L [incr i -1]]
    }
    set res
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::sort_double_incr
+# ::tclapp::xilinx::designutils::prettyTable::sort_double_decr
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Helper procs for ::tclapp::xilinx::designutils::prettyTable::method:sort to handle list
+# of integers/reals mixed with strings
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::sort_double_incr {one two} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  switch [string is double $one][string is double $two] {
+    00 {
+      return 0
+    }
+    01 {
+      return 1
+    }
+    10 {
+      return -1
+    }
+    11 {
+      if { $one < $two } {
+        return -1
+      } elseif { $one > $two} {
+        return 1
+      } else {
+        return 0
+      }
+    }
+  }
+}
+
+proc ::tclapp::xilinx::designutils::prettyTable::sort_double_decr {one two} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  switch [string is double $one][string is double $two] {
+    00 {
+      return 0
+    }
+    01 {
+      return 1
+    }
+    10 {
+      return -1
+    }
+    11 {
+      if { $one < $two } {
+        return 1
+      } elseif { $one > $two} {
+        return -1
+      } else {
+        return 0
+      }
+    }
+  }
 }
 
 #------------------------------------------------------------------------
@@ -2539,10 +2605,26 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
 #   foreach item [lrevert $indexes] {}
   foreach item [::tclapp::xilinx::designutils::prettyTable::lrevert $indexes] {
     foreach {index direction sortType} $item { break }
+    set options {}
+    switch $sortType {
+      -integer -
+      -real {
+        # Use special commands to sort real/integers to handle heterogeneous data
+        if {$direction == {-increasing}} {
+          set options "-command sort_double_incr"
+        } else {
+          set options "-command sort_double_decr"
+        }
+      }
+      default {
+        # For -dictionary
+        set options "$direction $sortType"
+      }
+    }
     if {$command == {}} {
-      set command "lsort $direction $sortType -index $index \$table"
+      set command "lsort $options -index $index \$table"
     } else {
-      set command "lsort $direction $sortType -index $index \[$command\]"
+      set command "lsort $options -index $index \[$command\]"
     }
   }
   if {[catch { set table [eval $command] } errorstring]} {
@@ -2552,6 +2634,81 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
     set ${self}::separators [list]
 #     puts " -I- Sorting indexes '$indexes' completed"
   }
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::method:transpose
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> transpose
+#------------------------------------------------------------------------
+# Transpose the table
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::method:transpose {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Transpose the table
+  upvar #0 ${self}::table rows
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::title title
+  upvar #0 ${self}::numRows numrows
+  upvar #0 ${self}::separators separators
+
+  if {[lsort -unique $header] == [list {}]} {
+    # Empty header. The matrix is only made of the table rows
+    set matrix $rows
+  } else {
+    # If header defined, include it in the matrix along with the
+    # table rows
+    set matrix [concat [list $header] $rows]
+  }
+
+  # Create template of an empty row for the transposed matrix
+  # (number of rows of current table)
+  set row {}
+  set transpose {}
+  foreach r $matrix {
+    lappend row {}
+  }
+  # Create empty transposed matrix
+  foreach c [lindex $matrix 0] {
+    lappend transpose $row
+  }
+
+  # Transpose the matrix: rows become columns
+  set nr 0
+  foreach r $matrix {
+    set nc 0
+    foreach c $r {
+      lset transpose [list $nc $nr] $c
+      incr nc
+    }
+    incr nr
+  }
+
+#   # Re-create a header with format: header row0 row1 ... rowN
+#   set header {header}
+#   set n -1
+#   foreach el [lrange $row 1 end] {
+#     lappend header [format {row%d} [incr n]]
+#   }
+#   # Save the transposed matrix
+#   set rows $transpose
+#   # Update the number of rows
+#   set numrows [llength $transpose]
+
+  # The header is the first row of the transposed matrix
+  set header [lindex $transpose 0]
+  # Save the transposed matrix
+  set rows [lrange $transpose 1 end]
+  # Update the number of rows
+  set numrows [llength $rows]
+  # Remove separators
+  set separators [list]
+
+  return 0
 }
 
 #------------------------------------------------------------------------
