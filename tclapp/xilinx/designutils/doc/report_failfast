@@ -1,0 +1,36 @@
+
+
+  Description: 
+
+     Generate a fail/pass report
+     
+     Use -export_config to export configuration file
+     Use -config_file to import user configuration file
+     Use -transpose to transpose the CSV table and export it as 1-liner
+     Use -detailed_reports to generate detailed reports for methdology checks, paths failing LUT/Net budgeting, the Non-FD HFN and Average Fanout
+     Use -cell/-pblock to force the analysis on a specific module and pblock in a Partial Reconfigurable design. By default, the analysis is done from the top-level. The full hierarchical path must be specified for -cell
+     Use -pblock for Pblock-based analysis (more info with -longhelp)
+     Use -region for Clock Region-based analysis (more info with -longhelp)
+     Use -slr for SLR-based analysis (more info with -longhelp)
+     Use -by_slr to automatically run the analysis for each SLR
+     Use -no_methodology_check to prevent extraction of the TIMING-* metrics
+     Use -no_fanout to prevent calculation of the average fanout
+     Use -no_path_budgeting to prevent calculation of the LUT/Net budgeting
+     Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
+     Use -show_resources to report the detailed number of used and available resources in the summary table
+     Use -show_not_found to report metrics that have not been extracted (hidden by default)
+     Use -post_ooc_synth to only run the LUT/Net path budgeting after post OOC synthesis
+
+     Use -longhelp for more information on the supported use models
+
+  Example:
+  
+     ::xilinx::designutils::report_failfast
+     ::xilinx::designutils::report_failfast -file failfast.rpt
+     ::xilinx::designutils::report_failfast -export_config report_failfast.cfg
+     ::xilinx::designutils::report_failfast -config_file report_failfast.cfg -file failfast.rpt
+     ::xilinx::designutils::report_failfast -detailed_reports synth -file failfast.rpt
+     ::xilinx::designutils::report_failfast -detailed_reports synth -file failfast.rpt -cell CL -pblock pblock_CL
+     ::xilinx::designutils::report_failfast -file failfast.rpt -slr SLR0
+     ::xilinx::designutils::report_failfast -file failfast.rpt -by_slr
+     ::xilinx::designutils::report_failfast -file failfast.rpt -regions X0Y0:X0Y4,X0Y4:X5Y4,X5Y0 -top

@@ -42,6 +42,7 @@ set auto_index(::tclapp::xilinx::designutils::report_cells_fanout) [list source 
 set auto_index(::tclapp::xilinx::designutils::report_cells_loc) [list source [file join $dir report_cells_loc.tcl]]
 set auto_index(::tclapp::xilinx::designutils::report_clock_buffers) [list source [file join $dir report_clock_buffers.tcl]]
 set auto_index(::tclapp::xilinx::designutils::report_critical_hfn) [list source [file join $dir report_critical_hfn.tcl]]
+set auto_index(::tclapp::xilinx::designutils::report_failfast) [list source [file join $dir report_failfast.tcl]]
 set auto_index(::tclapp::xilinx::designutils::report_hier_util) [list source [file join $dir report_hier_util.tcl]]
 set auto_index(::tclapp::xilinx::designutils::report_parts) [list source [file join $dir report_parts.tcl]]
 set auto_index(::tclapp::xilinx::designutils::source_path) [list source [file join $dir source_path.tcl]]
