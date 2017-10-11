@@ -247,7 +247,10 @@ proc copy_run_ {} {
     }
   }
 
-  recreateReportStrategy $new_run
+  if { [catch { recreateReportStrategy $new_run } _err ] } {
+    delete_runs $new_run
+    error $_err
+  }
 
   return $new_run
 }
@@ -308,7 +311,7 @@ proc setReportProps { new_report ref_report } {
     set curr_value    [ get_property $property_name $ref_report]
 
     if { [ string equal $default_value $curr_value ] } {
-      continue; # property is default, skipping
+      continue; # property value is default, skipping
     }
   
     dict set report_value_pairs $property_name $curr_value
@@ -316,10 +319,7 @@ proc setReportProps { new_report ref_report } {
 
   if { [ llength $report_value_pairs ] != 0 } {
     dict for {name value} $report_value_pairs {
-      set ret [ catch { set_property -name $name -value $value -objects $new_report } error ]
-      if { $ret != 0 } {
-        puts "Error: setting '$name' to '$value' in report '$new_report' failed. $error"
-      }
+      set_property -name $name -value $value -objects $new_report
     }
   }
 }

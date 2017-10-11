@@ -337,9 +337,9 @@ proc write_project_tcl_script {} {
         path that was specified with this switch. The 'origin_dir' variable is set to '$a_global_vars(s_origin_dir_override)' in the generated script."
       }
     } else {
-      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wrt the 'origin_dir' variable in the\n\
-      generated script. When this script is executed from the output directory, these source files will be referenced wrt this 'origin_dir' path value.\n\
-      In case this script was later physically moved to a different directory, the 'origin_dir' value MUST be set manually in the script with the path\n\
+      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wth respect to the 'origin_dir' variable in the\n\
+      generated script. When this script is executed from the output directory, these source files will be referenced with respect to this 'origin_dir' path value.\n\
+      In case this script was later moved to a different directory, the 'origin_dir' value must be set manually in the script with the path\n\
       relative to the new output directory to make sure that the source files are referenced correctly from the original project. You can also set the\n\
       'origin_dir' automatically by setting the 'origin_dir_loc' variable in the tcl shell before sourcing this generated script. The 'origin_dir_loc'\n\
       variable should be set to the path relative to the new output directory. Alternatively, if you are sourcing the script from the Vivado command line,\n\
@@ -1163,7 +1163,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
     set prop_type "unknown"
     if { [string equal $type "run"] } {
       # skip steps.<step_name>.reports dynamic read only property (to be populated by creation of reports)
-      if { [regexp -nocase "STEPS\..*\.REPORTS" $prop] } {
+      if { [regexp -nocase "STEPS\..*\.REPORTS" $prop] || [string equal -nocase "REPORT_STRATEGY" $prop] } {
         continue;
       }
       if { [regexp "STEPS" $prop] } {
@@ -1959,7 +1959,6 @@ proc write_specified_run { proj_dir proj_name runs } {
       }
     }
 
-    lappend l_script_data "set obj \[$get_what $tcl_obj\]"
     write_report_strategy $tcl_obj $report_strategy
 
     lappend l_script_data "set obj \[$get_what $tcl_obj\]"
@@ -2801,6 +2800,7 @@ proc write_report_strategy { run report_strategy } {
 
   variable l_script_data
 
+  lappend l_script_data "set obj \[get_runs $run\]"
   lappend l_script_data "set_property set_report_strategy_name 1 \$obj"
   lappend l_script_data "set_property report_strategy {$report_strategy} \$obj"
   lappend l_script_data "set_property set_report_strategy_name 0 \$obj"
