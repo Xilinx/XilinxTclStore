@@ -16,5 +16,3 @@ All contributors must date and digitally sign once below in order to submit to t
 <YYYYMMDD Date>::<github id>::<Full Name>
 =================================================================================================
 20161226::islam-ahmed::Islam Ahmed
-20170809::islam-ahmed::Islam Ahmed
-20170915::islam-ahmed::Islam Ahmed

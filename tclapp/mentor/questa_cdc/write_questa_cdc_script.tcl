@@ -154,6 +154,10 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     if { ! [file exists $questa_cdc_logo] } {
       set questa_cdc_logo "\"$questa_cdc_logo\""
       puts "INFO: Can't find the Questa CDC logo at $questa_cdc_logo"
+      if { [file exists "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"] } {
+        set questa_cdc_logo "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"
+        puts "INFO: Found the Questa CDC logo at $questa_cdc_logo"
+      }
     }
     if { [catch {open $commands_file a} result] } {
       puts stderr "ERROR: Could not open commands.paini to add the Questa CDC button, path '$commands_file'\n$result"
