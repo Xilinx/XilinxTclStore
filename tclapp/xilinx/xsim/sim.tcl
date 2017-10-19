@@ -1568,7 +1568,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
-      lappend args_list "-sv_lib dpi"
+      lappend args_list "-sc_lib dpi"
     }
   }
 

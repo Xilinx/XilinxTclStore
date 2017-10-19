@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for compiling behavioral simulation sources for RTL kernel post-simulation</revision_history>
+      <revision_history>replace sv_lib with sc_lib for systemc simulation</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
