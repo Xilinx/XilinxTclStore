@@ -46,6 +46,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
   set a_sim_vars(b_int_systemc_mode) 0
+  set a_sim_vars(b_int_rtl_kernel_mode) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
@@ -335,6 +336,12 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
     set design_files [usf_get_files_for_compilation_behav_sim $global_files_str]
   } elseif { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     set design_files [usf_get_files_for_compilation_post_sim $global_files_str]
+
+    # prepend design files from behavioral for RTL kernel simulation
+    if { $a_sim_vars(b_int_rtl_kernel_mode) } {
+      set behav_design_files [usf_get_files_for_compilation_behav_sim $global_files_str]
+      set design_files [concat $behav_design_files $design_files]
+    }
   }
   set l_compile_order_files_uniq [xcs_uniquify_cmd_str $l_compile_order_files]
   return $design_files

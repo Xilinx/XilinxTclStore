@@ -397,6 +397,7 @@ proc usf_xsim_setup_args { args } {
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_rtl_kernel_mode]: RTL Kernel simulation mode (internal use)
  
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -421,6 +422,7 @@ proc usf_xsim_setup_args { args } {
       "-int_os_type"    { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
       "-int_systemc_mode" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1 }
+      "-int_rtl_kernel_mode" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_rtl_kernel_mode) 1 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -1531,6 +1533,15 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   # add secureip
   lappend args_list "-L secureip"
+  
+  # RTL kernel
+  if { $a_sim_vars(b_int_rtl_kernel_mode) } {
+    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+      if { ([lsearch -exact $args_list "xpm"] == -1) } {
+        lappend args_list "-L xpm"
+      }
+    }
+  }
 
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
