@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix for company name</revision_history>
+      <revision_history>Fix to get the Questa CDC logo from the Questa CDC installation if it is not found in the directory of the Tcl script</revision_history>
       <name>questa_cdc</name>
       <company>mentor</company>
       <company_display>Mentor, a Siemens Business</company_display>
