@@ -3009,3 +3009,18 @@ proc xcs_get_sc_libs {} {
 
   return $sc_libs
 }
+
+proc xcs_find_ip { name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  foreach ip_obj [get_ips -all -quiet] {
+    set ipdef [get_property -quiet IPDEF $ip_obj]
+    set ip_name [lindex [split $ipdef ":"] 2]
+    if { [string first $name $ip_name] != -1} {
+      return true
+    }
+  }
+  return false
+}

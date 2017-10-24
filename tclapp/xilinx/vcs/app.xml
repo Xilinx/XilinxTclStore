@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>check for file existence before extracting</revision_history>
+      <revision_history>helper procedure to find IP</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
