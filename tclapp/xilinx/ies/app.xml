@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>helper procedure to find IP</revision_history>
+      <revision_history>check for variable existence before fetching the value</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

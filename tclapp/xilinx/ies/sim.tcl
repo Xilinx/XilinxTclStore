@@ -783,6 +783,25 @@ proc usf_ies_write_elaborate_script {} {
   usf_add_glbl_top_instance arg_list $top_level_inst_names
 
   puts $fh_scr "# run elaboration"
+  set a_sim_vars(b_link_gt_lib) 0
+  set a_sim_vars(gt_lib) "gtquad.so"
+  if { [xcs_find_ip "gt_quad_base"] } {
+    variable a_ies_sim_vars
+    set clibs_dir $a_ies_sim_vars(s_compiled_lib_dir)
+    set obj_1 "$clibs_dir/secureip/RateAccess.o"
+    set obj_2 "$clibs_dir/secureip/RateAccess_Wrapper.o"
+    if { [file exists $obj_1] && [file exists $obj_2] } {
+      set a_sim_vars(b_link_gt_lib) 1
+      set obj_files [list $obj_1 $obj_2]
+      set gcc_cmd "gcc -shared -o $a_sim_vars(gt_lib) [join $obj_files " "]"
+      puts $fh_scr $gcc_cmd
+    }
+  }
+
+  if { $a_sim_vars(b_link_gt_lib) } {
+    lappend arg_list $a_sim_vars(gt_lib)
+  }
+
   set cmd_str [join $arg_list " "]
   puts $fh_scr "$cmd_str"
   close $fh_scr
@@ -904,6 +923,9 @@ proc usf_ies_write_simulate_script {} {
   set cmd_str [join $arg_list " "]
 
   puts $fh_scr "# run simulation"
+  if { $a_sim_vars(b_link_gt_lib) } {
+    puts $fh_scr " $a_sim_vars(gt_lib)"
+  }
   puts $fh_scr "$cmd_str"
   close $fh_scr
 }

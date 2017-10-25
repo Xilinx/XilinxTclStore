@@ -1535,10 +1535,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   lappend args_list "-L secureip"
   
   # RTL kernel
-  if { $a_sim_vars(b_int_rtl_kernel_mode) } {
-    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-      if { ([lsearch -exact $args_list "xpm"] == -1) } {
-        lappend args_list "-L xpm"
+  if { [info exists a_sim_vars(b_int_rtl_kernel_mode)] } {
+    if { $a_sim_vars(b_int_rtl_kernel_mode) } {
+      if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+        if { ([lsearch -exact $args_list "xpm"] == -1) } {
+          lappend args_list "-L xpm"
+        }
       }
     }
   }

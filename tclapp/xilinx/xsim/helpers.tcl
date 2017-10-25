@@ -338,9 +338,11 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
     set design_files [usf_get_files_for_compilation_post_sim $global_files_str]
 
     # prepend design files from behavioral for RTL kernel simulation
-    if { $a_sim_vars(b_int_rtl_kernel_mode) } {
-      set behav_design_files [usf_get_files_for_compilation_behav_sim $global_files_str]
-      set design_files [concat $behav_design_files $design_files]
+    if { [info exists a_sim_vars(b_int_rtl_kernel_mode)] } {
+      if { $a_sim_vars(b_int_rtl_kernel_mode) } {
+        set behav_design_files [usf_get_files_for_compilation_behav_sim $global_files_str]
+        set design_files [concat $behav_design_files $design_files]
+      }
     }
   }
   set l_compile_order_files_uniq [xcs_uniquify_cmd_str $l_compile_order_files]
