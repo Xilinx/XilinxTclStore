@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference xilinx_vip library mapping in xsim.ini</revision_history>
+      <revision_history>compile behavioral simulation files for rtl kernel netlist simulation</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
