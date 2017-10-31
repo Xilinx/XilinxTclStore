@@ -153,7 +153,7 @@
     <app>
       <name>xsim</name>
       <company>xilinx</company>
-      <commit_id>6e25ee36a9c67f18960f5205332c66b7a935ee95</commit_id>
+      <commit_id>0a36748fa3c2656c8489eab3b85d9b404a3fe2ad</commit_id>
       <revision>2.182</revision>
     </app>
   </apps>
