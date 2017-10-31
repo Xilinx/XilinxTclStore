@@ -5311,7 +5311,7 @@ proc xps_write_filelist_info { simulator dir } {
     set ipname   [file rootname [file tail $ip_file]]
   
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-    set src_file [xps_resolve_file $proj_src_file $ip_file $src_file $dir]
+    set src_file [xps_resolve_file $proj_src_file $lib $ip_file $src_file $dir]
     set pfile $src_file
     puts $fh "$filename,$file_type,$lib,$pfile,$incl_dir_str"
   }
@@ -5327,7 +5327,7 @@ proc xps_write_filelist_info { simulator dir } {
   return 0
 }
 
-proc xps_resolve_file { proj_src_file ip_file src_file dir } {
+proc xps_resolve_file { proj_src_file lib ip_file src_file dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5346,7 +5346,7 @@ proc xps_resolve_file { proj_src_file ip_file src_file dir } {
     if { {} != $ip_file } {
       set proj_src_filename [file tail $proj_src_file]
       set ip_name [file rootname [file tail $ip_file]]
-      set proj_src_filename "ip/$ip_name/$proj_src_filename"
+      set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
       set src_file "srcs/$proj_src_filename"
     } else {
       set src_file "srcs/[file tail $proj_src_file]"
