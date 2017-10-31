@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>helper procedure to find IP</revision_history>
+      <revision_history>fixed source file path for exported sources in file_info.txt</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
