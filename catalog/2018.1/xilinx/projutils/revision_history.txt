@@ -1,3 +1,4 @@
+3.287 Using absolute paths for sources in a different network mount than the script execution directory (applies to windows OS)
 3.286 fixed source file path for exported sources in file_info.txt
 3.285 helper procedure to find IP
 3.284 Update message for write_project_tcl and delete run if recreating strategy fails
