@@ -6,6 +6,7 @@
      
      Use -export_config to export configuration file
      Use -config_file to import user configuration file
+     Use -csv to generate a CSV format
      Use -transpose to transpose the CSV table and export it as 1-liner
      Use -detailed_reports to generate detailed reports for methdology checks, paths failing LUT/Net budgeting, the Non-FD HFN and Average Fanout
      Use -cell/-pblock to force the analysis on a specific module and pblock in a Partial Reconfigurable design. By default, the analysis is done from the top-level. The full hierarchical path must be specified for -cell
@@ -16,6 +17,7 @@
      Use -no_methodology_check to prevent extraction of the TIMING-* metrics
      Use -no_fanout to prevent calculation of the average fanout
      Use -no_path_budgeting to prevent calculation of the LUT/Net budgeting
+     Use -no_dont_touch to prevent calculation of DONT_TOUCH metric
      Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
      Use -show_resources to report the detailed number of used and available resources in the summary table
      Use -show_not_found to report metrics that have not been extracted (hidden by default)
