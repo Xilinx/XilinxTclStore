@@ -32,9 +32,9 @@ if {[catch { 	::tclapp::xilinx::designutils::write_ip_integrator_testbench -outp
 }
 
 #simulate
-close_sim -quiet
+# close_sim -quiet
 if {[catch { 	launch_simulation } catchErrorString]} {
-    close_sim
+#     close_sim
     close_bd_design [current_bd_design]
     close_project
     error [format " -E- Unit test $name failed simulation: %s" $catchErrorString]   
