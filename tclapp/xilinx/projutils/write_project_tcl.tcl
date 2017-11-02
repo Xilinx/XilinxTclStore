@@ -232,6 +232,7 @@ proc write_project_tcl_script {} {
   variable clean_temp
   variable l_open_bds [list]
   variable l_added_bds
+  variable a_os
 
   set l_script_data [list]
   set l_local_files [list]
@@ -246,6 +247,13 @@ proc write_project_tcl_script {} {
     set clean_temp 0
   } else {
     file mkdir $temp_dir
+  }
+
+  # Get OS
+  if { [is_win_os] } {
+    set a_os "win"
+  } else {
+    set a_os ""
   }
 
   # get the project name
@@ -445,7 +453,7 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "\}\n"
 
   lappend l_script_data "# Set the directory path for the original project from where this script was exported"
-  if { $a_global_vars(b_absolute_path) } {
+  if { $a_global_vars(b_absolute_path) || [need_abs_path $proj_dir] } {
     lappend l_script_data "set orig_proj_dir \"$proj_dir\""
   } else {
     set rel_file_path "[get_relative_file_path_for_source $proj_dir [get_script_execution_dir]]"
@@ -781,7 +789,7 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
           lappend l_script_data "set obj \[get_filesets $tcl_obj\]"
           set path_list [list]
           foreach path $repo_paths {
-            if { $a_global_vars(b_absolute_path) } {
+            if { $a_global_vars(b_absolute_path) || [need_abs_path $path] } {
               lappend path_list $path
             } else {
               set rel_file_path "[get_relative_file_path_for_source $path [get_script_execution_dir]]"
@@ -1214,7 +1222,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
     set abs_proj_file_path [get_property $prop [$get_what $tcl_obj]]
     
     set path_match [string match $proj_dir* $abs_proj_file_path]
-    if { ($path_match == 1) && ($a_global_vars(b_absolute_path) != 1) } {
+    if { ($path_match == 1) && ($a_global_vars(b_absolute_path) != 1) && ![need_abs_path $abs_proj_file_path] } {
       # changing the absolute path to relative
       set abs_path_length [string length $proj_dir]
       set proj_file_path [string replace $abs_proj_file_path 0 $abs_path_length "\$proj_dir/"]
@@ -1232,7 +1240,9 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
           set incl_paths $abs_proj_file_path
           set rel_paths [list]
           foreach path $incl_paths {
-            lappend rel_paths "\[file normalize \"\$origin_dir/[get_relative_file_path_for_source $path [get_script_execution_dir]]\"\]"
+            if { ![need_abs_path $path] } {
+              lappend rel_paths "\[file normalize \"\$origin_dir/[get_relative_file_path_for_source $path [get_script_execution_dir]]\"\]"
+            }
           }
           set prop_entry "[string tolower $prop]#[join $rel_paths " "]"
         }
@@ -1247,7 +1257,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       set file_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
       set src_file [join [lrange $file_dirs [lsearch -exact $file_dirs "$srcs_dir"] end] "/"]
 
-      if { [is_local_to_project $file] } {
+      if { [is_local_to_project $file] || [need_abs_path $file]} {
         set proj_file_path "\$proj_dir/$src_file"
       } else {
         set proj_file_path "[get_relative_file_path_for_source $src_file [get_script_execution_dir]]"
@@ -1282,7 +1292,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
           set file $local_constrs_file
           set proj_file_path "\[get_files *$local_constrs_file\]"
         } else {
-          if { $a_global_vars(b_absolute_path) } {
+          if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
             set proj_file_path "$file"
           } else {
             set file_no_quotes [string trim $file "\""]
@@ -1330,7 +1340,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
             if { [is_local_to_project $file] } {
               set tcl_file_path "\$proj_dir/$src_file"
             } else {
-              if { $a_global_vars(b_absolute_path) } {
+              if { $a_global_vars(b_absolute_path)|| [need_abs_path $file]  } {
                 set tcl_file_path "$file"
               } else {
                 set rel_file_path "[get_relative_file_path_for_source $src_file [get_script_execution_dir]]"
@@ -1534,7 +1544,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       if { $a_global_vars(b_arg_no_copy_srcs) } {
         # add to the local collection
         lappend l_remote_file_list $file
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend add_file_coln "$file"
         } else {
           lappend add_file_coln "\"\[file normalize \"$proj_file_path\"\]\""
@@ -1542,7 +1552,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       } else {
         # add to the import collection
         lappend l_local_file_list $file
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend import_coln "$file"
         } else {
           lappend import_coln "\"\[file normalize \"$proj_file_path\"\]\""
@@ -1559,7 +1569,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         }
 
         # add to the import collection
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path)|| [need_abs_path $file]  } {
           lappend import_coln [file normalize [string trim $file "\""]]
         } else {
           set file_no_quotes [string trim $file "\""]
@@ -1568,7 +1578,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         }
         lappend l_local_file_list $file
       } else {
-        if {$a_global_vars(b_absolute_path) } {
+        if {$a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend add_file_coln [string trim $file "\""]
         } else {
           set file_no_quotes [string trim $file "\""]
@@ -1672,7 +1682,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
       if { $a_global_vars(b_arg_no_copy_srcs) } {
         set constrs_file $file
         set file_category "remote"
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $imported_path] } {
           add_constrs_file "$file"
         } else {
           set str "\"\[file normalize \"$proj_file_path\"\]\""
@@ -1682,7 +1692,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
         # copy imported constrs in new project. Set it as local file in new project.
         set constrs_file $file
         set file_category "local"
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           import_constrs_file $tcl_obj "$file"
         } else {
           set str "\"\[file normalize \"$proj_file_path\"\]\""
@@ -1715,7 +1725,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
         set file_category "remote"
  
         # find relative file path of the added constrs if no_copy in the new project
-        if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
+        if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))&&  ![need_abs_path $file] } {
           set file_no_quotes [string trim $file "\""]
           set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
           set file_1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
@@ -1744,7 +1754,7 @@ proc add_constrs_file { file_str } {
   variable a_global_vars
   variable l_script_data
 
-  if { $a_global_vars(b_absolute_path) } {
+  if { $a_global_vars(b_absolute_path) || [need_abs_path $file_str]} {
     lappend l_script_data "set file $file_str"
   } else {
     if { $a_global_vars(b_arg_no_copy_srcs) } {
@@ -1862,7 +1872,7 @@ proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_
   # write properties now
   if { $prop_count>0 } {
     if { {remote} == $file_category } {
-      if { $a_global_vars(b_absolute_path) } {
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
         lappend l_script_data "set file \"$file\""
       } else {
         lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
@@ -2108,7 +2118,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     # write properties now
     if { $prop_count>0 } {
       if { {remote} == $file_category } {
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
           lappend l_script_data "set file \"$file\""
         } else {
           lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
@@ -2332,6 +2342,36 @@ proc is_ip_run { run } {
   return [is_ip_fileset $fileset]
 }
 
+proc is_win_os {} {
+  # Summary: Determine if OS is Windows
+  # Return Value:
+  # true (1) if windows, false (0) otherwise
+  set os [lindex $::tcl_platform(os) 0]
+  set plat [lindex $::tcl_platform(platform) 0]
+  if { [string compare -nocase -length 3 $os "win"] == 0 ||
+       [string compare -nocase -length 3 $plat "win"] == 0  } {
+     return true
+  } else { return false }
+}
+
+proc need_abs_path { src } {
+  # Summary: Determine if src provided is in a different network mount than execution directory
+  # Argument Usage:
+  # src: source file to check
+  # Return Value:
+  # true (1) if src is in a different drive than script execution directory, false (0) otherwise
+  variable a_os
+  if { $a_os eq "win" } {
+    set src_path [file normalize [string trim $src "\""]]
+    set ref_path [file normalize [get_script_execution_dir]]
+    if { [string compare -nocase -length 2 $src_path $ref_path] != 0 } {
+      return true;
+    }
+  }
+  return false
+}
+
+
 proc wr_prflow { proj_dir proj_name } {
   # Summary: write partial reconfiguration and properties 
   # This helper command is used to script help.
@@ -2545,7 +2585,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
       if { $a_global_vars(b_arg_no_copy_srcs) } {
         # add to the local collection
         lappend l_remote_file_list $file
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
           lappend add_file_coln "$file"
         } else {
           lappend add_file_coln "\"\[file normalize \"$proj_file_path\"\]\""
@@ -2553,7 +2593,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
       } else {
         # add to the import collection
         lappend l_local_file_list $file
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
           lappend import_coln "$file"
         } else {
           lappend import_coln "\"\[file normalize \"$proj_file_path\"\]\""
@@ -2579,7 +2619,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
       }
 
       # add file to collection
-      if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
+      if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path)) && ![need_abs_path $file]} {
         set file_no_quotes [string trim $file "\""]
         set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
         set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
@@ -2601,7 +2641,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   if {[llength $add_file_coln]>0} { 
     lappend l_script_data "set files \[list \\"
     foreach file $add_file_coln {
-      if { $a_global_vars(b_absolute_path) } {
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
         lappend l_script_data " $file\\"
       } else {
         if { $a_global_vars(b_arg_no_copy_srcs) } {
@@ -2760,7 +2800,7 @@ proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_fi
     # write properties now
     if { $prop_count>0 } {
       if { {remote} == $file_category } {
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
           lappend l_script_data "set file \"$file\""
         } else {
           lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
