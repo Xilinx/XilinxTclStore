@@ -5,6 +5,15 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2017.11.01 - Added support for -csv
+##            - Changed format for output report (table reported before optional CSV)
+##            - Detailed reports are only generated when not empty
+## 2017.10.23 - Added metric for counting the DONT_TOUCH properties (cells/nets)
+##            - Added detailed report for DONT_TOUCH property
+##            - Added support for -append for detailed reports
+##            - Added support for -no_dont_touch
+##            - Do no report 'LUT Combining' metric when LUT utilization < 50%
+##            - Fixed issue when the script is used outside of the Tcl Store
 ## 2017.10.11 - Moved code to Xilinx Tcl Store
 ##            - Moved to prettyTable
 ##            - Fixed issue with the number of failures not returned with -by_slr
@@ -140,10 +149,12 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-no_methodology_checks]: Skip methodology checks
   # [-no_path_budgeting]: Skip LUT/Net budgeting
   # [-no_fanout]: Skip average fanout calculation
+  # [-no_dont_touch]: Skip DONT_TOUCH check
   # [-post_ooc_synth]: Post OOC Synthesis - only run LUT/Net budgeting
   # [-ignore_pr]: Disable auto-detection of Partial Reconfigurable designs
   # [-show_resources]: Show Used/Available resources count in the summary table
   # [-show_not_found]: Show metrics that could not be extracted
+  # [-csv]: Add CSV to the output report
   # [-transpose]: Transpose the CSV file
   # [-longhelp]: Display Long help with the supported use models
 
@@ -287,7 +298,8 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2017.10.11}
+  variable version {2017.11.01}
+  variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
   variable output {}
@@ -336,6 +348,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(debug_level) 1
   set params(format) {table}
   set params(transpose) 0
+  set pid {tmp}
+  catch { set pid [pid] }
   set filename {}
   set filemode {w}
   set detailedReportsPrefix {}
@@ -419,9 +433,12 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^-no_f(a(n(o(ut?)?)?)?)?$} {
         lappend skipChecks {average_fanout}
       }
+      {^-no_do(n(t(_(t(o(u(ch?)?)?)?)?)?)?)?$} {
+        lappend skipChecks {dont_touch}
+      }
       {^-po(s(t(_(o(o(c(_(s(y(n(th?)?)?)?)?)?)?)?)?)?)?)?$} -
       {^-pa(t(h(_(b(u(d(g(e(t(i(n(g(_(o(n(ly?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
-        set skipChecks [concat $skipChecks {utilization control_sets non_fd_hfn average_fanout methodology_check}]
+        set skipChecks [concat $skipChecks {utilization dont_touch control_sets non_fd_hfn average_fanout methodology_check}]
       }
       {^-ce(ll?)?$} {
         set prCell [lshift args]
@@ -461,6 +478,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       }
       {^-show_r(e(s(o(u(r(c(es?)?)?)?)?)?)?)?$} {
         set params(show_resources) 1
+      }
+      {^-c(sv?)?$} -
+      {^-csv$} {
+        set params(format) {csv}
       }
       {^-tr(a(n(s(p(o(se?)?)?)?)?)?)?$} {
         set params(transpose) 1
@@ -521,11 +542,12 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
               [-no_methodology_check]
               [-no_path_budgeting]
               [-no_fanout]
+              [-no_dont_touch]
               [-post_ooc_synth]
               [-ignore_pr]
               [-show_resources]
               [-show_not_found]
-              [-transpose]
+              [-csv][-transpose]
               [-verbose|-v]
               [-help|-h]
               [-longhelp]
@@ -536,6 +558,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
     Use -export_config to export configuration file
     Use -config_file to import user configuration file
+    Use -csv to generate a CSV format
     Use -transpose to transpose the CSV table and export it as 1-liner
     Use -detailed_reports to generate detailed reports for methdology checks, paths failing LUT/Net budgeting, the Non-FD HFN and Average Fanout
     Use -cell/-pblock to force the analysis on a specific module and pblock in a Partial Reconfigurable design. By default, the analysis is done from the top-level. The full hierarchical path must be specified for -cell
@@ -547,6 +570,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     Use -no_methodology_check to prevent extraction of the TIMING-* metrics
     Use -no_fanout to prevent calculation of the average fanout
     Use -no_path_budgeting to prevent calculation of the LUT/Net budgeting
+    Use -no_dont_touch to prevent calculation of DONT_TOUCH metric
     Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
     Use -show_resources to report the detailed number of used and available resources in the summary table
     Use -show_not_found to report metrics that have not been extracted (hidden by default)
@@ -557,7 +581,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   Example:
      ::xilinx::designutils::report_failfast
      ::xilinx::designutils::report_failfast -file failfast.rpt
-     ::xilinx::designutils::report_failfast -file failfast.rpt -transpose
+     ::xilinx::designutils::report_failfast -file failfast.rpt -csv -transpose
      ::xilinx::designutils::report_failfast -export_config report_failfast.cfg
      ::xilinx::designutils::report_failfast -config_file report_failfast.cfg -file failfast.rpt
      ::xilinx::designutils::report_failfast -detailed_reports synth -file failfast.rpt
@@ -576,6 +600,16 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   if {$show_long_help} {
     print_help
     return -code ok
+  }
+
+  if {($filename == {}) && ($params(transpose) || ($params(format) == {csv}))} {
+    puts " -E- -csv/-transpose must be used with -file"
+    incr error
+  }
+
+  if {$params(transpose) && ($params(format) != {csv})} {
+    puts " -E- -transpose must be used with -csv"
+    incr error
   }
 
   if {($userConfigFilename != {}) && ![file exists $userConfigFilename]} {
@@ -739,6 +773,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       set leafCells [get_cells -quiet -of [get_slrs -quiet $slrs]]
       # The following checks are not supported in this mode
       set skipChecks [concat $skipChecks {average_fanout path_budgeting methodology_check}]
+      # dont_touch is not supported in this mode as it would flag DONT_TOUCH on shell/static
+      # logic contained in some of the SLRs
+      set skipChecks [concat $skipChecks {dont_touch}]
       # Sanity check for a tuned message
       if {[llength $leafCells] == 0} {
         puts " -E- no leaf primitive found under SLR $slrs. Make sure the design is placed. Cannot continue"
@@ -816,6 +853,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     catch { array unset guidelines utilization.clk.* }
   }
 
+  if {[lsearch $skipChecks {dont_touch}] != -1} {
+    catch { array unset guidelines design.dont_touch }
+  }
+
   if {[lsearch $skipChecks {control_sets}] != -1} {
     catch { array unset guidelines utilization.ctrlsets.* }
   }
@@ -838,11 +879,20 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
   # Check if designutils app is already installed as it is needed for prettyTable
   if {[lsearch -exact [::tclapp::list_apps] {xilinx::designutils}] == -1} {
+    set script $::tclapp::xilinx::designutils::report_failfast::script
+    # Save the verbosity flag as it gets lost when designutils is installed
+    set verbose $params(verbose)
     if {$params(verbose)} {
       puts " -I- installing Tcl Store app: designutils"
     }
     uplevel #0 [list ::tclapp::install {designutils} ]
-    # For whatever reason, the script need to be re-started once designutils has been installed
+    # The current script needs to be re-sourced since installing the app designutils has
+    # overridden report_failfast from the Github version
+    if {$verbose} {
+      puts " -I- sourcing $script"
+    }
+    uplevel #0 [list source $script ]
+    # The script need to be re-started once designutils has been installed
     set res [tclapp::xilinx::designutils::report_failfast {*}$cmdLine]
     # Return the number of metrics to review
     return $res
@@ -875,6 +925,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       addMetric {design.cells.hlutnm.pct}       {Number of HLUTNM cells (%)}
       addMetric {design.ports}                  {Number of ports}
       addMetric {design.slrs}                   {Number of SLRs}
+      addMetric {design.dont_touch}             {Number of DONT_TOUCH (cells/nets)}
 
       set part [get_property -quiet PART [current_design]]
       setMetric {design.part}                   $part
@@ -897,8 +948,141 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       } else {
         setMetric {design.cells.hlutnm.pct} {n/a}
       }
+
       set stepStopTime [clock seconds]
       puts " -I- design metrics completed in [expr $stepStopTime - $stepStartTime] seconds"
+    }
+
+    ########################################################################################
+    ##
+    ## DONT_TOUCH metric
+    ##
+    ########################################################################################
+
+    if {1 && [llength [array names guidelines design.dont_touch]] && ([lsearch $skipChecks {dont_touch}] == -1)} {
+      set stepStartTime [clock seconds]
+      set numDontTouch 0
+      set dontTouchNets [list]
+      set dontTouchHierCells [list]
+      set dontTouchLeafCells [list]
+      switch $reportMode {
+        pblockAndTop {
+          # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+          set dontTouchNets [get_nets -quiet -hier -filter {DONT_TOUCH && !MARK_DEBUG}]
+          set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH}]
+          set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH}]
+        }
+        pblockAndCell {
+          # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+          set dontTouchNets [filter -quiet [get_nets -quiet -of $leafCells] {DONT_TOUCH && !MARK_DEBUG}]
+          set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
+          set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
+        }
+        pblockOnly {
+          # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+          set parents [getParentCells $leafCells]
+          set dontTouchNets [filter -quiet [get_nets -quiet -of $leafCells] {DONT_TOUCH && !MARK_DEBUG}]
+          set dontTouchHierCells [filter -quiet $parents {DONT_TOUCH}]
+          set dontTouchLeafCells [filter -quiet $leafCells {DONT_TOUCH}]
+        }
+        regionAndTop {
+          # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+          set dontTouchNets [get_nets -quiet -hier -filter {DONT_TOUCH && !MARK_DEBUG}]
+          set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH}]
+          set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH}]
+        }
+        regionAndCell {
+           # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+          set dontTouchNets [filter -quiet [get_nets -quiet -of $leafCells] {DONT_TOUCH && !MARK_DEBUG}]
+          set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
+          set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
+       }
+        regionOnly {
+          # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+          set parents [getParentCells $leafCells]
+          set dontTouchNets [filter -quiet [get_nets -quiet -of $leafCells] {DONT_TOUCH && !MARK_DEBUG}]
+          set dontTouchHierCells [filter -quiet $parents {DONT_TOUCH}]
+          set dontTouchLeafCells [filter -quiet $leafCells {DONT_TOUCH}]
+       }
+        slrAndTop {
+          # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+          set dontTouchNets [get_nets -quiet -hier -filter {DONT_TOUCH && !MARK_DEBUG}]
+          set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH}]
+          set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH}]
+        }
+        slrAndCell {
+          # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+          set dontTouchNets [filter -quiet [get_nets -quiet -of $leafCells] {DONT_TOUCH && !MARK_DEBUG}]
+          set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
+          set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
+        }
+        slrOnly {
+          # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+#           set parents [getParentCells $leafCells]
+#           set dontTouchNets [filter -quiet [get_nets -quiet -of $leafCells] {DONT_TOUCH && !MARK_DEBUG}]
+#           set dontTouchHierCells [filter -quiet $parents {DONT_TOUCH}]
+#           set dontTouchLeafCells [filter -quiet $leafCells {DONT_TOUCH}]
+          # dont_touch is not supported in this mode as it would flag DONT_TOUCH on shell/static
+          # logic contained in some of the SLRs
+          array unset guidelines design.dont_touch
+        }
+        default {
+          # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
+          set dontTouchNets [get_nets -quiet -hier -filter {DONT_TOUCH && !MARK_DEBUG}]
+          set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH}]
+          set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH}]
+        }
+      }
+      set numDontTouch [expr [llength $dontTouchNets] + [llength $dontTouchHierCells] + [llength $dontTouchLeafCells] ]
+      setMetric {design.dont_touch} $numDontTouch
+
+      if {$detailedReportsPrefix != {}} {
+        set empty 1
+        catch { file copy ${detailedReportsPrefix}.DONT_TOUCH.rpt ${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid} }
+        set FH [open "${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid}" $filemode]
+        puts $FH "# ---------------------------------------------------------------------------"
+        puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+        puts $FH "# ---------------------------------------------------------------------------\n"
+        # Hierarchical cells
+        set tbl [::tclapp::xilinx::designutils::prettyTable create [format "DONT_TOUCH (Hierarchical Cells)\n[llength $dontTouchHierCells] module(s)"] ]
+        $tbl indent 1
+        $tbl header [list {Cell} ]
+        foreach el [lsort $dontTouchHierCells] {
+          $tbl addrow [list $el]
+          set empty 0
+        }
+        puts $FH [$tbl print]
+        catch {$tbl destroy}
+        # Leaf cells
+        set tbl [::tclapp::xilinx::designutils::prettyTable create [format "DONT_TOUCH (Leaf Cells)\n[llength $dontTouchLeafCells] cell(s)"] ]
+        $tbl indent 1
+        $tbl header [list {Cell} ]
+        foreach el [lsort $dontTouchLeafCells] {
+          $tbl addrow [list $el]
+          set empty 0
+        }
+        puts $FH [$tbl print]
+        catch {$tbl destroy}
+        # Nets
+        set tbl [::tclapp::xilinx::designutils::prettyTable create [format "DONT_TOUCH (Nets)\n[llength $dontTouchNets] net(s)"] ]
+        $tbl indent 1
+        $tbl header [list {Net} ]
+        foreach el [lsort $dontTouchNets] {
+          $tbl addrow [list $el]
+          set empty 0
+        }
+        puts $FH [$tbl print]
+        catch {$tbl destroy}
+        close $FH
+        if {$empty} {
+          file delete -force ${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid}
+        } else {
+          file rename -force ${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid} ${detailedReportsPrefix}.DONT_TOUCH.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.DONT_TOUCH.rpt]"
+        }
+      }
+      set stepStopTime [clock seconds]
+      puts " -I- DONT_TOUCH metric completed in [expr $stepStopTime - $stepStartTime] seconds"
     }
 
     ########################################################################################
@@ -1315,6 +1499,15 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         setMetric {utilization.bigblocks.avail} {n/a}
       }
 
+      # If the LUT utilization is below 50%, then do not report the LUT Combining metris
+      if {[catch {
+        if {[getMetric {utilization.clb.lut.pct}] < 50.0} {
+          if {$params(verbose)} { puts " -I- removing LUT Combining metric (design.cells.hlutnm.pct) due to low LUT utilization ([getMetric {utilization.clb.lut.pct}]%)" }
+          array unset guidelines design.cells.hlutnm.pct
+        }
+      }]} {
+      }
+
       set stepStopTime [clock seconds]
       puts " -I- utilization metrics completed in [expr $stepStopTime - $stepStartTime] seconds"
     }
@@ -1412,7 +1605,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       puts " -I- methodology check metrics completed in [expr $stepStopTime - $stepStartTime] seconds"
 
       if {$detailedReportsPrefix != {}} {
-        set FH [open "${detailedReportsPrefix}.TIMING.rpt" {w}]
+        set empty 1
+        catch { file copy ${detailedReportsPrefix}.TIMING.rpt ${detailedReportsPrefix}.TIMING.rpt.${pid} }
+        set FH [open "${detailedReportsPrefix}.TIMING.rpt.${pid}" $filemode]
         puts $FH "# ---------------------------------------------------------------------------"
         puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
         puts $FH "# ---------------------------------------------------------------------------\n"
@@ -1420,10 +1615,16 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           foreach vio [get_methodology_violations -quiet -filter "CHECK==TIMING-$idx"] {
             puts $FH "TIMING-$idx - [get_property -quiet DESCRIPTION [get_methodology_checks -quiet TIMING-$idx]]"
             puts $FH "  => [get_property DESCRIPTION $vio]\n"
+            set empty 0
           }
         }
         close $FH
-        puts " -I- Generated file [file normalize ${detailedReportsPrefix}.TIMING.rpt]"
+        if {$empty} {
+          file delete -force ${detailedReportsPrefix}.TIMING.rpt.${pid}
+        } else {
+          file rename -force ${detailedReportsPrefix}.TIMING.rpt.${pid} ${detailedReportsPrefix}.TIMING.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.TIMING.rpt]"
+        }
       }
 
     }
@@ -1484,7 +1685,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       puts " -I- average fanout metrics completed in [expr $stepStopTime - $stepStartTime] seconds ([expr [llength $data(-)] -1] modules)"
 
       if {$detailedReportsPrefix != {}} {
-        set FH [open "${detailedReportsPrefix}.AVGFO.rpt" {w}]
+        set empty 1
+        catch { file copy ${detailedReportsPrefix}.AVGFO.rpt ${detailedReportsPrefix}.AVGFO.rpt.${pid} }
+        set FH [open "${detailedReportsPrefix}.AVGFO.rpt.${pid}" $filemode]
         puts $FH "# ---------------------------------------------------------------------------"
         puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
         puts $FH "# ---------------------------------------------------------------------------\n"
@@ -1511,11 +1714,17 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
             set cell {<TOP>}
           }
           $tbl addrow [list $cell $numprim $pinco $avgfo]
+          set empty 0
         }
         puts $FH [$tbl print]
         catch {$tbl destroy}
         close $FH
-        puts " -I- Generated file [file normalize ${detailedReportsPrefix}.AVGFO.rpt]"
+        if {$empty} {
+          file delete -force ${detailedReportsPrefix}.AVGFO.rpt.${pid}
+        } else {
+          file rename -force ${detailedReportsPrefix}.AVGFO.rpt.${pid} ${detailedReportsPrefix}.AVGFO.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.AVGFO.rpt]"
+        }
       }
 
     }
@@ -1540,7 +1749,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       puts " -I- non-FD high fanout nets completed in [expr $stepStopTime - $stepStartTime] seconds"
 
       if {$detailedReportsPrefix != {}} {
-        set FH [open "${detailedReportsPrefix}.HFN.rpt" {w}]
+        set empty 1
+        catch { file copy ${detailedReportsPrefix}.HFN.rpt ${detailedReportsPrefix}.HFN.rpt.${pid} }
+        set FH [open "${detailedReportsPrefix}.HFN.rpt.${pid}" $filemode]
         puts $FH "# ---------------------------------------------------------------------------"
         puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
         puts $FH "# ---------------------------------------------------------------------------\n"
@@ -1552,11 +1763,17 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           set net [get_nets -quiet -of $pin]
           set fanout [expr [get_property -quiet FLAT_PIN_COUNT $net] -1]
           $tbl addrow [list $refname $pin $net $fanout]
+          set empty 0
         }
         puts $FH [$tbl print]
         catch {$tbl destroy}
         close $FH
-        puts " -I- Generated file [file normalize ${detailedReportsPrefix}.HFN.rpt]"
+        if {$empty} {
+          file delete -force ${detailedReportsPrefix}.HFN.rpt.${pid}
+        } else {
+          file rename -force ${detailedReportsPrefix}.HFN.rpt.${pid} ${detailedReportsPrefix}.HFN.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.HFN.rpt]"
+        }
       }
 
     }
@@ -1580,9 +1797,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     if {1 && ([llength [array names guidelines design.device.maxlvls*]] >= 2) && ([lsearch $skipChecks {path_budgeting}] == -1)} {
       set stepStartTime [clock seconds]
 
+      set emptyLut 1
+      set emptyNet 1
       if {$detailedReportsPrefix != {}} {
-        set FHLut [open "${detailedReportsPrefix}.timing_budget_LUT.rpt" {w}]
-        set FHNet [open "${detailedReportsPrefix}.timing_budget_Net.rpt" {w}]
+        catch { file copy ${detailedReportsPrefix}.timing_budget_LUT.rpt ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} }
+        catch { file copy ${detailedReportsPrefix}.timing_budget_Net.rpt ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} }
+        set FHLut [open "${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}" $filemode]
+        set FHNet [open "${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}" $filemode]
         puts $FHLut "# ---------------------------------------------------------------------------"
         puts $FHLut [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
         puts $FHLut "# ---------------------------------------------------------------------------\n"
@@ -1799,6 +2020,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           # Save the path inside the detailed report file
           if {$FHNet != {}} {
             puts $FHNet [report_timing -quiet -of $path -return_string]
+            set emptyNet 0
           }
           # Debug table for LUT/Net budgeting
           lappend row [format {%s (*)} $net_budget]
@@ -1821,6 +2043,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           # Save the path inside the detailed report file
           if {$FHLut != {}} {
             puts $FHLut [report_timing -quiet -of $path -return_string]
+            set emptyLut 0
           }
           # Debug table for LUT/Net budgeting
           lappend row [format {%s (*)} $lut_budget]
@@ -1864,8 +2087,18 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         close $FHNet
         set FHLut {}
         set FHNet {}
-        puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_LUT.rpt]"
-        puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_Net.rpt]"
+        if {$emptyLut} {
+          file delete -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
+        } else {
+          file rename -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} ${detailedReportsPrefix}.timing_budget_LUT.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_LUT.rpt]"
+        }
+        if {$emptyNet} {
+          file delete -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
+        } else {
+          file rename -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} ${detailedReportsPrefix}.timing_budget_Net.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_Net.rpt]"
+        }
       }
 
     } else {
@@ -2019,6 +2252,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   generateTableRow tbl {utilization.uram.tile.pct}  {URAM}
   generateTableRow tbl {utilization.bigblocks.pct}  {DSP48+RAMB+URAM (Avg)}
   generateTableRow tbl {utilization.clk.all}        {BUFGCE* + BUFGCTRL}
+  generateTableRow tbl {design.dont_touch}          {DONT_TOUCH (cells/nets)}
   generateTableRow tbl {utilization.ctrlsets.uniq}  {Control Sets}
   if {[llength [array names guidelines design.cells.maxavgfo*]] == 2} {
 #     generateTableRow tbl {design.cells.maxavgfo}      {Average Fanout for modules > 100k cells}
@@ -2097,6 +2331,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   $tblcsv addrow [list {utilization.bigblocks.pct}  {DSP48+RAMB+URAM (Avg)(%)}       [getMetric {utilization.bigblocks.pct}] ]
   $tblcsv addrow [list {utilization.clk.all}        {BUFGCE* + BUFGCTRL} [getMetric {utilization.clk.all}] ]
   $tblcsv addrow [list {utilization.ctrlsets.uniq}  {Control Sets}       [getMetric {utilization.ctrlsets.uniq}] ]
+  $tblcsv addrow [list {design.dont_touch}          {DONT_TOUCH(#)}      [getMetric {design.dont_touch}] ]
   if {[llength [array names guidelines design.cells.maxavgfo*]] == 2} {
     $tblcsv addrow [list {design.cells.maxavgfo}      "Average Fanout for modules > [expr $guidelines(design.cells.maxavgfo.limit) / 1000]k cells" [getMetric {design.cells.maxavgfo}] ]
   }
@@ -2128,9 +2363,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     puts $FH "# ---------------------------------------------------------------------------------"
     puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
     puts $FH "# ---------------------------------------------------------------------------------\n"
-    puts $FH [$tblcsv export -format csv]
-    puts $FH ""
     puts $FH [join $output \n]
+    puts $FH ""
+    # Only add the CSV table if requested
+    if {$params(format) == {csv}} {
+      puts $FH [$tblcsv export -format $params(format)]
+    }
+#     puts $FH [$tblcsv export -format csv]
     close $FH
     puts " -I- Generated file [file normalize $filename]"
   } else {
@@ -2205,6 +2444,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::config {} {
   #   of control sets based on the number of available FD resources
 #   set guidelines(utilization.ctrlsets.uniq)       {<=10000}
   set guidelines(utilization.ctrlsets.uniq)       {<=}
+
+  # Threshold (PASS) for DONT_TOUCH properties
+  set guidelines(design.dont_touch)               "=0"
 
   # Limit for 'Average Fanout for modules > ...k cells' calculation
   set guidelines(design.cells.maxavgfo.limit)     {100000}
@@ -2396,6 +2638,30 @@ proc ::tclapp::xilinx::designutils::report_failfast::getModules {level min hmin}
   set hierPrimitives {}
   set hierCells {}
   return $L
+}
+
+# Get the list of PARENT modules for a list of cell(s)
+proc ::tclapp::xilinx::designutils::report_failfast::getParentCells {cells} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set cells [get_cells -quiet $cells]
+  if {$cells == {}} {
+    return {}
+  }
+  set parents [list]
+  while {1} {
+    set L [get_property -quiet PARENT $cells]
+    if {$L == {}} {
+      break
+    }
+    set parents [concat $parents $L]
+    set cells $L
+  }
+  set parents [lsort -unique [get_cells -quiet $parents] ]
+  return $parents
 }
 
 proc ::tclapp::xilinx::designutils::report_failfast::generateTableRow {&tbl name {description {}}} {

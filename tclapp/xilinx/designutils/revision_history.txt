@@ -1,3 +1,4 @@
+1.33 Updated report_failfast
 1.32 Added report_failfast. Updated prettyTable
 1.31 Updated insert_buffer.tcl to better support UltraScale/UltraScale Plus. Minor update to prettyTable.
 1.30 Added support for UltraScale Plus (get_sll_nets, get_sll_nodes)
