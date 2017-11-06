@@ -544,6 +544,7 @@ proc write_bd_as_proc { bd_file } {
   variable l_open_bds
   variable temp_dir
   variable bd_prop_steps
+  set bd_file [list "$bd_file"]
 
   if { [lsearch $l_added_bds $bd_file] != -1 } { return }
   
@@ -692,7 +693,7 @@ proc wr_bd {} {
 
   foreach bd_file $bd_files {
     # Making sure BD is not locked
-    set is_locked [get_property IS_LOCKED [get_files $bd_file ] ]
+    set is_locked [get_property IS_LOCKED [get_files [list "$bd_file"] ] ]
     if { $is_locked == 1 } {
       file delete $a_global_vars(script_file)
       send_msg_id Vivado-projutils-018 ERROR "Project tcl cannot be written as the design contains one or more \
@@ -1150,8 +1151,12 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
   variable l_script_data
   variable b_project_board_set
 
+  if {[string equal $type "project"]} {
+    # escape empty spaces in project name
+    set tcl_obj [ list "$tcl_obj"]
+  }
   set obj_name [get_property name [$get_what $tcl_obj]]
-  set read_only_props [rdi::get_attr_specs -class [get_property class $tcl_obj] -filter {is_readonly}]
+  set read_only_props [rdi::get_attr_specs -class [get_property class [$get_what $tcl_obj]] -filter {is_readonly}]
   set prop_info_list [list]
   set properties [list_property [$get_what $tcl_obj]]
 
@@ -1190,9 +1195,9 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       }
       set prop_type [get_property type $attr_spec]
     }
-    set def_val [list_property_value -default $prop $tcl_obj]
+    set def_val [list_property_value -default $prop [$get_what $tcl_obj]]
     set dump_prop_name [string tolower ${obj_name}_${type}_$prop]
-    set cur_val [get_property $prop $tcl_obj]
+    set cur_val [get_property $prop [$get_what $tcl_obj]]
 
     # filter special properties
     if { [filter $prop $cur_val] } { continue }
@@ -1537,7 +1542,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       # import files
       set imported_path [get_property "imported_from" $file]
       set rel_file_path [get_relative_file_path_for_source $file [get_script_execution_dir]]
-      set proj_file_path "\$origin_dir/$rel_file_path"
+      set proj_file_path "\$\{origin_dir\}/$rel_file_path"
 
       set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
 
@@ -1555,7 +1560,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend import_coln "$file"
         } else {
-          lappend import_coln "\"\[file normalize \"$proj_file_path\"\]\""
+          lappend import_coln "\"\[file normalize $proj_file_path\]\""
         }
       }
 
@@ -1570,11 +1575,11 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
         # add to the import collection
         if { $a_global_vars(b_absolute_path)|| [need_abs_path $file]  } {
-          lappend import_coln [file normalize [string trim $file "\""]]
+          lappend import_coln [file normalize [list [string trim $file "\""]]]
         } else {
           set file_no_quotes [string trim $file "\""]
-          set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
-          lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
+          set org_file_path "\$\{origin_dir\}/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
+          lappend import_coln "\"\[file normalize $org_file_path \]\""
         }
         lappend l_local_file_list $file
       } else {
@@ -1582,8 +1587,8 @@ proc write_files { proj_dir proj_name tcl_obj type } {
           lappend add_file_coln [string trim $file "\""]
         } else {
           set file_no_quotes [string trim $file "\""]
-          set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
-          lappend add_file_coln "\"\[file normalize \"$org_file_path\"\]\""
+          set org_file_path "\$\{origin_dir\}/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
+          lappend add_file_coln "\"\[file normalize $org_file_path\]\""
         }
         lappend l_remote_file_list $file
       }
@@ -1598,7 +1603,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   if {[llength $add_file_coln]>0} { 
     lappend l_script_data "set files \[list \\"
     foreach file $add_file_coln {
-        lappend l_script_data " $file\\"
+        lappend l_script_data " $file \\"
     }
     lappend l_script_data "\]"
     lappend l_script_data "add_files -norecurse -fileset \$obj \$files"
@@ -1676,7 +1681,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
     if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
       set imported_path  [get_property "imported_from" $file]
       set rel_file_path  [get_relative_file_path_for_source $file [get_script_execution_dir]]
-      set proj_file_path "\$origin_dir/$rel_file_path"
+      set proj_file_path \$\{origin_dir\}/$rel_file_path
       set file           "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
       # donot copy imported constrs in new project? set it as remote file in new project.
       if { $a_global_vars(b_arg_no_copy_srcs) } {
@@ -1685,7 +1690,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
         if { $a_global_vars(b_absolute_path) || [need_abs_path $imported_path] } {
           add_constrs_file "$file"
         } else {
-          set str "\"\[file normalize \"$proj_file_path\"\]\""
+          set str "\"\[file normalize $proj_file_path\]\""
           add_constrs_file $str
         }
       } else {
@@ -1695,7 +1700,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
         if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           import_constrs_file $tcl_obj "$file"
         } else {
-          set str "\"\[file normalize \"$proj_file_path\"\]\""
+          set str "\"\[file normalize $proj_file_path\]\""
           import_constrs_file $tcl_obj $str
         }
       }
@@ -1765,7 +1770,7 @@ proc add_constrs_file { file_str } {
       lappend l_script_data "set file \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
     }
   }
-  lappend l_script_data "set file_added \[add_files -norecurse -fileset \$obj \$file\]"
+  lappend l_script_data "set file_added \[add_files -norecurse -fileset \$obj \[list \$file\]\]"
 }
 
 proc import_constrs_file { tcl_obj file_str } {
@@ -1781,7 +1786,7 @@ proc import_constrs_file { tcl_obj file_str } {
   # now import local files if -no_copy_sources is not specified
   if { ! $a_global_vars(b_arg_no_copy_srcs)} {
     lappend l_script_data "set file $file_str"
-    lappend l_script_data "set file_imported \[import_files -fileset $tcl_obj \$file\]"
+    lappend l_script_data "set file_imported \[import_files -fileset $tcl_obj \[list \$file\]\]"
   }
 }
 
@@ -2298,7 +2303,7 @@ proc is_ip_fileset { fileset } {
   set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
   set b_found false
   foreach ip $ips {
-    if { [get_property generate_synth_checkpoint [lindex [get_files -quiet -all $ip] 0]] } {
+    if { [get_property generate_synth_checkpoint [lindex [get_files -quiet -all [list "$ip"]] 0]] } {
       set b_found true
       break
     }
