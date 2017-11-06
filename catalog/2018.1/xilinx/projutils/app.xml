@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Using absolute paths for sources in a different network mount than the script execution directory (applies to windows OS)</revision_history>
+      <revision_history>Handling projects containing empty spaces in the project path</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
