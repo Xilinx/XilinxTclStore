@@ -1014,6 +1014,11 @@ proc filter { prop val { file {} } } {
     return 1
   }
 
+  # filter sim_types
+  if { [string equal -nocase $prop {sim_types}] } {
+    return 1
+  }
+
   return 0
 }
 

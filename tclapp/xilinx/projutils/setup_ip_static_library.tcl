@@ -1315,8 +1315,10 @@ proc isl_create_vao_file { ip_lib_dir file_paths } {
   # Argument Usage:
   # Return Value:
 
-  set vhdl_filelist [list]
+  set vhdl_filelist    [list]
   set verilog_filelist [list]
+  set systemc_filelist [list]
+  set cpp_filelist     [list]
 
   foreach line $file_paths {
     set tokens [split $line {,}]
@@ -1326,11 +1328,17 @@ proc isl_create_vao_file { ip_lib_dir file_paths } {
       lappend vhdl_filelist $path
     } elseif { ({verilog} == $type) || ({system_verilog} == $type) } {
       lappend verilog_filelist $path
+    } elseif { ({systemc} == $type) || ({systemc_header} == $type) } {
+      lappend systemc_filelist $path
+    } elseif { ({cpp} == $type) || ({cpp_header} == $type) } {
+      lappend cpp_filelist $path
     }
   }
 
   isl_write_analyze_order_file vhdl_filelist    $ip_lib_dir "vhdl_analyze_order"
   isl_write_analyze_order_file verilog_filelist $ip_lib_dir "verilog_analyze_order"
+  isl_write_analyze_order_file systemc_filelist $ip_lib_dir "systemc_analyze_order"
+  isl_write_analyze_order_file cpp_filelist     $ip_lib_dir "cpp_analyze_order"
 }
 
 proc isl_create_order_file { ip_data ip_libs } {
@@ -1493,6 +1501,18 @@ proc isl_get_file_type { file_group file } {
     set is_include [get_property is_include [ipx::get_files $file -of_objects $file_group]]
     if { {1} == $is_include } {
       set type "verilog_header"
+    }
+  } elseif { ({systemCSource} == $file_type) } {
+    set type "systemc"
+    set is_include [get_property is_include [ipx::get_files $file -of_objects $file_group]]
+    if { {1} == $is_include } {
+      set type "systemc_header"
+    }
+  } elseif { ({cppSource} == $file_type) } {
+    set type "cpp"
+    set is_include [get_property is_include [ipx::get_files $file -of_objects $file_group]]
+    if { {1} == $is_include } {
+      set type "cpp_header"
     }
   }
   return $type
