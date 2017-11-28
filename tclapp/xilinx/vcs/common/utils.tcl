@@ -814,6 +814,9 @@ proc xcs_get_file_type_category { file_type } {
     {SystemC} {
       set type {SYSTEMC}
     }
+    {CPP} {
+      set type {CPP}
+    }
   }
   return $type
 }
@@ -2292,6 +2295,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog/SystemVerilog Header" -
         "SystemVerilog"                {set compiler "vlog"}
         "SystemC"                      {set compiler "sccom"}
+        "CPP"                          {set compiler "g++"}
       }
     }
     "riviera" -
@@ -2937,16 +2941,15 @@ proc xcs_glbl_dependency_for_xpm {} {
   return 0
 }
 
-proc xcs_get_systemc_incl_dirs { simulator launch_dir s_ip_user_files_dir b_xport_src_files b_absolute_path { ref_dir "true" } } {
+proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_xport_src_files b_absolute_path { ref_dir "true" } } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set incl_dirs [list]
-  set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
   set uniq_incl_dirs [list]
 
-  foreach file [get_files -all -filter $sc_filter] {
+  foreach file [get_files -all -filter $c_filter] {
     set file_extn [file extension $file]
 
     # consider header (.h) files only

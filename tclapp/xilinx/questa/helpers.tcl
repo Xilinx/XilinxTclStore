@@ -516,7 +516,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
       # fetch systemc include files (.h)
       set l_incl_dir [list]
-      foreach dir [xcs_get_systemc_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $sc_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
 

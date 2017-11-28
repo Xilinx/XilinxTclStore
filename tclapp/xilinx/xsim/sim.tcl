@@ -1079,7 +1079,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         set simulator "xsim"
         set prefix_ref_dir false
         set l_incl_dirs [list]
-        foreach dir [xcs_get_systemc_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $sc_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
           lappend l_incl_dirs "$dir"
         }
         # get the xtlm include dir from compiled library

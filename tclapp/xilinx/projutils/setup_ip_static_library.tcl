@@ -1472,7 +1472,7 @@ proc isl_copy_incl_file { file_paths } {
     set file_path [lindex $tokens 0]
     set filename [file tail $file_path]
     set type [lindex $tokens 1]
-    if { ({verilog_header} == $type) || ({verilog header} == $type) } {
+    if { ({verilog_header} == $type) || ({verilog header} == $type) || ({systemc_header} == $type) || ({systemc header} == $type) || ({cpp_header} == $type) || ({cpp header} == $type)} {
       set src_file_path [file normalize $file_path]
       if { [file exists $src_file_path] } {
         set dst_file [file normalize [file join $a_isl_vars(ip_incl_dir) $filename]]

@@ -539,7 +539,27 @@ proc xif_export_ip { obj } {
         }
       }
     }
+ 
+    # CPP
+    foreach c_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" && FILE_TYPE == "CPP"}] {
+      set file {}
+      if { $a_vars(b_force) } {
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $c_file_obj]
+      } else {
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $c_file_obj]
+      }
+    }
 
+    # SystemC
+    foreach c_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" && FILE_TYPE == "SystemC"}] {
+      set file {}
+      if { $a_vars(b_force) } {
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $c_file_obj]
+      } else {
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $c_file_obj]
+      }
+    }
+   
     # templates
     foreach template_file [get_files -quiet -all -of [get_ips -all -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
       if { [lsearch $l_static_files $template_file] != -1 } { continue }
