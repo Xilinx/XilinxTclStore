@@ -1,3 +1,4 @@
+3.290 support for mixed file type export and compilation for Questa
 3.289 support for systemc and C file types
 3.288 Handling projects containing empty spaces in the project path
 3.287 Using absolute paths for sources in a different network mount than the script execution directory (applies to windows OS)

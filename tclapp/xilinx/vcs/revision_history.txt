@@ -1,3 +1,4 @@
+3.64 support for mixed file type export and compilation for Questa
 3.63 helper procedure to find IP
 3.62 call xcs_compile_glbl_file to determine if glbl.v needs to be compiled
 3.61 reference xilinx_vip include directory for ovm/uvm based designs
