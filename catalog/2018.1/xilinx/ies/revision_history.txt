@@ -1,3 +1,4 @@
+3.65 find shared libraries from the cxl data file
 3.64 check for gt quad base for mem file export
 3.63 support for mixed file type export and compilation for Questa
 3.62 check for variable existence before fetching the value
