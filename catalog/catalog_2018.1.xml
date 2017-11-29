@@ -87,8 +87,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>2c978cc3c0495027319f86c6ceac913ef7641f01</commit_id>
-      <revision>3.292</revision>
+      <commit_id>613145940f5748f415f1d303db00f0efdaf75d49</commit_id>
+      <revision>3.293</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -99,8 +99,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>2c978cc3c0495027319f86c6ceac913ef7641f01</commit_id>
-      <revision>2.71</revision>
+      <commit_id>613145940f5748f415f1d303db00f0efdaf75d49</commit_id>
+      <revision>2.72</revision>
     </app>
     <app>
       <name>questa_cdc</name>
