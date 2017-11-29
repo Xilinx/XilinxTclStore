@@ -2725,8 +2725,10 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
           set lib_dir "[xps_get_lib_map_path $simulator]/$shared_ip_lib"
           lappend shared_ip_libs $lib_dir
         }
-        set shared_ip_libs_env_path [join $shared_ip_libs ":"]
-        puts $fh_unix "  export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+        if { [llength $shared_ip_libs] > 0 } {
+          set shared_ip_libs_env_path [join $shared_ip_libs ":"]
+          puts $fh_unix "  export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+        }
       }
       puts $fh_unix "  source elaborate.do 2>&1 | tee -a elaborate.log"
       xps_write_do_file_for_elaborate $simulator $dir

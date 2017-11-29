@@ -510,6 +510,8 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set simulator "questa"
     set prefix_ref_dir false
     set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+    set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
+
     set sc_files [get_files -quiet -all -filter $sc_filter]
     if { [llength $sc_files] > 0 } {
       set g_files {}
@@ -517,6 +519,12 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       # fetch systemc include files (.h)
       set l_incl_dir [list]
       foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $sc_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        lappend l_incl_dir "-I \"$dir\""
+      }
+
+      # dependency on cpp source headers
+      # fetch cpp include files (.h)
+      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $cpp_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
 
@@ -537,11 +545,58 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
           if { !$a_sim_vars(b_contain_systemc_sources) } {
             set a_sim_vars(b_contain_systemc_sources) true
           }
-          set file_type "SystemC"
-          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
-          if { {} != $cmd_str } {
-            lappend files $cmd_str
-            lappend compile_order_files $file
+          
+          # is dynamic? process
+          set used_in_values [get_property "USED_IN" $file]
+          if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+            set file_type "SystemC"
+            set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
+            if { {} != $cmd_str } {
+              lappend files $cmd_str
+              lappend compile_order_files $file
+            }
+          }
+        }
+      }
+    }
+
+    set cpp_files [get_files -quiet -all -filter $cpp_filter]
+    if { [llength $cpp_files] > 0 } {
+      set g_files {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      # fetch systemc include files (.h)
+      set l_incl_dir [list]
+      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $cpp_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        lappend l_incl_dir "-I \"$dir\""
+      }
+
+      # get the xtlm include dir from compiled library
+      set dir "$a_sim_vars(s_clibs_dir)/xtlm/include"
+
+      # get relative file path for the compiled library
+      set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+      lappend l_incl_dir "-I \"$relative_dir\""
+
+      foreach file $cpp_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+        if { {.cpp} == $file_extn } {
+          # set flag
+          if { !$a_sim_vars(b_contain_systemc_sources) } {
+            set a_sim_vars(b_contain_systemc_sources) true
+          }
+          
+          # is dynamic? process
+          set used_in_values [get_property "USED_IN" $file]
+          if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+            set file_type "CPP"
+            set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
+            if { {} != $cmd_str } {
+              lappend files $cmd_str
+              lappend compile_order_files $file
+            }
           }
         }
       }
@@ -1126,6 +1181,11 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         lappend opts $cmd_str
       }
     }
+    "g++" {
+      if { $a_sim_vars(b_int_systemc_mode) } {
+        lappend opts "-c"
+      }
+    }
   }
 }
 
@@ -1230,7 +1290,11 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
     usf_append_compiler_options $compiler $file_type arg_list
-    set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str"]
+    if { {g++} == $compiler } {
+       # no work library required
+    } else {
+      set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str"]
+    }
   }
   usf_append_other_options $compiler $file_type $global_files_str arg_list
 
@@ -1238,6 +1302,8 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
   if { {vlog} == $compiler } {
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   } elseif { {sccom} == $compiler } {
+    set arg_list [concat $arg_list $l_incl_dirs_opts]
+  } elseif { {g++} == $compiler } {
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   }
 

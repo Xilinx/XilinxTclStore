@@ -1259,6 +1259,18 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
 
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+      set shared_ip_libs [list]
+      foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
+        set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
+        lappend shared_ip_libs $lib_dir
+      }
+      if { [llength $shared_ip_libs] > 0 } {
+        set shared_ip_libs_env_path [join $shared_ip_libs ":"]
+        puts $fh_scr "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+      }
+    }
+
     # TODO: once vsim picks the "so"s path at runtime , we can remove the following code
     if { {simulate} == $step } {
       if { [get_param "project.allowSharedLibraryType"] } {
@@ -1436,6 +1448,12 @@ proc usf_questa_get_sccom_cmd_args {} {
     }
 
     lappend args "-lib $a_sim_vars(default_top_library)"
+    foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
+      set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
+      lappend args "-L$lib_dir"
+      lappend args "-l${shared_ip_lib}"
+      lappend args "-lib ${shared_ip_lib}"
+    }
     lappend args "-work $a_sim_vars(default_top_library)"
   }
   return $args
