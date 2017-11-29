@@ -1508,6 +1508,11 @@ proc xcs_is_embedded_flow {} {
   if { [llength $embedded_files] > 0 } {
     return 1
   }
+
+  # check if gt_quad_base present
+  if { [xcs_find_ip "gt_quad_base"] } {
+    return 1
+  }
   return 0
 }
 
