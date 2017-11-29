@@ -3032,3 +3032,40 @@ proc xcs_find_ip { name } {
   }
   return false
 }
+
+proc xcs_get_shared_ip_libraries { clibs_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set shared_ip_libs [list]
+  set file [file normalize [file join $clibs_dir ".cxl.stat"]]
+  if { ![file exists $file] } {
+    return $shared_ip_libs
+  }
+
+  set fh 0
+  if { [catch {open $file r} fh] } {
+    return $shared_ip_libs
+  }
+  set lib_data [split [read $fh] "\n"]
+  close $fh
+
+  foreach line $lib_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^#} $line] } { continue; }
+    
+    set tokens [split $line {,}]
+    set library [string trim [lindex $tokens 0]]
+    set shared_lib_token [lindex $tokens 3]
+    if { {} != $shared_lib_token } {
+      set lib_tokens [split $shared_lib_token {=}]
+      set is_shared_lib [string trim [lindex $lib_tokens 1]]
+      if { {1} == $is_shared_lib } {
+        lappend shared_ip_libs $library
+      }
+    }
+  }
+  return $shared_ip_libs
+}

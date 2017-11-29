@@ -2710,6 +2710,7 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
   }
  
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
+  set clibs_dir [xps_get_lib_map_path $simulator]
   switch -regexp -- $simulator {
     "xsim" {
       xps_write_xelab_cmdline $fh_unix $dir
@@ -2718,6 +2719,15 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
     "riviera" -
     "activehdl" -
     "questa" {
+      if { $a_sim_vars(b_contain_systemc_sources) } {
+        set shared_ip_libs [list]
+        foreach shared_ip_lib [xcs_get_shared_ip_libraries $clibs_dir] {
+          set lib_dir "[xps_get_lib_map_path $simulator]/$shared_ip_lib"
+          lappend shared_ip_libs $lib_dir
+        }
+        set shared_ip_libs_env_path [join $shared_ip_libs ":"]
+        puts $fh_unix "  export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+      }
       puts $fh_unix "  source elaborate.do 2>&1 | tee -a elaborate.log"
       xps_write_do_file_for_elaborate $simulator $dir
     }
@@ -4071,6 +4081,8 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
     return 1
   }
 
+  set clibs_dir [xps_get_lib_map_path $simulator]
+
   switch $simulator {
     "modelsim" {
     }
@@ -4087,6 +4099,12 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
           lappend args "-lib $lib"
         }
         lappend args "-lib $a_sim_vars(default_lib)"
+        foreach shared_ip_lib [xcs_get_shared_ip_libraries $clibs_dir] {
+          set lib_dir "[xps_get_lib_map_path $simulator]/$shared_ip_lib"
+          lappend args "-L$lib_dir"
+          lappend args "-l${shared_ip_lib}"
+          lappend args "-lib ${shared_ip_lib}"
+        }
         lappend args "-work $a_sim_vars(default_lib)"
         set cmd_str [join $args " "]
         puts $fh "$cmd_str"
