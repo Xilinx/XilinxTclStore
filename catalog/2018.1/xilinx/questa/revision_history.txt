@@ -1,3 +1,4 @@
+2.70 check for gt quad base for mem file export
 2.69 support for mixed file type export and compilation for Questa
 2.68 helper procedure to find IP
 2.67 check for file existence before extracting
