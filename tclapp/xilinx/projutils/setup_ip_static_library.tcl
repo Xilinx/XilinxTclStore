@@ -1098,9 +1098,17 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg inter
   upvar $interface_pkgs_arg interface_pkgs
 
   set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
+  if { {} == $ip_def } {
+    send_msg_id setup_ip_static_library-Tcl-034 WARNING "Failed to get the IP defintion for '$vlnv'\n"
+    return
+  }
   set ip_def_comps [split $ip_def {:}]
   set ip_def_name  [lindex $ip_def_comps 2]
   set ip_xml  [get_property xml_file_name $ip_def]
+  if { {} == $ip_xml } {
+    send_msg_id setup_ip_static_library-Tcl-035 WARNING "Failed to get the IP component XML file for '$vlnv'\n"
+    return
+  }
   set ip_dir  [file dirname $ip_xml]
   set ip_comp [ipx::open_core -set_current false $ip_xml]
   set b_requires_vip [get_property -quiet requires_vip $ip_comp]
