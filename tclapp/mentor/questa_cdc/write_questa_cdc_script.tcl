@@ -329,37 +329,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
   update_compile_order -fileset $synth_fileset
   
-  set load_lib_line ""
-  if {[regexp {virtexu|kintexu} $arch_name]} {
-    ## Following path works for 2014.4
-    set lib_file_path1 "$vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib"
-    ## Following path works for 2016.2
-    set lib_file_path2 [lindex [glob -nocomplain $vivado_dir/data/parts/xilinx/$arch_name/*/$arch_name/timing/prod_ver1/$arch_name.lib] 0]
-    if {[file exists $lib_file_path1]} {
-      set load_lib_line "netlist load lib $lib_file_path1"
-    } elseif {[file exists $lib_file_path2]} {
-      set load_lib_line "netlist load lib $lib_file_path2"
-    } else {
-      puts "INFO: No liberty files found for architecture: $arch_name."
-      set load_lib_line ""
-    }
-  } else {
-    ## Following path works for 2014.4
-    set lib_file_path1 $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib
-    ## Following path works for 2016.2
-    set lib_file_path2 [lindex [glob -nocomplain $vivado_dir/data/parts/xilinx/$arch_name/*/$arch_name.lib] 0]
-    if {[file exists $lib_file_path1]} {
-      set load_lib_line "netlist load lib $lib_file_path1"
-    } elseif {[file exists $lib_file_path2]} {
-      set load_lib_line "netlist load lib $lib_file_path2"
-    } else {
-      puts "INFO: No liberty files found for architecture: $arch_name."
-      set load_lib_line ""
-    }
-  }
-
-  puts "DEBUG: Load lib: $load_lib_line"
-
   ## Blackbox unisims
 #  link_design -part [get_parts [get_property PART [current_project]]]
 #  puts "set_option stop {\\"
@@ -714,7 +683,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       puts $qcdc_run_fh "\tsdc load $sdc_out_file; \\"
     }
   }
-  puts $qcdc_run_fh "\t$load_lib_line; \\"
   puts $qcdc_run_fh "\tdo $qcdc_compile_tcl; \\"
   if { $run_questa_cdc == "netlist_create" } { 
     puts $qcdc_run_fh "\tnetlist create -d $top_module $lib_args -tool cdc; \\"
@@ -724,7 +692,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
   puts $qcdc_run_fh "\texit 0\""
 
-#  $load_lib_line
 #  puts $qcdc_tcl_fh "sdc load $top_module.sdc; \\"
 #  puts $qcdc_tcl_fh "do $qcdc_ctrl; \\"
 
