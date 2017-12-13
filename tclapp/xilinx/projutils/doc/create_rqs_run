@@ -1,0 +1,24 @@
+Description:
+
+  Creates and launches a new run based on the suggestions provided by report_qor_suggestions.
+
+Arguments:
+
+  -dir <arg> -  Directory from where the required files would be fetched. 
+
+  -new_name <arg> - Specify the new run name. 
+
+Examples:
+
+  The following example will create and launch a new run exp_1 using the constraints files in 
+  directory "path_to_dir":-
+  
+  % tclapp::xilinx::projutils::create_rqs_run -dir path_to_dir -new_name exp_1 
+  
+
+See Also:
+
+   *  create_runs
+   *  current_run
+   *  get_runs
+
