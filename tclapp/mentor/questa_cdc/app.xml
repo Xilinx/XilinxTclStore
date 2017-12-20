@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix to get the Questa CDC logo from the Questa CDC installation if it is not found in the directory of the Tcl script</revision_history>
+      <revision_history>Disable loading of liberty files in Questa CDC runs, as the cells will be already loaded in Questa CDC run using 'netlist fpga' command</revision_history>
       <name>questa_cdc</name>
       <company>mentor</company>
       <company_display>Mentor, a Siemens Business</company_display>
