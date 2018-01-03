@@ -1,3 +1,4 @@
+3.67 fetch systemc include file path
 3.66 find shared libraries from the cxl data file
 3.65 check for gt quad base for mem file export
 3.64 support for mixed file type export and compilation for Questa
