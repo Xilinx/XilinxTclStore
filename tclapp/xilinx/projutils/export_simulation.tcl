@@ -1098,6 +1098,13 @@ proc xps_get_files { simulator launch_dir } {
       # get relative file path for the compiled library
       set relative_dir "[xcs_get_relative_file_path $dir $launch_dir]"
       lappend l_incl_dir "-I \"$relative_dir\""
+
+      if { "vcs" == $simulator } {
+        # get the systemc include dir from data
+        set dir [xcs_get_systemc_include_dir]
+        set relative_dir "[xcs_get_relative_file_path $dir $launch_dir]"
+        lappend l_incl_dir "-I \"$relative_dir\""
+      }
   
       foreach file $sc_files {
         set file_extn [file extension $file]
@@ -2258,6 +2265,7 @@ proc xps_append_config_opts { opts_arg simulator tool } {
       if {"vhdlan" == $tool} {set opts_str ""}
       if {"vcs"    == $tool} {set opts_str ""}
       if {"simv"   == $tool} {set opts_str ""}
+      if {"g++"    == $tool} {set opts_str ""}
     }
   }
   if { {} != $opts_str } {

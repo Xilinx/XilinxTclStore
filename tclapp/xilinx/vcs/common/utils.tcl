@@ -2337,11 +2337,13 @@ proc xcs_get_compiler_name { simulator file_type } {
     "vcs" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    { set compiler "vhdlan"   }
+        "VHDL 2008"                    {set compiler "vhdlan"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
-        "SystemVerilog"                { set compiler "vlogan"   }
+        "SystemVerilog"                {set compiler "vlogan"}
+        "SystemC"                      {set compiler "g++"}
+        "CPP"                          {set compiler "g++"}
       }
     }
     default {
@@ -2656,6 +2658,23 @@ proc xcs_get_vip_include_dirs {} {
   if { [llength $a_sim_sv_pkg_libs] > 0 } {
     set data_dir [rdi::get_data_dir -quiet -datafile xilinx_vip]
     set incl_dir "${data_dir}/xilinx_vip/include"
+    if { [file exists $incl_dir] } {
+      return $incl_dir
+    }
+  }
+  return $incl_dir
+}
+
+proc xcs_get_systemc_include_dir {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_sv_pkg_libs
+  set incl_dir {}
+  if { [llength $a_sim_sv_pkg_libs] > 0 } {
+    set data_dir [rdi::get_data_dir -quiet -datafile "xsim/systemc"]
+    set incl_dir "${data_dir}/xsim/systemc"
     if { [file exists $incl_dir] } {
       return $incl_dir
     }

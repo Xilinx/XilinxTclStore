@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>find shared libraries from the cxl data file</revision_history>
+      <revision_history>fetch systemc include file path</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
