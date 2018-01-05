@@ -70,19 +70,18 @@ proc create_rqs_run { args } {
   #If the file name contains "synthKey" ( which is PreSynth), it is treated as a synth file, if it contains "implKey" (which is Impl), it is treated as impl file.
   set xdcFiles [glob -directory $outputDir -- "*.xdc"]
   foreach fl $xdcFiles {
-  set match_value [ string match {*$synthKey*} $fl ]
-    if { $match_value == 1 } {
+    if { [ string first $synthKey $fl ] != -1 } {
       set xdcFileMap($synthKey) $fl
-    } elseif { [string match {*$implKey*} $fl] } {
+    } elseif { [string first $implKey $fl] != -1} {
       set xdcFileMap($implKey) $fl
     }
   }
   set tclFiles [glob -directory $outputDir -- "*.tcl"]
   foreach fl $tclFiles {
-    if { [string match {*$synthKey*} $fl] } {
-      set tclFileMap(PreSynth) fl
-    } elseif { [string match {*$implKey*} $fl] } {
-      set tclFileMap(Impl) fl
+    if { [string first $synthKey $fl] != -1 } {
+      set tclFileMap($synthKey) $fl
+    } elseif { [string first $implKey $fl] != -1 } {
+      set tclFileMap($implKey) $fl
     }
   }
 
@@ -119,12 +118,18 @@ proc create_rqs_run { args } {
   	set_property used_in synthesis [get_files $xdcFileMap($synthKey) ] 
   }
   if { [info exists xdcFileMap($implKey)] } {
-  	set_property used_in {synthesis implementation} [get_files RQSImplCommon_${newProjName}.xdc] 
+        set xdcFlName RQSImplCommon_${newProjName}.xdc
+        if { [file exists $xdcFlName ] } {
+  	  set_property used_in {synthesis implementation} [get_files RQSImplCommon_${newProjName}.xdc] 
+        }
   }
   set_property constrset $new_synth_constr [get_runs $new_synth_run] 
   set_property constrset $new_impl_constr [get_runs $new_impl_run] 
   if { [info exists tclFileMap($implKey)] } {
-  	set_property STEPS.OPT_DESIGN.TCL.PRE RQSImplCommon_${newProjName}.tcl $new_impl_run" 
+        set fileName RQSImplCommon_${newProjName}.tcl
+        if { [file exists $fileName] } {
+  	  set_property STEPS.OPT_DESIGN.TCL.PRE RQSImplCommon_${newProjName}.tcl $new_impl_run" 
+        }
   }
   current_run [get_runs $new_synth_run] 
   launch_runs [get_runs $new_impl_run] 
