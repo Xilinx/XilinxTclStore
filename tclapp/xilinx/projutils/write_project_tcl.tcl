@@ -313,6 +313,8 @@ proc write_project_tcl_script {} {
   wr_runs $proj_dir $proj_name
   wr_proj_info $proj_name
 
+  #write dashboards
+  wr_dashboards $proj_dir $proj_name 
   # write header
   write_header $proj_dir $proj_name $file
 
@@ -1160,10 +1162,10 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
     # escape empty spaces in project name
     set tcl_obj [ list "$tcl_obj"]
   }
-  set obj_name [get_property name [$get_what $tcl_obj]]
-  set read_only_props [rdi::get_attr_specs -class [get_property class [$get_what $tcl_obj]] -filter {is_readonly}]
+  set obj_name [get_property name [eval $get_what $tcl_obj]]
+  set read_only_props [rdi::get_attr_specs -class [get_property class [eval $get_what $tcl_obj]] -filter {is_readonly}]
   set prop_info_list [list]
-  set properties [list_property [$get_what $tcl_obj]]
+  set properties [list_property [eval $get_what $tcl_obj]]
 
   foreach prop $properties {
     if { [is_deprecated_property $prop] } { continue }
@@ -1172,7 +1174,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
     # skip writing PR-Configuration, attached right after creation of impl run
     if { ([get_property pr_flow [current_project]] == 1) && [string equal $type "run"] } {
-      set isImplRun [get_property is_implementation [$get_what $tcl_obj]]
+      set isImplRun [get_property is_implementation [eval $get_what $tcl_obj]]
       if { ($isImplRun == 1) && [string equal -nocase $prop "pr_configuration"] } {
         continue
       }
@@ -1193,16 +1195,17 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         }
       }
     } else {
-      set attr_spec [rdi::get_attr_specs -quiet $prop -object [$get_what $tcl_obj]]
+      set attr_spec [rdi::get_attr_specs -quiet $prop -object [eval $get_what $tcl_obj]]
       if { {} == $attr_spec } {
         set prop_lower [string tolower $prop]
-        set attr_spec [rdi::get_attr_specs -quiet $prop_lower -object [$get_what $tcl_obj]]
+        set attr_spec [rdi::get_attr_specs -quiet $prop_lower -object [eval $get_what $tcl_obj]]
       }
       set prop_type [get_property type $attr_spec]
     }
-    set def_val [list_property_value -default $prop [$get_what $tcl_obj]]
+
+    set def_val [list_property_value -default $prop [eval $get_what $tcl_obj]]
     set dump_prop_name [string tolower ${obj_name}_${type}_$prop]
-    set cur_val [get_property $prop [$get_what $tcl_obj]]
+    set cur_val [get_property $prop [eval $get_what $tcl_obj]]
 
     # filter special properties
     if { [filter $prop $cur_val] } { continue }
@@ -1229,7 +1232,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
     # re-align values
     set cur_val [get_target_bool_val $def_val $cur_val]
-    set abs_proj_file_path [get_property $prop [$get_what $tcl_obj]]
+    set abs_proj_file_path [get_property $prop [eval $get_what $tcl_obj]]
     
     set path_match [string match $proj_dir* $abs_proj_file_path]
     if { ($path_match == 1) && ($a_global_vars(b_absolute_path) != 1) && ![need_abs_path $abs_proj_file_path] } {
@@ -2381,6 +2384,85 @@ proc need_abs_path { src } {
   return false
 }
 
+proc wr_dashboards { proj_dir proj_name } {
+  # Summary: write dashboards and properties 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # proj_name: project name
+  # Return Value:
+  # None
+
+  # get current dash board
+  # get all dash boards
+  # For each dash boards
+  # 	create dash board
+  variable l_script_data
+
+  set dashboards [get_dashboards]
+  foreach db $dashboards {
+    write_specified_dashboard $proj_dir $proj_name $db
+    set dashboardsExist 1
+  }
+  if {[info exists dashboardsExist ] == 0} {
+    return 
+  }
+
+  set currentDashboard [current_dashboard]
+  lappend l_script_data "# Set current dashboard to '$currentDashboard' "
+  lappend l_script_data "current_dashboard $currentDashboard "
+}
+
+proc write_specified_gadget { proj_dir proj_name gadget dashboard} {
+  # Summary: write the specified gadget 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none 
+  
+  variable l_script_data
+  set db_name [get_property name [get_dashboards $dashboard]]
+    
+  set gadgetName [get_property name [get_gadgets -of_objects [get_dashboards $db_name] $gadget]]
+  set gadgetType [get_property type [get_gadgets -of_objects [get_dashboards $db_name] $gadget]]
+
+  set cmd_str "create_gadget -name $gadgetName -type $gadgetType -dashboard $dashboard"
+
+  lappend l_script_data "# Create '$gadgetName' gadget "
+  lappend l_script_data "$cmd_str"
+
+  lappend l_script_data "set obj \[get_gadgets -of_objects \[get_dashboards $db_name\] $gadget \]"
+  set tcl_obj [get_gadgets -of_objects [get_dashboards $db_name] $gadget ]
+  set get_what "get_gadgets -of_objects \[get_dashboards $db_name\]"
+  write_props $proj_dir $proj_name $get_what $tcl_obj "gadget"
+}
+
+
+proc write_specified_dashboard { proj_dir proj_name dashboard } {
+  # Summary: write the specified dashboard 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none 
+
+  variable l_script_data
+  set get_what "get_dashboards"
+
+  set dashboardName [get_property name  [$get_what $dashboard]]
+
+  set cmd_str "create_dashboard -name $dashboardName"
+
+  lappend l_script_data "# Create '$dashboardName' dashboard "
+  lappend l_script_data "$cmd_str"
+
+  lappend l_script_data "set obj \[$get_what $dashboard\]"
+  write_props $proj_dir $proj_name $get_what $dashboard "dashboard"
+
+  #get gadgets of this dashboard
+  set gadgets [get_gadgets -of_objects [$get_what $dashboard]]
+  foreach gd $gadgets {
+    write_specified_gadget $proj_dir $proj_name $gd $dashboard
+  }
+}
 
 proc wr_prflow { proj_dir proj_name } {
   # Summary: write partial reconfiguration and properties 
