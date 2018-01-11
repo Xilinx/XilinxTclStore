@@ -1075,6 +1075,7 @@ proc xps_get_files { simulator launch_dir } {
     # design contain systemc/cpp sources? 
     set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
     set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
+    set c_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C\")"
 
     # fetch systemc files
     set sc_files [get_files -quiet -all -filter $sc_filter]
@@ -1169,6 +1170,53 @@ proc xps_get_files { simulator launch_dir } {
           set used_in_values [get_property "USED_IN" $file]
           if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
             set file_type "CPP"
+            set compiler [xcs_get_compiler_name $simulator $file_type]
+  
+            set l_other_opts [list]
+            xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_incl_dir l_other_opts
+            set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type false $compiler l_other_opts l_incl_dir]
+            if { {} != $cmd_str } {
+              lappend files $cmd_str
+              lappend compile_order_files $file
+            }
+          }
+        }
+      }
+    }
+
+    # fetch c files
+    set c_files [get_files -quiet -all -filter $c_filter]
+    if { [llength $c_files] > 0 } {
+      set g_files {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      # fetch systemc include files (.h)
+      set l_incl_dir [list]
+      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $c_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        lappend l_incl_dir "-I \"$dir\""
+      }
+      
+      # get the xtlm include dir from compiled library
+      set dir "[xps_get_lib_map_path $simulator]/xtlm/include"
+
+      # get relative file path for the compiled library
+      set relative_dir "[xcs_get_relative_file_path $dir $launch_dir]"
+      lappend l_incl_dir "-I \"$relative_dir\""
+
+      foreach file $c_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+        if { {.c} == $file_extn } {
+          # set flag
+          if { !$a_sim_vars(b_contain_systemc_sources) } {
+            set a_sim_vars(b_contain_systemc_sources) true
+          }
+
+          # is dynamic? process
+          set used_in_values [get_property "USED_IN" $file]
+          if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+            set file_type "C"
             set compiler [xcs_get_compiler_name $simulator $file_type]
   
             set l_other_opts [list]
@@ -1541,7 +1589,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
     switch $simulator {
       "xsim" {}
       default {
-        if { {g++} == $compiler } {
+        if { ({g++} == $compiler) || ({gcc} == $compiler) } {
           # no work library required
         } else {
           set arg_list [linsert $arg_list end "-work"]
@@ -1549,7 +1597,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
       }
     }
 
-    if { {g++} == $compiler } {
+    if { ({g++} == $compiler) || ({gcc} == $compiler) } {
       set arg_list [linsert $arg_list end "-c"]
     } else {
       set arg_list [linsert $arg_list end "$associated_library"]
@@ -1570,6 +1618,8 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
   } elseif { {sccom} == $compiler } {
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   } elseif { {g++} == $compiler } {
+    set arg_list [concat $arg_list $l_incl_dirs_opts]
+  } elseif { {gcc} == $compiler } {
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   }
   set file_str [join $arg_list " "]
@@ -2253,6 +2303,7 @@ proc xps_append_config_opts { opts_arg simulator tool } {
       if {"qverilog" == $tool} {set opts_str "-incr +acc"}
       if {"sccom"    == $tool} {set opts_str ""}
       if {"g++"      == $tool} {set opts_str ""}
+      if {"gcc"      == $tool} {set opts_str ""}
     }
     "ies" {
       if {"irun"   == $tool} {set opts_str "-v93 -relax -access +rwc -namemap_mixgen"}
@@ -2266,6 +2317,7 @@ proc xps_append_config_opts { opts_arg simulator tool } {
       if {"vcs"    == $tool} {set opts_str ""}
       if {"simv"   == $tool} {set opts_str ""}
       if {"g++"    == $tool} {set opts_str ""}
+      if {"gcc"    == $tool} {set opts_str ""}
     }
   }
   if { {} != $opts_str } {
@@ -3009,6 +3061,14 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
       if { $a_sim_vars(b_contain_systemc_sources) } {
         set arg_list [list]
         xps_append_config_opts arg_list $simulator "g++"
+        set cmd_str [join $arg_list " "]
+        lappend opts $cmd_str
+      }
+    }
+    "gcc" {
+      if { $a_sim_vars(b_contain_systemc_sources) } {
+        set arg_list [list]
+        xps_append_config_opts arg_list $simulator "gcc"
         set cmd_str [join $arg_list " "]
         lappend opts $cmd_str
       }

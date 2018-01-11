@@ -1327,6 +1327,7 @@ proc isl_create_vao_file { ip_lib_dir file_paths } {
   set verilog_filelist [list]
   set systemc_filelist [list]
   set cpp_filelist     [list]
+  set c_filelist       [list]
 
   foreach line $file_paths {
     set tokens [split $line {,}]
@@ -1340,6 +1341,8 @@ proc isl_create_vao_file { ip_lib_dir file_paths } {
       lappend systemc_filelist $path
     } elseif { ({cpp} == $type) || ({cpp_header} == $type) } {
       lappend cpp_filelist $path
+    } elseif { ({c} == $type) || ({c_header} == $type) } {
+      lappend c_filelist $path
     }
   }
 
@@ -1347,6 +1350,7 @@ proc isl_create_vao_file { ip_lib_dir file_paths } {
   isl_write_analyze_order_file verilog_filelist $ip_lib_dir "verilog_analyze_order"
   isl_write_analyze_order_file systemc_filelist $ip_lib_dir "systemc_analyze_order"
   isl_write_analyze_order_file cpp_filelist     $ip_lib_dir "cpp_analyze_order"
+  isl_write_analyze_order_file c_filelist       $ip_lib_dir "c_analyze_order"
 }
 
 proc isl_create_order_file { ip_data ip_libs } {
@@ -1480,7 +1484,7 @@ proc isl_copy_incl_file { file_paths } {
     set file_path [lindex $tokens 0]
     set filename [file tail $file_path]
     set type [lindex $tokens 1]
-    if { ({verilog_header} == $type) || ({verilog header} == $type) || ({systemc_header} == $type) || ({systemc header} == $type) || ({cpp_header} == $type) || ({cpp header} == $type)} {
+    if { ({verilog_header} == $type) || ({verilog header} == $type) || ({systemc_header} == $type) || ({systemc header} == $type) || ({cpp_header} == $type) || ({cpp header} == $type) || ({c_header} == $type) || ({c header} == $type)} {
       set src_file_path [file normalize $file_path]
       if { [file exists $src_file_path] } {
         set dst_file [file normalize [file join $a_isl_vars(ip_incl_dir) $filename]]
@@ -1521,6 +1525,12 @@ proc isl_get_file_type { file_group file } {
     set is_include [get_property is_include [ipx::get_files $file -of_objects $file_group]]
     if { {1} == $is_include } {
       set type "cpp_header"
+    }
+  } elseif { ({cSource} == $file_type) } {
+    set type "c"
+    set is_include [get_property is_include [ipx::get_files $file -of_objects $file_group]]
+    if { {1} == $is_include } {
+      set type "c_header"
     }
   }
   return $type

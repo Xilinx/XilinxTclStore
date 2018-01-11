@@ -2301,6 +2301,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "SystemVerilog"                {set compiler "vlog"}
         "SystemC"                      {set compiler "sccom"}
         "CPP"                          {set compiler "g++"}
+        "C"                            {set compiler "gcc"}
       }
     }
     "riviera" -
@@ -2344,6 +2345,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "SystemVerilog"                {set compiler "vlogan"}
         "SystemC"                      {set compiler "g++"}
         "CPP"                          {set compiler "g++"}
+        "C"                            {set compiler "gcc"}
       }
     }
     default {

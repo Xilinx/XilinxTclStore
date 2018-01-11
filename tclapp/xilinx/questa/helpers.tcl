@@ -1186,6 +1186,11 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         lappend opts "-c"
       }
     }
+    "gcc" {
+      if { $a_sim_vars(b_int_systemc_mode) } {
+        lappend opts "-c"
+      }
+    }
   }
 }
 
@@ -1290,7 +1295,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
     usf_append_compiler_options $compiler $file_type arg_list
-    if { {g++} == $compiler } {
+    if { ({g++} == $compiler) || ({gcc} == $compiler) } {
        # no work library required
     } else {
       set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str"]
@@ -1303,7 +1308,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   } elseif { {sccom} == $compiler } {
     set arg_list [concat $arg_list $l_incl_dirs_opts]
-  } elseif { {g++} == $compiler } {
+  } elseif { ({g++} == $compiler) || ({gcc} == $compiler) } {
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   }
 

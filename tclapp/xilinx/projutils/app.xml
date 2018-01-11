@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Supporting project dashboard summary in write_project_tcl Project summary has dashboard which has multiple gadgets. These will be recreated as part of write_project_tcl output script execution</revision_history>
+      <revision_history>support for compiling C sources with gcc</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
