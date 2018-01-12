@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for compiling C sources with gcc</revision_history>
+      <revision_history>Reverting changes as some engine change is required before enabling dashboard writing from write_project_tcl</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
