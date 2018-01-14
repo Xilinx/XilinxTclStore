@@ -84,7 +84,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   set run_questa_cdc ""
   set add_button 0
   set remove_button 0
-  set usage_msg "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\] \[-use_existing_xdc\] \[-run <netlist_create|cdc_run>\] \[-add_button\] \[-remove_button\]"
+  set usage_msg "Usage    : write_questa_cdc_script <top_module> \[-output_directory <out_dir>\] \[-use_existing_xdc\] \[-run <netlist_create|cdc_run>\] \[-add_button\] \[-remove_button\]"
   # Parse the arguments
   if { [llength $args] > 8 } {
     puts "** ERROR : Extra arguments passed to the proc."
@@ -168,25 +168,39 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       puts "INFO: Adding Vivado GUI button for running Questa CDC in $commands_file"
     }
     set questa_cdc_command_index 0
+    set vivado_cmds_version 1
     if { [file size $commands_file] } {
       set last_command_index [exec cat $commands_file | tail -1 | cut -f1 -d=]
       if { $last_command_index == "VERSION" } {
         ## This means that there are no commands in the file, and only the "VERSION" line is there
         set questa_cdc_command_index 0
+        set vivado_cmds_version [exec cat $commands_file | tail -1 | cut -f2 -d=]
       } else {
         set questa_cdc_command_index [incr last_command_index]
+        set vivado_cmds_version [exec cat $commands_file | head -1 | cut -f2 -d=]
       }
     } else {
-      puts $commands_fh "VERSION=1"
+      puts $commands_fh "VERSION=$vivado_cmds_version"
       set questa_cdc_command_index 0
     }
-    set button_code "$questa_cdc_command_index=Run%20Questa%20CDC"
-    set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
-    set button_code "$button_code \"\" $questa_cdc_logo \"\" \"\" true ^@ \"\" true 4"
-    set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-    set button_code "$button_code Output%20Directory \"\" -output_directory%20QCDC true"
-    set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-    set button_code "$button_code Invoke%20Questa%20CDC%20Run \"\" -run%20netlist_create true"
+    set button_code ""
+    if { $vivado_cmds_version == 1 } {
+      set button_code "$questa_cdc_command_index=Run%20Questa%20CDC"
+      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
+      set button_code "$button_code \"\" $questa_cdc_logo \"\" \"\" true ^@ \"\" true 4"
+      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
+      set button_code "$button_code Output%20Directory \"\" -output_directory%20QCDC true"
+      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
+      set button_code "$button_code Invoke%20Questa%20CDC%20Run \"\" -run%20netlist_create true"
+    } else {
+      set button_code "$questa_cdc_command_index=$questa_cdc_command_index Run%20Questa%20CDC Run%20Questa%20CDC"
+      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
+      set button_code "$button_code \"\" $questa_cdc_logo \"\" \"\" true ^ \"\" true 4"
+      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
+      set button_code "$button_code Output%20Directory \"\" -output_directory%20QCDC true"
+      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
+      set button_code "$button_code Invoke%20Questa%20CDC%20Run \"\" -run%20netlist_create true"
+    }
     puts $commands_fh $button_code
     close $commands_fh
     return $rc
