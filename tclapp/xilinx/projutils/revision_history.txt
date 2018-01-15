@@ -1,4 +1,4 @@
-3.300 Reverting changes as some engine change is required before enabling dashboard writing from write_project_tcl
+3.300 add cxx file extension for systemc
 3.299 support for compiling C sources with gcc
 3.298 Supporting project dashboard summary in write_project_tcl Project summary has dashboard which has multiple gadgets. These will be recreated as part of write_project_tcl output script execution
 3.297 Fixing issue in maps population and adding sanity check for creating run

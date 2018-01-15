@@ -1,3 +1,4 @@
+2.194 add cxx file extension for systemc
 2.193 support for compiling C sources with gcc
 2.192 fetch systemc include file path
 2.191 find shared libraries from the cxl data file
