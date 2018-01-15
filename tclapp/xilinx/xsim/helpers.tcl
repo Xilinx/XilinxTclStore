@@ -532,7 +532,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { {.h} == $file_extn } {
           continue
         }
-        if { {.cpp} == $file_extn } {
+        if { ({.cpp} == $file_extn) || ({.cxx} == $file_extn) } {
           # set flag
           if { !$a_sim_vars(b_contain_systemc_sources) } {
             set a_sim_vars(b_contain_systemc_sources) true

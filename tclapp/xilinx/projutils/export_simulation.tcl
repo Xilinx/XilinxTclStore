@@ -1113,7 +1113,7 @@ proc xps_get_files { simulator launch_dir } {
           continue
         }
 
-        if { {.cpp} == $file_extn } {
+        if { ({.cpp} == $file_extn) || ({.cxx} == $file_extn) } {
           # set flag
           if { !$a_sim_vars(b_contain_systemc_sources) } {
             set a_sim_vars(b_contain_systemc_sources) true
