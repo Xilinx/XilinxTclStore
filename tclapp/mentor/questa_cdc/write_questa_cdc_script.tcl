@@ -59,6 +59,59 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   return $new_lib
 }
 
+proc ::tclapp::mentor::questa_cdc::install {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+
+  ## Add Vivado GUI button for Questa CDC
+  if { [lsearch [get_gui_custom_commands] Run_Questa_CDC] >= 0 } {
+    puts "INFO: Vivado GUI button for running Questa CDC is already installed. Exiting ..."
+    return -code ok 
+  }
+
+  set questa_cdc_logo "$::env(QUESTA_CDC_TCL_SCRIPT_PATH)/questa_cdc_logo.PNG"
+  if { ! [file exists $questa_cdc_logo] } {
+    set questa_cdc_logo "\"$questa_cdc_logo\""
+    puts "INFO: Can't find the Questa CDC logo at $questa_cdc_logo"
+    if { [file exists "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"] } {
+      set questa_cdc_logo "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"
+      puts "INFO: Found the Questa CDC logo at $questa_cdc_logo"
+    }
+  }
+
+  puts "INFO: Adding Vivado GUI button for running Questa CDC in $commands_file"
+
+  create_gui_custom_command -name "Run_Questa_CDC" \
+	-menu_name "Run Questa CDC" \
+	-command "source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl; tclapp::mentor::questa_cdc::write_questa_cdc_script" \
+	-show_on_toolbar \
+	-run_proc true \
+	-toolbar_icon $questa_cdc_logo
+
+  create_gui_custom_command_arg -command_name "Run_Questa_CDC" -arg_name "Top_Module" -default "\[lindex \[find_top\] 0\]"
+  create_gui_custom_command_arg -command_name "Run_Questa_CDC" -arg_name "Output_Directory" -default "-output_directory QCDC" -optional
+  create_gui_custom_command_arg -command_name "Run_Questa_CDC" -arg_name "Use_Existing_XDC" -default "-use_existing_xdc" -optional
+  create_gui_custom_command_arg -command_name "Run_Questa_CDC" -arg_name "Invoke_Questa_CDC_Run" -default "-run netlist_create" -optional
+
+  return -code ok
+}
+
+proc ::tclapp::mentor::questa_cdc::uninstall {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+
+  if { [lsearch [get_gui_custom_commands] Run_Questa_CDC] >= 0 } {
+    puts "INFO: Vivado GUI button for running Questa CDC is removed."
+    remove_gui_custom_commands "Run_Questa_CDC" 
+  } else {
+    puts "INFO: Vivado GUI button for running Questa CDC is not installed. Nothing has been changed."
+  }
+
+  return -code ok
+}
+
 proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   # Summary : This proc generates the Questa CDC script file
@@ -139,17 +192,11 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   ## Add Vivado GUI button for Questa CDC
   if { $add_button == 1 } {
-    ## Example for code of the Vivado GUI button
-    ## -----------------------------------------
-    ## 0=Run%20Questa%20CDC tclapp::mentor::questa_cdc::write_questa_cdc_script "" /home/iahmed/questa_cdc_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20CDC%20Run "" -run true
-    ## -----------------------------------------
-
-    set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
-    set status [catch {exec grep write_questa_cdc_script $commands_file} result]
-    if { $status == 0 } {
-      puts "INFO : Vivado GUI button for running Questa CDC is already installed in $commands_file. Exiting ..."
+    if { [lsearch [get_gui_custom_commands] Run_Questa_CDC] >= 0 } {
+      puts "INFO: Vivado GUI button for running Questa CDC is already installed. Exiting ..."
       return $rc
     }
+
     set questa_cdc_logo "$::env(QUESTA_CDC_TCL_SCRIPT_PATH)/questa_cdc_logo.PNG"
     if { ! [file exists $questa_cdc_logo] } {
       set questa_cdc_logo "\"$questa_cdc_logo\""
@@ -159,16 +206,9 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
         puts "INFO: Found the Questa CDC logo at $questa_cdc_logo"
       }
     }
-    if { [catch {open $commands_file a} result] } {
-      puts stderr "ERROR: Could not open commands.paini to add the Questa CDC button, path '$commands_file'\n$result"
-      set rc 9
-      return $rc
-    } else {
-      set commands_fh $result
-      puts "INFO: Adding Vivado GUI button for running Questa CDC in $commands_file"
-    }
 
-    set_param misc.enableGUICustomCmdFlow true
+    puts "INFO: Adding Vivado GUI button for running Questa CDC in $commands_file"
+
     create_gui_custom_command -name "Run_Questa_CDC" \
 	-menu_name "Run Questa CDC" \
 	-command "source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl; tclapp::mentor::questa_cdc::write_questa_cdc_script" \
@@ -186,7 +226,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   ## Remove Vivado GUI button for Questa CDC
   if { $remove_button == 1 } {
-    set_param misc.enableGUICustomCmdFlow true
     if { [lsearch [get_gui_custom_commands] Run_Questa_CDC] >= 0 } {
       puts "INFO: Vivado GUI button for running Questa CDC is removed."
       remove_gui_custom_commands "Run_Questa_CDC" 
@@ -677,9 +716,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
   return $rc
 }
-
-## Keep an environment variable with the path of the script
-set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa CDC script
 namespace import tclapp::mentor::questa_cdc::*
