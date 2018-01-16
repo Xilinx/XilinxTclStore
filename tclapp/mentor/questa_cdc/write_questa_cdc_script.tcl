@@ -84,7 +84,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   set run_questa_cdc ""
   set add_button 0
   set remove_button 0
-  set usage_msg "         : Usage write_questa_cdc_script <top_module> \[-output_directory <out_dir>\] \[-use_existing_xdc\] \[-run <netlist_create|cdc_run>\] \[-add_button\] \[-remove_button\]"
+  set usage_msg "Usage    : write_questa_cdc_script <top_module> \[-output_directory <out_dir>\] \[-use_existing_xdc\] \[-run <netlist_create|cdc_run>\] \[-add_button\] \[-remove_button\]"
   # Parse the arguments
   if { [llength $args] > 8 } {
     puts "** ERROR : Extra arguments passed to the proc."
@@ -154,6 +154,10 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     if { ! [file exists $questa_cdc_logo] } {
       set questa_cdc_logo "\"$questa_cdc_logo\""
       puts "INFO: Can't find the Questa CDC logo at $questa_cdc_logo"
+      if { [file exists "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"] } {
+        set questa_cdc_logo "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"
+        puts "INFO: Found the Questa CDC logo at $questa_cdc_logo"
+      }
     }
     if { [catch {open $commands_file a} result] } {
       puts stderr "ERROR: Could not open commands.paini to add the Questa CDC button, path '$commands_file'\n$result"
@@ -163,73 +167,33 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       set commands_fh $result
       puts "INFO: Adding Vivado GUI button for running Questa CDC in $commands_file"
     }
-    set questa_cdc_command_index 0
-    if { [file size $commands_file] } {
-      set last_command_index [exec cat $commands_file | tail -1 | cut -f1 -d=]
-      if { $last_command_index == "VERSION" } {
-        ## This means that there are no commands in the file, and only the "VERSION" line is there
-        set questa_cdc_command_index 0
-      } else {
-        set questa_cdc_command_index [incr last_command_index]
-      }
-    } else {
-      puts $commands_fh "VERSION=1"
-      set questa_cdc_command_index 0
-    }
-    set button_code "$questa_cdc_command_index=Run%20Questa%20CDC"
-    set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
-    set button_code "$button_code \"\" $questa_cdc_logo \"\" \"\" true ^@ \"\" true 4"
-    set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-    set button_code "$button_code Output%20Directory \"\" -output_directory%20QCDC true"
-    set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-    set button_code "$button_code Invoke%20Questa%20CDC%20Run \"\" -run%20netlist_create true"
-    puts $commands_fh $button_code
-    close $commands_fh
+
+    set_param misc.enableGUICustomCmdFlow true
+    create_gui_custom_command -name "Run_Questa_CDC" \
+	-menu_name "Run Questa CDC" \
+	-command "source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl; tclapp::mentor::questa_cdc::write_questa_cdc_script" \
+	-show_on_toolbar \
+	-run_proc true \
+	-toolbar_icon $questa_cdc_logo
+
+    create_gui_custom_command_arg -command_name "Run_Questa_CDC" -arg_name "Top_Module" -default "\[lindex \[find_top\] 0\]"
+    create_gui_custom_command_arg -command_name "Run_Questa_CDC" -arg_name "Output_Directory" -default "-output_directory QCDC" -optional
+    create_gui_custom_command_arg -command_name "Run_Questa_CDC" -arg_name "Use_Existing_XDC" -default "-use_existing_xdc" -optional
+    create_gui_custom_command_arg -command_name "Run_Questa_CDC" -arg_name "Invoke_Questa_CDC_Run" -default "-run netlist_create" -optional
+
     return $rc
   }
 
   ## Remove Vivado GUI button for Questa CDC
   if { $remove_button == 1 } {
-    set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
-    ## Temp file to write the modified file
-    set op_file [open "$commands_file.tmp" w]
-
-    ## Read the original commands.paini file
-    set ip_file [open "$commands_file" r]
-    set ip_data [read $ip_file]
-    set ip_lines [split $ip_data "\n"]
-
-    set questa_cdc_command_found 0
-    foreach ip_line $ip_lines {
-      if { $ip_line == "" } {
-        continue
-      }
-      if { [regexp {Questa.*CDC.*write_questa_cdc_script.tcl} $ip_line] } {
-        set questa_cdc_command_found 1
-        continue
-      }
-      if { $questa_cdc_command_found == 1 } {
-        regsub {(^\d+)=.*} $ip_line {\1} cmd_id
-        regsub {^\d+=(.*)} $ip_line {\1} cmd_text
-        incr cmd_id -1 
-        puts $op_file "$cmd_id=$cmd_text"        
-      } else {
-        puts $op_file $ip_line
-      }
-    }
-    close $ip_file
-    close $op_file
-
-    ## Now, remove the old commands file and replace it with the new one
-    exec rm -f 
-    file delete $commands_file
-    file rename ${commands_file}.tmp $commands_file
-    if { $questa_cdc_command_found == 1 } {
-      puts "INFO: Vivado GUI button for running Questa CDC is removed from $commands_file"
+    set_param misc.enableGUICustomCmdFlow true
+    if { [lsearch [get_gui_custom_commands] Run_Questa_CDC] >= 0 } {
+      puts "INFO: Vivado GUI button for running Questa CDC is removed."
+      remove_gui_custom_commands "Run_Questa_CDC" 
     } else {
-      puts "INFO: Vivado GUI button for running Questa CDC wasn't found in $commands_file."
-      puts "    : File has not been changed."
+      puts "INFO: Vivado GUI button for running Questa CDC is not installed. Nothing has been changed."
     }
+
     return $rc
   }
 
@@ -325,37 +289,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
   update_compile_order -fileset $synth_fileset
   
-  set load_lib_line ""
-  if {[regexp {virtexu|kintexu} $arch_name]} {
-    ## Following path works for 2014.4
-    set lib_file_path1 "$vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib"
-    ## Following path works for 2016.2
-    set lib_file_path2 [lindex [glob -nocomplain $vivado_dir/data/parts/xilinx/$arch_name/*/$arch_name/timing/prod_ver1/$arch_name.lib] 0]
-    if {[file exists $lib_file_path1]} {
-      set load_lib_line "netlist load lib $lib_file_path1"
-    } elseif {[file exists $lib_file_path2]} {
-      set load_lib_line "netlist load lib $lib_file_path2"
-    } else {
-      puts "INFO: No liberty files found for architecture: $arch_name."
-      set load_lib_line ""
-    }
-  } else {
-    ## Following path works for 2014.4
-    set lib_file_path1 $vivado_dir/data/parts/xilinx/$arch_name/$arch_name.lib
-    ## Following path works for 2016.2
-    set lib_file_path2 [lindex [glob -nocomplain $vivado_dir/data/parts/xilinx/$arch_name/*/$arch_name.lib] 0]
-    if {[file exists $lib_file_path1]} {
-      set load_lib_line "netlist load lib $lib_file_path1"
-    } elseif {[file exists $lib_file_path2]} {
-      set load_lib_line "netlist load lib $lib_file_path2"
-    } else {
-      puts "INFO: No liberty files found for architecture: $arch_name."
-      set load_lib_line ""
-    }
-  }
-
-  puts "DEBUG: Load lib: $load_lib_line"
-
   ## Blackbox unisims
 #  link_design -part [get_parts [get_property PART [current_project]]]
 #  puts "set_option stop {\\"
@@ -710,7 +643,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       puts $qcdc_run_fh "\tsdc load $sdc_out_file; \\"
     }
   }
-  puts $qcdc_run_fh "\t$load_lib_line; \\"
   puts $qcdc_run_fh "\tdo $qcdc_compile_tcl; \\"
   if { $run_questa_cdc == "netlist_create" } { 
     puts $qcdc_run_fh "\tnetlist create -d $top_module $lib_args -tool cdc; \\"
@@ -720,7 +652,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
   puts $qcdc_run_fh "\texit 0\""
 
-#  $load_lib_line
 #  puts $qcdc_tcl_fh "sdc load $top_module.sdc; \\"
 #  puts $qcdc_tcl_fh "do $qcdc_ctrl; \\"
 
@@ -746,6 +677,9 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
   return $rc
 }
+
+## Keep an environment variable with the path of the script
+set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa CDC script
 namespace import tclapp::mentor::questa_cdc::*
