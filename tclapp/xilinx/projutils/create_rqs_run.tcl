@@ -67,20 +67,23 @@ proc create_rqs_run { args } {
   set implKey Impl
   
   #read xdc files from the directory, and classify them into synth files and impl files based on the file name.
-  #If the file name contains "synthKey" ( which is PreSynth), it is treated as a synth file, if it contains "implKey" (which is Impl), it is treated as impl file.
-  set xdcFiles [glob -directory $outputDir -- "*.xdc"]
+
+  set preSynthXdcFile RQSPreSynth_${newProjName}.xdc
+  set implCommonXdcFile RQSImplCommon_${newProjName}.xdc
+  set preImplTclFile RQSPreImpl_${newProjName}.tcl
+  set implCommonTclFile RQSImplCommon_${newProjName}.tcl
+
+  set xdcFiles [glob -directory $outputDir -nocomplain -- "*.xdc"]
   foreach fl $xdcFiles {
-    if { [ string first $synthKey $fl ] != -1 } {
+    if { [ string first $preSynthXdcFile $fl ] != -1 } {
       set xdcFileMap($synthKey) $fl
-    } elseif { [string first $implKey $fl] != -1} {
+    } elseif { [string first $implCommonXdcFile $fl] != -1} {
       set xdcFileMap($implKey) $fl
     }
   }
-  set tclFiles [glob -directory $outputDir -- "*.tcl"]
+  set tclFiles [glob -directory $outputDir -nocomplain -- "*.tcl"]
   foreach fl $tclFiles {
-    if { [string first $synthKey $fl] != -1 } {
-      set tclFileMap($synthKey) $fl
-    } elseif { [string first $implKey $fl] != -1 } {
+    if { ([string first $preImplTclFile $fl] != -1) || ([string first $implCommonTclFile $fl] != -1) } {
       set tclFileMap($implKey) $fl
     }
   }
