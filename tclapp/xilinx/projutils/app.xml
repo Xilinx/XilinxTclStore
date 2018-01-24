@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>create_rqs_run.tcl: Fix to add only specific xdc files instead of every xdc file in the output directory when create_rqs_run happens. write_project_tcl.tcl: Added functionality to recreate gadget objects on project dashboard</revision_history>
+      <revision_history>fetch systemc files if selected simulation model is tlm</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

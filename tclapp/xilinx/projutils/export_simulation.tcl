@@ -1078,7 +1078,15 @@ proc xps_get_files { simulator launch_dir } {
     set c_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C\")"
 
     # fetch systemc files
-    set sc_files [get_files -quiet -all -filter $sc_filter]
+    set sc_files [list]
+    foreach ip [get_ips -quiet -all] {
+      set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
+      if { "tlm" == $selected_sim_model } {
+        set ip_sc_files [get_files -quiet -all -filter $sc_filter -of_objects $ip]
+        set sc_files [concat $sc_files $ip_sc_files]
+      }
+    }
+
     if { [llength $sc_files] > 0 } {
       send_msg_id exportsim-Tcl-024 INFO "Finding SystemC sources..."
       # fetch systemc include files (.h)

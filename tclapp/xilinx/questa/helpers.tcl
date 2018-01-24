@@ -512,7 +512,15 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
     set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
 
-    set sc_files [get_files -quiet -all -filter $sc_filter]
+    # fetch systemc files
+    set sc_files [list]
+    foreach ip [get_ips -quiet -all] {
+      set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
+      if { "tlm" == $selected_sim_model } {
+        set ip_sc_files [get_files -quiet -all -filter $sc_filter -of_objects $ip]
+        set sc_files [concat $sc_files $ip_sc_files]
+      }
+    }
     if { [llength $sc_files] > 0 } {
       set g_files {}
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
