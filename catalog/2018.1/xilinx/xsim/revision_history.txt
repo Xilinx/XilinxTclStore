@@ -1,3 +1,4 @@
+2.197 fetch systemc libraries from ip
 2.196 fetch systemc files if selected simulation model is tlm for IP
 2.195 fetch systemc files if selected simulation model is tlm
 2.194 add cxx file extension for systemc
