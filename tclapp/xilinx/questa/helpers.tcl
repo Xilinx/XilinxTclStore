@@ -513,29 +513,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
 
     # fetch systemc files
-    set sc_files [list]
-    foreach file_obj [get_files -quiet -all -filter $sc_filter] {
-      if { [lsearch -exact [list_property $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
-        set comp_file [get_property parent_composite_file -quiet $file_obj]
-        if { "" == $comp_file } { continue }
-        set file_extn [file extension $comp_file]
-        if { ".xci" == $file_extn } {
-          set ip_name [file root [file tail $comp_file]]
-          set ip [get_ips -quiet -all $ip_name]
-          if { "" != $ip } {
-            set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
-            if { "tlm" == $selected_sim_model } {
-              set ip_sc_files [get_files -quiet -all -filter $sc_filter -of_objects $ip]
-              set sc_files [concat $sc_files $ip_sc_files]
-            }
-          }
-        }
-      } else {
-        # design systemc sources
-        lappend sc_files $file_obj
-      }
-    }
-
+    set sc_files [xcs_get_sc_files $sc_filter]
     if { [llength $sc_files] > 0 } {
       set g_files {}
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."

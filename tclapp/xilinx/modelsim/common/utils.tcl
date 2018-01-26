@@ -3036,6 +3036,20 @@ proc xcs_get_sc_libs {} {
   set sc_libs [list]
   lappend sc_libs "xtlm"
 
+  # find systemc libraries from IP
+  variable a_systemc_libs
+  set prop_name "systemc_libraries"
+  foreach ip_obj [get_ips -quiet -all] {
+    foreach lib [get_property -quiet $prop_name $ip_obj] {
+      if { ![info exists systemc_libs($lib)] } {
+        set a_systemc_libs($lib) $ip_obj
+      }
+    }
+  }
+  foreach key [array names a_systemc_libs] {
+    lappend sc_libs $key
+  }
+  array unset a_systemc_libs
   return $sc_libs
 }
 
@@ -3089,4 +3103,35 @@ proc xcs_get_shared_ip_libraries { clibs_dir } {
     }
   }
   return $shared_ip_libs
+}
+
+proc xcs_get_sc_files { sc_filter } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  set sc_files [list]
+  foreach file_obj [get_files -quiet -all -filter $sc_filter] {
+    if { [lsearch -exact [list_property $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+      set comp_file [get_property parent_composite_file -quiet $file_obj]
+      if { "" == $comp_file } {
+        continue
+      }
+      set file_extn [file extension $comp_file]
+      if { ".xci" == $file_extn } {
+        set ip_name [file root [file tail $comp_file]]
+        set ip [get_ips -quiet -all $ip_name]
+        if { "" != $ip } {
+          set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
+          if { "tlm" == $selected_sim_model } {
+            set ip_sc_files [get_files -quiet -all -filter $sc_filter -of_objects $ip]
+            set sc_files [concat $sc_files $ip_sc_files]
+          }
+        }
+      }
+    } else {
+      lappend sc_files $file_obj
+    }
+  }
+  return $sc_files
 }
