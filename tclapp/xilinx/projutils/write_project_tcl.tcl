@@ -175,6 +175,7 @@ set a_fileset_types {
   {{BlockSrcs}      {blockset}}
   {{Constrs}        {constrset}}
   {{SimulationSrcs} {simset}}
+  {{Utils}    {utilset}}
 }
 
 proc reset_global_vars {} {
@@ -759,6 +760,8 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
     # is this a IP block fileset? if yes, do not create block fileset, but create for a pure HDL based fileset (no IP's)
     if { [is_ip_fileset $tcl_obj] } {
       # do not create block fileset
+    } elseif { [string equal $tcl_obj "utils_1"] } {
+      # do not create utils fileset
     } else {
       lappend l_script_data "# Create '$tcl_obj' fileset (if not found)"
       lappend l_script_data "if \{\[string equal \[get_filesets -quiet $tcl_obj\] \"\"\]\} \{"
