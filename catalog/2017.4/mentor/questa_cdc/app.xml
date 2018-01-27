@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Disable loading of liberty files in Questa CDC runs, as the cells will be already loaded in Questa CDC run using &apos;netlist fpga&apos; command</revision_history>
+      <revision_history>Handle VERSION &apos;2&apos; of the Vivado Tcl custom commands</revision_history>
       <name>questa_cdc</name>
       <company>mentor</company>
       <company_display>Mentor, a Siemens Business</company_display>
