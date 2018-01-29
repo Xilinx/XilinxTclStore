@@ -1043,7 +1043,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set sc_filename "${top}_xsc.prj"
       set sc_file [file normalize [file join $dir $sc_filename]]
       set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
-      set sc_files [get_files -quiet -all -filter $sc_filter]
+      set sc_files [xcs_get_sc_files $sc_filter]
       if { [llength $sc_files] > 0 } {
         set fh_sc 0
         if {[catch {open $sc_file w} fh_sc]} {
@@ -1082,15 +1082,18 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $sc_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
           lappend l_incl_dirs "$dir"
         }
-        # get the xtlm include dir from compiled library
-        set dir "$a_sim_vars(s_clibs_dir)/ip/xtlm/include"
-        if { ![file exists $dir] } {
-          set dir "$a_sim_vars(s_clibs_dir)/xtlm/include"
+       
+        # reference SystemC include directories 
+        foreach sc_lib [xcs_get_sc_libs] {
+          set dir "$a_sim_vars(s_clibs_dir)/ip/$sc_lib/include"
+          if { ![file exists $dir] } {
+            set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
+          }
+          # get relative file path for the compiled library
+          set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+          lappend l_incl_dirs "$relative_dir"
         }
 
-        # get relative file path for the compiled library
-        set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
-        lappend l_incl_dirs "$relative_dir"
         variable l_systemc_incl_dirs
         set l_systemc_incl_dirs $l_incl_dirs
         if { [llength $l_incl_dirs] > 0 } {

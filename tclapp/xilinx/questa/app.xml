@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>find systemc dependent libraries from property for a given IP</revision_history>
+      <revision_history>reference systemc include directories</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

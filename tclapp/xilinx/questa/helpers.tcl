@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 # helpers.tcl (simulation helper utilities for the 'Questa Advanced Simulator')
 #
@@ -529,12 +529,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         lappend l_incl_dir "-I \"$dir\""
       }
 
-      # get the xtlm include dir from compiled library
-      set dir "$a_sim_vars(s_clibs_dir)/xtlm/include"
-
-      # get relative file path for the compiled library
-      set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
-      lappend l_incl_dir "-I \"$relative_dir\""
+      # reference SystemC include directories
+      foreach sc_lib [xcs_get_sc_libs] {
+        set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
+        # get relative file path for the compiled library
+        set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        lappend l_incl_dir "-I \"$relative_dir\""
+      }
 
       foreach file $sc_files {
         set file_extn [file extension $file]
@@ -571,12 +572,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         lappend l_incl_dir "-I \"$dir\""
       }
 
-      # get the xtlm include dir from compiled library
-      set dir "$a_sim_vars(s_clibs_dir)/xtlm/include"
-
-      # get relative file path for the compiled library
-      set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
-      lappend l_incl_dir "-I \"$relative_dir\""
+      # reference SystemC include directories
+      foreach sc_lib [xcs_get_sc_libs] {
+        set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
+        # get relative file path for the compiled library
+        set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        lappend l_incl_dir "-I \"$relative_dir\""
+      }
 
       foreach file $cpp_files {
         set file_extn [file extension $file]

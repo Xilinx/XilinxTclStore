@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::questa 2.79 [list source [file join $dir questa.tcl]]
+package ifneeded ::tclapp::xilinx::questa 2.80 [list source [file join $dir questa.tcl]]
