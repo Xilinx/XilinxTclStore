@@ -3034,22 +3034,13 @@ proc xcs_get_sc_libs {} {
   # Return Value:
 
   set sc_libs [list]
-  lappend sc_libs "xtlm"
-
   # find systemc libraries from IP
-  variable a_systemc_libs
   set prop_name "systemc_libraries"
   foreach ip_obj [get_ips -quiet -all] {
     foreach lib [get_property -quiet $prop_name $ip_obj] {
-      if { ![info exists systemc_libs($lib)] } {
-        set a_systemc_libs($lib) $ip_obj
-      }
+      lappend sc_libs $lib
     }
   }
-  foreach key [array names a_systemc_libs] {
-    lappend sc_libs $key
-  }
-  array unset a_systemc_libs
   return $sc_libs
 }
 

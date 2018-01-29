@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Adding support for pre.tcl post.tcl handling</revision_history>
+      <revision_history>find systemc dependent libraries from property for a given IP</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
