@@ -1,3 +1,4 @@
+3.307 find systemc dependent libraries from property for a given IP
 3.306 Adding support for pre.tcl post.tcl handling
 3.305 fetch systemc libraries from ip
 3.304 fetch systemc files if selected simulation model is tlm for IP

@@ -1,3 +1,4 @@
+2.79 find systemc dependent libraries from property for a given IP
 2.78 fetch systemc libraries from ip
 2.77 fetch systemc files if selected simulation model is tlm for IP
 2.76 fetch systemc files if selected simulation model is tlm

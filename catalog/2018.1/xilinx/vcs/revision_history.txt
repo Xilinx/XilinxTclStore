@@ -1,3 +1,4 @@
+3.70 find systemc dependent libraries from property for a given IP
 3.69 fetch systemc libraries from ip
 3.68 support for compiling C sources with gcc
 3.67 fetch systemc include file path
