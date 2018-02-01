@@ -1261,6 +1261,12 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
       set shared_ip_libs [list]
+
+      foreach sc_lib [xcs_get_sc_libs] {
+        set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
+        lappend shared_ip_libs $lib_dir
+      }
+
       foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
         set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
         lappend shared_ip_libs $lib_dir
@@ -1442,9 +1448,18 @@ proc usf_questa_get_sccom_cmd_args {} {
     if { {} != $more_opts } {
       lappend args "$more_opts"
     }
-
-    foreach lib [xcs_get_sc_libs] {
-      lappend args "-lib $lib"
+   
+    set sc_libs [xcs_get_sc_libs]
+    if { [llength $sc_libs] > 0 } {
+      foreach sc_lib $sc_libs {
+        set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
+        lappend args "-lib $sc_lib"
+        if { {remote_port_v4} == $sc_lib } {
+          set lib_name "${sc_lib}_c"
+          lappend args "-L$lib_dir"
+          lappend args "-l$lib_name"
+        }
+      }
     }
 
     lappend args "-lib $a_sim_vars(default_top_library)"
