@@ -1,3 +1,4 @@
+3.308 add systemc_libraries to the compile_order
 3.307 find systemc dependent libraries from property for a given IP
 3.306 Adding support for pre.tcl post.tcl handling
 3.305 fetch systemc libraries from ip
