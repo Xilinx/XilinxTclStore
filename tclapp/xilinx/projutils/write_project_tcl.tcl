@@ -2466,6 +2466,21 @@ proc write_specified_dashboard { proj_dir proj_name dashboard } {
   foreach gd $gadgets {
     write_specified_gadget $proj_dir $proj_name $gd $dashboard
   }
+
+  #if current dashboard is "default_dashboard"
+  #check if the above "gadgets" variable has all the default_gadgets, if any default gadget is not there in "gadgets" variable, it means user has deleted those gadgets but as part of create_project, all the default gadgets are created. So we have to delete the gadgets which user has deleted. 
+  set def_db "default_dashboard"
+  if { [string equal $def_db $dashboard] } {
+    set default_gadgets {"drc_1" "methodology_1" "power_1" "timing_1" "utilization_1" "utilization_2"}
+    foreach dgd $default_gadgets {
+      #if dgd is not in gadgets, then delete dgd
+      if {$dgd ni $gadgets } {
+        set cmd_str "delete_gadgets -gadgets $dgd"
+        lappend l_script_data "# Delete the gadget '$dgd' "
+        lappend l_script_data "$cmd_str"
+      }
+    }
+  }
 }
 
 proc wr_prflow { proj_dir proj_name } {
