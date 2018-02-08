@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add systemc_libraries to the compile_order</revision_history>
+      <revision_history>Delete the default gadgets which get created by default during project creation but deleted later by user.</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
