@@ -10,6 +10,7 @@
      Use -transpose to transpose the CSV table and export it as 1-liner
      Use -detailed_reports to generate detailed reports for methdology checks, paths failing LUT/Net budgeting, the Non-FD HFN and Average Fanout
      Use -cell/-pblock to force the analysis on a specific module and pblock in a Partial Reconfigurable design. By default, the analysis is done from the top-level. The full hierarchical path must be specified for -cell
+     Use -top to specify the top-level design
      Use -pblock for Pblock-based analysis (more info with -longhelp)
      Use -region for Clock Region-based analysis (more info with -longhelp)
      Use -slr for SLR-based analysis (more info with -longhelp)
@@ -17,11 +18,14 @@
      Use -no_methodology_check to prevent extraction of the TIMING-* metrics
      Use -no_fanout to prevent calculation of the average fanout
      Use -no_path_budgeting to prevent calculation of the LUT/Net budgeting
+     Use -no_hfn to prevent calculation of Non-FD high fanout nets
      Use -no_dont_touch to prevent calculation of DONT_TOUCH metric
+     Use -no_control_sets to prevent extraction of control sets metric
      Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
      Use -show_resources to report the detailed number of used and available resources in the summary table
      Use -show_not_found to report metrics that have not been extracted (hidden by default)
      Use -post_ooc_synth to only run the LUT/Net path budgeting after post OOC synthesis
+     Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
 
      Use -longhelp for more information on the supported use models
 
