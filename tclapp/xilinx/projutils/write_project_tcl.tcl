@@ -1066,7 +1066,7 @@ proc is_ip_readonly_prop { name } {
   return false
 }
 
-proc write_properties { prop_info_list get_what tcl_obj } {
+proc write_properties { prop_info_list get_what tcl_obj {delim "#"} } {
   # Summary: write object properties
   # This helper command is used to script help.
   # Argument Usage: 
@@ -1079,7 +1079,7 @@ proc write_properties { prop_info_list get_what tcl_obj } {
   if {[llength $prop_info_list] > 0} {
     set b_add_closing_brace 0
     foreach x $prop_info_list {
-      set elem [split $x "#"]
+      set elem [split $x $delim] 
       set name [lindex $elem 0]
       set value [lindex $elem 1]
       if { ([is_ip_readonly_prop $name]) && ([string equal $get_what "get_files"]) } {
@@ -1150,7 +1150,7 @@ proc align_project_properties { prop proj_name proj_file_path } {
   return $proj_file_path
 }
 
-proc write_props { proj_dir proj_name get_what tcl_obj type } {
+proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
   # Summary: write first class object properties
   # This helper command is used to script help.
   # Argument Usage: 
@@ -1246,10 +1246,10 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       set abs_path_length [string length $proj_dir]
       set proj_file_path [string replace $abs_proj_file_path 0 $abs_path_length "\$proj_dir/"]
       set proj_file_path [align_project_properties $prop $proj_name $proj_file_path]
-      set prop_entry "[string tolower $prop]#$proj_file_path"
+      set prop_entry "[string tolower $prop]$delim$proj_file_path"
     } else {
       set abs_proj_file_path [align_project_properties $prop $proj_name $abs_proj_file_path]
-      set prop_entry "[string tolower $prop]#$abs_proj_file_path"
+      set prop_entry "[string tolower $prop]$delim$abs_proj_file_path"
     }  
 
     # re-align include dir path wrt origin dir
@@ -1263,7 +1263,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
               lappend rel_paths "\[file normalize \"\$origin_dir/[get_relative_file_path_for_source $path [get_script_execution_dir]]\"\]"
             }
           }
-          set prop_entry "[string tolower $prop]#[join $rel_paths " "]"
+          set prop_entry "[string tolower $prop]$delim[join $rel_paths " "]"
         }
       }
     }
@@ -1281,7 +1281,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       } else {
         set proj_file_path "[get_relative_file_path_for_source $src_file [get_script_execution_dir]]"
       }
-      set prop_entry "[string tolower $prop]#$proj_file_path"
+      set prop_entry "[string tolower $prop]$delim$proj_file_path"
 
     } elseif {([string equal -nocase $prop "target_constrs_file"] ||
                [string equal -nocase $prop "target_ucf"]) &&
@@ -1321,7 +1321,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         }
       }
 
-      set prop_entry "[string tolower $prop]#$proj_file_path"
+      set prop_entry "[string tolower $prop]$delim$proj_file_path"
     }
 
  
@@ -1341,7 +1341,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         set compile_lib_dir_path "\$proj_dir/$dir_path"
         set compile_lib_dir_path [regsub $cache_dir $compile_lib_dir_path "\$\{_xil_proj_name_\}\.cache"]
       }
-      set prop_entry "[string tolower $prop]#$compile_lib_dir_path"
+      set prop_entry "[string tolower $prop]$delim$compile_lib_dir_path"
     }
 
     # process run step tcl pre/post properties
@@ -1366,7 +1366,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
                 set tcl_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               }
             }
-            set prop_entry "[string tolower $prop]#$tcl_file_path"
+            set prop_entry "[string tolower $prop]$delim$tcl_file_path"
           }
         }
       }
@@ -1408,7 +1408,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
   }
 
   # write properties now
-  write_properties $prop_info_list $get_what $tcl_obj
+  write_properties $prop_info_list $get_what $tcl_obj $delim
 
 }
 
@@ -2442,7 +2442,7 @@ proc write_specified_gadget { proj_dir proj_name gadget dashboard} {
   lappend l_script_data "set obj \[get_gadgets -of_objects \[get_dashboards $db_name\] $gadget \]"
   set tcl_obj [get_gadgets -of_objects [get_dashboards $db_name] $gadget ]
   set get_what "get_gadgets -of_objects \[get_dashboards $db_name\]"
-  write_props $proj_dir $proj_name $get_what $tcl_obj "gadget"
+  write_props $proj_dir $proj_name $get_what $tcl_obj "gadget" "$"
 }
 
 
