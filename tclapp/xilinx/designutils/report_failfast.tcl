@@ -5,6 +5,12 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2018.02.12 - Added support for -exclude_cell
+##            - Added support for -no_hfn / -no_control_sets
+##            - Fixed some cells being double-counted
+## 2017.12.05 - Fixed debug message
+## 2017.11.03 - Fixed sticky -show_resources
+##            - Minor update
 ## 2017.11.01 - Added support for -csv
 ##            - Changed format for output report (table reported before optional CSV)
 ##            - Detailed reports are only generated when not empty
@@ -164,7 +170,7 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # Categories: xilinxtclstore, designutils
 
   return [::tclapp::xilinx::designutils::report_failfast::report_failfast {*}$args]
-#   uplevel [concat ::tclapp::xilinx::designutils::insert_buffer::insert_buffer_chain $args]
+#   uplevel [concat ::tclapp::xilinx::designutils::report_failfast::report_failfast $args]
 #   return 0
 }
 
@@ -298,7 +304,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2017.11.01}
+  variable version {2018.02.12}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -348,6 +354,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(debug_level) 1
   set params(format) {table}
   set params(transpose) 0
+  set params(show_resources) 0
   set pid {tmp}
   catch { set pid [pid] }
   set filename {}
@@ -366,6 +373,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set prDetect 1
   set prCell {}
   set prPblock {}
+  set excludeCell {}
   set leafCells [list]
   set slrs {}
   set slrPblock {}
@@ -430,11 +438,18 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^-no_pa(t(h(_(b(u(d(g(e(t(i(ng?)?)?)?)?)?)?)?)?)?)?)?$} {
         lappend skipChecks {path_budgeting}
       }
-      {^-no_f(a(n(o(ut?)?)?)?)?$} {
+      {^-no_fa(n(o(ut?)?)?)?$} {
         lappend skipChecks {average_fanout}
       }
       {^-no_do(n(t(_(t(o(u(ch?)?)?)?)?)?)?)?$} {
         lappend skipChecks {dont_touch}
+      }
+      {^-no_h(fn?)?$} -
+      {^-no_fd(_(h(fn?)?)?)?$} {
+        lappend skipChecks {non_fd_hfn}
+      }
+      {^-no_co(n(t(r(o(l(_(s(e(ts?)?)?)?)?)?)?)?)?)?$} {
+        lappend skipChecks {control_sets}
       }
       {^-po(s(t(_(o(o(c(_(s(y(n(th?)?)?)?)?)?)?)?)?)?)?)?$} -
       {^-pa(t(h(_(b(u(d(g(e(t(i(n(g(_(o(n(ly?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
@@ -443,6 +458,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^-ce(ll?)?$} {
         set prCell [lshift args]
         set optionCell 1
+      }
+      {^-ex(c(l(u(d(e(_(c(e(ll?)?)?)?)?)?)?)?)?)?$} {
+        set excludeCell [lshift args]
       }
       {^-top?$} {
         set optionTop 1
@@ -541,10 +559,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
               [-regions <pattern>]
               [-no_methodology_check]
               [-no_path_budgeting]
+              [-no_hfn]
               [-no_fanout]
               [-no_dont_touch]
+              [-no_control_sets]
               [-post_ooc_synth]
               [-ignore_pr]
+              [-exclude_cell <cell>]
               [-show_resources]
               [-show_not_found]
               [-csv][-transpose]
@@ -570,11 +591,14 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     Use -no_methodology_check to prevent extraction of the TIMING-* metrics
     Use -no_fanout to prevent calculation of the average fanout
     Use -no_path_budgeting to prevent calculation of the LUT/Net budgeting
+    Use -no_hfn to prevent calculation of Non-FD high fanout nets
     Use -no_dont_touch to prevent calculation of DONT_TOUCH metric
+    Use -no_control_sets to prevent extraction of control sets metric
     Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
     Use -show_resources to report the detailed number of used and available resources in the summary table
     Use -show_not_found to report metrics that have not been extracted (hidden by default)
     Use -post_ooc_synth to only run the LUT/Net path budgeting
+    Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
 
     Use -longhelp for further information about use models
 
@@ -719,11 +743,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   switch -regexp -- "${optionTop}${optionCell}${optionPblock}${optionRegion}${optionSlr}" {
     {^1.1..$} {
       set reportMode {pblockAndTop}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE"]
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
     }
     {^.11..$} {
       set reportMode {pblockAndCell}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && NAME =~ $prCell/*"]
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
     }
     {^..1..$} {
       set reportMode {pblockOnly}
@@ -733,7 +757,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       dputs " -D- parent+nested pblocks: $allPblocks"
       set leafCells [list]
       foreach pblock $allPblocks {
-        set cells [get_cells -quiet -hier -filter "IS_PRIMITIVE && PBLOCK == $pblock"]
+        set cells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && PBLOCK == $pblock"]
         dputs " -D- pblock $pblock: [llength $cells] cells"
         set leafCells [concat $leafCells $cells]
       }
@@ -743,11 +767,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     }
     {^1..1.$} {
       set reportMode {regionAndTop}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE"]
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
     }
     {^.1.1.$} {
       set reportMode {regionAndCell}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && NAME =~ $prCell/*"]
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
     }
     {^...1.$} {
       set reportMode {regionOnly}
@@ -762,11 +786,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     }
     {^1...1$} {
       set reportMode {slrAndTop}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE"]
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
     }
     {^.1..1$} {
       set reportMode {slrAndCell}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && NAME =~ $prCell/*"]
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
     }
     {^....1$} {
       set reportMode {slrOnly}
@@ -792,15 +816,15 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           set prPblock [get_pblocks -quiet {pblock_CL}]
           # Change reporting mode
           set reportMode {pblockAndCell}
-          set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && NAME =~ $prCell/*"]
+          set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
           puts " -I- Partial Reconfigurable design detected (cell:$prCell / pblock:$prPblock)"
         } else {
           set reportMode {default}
-          set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE"]
+          set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
         }
       } else {
         set reportMode {default}
-        set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE"]
+        set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
       }
     }
   }
@@ -808,13 +832,29 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     puts " -E- no leaf primitive found under the request. Cannot continue"
     return -code ok
   }
-  dputs " -D- number of extracted leaf cells: [llength $leafCells]"
+  # Remove excluded leaf cells
+  if {$excludeCell != {}} {
+    # The following checks are not supported with -exclude_cell
+    set skipChecks [concat $skipChecks {average_fanout path_budgeting methodology_check dont_touch control_sets non_fd_hfn}]
+#     set skipChecks [concat $skipChecks {average_fanout path_budgeting methodology_check dont_touch control_sets}]
+    puts " -W- Disabled checks (-exclude_cell): control sets / non-FD HFN / average fanout / path budgeting / methodology checks / DONT_TOUCH attributes"
+    dputs " -D- number of extracted leaf cells: [llength $leafCells]"
+    dputs " -D- excluded cell: $excludeCell"
+    set leafCells [filter -quiet $leafCells "NAME !~ $excludeCell/*"]
+    if {[llength $leafCells] == 0} {
+      puts " -E- no leaf primitive found after excluding cell '$excludeCell'. Cannot continue"
+      return -code ok
+    }
+    dputs " -D- number of extracted leaf cells: [llength $leafCells]"
+  } else {
+    dputs " -D- number of extracted leaf cells: [llength $leafCells]"
+  }
   dputs " -D- report mode: $reportMode"
   if {$highlistLeafCells} {
-    highlight_objects -color orange $leafCells
+    highlight_objects -quiet -color orange $leafCells
   }
   if {$markLeafCells} {
-    mark_objects -color orange $leafCells
+    mark_objects -quiet -color orange $leafCells
   }
 
   # Reset internal data structures
@@ -975,6 +1015,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         pblockAndCell {
           # Number of cells/nets with DONT_TOUCH. Exclude nets with MARK_DEBUG
           set dontTouchNets [filter -quiet [get_nets -quiet -of $leafCells] {DONT_TOUCH && !MARK_DEBUG}]
+#           if {$excludeCell != {}} {
+#             set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/* && NAME !~ $excludeCell/*}]
+#             set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/* && NAME !~ $excludeCell/*}]
+#           } else {
+#             set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
+#             set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
+#           }
           set dontTouchHierCells [get_cells -quiet -hier -filter {!IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
           set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH && NAME =~ $prCell/*}]
         }
@@ -1095,34 +1142,41 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       set stepStartTime [clock seconds]
       switch $reportMode {
         pblockAndTop {
-          set report [report_utilization -quiet -return_string]
+#           set report [report_utilization -quiet -return_string]
+          set report [report_utilization -quiet -cells $leafCells -return_string]
         }
         pblockAndCell {
-          set report [report_utilization -quiet -cells $prCell -return_string]
+#           set report [report_utilization -quiet -cells $prCell -return_string]
+          set report [report_utilization -quiet -cells $leafCells -return_string]
         }
         pblockOnly {
           set report [report_utilization -quiet -cells $leafCells -return_string]
         }
         regionAndTop {
-          set report [report_utilization -quiet -return_string]
+#           set report [report_utilization -quiet -return_string]
+          set report [report_utilization -quiet -cells $leafCells -return_string]
         }
         regionAndCell {
-          set report [report_utilization -quiet -cells $prCell -return_string]
+#           set report [report_utilization -quiet -cells $prCell -return_string]
+          set report [report_utilization -quiet -cells $leafCells -return_string]
         }
         regionOnly {
           set report [report_utilization -quiet -cells $leafCells -return_string]
         }
         slrAndTop {
-          set report [report_utilization -quiet -return_string]
+#           set report [report_utilization -quiet -return_string]
+          set report [report_utilization -quiet -cells $leafCells -return_string]
         }
         slrAndCell {
-          set report [report_utilization -quiet -cells $prCell -return_string]
+#           set report [report_utilization -quiet -cells $prCell -return_string]
+          set report [report_utilization -quiet -cells $leafCells -return_string]
         }
         slrOnly {
           set report [report_utilization -quiet -cells $leafCells -return_string]
         }
         default {
-          set report [report_utilization -quiet -return_string]
+#           set report [report_utilization -quiet -return_string]
+          set report [report_utilization -quiet -cells $leafCells -return_string]
         }
       }
 
@@ -2197,6 +2251,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   } elseif {$prCell != {}} {
     append title "\nCell: $prCell"
   }
+  if {$excludeCell != {}} {
+    append title "\nExcluded cell: $excludeCell"
+  }
   if {($prPblock != {}) && ($regions == {})} {
     append title "\nPblock: $prPblock"
   }
@@ -3266,6 +3323,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::extractTableValue {args} {
   set value $options(-default)
   set header {}
   set row {}
+  set matchrow {}
   set found 0
   set foundValues [list]
   foreach tbl $tables {
@@ -3280,6 +3338,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::extractTableValue {args} {
         if {[regexp $el [lindex $row 0] ]} {
 #           set value [lindex $row $idx]
           lappend foundValues [lindex $row $idx]
+          set matchrow $row
           set found 1
         }
 #         if {$found} { break }
@@ -3320,7 +3379,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::extractTableValue {args} {
     #   +-------------------+------+-------+-----------+-------+
     set tbl [Table::Create]
     $tbl header $header
-    $tbl addrow $row
+    $tbl addrow $matchrow
     puts [$tbl print]
     catch {$tbl destroy}
   }
