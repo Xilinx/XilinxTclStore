@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Adding support for gadget property to have # character in its value</revision_history>
+      <revision_history>fetch unique systemc libraries</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

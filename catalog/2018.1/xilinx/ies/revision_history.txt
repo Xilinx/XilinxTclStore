@@ -1,3 +1,4 @@
+3.70 fetch unique systemc libraries
 3.69 find systemc dependent libraries from property for a given IP
 3.68 fetch systemc libraries from ip
 3.67 support for compiling C sources with gcc
