@@ -3034,11 +3034,15 @@ proc xcs_get_sc_libs {} {
   # Return Value:
 
   set sc_libs [list]
+  set uniq_sc_libs [list]
   # find systemc libraries from IP
   set prop_name "systemc_libraries"
   foreach ip_obj [get_ips -quiet -all] {
     foreach lib [get_property -quiet $prop_name $ip_obj] {
-      lappend sc_libs $lib
+      if { [lsearch -exact $uniq_sc_libs $lib] == -1 } {
+        lappend uniq_sc_libs $lib
+        lappend sc_libs $lib
+      }
     }
   }
   return $sc_libs
