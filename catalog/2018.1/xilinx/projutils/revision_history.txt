@@ -1,3 +1,4 @@
+3.312 donot process static files
 3.311 fetch unique systemc libraries
 3.310 Adding support for gadget property to have # character in its value
 3.309 Delete the default gadgets which get created by default during project creation but deleted later by user.
