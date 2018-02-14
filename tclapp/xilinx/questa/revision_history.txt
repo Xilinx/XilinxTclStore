@@ -1,3 +1,4 @@
+2.85 fixed LD_LIBRARY_PATH setting
 2.83 donot process static files
 2.82 fetch unique systemc libraries
 2.81 reference precompiled shared library objects
