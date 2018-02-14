@@ -3119,8 +3119,13 @@ proc xcs_get_sc_files { sc_filter } {
         if { "" != $ip } {
           set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
           if { "tlm" == $selected_sim_model } {
-            set ip_sc_files [get_files -quiet -all -filter $sc_filter -of_objects $ip]
-            set sc_files [concat $sc_files $ip_sc_files]
+            foreach ip_file_obj [get_files -quiet -all -filter $sc_filter -of_objects $ip] {
+              set used_in_values [get_property "USED_IN" $ip_file_obj]
+              if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
+                continue;
+              }
+              set sc_files [concat $sc_files $ip_file_obj]
+            }
           }
         }
       }

@@ -1656,6 +1656,9 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
         lappend args_list "-lib $lib"
       }
     }
+    foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
+      lappend args_list "-lib $shared_ip_lib"
+    }
   }
 
   set cmd_args [join $args_list " "]

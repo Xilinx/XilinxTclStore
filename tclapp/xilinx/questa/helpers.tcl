@@ -548,15 +548,11 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
             set a_sim_vars(b_contain_systemc_sources) true
           }
           
-          # is dynamic? process
-          set used_in_values [get_property "USED_IN" $file]
-          if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
-            set file_type "SystemC"
-            set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
-            if { {} != $cmd_str } {
-              lappend files $cmd_str
-              lappend compile_order_files $file
-            }
+          set file_type "SystemC"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
           }
         }
       }
