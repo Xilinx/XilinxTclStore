@@ -149,6 +149,7 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-config_file <arg>]: Confile file name to import
   # [-export_config <arg>]: Confile file name to export
   # [-cell <arg>]: Hierarchical cell name
+  # [-exclude_cell <arg>]: Hierarchical cell name to exclude
   # [-top]: Use top-level design
   # [-pblock <arg>]: Pblock name
   # [-regions <arg>]: Clock regions patterns
@@ -158,6 +159,8 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-no_path_budgeting]: Skip LUT/Net budgeting
   # [-no_fanout]: Skip average fanout calculation
   # [-no_dont_touch]: Skip DONT_TOUCH check
+  # [-no_hfn]: Skip Non-FD high fanout nets metric
+  # [-no_control_sets]: Skip control sets metric
   # [-post_ooc_synth]: Post OOC Synthesis - only run LUT/Net budgeting
   # [-ignore_pr]: Disable auto-detection of Partial Reconfigurable designs
   # [-show_resources]: Show Used/Available resources count in the summary table
