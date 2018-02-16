@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fetch first ip instance while collecting properties using list_property</revision_history>
+      <revision_history>Enhanced create_rqs_run to take more user option</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
