@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::designutils 1.34 [list source [file join $dir designutils.tcl]]
+package ifneeded ::tclapp::xilinx::designutils 1.35 [list source [file join $dir designutils.tcl]]
