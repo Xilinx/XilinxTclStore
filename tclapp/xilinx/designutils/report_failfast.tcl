@@ -5,6 +5,8 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2018.02.14 - Fixed incorrect LUT/Net budgeting calculation
+##            - Added summary table at the beginning of the LUT/Net detailed reports
 ## 2018.02.12 - Added support for -exclude_cell
 ##            - Added support for -no_hfn / -no_control_sets
 ##            - Fixed some cells being double-counted
@@ -147,6 +149,7 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-config_file <arg>]: Confile file name to import
   # [-export_config <arg>]: Confile file name to export
   # [-cell <arg>]: Hierarchical cell name
+  # [-exclude_cell <arg>]: Hierarchical cell name to exclude
   # [-top]: Use top-level design
   # [-pblock <arg>]: Pblock name
   # [-regions <arg>]: Clock regions patterns
@@ -156,6 +159,8 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-no_path_budgeting]: Skip LUT/Net budgeting
   # [-no_fanout]: Skip average fanout calculation
   # [-no_dont_touch]: Skip DONT_TOUCH check
+  # [-no_hfn]: Skip Non-FD high fanout nets metric
+  # [-no_control_sets]: Skip control sets metric
   # [-post_ooc_synth]: Post OOC Synthesis - only run LUT/Net budgeting
   # [-ignore_pr]: Disable auto-detection of Partial Reconfigurable designs
   # [-show_resources]: Show Used/Available resources count in the summary table
@@ -304,7 +309,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2018.02.12}
+  variable version {2018.02.14}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -1858,12 +1863,6 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         catch { file copy ${detailedReportsPrefix}.timing_budget_Net.rpt ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} }
         set FHLut [open "${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}" $filemode]
         set FHNet [open "${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}" $filemode]
-        puts $FHLut "# ---------------------------------------------------------------------------"
-        puts $FHLut [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-        puts $FHLut "# ---------------------------------------------------------------------------\n"
-        puts $FHNet "# ---------------------------------------------------------------------------"
-        puts $FHNet [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-        puts $FHNet "# ---------------------------------------------------------------------------\n"
       } else {
         set FHLut {}
         set FHNet {}
@@ -1962,10 +1961,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       addMetric {design.device.maxlvls.lut}   "Number of paths above max LUT budgeting (${timBudgetPerLUT}ns)"
       addMetric {design.device.maxlvls.net}   "Number of paths above max Net budgeting (${timBudgetPerNet}ns)"
 
-      # Debug table for LUT/Net budgeting
-      set tbl [::tclapp::xilinx::designutils::prettyTable create [format {Budgeting Summary (lut=%sns/net=%sns)} $timBudgetPerLUT $timBudgetPerNet] ]
+      # Summary table for LUT/Net budgeting
+      set tbl    [::tclapp::xilinx::designutils::prettyTable create [format {Budgeting Summary (lut=%sns/net=%sns)} $timBudgetPerLUT $timBudgetPerNet] ]
+      set dbgtbl [::tclapp::xilinx::designutils::prettyTable create [format {Budgeting Summary (lut=%sns/net=%sns)} $timBudgetPerLUT $timBudgetPerNet] ]
       $tbl indent 1
+      $dbgtbl indent 1
       $tbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Levels} {Net Budget} {Lut Budget} {Path} {Info} ]
+      $dbgtbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Levels} {Net Budget} {Lut Budget} {Path} {Info} ]
 
       switch $reportMode {
         pblockAndTop {
@@ -2006,6 +2008,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       set numFailedNet 0
       set numFailedLutPassNet 0
       set numFailedNetPassLut 0
+      set addrow 0
       foreach path $spaths \
               sp $sps \
               spref [get_property -quiet REF_NAME $sps] \
@@ -2020,6 +2023,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         set datapath_delay [get_property -quiet DATAPATH_DELAY $path]
         set cell_delay [get_property -quiet DATAPATH_LOGIC_DELAY $path]
         set net_delay [get_property -quiet DATAPATH_NET_DELAY $path]
+        set addrow 0
         if {$skew == {}} { set skew 0.0 }
         if {$uncertainty == {}} { set uncertainty 0.0 }
         # Number of LUT* in the datapath
@@ -2058,14 +2062,14 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         # Calculate the maximum number of LUTs based on path requirement, skew and uncertainty
         # int(): truncate (e.g 1.8 => 1)
         # round() : round to the nearest (e.g 1.8 => 2)
-        set lut_budget [expr int(($requirement - $skew - $uncertainty) / double($timBudgetPerLUT)) ]
-#         set lut_budget [expr round(($requirement - $skew - $uncertainty) / double($timBudgetPerLUT)) ]
+        set lut_budget [expr int(($requirement + $skew - $uncertainty) / double($timBudgetPerLUT)) ]
+#         set lut_budget [expr round(($requirement + $skew - $uncertainty) / double($timBudgetPerLUT)) ]
         # Calculate the maximum number of Nets based on path requirement, skew, uncertainty and logic cell delay
-        set net_budget [expr int(($requirement - $skew - $uncertainty - $cell_delay) / double($timBudgetPerNet)) ]
-#         set net_budget [expr round(($requirement - $skew - $uncertainty - $cell_delay) / double($timBudgetPerNet)) ]
+        set net_budget [expr int(($requirement + $skew - $uncertainty - $cell_delay) / double($timBudgetPerNet)) ]
+#         set net_budget [expr round(($requirement + $skew - $uncertainty - $cell_delay) / double($timBudgetPerNet)) ]
         # Calculate the maximum datapath based on path requirement, skew and uncertainty
         set datapath_budget [format {%.3f} [expr double($lut_budget) * double($timBudgetPerLUT)] ]
-#         if {$datapath_budget > [expr $requirement - $skew - $uncertainty]} {}
+#         if {$datapath_budget > [expr $requirement + $skew - $uncertainty]} {}
 
         # Debug table for LUT/Net budgeting
         set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay $logic_levels $levels]
@@ -2078,6 +2082,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           }
           # Debug table for LUT/Net budgeting
           lappend row [format {%s (*)} $net_budget]
+          # Path failed => add row to summary table
+          incr addrow
           if {$params(debug)} {
 #             puts " -D- Net budgeting: $path"
 #             puts " -D- net_budget=$net_budget / levels=$levels / slack=$slack / requirement=$requirement / skew=$skew / uncertainty=$uncertainty / dp_budget=$datapath_budget / datapath_delay=$datapath_delay / cell_delay=$cell_delay"
@@ -2101,6 +2107,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           }
           # Debug table for LUT/Net budgeting
           lappend row [format {%s (*)} $lut_budget]
+          # Path failed => add row to summary table
+          incr addrow
           if {$params(debug)} {
 #             puts " -D- LUT budgeting: $path"
 #             puts " -D- lut_budget=$lut_budget / levels=$levels / slack=$slack / requirement=$requirement / skew=$skew / uncertainty=$uncertainty / dp_budget=$datapath_budget / datapath_delay=$datapath_delay"
@@ -2119,12 +2127,16 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         # Debug table for LUT/Net budgeting
         lappend row [get_property -quiet REF_NAME [get_cells -quiet -of $path]]
         lappend row $path
-        $tbl addrow $row
+        if {$addrow} {
+          # Add row to the summary table
+          $tbl addrow $row
+        }
+        $dbgtbl addrow $row
       }
       if {$params(debug)} {
         # Debug table for LUT/Net budgeting
-        set output [concat $output [split [$tbl print] \n] ]
-        catch {$tbl destroy}
+        set output [concat $output [split [$dbgtbl print] \n] ]
+        catch {$dbgtbl destroy}
         puts [join $output \n]
         set output [list]
         puts " -D- Number of processed paths: [llength $spaths]"
@@ -2135,7 +2147,6 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       setMetric {design.device.maxlvls.net}  $numFailedNet
       set stepStopTime [clock seconds]
       puts " -I- path budgeting metrics completed in [expr $stepStopTime - $stepStartTime] seconds"
-
       if {$detailedReportsPrefix != {}} {
         close $FHLut
         close $FHNet
@@ -2144,16 +2155,52 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         if {$emptyLut} {
           file delete -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
         } else {
-          file rename -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} ${detailedReportsPrefix}.timing_budget_LUT.rpt
+          # Print the summary table at the beginning of the detailed report
+          set FHLut [open ${detailedReportsPrefix}.timing_budget_LUT.rpt {w}]
+          set FH [open ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} {r}]
+          puts $FHLut "# ---------------------------------------------------------------------------"
+          puts $FHLut [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+          puts $FHLut "# ---------------------------------------------------------------------------\n"
+          foreach line [split [$tbl print] \n] {
+            puts $FHLut [format {# %s} $line]
+          }
+          puts $FHLut "# Note: (*): failed the budgeting\n"
+          while {![eof $FH]} {
+            gets $FH line
+            puts $FHLut $line
+          }
+          close $FHLut
+          close $FH
+          file delete -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
+#           file rename -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} ${detailedReportsPrefix}.timing_budget_LUT.rpt
           puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_LUT.rpt]"
         }
         if {$emptyNet} {
           file delete -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
         } else {
-          file rename -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} ${detailedReportsPrefix}.timing_budget_Net.rpt
+          # Print the summary table at the beginning of the detailed report
+          set FHNet [open ${detailedReportsPrefix}.timing_budget_Net.rpt {w}]
+          set FH [open ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} {r}]
+          puts $FHNet "# ---------------------------------------------------------------------------"
+          puts $FHNet [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+          puts $FHNet "# ---------------------------------------------------------------------------\n"
+          foreach line [split [$tbl print] \n] {
+            puts $FHNet [format {# %s} $line]
+          }
+          puts $FHNet "# Note: (*): failed the budgeting\n"
+          while {![eof $FH]} {
+            gets $FH line
+            puts $FHNet $line
+          }
+          close $FHNet
+          close $FH
+          file delete -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
+#           file rename -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} ${detailedReportsPrefix}.timing_budget_Net.rpt
           puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_Net.rpt]"
         }
       }
+      # Destroy summary table
+      catch {$tbl destroy}
 
     } else {
       set timBudgetPerLUT {}
