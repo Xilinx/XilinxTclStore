@@ -53,6 +53,8 @@ proc usf_init_vars {} {
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
   set a_sim_vars(b_contain_systemc_sources) 0
+  set a_sim_vars(b_contain_cpp_sources)     0
+  set a_sim_vars(b_contain_c_sources)       0
   
   set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set a_sim_vars(compiled_design_lib) "xsim.dir"
@@ -522,6 +524,8 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set simulator "xsim"
     set prefix_ref_dir false
     set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+    set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
+    set c_filter   "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C\")"
 
     # fetch systemc files
     set sc_files [xcs_get_sc_files $sc_filter]
@@ -534,12 +538,75 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { {.h} == $file_extn } {
           continue
         }
-        if { ({.cpp} == $file_extn) || ({.cxx} == $file_extn) } {
-          # set flag
-          if { !$a_sim_vars(b_contain_systemc_sources) } {
-            set a_sim_vars(b_contain_systemc_sources) true
-          }
+        # set flag
+        if { !$a_sim_vars(b_contain_systemc_sources) } {
+          set a_sim_vars(b_contain_systemc_sources) true
+        }
+
+        # is dynamic? process
+        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
           set file_type "SystemC"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
+          }
+        }
+      }
+    }
+
+    # fetch cpp files
+    set cpp_files [get_files -quiet -all -filter $cpp_filter]
+    if { [llength $cpp_files] > 0 } {
+      set g_files {}
+      set l_incl_dir_opts {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      foreach file $cpp_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+
+        # set flag
+        if { !$a_sim_vars(b_contain_cpp_sources) } {
+          set a_sim_vars(b_contain_cpp_sources) true
+        }
+
+        # is dynamic? process
+        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+          set file_type "CPP"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
+          }
+        }
+      }
+    }
+
+    # fetch c files
+    set c_files [get_files -quiet -all -filter $c_filter]
+    if { [llength $c_files] > 0 } {
+      set g_files {}
+      set l_incl_dir_opts {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      foreach file $c_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+
+        # set flag
+        if { !$a_sim_vars(b_contain_c_sources) } {
+          set a_sim_vars(b_contain_c_sources) true
+        }
+
+        # is dynamic? process
+        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+          set file_type "C"
           set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
           if { {} != $cmd_str } {
             lappend files $cmd_str

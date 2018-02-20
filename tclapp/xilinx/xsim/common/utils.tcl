@@ -817,6 +817,9 @@ proc xcs_get_file_type_category { file_type } {
     {CPP} {
       set type {CPP}
     }
+    {C} {
+      set type {C}
+    }
   }
   return $type
 }
@@ -2288,6 +2291,8 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog/SystemVerilog Header" {set compiler "verilog"}
         "SystemVerilog"                {set compiler "sv"}
         "SystemC"                      {set compiler "xsc"}
+        "CPP"                          {set compiler "xsc"}
+        "C"                            {set compiler "xsc"}
       }
     }
     "modelsim" -

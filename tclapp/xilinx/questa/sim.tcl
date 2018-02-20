@@ -1259,22 +1259,24 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
 
-    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
-      if { {elaborate} == $step } {
-        set shared_ip_libs [list]
+    if { $a_sim_vars(b_int_systemc_mode) } {
+      if { $a_sim_vars(b_contain_systemc_sources) } {
+        if { {elaborate} == $step } {
+          set shared_ip_libs [list]
 
-        foreach sc_lib [xcs_get_sc_libs] {
-          set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
-          lappend shared_ip_libs $lib_dir
-        }
+          foreach sc_lib [xcs_get_sc_libs] {
+            set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
+            lappend shared_ip_libs $lib_dir
+          }
   
-        foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
-          set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
-          lappend shared_ip_libs $lib_dir
-        }
-        if { [llength $shared_ip_libs] > 0 } {
-          set shared_ip_libs_env_path [join $shared_ip_libs ":"]
-          puts $fh_scr "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+          foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
+            set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
+            lappend shared_ip_libs $lib_dir
+          }
+            if { [llength $shared_ip_libs] > 0 } {
+            set shared_ip_libs_env_path [join $shared_ip_libs ":"]
+            puts $fh_scr "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+          }
         }
       }
     }
@@ -1435,43 +1437,45 @@ proc usf_questa_get_sccom_cmd_args {} {
   set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
   set args [list]
   
-  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
-    # systemc
-    if {$::tcl_platform(platform) == "unix"} {
-      if { [get_property 32bit $fs_obj] } {
-        lappend args {-32}
-      } else {
-        lappend args {-64}
-      }
-    }
-    lappend args "-link"
-
-    set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
-    if { {} != $more_opts } {
-      lappend args "$more_opts"
-    }
-   
-    set sc_libs [xcs_get_sc_libs]
-    if { [llength $sc_libs] > 0 } {
-      foreach sc_lib $sc_libs {
-        set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
-        lappend args "-lib $sc_lib"
-        if { {remote_port_v4} == $sc_lib } {
-          set lib_name "${sc_lib}_c"
-          lappend args "-L$lib_dir"
-          lappend args "-l$lib_name"
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_contain_systemc_sources) } {
+      # systemc
+      if {$::tcl_platform(platform) == "unix"} {
+        if { [get_property 32bit $fs_obj] } {
+          lappend args {-32}
+        } else {
+          lappend args {-64}
         }
       }
+      lappend args "-link"
+  
+      set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
+      if { {} != $more_opts } {
+        lappend args "$more_opts"
+      }
+     
+      set sc_libs [xcs_get_sc_libs]
+      if { [llength $sc_libs] > 0 } {
+        foreach sc_lib $sc_libs {
+          set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
+          lappend args "-lib $sc_lib"
+          if { {remote_port_v4} == $sc_lib } {
+            set lib_name "${sc_lib}_c"
+            lappend args "-L$lib_dir"
+            lappend args "-l$lib_name"
+          }
+        }
+      }
+  
+      lappend args "-lib $a_sim_vars(default_top_library)"
+      foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
+        #set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
+        #lappend args "-L$lib_dir"
+        #lappend args "-l${shared_ip_lib}"
+        lappend args "-lib ${shared_ip_lib}"
+      }
+      lappend args "-work $a_sim_vars(default_top_library)"
     }
-
-    lappend args "-lib $a_sim_vars(default_top_library)"
-    foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
-      #set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
-      #lappend args "-L$lib_dir"
-      #lappend args "-l${shared_ip_lib}"
-      lappend args "-lib ${shared_ip_lib}"
-    }
-    lappend args "-work $a_sim_vars(default_top_library)"
   }
   return $args
 }

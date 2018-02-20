@@ -789,7 +789,6 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   variable a_sim_sv_pkg_libs
  
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
   set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
 
@@ -802,7 +801,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
   # write compile.sh/.bat
   set scr_filename "compile";append scr_filename [xcs_get_script_extn "xsim"]
-  set scr_file [file normalize [file join $dir $scr_filename]]
+  set scr_file [file normalize [file join $a_sim_vars(s_launch_dir) $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
     send_msg_id USF-XSim-015 ERROR "Failed to open file to write ($scr_file)\n"
@@ -832,8 +831,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       [catch {send_msg_id USF-XSim-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
     }
     set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
-    xcs_delete_backup_log $tcl_wrapper_file $dir
-    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+    xcs_delete_backup_log $tcl_wrapper_file $a_sim_vars(s_launch_dir)
+    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $a_sim_vars(s_launch_dir)
     set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
     set cmd "vivado $vivado_cmd_str"
     puts $fh_scr "echo \"$cmd\""
@@ -852,7 +851,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   # write verilog prj if design contains verilog sources 
   if { $b_contain_verilog_srcs } {
     set vlog_filename ${top};append vlog_filename "_vlog.prj"
-    set vlog_file [file normalize [file join $dir $vlog_filename]]
+    set vlog_file [file normalize [file join $a_sim_vars(s_launch_dir) $vlog_filename]]
     set fh_vlog 0
     if {[catch {open $vlog_file w} fh_vlog]} {
       send_msg_id USF-XSim-012 ERROR "Failed to open file to write ($vlog_file)\n"
@@ -891,7 +890,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
     set glbl_file "glbl.v"
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) } {
-      set glbl_file [file normalize [file join $dir $glbl_file]]
+      set glbl_file [file normalize [file join $a_sim_vars(s_launch_dir) $glbl_file]]
     }
 
     # compile glbl file for behav
@@ -963,7 +962,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   # write vhdl prj if design contains vhdl sources 
   if { $b_contain_vhdl_srcs } {
     set vhdl_filename ${top};append vhdl_filename "_vhdl.prj"
-    set vhdl_file [file normalize [file join $dir $vhdl_filename]]
+    set vhdl_file [file normalize [file join $a_sim_vars(s_launch_dir) $vhdl_filename]]
     set fh_vhdl 0
     if {[catch {open $vhdl_file w} fh_vhdl]} {
       send_msg_id USF-XSim-013 ERROR "Failed to open file to write ($vhdl_file)\n"
@@ -1041,7 +1040,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set sc_filename "${top}_xsc.prj"
-      set sc_file [file normalize [file join $dir $sc_filename]]
+      set sc_file [file normalize [file join $a_sim_vars(s_launch_dir) $sc_filename]]
       set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
       set sc_files [xcs_get_sc_files $sc_filter]
       if { [llength $sc_files] > 0 } {
@@ -1107,6 +1106,148 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         }
         lappend xsc_arg_list "-work $a_sim_vars(default_top_library)"
         lappend xsc_arg_list "-f $sc_filename"
+        set xsc_cmd_str [join $xsc_arg_list " "]
+
+        puts $fh_scr "\necho \"xsc $xsc_cmd_str\""
+        if {$::tcl_platform(platform) == "unix"} {
+          set log_cmd_str $log_filename
+          set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
+          puts $fh_scr "ExecStep $full_cmd"
+        } else {
+          set log_cmd_str " -log $log_filename"
+          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str$log_cmd_str"
+          puts $fh_scr "call type xsc.log >> $log_filename"
+        }
+      }
+    }
+
+    # cpp prj file
+    if { $a_sim_vars(b_contain_cpp_sources) } {
+      set cpp_filename "${top}_cpp.prj"
+      set cpp_file [file normalize [file join $a_sim_vars(s_launch_dir) $cpp_filename]]
+      set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
+      set cpp_files [get_files -quiet -all -filter $cpp_filter]
+      if { [llength $cpp_files] > 0 } {
+        set fh_cpp 0
+        if {[catch {open $cpp_file w} fh_cpp]} {
+          send_msg_id USF-XSim-016 ERROR "Failed to open file to write ($cpp_file)\n"
+          return 1
+        }
+        puts $fh_cpp "# compile cpp design source files"
+        foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
+          set fargs       [split $file {|}]
+          set type        [lindex $fargs 0]
+          set file_type   [lindex $fargs 1]
+          set lib         [lindex $fargs 2]
+          set cmd_str     [lindex $fargs 3]
+          set src_file    [lindex $fargs 4]
+          set b_static_ip [lindex $fargs 5]
+          if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+          switch $type {
+            {CPP} {
+              puts $fh_cpp "\"$src_file\""
+            }
+          }
+        }
+        close $fh_cpp
+
+        set xsc_arg_list [list]
+        lappend xsc_arg_list "-c"
+        set more_xsc_options [string trim [get_property "XSIM.COMPILE.XSC.MORE_OPTIONS" $fs_obj]]
+        if { {} != $more_xsc_options } {
+          set xsc_arg_list [linsert $xsc_arg_list end "$more_xsc_options"]
+        }
+
+        # fetch systemc include files (.h)
+        set simulator "xsim"
+        set prefix_ref_dir false
+        set l_incl_dirs [list]
+        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $cpp_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+          lappend l_incl_dirs "$dir"
+        }
+       
+        if { [llength $l_incl_dirs] > 0 } {
+          lappend xsc_arg_list "--gcc_compile_options"
+          set incl_dir_strs [list]
+          foreach incl_dir $l_incl_dirs {
+            lappend incl_dir_strs "-I$incl_dir"
+          }
+          set incl_dir_cmd_str [join $incl_dir_strs " "]
+          lappend xsc_arg_list "\"$incl_dir_cmd_str\""
+        }
+        lappend xsc_arg_list "-work $a_sim_vars(default_top_library)"
+        lappend xsc_arg_list "-f $cpp_filename"
+        set xsc_cmd_str [join $xsc_arg_list " "]
+
+        puts $fh_scr "\necho \"xsc $xsc_cmd_str\""
+        if {$::tcl_platform(platform) == "unix"} {
+          set log_cmd_str $log_filename
+          set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
+          puts $fh_scr "ExecStep $full_cmd"
+        } else {
+          set log_cmd_str " -log $log_filename"
+          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str$log_cmd_str"
+          puts $fh_scr "call type xsc.log >> $log_filename"
+        }
+      }
+    }
+
+    # c prj file
+    if { $a_sim_vars(b_contain_c_sources) } {
+      set c_filename "${top}_c.prj"
+      set c_file [file normalize [file join $a_sim_vars(s_launch_dir) $c_filename]]
+      set c_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C\")"
+      set c_files [get_files -quiet -all -filter $c_filter]
+      if { [llength $c_files] > 0 } {
+        set fh_c 0
+        if {[catch {open $c_file w} fh_c]} {
+          send_msg_id USF-XSim-016 ERROR "Failed to open file to write ($c_file)\n"
+          return 1
+        }
+        puts $fh_c "# compile c design source files"
+        foreach file $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) {
+          set fargs       [split $file {|}]
+          set type        [lindex $fargs 0]
+          set file_type   [lindex $fargs 1]
+          set lib         [lindex $fargs 2]
+          set cmd_str     [lindex $fargs 3]
+          set src_file    [lindex $fargs 4]
+          set b_static_ip [lindex $fargs 5]
+          if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+          switch $type {
+            {C} {
+              puts $fh_c "\"$src_file\""
+            }
+          }
+        }
+        close $fh_c
+
+        set xsc_arg_list [list]
+        lappend xsc_arg_list "-c"
+        set more_xsc_options [string trim [get_property "XSIM.COMPILE.XSC.MORE_OPTIONS" $fs_obj]]
+        if { {} != $more_xsc_options } {
+          set xsc_arg_list [linsert $xsc_arg_list end "$more_xsc_options"]
+        }
+
+        # fetch systemc include files (.h)
+        set simulator "xsim"
+        set prefix_ref_dir false
+        set l_incl_dirs [list]
+        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $c_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+          lappend l_incl_dirs "$dir"
+        }
+       
+        if { [llength $l_incl_dirs] > 0 } {
+          lappend xsc_arg_list "--gcc_compile_options"
+          set incl_dir_strs [list]
+          foreach incl_dir $l_incl_dirs {
+            lappend incl_dir_strs "-I$incl_dir"
+          }
+          set incl_dir_cmd_str [join $incl_dir_strs " "]
+          lappend xsc_arg_list "\"$incl_dir_cmd_str\""
+        }
+        lappend xsc_arg_list "-work $a_sim_vars(default_top_library)"
+        lappend xsc_arg_list "-f $c_filename"
         set xsc_cmd_str [join $xsc_arg_list " "]
 
         puts $fh_scr "\necho \"xsc $xsc_cmd_str\""

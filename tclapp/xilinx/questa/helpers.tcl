@@ -52,6 +52,8 @@ proc usf_init_vars {} {
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
   set a_sim_vars(b_contain_systemc_sources) 0
+  set a_sim_vars(b_contain_cpp_sources)     0
+  set a_sim_vars(b_contain_c_sources)       0
 
   # initialize ip repository dir
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
@@ -509,8 +511,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # design contain systemc sources?
     set simulator "questa"
     set prefix_ref_dir false
-    set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+    set sc_filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
     set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
+    set c_filter   "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C\")"
 
     # fetch systemc files
     set sc_files [xcs_get_sc_files $sc_filter]
@@ -542,12 +545,14 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { {.h} == $file_extn } {
           continue
         }
-        if { ({.cpp} == $file_extn) || ({.cxx} == $file_extn) } {
-          # set flag
-          if { !$a_sim_vars(b_contain_systemc_sources) } {
-            set a_sim_vars(b_contain_systemc_sources) true
-          }
+        # set flag
+        if { !$a_sim_vars(b_contain_systemc_sources) } {
+          set a_sim_vars(b_contain_systemc_sources) true
+        }
           
+        # is dynamic? process
+        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
           set file_type "SystemC"
           set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
           if { {} != $cmd_str } {
@@ -558,6 +563,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
 
+    # fetch cpp files
     set cpp_files [get_files -quiet -all -filter $cpp_filter]
     if { [llength $cpp_files] > 0 } {
       set g_files {}
@@ -581,21 +587,63 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { {.h} == $file_extn } {
           continue
         }
-        if { {.cpp} == $file_extn } {
-          # set flag
-          if { !$a_sim_vars(b_contain_systemc_sources) } {
-            set a_sim_vars(b_contain_systemc_sources) true
+
+        # set flag
+        if { !$a_sim_vars(b_contain_cpp_sources) } {
+          set a_sim_vars(b_contain_cpp_sources) true
+        }
+
+        # is dynamic? process
+        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+          set file_type "CPP"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
           }
-          
-          # is dynamic? process
-          set used_in_values [get_property "USED_IN" $file]
-          if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
-            set file_type "CPP"
-            set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
-            if { {} != $cmd_str } {
-              lappend files $cmd_str
-              lappend compile_order_files $file
-            }
+        }
+      }
+    }
+
+    # fetch c files
+    set c_files [get_files -quiet -all -filter $c_filter]
+    if { [llength $c_files] > 0 } {
+      set g_files {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      # fetch systemc include files (.h)
+      set l_incl_dir [list]
+      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $cpp_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        lappend l_incl_dir "-I \"$dir\""
+      }
+
+      # reference SystemC include directories
+      foreach sc_lib [xcs_get_sc_libs] {
+        set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
+        # get relative file path for the compiled library
+        set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+        lappend l_incl_dir "-I \"$relative_dir\""
+      }
+
+      foreach file $c_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+
+        # set flag
+        if { !$a_sim_vars(b_contain_c_sources) } {
+          set a_sim_vars(b_contain_c_sources) true
+        }
+
+        # is dynamic? process
+        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+          set file_type "C"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
           }
         }
       }
