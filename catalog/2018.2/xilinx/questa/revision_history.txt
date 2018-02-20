@@ -1,3 +1,26 @@
+2.87 support for compling c, cpp source types
+2.86 pass c++ standard switch for sccom
+2.85 fixed LD_LIBRARY_PATH setting
+2.83 donot process static files
+2.82 fetch unique systemc libraries
+2.81 reference precompiled shared library objects
+2.80 reference systemc include directories
+2.79 find systemc dependent libraries from property for a given IP
+2.78 fetch systemc libraries from ip
+2.77 fetch systemc files if selected simulation model is tlm for IP
+2.76 fetch systemc files if selected simulation model is tlm
+2.75 add cxx file extension for systemc
+2.74 support for compiling C sources with gcc
+2.73 fetch systemc include file path
+2.72 support for systemc c source compilation for Questa
+2.71 find shared libraries from the cxl data file
+2.70 check for gt quad base for mem file export
+2.69 support for mixed file type export and compilation for Questa
+2.68 helper procedure to find IP
+2.67 check for file existence before extracting
+2.66 reference xilinx_vip include directory for ovm/uvm based designs
+2.65 support for SystemC file type while determining files for XSC
+2.64 support for systemc options
 2.63 fetch requires_vip property on the fetched IP object
 2.62 reference xilinx_vip if requires_vip property is set on the IP instance
 2.61 reference xilinx_vip if requires_vip property is set on the IP

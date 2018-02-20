@@ -1,3 +1,17 @@
+3.8 support for compling c, cpp source types
+3.7 donot process static files
+3.6 fetch unique systemc libraries
+3.5 find systemc dependent libraries from property for a given IP
+3.4 fetch systemc libraries from ip
+3.3 support for compiling C sources with gcc
+3.2 fetch systemc include file path
+3.1 find shared libraries from the cxl data file
+3.0 check for gt quad base for mem file export
+2.9 support for mixed file type export and compilation for Questa
+2.8 helper procedure to find IP
+2.7 check for file existence before extracting
+2.6 reference xilinx_vip include directory for ovm/uvm based designs
+2.5 support for SystemC file type while determining files for XSC
 2.4 fetch requires_vip property on the fetched IP object
 2.3 reference xilinx_vip if requires_vip property is set on the IP instance
 2.2 reference xilinx_vip if requires_vip property is set on the IP
