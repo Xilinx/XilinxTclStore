@@ -17,7 +17,7 @@ namespace eval ::tclapp::xilinx::projutils {
 namespace eval ::tclapp::xilinx::projutils {
 proc create_rqs_run { args } {
   # Summary:
-  # Creates and launches a new run based on the suggestions by report_qor_suggestions.
+  # Creates and launches a new run based on the suggestions by report_qor_suggestions. This proc looks for 5 files in the directory specified by the user. 1.RQSPreSynth_<newProjName>.xdc  2.RQSImplCommon_<newProjName>.xdc  3.RQSPreImpl_<newProjName>.xdc 4.RQSPreImpl_<newProjName>.tcl 5.RQSImplCommon_<newProjName>.tcl. There are 2 flows. One is creating both synth and impl runs and the other is creating only impl run making user specified synth run as the parent for the newly created impl run. In the first flow, we create a new synth run based on the current impl run's parent run (i,e current synth run). We create a new constraint fileset and add the current synth run's constraint fileset's files to that. And we add RQSPreSynth_<>.xdc file to newly created constraint set. We create a impl run based on the current impl run. We create a impl run constraint (if it is not same as the one that has already been created), and add the current impl run's constraint fileset's files to that. We also add RQSImplCommon_<>.xdc to new impl constraint fileset. We set STEPS.OPT_DESIGN.TCL.PRE property of newly created impl run to RQSImplCommon_<>.tcl file. In this flow, we ignore RQSPreImpl_<>.xdc/tcl files. In the second flow, user specified synth run is used as parent for the newly created impl run. So there is no synth run creation. We create impl run based on current impl run and user specified synth run. We create a new impl constraint fileset and add fileset to that form the current impl run's constraint fileset. We also add RQSImplCommon_<>.xdc , RQSPreImpl_<>.xdc files. If RQSPreImpl_<>.tcl file is available, it is set as STEPS.OPT_DESIGN.TCL.PRE property for new impl run otherwise RQSImplCommon_<>.tcl is set. In both the flows adding or setting files is subject to availability of those files in the output directory.
 
   # Argument Usage:
   # -dir <arg>: Specify the directory from where the xdc files and tcl files need to fetched.
@@ -54,6 +54,13 @@ proc create_rqs_run { args } {
     }
   }
   # check if required arguments are specified 
+
+  set isRqsEnabled [get_param place.rqsEnableNewCode]
+  if { $isRqsEnabled == 0 } {
+    send_msg_id Vivado-projutils-505 ERROR "create_rqs_run feature is not supported.\n"
+    return 
+  }
+
   if { [info exists newProjName] != 1 } {
     send_msg_id Vivado-projutils-502 ERROR "The run name (-new_name) is required yet it was not specified, type 'create_rqs_run -help' for usage info.\n"
   }
@@ -70,10 +77,10 @@ proc create_rqs_run { args } {
   }
   
   if { [info exists synthRunName] == 1 } {
-    #check if there is a run with name $synthRunName
+    #check if there is a run with name $synthRunName and if it is a synth run
     set isRun [get_runs $synthRunName]
-    if { $isRun eq "" } {
-      send_msg_id Vivado-projutils-503 ERROR "The specified synth run name (-synthRunName) does not correspond to a valid synthesis run, please specify a valid synth run. Type 'create_rqs_run -help' for usage info.\n"
+    if { ($isRun eq "") || ([get_property IS_SYNTHESIS [get_runs $synthRunName] ] == 0) } {
+      send_msg_id Vivado-projutils-504 ERROR "The specified synth run name (-synthRunName) does not correspond to a valid synthesis run, please specify a valid synth run. Type 'create_rqs_run -help' for usage info.\n"
     }
   }
   
