@@ -4579,18 +4579,31 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
 
   variable a_sim_vars
   set args [list]
+
   lappend args "xsim"
   xps_append_config_opts args "xsim" "xsim"
+
   lappend args [xps_get_snapshot]
   lappend args "-key"
   lappend args "\{[xps_get_obj_key]\}"
+
   set cmd_file "cmd.tcl"
   xps_write_xsim_tcl_cmd_file $dir $cmd_file
+
   lappend args "-tclbatch"
   lappend args "$cmd_file"
+
+  foreach pinst_file [xcs_get_protoinst_files $a_sim_vars(s_ip_user_files_dir)] {
+    lappend args "-protoinst"
+    set rel_path [xcs_get_relative_file_path $pinst_file $dir]
+    lappend args "\"$rel_path\""
+  }
+
   set log_file "simulate";append log_file ".log"
+
   lappend args "-log"
   lappend args "$log_file"
+
   puts $fh_unix "  [join $args " "]"
 }
 

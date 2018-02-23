@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for compling c, cpp source types</revision_history>
+      <revision_history>detect and fetch protoinst file from the ip_user_files for xsim</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

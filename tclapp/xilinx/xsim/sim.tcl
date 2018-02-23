@@ -1859,10 +1859,12 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
-  set sim_flow $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow)
-  set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
+  variable a_sim_vars
+
+  set top $a_sim_vars(s_sim_top)
+  set dir $a_sim_vars(s_launch_dir)
+  set sim_flow $a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
   set snapshot $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)
 
   set args_list [list]
@@ -1881,6 +1883,13 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
   } else {
     lappend args_list "\{$cmd_file\}" 
   }
+
+  foreach pinst_file [xcs_get_protoinst_files $a_sim_vars(dynamic_repo_dir)] {
+    lappend args_list "-protoinst"
+    set rel_path [xcs_get_relative_file_path $pinst_file $dir]
+    lappend args_list "\"$rel_path\""
+  }
+
   if { $b_add_view } {
     foreach wcfg_file $wcfg_files {
       if { ![file exists $wcfg_file] } {

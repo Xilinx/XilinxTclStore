@@ -2057,6 +2057,7 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
     # skip bd files
     if { ([string match *_bd* $filename])        && ({.tcl} == $extn) } { continue }
     if { ([string match *_changelog* $filename]) && ({.txt} == $extn) } { continue }
+    if { {.protoinst} == $extn } { continue }
 
     # skip mig data files
     set mig_files [list "xsim_run.sh" "ies_run.sh" "xcelium_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
@@ -3139,4 +3140,67 @@ proc xcs_get_sc_files { sc_filter } {
     }
   }
   return $sc_files
+}
+
+proc xcs_get_protoinst_files { dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_found_in_repo false
+  set repo_src_file ""
+  set filter "FILE_TYPE == \"Protocol Instance\""
+  set pinst_files [list]
+  foreach file [get_files -quiet -all -filter $filter] {
+    set file [xcs_get_file_from_repo $file $dynamic_repo_dir b_found_in_repo repo_src_file]
+    if { {} != $file } {
+      lappend pinst_files $file
+    }
+  }
+  return $pinst_files
+}
+
+proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo_src_file_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $b_found_in_repo_arg b_found_in_repo
+  upvar $repo_src_file_arg repo_src_file
+
+  variable a_sim_cache_all_design_files_obj
+
+  set filename [file tail $src_file]
+  set file_dir [file dirname $src_file]
+  set file_obj {}
+
+  if { [info exists a_sim_cache_all_design_files_obj($src_file)] } {
+    set file_obj $a_sim_cache_all_design_files_obj($src_file)
+  } else {
+    set file_obj [lindex [get_files -all [list "$src_file"]] 0]
+  }
+
+  set parent_comp_file [get_property -quiet parent_composite_file $file_obj]
+  if { {} == $parent_comp_file } {
+    return $src_file
+  }
+  
+  set parent_comp_file_type [get_property -quiet file_type [lindex [get_files -all [list "$parent_comp_file"]] 0]]
+  set core_name             [file root [file tail $parent_comp_file]]
+
+  set ip_dir {}
+  if { ({Block Designs} == $parent_comp_file_type) } {
+    set top_ip_file_name {}
+    set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+  } else {
+    return $src_file
+  }
+  
+  set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
+  set repo_src_file [file join $dynamic_repo_dir "bd" $core_name $hdl_dir_file $filename]
+  if { [file exists $repo_src_file] } {
+    set b_found_in_repo 1
+    return $repo_src_file
+  }
+  return $src_file
 }
