@@ -1,3 +1,4 @@
+2.88 detect and fetch protoinst file from the ip_user_files for xsim
 2.87 support for compling c, cpp source types
 2.86 pass c++ standard switch for sccom
 2.85 fixed LD_LIBRARY_PATH setting

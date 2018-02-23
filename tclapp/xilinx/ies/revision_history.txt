@@ -1,3 +1,4 @@
+3.73 detect and fetch protoinst file from the ip_user_files for xsim
 3.72 support for compling c, cpp source types
 3.71 donot process static files
 3.70 fetch unique systemc libraries
