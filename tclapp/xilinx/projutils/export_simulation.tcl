@@ -3593,7 +3593,7 @@ proc xps_write_lib_dir { simulator fh_unix launch_dir } {
       puts $fh_unix "create_lib_dir()\n\{"
       puts $fh_unix "  lib_dir=\"${simulator}_lib\""
       puts $fh_unix "  if \[\[ -e \$lib_dir \]\]; then"
-      puts $fh_unix "    rm -rf \$sim_lib_dir"
+      puts $fh_unix "    rm -rf \$lib_dir"
       puts $fh_unix "  fi\n"
       puts $fh_unix "  mkdir $\lib_dir\n"
       puts $fh_unix "\}\n"

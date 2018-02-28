@@ -399,8 +399,8 @@ proc xif_export_ip { obj } {
       set extracted_static_file_path [xif_get_extracted_static_file_path $file_obj $src_ip_file]
     }
 
-    # if reset requested, delete IP file from ipstatic
-    if { $a_vars(b_reset) } {
+    # if sync or reset requested, delete IP file from ipstatic
+    if { $a_vars(b_sync) || $a_vars(b_reset) } {
       if { [file exists $extracted_static_file_path] } {
         if { [catch {file delete -force $extracted_static_file_path} _error] } {
           #send_msg_id export_ip_user_files-Tcl-003 INFO "Failed to remove static simulation file (${extracted_static_file_path}): $_error\n"

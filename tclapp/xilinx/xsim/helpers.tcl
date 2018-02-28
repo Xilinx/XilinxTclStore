@@ -567,14 +567,16 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { {.h} == $file_extn } {
           continue
         }
-
+        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        # is HLS source?
+        if { [lsearch -exact $used_in_values "c_source"] != -1 } {
+          continue
+        }
         # set flag
         if { !$a_sim_vars(b_contain_cpp_sources) } {
           set a_sim_vars(b_contain_cpp_sources) true
         }
-
         # is dynamic? process
-        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
           set file_type "CPP"
           set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
@@ -597,14 +599,16 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { {.h} == $file_extn } {
           continue
         }
-
+        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        # is HLS source?
+        if { [lsearch -exact $used_in_values "c_source"] != -1 } {
+          continue
+        }
         # set flag
         if { !$a_sim_vars(b_contain_c_sources) } {
           set a_sim_vars(b_contain_c_sources) true
         }
-
         # is dynamic? process
-        set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
           set file_type "C"
           set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
@@ -649,7 +653,10 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
 
   if { {} != $netlist_file } {
     set file_type "Verilog"
-    if { {.vhd} == [file extension $netlist_file] } {
+    set extn [file extension $netlist_file]
+    if { {.sv} == $extn } {
+      set file_type "SystemVerilog"
+    } elseif { {.vhd} == $extn } {
       set file_type "VHDL"
     }
     set cmd_str [usf_get_file_cmd_str $netlist_file $file_type false {} other_ver_opts]

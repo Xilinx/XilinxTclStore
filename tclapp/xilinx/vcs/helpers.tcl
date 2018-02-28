@@ -715,7 +715,10 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
 
   if { {} != $netlist_file } {
     set file_type "Verilog"
-    if { {.vhd} == [file extension $netlist_file] } {
+    set extn [file extension $netlist_file]
+    if { {.sv} == $extn } {
+      set file_type "SystemVerilog"
+    } elseif { {.vhd} == $extn } {
       set file_type "VHDL"
     }
     set cmd_str [usf_get_file_cmd_str $netlist_file $file_type false {} l_incl_dirs_opts]

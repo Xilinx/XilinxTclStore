@@ -1364,7 +1364,15 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
     #set wdf_file "xsim";append wdf_file ".wdb"
   } else {
     set b_add_wdb 1
+    # only filename specified?
+    if { {.} == [file dirname $wdf_file] } {
+      set wdf_file "$dir/$wdf_file"
+    }
     set wdf_file [file normalize $wdf_file]
+    # is extension not specified?
+    if { {.wdb} != [file extension $wdf_file] } {
+      append wdf_file ".wdb"
+    }
   }
 
   # get the wcfg file information

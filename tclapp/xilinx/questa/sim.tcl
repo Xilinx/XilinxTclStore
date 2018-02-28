@@ -1115,9 +1115,9 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     set simulator "questa"
     if { ({functional} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) || \
          ({timing} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) } {
-      puts $fh "power add -r -in -inout -out -internal [xcs_resolve_uut_name $simulator uut]\n"
+      puts $fh "power add -r -in -inout -out -nocellnet -internal [xcs_resolve_uut_name $simulator uut]\n"
     } else {
-      puts $fh "power add -in -inout -out -internal [xcs_resolve_uut_name $simulator uut]\n"
+      puts $fh "power add -in -inout -out -nocellnet -internal [xcs_resolve_uut_name $simulator uut]\n"
     }
   }
   # create custom UDO file

@@ -1658,10 +1658,8 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
   set extn [xcs_get_netlist_extn $s_type 1]
 
   # generate netlist
-  set net_filename [xcs_get_netlist_filename $s_sim_top $s_simulation_flow $s_type];append net_filename "$extn"
+  set net_file {}
   set sdf_filename [xcs_get_netlist_filename $s_sim_top $s_simulation_flow $s_type];append sdf_filename ".sdf"
-
-  set net_file [file normalize "$s_launch_dir/$net_filename"]
   set sdf_file [file normalize "$s_launch_dir/$sdf_filename"]
 
   set netlist_cmd_args [xcs_get_netlist_writer_cmd_args $s_simset $s_type $extn]
@@ -1720,6 +1718,7 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
       send_msg_id SIM-utils-024 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
+      set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
       set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $s_type } {
         set wv_args "-mode funcsim $wv_args"
@@ -1771,6 +1770,7 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
       send_msg_id SIM-utils-031 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
+      set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
       set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $s_type } {
         set wv_args "-mode funcsim $wv_args"
@@ -1806,6 +1806,29 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
   }
 
   return $s_netlist_file
+}
+
+proc xcs_get_netlist_file { design_in_memory s_launch_dir extn s_sim_top s_simulation_flow s_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set net_filename [xcs_get_netlist_filename $s_sim_top $s_simulation_flow $s_type];
+  if { {.v} == $extn } {
+    set netlist_extn $extn
+    # contain SV construct?
+    set design_prop "XLNX_ADC_DAC_SV_PINS"
+    if { [lsearch -exact [list_property $design_in_memory] "$design_prop"] != -1 } {
+      if { [get_property -quiet $design_prop $design_in_memory] } {
+        set netlist_extn ".sv"
+      }
+    }
+    append net_filename "$netlist_extn"
+  } else {
+    append net_filename "$extn"
+  }
+  set net_file [file normalize "$s_launch_dir/$net_filename"]
+  return $net_file
 }
 
 proc xcs_fetch_ipi_static_file { src_file_obj file ipstatic_dir } {
@@ -2986,6 +3009,12 @@ proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_x
 
     # consider header (.h) files only
     if { {.h} != $file_extn } {
+      continue
+    }
+
+    set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+    # is HLS source?
+    if { [lsearch -exact $used_in_values "c_source"] != -1 } {
       continue
     }
 
