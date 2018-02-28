@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for compling c, cpp source types</revision_history>
+      <revision_history>fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

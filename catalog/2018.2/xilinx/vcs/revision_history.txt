@@ -1,3 +1,5 @@
+3.75 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
+3.74 detect and fetch protoinst file from the ip_user_files for xsim
 3.73 support for compling c, cpp source types
 3.72 donot process static files
 3.71 fetch unique systemc libraries

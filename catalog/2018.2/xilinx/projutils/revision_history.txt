@@ -1,3 +1,6 @@
+3.320 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
+3.319 detect and fetch protoinst file from the ip_user_files for xsim
+3.318 Adding stricter sanity checks and more comments
 3.317 support for compling c, cpp source types
 3.316 Supporting more options and support to take existing synth run as parent run
 3.315 reverting createa_rqs_run change
