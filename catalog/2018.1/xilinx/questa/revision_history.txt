@@ -1,3 +1,4 @@
+2.90 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
 2.89 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
 2.88 detect and fetch protoinst file from the ip_user_files for xsim
 2.87 support for compling c, cpp source types

@@ -1,3 +1,5 @@
+3.322 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
+3.321 Fixing bug in for loop to process command line args to generated script and file quoting to handle project paths with whitespaces
 3.320 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
 3.319 detect and fetch protoinst file from the ip_user_files for xsim
 3.318 Adding stricter sanity checks and more comments
