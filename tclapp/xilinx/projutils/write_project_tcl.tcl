@@ -439,7 +439,7 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "  exit 0"
   lappend l_script_data "\}\n"
   lappend l_script_data "if \{ \$::argc > 0 \} \{"
-  lappend l_script_data "  for \{set i 0\} \{\$i < \[llength \$::argc\]\} \{incr i\} \{"
+  lappend l_script_data "  for \{set i 0\} \{\$i < \$::argc\} \{incr i\} \{"
   lappend l_script_data "    set option \[string trim \[lindex \$::argv \$i\]\]"
   lappend l_script_data "    switch -regexp -- \$option \{"
   lappend l_script_data "      \"--origin_dir\"   \{ incr i; set origin_dir \[lindex \$::argv \$i\] \}"
@@ -1165,10 +1165,18 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
     # escape empty spaces in project name
     set tcl_obj [ list "$tcl_obj"]
   }
-  set obj_name [get_property name [eval $get_what $tcl_obj]]
-  set read_only_props [rdi::get_attr_specs -class [get_property class [eval $get_what $tcl_obj]] -filter {is_readonly}]
+  if { [string first " " $get_what 0] != -1 } {
+    # For cases where get_what is multiple workds like "get_gadgets -of_object..."
+    set current_obj [ eval $get_what $tcl_obj]
+  } else {
+    set current_obj [$get_what $tcl_obj]
+  }
+  if { $current_obj == "" } { return }
+
+  set obj_name [get_property name $current_obj]
+  set read_only_props [rdi::get_attr_specs -class [get_property class $current_obj] -filter {is_readonly}]
   set prop_info_list [list]
-  set properties [list_property [eval $get_what $tcl_obj]]
+  set properties [list_property $current_obj]
 
   foreach prop $properties {
     if { [is_deprecated_property $prop] } { continue }
@@ -1178,9 +1186,26 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
       continue
     }
 
+    # To handle the work-around solution of CR-988588 set board_part to base_board_part value then set board_connections
+    if { ([ string equal $type "project" ]) && ([ string equal [ string tolower $prop ] "board_connections" ]) } {
+      continue
+    }
+    if { ([ string equal $type "project" ]) && $b_project_board_set && ([ string equal [ string tolower $prop ] "board_part" ]) } {
+      set board_part_val [get_property $prop $current_obj]
+      set base_board_part_val [get_property base_board_part $current_obj]
+      set board_connections_val [get_property board_connections $current_obj]
+      if { $base_board_part_val != "" && $base_board_part_val != $board_part_val } {
+        set prop_entry "[string tolower $prop]$delim$base_board_part_val"
+        lappend prop_info_list $prop_entry
+        set prop_entry "board_connections$delim$board_connections_val"
+        lappend prop_info_list $prop_entry
+        continue
+      }
+    }
+
     # skip writing PR-Configuration, attached right after creation of impl run
     if { ([get_property pr_flow [current_project]] == 1) && [string equal $type "run"] } {
-      set isImplRun [get_property is_implementation [eval $get_what $tcl_obj]]
+      set isImplRun [get_property is_implementation $current_obj]
       if { ($isImplRun == 1) && [string equal -nocase $prop "pr_configuration"] } {
         continue
       }
@@ -1201,17 +1226,17 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
         }
       }
     } else {
-      set attr_spec [rdi::get_attr_specs -quiet $prop -object [eval $get_what $tcl_obj]]
+      set attr_spec [rdi::get_attr_specs -quiet $prop -object $current_obj]
       if { {} == $attr_spec } {
         set prop_lower [string tolower $prop]
-        set attr_spec [rdi::get_attr_specs -quiet $prop_lower -object [eval $get_what $tcl_obj]]
+        set attr_spec [rdi::get_attr_specs -quiet $prop_lower -object $current_obj]
       }
       set prop_type [get_property type $attr_spec]
     }
 
-    set def_val [list_property_value -default $prop [eval $get_what $tcl_obj]]
+    set def_val [list_property_value -default $prop $current_obj]
     set dump_prop_name [string tolower ${obj_name}_${type}_$prop]
-    set cur_val [get_property $prop [eval $get_what $tcl_obj]]
+    set cur_val [get_property $prop $current_obj]
 
     # filter special properties
     if { [filter $prop $cur_val] } { continue }
@@ -1238,7 +1263,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
 
     # re-align values
     set cur_val [get_target_bool_val $def_val $cur_val]
-    set abs_proj_file_path [get_property $prop [eval $get_what $tcl_obj]]
+    set abs_proj_file_path [get_property $prop $current_obj]
     
     set path_match [string match $proj_dir* $abs_proj_file_path]
     if { ($path_match == 1) && ($a_global_vars(b_absolute_path) != 1) && ![need_abs_path $abs_proj_file_path] } {
@@ -1566,7 +1591,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend add_file_coln "$file"
         } else {
-          lappend add_file_coln "\"\[file normalize \"$proj_file_path\"\]\""
+          lappend add_file_coln "\[file normalize \"$proj_file_path\"\]"
         }
       } else {
         # add to the import collection
@@ -1574,7 +1599,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend import_coln "$file"
         } else {
-          lappend import_coln "\"\[file normalize $proj_file_path\]\""
+          lappend import_coln "\[file normalize \"$proj_file_path\"\]"
         }
       }
 
@@ -1589,11 +1614,11 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
         # add to the import collection
         if { $a_global_vars(b_absolute_path)|| [need_abs_path $file]  } {
-          lappend import_coln [file normalize [list [string trim $file "\""]]]
+          lappend import_coln $file
         } else {
           set file_no_quotes [string trim $file "\""]
           set org_file_path "\$\{origin_dir\}/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
-          lappend import_coln "\"\[file normalize $org_file_path \]\""
+          lappend import_coln "\[file normalize \"$org_file_path\" \]"
         }
         lappend l_local_file_list $file
       } else {
@@ -1602,7 +1627,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         } else {
           set file_no_quotes [string trim $file "\""]
           set org_file_path "\$\{origin_dir\}/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
-          lappend add_file_coln "\"\[file normalize $org_file_path\]\""
+          lappend add_file_coln "\[file normalize \"$org_file_path\"\]"
         }
         lappend l_remote_file_list $file
       }
