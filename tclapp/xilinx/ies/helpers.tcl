@@ -532,6 +532,23 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
   }
 
+  # if xilinx_vip not referenced, compile it locally
+  if { ([lsearch -exact $l_compiled_libraries "xilinx_vip"] == -1) } {
+    variable a_sim_sv_pkg_libs
+    if { [llength $a_sim_sv_pkg_libs] > 0 } {
+      set incl_dir_opts "+incdir+\\\"[xcs_get_vip_include_dirs]\\\""
+      foreach file [xcs_get_xilinx_vip_files] {
+        set file_type "SystemVerilog"
+        set g_files $global_files_str
+        set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files incl_dir_opts "" "xilinx_vip"]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file
+        }
+      }
+    }
+  }
+
   set b_compile_xpm_library 1
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
@@ -1199,7 +1216,7 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   return [join $file_str " "]
 }
 
-proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_opts_arg {xpm_library {}} } {
+proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_opts_arg {xpm_library {}} {xv_lib {}}} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1242,7 +1259,11 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
       set associated_library $xpm_library
     }
   }
- 
+
+  if { {} != $xv_lib } {
+    set associated_library $xv_lib
+  } 
+
   set b_static_ip_file 0
   set ip_file {}
   if { !$b_xpm } {

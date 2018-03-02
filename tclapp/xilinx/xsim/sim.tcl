@@ -711,11 +711,11 @@ proc usf_xsim_write_setup_file {} {
   }
 
   # if xilinx_vip packages referenced, add mapping
-  if { [llength $a_sim_sv_pkg_libs] > 0 } {
-    set library "xilinx_vip"
-    set cxl_prop_dir [usf_xsim_get_compiled_library_dir]
-    puts $fh "$library=[usf_resolve_compiled_library_dir $cxl_prop_dir $library]"
-  }
+  #if { [llength $a_sim_sv_pkg_libs] > 0 } {
+  #  set library "xilinx_vip"
+  #  set cxl_prop_dir [usf_xsim_get_compiled_library_dir]
+  #  puts $fh "$library=[usf_resolve_compiled_library_dir $cxl_prop_dir $library]"
+  #}
 
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0

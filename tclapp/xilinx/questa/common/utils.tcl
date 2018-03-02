@@ -2696,6 +2696,45 @@ proc xcs_get_vip_include_dirs {} {
   return $incl_dir
 }
 
+proc xcs_get_xilinx_vip_files {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_sv_pkg_libs
+  set xv_files [list]
+  if { [llength $a_sim_sv_pkg_libs] == 0 } {
+    return $xv_files
+  }
+  set xv_dir [file normalize "[rdi::get_data_dir -quiet -datafile "xilinx_vip"]/xilinx_vip"]
+  set file "$xv_dir/xilinx_vip_pkg.list.f"
+  if { ![file exists $file] } {
+    send_msg_id SIM-utils-058 WARNING "File does not exist! '$file'\n"
+    return $xv_files
+  }
+  set fh 0
+  if { [catch {open $file r} fh] } {
+    send_msg_id SIM-utils-058 WARNING "Failed to open file for read! '$file'\n"
+    return $xv_files
+  }
+  set sv_file_data [split [read $fh] "\n"]
+  close $fh
+  foreach line $sv_file_data {
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^#} $line] } { continue; }
+    set file_path_str [string map {\\ /} $line]
+    set replace "XILINX_VIVADO/data/xilinx_vip"
+    set with "$xv_dir"
+    regsub -all $replace $file_path_str $with file_path_str
+    set file_path_str [string trimleft $file_path_str {$}]
+    set sv_file_path [string map {\\ /} $file_path_str]
+    if { [file exists $sv_file_path] } {
+      lappend xv_files $sv_file_path
+    }
+  }
+  return $xv_files
+}
+
 proc xcs_get_systemc_include_dir {} {
   # Summary:
   # Argument Usage:

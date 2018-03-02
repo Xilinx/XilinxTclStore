@@ -928,6 +928,33 @@ proc xps_get_files { simulator launch_dir } {
     }
   }
 
+  # if xilinx_vip not referenced, compile it locally
+  if { ([lsearch -exact $l_compiled_libraries "xilinx_vip"] == -1) } {
+    variable a_sim_sv_pkg_libs
+    if { [llength $a_sim_sv_pkg_libs] > 0 } {
+      set incl_dir_opts {}
+      if { ({questa} == $simulator) || ({modelsim} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
+        set incl_dir_opts "\\\"+incdir+[xcs_get_vip_include_dirs]\\\""
+      } elseif { ({ies} == $simulator) || ({xcelium} == $simulator) } {
+        set incl_dir_opts "+incdir+\"[xcs_get_vip_include_dirs]\""
+      } elseif { {vcs} == $simulator } {
+        set incl_dir_opts "+incdir+[xcs_get_vip_include_dirs]"
+      }
+
+      foreach file [xcs_get_xilinx_vip_files] {
+        set file_type "SystemVerilog"
+        set compiler [xcs_get_compiler_name $simulator $file_type]
+        set l_other_compiler_opts [list]
+        xps_append_compiler_options $simulator $launch_dir $compiler $file_type l_verilog_incl_dirs l_other_compiler_opts
+        set cmd_str [xps_get_cmdstr $simulator $launch_dir $file $file_type true $compiler l_other_compiler_opts incl_dir_opts 1 "" "xilinx_vip"]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file
+        }
+      }
+    }
+  }
+
   set b_compile_xpm_library 1
   # reference XPM modules from precompiled libs if param is set
   set b_reference_xpm_library 0
@@ -1521,7 +1548,7 @@ proc xps_add_block_fs_files { simulator launch_dir l_incl_dirs_opts_arg l_verilo
   }
 }
 
-proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other_compiler_opts_arg  l_incl_dirs_opts_arg {b_skip_file_obj_access 0} {xpm_library {}}} {
+proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other_compiler_opts_arg  l_incl_dirs_opts_arg {b_skip_file_obj_access 0} {xpm_library {}} {xv_lib {}}} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1562,6 +1589,10 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
         }
       }
     }
+  }
+  
+  if { {} != $xv_lib } {
+    set associated_library $xv_lib
   }
 
   set src_file $file
@@ -2099,7 +2130,9 @@ proc xps_write_single_step_for_ies_xcelium { simulator fh_unix launch_dir srcs_d
   # add xilinx vip library
   if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
     if { [xcs_design_contain_sv_ip] } {
-      lappend base_libs "xilinx_vip"
+      if { ([lsearch -exact $l_compiled_libraries "xilinx_vip"] != -1) } {
+        lappend base_libs "xilinx_vip"
+      }
     }
   }
 
@@ -3889,6 +3922,7 @@ proc xps_get_xsim_verilog_options { launch_dir opts_arg } {
   variable a_sim_vars
   variable l_defines
   variable l_include_dirs
+  variable l_compiled_libraries
   upvar $opts_arg opts
   # include_dirs
   set unique_incl_dirs [list]
@@ -3920,6 +3954,14 @@ proc xps_get_xsim_verilog_options { launch_dir opts_arg } {
         }
         lappend opts "-i \"$incl_dir\""
       }
+    }
+  }
+
+  # xilinx_vip
+  if { ([lsearch -exact $l_compiled_libraries "xilinx_vip"] == -1) } {
+    variable a_sim_sv_pkg_libs
+    if { [llength $a_sim_sv_pkg_libs] > 0 } {
+      lappend opts "--include \"[xcs_get_vip_include_dirs]\""
     }
   }
 
