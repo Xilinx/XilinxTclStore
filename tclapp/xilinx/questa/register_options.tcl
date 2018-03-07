@@ -45,11 +45,9 @@ proc register_options { simulator } {
     {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008}}}   {Specify VHDL syntax}}
     {{compile.use_explicit_decl}   {bool}   {1}                                     {Log all signals}}
     {{compile.load_glbl}           {bool}   {1}                                     {Load GLBL module}}
-    {{compile.sccom.more_options}  {string} {}                                      {More SCCOM compilation options}}
     {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
     {{elaborate.acc}               {enum}   {{acc=npr} {acc=npr} {{acc=npr} {acc} {None}}} {Enable access to simulation objects that might be optimized by default (default:npr)}}
-    {{elaborate.sccom.more_options} {string} {}                                     {More SCCOM elaboration options}}
     {{elaborate.vopt.more_options} {string} {}                                      {More VOPT elaboration options}}
     {{simulate.tcl.post}           {string} {}                                      {Specify post-simulate step TCL hook}}
     {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
