@@ -1614,7 +1614,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/systemc/protected"]
       if { [lsearch $sc_libs "xtlm"] != -1} {
         set cpp_path "$data_dir/simmodels/systemc/protected/xsim/2018.2/lnx64/6.2.0/common_cpp_v1_0"
-        set cpp_lib "libcommon_cpp_v1_0_cpp.so"
+        set cpp_lib "libcommon_cpp_v1_0_cpp"
         lappend args_list "-sv_root `pwd` -sv_root \"${cpp_path}\" -sc_lib ${cpp_lib}"
       }
       set cpp_path_incl_dir "$data_dir/simmodels/systemc/protected/include/common_cpp_v1_0"
