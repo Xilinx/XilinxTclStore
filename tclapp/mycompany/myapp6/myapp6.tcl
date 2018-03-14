@@ -1,5 +1,6 @@
 package require Tcl 8.4
 
+#adding comment for the test
 namespace eval ::tclapp::mycompany::myapp6 {
 
     # Allow Tcl to find tclIndex
@@ -9,7 +10,7 @@ namespace eval ::tclapp::mycompany::myapp6 {
     }
 
 }
-package provide ::tclapp::mycompany::myapp6 2.15
+package provide ::tclapp::mycompany::myapp6 2.16
 # this is a comment
 # this is another comment
 # this is a 3rd comment line
