@@ -1,3 +1,4 @@
+2.92 revert SystemC include directory temporarily
 2.91 reference SystemC include directory
 2.90 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
 2.89 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
