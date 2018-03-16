@@ -1338,7 +1338,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
-        puts $fh_scr "call xsc $s_dbg_sw $args"
+        puts $fh_scr "call xsc $s_dbg_sw $args -o libdpi.so"
         puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
         puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
       }
@@ -1465,6 +1465,12 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
           puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
         } else {
           puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+        }
+      }
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
+        if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+          puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+          puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
         }
       }
     }
@@ -1776,7 +1782,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
-      lappend args_list "-sc_lib dpi"
+      lappend args_list "-sv_root \".\" -sc_lib libdpi.so"
     }
   }
 
