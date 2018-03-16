@@ -1077,9 +1077,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         # fetch systemc include files (.h)
         set simulator "xsim"
         set prefix_ref_dir false
-        set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")" 
+        # TODO: use this filter
+        #set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")" 
         set l_incl_dirs [list]
-        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $sc_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
           lappend l_incl_dirs "$dir"
         }
        
@@ -1174,8 +1175,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         set simulator "xsim"
         set prefix_ref_dir false
         set l_incl_dirs [list]
-        set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")" 
-        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        # TODO: use this filter
+        #set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")" 
+        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $cpp_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
           lappend l_incl_dirs "$dir"
         }
        
@@ -1246,8 +1248,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         set simulator "xsim"
         set prefix_ref_dir false
         set l_incl_dirs [list]
-        set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")" 
-        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        # TODO: use this filter
+        #set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")" 
+        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $c_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
           lappend l_incl_dirs "$dir"
         }
        
@@ -1327,7 +1330,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
-        puts $fh_scr "\nExecStep xsc $args"
+        puts $fh_scr "\nExecStep xsc $args -o libdpi.so"
       }
     }
     set args [usf_xsim_get_xelab_cmdline_args]
@@ -1338,7 +1341,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
-        puts $fh_scr "call xsc $s_dbg_sw $args -o libdpi.so"
+        puts $fh_scr "call xsc $s_dbg_sw $args"
         puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
         puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
       }
@@ -1467,13 +1470,16 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
           puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
         }
       }
-      if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
-        if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
-          puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
-          puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
-        }
+      
+    }
+
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+        puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+        puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
       }
     }
+
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
     puts $fh_scr "ExecStep xsim $cmd_args"
   } else {
@@ -1633,29 +1639,30 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       }
     }
   }
- 
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    set unique_sysc_incl_dirs [list]
-    set l_incl_dir [list]
-    set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")" 
-    set prefix_ref_dir false
-    foreach incl_dir [xcs_get_c_incl_dirs "xsim" $a_sim_vars(s_launch_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
-      if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
-        lappend unique_sysc_incl_dirs $incl_dir
-        lappend args_list "--include \"$incl_dir\""
-      }
-    }
 
-    foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
-      if { !$a_sim_vars(b_absolute_path) } {
-        set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
-      }
-      if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
-        lappend unique_sysc_incl_dirs $incl_dir
-        lappend args_list "--include \"$incl_dir\""
-      }
-    }
-  }
+  # TODO: enable this 
+  #if { $a_sim_vars(b_int_systemc_mode) } {
+  #  set unique_sysc_incl_dirs [list]
+  #  set l_incl_dir [list]
+  #  set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")" 
+  #  set prefix_ref_dir false
+  #  foreach incl_dir [xcs_get_c_incl_dirs "xsim" $a_sim_vars(s_launch_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+  #    if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
+  #      lappend unique_sysc_incl_dirs $incl_dir
+  #      lappend args_list "--include \"$incl_dir\""
+  #    }
+  #  }
+  #
+  #  foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
+  #    if { !$a_sim_vars(b_absolute_path) } {
+  #      set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+  #    }
+  #    if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
+  #      lappend unique_sysc_incl_dirs $incl_dir
+  #      lappend args_list "--include \"$incl_dir\""
+  #    }
+  #  }
+  #}
 
   # -i
   #set unique_incl_dirs [list]
@@ -1782,7 +1789,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
-      lappend args_list "-sv_root \".\" -sc_lib libdpi.so"
+      if {$::tcl_platform(platform) == "unix"} {
+        lappend args_list "-sv_root \".\" -sc_lib libdpi.so"
+      }
     }
   }
 
