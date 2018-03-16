@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <catalog>
-  <remote>2018.1-dev</remote>
+  <remote>master</remote>
   <support_commit_id>6a2cba20d1913a59c1f774095af1f854f4a5b7f5</support_commit_id>
   <release>2018.1</release>
   <revision>2.5</revision>
@@ -27,8 +27,8 @@
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>1.31</revision>
+      <commit_id>9be1a37312a7aeecc5eefa0a395f8a296b42053f</commit_id>
+      <revision>1.35</revision>
     </app>
     <app>
       <name>diff</name>
@@ -39,8 +39,8 @@
     <app>
       <name>ies</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>3.57</revision>
+      <commit_id>75222f0ef4a9b63847a64f9d36cacad27b93f133</commit_id>
+      <revision>3.75</revision>
     </app>
     <app>
       <name>incrcompile</name>
@@ -57,8 +57,8 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>2.168</revision>
+      <commit_id>75222f0ef4a9b63847a64f9d36cacad27b93f133</commit_id>
+      <revision>2.185</revision>
     </app>
     <app>
       <name>myapp</name>
@@ -87,8 +87,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>eb0dcddecc9bd46dc4b80e0c861f0fcfe3d650e0</commit_id>
-      <revision>3.269</revision>
+      <commit_id>75222f0ef4a9b63847a64f9d36cacad27b93f133</commit_id>
+      <revision>3.322</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -99,8 +99,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>2.63</revision>
+      <commit_id>348c0d5f4c03e550ceaed5026e061b46bcb80575</commit_id>
+      <revision>2.91</revision>
     </app>
     <app>
       <name>questa_cdc</name>
@@ -141,20 +141,20 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>3.59</revision>
+      <commit_id>75222f0ef4a9b63847a64f9d36cacad27b93f133</commit_id>
+      <revision>3.76</revision>
     </app>
     <app>
       <name>xcelium</name>
       <company>xilinx</company>
-      <commit_id>20a348b84edf83de025a8d1f130cc7f42c380b72</commit_id>
-      <revision>2.4</revision>
+      <commit_id>75222f0ef4a9b63847a64f9d36cacad27b93f133</commit_id>
+      <revision>4.1</revision>
     </app>
     <app>
       <name>xsim</name>
       <company>xilinx</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>2.179</revision>
+      <commit_id>348c0d5f4c03e550ceaed5026e061b46bcb80575</commit_id>
+      <revision>2.206</revision>
     </app>
   </apps>
 </catalog>

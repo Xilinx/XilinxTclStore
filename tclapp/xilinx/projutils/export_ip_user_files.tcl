@@ -399,8 +399,8 @@ proc xif_export_ip { obj } {
       set extracted_static_file_path [xif_get_extracted_static_file_path $file_obj $src_ip_file]
     }
 
-    # if reset requested, delete IP file from ipstatic
-    if { $a_vars(b_reset) } {
+    # if sync or reset requested, delete IP file from ipstatic
+    if { $a_vars(b_sync) || $a_vars(b_reset) } {
       if { [file exists $extracted_static_file_path] } {
         if { [catch {file delete -force $extracted_static_file_path} _error] } {
           #send_msg_id export_ip_user_files-Tcl-003 INFO "Failed to remove static simulation file (${extracted_static_file_path}): $_error\n"
@@ -539,7 +539,27 @@ proc xif_export_ip { obj } {
         }
       }
     }
+ 
+    # CPP
+    foreach c_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" && FILE_TYPE == "CPP"}] {
+      set file {}
+      if { $a_vars(b_force) } {
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $c_file_obj]
+      } else {
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $c_file_obj]
+      }
+    }
 
+    # SystemC
+    foreach c_file_obj [get_files -quiet -all -of_objects [get_ips -all -quiet $ip_name] -filter {USED_IN=~"*simulation*" && FILE_TYPE == "SystemC"}] {
+      set file {}
+      if { $a_vars(b_force) } {
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -force -files $c_file_obj]
+      } else {
+        set file [extract_files -base_dir ${ip_inst_dir} -no_ip_dir -files $c_file_obj]
+      }
+    }
+   
     # templates
     foreach template_file [get_files -quiet -all -of [get_ips -all -quiet $ip_name] -filter {FILE_TYPE == "Verilog Template" || FILE_TYPE == "VHDL Template"}] {
       if { [lsearch $l_static_files $template_file] != -1 } { continue }

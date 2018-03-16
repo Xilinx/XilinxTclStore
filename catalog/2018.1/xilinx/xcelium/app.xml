@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fetch requires_vip property on the fetched IP object</revision_history>
+      <revision_history>compile xilinx_vip locally if mapping not found or if running in non-precompile mode</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

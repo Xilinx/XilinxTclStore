@@ -21,7 +21,7 @@ file mkdir $result_dir
 package require struct
 proc compare_runs { run1 run2 {ignore {}} } {
   puts "Comparing runs '${run1}' and '${run2}'"
-  set always_ignore   { DIRECTORY NAME }
+  set always_ignore    { DIRECTORY NAME }
   set ignore           [ concat $always_ignore $ignore ]
   set step_report_prop [ lsearch -regexp -all -inline [ list_property $run1 ] "STEPS\\..*\.REPORTS" ] 
   set ignore           [ concat $ignore $step_report_prop ]

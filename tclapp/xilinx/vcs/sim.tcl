@@ -715,6 +715,23 @@ proc usf_vcs_write_elaborate_script {} {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+  puts $fh_scr "# run elaboration"
+
+  set a_sim_vars(b_link_gt_lib) 0
+  set a_sim_vars(gt_lib) "gtquad.so"
+  if { [xcs_find_ip "gt_quad_base"] } {
+    variable a_vcs_sim_vars
+    set clibs_dir $a_vcs_sim_vars(s_compiled_lib_dir)
+    set obj_1 "$clibs_dir/secureip/RateAccess.o"
+    set obj_2 "$clibs_dir/secureip/RateAccess_Wrapper.o"
+    if { [file exists $obj_1] && [file exists $obj_2] } {
+      set a_sim_vars(b_link_gt_lib) 1
+      set obj_files [list $obj_1 $obj_2]
+      set gcc_cmd "gcc -shared -o $a_sim_vars(gt_lib) [join $obj_files " "]"
+      puts $fh_scr $gcc_cmd
+    }
+  }
+
   set tool_path_val "\$bin_path/$tool"
   if { {} == $tool_path } {
     set tool_path_val "$tool"
@@ -733,11 +750,15 @@ proc usf_vcs_write_elaborate_script {} {
   lappend arg_list "${top_lib}.$top"
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
+
+  if { $a_sim_vars(b_link_gt_lib) } {
+    lappend arg_list $a_sim_vars(gt_lib)
+  }
+
   lappend arg_list "-o"
   lappend arg_list "${top}_simv"
   set cmd_str [join $arg_list " "]
 
-  puts $fh_scr "# run elaboration"
   puts $fh_scr "$cmd_str"
   close $fh_scr
 }
@@ -839,7 +860,12 @@ proc usf_vcs_write_simulate_script {} {
   } else {
     set arg_list [linsert $arg_list end "-gui"]
   }
-  set arg_list [list $arg_list "\$${tool}_opts" "-do" "$do_filename"]
+  set arg_list [list $arg_list "\$${tool}_opts"]
+  if { $a_sim_vars(b_link_gt_lib) } {
+    lappend arg_list $a_sim_vars(gt_lib) 
+  }
+  lappend arg_list "-do"
+  lappend arg_list "$do_filename"
   set cmd_str [join $arg_list " "]
 
   puts $fh_scr "# run simulation"

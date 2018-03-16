@@ -15,3 +15,4 @@ set auto_index(::tclapp::xilinx::projutils::export_ip_user_files) [list source [
 set auto_index(::tclapp::xilinx::projutils::setup_ip_static_library) [list source [file join $dir setup_ip_static_library.tcl]]
 set auto_index(::tclapp::xilinx::projutils::write_project_tcl) [list source [file join $dir write_project_tcl.tcl]]
 set auto_index(::tclapp::xilinx::projutils::create_bd_partition_def) [list source [file join $dir create_bd_partition_def.tcl]]
+set auto_index(::tclapp::xilinx::projutils::create_rqs_run) [list source [file join $dir create_rqs_run.tcl]]

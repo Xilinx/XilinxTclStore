@@ -1,3 +1,30 @@
+2.206 remove xsc option
+2.205 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
+2.204 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
+2.203 detect and fetch protoinst file from the ip_user_files for xsim
+2.202 support for compling c, cpp source types
+2.201 donot process static files
+2.200 fetch unique systemc libraries
+2.199 reference systemc include directories
+2.198 find systemc dependent libraries from property for a given IP
+2.197 fetch systemc libraries from ip
+2.196 fetch systemc files if selected simulation model is tlm for IP
+2.195 fetch systemc files if selected simulation model is tlm
+2.194 add cxx file extension for systemc
+2.193 support for compiling C sources with gcc
+2.192 fetch systemc include file path
+2.191 find shared libraries from the cxl data file
+2.190 check for gt quad base for mem file export
+2.189 support for mixed file type export and compilation for Questa
+2.188 check for variable existence before fetching the value
+2.187 helper procedure to find IP
+2.186 replace sv_lib with sc_lib for systemc simulation
+2.185 support for compiling behavioral simulation sources for RTL kernel post-simulation
+2.184 check for file existence before extracting
+2.183 reference xilinx_vip for non-precompile mode in xsim.ini
+2.182 reference xilinx_vip include directory for ovm/uvm based designs
+2.181 support for SystemC file type while determining files for XSC
+2.180 support for systemc options
 2.179 wrap view option value for wcfg file in curly braces if contain spaces
 2.178 fetch requires_vip property on the fetched IP object
 2.177 reference xilinx_vip if requires_vip property is set on the IP instance

@@ -1,3 +1,20 @@
+3.76 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
+3.75 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
+3.74 detect and fetch protoinst file from the ip_user_files for xsim
+3.73 support for compling c, cpp source types
+3.72 donot process static files
+3.71 fetch unique systemc libraries
+3.70 find systemc dependent libraries from property for a given IP
+3.69 fetch systemc libraries from ip
+3.68 support for compiling C sources with gcc
+3.67 fetch systemc include file path
+3.66 find shared libraries from the cxl data file
+3.65 check for gt quad base for mem file export
+3.64 support for mixed file type export and compilation for Questa
+3.63 helper procedure to find IP
+3.62 call xcs_compile_glbl_file to determine if glbl.v needs to be compiled
+3.61 reference xilinx_vip include directory for ovm/uvm based designs
+3.60 support for SystemC file type while determining files for XSC
 3.59 fetch requires_vip property on the fetched IP object
 3.58 reference xilinx_vip if requires_vip property is set on the IP instance
 3.57 reference xilinx_vip if requires_vip property is set on the IP

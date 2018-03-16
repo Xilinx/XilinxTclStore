@@ -300,7 +300,7 @@ proc isl_export_ip { obj } {
       }
       set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
       set ip_file_path $extracted_file
-      set data "$library,$ip_file_path,$file_type,static"
+      set data "$library,$ip_file_path,$file_type"
       lappend file_paths $ip_file_path,$file_type
       lappend ip_data $data
     }
@@ -398,7 +398,7 @@ proc isl_export_bd { obj } {
       set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
       #set ip_file_path "[xcs_get_relative_file_path $dst_file $a_isl_vars(ipstatic_dir)/$library]"
       set ip_file_path $dst_file
-      set data "$library,$ip_file_path,$file_type,static"
+      set data "$library,$ip_file_path,$file_type"
       lappend file_paths $ip_file_path,$file_type
       lappend ip_data $data
     }
@@ -971,6 +971,11 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
     set ip_dir  [file dirname $ip_xml]
     set ip_comp [ipx::open_core -set_current false $ip_xml]
     set ip_def_name [get_property name $ip_comp]
+    set systemc_libraries [get_property -quiet systemc_libraries $ip_comp]
+    if { {} != $systemc_libraries } {
+      set systemc_libraries [string trimleft $systemc_libraries "{"]
+      set systemc_libraries [string trimright $systemc_libraries "}"]
+    }
     set b_requires_vip [get_property -quiet requires_vip $ip_comp]
     set interface_pkgs [list]
     if { $b_requires_vip } {
@@ -1003,7 +1008,7 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
         #puts "$vlnv=$ordered_sub_cores"
         set sv_libs [list]
         foreach sub_vlnv $ordered_sub_cores {
-          isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs interface_pkgs
+          isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs interface_pkgs systemc_libraries
         }
 
         set ip_lib_dir {}
@@ -1050,17 +1055,37 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
               send_msg_id setup_ip_static_library-Tcl-022 ERROR "failed to create the directory ($ip_lib_dir)): $error_msg\n"
             }
           }
+
           set sv_libs_str {}
           if { [llength $sv_libs] > 0 } {
-            set sv_libs_str [join $sv_libs ","]
+            set sv_libs_coln [list]
+            foreach sv_lib $sv_libs {
+              lappend sv_libs_coln "svpkg#$sv_lib"
+            } 
+            set sv_libs_str [join $sv_libs_coln ","]
             set sv_libs_str ",$sv_libs_str"
           }
           set interface_pkgs_str {}
           if { [llength $interface_pkgs] > 0 } {
-            set interface_pkgs_str [join $interface_pkgs ","]
+            set intf_pkg_coln [list]
+            foreach intf_pkg $interface_pkgs {
+              lappend intf_pkg_coln "svpkg#$intf_pkg"
+            }
+            set interface_pkgs_str [join $intf_pkg_coln ","]
             set interface_pkgs_str ",$interface_pkgs_str"
           }
-          set data "$library,$full_ip_file_path,$type,static$sv_libs_str$interface_pkgs_str"
+          set systemc_libs_str {}
+          if { {} != $systemc_libraries } {
+            set systemc_lib_list [split $systemc_libraries " "]
+            set sysc_libs_coln [list]
+            foreach sysc_lib $systemc_lib_list {
+              lappend sysc_libs_coln "sclib#$sysc_lib"
+            }
+            set systemc_libs_str [join $sysc_libs_coln ","]
+            set systemc_libs_str ",$systemc_libs_str"
+          }
+
+          set data "$library,$full_ip_file_path,$type$sv_libs_str$interface_pkgs_str$systemc_libs_str"
           lappend file_paths "$full_ip_file_path,$type"
           isl_add_to_compile_order $library $data
         }
@@ -1087,7 +1112,7 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
   return $current_index
 }
 
-proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg interface_pkgs_arg } {
+proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg interface_pkgs_arg systemc_libraries_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1096,13 +1121,27 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg inter
   upvar ip_libs_arg ip_libs
   upvar $sv_libs_arg sv_libs
   upvar $interface_pkgs_arg interface_pkgs
+  upvar $systemc_libraries_arg sysc_libraries
 
   set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
+  if { {} == $ip_def } {
+    send_msg_id setup_ip_static_library-Tcl-034 WARNING "Failed to get the IP defintion for '$vlnv'\n"
+    return
+  }
   set ip_def_comps [split $ip_def {:}]
   set ip_def_name  [lindex $ip_def_comps 2]
   set ip_xml  [get_property xml_file_name $ip_def]
+  if { {} == $ip_xml } {
+    send_msg_id setup_ip_static_library-Tcl-035 WARNING "Failed to get the IP component XML file for '$vlnv'\n"
+    return
+  }
   set ip_dir  [file dirname $ip_xml]
   set ip_comp [ipx::open_core -set_current false $ip_xml]
+  set systemc_libraries [get_property -quiet systemc_libraries $ip_comp]
+  if { {} != $systemc_libraries } {
+    set systemc_libraries [string trimleft $systemc_libraries "{"]
+    set systemc_libraries [string trimright $systemc_libraries "}"]
+  }
   set b_requires_vip [get_property -quiet requires_vip $ip_comp]
   if { $b_requires_vip } {
     set pkg_name "xilinx_vip"
@@ -1120,7 +1159,7 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg inter
       } 
       #puts " +$vlnv=$ordered_sub_cores"
       foreach sub_vlnv $ordered_sub_cores {
-        isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs interface_pkgs
+        isl_extract_repo_sub_core_static_files $sub_vlnv $ip_libs sv_libs interface_pkgs sysc_libraries
       }
       set ip_lib_dir {}
       set file_paths [list]
@@ -1165,7 +1204,8 @@ proc isl_extract_repo_sub_core_static_files { vlnv ip_libs_arg sv_libs_arg inter
             send_msg_id setup_ip_static_library-Tcl-022 ERROR "failed to create the directory ($ip_lib_dir)): $error_msg\n"
           }
         }
-        set data "$library,$full_ip_file_path,$type,static"
+
+        set data "$library,$full_ip_file_path,$type"
         lappend file_paths "$full_ip_file_path,$type"
         isl_add_to_compile_order $library $data
       }
@@ -1315,8 +1355,11 @@ proc isl_create_vao_file { ip_lib_dir file_paths } {
   # Argument Usage:
   # Return Value:
 
-  set vhdl_filelist [list]
+  set vhdl_filelist    [list]
   set verilog_filelist [list]
+  set systemc_filelist [list]
+  set cpp_filelist     [list]
+  set c_filelist       [list]
 
   foreach line $file_paths {
     set tokens [split $line {,}]
@@ -1326,11 +1369,20 @@ proc isl_create_vao_file { ip_lib_dir file_paths } {
       lappend vhdl_filelist $path
     } elseif { ({verilog} == $type) || ({system_verilog} == $type) } {
       lappend verilog_filelist $path
+    } elseif { ({systemc} == $type) || ({systemc_header} == $type) } {
+      lappend systemc_filelist $path
+    } elseif { ({cpp} == $type) || ({cpp_header} == $type) } {
+      lappend cpp_filelist $path
+    } elseif { ({c} == $type) || ({c_header} == $type) } {
+      lappend c_filelist $path
     }
   }
 
   isl_write_analyze_order_file vhdl_filelist    $ip_lib_dir "vhdl_analyze_order"
   isl_write_analyze_order_file verilog_filelist $ip_lib_dir "verilog_analyze_order"
+  isl_write_analyze_order_file systemc_filelist $ip_lib_dir "systemc_analyze_order"
+  isl_write_analyze_order_file cpp_filelist     $ip_lib_dir "cpp_analyze_order"
+  isl_write_analyze_order_file c_filelist       $ip_lib_dir "c_analyze_order"
 }
 
 proc isl_create_order_file { ip_data ip_libs } {
@@ -1464,7 +1516,7 @@ proc isl_copy_incl_file { file_paths } {
     set file_path [lindex $tokens 0]
     set filename [file tail $file_path]
     set type [lindex $tokens 1]
-    if { ({verilog_header} == $type) || ({verilog header} == $type) } {
+    if { ({verilog_header} == $type) || ({verilog header} == $type) || ({systemc_header} == $type) || ({systemc header} == $type) || ({cpp_header} == $type) || ({cpp header} == $type) || ({c_header} == $type) || ({c header} == $type)} {
       set src_file_path [file normalize $file_path]
       if { [file exists $src_file_path] } {
         set dst_file [file normalize [file join $a_isl_vars(ip_incl_dir) $filename]]
@@ -1493,6 +1545,24 @@ proc isl_get_file_type { file_group file } {
     set is_include [get_property is_include [ipx::get_files $file -of_objects $file_group]]
     if { {1} == $is_include } {
       set type "verilog_header"
+    }
+  } elseif { ({systemCSource} == $file_type) } {
+    set type "systemc"
+    set is_include [get_property is_include [ipx::get_files $file -of_objects $file_group]]
+    if { {1} == $is_include } {
+      set type "systemc_header"
+    }
+  } elseif { ({cppSource} == $file_type) } {
+    set type "cpp"
+    set is_include [get_property is_include [ipx::get_files $file -of_objects $file_group]]
+    if { {1} == $is_include } {
+      set type "cpp_header"
+    }
+  } elseif { ({cSource} == $file_type) } {
+    set type "c"
+    set is_include [get_property is_include [ipx::get_files $file -of_objects $file_group]]
+    if { {1} == $is_include } {
+      set type "c_header"
     }
   }
   return $type

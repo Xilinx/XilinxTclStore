@@ -175,6 +175,7 @@ set a_fileset_types {
   {{BlockSrcs}      {blockset}}
   {{Constrs}        {constrset}}
   {{SimulationSrcs} {simset}}
+  {{Utils}    {utilset}}
 }
 
 proc reset_global_vars {} {
@@ -232,6 +233,7 @@ proc write_project_tcl_script {} {
   variable clean_temp
   variable l_open_bds [list]
   variable l_added_bds
+  variable a_os
 
   set l_script_data [list]
   set l_local_files [list]
@@ -246,6 +248,13 @@ proc write_project_tcl_script {} {
     set clean_temp 0
   } else {
     file mkdir $temp_dir
+  }
+
+  # Get OS
+  if { [is_win_os] } {
+    set a_os "win"
+  } else {
+    set a_os ""
   }
 
   # get the project name
@@ -305,6 +314,8 @@ proc write_project_tcl_script {} {
   wr_runs $proj_dir $proj_name
   wr_proj_info $proj_name
 
+  #write dashboards
+  wr_dashboards $proj_dir $proj_name 
   # write header
   write_header $proj_dir $proj_name $file
 
@@ -337,7 +348,7 @@ proc write_project_tcl_script {} {
         path that was specified with this switch. The 'origin_dir' variable is set to '$a_global_vars(s_origin_dir_override)' in the generated script."
       }
     } else {
-      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set with respect to the 'origin_dir' variable in the\n\
+      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wth respect to the 'origin_dir' variable in the\n\
       generated script. When this script is executed from the output directory, these source files will be referenced with respect to this 'origin_dir' path value.\n\
       In case this script was later moved to a different directory, the 'origin_dir' value must be set manually in the script with the path\n\
       relative to the new output directory to make sure that the source files are referenced correctly from the original project. You can also set the\n\
@@ -385,10 +396,10 @@ proc wr_create_project { proj_dir name part_name } {
 
   lappend l_script_data "" 
   set var_name "user_project_name"
-  lappend l_script_data "# Set the project name\nset project_name \"$name\"\n"
+  lappend l_script_data "# Set the project name\nset _xil_proj_name_ \"$name\"\n"
   lappend l_script_data "# Use project name variable, if specified in the tcl shell"
   lappend l_script_data "if \{ \[info exists ::$var_name\] \} \{"
-  lappend l_script_data "  set project_name \$::$var_name"
+  lappend l_script_data "  set _xil_proj_name_ \$::$var_name"
   lappend l_script_data "\}\n"
 
   lappend l_script_data "variable script_file"
@@ -428,11 +439,11 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "  exit 0"
   lappend l_script_data "\}\n"
   lappend l_script_data "if \{ \$::argc > 0 \} \{"
-  lappend l_script_data "  for \{set i 0\} \{\$i < \[llength \$::argc\]\} \{incr i\} \{"
+  lappend l_script_data "  for \{set i 0\} \{\$i < \$::argc\} \{incr i\} \{"
   lappend l_script_data "    set option \[string trim \[lindex \$::argv \$i\]\]"
   lappend l_script_data "    switch -regexp -- \$option \{"
   lappend l_script_data "      \"--origin_dir\"   \{ incr i; set origin_dir \[lindex \$::argv \$i\] \}"
-  lappend l_script_data "      \"--project_name\" \{ incr i; set project_name \[lindex \$::argv \$i\] \}"
+  lappend l_script_data "      \"--project_name\" \{ incr i; set _xil_proj_name_ \[lindex \$::argv \$i\] \}"
   lappend l_script_data "      \"--help\"         \{ help \}"
   lappend l_script_data "      default \{"
   lappend l_script_data "        if \{ \[regexp \{^-\} \$option\] \} \{"
@@ -445,7 +456,7 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "\}\n"
 
   lappend l_script_data "# Set the directory path for the original project from where this script was exported"
-  if { $a_global_vars(b_absolute_path) } {
+  if { $a_global_vars(b_absolute_path) || [need_abs_path $proj_dir] } {
     lappend l_script_data "set orig_proj_dir \"$proj_dir\""
   } else {
     set rel_file_path "[get_relative_file_path_for_source $proj_dir [get_script_execution_dir]]"
@@ -461,15 +472,15 @@ proc wr_create_project { proj_dir name part_name } {
   # set target project directory path if specified. If not, create project dir in current dir.
   set target_dir $a_global_vars(s_target_proj_dir)
   if { {} == $target_dir } {
-    set tcl_cmd "create_project \$\{project_name\} ./\$\{project_name\} -part $part_name"
+    set tcl_cmd "create_project \$\{_xil_proj_name_\} ./\$\{_xil_proj_name_\} -part $part_name"
   } else {
     # is specified target proj dir == current dir? 
     set cwd [file normalize [string map {\\ /} [pwd]]]
     set dir [file normalize [string map {\\ /} $target_dir]]
     if { [string equal $cwd $dir] } {
-      set tcl_cmd "create_project \$project_name -part $part_name"
+      set tcl_cmd "create_project \$\{_xil_proj_name_\} -part $part_name"
     } else {
-      set tcl_cmd "create_project \$project_name \"$target_dir\" -part $part_name"
+      set tcl_cmd "create_project \$\{_xil_proj_name_\} \"$target_dir\" -part $part_name"
     }
   }
       
@@ -479,7 +490,7 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data $tcl_cmd
 
   if { $a_global_vars(b_arg_dump_proj_info) } {
-    puts $a_global_vars(dp_fh) "project_name=\$\{project_name\}"
+    puts $a_global_vars(dp_fh) "project_name=\$\{_xil_proj_name_\}"
   }
 
   lappend l_script_data ""
@@ -536,6 +547,7 @@ proc write_bd_as_proc { bd_file } {
   variable l_open_bds
   variable temp_dir
   variable bd_prop_steps
+  set bd_file [list "$bd_file"]
 
   if { [lsearch $l_added_bds $bd_file] != -1 } { return }
   
@@ -566,8 +578,6 @@ proc write_bd_as_proc { bd_file } {
   
   # Close BD if opened in stealth mode
   if {$to_close == 1 } {
-    #close_bd_design -stealth [ get_files $bd_file ]
-#close_bd_design [get_bd_designs [file rootname $bd_filename]]
      close_bd_design [get_bd_designs [file rootname $bd_filename]]
   }
 
@@ -686,7 +696,7 @@ proc wr_bd {} {
 
   foreach bd_file $bd_files {
     # Making sure BD is not locked
-    set is_locked [get_property IS_LOCKED [get_files $bd_file ] ]
+    set is_locked [get_property IS_LOCKED [get_files [list "$bd_file"] ] ]
     if { $is_locked == 1 } {
       file delete $a_global_vars(script_file)
       send_msg_id Vivado-projutils-018 ERROR "Project tcl cannot be written as the design contains one or more \
@@ -750,6 +760,8 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
     # is this a IP block fileset? if yes, do not create block fileset, but create for a pure HDL based fileset (no IP's)
     if { [is_ip_fileset $tcl_obj] } {
       # do not create block fileset
+    } elseif { [string equal $tcl_obj "utils_1"] } {
+      # do not create utils fileset
     } else {
       lappend l_script_data "# Create '$tcl_obj' fileset (if not found)"
       lappend l_script_data "if \{\[string equal \[get_filesets -quiet $tcl_obj\] \"\"\]\} \{"
@@ -783,7 +795,7 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
           lappend l_script_data "set obj \[get_filesets $tcl_obj\]"
           set path_list [list]
           foreach path $repo_paths {
-            if { $a_global_vars(b_absolute_path) } {
+            if { $a_global_vars(b_absolute_path) || [need_abs_path $path] } {
               lappend path_list $path
             } else {
               set rel_file_path "[get_relative_file_path_for_source $path [get_script_execution_dir]]"
@@ -864,7 +876,7 @@ proc wr_proj_info { proj_name } {
 
   variable l_script_data
 
-  lappend l_script_data "\nputs \"INFO: Project created:\$project_name\""
+  lappend l_script_data "\nputs \"INFO: Project created:\${_xil_proj_name_}\""
 }
 
 proc write_header { proj_dir proj_name file } {
@@ -1007,6 +1019,11 @@ proc filter { prop val { file {} } } {
     return 1
   }
 
+  # filter sim_types
+  if { [string equal -nocase $prop {sim_types}] } {
+    return 1
+  }
+
   return 0
 }
 
@@ -1049,7 +1066,7 @@ proc is_ip_readonly_prop { name } {
   return false
 }
 
-proc write_properties { prop_info_list get_what tcl_obj } {
+proc write_properties { prop_info_list get_what tcl_obj {delim "#"} } {
   # Summary: write object properties
   # This helper command is used to script help.
   # Argument Usage: 
@@ -1062,7 +1079,7 @@ proc write_properties { prop_info_list get_what tcl_obj } {
   if {[llength $prop_info_list] > 0} {
     set b_add_closing_brace 0
     foreach x $prop_info_list {
-      set elem [split $x "#"]
+      set elem [split $x $delim] 
       set name [lindex $elem 0]
       set value [lindex $elem 1]
       if { ([is_ip_readonly_prop $name]) && ([string equal $get_what "get_files"]) } {
@@ -1125,15 +1142,15 @@ proc align_project_properties { prop proj_name proj_file_path } {
   set match_str "${proj_name}/${proj_name}.${dir_suffix}"
   set proj_file_path [string map {\\ /} $proj_file_path]
   if { [regexp $match_str $proj_file_path] } {
-    set proj_file_path [regsub -all "${proj_name}" $proj_file_path "\$\{project_name\}"]
+    set proj_file_path [regsub -all "${proj_name}" $proj_file_path "\$\{_xil_proj_name_\}"]
   } else {
     set match_str "${proj_name}.${dir_suffix}"
-    set proj_file_path [regsub "${proj_name}\.${dir_suffix}" $proj_file_path "\$\{project_name\}\.${dir_suffix}"]
+    set proj_file_path [regsub "${proj_name}\.${dir_suffix}" $proj_file_path "\$\{_xil_proj_name_\}\.${dir_suffix}"]
   }
   return $proj_file_path
 }
 
-proc write_props { proj_dir proj_name get_what tcl_obj type } {
+proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
   # Summary: write first class object properties
   # This helper command is used to script help.
   # Argument Usage: 
@@ -1144,19 +1161,51 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
   variable l_script_data
   variable b_project_board_set
 
-  set obj_name [get_property name [$get_what $tcl_obj]]
-  set read_only_props [rdi::get_attr_specs -class [get_property class $tcl_obj] -filter {is_readonly}]
+  if {[string equal $type "project"]} {
+    # escape empty spaces in project name
+    set tcl_obj [ list "$tcl_obj"]
+  }
+  if { [string first " " $get_what 0] != -1 } {
+    # For cases where get_what is multiple workds like "get_gadgets -of_object..."
+    set current_obj [ eval $get_what $tcl_obj]
+  } else {
+    set current_obj [$get_what $tcl_obj]
+  }
+  if { $current_obj == "" } { return }
+
+  set obj_name [get_property name $current_obj]
+  set read_only_props [rdi::get_attr_specs -class [get_property class $current_obj] -filter {is_readonly}]
   set prop_info_list [list]
-  set properties [list_property [$get_what $tcl_obj]]
+  set properties [list_property $current_obj]
 
   foreach prop $properties {
     if { [is_deprecated_property $prop] } { continue }
     # skip read-only properties
     if { [lsearch $read_only_props $prop] != -1 } { continue }
+    if { ([string equal $type "gadget"]) && ([string equal -nocase $prop "type"]) } {
+      continue
+    }
+
+    # To handle the work-around solution of CR-988588 set board_part to base_board_part value then set board_connections
+    if { ([ string equal $type "project" ]) && ([ string equal [ string tolower $prop ] "board_connections" ]) } {
+      continue
+    }
+    if { ([ string equal $type "project" ]) && $b_project_board_set && ([ string equal [ string tolower $prop ] "board_part" ]) } {
+      set board_part_val [get_property $prop $current_obj]
+      set base_board_part_val [get_property base_board_part $current_obj]
+      set board_connections_val [get_property board_connections $current_obj]
+      if { $base_board_part_val != "" && $base_board_part_val != $board_part_val } {
+        set prop_entry "[string tolower $prop]$delim$base_board_part_val"
+        lappend prop_info_list $prop_entry
+        set prop_entry "board_connections$delim$board_connections_val"
+        lappend prop_info_list $prop_entry
+        continue
+      }
+    }
 
     # skip writing PR-Configuration, attached right after creation of impl run
     if { ([get_property pr_flow [current_project]] == 1) && [string equal $type "run"] } {
-      set isImplRun [get_property is_implementation [$get_what $tcl_obj]]
+      set isImplRun [get_property is_implementation $current_obj]
       if { ($isImplRun == 1) && [string equal -nocase $prop "pr_configuration"] } {
         continue
       }
@@ -1177,16 +1226,17 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         }
       }
     } else {
-      set attr_spec [rdi::get_attr_specs -quiet $prop -object [$get_what $tcl_obj]]
+      set attr_spec [rdi::get_attr_specs -quiet $prop -object $current_obj]
       if { {} == $attr_spec } {
         set prop_lower [string tolower $prop]
-        set attr_spec [rdi::get_attr_specs -quiet $prop_lower -object [$get_what $tcl_obj]]
+        set attr_spec [rdi::get_attr_specs -quiet $prop_lower -object $current_obj]
       }
       set prop_type [get_property type $attr_spec]
     }
-    set def_val [list_property_value -default $prop $tcl_obj]
+
+    set def_val [list_property_value -default $prop $current_obj]
     set dump_prop_name [string tolower ${obj_name}_${type}_$prop]
-    set cur_val [get_property $prop $tcl_obj]
+    set cur_val [get_property $prop $current_obj]
 
     # filter special properties
     if { [filter $prop $cur_val] } { continue }
@@ -1213,18 +1263,18 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
 
     # re-align values
     set cur_val [get_target_bool_val $def_val $cur_val]
-    set abs_proj_file_path [get_property $prop [$get_what $tcl_obj]]
+    set abs_proj_file_path [get_property $prop $current_obj]
     
     set path_match [string match $proj_dir* $abs_proj_file_path]
-    if { ($path_match == 1) && ($a_global_vars(b_absolute_path) != 1) } {
+    if { ($path_match == 1) && ($a_global_vars(b_absolute_path) != 1) && ![need_abs_path $abs_proj_file_path] } {
       # changing the absolute path to relative
       set abs_path_length [string length $proj_dir]
       set proj_file_path [string replace $abs_proj_file_path 0 $abs_path_length "\$proj_dir/"]
       set proj_file_path [align_project_properties $prop $proj_name $proj_file_path]
-      set prop_entry "[string tolower $prop]#$proj_file_path"
+      set prop_entry "[string tolower $prop]$delim$proj_file_path"
     } else {
       set abs_proj_file_path [align_project_properties $prop $proj_name $abs_proj_file_path]
-      set prop_entry "[string tolower $prop]#$abs_proj_file_path"
+      set prop_entry "[string tolower $prop]$delim$abs_proj_file_path"
     }  
 
     # re-align include dir path wrt origin dir
@@ -1234,9 +1284,11 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
           set incl_paths $abs_proj_file_path
           set rel_paths [list]
           foreach path $incl_paths {
-            lappend rel_paths "\[file normalize \"\$origin_dir/[get_relative_file_path_for_source $path [get_script_execution_dir]]\"\]"
+            if { ![need_abs_path $path] } {
+              lappend rel_paths "\[file normalize \"\$origin_dir/[get_relative_file_path_for_source $path [get_script_execution_dir]]\"\]"
+            }
           }
-          set prop_entry "[string tolower $prop]#[join $rel_paths " "]"
+          set prop_entry "[string tolower $prop]$delim[join $rel_paths " "]"
         }
       }
     }
@@ -1249,12 +1301,12 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       set file_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
       set src_file [join [lrange $file_dirs [lsearch -exact $file_dirs "$srcs_dir"] end] "/"]
 
-      if { [is_local_to_project $file] } {
+      if { [is_local_to_project $file] || [need_abs_path $file]} {
         set proj_file_path "\$proj_dir/$src_file"
       } else {
         set proj_file_path "[get_relative_file_path_for_source $src_file [get_script_execution_dir]]"
       }
-      set prop_entry "[string tolower $prop]#$proj_file_path"
+      set prop_entry "[string tolower $prop]$delim$proj_file_path"
 
     } elseif {([string equal -nocase $prop "target_constrs_file"] ||
                [string equal -nocase $prop "target_ucf"]) &&
@@ -1272,7 +1324,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         if { $a_global_vars(b_arg_no_copy_srcs) } {
           set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
         } else {
-          set proj_file_path "\$proj_dir/\$project_name.srcs/$src_file"
+          set proj_file_path "\$proj_dir/\$\{_xil_proj_name_\}.srcs/$src_file"
         }
       } else {
         # is file new inside project?
@@ -1284,7 +1336,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
           set file $local_constrs_file
           set proj_file_path "\[get_files *$local_constrs_file\]"
         } else {
-          if { $a_global_vars(b_absolute_path) } {
+          if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
             set proj_file_path "$file"
           } else {
             set file_no_quotes [string trim $file "\""]
@@ -1294,7 +1346,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
         }
       }
 
-      set prop_entry "[string tolower $prop]#$proj_file_path"
+      set prop_entry "[string tolower $prop]$delim$proj_file_path"
     }
 
  
@@ -1312,9 +1364,9 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
       if {[lsearch -exact $path_dirs "$cache_dir"] > 0} {
         set dir_path [join [lrange $path_dirs [lsearch -exact $path_dirs "$cache_dir"] end] "/"]
         set compile_lib_dir_path "\$proj_dir/$dir_path"
-        set compile_lib_dir_path [regsub $cache_dir $compile_lib_dir_path "\$\{project_name\}\.cache"]
+        set compile_lib_dir_path [regsub $cache_dir $compile_lib_dir_path "\$\{_xil_proj_name_\}\.cache"]
       }
-      set prop_entry "[string tolower $prop]#$compile_lib_dir_path"
+      set prop_entry "[string tolower $prop]$delim$compile_lib_dir_path"
     }
 
     # process run step tcl pre/post properties
@@ -1332,14 +1384,14 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
             if { [is_local_to_project $file] } {
               set tcl_file_path "\$proj_dir/$src_file"
             } else {
-              if { $a_global_vars(b_absolute_path) } {
+              if { $a_global_vars(b_absolute_path)|| [need_abs_path $file]  } {
                 set tcl_file_path "$file"
               } else {
                 set rel_file_path "[get_relative_file_path_for_source $src_file [get_script_execution_dir]]"
                 set tcl_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               }
             }
-            set prop_entry "[string tolower $prop]#$tcl_file_path"
+            set prop_entry "[string tolower $prop]$delim$tcl_file_path"
           }
         }
       }
@@ -1381,7 +1433,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type } {
   }
 
   # write properties now
-  write_properties $prop_info_list $get_what $tcl_obj
+  write_properties $prop_info_list $get_what $tcl_obj $delim
 
 }
 
@@ -1529,25 +1581,25 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       # import files
       set imported_path [get_property "imported_from" $file]
       set rel_file_path [get_relative_file_path_for_source $file [get_script_execution_dir]]
-      set proj_file_path "\$origin_dir/$rel_file_path"
+      set proj_file_path "\$\{origin_dir\}/$rel_file_path"
 
       set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
 
       if { $a_global_vars(b_arg_no_copy_srcs) } {
         # add to the local collection
         lappend l_remote_file_list $file
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend add_file_coln "$file"
         } else {
-          lappend add_file_coln "\"\[file normalize \"$proj_file_path\"\]\""
+          lappend add_file_coln "\[file normalize \"$proj_file_path\"\]"
         }
       } else {
         # add to the import collection
         lappend l_local_file_list $file
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend import_coln "$file"
         } else {
-          lappend import_coln "\"\[file normalize \"$proj_file_path\"\]\""
+          lappend import_coln "\[file normalize \"$proj_file_path\"\]"
         }
       }
 
@@ -1561,21 +1613,21 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         }
 
         # add to the import collection
-        if { $a_global_vars(b_absolute_path) } {
-          lappend import_coln [file normalize [string trim $file "\""]]
+        if { $a_global_vars(b_absolute_path)|| [need_abs_path $file]  } {
+          lappend import_coln $file
         } else {
           set file_no_quotes [string trim $file "\""]
-          set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
-          lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
+          set org_file_path "\$\{origin_dir\}/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
+          lappend import_coln "\[file normalize \"$org_file_path\" \]"
         }
         lappend l_local_file_list $file
       } else {
-        if {$a_global_vars(b_absolute_path) } {
+        if {$a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend add_file_coln [string trim $file "\""]
         } else {
           set file_no_quotes [string trim $file "\""]
-          set org_file_path "\$origin_dir/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
-          lappend add_file_coln "\"\[file normalize \"$org_file_path\"\]\""
+          set org_file_path "\$\{origin_dir\}/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
+          lappend add_file_coln "\[file normalize \"$org_file_path\"\]"
         }
         lappend l_remote_file_list $file
       }
@@ -1590,7 +1642,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   if {[llength $add_file_coln]>0} { 
     lappend l_script_data "set files \[list \\"
     foreach file $add_file_coln {
-        lappend l_script_data " $file\\"
+        lappend l_script_data " $file \\"
     }
     lappend l_script_data "\]"
     lappend l_script_data "add_files -norecurse -fileset \$obj \$files"
@@ -1668,26 +1720,26 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
     if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
       set imported_path  [get_property "imported_from" $file]
       set rel_file_path  [get_relative_file_path_for_source $file [get_script_execution_dir]]
-      set proj_file_path "\$origin_dir/$rel_file_path"
+      set proj_file_path \$\{origin_dir\}/$rel_file_path
       set file           "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
       # donot copy imported constrs in new project? set it as remote file in new project.
       if { $a_global_vars(b_arg_no_copy_srcs) } {
         set constrs_file $file
         set file_category "remote"
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $imported_path] } {
           add_constrs_file "$file"
         } else {
-          set str "\"\[file normalize \"$proj_file_path\"\]\""
+          set str "\"\[file normalize $proj_file_path\]\""
           add_constrs_file $str
         }
       } else {
         # copy imported constrs in new project. Set it as local file in new project.
         set constrs_file $file
         set file_category "local"
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           import_constrs_file $tcl_obj "$file"
         } else {
-          set str "\"\[file normalize \"$proj_file_path\"\]\""
+          set str "\"\[file normalize $proj_file_path\]\""
           import_constrs_file $tcl_obj $str
         }
       }
@@ -1717,7 +1769,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
         set file_category "remote"
  
         # find relative file path of the added constrs if no_copy in the new project
-        if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
+        if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))&&  ![need_abs_path $file] } {
           set file_no_quotes [string trim $file "\""]
           set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
           set file_1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
@@ -1746,7 +1798,7 @@ proc add_constrs_file { file_str } {
   variable a_global_vars
   variable l_script_data
 
-  if { $a_global_vars(b_absolute_path) } {
+  if { $a_global_vars(b_absolute_path) || [need_abs_path $file_str]} {
     lappend l_script_data "set file $file_str"
   } else {
     if { $a_global_vars(b_arg_no_copy_srcs) } {
@@ -1757,7 +1809,7 @@ proc add_constrs_file { file_str } {
       lappend l_script_data "set file \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
     }
   }
-  lappend l_script_data "set file_added \[add_files -norecurse -fileset \$obj \$file\]"
+  lappend l_script_data "set file_added \[add_files -norecurse -fileset \$obj \[list \$file\]\]"
 }
 
 proc import_constrs_file { tcl_obj file_str } {
@@ -1773,7 +1825,7 @@ proc import_constrs_file { tcl_obj file_str } {
   # now import local files if -no_copy_sources is not specified
   if { ! $a_global_vars(b_arg_no_copy_srcs)} {
     lappend l_script_data "set file $file_str"
-    lappend l_script_data "set file_imported \[import_files -fileset $tcl_obj \$file\]"
+    lappend l_script_data "set file_imported \[import_files -fileset $tcl_obj \[list \$file\]\]"
   }
 }
 
@@ -1864,7 +1916,7 @@ proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_
   # write properties now
   if { $prop_count>0 } {
     if { {remote} == $file_category } {
-      if { $a_global_vars(b_absolute_path) } {
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
         lappend l_script_data "set file \"$file\""
       } else {
         lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
@@ -2110,7 +2162,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     # write properties now
     if { $prop_count>0 } {
       if { {remote} == $file_category } {
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
           lappend l_script_data "set file \"$file\""
         } else {
           lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
@@ -2290,7 +2342,7 @@ proc is_ip_fileset { fileset } {
   set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
   set b_found false
   foreach ip $ips {
-    if { [get_property generate_synth_checkpoint [lindex [get_files -quiet -all $ip] 0]] } {
+    if { [get_property generate_synth_checkpoint [lindex [get_files -quiet -all [list "$ip"]] 0]] } {
       set b_found true
       break
     }
@@ -2332,6 +2384,128 @@ proc is_ip_run { run } {
   
   set fileset [get_property srcset [get_runs $run]]
   return [is_ip_fileset $fileset]
+}
+
+proc is_win_os {} {
+  # Summary: Determine if OS is Windows
+  # Return Value:
+  # true (1) if windows, false (0) otherwise
+  set os [lindex $::tcl_platform(os) 0]
+  set plat [lindex $::tcl_platform(platform) 0]
+  if { [string compare -nocase -length 3 $os "win"] == 0 ||
+       [string compare -nocase -length 3 $plat "win"] == 0  } {
+     return true
+  } else { return false }
+}
+
+proc need_abs_path { src } {
+  # Summary: Determine if src provided is in a different network mount than execution directory
+  # Argument Usage:
+  # src: source file to check
+  # Return Value:
+  # true (1) if src is in a different drive than script execution directory, false (0) otherwise
+  variable a_os
+  if { $a_os eq "win" } {
+    set src_path [file normalize [string trim $src "\""]]
+    set ref_path [file normalize [get_script_execution_dir]]
+    if { [string compare -nocase -length 2 $src_path $ref_path] != 0 } {
+      return true;
+    }
+  }
+  return false
+}
+
+proc wr_dashboards { proj_dir proj_name } {
+  # Summary: write dashboards and properties 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # proj_name: project name
+  # Return Value:
+  # None
+
+  # get current dash board
+  # get all dash boards
+  # For each dash boards
+  # 	create dash board
+  variable l_script_data
+
+  set dashboardsExist 0
+  set dashboards [get_dashboards]
+  foreach db $dashboards {
+    write_specified_dashboard $proj_dir $proj_name $db
+    set dashboardsExist 1
+  }
+  if { $dashboardsExist == 0} {
+    return 
+  }
+
+  set currentDashboard [current_dashboard]
+  lappend l_script_data "# Set current dashboard to '$currentDashboard' "
+  lappend l_script_data "current_dashboard $currentDashboard "
+}
+
+proc write_specified_gadget { proj_dir proj_name gadget dashboard} {
+  # Summary: write the specified gadget 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none 
+  
+  variable l_script_data
+  set db_name [get_property name [get_dashboards $dashboard]]
+    
+  set gadgetName [get_property name [get_gadgets -of_objects [get_dashboards $db_name] $gadget]]
+  set gadgetType [get_property type [get_gadgets -of_objects [get_dashboards $db_name] $gadget]]
+
+  set cmd_str "create_gadget -name {$gadgetName} -type $gadgetType -dashboard $dashboard"
+
+  lappend l_script_data "# Create '$gadgetName' gadget (if not found)"
+  lappend l_script_data "if \{\[string equal \[get_gadgets -of_objects \[get_dashboards $db_name\] $gadget \] \"\"\]\} \{"
+  lappend l_script_data "$cmd_str"
+  lappend l_script_data "\}"
+
+  lappend l_script_data "set obj \[get_gadgets -of_objects \[get_dashboards $db_name\] $gadget \]"
+  set tcl_obj [get_gadgets -of_objects [get_dashboards $db_name] $gadget ]
+  set get_what "get_gadgets -of_objects \[get_dashboards $db_name\]"
+  write_props $proj_dir $proj_name $get_what $tcl_obj "gadget" "$"
+}
+
+
+proc write_specified_dashboard { proj_dir proj_name dashboard } {
+  # Summary: write the specified dashboard 
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # Return Value:
+  # none 
+
+  variable l_script_data
+  set get_what "get_dashboards"
+
+  set dashboardName [get_property name  [$get_what $dashboard]]
+
+  lappend l_script_data "set obj \[$get_what $dashboard\]"
+  write_props $proj_dir $proj_name $get_what $dashboard "dashboard"
+
+  ##get gadgets of this dashboard
+  set gadgets [get_gadgets -of_objects [$get_what $dashboard]]
+  foreach gd $gadgets {
+    write_specified_gadget $proj_dir $proj_name $gd $dashboard
+  }
+
+  #if current dashboard is "default_dashboard"
+  #check if the above "gadgets" variable has all the default_gadgets, if any default gadget is not there in "gadgets" variable, it means user has deleted those gadgets but as part of create_project, all the default gadgets are created. So we have to delete the gadgets which user has deleted. 
+  set def_db "default_dashboard"
+  if { [string equal $def_db $dashboard] } {
+    set default_gadgets {"drc_1" "methodology_1" "power_1" "timing_1" "utilization_1" "utilization_2"}
+    foreach dgd $default_gadgets {
+      #if dgd is not in gadgets, then delete dgd
+      if {$dgd ni $gadgets } {
+        set cmd_str "delete_gadgets -gadgets $dgd"
+        lappend l_script_data "# Delete the gadget '$dgd' "
+        lappend l_script_data "$cmd_str"
+      }
+    }
+  }
 }
 
 proc wr_prflow { proj_dir proj_name } {
@@ -2547,7 +2721,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
       if { $a_global_vars(b_arg_no_copy_srcs) } {
         # add to the local collection
         lappend l_remote_file_list $file
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
           lappend add_file_coln "$file"
         } else {
           lappend add_file_coln "\"\[file normalize \"$proj_file_path\"\]\""
@@ -2555,7 +2729,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
       } else {
         # add to the import collection
         lappend l_local_file_list $file
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
           lappend import_coln "$file"
         } else {
           lappend import_coln "\"\[file normalize \"$proj_file_path\"\]\""
@@ -2581,7 +2755,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
       }
 
       # add file to collection
-      if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path))} {
+      if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path)) && ![need_abs_path $file]} {
         set file_no_quotes [string trim $file "\""]
         set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
         set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
@@ -2603,7 +2777,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   if {[llength $add_file_coln]>0} { 
     lappend l_script_data "set files \[list \\"
     foreach file $add_file_coln {
-      if { $a_global_vars(b_absolute_path) } {
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
         lappend l_script_data " $file\\"
       } else {
         if { $a_global_vars(b_arg_no_copy_srcs) } {
@@ -2762,7 +2936,7 @@ proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_fi
     # write properties now
     if { $prop_count>0 } {
       if { {remote} == $file_category } {
-        if { $a_global_vars(b_absolute_path) } {
+        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
           lappend l_script_data "set file \"$file\""
         } else {
           lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""

@@ -811,6 +811,15 @@ proc xcs_get_file_type_category { file_type } {
     {Verilog/SystemVerilog Header} {
       set type {VERILOG}
     }
+    {SystemC} {
+      set type {SYSTEMC}
+    }
+    {CPP} {
+      set type {CPP}
+    }
+    {C} {
+      set type {C}
+    }
   }
   return $type
 }
@@ -1502,6 +1511,11 @@ proc xcs_is_embedded_flow {} {
   if { [llength $embedded_files] > 0 } {
     return 1
   }
+
+  # check if gt_quad_base present
+  if { [xcs_find_ip "gt_quad_base"] } {
+    return 1
+  }
   return 0
 }
 
@@ -1644,10 +1658,8 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
   set extn [xcs_get_netlist_extn $s_type 1]
 
   # generate netlist
-  set net_filename [xcs_get_netlist_filename $s_sim_top $s_simulation_flow $s_type];append net_filename "$extn"
+  set net_file {}
   set sdf_filename [xcs_get_netlist_filename $s_sim_top $s_simulation_flow $s_type];append sdf_filename ".sdf"
-
-  set net_file [file normalize "$s_launch_dir/$net_filename"]
   set sdf_file [file normalize "$s_launch_dir/$sdf_filename"]
 
   set netlist_cmd_args [xcs_get_netlist_writer_cmd_args $s_simset $s_type $extn]
@@ -1706,6 +1718,7 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
       send_msg_id SIM-utils-024 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
+      set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
       set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $s_type } {
         set wv_args "-mode funcsim $wv_args"
@@ -1757,6 +1770,7 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
       send_msg_id SIM-utils-031 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
+      set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
       set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
       if { {functional} == $s_type } {
         set wv_args "-mode funcsim $wv_args"
@@ -1792,6 +1806,29 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
   }
 
   return $s_netlist_file
+}
+
+proc xcs_get_netlist_file { design_in_memory s_launch_dir extn s_sim_top s_simulation_flow s_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set net_filename [xcs_get_netlist_filename $s_sim_top $s_simulation_flow $s_type];
+  if { {.v} == $extn } {
+    set netlist_extn $extn
+    # contain SV construct?
+    set design_prop "XLNX_ADC_DAC_SV_PINS"
+    if { [lsearch -exact [list_property $design_in_memory] "$design_prop"] != -1 } {
+      if { [get_property -quiet $design_prop $design_in_memory] } {
+        set netlist_extn ".sv"
+      }
+    }
+    append net_filename "$netlist_extn"
+  } else {
+    append net_filename "$extn"
+  }
+  set net_file [file normalize "$s_launch_dir/$net_filename"]
+  return $net_file
 }
 
 proc xcs_fetch_ipi_static_file { src_file_obj file ipstatic_dir } {
@@ -2043,6 +2080,7 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
     # skip bd files
     if { ([string match *_bd* $filename])        && ({.tcl} == $extn) } { continue }
     if { ([string match *_changelog* $filename]) && ({.txt} == $extn) } { continue }
+    if { {.protoinst} == $extn } { continue }
 
     # skip mig data files
     set mig_files [list "xsim_run.sh" "ies_run.sh" "xcelium_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
@@ -2277,6 +2315,8 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog/SystemVerilog Header" {set compiler "verilog"}
         "SystemVerilog"                {set compiler "sv"}
         "SystemC"                      {set compiler "xsc"}
+        "CPP"                          {set compiler "xsc"}
+        "C"                            {set compiler "xsc"}
       }
     }
     "modelsim" -
@@ -2289,6 +2329,8 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog/SystemVerilog Header" -
         "SystemVerilog"                {set compiler "vlog"}
         "SystemC"                      {set compiler "sccom"}
+        "CPP"                          {set compiler "g++"}
+        "C"                            {set compiler "gcc"}
       }
     }
     "riviera" -
@@ -2325,11 +2367,14 @@ proc xcs_get_compiler_name { simulator file_type } {
     "vcs" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    { set compiler "vhdlan"   }
+        "VHDL 2008"                    {set compiler "vhdlan"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
-        "SystemVerilog"                { set compiler "vlogan"   }
+        "SystemVerilog"                {set compiler "vlogan"}
+        "SystemC"                      {set compiler "g++"}
+        "CPP"                          {set compiler "g++"}
+        "C"                            {set compiler "gcc"}
       }
     }
     default {
@@ -2559,7 +2604,7 @@ proc xcs_find_sv_pkg_libs { run_dir } {
     if { ![file exists $ip_filename] } {
       # extract files
       set ip_file_obj [get_files -all -quiet $ip_filename]
-      if { {} != $ip_file_obj } {
+      if { ({} != $ip_file_obj) && ([file exists $ip_file_obj]) } {
         set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
       }
       if { ![file exists $ip_filename] } {
@@ -2644,6 +2689,62 @@ proc xcs_get_vip_include_dirs {} {
   if { [llength $a_sim_sv_pkg_libs] > 0 } {
     set data_dir [rdi::get_data_dir -quiet -datafile xilinx_vip]
     set incl_dir "${data_dir}/xilinx_vip/include"
+    if { [file exists $incl_dir] } {
+      return $incl_dir
+    }
+  }
+  return $incl_dir
+}
+
+proc xcs_get_xilinx_vip_files {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_sv_pkg_libs
+  set xv_files [list]
+  if { [llength $a_sim_sv_pkg_libs] == 0 } {
+    return $xv_files
+  }
+  set xv_dir [file normalize "[rdi::get_data_dir -quiet -datafile "xilinx_vip"]/xilinx_vip"]
+  set file "$xv_dir/xilinx_vip_pkg.list.f"
+  if { ![file exists $file] } {
+    send_msg_id SIM-utils-058 WARNING "File does not exist! '$file'\n"
+    return $xv_files
+  }
+  set fh 0
+  if { [catch {open $file r} fh] } {
+    send_msg_id SIM-utils-058 WARNING "Failed to open file for read! '$file'\n"
+    return $xv_files
+  }
+  set sv_file_data [split [read $fh] "\n"]
+  close $fh
+  foreach line $sv_file_data {
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^#} $line] } { continue; }
+    set file_path_str [string map {\\ /} $line]
+    set replace "XILINX_VIVADO/data/xilinx_vip"
+    set with "$xv_dir"
+    regsub -all $replace $file_path_str $with file_path_str
+    set file_path_str [string trimleft $file_path_str {$}]
+    set sv_file_path [string map {\\ /} $file_path_str]
+    if { [file exists $sv_file_path] } {
+      lappend xv_files $sv_file_path
+    }
+  }
+  return $xv_files
+}
+
+proc xcs_get_systemc_include_dir {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_sv_pkg_libs
+  set incl_dir {}
+  if { [llength $a_sim_sv_pkg_libs] > 0 } {
+    set data_dir [rdi::get_data_dir -quiet -datafile "xsim/systemc"]
+    set incl_dir "${data_dir}/xsim/systemc"
     if { [file exists $incl_dir] } {
       return $incl_dir
     }
@@ -2934,20 +3035,25 @@ proc xcs_glbl_dependency_for_xpm {} {
   return 0
 }
 
-proc xcs_get_systemc_incl_dirs { simulator launch_dir s_ip_user_files_dir b_xport_src_files b_absolute_path { ref_dir "true" } } {
+proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_xport_src_files b_absolute_path { ref_dir "true" } } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set incl_dirs [list]
-  set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
   set uniq_incl_dirs [list]
 
-  foreach file [get_files -all -filter $sc_filter] {
+  foreach file [get_files -all -filter $c_filter] {
     set file_extn [file extension $file]
 
     # consider header (.h) files only
     if { {.h} != $file_extn } {
+      continue
+    }
+
+    set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+    # is HLS source?
+    if { [lsearch -exact $used_in_values "c_source"] != -1 } {
       continue
     }
 
@@ -3002,7 +3108,167 @@ proc xcs_get_sc_libs {} {
   # Return Value:
 
   set sc_libs [list]
-  lappend sc_libs "xtlm"
-
+  set uniq_sc_libs [list]
+  # find systemc libraries from IP
+  set prop_name "systemc_libraries"
+  foreach ip_obj [get_ips -quiet -all] {
+    foreach lib [get_property -quiet $prop_name $ip_obj] {
+      if { [lsearch -exact $uniq_sc_libs $lib] == -1 } {
+        lappend uniq_sc_libs $lib
+        lappend sc_libs $lib
+      }
+    }
+  }
   return $sc_libs
+}
+
+proc xcs_find_ip { name } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  foreach ip_obj [get_ips -all -quiet] {
+    set ipdef [get_property -quiet IPDEF $ip_obj]
+    set ip_name [lindex [split $ipdef ":"] 2]
+    if { [string first $name $ip_name] != -1} {
+      return true
+    }
+  }
+  return false
+}
+
+proc xcs_get_shared_ip_libraries { clibs_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set shared_ip_libs [list]
+  set file [file normalize [file join $clibs_dir ".cxl.stat"]]
+  if { ![file exists $file] } {
+    return $shared_ip_libs
+  }
+
+  set fh 0
+  if { [catch {open $file r} fh] } {
+    return $shared_ip_libs
+  }
+  set lib_data [split [read $fh] "\n"]
+  close $fh
+
+  foreach line $lib_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^#} $line] } { continue; }
+    
+    set tokens [split $line {,}]
+    set library [string trim [lindex $tokens 0]]
+    set shared_lib_token [lindex $tokens 3]
+    if { {} != $shared_lib_token } {
+      set lib_tokens [split $shared_lib_token {=}]
+      set is_shared_lib [string trim [lindex $lib_tokens 1]]
+      if { {1} == $is_shared_lib } {
+        lappend shared_ip_libs $library
+      }
+    }
+  }
+  return $shared_ip_libs
+}
+
+proc xcs_get_sc_files { sc_filter } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  set sc_files [list]
+  foreach file_obj [get_files -quiet -all -filter $sc_filter] {
+    if { [lsearch -exact [list_property $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+      set comp_file [get_property parent_composite_file -quiet $file_obj]
+      if { "" == $comp_file } {
+        continue
+      }
+      set file_extn [file extension $comp_file]
+      if { ".xci" == $file_extn } {
+        set ip_name [file root [file tail $comp_file]]
+        set ip [get_ips -quiet -all $ip_name]
+        if { "" != $ip } {
+          set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
+          if { "tlm" == $selected_sim_model } {
+            foreach ip_file_obj [get_files -quiet -all -filter $sc_filter -of_objects $ip] {
+              set used_in_values [get_property "USED_IN" $ip_file_obj]
+              if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
+                continue;
+              }
+              set sc_files [concat $sc_files $ip_file_obj]
+            }
+          }
+        }
+      }
+    } else {
+      lappend sc_files $file_obj
+    }
+  }
+  return $sc_files
+}
+
+proc xcs_get_protoinst_files { dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_found_in_repo false
+  set repo_src_file ""
+  set filter "FILE_TYPE == \"Protocol Instance\""
+  set pinst_files [list]
+  foreach file [get_files -quiet -all -filter $filter] {
+    set file [xcs_get_file_from_repo $file $dynamic_repo_dir b_found_in_repo repo_src_file]
+    if { {} != $file } {
+      lappend pinst_files $file
+    }
+  }
+  return $pinst_files
+}
+
+proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo_src_file_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $b_found_in_repo_arg b_found_in_repo
+  upvar $repo_src_file_arg repo_src_file
+
+  variable a_sim_cache_all_design_files_obj
+
+  set filename [file tail $src_file]
+  set file_dir [file dirname $src_file]
+  set file_obj {}
+
+  if { [info exists a_sim_cache_all_design_files_obj($src_file)] } {
+    set file_obj $a_sim_cache_all_design_files_obj($src_file)
+  } else {
+    set file_obj [lindex [get_files -all [list "$src_file"]] 0]
+  }
+
+  set parent_comp_file [get_property -quiet parent_composite_file $file_obj]
+  if { {} == $parent_comp_file } {
+    return $src_file
+  }
+  
+  set parent_comp_file_type [get_property -quiet file_type [lindex [get_files -all [list "$parent_comp_file"]] 0]]
+  set core_name             [file root [file tail $parent_comp_file]]
+
+  set ip_dir {}
+  if { ({Block Designs} == $parent_comp_file_type) } {
+    set top_ip_file_name {}
+    set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+  } else {
+    return $src_file
+  }
+  
+  set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
+  set repo_src_file [file join $dynamic_repo_dir "bd" $core_name $hdl_dir_file $filename]
+  if { [file exists $repo_src_file] } {
+    set b_found_in_repo 1
+    return $repo_src_file
+  }
+  return $src_file
 }
