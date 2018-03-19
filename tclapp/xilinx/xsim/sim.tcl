@@ -1097,14 +1097,14 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         }
 
         # reference common_cpp
-        if { [lsearch $sc_libs "xtlm"] != -1} {
-          set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/systemc/protected"]
-          set cpp_path_incl_dir "$data_dir/simmodels/systemc/protected/include/common_cpp_v1_0"
-          if { [file exists $cpp_path_incl_dir] } {
-            set relative_dir "[xcs_get_relative_file_path $cpp_path_incl_dir $a_sim_vars(s_launch_dir)]"
-            lappend l_incl_dirs "$relative_dir"
-          }
-        }
+        #if { [lsearch $sc_libs "xtlm"] != -1} {
+        #  set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/systemc/protected"]
+        #  set cpp_path_incl_dir "$data_dir/simmodels/systemc/protected/include/common_cpp_v1_0"
+        #  if { [file exists $cpp_path_incl_dir] } {
+        #    set relative_dir "[xcs_get_relative_file_path $cpp_path_incl_dir $a_sim_vars(s_launch_dir)]"
+        #    lappend l_incl_dirs "$relative_dir"
+        #  }
+        #}
 
         variable l_systemc_incl_dirs
         set l_systemc_incl_dirs $l_incl_dirs
@@ -1623,22 +1623,22 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
 
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) } {
-      set sc_libs [xcs_get_sc_libs]
-      set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/systemc/protected"]
-      if { [lsearch $sc_libs "xtlm"] != -1} {
-        set cpp_path "$data_dir/simmodels/systemc/protected/xsim/2018.2/lnx64/6.2.0/common_cpp_v1_0"
-        set cpp_lib "libcommon_cpp_v1_0_cpp"
-        lappend args_list "-sv_root `pwd` -sv_root \"${cpp_path}\" -sc_lib ${cpp_lib}"
-      }
-      set cpp_path_incl_dir "$data_dir/simmodels/systemc/protected/include/common_cpp_v1_0"
-      if { [file exists $cpp_path_incl_dir] } {
-        set relative_dir "[xcs_get_relative_file_path $cpp_path_incl_dir $a_sim_vars(s_launch_dir)]"
-        lappend args_list "--include $relative_dir"
-      }
-    }
-  }
+  #if { $a_sim_vars(b_int_systemc_mode) } {
+  #  if { $a_sim_vars(b_contain_systemc_sources) } {
+  #    set sc_libs [xcs_get_sc_libs]
+  #    set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/systemc/protected"]
+  #    if { [lsearch $sc_libs "xtlm"] != -1} {
+  #      set cpp_path "$data_dir/simmodels/systemc/protected/xsim/2018.2/lnx64/6.2.0/common_cpp_v1_0"
+  #      set cpp_lib "libcommon_cpp_v1_0_cpp"
+  #      lappend args_list "-sv_root `pwd` -sv_root \"${cpp_path}\" -sc_lib ${cpp_lib}"
+  #    }
+  #    set cpp_path_incl_dir "$data_dir/simmodels/systemc/protected/include/common_cpp_v1_0"
+  #    if { [file exists $cpp_path_incl_dir] } {
+  #      set relative_dir "[xcs_get_relative_file_path $cpp_path_incl_dir $a_sim_vars(s_launch_dir)]"
+  #      lappend args_list "--include $relative_dir"
+  #    }
+  #  }
+  #}
 
   # TODO: enable this 
   #if { $a_sim_vars(b_int_systemc_mode) } {
