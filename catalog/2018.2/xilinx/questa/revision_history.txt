@@ -1,3 +1,4 @@
+2.93 use SystemC Header filter for header files
 2.92 revert SystemC include directory temporarily
 2.91 reference SystemC include directory
 2.90 compile xilinx_vip locally if mapping not found or if running in non-precompile mode

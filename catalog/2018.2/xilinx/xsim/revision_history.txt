@@ -1,3 +1,4 @@
+2.212 use SystemC Header filter for header files
 2.211 reverted common_cpp referencing
 2.210 revert SystemC include directory temporarily
 2.209 fixed dpi library name
