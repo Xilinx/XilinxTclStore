@@ -81,6 +81,11 @@ proc ::tclapp::mentor::questa_cdc::install {args} {
   }
 
   puts "INFO: Adding Vivado GUI button for running Questa CDC."
+  
+  if { ![info exists ::env(QHOME)] } {
+    puts "** ERROR : Environment variable QHOME is not defined. Please define it to point to the Questa CDC installation path and re-ret."
+    return -code error
+  }
 
   create_gui_custom_command -name "Run_Questa_CDC" \
 	-menu_name "Run Questa CDC" \
