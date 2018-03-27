@@ -80,7 +80,7 @@ proc ::tclapp::mentor::questa_cdc::install {args} {
     }
   }
 
-  puts "INFO: Adding Vivado GUI button for running Questa CDC in $commands_file"
+  puts "INFO: Adding Vivado GUI button for running Questa CDC."
 
   create_gui_custom_command -name "Run_Questa_CDC" \
 	-menu_name "Run Questa CDC" \
@@ -207,7 +207,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       }
     }
 
-    puts "INFO: Adding Vivado GUI button for running Questa CDC in $commands_file"
+    puts "INFO: Adding Vivado GUI button for running Questa CDC."
 
     create_gui_custom_command -name "Run_Questa_CDC" \
 	-menu_name "Run Questa CDC" \
