@@ -1,3 +1,4 @@
+4.4 consider SV design sources if param set for compiling vip library
 4.3 proc to read library info from dat file
 4.2 reference SystemC include directory
 4.1 compile xilinx_vip locally if mapping not found or if running in non-precompile mode

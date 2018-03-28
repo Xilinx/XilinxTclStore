@@ -1,3 +1,4 @@
+2.95 consider SV design sources if param set for compiling vip library
 2.94 proc to read library info from dat file
 2.93 use SystemC Header filter for header files
 2.92 revert SystemC include directory temporarily
