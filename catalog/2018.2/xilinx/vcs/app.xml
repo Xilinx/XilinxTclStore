@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reference SystemC include directory</revision_history>
+      <revision_history>proc to read library info from dat file</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

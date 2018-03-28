@@ -1,3 +1,4 @@
+2.94 proc to read library info from dat file
 2.93 use SystemC Header filter for header files
 2.92 revert SystemC include directory temporarily
 2.91 reference SystemC include directory

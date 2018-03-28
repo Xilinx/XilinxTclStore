@@ -39,8 +39,8 @@
     <app>
       <name>ies</name>
       <company>xilinx</company>
-      <commit_id>9afd5758d801f45b5f1242f0da6cf92bc1374ca7</commit_id>
-      <revision>3.76</revision>
+      <commit_id>50347b436f2eadd343b9aa11730ff6422ef71046</commit_id>
+      <revision>3.77</revision>
     </app>
     <app>
       <name>incrcompile</name>
@@ -57,8 +57,8 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>9afd5758d801f45b5f1242f0da6cf92bc1374ca7</commit_id>
-      <revision>2.186</revision>
+      <commit_id>50347b436f2eadd343b9aa11730ff6422ef71046</commit_id>
+      <revision>2.187</revision>
     </app>
     <app>
       <name>myapp</name>
@@ -87,8 +87,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>9443bb897235719a30b2777db02d85c48b4ebb3f</commit_id>
-      <revision>3.325</revision>
+      <commit_id>50347b436f2eadd343b9aa11730ff6422ef71046</commit_id>
+      <revision>3.326</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -99,8 +99,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>1e8f6cf4dda1fc57457f8929e3e7aab242513f40</commit_id>
-      <revision>2.93</revision>
+      <commit_id>50347b436f2eadd343b9aa11730ff6422ef71046</commit_id>
+      <revision>2.94</revision>
     </app>
     <app>
       <name>questa_cdc</name>
@@ -141,20 +141,20 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>9afd5758d801f45b5f1242f0da6cf92bc1374ca7</commit_id>
-      <revision>3.77</revision>
+      <commit_id>50347b436f2eadd343b9aa11730ff6422ef71046</commit_id>
+      <revision>3.78</revision>
     </app>
     <app>
       <name>xcelium</name>
       <company>xilinx</company>
-      <commit_id>9afd5758d801f45b5f1242f0da6cf92bc1374ca7</commit_id>
-      <revision>4.2</revision>
+      <commit_id>50347b436f2eadd343b9aa11730ff6422ef71046</commit_id>
+      <revision>4.3</revision>
     </app>
     <app>
       <name>xsim</name>
       <company>xilinx</company>
-      <commit_id>1e8f6cf4dda1fc57457f8929e3e7aab242513f40</commit_id>
-      <revision>2.212</revision>
+      <commit_id>50347b436f2eadd343b9aa11730ff6422ef71046</commit_id>
+      <revision>2.213</revision>
     </app>
   </apps>
 </catalog>
