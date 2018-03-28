@@ -1,3 +1,4 @@
+3.325 handle special character in set_property
 3.324 Removing redundant BD creation in case of PR flow designs
 3.323 reference SystemC include directory
 3.322 compile xilinx_vip locally if mapping not found or if running in non-precompile mode

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Removing redundant BD creation in case of PR flow designs</revision_history>
+      <revision_history>handle special character in set_property</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
