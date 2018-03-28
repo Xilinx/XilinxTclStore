@@ -2658,14 +2658,16 @@ proc xcs_find_sv_pkg_libs { run_dir } {
    [catch {file delete -force $tmp_dir} error_msg]
   }
 
-  # find SV package libraries from the design
-  set filter "FILE_TYPE == \"SystemVerilog\""
-  foreach sv_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
-    if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
-      set library [get_property -quiet "LIBRARY" $sv_file_obj]
-      if { {} != $library } {
-        if { [lsearch -exact $a_sim_sv_pkg_libs $library] == -1 } {
-          lappend a_sim_sv_pkg_libs $library
+  if { [get_param "project.compileXilinxVipLocalForDesign"] } {
+    # find SV package libraries from the design
+    set filter "FILE_TYPE == \"SystemVerilog\""
+    foreach sv_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
+      if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
+        set library [get_property -quiet "LIBRARY" $sv_file_obj]
+        if { {} != $library } {
+          if { [lsearch -exact $a_sim_sv_pkg_libs $library] == -1 } {
+            lappend a_sim_sv_pkg_libs $library
+          }
         }
       }
     }
