@@ -3272,3 +3272,36 @@ proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo
   }
   return $src_file
 }
+
+proc xcs_get_lib_info { clibs_dir type_arg ldlibs_arg} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  #  
+
+  upvar $type_arg type
+  upvar $ldlibs_arg ldlibs
+
+  set file [file normalize [file join $clibs_dir ".cxl.lib_info.dat"]]
+  if { ![file exists $file] } {
+    return false
+  }
+
+  set fh 0
+  if {[catch {open $file r} fh]} {
+    return false
+  }
+  set lib_data [split [read $fh] "\n"]
+  close $fh
+
+  foreach line $lib_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^#} $line] } { continue; }
+    
+    set tokens [split $line {,}]
+    set library [lindex $tokens 0]
+    set type    [lindex $tokens 1]
+  }
+  return true
+}

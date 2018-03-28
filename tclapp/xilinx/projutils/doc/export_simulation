@@ -35,6 +35,7 @@ Description:
     ModelSim Simulator (modelsim) 
     Questa Advanced Simulator (questa)
     Incisive Enterprise Simulator (ies)
+    Xcelium Parallel Simulator (xcelium)
     Verilog Compiler Simulator (vcs)
 
 Arguments:
@@ -68,7 +69,7 @@ Arguments:
   -directory - (Required) Specify the directory path where the script file will be exported.
 
   -simulator - (Required) Specify the target simulator name for the simulation script. The valid
-  simulators names are "xsim" "modelsim" "questa" "ies" "vcs" (or "vcs_mx") "riviera" and "activehdl".
+  simulators names are "xsim" "modelsim" "questa" "ies" "xcelium" "vcs" (or "vcs_mx") "riviera" and "activehdl".
 
   -quiet - (Optional) Execute the command quietly, ignoring any command line errors and returning no
   messages. The command also returns TCL_OK regardless of any errors encountered during execution.

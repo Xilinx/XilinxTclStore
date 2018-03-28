@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>use SystemC Header filter for header files</revision_history>
+      <revision_history>proc to read library info from dat file</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
