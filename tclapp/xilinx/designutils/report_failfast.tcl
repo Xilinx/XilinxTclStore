@@ -5,6 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2018.03.28 - Detailed reports are saved inside the output report directory
 ## 2018.03.24 - Added LUT/Net interactive reports (RPX) to detailed reports
 ## 2018.02.22 - Fixed issue with path budgeting when there is only 1 timing path
 ##              being analyzed
@@ -315,7 +316,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2018.03.24}
+  variable version {2018.03.28}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -372,6 +373,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set filename {}
   set filemode {w}
   set detailedReportsPrefix {}
+#   set detailedReportsDir {.}
+  set detailedReportsDir [file normalize .] ; # Current directory
   set userConfigFilename {}
   set time [clock seconds]
   set date [clock format $time]
@@ -419,6 +422,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     switch -regexp -- $name {
       {^-f(i(le?)?)?$} {
         set filename [lshift args]
+        # The detailed reports should be saved inside the same directory as the output report
+        set detailedReportsDir [file dirname [file normalize $filename]]
       }
       {^-ap(p(e(nd?)?)?)?$} {
         set filemode {a}
@@ -1126,8 +1131,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
       if {$detailedReportsPrefix != {}} {
         set empty 1
-        catch { file copy ${detailedReportsPrefix}.DONT_TOUCH.rpt ${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid} }
-        set FH [open "${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid}" $filemode]
+        catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt ${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid} }
+        set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid}" $filemode]
         puts $FH "# ---------------------------------------------------------------------------"
         puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
         puts $FH "# ---------------------------------------------------------------------------\n"
@@ -1163,10 +1168,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         catch {$tbl destroy}
         close $FH
         if {$empty} {
-          file delete -force ${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid}
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid}
         } else {
-          file rename -force ${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid} ${detailedReportsPrefix}.DONT_TOUCH.rpt
-          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.DONT_TOUCH.rpt]"
+          file rename -force ${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid} ${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt]"
         }
       }
       set stepStopTime [clock seconds]
@@ -1701,8 +1706,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
       if {$detailedReportsPrefix != {}} {
         set empty 1
-        catch { file copy ${detailedReportsPrefix}.TIMING.rpt ${detailedReportsPrefix}.TIMING.rpt.${pid} }
-        set FH [open "${detailedReportsPrefix}.TIMING.rpt.${pid}" $filemode]
+        catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt ${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt.${pid} }
+        set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt.${pid}" $filemode]
         puts $FH "# ---------------------------------------------------------------------------"
         puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
         puts $FH "# ---------------------------------------------------------------------------\n"
@@ -1715,10 +1720,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         }
         close $FH
         if {$empty} {
-          file delete -force ${detailedReportsPrefix}.TIMING.rpt.${pid}
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt.${pid}
         } else {
-          file rename -force ${detailedReportsPrefix}.TIMING.rpt.${pid} ${detailedReportsPrefix}.TIMING.rpt
-          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.TIMING.rpt]"
+          file rename -force ${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt.${pid} ${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt]"
         }
       }
 
@@ -1781,8 +1786,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
       if {$detailedReportsPrefix != {}} {
         set empty 1
-        catch { file copy ${detailedReportsPrefix}.AVGFO.rpt ${detailedReportsPrefix}.AVGFO.rpt.${pid} }
-        set FH [open "${detailedReportsPrefix}.AVGFO.rpt.${pid}" $filemode]
+        catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt ${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt.${pid} }
+        set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt.${pid}" $filemode]
         puts $FH "# ---------------------------------------------------------------------------"
         puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
         puts $FH "# ---------------------------------------------------------------------------\n"
@@ -1815,10 +1820,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         catch {$tbl destroy}
         close $FH
         if {$empty} {
-          file delete -force ${detailedReportsPrefix}.AVGFO.rpt.${pid}
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt.${pid}
         } else {
-          file rename -force ${detailedReportsPrefix}.AVGFO.rpt.${pid} ${detailedReportsPrefix}.AVGFO.rpt
-          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.AVGFO.rpt]"
+          file rename -force ${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt.${pid} ${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt]"
         }
       }
 
@@ -1845,8 +1850,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
       if {$detailedReportsPrefix != {}} {
         set empty 1
-        catch { file copy ${detailedReportsPrefix}.HFN.rpt ${detailedReportsPrefix}.HFN.rpt.${pid} }
-        set FH [open "${detailedReportsPrefix}.HFN.rpt.${pid}" $filemode]
+        catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt ${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt.${pid} }
+        set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt.${pid}" $filemode]
         puts $FH "# ---------------------------------------------------------------------------"
         puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
         puts $FH "# ---------------------------------------------------------------------------\n"
@@ -1864,10 +1869,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         catch {$tbl destroy}
         close $FH
         if {$empty} {
-          file delete -force ${detailedReportsPrefix}.HFN.rpt.${pid}
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt.${pid}
         } else {
-          file rename -force ${detailedReportsPrefix}.HFN.rpt.${pid} ${detailedReportsPrefix}.HFN.rpt
-          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.HFN.rpt]"
+          file rename -force ${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt.${pid} ${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt]"
         }
       }
 
@@ -1898,10 +1903,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       set pathsLut [list]
       set pathsNet [list]
       if {$detailedReportsPrefix != {}} {
-        catch { file copy ${detailedReportsPrefix}.timing_budget_LUT.rpt ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} }
-        catch { file copy ${detailedReportsPrefix}.timing_budget_Net.rpt ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} }
-        set FHLut [open "${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}" $filemode]
-        set FHNet [open "${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}" $filemode]
+        catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} }
+        catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} }
+        set FHLut [open "${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}" $filemode]
+        set FHNet [open "${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}" $filemode]
       } else {
         set FHLut {}
         set FHNet {}
@@ -2221,11 +2226,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         set FHLut {}
         set FHNet {}
         if {$emptyLut} {
-          file delete -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
         } else {
           # Print the summary table at the beginning of the detailed report
-          set FHLut [open ${detailedReportsPrefix}.timing_budget_LUT.rpt {w}]
-          set FH [open ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} {r}]
+          set FHLut [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt {w}]
+          set FH [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} {r}]
           puts $FHLut "# ---------------------------------------------------------------------------"
           puts $FHLut [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
           puts $FHLut "# ---------------------------------------------------------------------------\n"
@@ -2239,23 +2244,23 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           }
           close $FHLut
           close $FH
-          file delete -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
 #           file rename -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} ${detailedReportsPrefix}.timing_budget_LUT.rpt
-          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_LUT.rpt]"
+          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt]"
           # Save the interactive report (RPX)
           if {[llength $pathsLut]} {
-            report_timing -of $pathsLut -rpx ${detailedReportsPrefix}.timing_budget_LUT.rpx -file ${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid}
+            report_timing -of $pathsLut -rpx ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid}
             # Delete temporary file
-            catch { file delete -force ${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid} }
-            puts " -I- Generated interactive report [file normalize ${detailedReportsPrefix}.timing_budget_LUT.rpx]"
+            catch { file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid} }
+            puts " -I- Generated interactive report [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx]"
           }
         }
         if {$emptyNet} {
-          file delete -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
         } else {
           # Print the summary table at the beginning of the detailed report
-          set FHNet [open ${detailedReportsPrefix}.timing_budget_Net.rpt {w}]
-          set FH [open ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} {r}]
+          set FHNet [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt {w}]
+          set FH [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} {r}]
           puts $FHNet "# ---------------------------------------------------------------------------"
           puts $FHNet [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
           puts $FHNet "# ---------------------------------------------------------------------------\n"
@@ -2269,15 +2274,15 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           }
           close $FHNet
           close $FH
-          file delete -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
-#           file rename -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} ${detailedReportsPrefix}.timing_budget_Net.rpt
-          puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_Net.rpt]"
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
+#           file rename -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt]"
           # Save the interactive report (RPX)
           if {[llength $pathsNet]} {
-            report_timing -of $pathsNet -rpx ${detailedReportsPrefix}.timing_budget_Net.rpx -file ${detailedReportsPrefix}.timing_budget_Net.rpx.${pid}
+            report_timing -of $pathsNet -rpx ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx.${pid}
             # Delete temporary file
-            catch { file delete -force ${detailedReportsPrefix}.timing_budget_Net.rpx.${pid} }
-            puts " -I- Generated interactive report [file normalize ${detailedReportsPrefix}.timing_budget_Net.rpx]"
+            catch { file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx.${pid} }
+            puts " -I- Generated interactive report [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx]"
           }
         }
       }
