@@ -5,6 +5,11 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2018.03.24 - Added LUT/Net interactive reports (RPX) to detailed reports
+## 2018.02.22 - Fixed issue with path budgeting when there is only 1 timing path
+##              being analyzed
+## 2018.02.15 - Added support for -max_paths
+##            - Improved debug options
 ## 2018.02.14 - Fixed incorrect LUT/Net budgeting calculation
 ##            - Added summary table at the beginning of the LUT/Net detailed reports
 ## 2018.02.12 - Added support for -exclude_cell
@@ -161,6 +166,7 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-no_dont_touch]: Skip DONT_TOUCH check
   # [-no_hfn]: Skip Non-FD high fanout nets metric
   # [-no_control_sets]: Skip control sets metric
+  # [-max_paths <arg>]: max number of paths per clock group for LUT/Net budgeting. Default is 100
   # [-post_ooc_synth]: Post OOC Synthesis - only run LUT/Net budgeting
   # [-ignore_pr]: Disable auto-detection of Partial Reconfigurable designs
   # [-show_resources]: Show Used/Available resources count in the summary table
@@ -309,7 +315,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2018.02.14}
+  variable version {2018.03.24}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -317,7 +323,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   variable metrics
   variable guidelines
   variable data
-  array set params [list failed 0 format {table} show_resources 0 transpose 0 verbose 0 debug 0 debug_level 1 ]
+  array set params [list failed 0 format {table} max_paths 100 show_resources 0 transpose 0 verbose 0 debug 0 debug_level 1 ]
   array set reports [list]
   catch {unset metrics}
   array set metrics [list]
@@ -360,6 +366,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(format) {table}
   set params(transpose) 0
   set params(show_resources) 0
+  set params(max_paths) 100
   set pid {tmp}
   catch { set pid [pid] }
   set filename {}
@@ -391,6 +398,12 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set hideUnextractedMetrics 1
   # Report mode
   set reportMode {default}
+  # Timing paths to be considered for LUT/Net budgeting
+  set timingPathsBudgeting [list]
+  # Override LUT budgeting
+  set lutBudgeting 0
+  # Override Net budgeting
+  set netBudgeting 0
   set deletePblocks 1
   set markLeafCells 0
   set highlistLeafCells 0
@@ -456,6 +469,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^-no_co(n(t(r(o(l(_(s(e(ts?)?)?)?)?)?)?)?)?)?$} {
         lappend skipChecks {control_sets}
       }
+      {^-no_u(t(i(l(i(z(a(t(i(on?)?)?)?)?)?)?)?)?)?$} {
+        # Hidden command line option
+        lappend skipChecks {utilization}
+      }
       {^-po(s(t(_(o(o(c(_(s(y(n(th?)?)?)?)?)?)?)?)?)?)?)?$} -
       {^-pa(t(h(_(b(u(d(g(e(t(i(n(g(_(o(n(ly?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
         set skipChecks [concat $skipChecks {utilization dont_touch control_sets non_fd_hfn average_fanout methodology_check}]
@@ -502,6 +519,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^-show_r(e(s(o(u(r(c(es?)?)?)?)?)?)?)?$} {
         set params(show_resources) 1
       }
+      {^-ma(x(_(p(a(t(hs?)?)?)?)?)?)?$} {
+        set params(max_paths) [lshift args]
+      }
       {^-c(sv?)?$} -
       {^-csv$} {
         set params(format) {csv}
@@ -530,6 +550,20 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^--debug-highlight-leafs?$} -
       {^--highlight-leafs?$} {
         set highlistLeafCells 1
+      }
+      {^--debug-paths?$} -
+      {^--paths?$} {
+        set timingPathsBudgeting [lshift args]
+      }
+      {^--debug-lut-budgeting?$} -
+      {^--debug-lut(-(b(u(d(g(e(t(i(ng?)?)?)?)?)?)?)?)?)?$} -
+      {^--lut(-(b(u(d(g(e(t(i(ng?)?)?)?)?)?)?)?)?)?$} {
+        set lutBudgeting [lshift args]
+      }
+      {^--debug-net-budgeting?$} -
+      {^--debug-net(-(b(u(d(g(e(t(i(ng?)?)?)?)?)?)?)?)?)?$} -
+      {^--net(-(b(u(d(g(e(t(i(ng?)?)?)?)?)?)?)?)?)?$} {
+        set netBudgeting [lshift args]
       }
       {^-h(e(lp?)?)?$} {
         set help 1
@@ -571,6 +605,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
               [-post_ooc_synth]
               [-ignore_pr]
               [-exclude_cell <cell>]
+              [-max_paths <num>]
               [-show_resources]
               [-show_not_found]
               [-csv][-transpose]
@@ -604,6 +639,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     Use -show_not_found to report metrics that have not been extracted (hidden by default)
     Use -post_ooc_synth to only run the LUT/Net path budgeting
     Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
+    Use -max_paths to define the max number of paths per clock group for LUT/Net budgeting. Default is 100
 
     Use -longhelp for further information about use models
 
@@ -1858,6 +1894,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
       set emptyLut 1
       set emptyNet 1
+      # List of paths that violate the LUT/Net budgeting
+      set pathsLut [list]
+      set pathsNet [list]
       if {$detailedReportsPrefix != {}} {
         catch { file copy ${detailedReportsPrefix}.timing_budget_LUT.rpt ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} }
         catch { file copy ${detailedReportsPrefix}.timing_budget_Net.rpt ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} }
@@ -1949,6 +1988,15 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         }
       }
 
+      if {$lutBudgeting != 0} {
+        set timBudgetPerLUT $lutBudgeting
+        puts " -W- LUT budgeting overriden by the user: $lutBudgeting"
+      }
+      if {$netBudgeting != 0} {
+        set timBudgetPerNet $netBudgeting
+        puts " -W- Net budgeting overriden by the user: $netBudgeting"
+      }
+
       # Override the LUT+NET budgeting if provided as part as the configuration
       if {$guidelines(design.device.maxlvls.lutbudget) != {}} {
         set timBudgetPerLUT $guidelines(design.device.maxlvls.lutbudget)
@@ -1969,41 +2017,57 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       $tbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Levels} {Net Budget} {Lut Budget} {Path} {Info} ]
       $dbgtbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Levels} {Net Budget} {Lut Budget} {Path} {Info} ]
 
-      switch $reportMode {
-        pblockAndTop {
-          set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max 100 -slack_less_than 2.0]
-        }
-        pblockAndCell {
-          set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max 100 -slack_less_than 2.0]
-        }
-        pblockOnly {
-          # NOT SUPPORTED
-        }
-        regionAndTop {
-          set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max 100 -slack_less_than 2.0]
-        }
-        regionAndCell {
-          set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max 100 -slack_less_than 2.0]
-        }
-        regionOnly {
-          # NOT SUPPORTED
-        }
-        slrAndTop {
-          set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max 100 -slack_less_than 2.0]
-        }
-        slrAndCell {
-          set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max 100 -slack_less_than 2.0]
-        }
-        slrOnly {
-          # NOT SUPPORTED
-        }
-        default {
-          set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max 100 -slack_less_than 2.0]
+      if {$timingPathsBudgeting != {}} {
+        # For debug EOU, timnig paths can e passed from the command line
+        set spaths $timingPathsBudgeting
+        puts " -W- Timing paths provided by the user: [llength $spaths]"
+      } else {
+        switch $reportMode {
+          pblockAndTop {
+            set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+          }
+          pblockAndCell {
+            set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+          }
+          pblockOnly {
+            # NOT SUPPORTED
+          }
+          regionAndTop {
+            set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+          }
+          regionAndCell {
+            set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+          }
+          regionOnly {
+            # NOT SUPPORTED
+          }
+          slrAndTop {
+            set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+          }
+          slrAndCell {
+            set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+          }
+          slrOnly {
+            # NOT SUPPORTED
+          }
+          default {
+            set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+          }
         }
       }
 
-      set eps [get_property -quiet ENDPOINT_PIN $spaths]
-      set sps [get_property -quiet STARTPOINT_PIN $spaths]
+      if {[llength [get_property -quiet CLASS $spaths]] == 1} {
+        # Workaround when there is only 1 timing path
+        set sps [list [get_property -quiet STARTPOINT_PIN $spaths] ]
+        set eps [list [get_property -quiet ENDPOINT_PIN $spaths] ]
+        set sprefs [get_property -quiet REF_NAME $sps]
+        set eprefs [get_property -quiet REF_NAME $eps]
+      } else {
+        set sps [get_property -quiet STARTPOINT_PIN $spaths]
+        set eps [get_property -quiet ENDPOINT_PIN $spaths]
+        set sprefs [get_property -quiet REF_NAME $sps]
+        set eprefs [get_property -quiet REF_NAME $eps]
+      }
       set numFailedLut 0
       set numFailedNet 0
       set numFailedLutPassNet 0
@@ -2011,9 +2075,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       set addrow 0
       foreach path $spaths \
               sp $sps \
-              spref [get_property -quiet REF_NAME $sps] \
+              spref $sprefs \
               ep $eps \
-              epref [get_property -quiet REF_NAME $eps] {
+              epref $eprefs {
         set requirement [get_property -quiet REQUIREMENT $path]
         set logic_levels [get_property -quiet LOGIC_LEVELS $path]
         set group [get_property -quiet GROUP $path]
@@ -2079,6 +2143,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           if {$FHNet != {}} {
             puts $FHNet [report_timing -quiet -of $path -return_string]
             set emptyNet 0
+            # Save the path for the RPX file
+            lappend pathsNet $path
           }
           # Debug table for LUT/Net budgeting
           lappend row [format {%s (*)} $net_budget]
@@ -2104,6 +2170,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           if {$FHLut != {}} {
             puts $FHLut [report_timing -quiet -of $path -return_string]
             set emptyLut 0
+            # Save the path for the RPX file
+            lappend pathsLut $path
           }
           # Debug table for LUT/Net budgeting
           lappend row [format {%s (*)} $lut_budget]
@@ -2174,6 +2242,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           file delete -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
 #           file rename -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} ${detailedReportsPrefix}.timing_budget_LUT.rpt
           puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_LUT.rpt]"
+          # Save the interactive report (RPX)
+          if {[llength $pathsLut]} {
+            report_timing -of $pathsLut -rpx ${detailedReportsPrefix}.timing_budget_LUT.rpx -file ${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid}
+            # Delete temporary file
+            catch { file delete -force ${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid} }
+            puts " -I- Generated interactive report [file normalize ${detailedReportsPrefix}.timing_budget_LUT.rpx]"
+          }
         }
         if {$emptyNet} {
           file delete -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
@@ -2197,6 +2272,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           file delete -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
 #           file rename -force ${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} ${detailedReportsPrefix}.timing_budget_Net.rpt
           puts " -I- Generated file [file normalize ${detailedReportsPrefix}.timing_budget_Net.rpt]"
+          # Save the interactive report (RPX)
+          if {[llength $pathsNet]} {
+            report_timing -of $pathsNet -rpx ${detailedReportsPrefix}.timing_budget_Net.rpx -file ${detailedReportsPrefix}.timing_budget_Net.rpx.${pid}
+            # Delete temporary file
+            catch { file delete -force ${detailedReportsPrefix}.timing_budget_Net.rpx.${pid} }
+            puts " -I- Generated interactive report [file normalize ${detailedReportsPrefix}.timing_budget_Net.rpx]"
+          }
         }
       }
       # Destroy summary table
