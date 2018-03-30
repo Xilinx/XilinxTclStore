@@ -84,7 +84,7 @@ proc ::tclapp::mentor::questa_cdc::install {args} {
   
   if { ![info exists ::env(QHOME)] } {
     puts "** ERROR : Environment variable QHOME is not defined. Please define it to point to the Questa CDC installation path and re-ret."
-    return -code error
+    return -code ok 
   }
 
   create_gui_custom_command -name "Run_Questa_CDC" \
