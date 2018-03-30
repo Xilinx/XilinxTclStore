@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Handle VERSION '2' of the Vivado Tcl custom commands</revision_history>
+      <revision_history>Using new commands for creating GUI custom commands and add procs for install and uninstall.</revision_history>
       <name>questa_cdc</name>
       <company>mentor</company>
       <company_display>Mentor, a Siemens Business</company_display>
