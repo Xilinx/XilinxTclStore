@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixed path budgeting calculation for report_failfast</revision_history>
+      <revision_history>Updated output directory for detailed reports (report_failfast)</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
