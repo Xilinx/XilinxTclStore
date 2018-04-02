@@ -93,9 +93,9 @@ proc export_ip_user_files {args} {
   # Summary:
   # Generate and export IP/IPI user files from a project. This can be scoped to work on one or more IPs.
   # Argument Usage:
-  # [-of_objects <arg>]: IP,IPI or a fileset
-  # [-ip_user_files_dir <arg>]: Directory path to simulation base directory (for dynamic and other IP non static files)
-  # [-ipstatic_source_dir <arg>]: Directory path to the static IP files
+  # [-of_objects <arg>]: IP,IPI or a fileset object
+  # [-ip_user_files_dir <arg>]: Directory path to simulation base directory (for static, dynamic, wrapper, netlist, script and MEM files)
+  # [-ipstatic_source_dir <arg>]: Directory path to the IP static files
   # [-lib_map_path <arg> = Empty]: Compiled simulation library directory path
   # [-no_script]: Do not export simulation scripts
   # [-sync]: Delete IP/IPI dynamic and simulation script files

@@ -7,13 +7,20 @@ Description:
 
 Arguments:
 
-  -directory - (Optional) Directory path to the static library. By default, if this switch is not specified
-               then this command will build the library in the directory named "static_compiled_lib" in the
-               current working directory. 
+  -directory - (Optional) Directory path where the static files will be extracted. By default, if this switch
+               is not specified then this command will extract the files in "ipstatic" directory in the
+               current directory.
+  
+  -ip_repo_path - (Optional) Extract static files from the specified IP repository. By default, the static
+                  files will be extracted from the installed IP repository.
 
-  -project   - (Optional) Extract and prepare static source library for the current project
+  -ips - (Optional) - Extract static files for the specified IP only
 
-  -install   - (Optional) Extract and prepare static source library for the IP catalog
+  -project - (Optional) Extract static files for the current project
+
+  -install - (Optional) Extract static files for the installed IP repository
+
+  -no_update_catalog - (Optional) - Donot update IP catalog
 
   -quiet - (Optional) Execute the command quietly, ignoring any command line errors and returning no
   messages. The command also returns TCL_OK regardless of any errors encountered during execution.
@@ -24,16 +31,33 @@ Arguments:
 
 Examples:
 
-  The following command will build static library for all the IPs in the current project in ./static_compiled_lib,
+  The following command will extract static files for the installed IP repository in '/my_project/static_lib' directory:-
+
+  % setup_ip_static_library -directory /my_project/static_lib
+
+  The following command will extract static files from '/my_project/ip_repo' and export them into ./ipstatic directory:-
+
+  % setup_ip_static_library -ip_repo_path /my_project/ip_repo
+
+  The following command will extract static files for the 'char_fifo' IP into ./ipstatic directory:-
+
+  % setup_ip_static_library -ips [get_ips char_fifo]
+
+  The following command will extract static files for all the IPs in the current project in ./ipstatic directory:-
 
   % setup_ip_static_library -project
 
-  The following command will build static library in /work/simlib. The command will create the /work/simlib directory,
-  if it does not exist.
+  The following command will extract static files for all the installed IP repository in ./ipstatic directory:-
 
-  % setup_ip_static_library -directory /work/simlib -project
+  % setup_ip_static_library -install
+
+  The following command will extract static files for all the installed IP repository in ./ipstatic directory and
+  will not update the IP catalog:-
+
+  % setup_ip_static_library -install -no_update_catolog
 
 See Also:
 
    *  get_ips
+   *  update_ip_catalog
    *  compile_simlib

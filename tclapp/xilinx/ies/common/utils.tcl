@@ -3189,7 +3189,7 @@ proc xcs_get_sc_files { sc_filter } {
         continue
       }
       set file_extn [file extension $comp_file]
-      if { ".xci" == $file_extn } {
+      if { (".xci" == $file_extn) || (".bd" == $file_extn) } {
         set ip_name [file root [file tail $comp_file]]
         set ip [get_ips -quiet -all $ip_name]
         if { "" != $ip } {
