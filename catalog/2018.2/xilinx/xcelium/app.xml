@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>consider SV design sources if param set for compiling vip library</revision_history>
+      <revision_history>add BD file type to the file extension check while fetching SystemC sources</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

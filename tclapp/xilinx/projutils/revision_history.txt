@@ -1,3 +1,4 @@
+3.328 add BD file type to the file extension check while fetching SystemC sources
 3.327 consider SV design sources if param set for compiling vip library
 3.326 proc to read library info from dat file
 3.325 handle special character in set_property
