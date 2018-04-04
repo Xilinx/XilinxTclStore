@@ -1,3 +1,4 @@
+2.97 consider BD SystemC sources
 2.96 add BD file type to the file extension check while fetching SystemC sources
 2.95 consider SV design sources if param set for compiling vip library
 2.94 proc to read library info from dat file
