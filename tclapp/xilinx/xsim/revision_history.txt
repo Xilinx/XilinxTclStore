@@ -1,3 +1,4 @@
+2.218 fixed dat_file var while fetching library info
 2.217 delete stale static files for precompiled library for sync mode
 2.216 consider BD SystemC sources
 2.215 add BD file type to the file extension check while fetching SystemC sources
