@@ -22,6 +22,8 @@ Arguments:
 
   -no_update_catalog - (Optional) - Donot update IP catalog
 
+  -force - (Optional) - Overwrite static file directory
+
   -quiet - (Optional) Execute the command quietly, ignoring any command line errors and returning no
   messages. The command also returns TCL_OK regardless of any errors encountered during execution.
 

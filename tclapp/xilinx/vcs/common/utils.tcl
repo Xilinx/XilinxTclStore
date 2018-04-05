@@ -3277,35 +3277,43 @@ proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo
   return $src_file
 }
 
-proc xcs_get_lib_info { clibs_dir type_arg ldlibs_arg} {
+proc xcs_fetch_lib_info { clibs_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
-  #  
 
-  upvar $type_arg type
-  upvar $ldlibs_arg ldlibs
+  variable a_sim_cache_lib_info
 
-  set file [file normalize [file join $clibs_dir ".cxl.lib_info.dat"]]
-  if { ![file exists $file] } {
-    return false
+  if { ![file exists $clibs_dir] } {
+    return
   }
 
-  set fh 0
-  if {[catch {open $file r} fh]} {
-    return false
+  foreach lib_dir [glob -nocomplain -directory $clibs_dir *] {
+    set filename "$lib_dir/.cxl.lib_info.dat"
+    if { ![file exists $dat_file] } { continue; }
+    set fh 0
+    if { ![catch {open $dat_file r} fh] } { continue; }
+    set lib_data [split [read $fh] "\n"]
+    close $fh
+    foreach line $lib_data {
+      set line [string trim $line]
+      if { [string length $line] == 0 } { continue; }
+      if { [regexp {^#} $line] } { continue; }
+      set tokens [split $line {:}]
+      set tag   [lindex $tokens 0]
+      set value [lindex $tokens 1]
+      set library {}
+      set type    {}
+      set ldlibs  {}
+      if { "Name" == $tag } {
+        set library $value
+      } elseif { "Type" == $tag } {
+        set type $value
+      } elseif { "Link" == $tag } {
+        set ldlibs $value
+      }
+      set array_value "$type#$ldlibs"
+      set a_sim_cache_lib_info($library) $array_value
+    }
   }
-  set lib_data [split [read $fh] "\n"]
-  close $fh
-
-  foreach line $lib_data {
-    set line [string trim $line]
-    if { [string length $line] == 0 } { continue; }
-    if { [regexp {^#} $line] } { continue; }
-    
-    set tokens [split $line {,}]
-    set library [lindex $tokens 0]
-    set type    [lindex $tokens 1]
-  }
-  return true
 }
