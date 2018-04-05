@@ -3289,7 +3289,7 @@ proc xcs_fetch_lib_info { clibs_dir } {
   }
 
   foreach lib_dir [glob -nocomplain -directory $clibs_dir *] {
-    set filename "$lib_dir/.cxl.lib_info.dat"
+    set dat_file "$lib_dir/.cxl.lib_info.dat"
     if { ![file exists $dat_file] } { continue; }
     set fh 0
     if { ![catch {open $dat_file r} fh] } { continue; }
