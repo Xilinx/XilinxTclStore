@@ -1,3 +1,4 @@
+3.82 delete stale static files for precompiled library for sync mode
 3.81 consider BD SystemC sources
 3.80 add BD file type to the file extension check while fetching SystemC sources
 3.79 consider SV design sources if param set for compiling vip library
