@@ -77,9 +77,10 @@ proc simulate { args } {
   # Return Value:
   # none
 
+  variable a_sim_vars
   set scr_filename {}
-  set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
-  set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
+  set dir $a_sim_vars(s_launch_dir)
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
   set snapshot $::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)
   send_msg_id USF-XSim-004 INFO "XSim::Simulate design"
   # create setup files
@@ -92,7 +93,7 @@ proc simulate { args } {
   set step [lindex [split $proc_name {:}] end]
   ::tclapp::xilinx::xsim::usf_launch_script "xsim" $step
 
-  if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
+  if { $a_sim_vars(b_scripts_only) } {
     set fh 0
     set file [file normalize [file join $dir "simulate.log"]]
     if {[catch {open $file w} fh]} {
@@ -127,6 +128,17 @@ proc simulate { args } {
 
   set cwd [pwd]
   cd $dir
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+    if {$::tcl_platform(platform) == "unix"} {
+      set cmd "set ::env(LD_LIBRARY_PATH) \"$dir:$::env(RDI_LIBDIR):$::env(LD_LIBRARY_PATH)\""
+      if {[catch {eval $cmd} err_msg]} {
+        puts $err_msg
+        [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LD_LIBRARY_PATH!"}]
+      } else {
+        #[catch {send_msg_id USF-XSim-103 STATUS "LD_LIBRARY_PATH=$::env(LD_LIBRARY_PATH)"}]
+      }
+    }
+  }
   if {[catch {eval "xsim $cmd_args"} err_msg]} {
     puts $err_msg
     set step "simulate"
@@ -145,7 +157,7 @@ proc simulate { args } {
     }
   
     # close for batch flow
-    if { $::tclapp::xilinx::xsim::a_sim_vars(b_batch) } {
+    if { $a_sim_vars(b_batch) } {
       send_msg_id USF-XSim-009 INFO "Closing simulation..."
       close_sim
     }
