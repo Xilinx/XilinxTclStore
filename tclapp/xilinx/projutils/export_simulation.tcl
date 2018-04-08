@@ -2029,7 +2029,7 @@ proc xps_set_permissions { file } {
     }
   } else {
     if {[catch {exec attrib /D -R $file} error_msg] } {
-      send_msg_id USF-XSim-070 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-XSim-071 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   }
 }
@@ -4635,10 +4635,26 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
   lappend args "-tclbatch"
   lappend args "$cmd_file"
 
-  foreach pinst_file [xcs_get_protoinst_files $a_sim_vars(s_ip_user_files_dir)] {
-    lappend args "-protoinst"
-    set rel_path [xcs_get_relative_file_path $pinst_file $dir]
-    lappend args "\"$rel_path\""
+  set p_inst_files [xcs_get_protoinst_files $a_sim_vars(s_ip_user_files_dir)]
+  if { [llength $p_inst_files] > 0 } {
+    set target_pinst_dir "$dir/protoinst_files"
+    if { ![file exists $target_pinst_dir] } {
+      [catch {file mkdir $target_pinst_dir} error_msg]
+    }
+    foreach p_file $p_inst_files {
+      if { ![file exists $p_file] } { continue; }
+      set filename [file tail $p_file]
+      set target_p_file "$target_pinst_dir/$filename"
+      if { ![file exists $target_p_file] } {
+        if { [catch {file copy -force $p_file $target_pinst_dir} error_msg] } {
+          [catch {send_msg_id exportsim-Tcl-072 ERROR "Failed to copy file '$p_file' to '$target_pinst_dir': $error_msg\n"} err]
+        } else {
+          #send_msg_id exportsim-Tcl-073 INFO "File '$p_file' copied to '$target_pinst_dir'\n"
+        }
+      }
+      lappend args "-protoinst"
+      lappend args "\"protoinst_files/$filename\""
+    }
   }
 
   set log_file "simulate";append log_file ".log"

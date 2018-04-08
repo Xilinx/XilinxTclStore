@@ -1980,10 +1980,26 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
     lappend args_list "\{$cmd_file\}" 
   }
 
-  foreach pinst_file [xcs_get_protoinst_files $a_sim_vars(dynamic_repo_dir)] {
-    lappend args_list "-protoinst"
-    set rel_path [xcs_get_relative_file_path $pinst_file $dir]
-    lappend args_list "\"$rel_path\""
+  set p_inst_files [xcs_get_protoinst_files $a_sim_vars(dynamic_repo_dir)]
+  if { [llength $p_inst_files] > 0 } {
+    set target_pinst_dir "$dir/protoinst_files"
+    if { ![file exists $target_pinst_dir] } {
+      [catch {file mkdir $target_pinst_dir} error_msg]
+    }
+    foreach p_file $p_inst_files {
+      if { ![file exists $p_file] } { continue; }
+      set filename [file tail $p_file]
+      set target_p_file "$target_pinst_dir/$filename"
+      if { ![file exists $target_p_file] } {
+        if { [catch {file copy -force $p_file $target_pinst_dir} error_msg] } {
+          [catch {send_msg_id USF-XSim-010 ERROR "Failed to copy file '$p_file' to '$target_pinst_dir': $error_msg\n"} err]
+        } else {
+          #send_msg_id USF-XSim-011 INFO "File '$p_file' copied to '$target_pinst_dir'\n"
+        }
+      }
+      lappend args_list "-protoinst"
+      lappend args_list "\"protoinst_files/$filename\""
+    }
   }
 
   if { $b_add_view } {
