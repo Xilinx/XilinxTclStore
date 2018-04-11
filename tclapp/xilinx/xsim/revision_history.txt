@@ -1,3 +1,4 @@
+2.221 process referenced linked libraries from IPs
 2.220 copy and reference protoinst files from simulation run dir
 2.219 set ld_library_path to point to install libraries and current dir
 2.218 fixed dat_file var while fetching library info

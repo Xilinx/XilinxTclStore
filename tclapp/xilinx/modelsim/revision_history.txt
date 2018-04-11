@@ -1,3 +1,4 @@
+2.193 process referenced linked libraries from IPs
 2.192 fixed dat_file var while fetching library info
 2.191 delete stale static files for precompiled library for sync mode
 2.190 consider BD SystemC sources
