@@ -5,6 +5,9 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2018.04.10 - Added support to 'report_utilization -evaluate_pblocks' to reduce
+##              the utilization metrics runtime (2018.2 and above)
+##            - Added support for -no_header
 ## 2018.03.28 - Detailed reports are saved inside the output report directory
 ## 2018.03.24 - Added LUT/Net interactive reports (RPX) to detailed reports
 ## 2018.02.22 - Fixed issue with path budgeting when there is only 1 timing path
@@ -174,6 +177,7 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-show_not_found]: Show metrics that could not be extracted
   # [-csv]: Add CSV to the output report
   # [-transpose]: Transpose the CSV file
+  # [-no_header]: Suppress the files header
   # [-longhelp]: Display Long help with the supported use models
 
   # Return Value:
@@ -316,7 +320,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2018.03.28}
+  variable version {2018.04.10}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -324,7 +328,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   variable metrics
   variable guidelines
   variable data
-  array set params [list failed 0 format {table} max_paths 100 show_resources 0 transpose 0 verbose 0 debug 0 debug_level 1 ]
+  array set params [list failed 0 format {table} max_paths 100 show_resources 0 transpose 0 verbose 0 debug 0 debug_level 1 vivado_version [version -short] ]
   array set reports [list]
   catch {unset metrics}
   array set metrics [list]
@@ -368,6 +372,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(transpose) 0
   set params(show_resources) 0
   set params(max_paths) 100
+  set params(vivado_version) [version -short]
   set pid {tmp}
   catch { set pid [pid] }
   set filename {}
@@ -410,6 +415,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set deletePblocks 1
   set markLeafCells 0
   set highlistLeafCells 0
+  set showFileHeader 1
   set cmdLine $args
   set error 0
   set help 0
@@ -534,6 +540,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^-tr(a(n(s(p(o(se?)?)?)?)?)?)?$} {
         set params(transpose) 1
       }
+      {^-no_h(e(a(d(er?)?)?)?)?$} {
+        set showFileHeader 0
+      }
       {^-v(e(r(b(o(se?)?)?)?)?)?$} {
         set params(verbose) 1
       }
@@ -569,6 +578,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^--debug-net(-(b(u(d(g(e(t(i(ng?)?)?)?)?)?)?)?)?)?$} -
       {^--net(-(b(u(d(g(e(t(i(ng?)?)?)?)?)?)?)?)?)?$} {
         set netBudgeting [lshift args]
+      }
+      {^--debug-vivado-version?$} -
+      {^--debug-v(i(v(a(d(o(-(v(e(r(s(i(on?)?)?)?)?)?)?)?)?)?)?)?)?$} -
+      {^--v(i(v(a(d(o(-(v(e(r(s(i(on?)?)?)?)?)?)?)?)?)?)?)?)?$} {
+        set params(vivado_version) [lshift args]
       }
       {^-h(e(lp?)?)?$} {
         set help 1
@@ -614,6 +628,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
               [-show_resources]
               [-show_not_found]
               [-csv][-transpose]
+              [-no_header]
               [-verbose|-v]
               [-help|-h]
               [-longhelp]
@@ -645,6 +660,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     Use -post_ooc_synth to only run the LUT/Net path budgeting
     Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
     Use -max_paths to define the max number of paths per clock group for LUT/Net budgeting. Default is 100
+    Use -no_header to suppress the files header
 
     Use -longhelp for further information about use models
 
@@ -1133,9 +1149,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         set empty 1
         catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt ${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid} }
         set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.DONT_TOUCH.rpt.${pid}" $filemode]
-        puts $FH "# ---------------------------------------------------------------------------"
-        puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-        puts $FH "# ---------------------------------------------------------------------------\n"
+        if {$showFileHeader} {
+          puts $FH "# ---------------------------------------------------------------------------"
+          puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+          puts $FH "# ---------------------------------------------------------------------------\n"
+        }
         # Hierarchical cells
         set tbl [::tclapp::xilinx::designutils::prettyTable create [format "DONT_TOUCH (Hierarchical Cells)\n[llength $dontTouchHierCells] module(s)"] ]
         $tbl indent 1
@@ -1184,41 +1202,77 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     ##
     ########################################################################################
 
+    if {[package vcompare $params(vivado_version) 2018.2.0] >= 0} {
+      # With Vivado 2018.2 and above, use -evaluate_pblock to extract the
+      # physical resources. This prevents running report_utilization twice
+      switch $reportMode {
+        pblockAndTop -
+        pblockAndCell -
+        pblockOnly {
+          set rptUtilOpts [list -pblock $prPblock -evaluate_pblock]
+          if {$params(debug)} {
+            puts " -D- utilization report run with '-pblock $prPblock -evaluate_pblock'"
+          }
+        }
+        regionAndTop -
+        regionAndCell -
+        regionOnly {
+          set rptUtilOpts [list -pblock $regionPblock -evaluate_pblock]
+          if {$params(debug)} {
+            puts " -D- utilization report run with '-pblock $regionPblock -evaluate_pblock'"
+          }
+        }
+        slrAndTop -
+        slrAndCell -
+        slrOnly {
+          set rptUtilOpts [list -pblock $slrPblock -evaluate_pblock]
+          if {$params(debug)} {
+            puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'"
+          }
+        }
+        default {
+        }
+      }
+    } else {
+      # For Vivado 2018.1 and before
+      set rptUtilOpts [list]
+    }
+
     if {1 && [llength [array names guidelines utilization.*]] && ([lsearch $skipChecks {utilization}] == -1)} {
       set stepStartTime [clock seconds]
       switch $reportMode {
         pblockAndTop {
 #           set report [report_utilization -quiet -return_string]
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         pblockAndCell {
 #           set report [report_utilization -quiet -cells $prCell -return_string]
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         pblockOnly {
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         regionAndTop {
 #           set report [report_utilization -quiet -return_string]
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         regionAndCell {
 #           set report [report_utilization -quiet -cells $prCell -return_string]
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         regionOnly {
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         slrAndTop {
 #           set report [report_utilization -quiet -return_string]
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         slrAndCell {
 #           set report [report_utilization -quiet -cells $prCell -return_string]
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         slrOnly {
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         default {
 #           set report [report_utilization -quiet -return_string]
@@ -1491,34 +1545,45 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         setMetric {utilization.clk.all} {n/a}
       }
 
-      # With Partial Reconfigurable design, we need to re-run report_utilization to get the actual available resources
-      # (same when -slr/-pblock/-region has been specified)
-      switch $reportMode {
-        pblockAndTop -
-        pblockAndCell -
-        pblockOnly {
-          set report [report_utilization -quiet -pblock $prPblock -return_string]
-          if {$params(debug)} {
-            puts " -D- generate utilization report for pblock '$prPblock'"
+      if {[package vcompare $params(vivado_version) 2018.2.0] < 0} {
+        # With Vivado 2018.1 and below, report_utilization needs to be run twice to
+        # extract the physical resources. With 2018.2, this is prevented with -evaluate_pblock
+        if {$params(debug)} {
+          puts " -D- Vivado $params(vivado_version) - report_utilization re-run to extract available resources"
+        }
+        # With Partial Reconfigurable design, we need to re-run report_utilization to get the actual available resources
+        # (same when -slr/-pblock/-region has been specified)
+        switch $reportMode {
+          pblockAndTop -
+          pblockAndCell -
+          pblockOnly {
+            set report [report_utilization -quiet -pblock $prPblock -return_string]
+            if {$params(debug)} {
+              puts " -D- generate utilization report for pblock '$prPblock'"
+            }
+          }
+          regionAndTop -
+          regionAndCell -
+          regionOnly {
+            set report [report_utilization -quiet -pblock $regionPblock -return_string]
+            if {$params(debug)} {
+              puts " -D- generate utilization report for clock regions pblock '$regionPblock'"
+            }
+          }
+          slrAndTop -
+          slrAndCell -
+          slrOnly {
+            set report [report_utilization -quiet -pblock $slrPblock -return_string]
+            if {$params(debug)} {
+              puts " -D- generate utilization report for SLR '$slrs' / pblock:$slrPblock"
+            }
+          }
+          default {
           }
         }
-        regionAndTop -
-        regionAndCell -
-        regionOnly {
-          set report [report_utilization -quiet -pblock $regionPblock -return_string]
-          if {$params(debug)} {
-            puts " -D- generate utilization report for clock regions pblock '$regionPblock'"
-          }
-        }
-        slrAndTop -
-        slrAndCell -
-        slrOnly {
-          set report [report_utilization -quiet -pblock $slrPblock -return_string]
-          if {$params(debug)} {
-            puts " -D- generate utilization report for SLR '$slrs' / pblock:$slrPblock"
-          }
-        }
-        default {
+      } else {
+        if {$params(debug)} {
+          puts " -D- Vivado $params(vivado_version) - available resources extracted from first report_utilization report"
         }
       }
 
@@ -1532,7 +1597,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       extractMetricFromTable report {utilization.clb.lutmem.avail} -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{LUT as Memory}} -column {Available} -default {n/a}
       extractMetricFromTable report {utilization.ram.tile.avail}   -search {{(BLOCKRAM|Memory)\s*$} {(BLOCKRAM|Memory)\s*$}} -row {{Block RAM Tile}} -column {Available} -default {n/a}
       extractMetricFromTable report {utilization.uram.tile.avail}  -search {{(BLOCKRAM|Memory)\s*$} {(BLOCKRAM|Memory)\s*$}} -row {{URAM}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.dsp.avail}        -search {{(ARITHMETIC|DSP)\s*$} {(ARITHMETIC|DSP)\s*$}} -row {{DSPs}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.dsp.avail}        -search {{(ARITHMETIC|DSP)\s*$}  {(ARITHMETIC|DSP)\s*$}}  -row {{DSPs}} -column {Available} -default {n/a}
 
       # Calculate the utilization (%) based on the available and used resources
       foreach var [list \
@@ -1547,19 +1612,62 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         {utilization.uram.tile}  \
         {utilization.dsp}        \
         ] {
-          set avail [getMetric ${var}.avail]
-          set used [getMetric ${var}]
-          if {$params(debug) && ($params(debug_level) >= 2)} {
-            puts " -D- $var : Used:$used / Available:$avail"
-          }
-          if {($avail != {}) && ($avail != 0.0) && ($avail != {n/a})} {
-            if {[catch {setMetric ${var}.pct [format {%.2f} [expr 100.0 * double($used) / $avail ] ]} errorstring]} {
-              puts " -E- $errorstring"
+
+          if {[package vcompare $params(vivado_version) 2018.2.0] >= 0} {
+            # For Vivado 2018.2 and above
+            set avail [getMetric ${var}.avail]
+            set used [getMetric ${var}]
+            # Percent extracted from report
+            set percent [getMetric ${var}.pct]
+            # Percent calculated
+            set calcPercent {n/a}
+            if {$params(debug) && ($params(debug_level) >= 2)} {
+              puts " -D- $var : Used:$used / Available:$avail"
+            }
+            if {($avail != {}) && ($avail != 0.0) && ($avail != {n/a})} {
+              # The percent are recalculated instead of just extracted from the report so that the same
+              # code can be shared between all Vivado versions
+#               setMetric ${var}.pct [format {%.2f} [expr 100.0 * double($used) / $avail ]]
+              if {[catch {set calcPercent [format {%.2f} [expr 100.0 * double($used) / $avail ] ]} errorstring]} {
+                puts " -E- $errorstring"
+                setMetric ${var}.pct {n/a}
+              } else {
+                # Save the percent extracted from the report instead of the calculated one
+                setMetric ${var}.pct $percent
+                # Void differences if less or equal to 0.01
+                if {($calcPercent != $percent) && ([expr abs($percent - $calcPercent)] > 0.005)} {
+                  if {$params(debug)} {
+                    puts " -W- Percent mismatch for '$var' - report=$percent / calculated=$calcPercent"
+                  }
+                } else {
+                  if {$params(debug) && ($params(debug_level) >= 2)} {
+                    puts " -D- Percent match for '$var' - report=$percent / calculated=$calcPercent"
+                  }
+                }
+              }
+            } else {
               setMetric ${var}.pct {n/a}
             }
+
           } else {
-            setMetric ${var}.pct {n/a}
+
+            # For Vivado 2018.1 and below
+            set avail [getMetric ${var}.avail]
+            set used [getMetric ${var}]
+            if {$params(debug) && ($params(debug_level) >= 2)} {
+              puts " -D- $var : Used:$used / Available:$avail"
+            }
+            if {($avail != {}) && ($avail != 0.0) && ($avail != {n/a})} {
+              if {[catch {setMetric ${var}.pct [format {%.2f} [expr 100.0 * double($used) / $avail ] ]} errorstring]} {
+                puts " -E- $errorstring"
+                setMetric ${var}.pct {n/a}
+              }
+            } else {
+              setMetric ${var}.pct {n/a}
+            }
+
           }
+
         }
 
       # Calculate the average utilization between the big blocks (RAM/URAM/DSP)
@@ -1708,9 +1816,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         set empty 1
         catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt ${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt.${pid} }
         set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.TIMING.rpt.${pid}" $filemode]
-        puts $FH "# ---------------------------------------------------------------------------"
-        puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-        puts $FH "# ---------------------------------------------------------------------------\n"
+        if {$showFileHeader} {
+          puts $FH "# ---------------------------------------------------------------------------"
+          puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+          puts $FH "# ---------------------------------------------------------------------------\n"
+        }
         foreach idx {6 7 8 14 35} {
           foreach vio [get_methodology_violations -quiet -filter "CHECK==TIMING-$idx"] {
             puts $FH "TIMING-$idx - [get_property -quiet DESCRIPTION [get_methodology_checks -quiet TIMING-$idx]]"
@@ -1788,9 +1898,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         set empty 1
         catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt ${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt.${pid} }
         set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.AVGFO.rpt.${pid}" $filemode]
-        puts $FH "# ---------------------------------------------------------------------------"
-        puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-        puts $FH "# ---------------------------------------------------------------------------\n"
+        if {$showFileHeader} {
+          puts $FH "# ---------------------------------------------------------------------------"
+          puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+          puts $FH "# ---------------------------------------------------------------------------\n"
+        }
         set tbl [::tclapp::xilinx::designutils::prettyTable create [format "Average Fanout\nMin Module Size: $limit"] ]
         $tbl indent 1
         $tbl header [list {Cell} {Flat Leaf Cells} {Flat Pins} {Flat Average Fanout} ]
@@ -1852,9 +1964,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         set empty 1
         catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt ${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt.${pid} }
         set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.HFN.rpt.${pid}" $filemode]
-        puts $FH "# ---------------------------------------------------------------------------"
-        puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-        puts $FH "# ---------------------------------------------------------------------------\n"
+        if {$showFileHeader} {
+          puts $FH "# ---------------------------------------------------------------------------"
+          puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+          puts $FH "# ---------------------------------------------------------------------------\n"
+        }
         set tbl [::tclapp::xilinx::designutils::prettyTable create [format {Non-FD high fanout nets}] ]
         $tbl indent 1
         $tbl header [list {Driver Type} {Driver Pin} {Net} {Fanout} ]
@@ -2231,9 +2345,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           # Print the summary table at the beginning of the detailed report
           set FHLut [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt {w}]
           set FH [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} {r}]
-          puts $FHLut "# ---------------------------------------------------------------------------"
-          puts $FHLut [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-          puts $FHLut "# ---------------------------------------------------------------------------\n"
+          if {$showFileHeader} {
+            puts $FHLut "# ---------------------------------------------------------------------------"
+            puts $FHLut [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+            puts $FHLut "# ---------------------------------------------------------------------------\n"
+          }
           foreach line [split [$tbl print] \n] {
             puts $FHLut [format {# %s} $line]
           }
@@ -2261,9 +2377,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           # Print the summary table at the beginning of the detailed report
           set FHNet [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt {w}]
           set FH [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} {r}]
-          puts $FHNet "# ---------------------------------------------------------------------------"
-          puts $FHNet [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-          puts $FHNet "# ---------------------------------------------------------------------------\n"
+          if {$showFileHeader} {
+            puts $FHNet "# ---------------------------------------------------------------------------"
+            puts $FHNet [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+            puts $FHNet "# ---------------------------------------------------------------------------\n"
+          }
           foreach line [split [$tbl print] \n] {
             puts $FHNet [format {# %s} $line]
           }
@@ -2551,9 +2669,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
   if {$filename != {}} {
     set FH [open $filename $filemode]
-    puts $FH "# ---------------------------------------------------------------------------------"
-    puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-    puts $FH "# ---------------------------------------------------------------------------------\n"
+    if {$showFileHeader} {
+      puts $FH "# ---------------------------------------------------------------------------------"
+      puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+      puts $FH "# ---------------------------------------------------------------------------------\n"
+    }
     puts $FH [join $output \n]
     puts $FH ""
     # Only add the CSV table if requested
@@ -3511,7 +3631,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::extractTableValue {args} {
     #   +-------------------+------+-------+-----------+-------+
     #   | Register as Latch | 241  | 0     | 5065920   | <0.01 |
     #   +-------------------+------+-------+-----------+-------+
-    set tbl [Table::Create]
+    set tbl [::tclapp::xilinx::designutils::prettyTable create]
     $tbl header $header
     $tbl addrow $matchrow
     puts [$tbl print]
