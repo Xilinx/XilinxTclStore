@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::ies 3.82 [list source [file join $dir ies.tcl]]
+package ifneeded ::tclapp::xilinx::ies 3.83 [list source [file join $dir ies.tcl]]

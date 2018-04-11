@@ -3292,9 +3292,14 @@ proc xcs_fetch_lib_info { clibs_dir } {
     set dat_file "$lib_dir/.cxl.lib_info.dat"
     if { ![file exists $dat_file] } { continue; }
     set fh 0
-    if { ![catch {open $dat_file r} fh] } { continue; }
+    if { [catch {open $dat_file r} fh] } { continue; }
     set lib_data [split [read $fh] "\n"]
     close $fh
+
+    set library {}
+    set type    {}
+    set ldlibs  {}
+
     foreach line $lib_data {
       set line [string trim $line]
       if { [string length $line] == 0 } { continue; }
@@ -3302,9 +3307,6 @@ proc xcs_fetch_lib_info { clibs_dir } {
       set tokens [split $line {:}]
       set tag   [lindex $tokens 0]
       set value [lindex $tokens 1]
-      set library {}
-      set type    {}
-      set ldlibs  {}
       if { "Name" == $tag } {
         set library $value
       } elseif { "Type" == $tag } {
@@ -3312,8 +3314,126 @@ proc xcs_fetch_lib_info { clibs_dir } {
       } elseif { "Link" == $tag } {
         set ldlibs $value
       }
-      set array_value "$type#$ldlibs"
-      set a_sim_cache_lib_info($library) $array_value
+    }
+    set array_value "$type#$ldlibs"
+    set a_sim_cache_lib_info($library) $array_value
+  }
+}
+
+proc xcs_get_vivado_release_version {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # Vivado v201*.*.0 (64-bit)
+  set vivado_version [lindex [split [version] "\n"] 0]
+  # v201*.*.0
+  set version_str [lindex [split $vivado_version " "] 1]
+  # 201*.*.0
+  set version_str [string trimleft $version_str {v}]
+  # 201*.*
+  set version [join [lrange [split $version_str {.}] 0 1] {.}]
+
+  return $version
+} 
+
+proc xcs_find_sc_library { library simulator clibs_dir linked_libs_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $linked_libs_arg linked_libs
+  set platform "win64"
+  set extn     "dll"
+  if {$::tcl_platform(platform) == "unix"} {
+    set platform "lnx64"
+    set extn "so"
+  }
+  set sim_version [get_param "simulator.${simulator}.version"]
+  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+
+  # target shared library name to search for
+  set sh_libname "lib${library}.${extn}"
+  set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+  set target_paths [list "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/systemc/protected" \
+                         "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/ext" \
+                         "$clibs_dir"]
+  foreach path $target_paths {
+    set lib_path ""
+    if { [xcs_find_lib $library $sh_libname $path lib_path linked_libs] } {
+      send_msg_id SIM-utils-058 INFO "Linking '$lib_path'\n"
+      return $lib_path
+    } else {
+      #send_msg_id SIM-utils-001 STATUS "'$sh_lib' not found in '$path'"
+    }
+  }
+  set empty {}
+  return $empty
+}
+
+proc xcs_find_lib { library shared_libname dir searched_file_path_arg linked_libs_arg} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $searched_file_path_arg searched_file_path
+  upvar $linked_libs_arg linked_libs
+  variable a_sim_cache_lib_info
+  foreach lib_dir [glob -nocomplain -directory $dir *] {
+    set sh_file "$lib_dir/$shared_libname"
+    if { [file exists $sh_file] } {
+      set searched_file_path $sh_file
+      # get any dependent libraries from this area
+      set dat_file "$lib_dir/.cxl.lib_info.dat"
+      if { [file exists $dat_file] } {
+        # any dependent libs?
+        if { [info exists a_sim_cache_lib_info($library)] } {
+          set values [split $a_sim_cache_lib_info($library) {#}]
+          if { [llength $values] > 1 } {
+            set tag  [lindex $values 0]
+            set libs [split [lindex $values 1] {,}]
+            if { ("SystemC" == $tag) || ("C" == $tag) || ("CPP" == $tag)} {
+              if { [llength $libs] > 0 } {
+                foreach lib $libs {
+                  lappend linked_libs $lib
+                  #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
+                }
+              }
+            }
+          }
+        }
+      }
+      return true
+    }
+  }
+  return false
+}
+
+proc xcs_process_linked_libs { dir libs simulator linked_libs_arg clibs_dir args_arg} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  upvar $linked_libs_arg linked_libs 
+  upvar $args_arg args
+  foreach library $libs {
+    set shared_lib_path [xcs_find_sc_library $library $simulator $clibs_dir linked_libs]
+    if { [llength $shared_lib_path] > 0 } {
+      # relative path to library
+      set lib_path [file dirname $shared_lib_path]
+      set file_dir [xcs_get_relative_file_path $lib_path $dir]
+   
+      # library name without .so/.dll suffix
+      set shared_lib_name [file tail $shared_lib_path]
+      set lib_name        [lindex [split $shared_lib_name {.}] 0]
+
+      # relative path to library include dir
+      set incl_dir "$lib_path/include"
+      set incl_dir "[xcs_get_relative_file_path $incl_dir $dir]"
+
+      lappend args "-sv_root \"$file_dir\" -sc_lib $lib_name --include \"$incl_dir\""
+    } else {
+      send_msg_id SIM-utils-104 WARNING "Failed to find simulation library '$library' from database!"
     }
   }
 }
