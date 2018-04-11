@@ -27,6 +27,7 @@
      Use -post_ooc_synth to only run the LUT/Net path budgeting after post OOC synthesis
      Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
      Use -max_paths to set the max number of paths per clock group for LUT/Net budgeting. Default is 100
+     Use -no_header to suppress the files header
 
      Use -longhelp for more information on the supported use models
 
