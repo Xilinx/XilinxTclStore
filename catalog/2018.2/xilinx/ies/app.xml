@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>changed floorplan attribute to XLNX_REAL_CELL_SV_PINS</revision_history>
+      <revision_history>helper proc to find shared libraries</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

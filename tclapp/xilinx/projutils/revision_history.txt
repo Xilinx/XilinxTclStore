@@ -1,3 +1,4 @@
+3.336 helper proc to find shared libraries
 3.335 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
 3.332 process referenced linked libraries from IPs
 3.331 fixed dat_file var while fetching library info
