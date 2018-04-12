@@ -3337,58 +3337,67 @@ proc xcs_get_vivado_release_version {} {
   return $version
 } 
 
-proc xcs_find_sc_library { library simulator clibs_dir linked_libs_arg } {
+proc xcs_find_shared_lib_paths { simulator clibs_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  upvar $linked_libs_arg linked_libs
+  # any library referenced in IP?
+  set lib_coln [xcs_get_sc_libs]
+  if { [llength $lib_coln] == 0 } {
+    return
+  }
+
+  # platform and library extension
   set platform "win64"
   set extn     "dll"
   if {$::tcl_platform(platform) == "unix"} {
     set platform "lnx64"
     set extn "so"
   }
+  
+  # simulator, gcc version, data dir
   set sim_version [get_param "simulator.${simulator}.version"]
   set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+  set data_dir    [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
 
-  # target shared library name to search for
-  set sh_libname "lib${library}.${extn}"
-  set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+  # target directory paths to search for
   set target_paths [list "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/systemc/protected" \
                          "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/ext" \
                          "$clibs_dir"]
-  foreach path $target_paths {
-    set lib_path ""
-    if { [xcs_find_lib $library $sh_libname $path lib_path linked_libs] } {
-      send_msg_id SIM-utils-058 INFO "Linking '$lib_path'\n"
-      return $lib_path
-    } else {
-      #send_msg_id SIM-utils-001 STATUS "'$sh_lib' not found in '$path'"
-    }
-  }
-  set empty {}
-  return $empty
-}
 
-proc xcs_find_lib { library shared_libname dir searched_file_path_arg linked_libs_arg} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
+  # additional linked libraries
+  set linked_libs [list]
 
-  upvar $searched_file_path_arg searched_file_path
-  upvar $linked_libs_arg linked_libs
+  variable a_shared_library_path_coln
   variable a_sim_cache_lib_info
-  foreach lib_dir [glob -nocomplain -directory $dir *] {
-    set sh_file "$lib_dir/$shared_libname"
-    if { [file exists $sh_file] } {
-      set searched_file_path $sh_file
-      # get any dependent libraries from this area
-      set dat_file "$lib_dir/.cxl.lib_info.dat"
-      if { [file exists $dat_file] } {
-        # any dependent libs?
+
+  foreach library $lib_coln {
+    # target shared library name to search for
+    set shared_libname "lib${library}.${extn}"
+
+    # iterate over target paths to search for this library name
+    foreach path $target_paths {
+      set path [file normalize $path]
+      set path [regsub -all {[\[\]]} $path {/}]
+      foreach lib_dir [glob -nocomplain -directory $path *] {
+        set sh_file_path "$lib_dir/$shared_libname"
+        if { [file exists $sh_file_path] } {
+          if { ![info exists a_shared_library_path_coln($lib_dir)] } {
+            set a_shared_library_path_coln($lib_dir) $shared_libname
+          }
+        }
+
+        # get any dependent libraries if any from this shared library dir
+        set dat_file "$lib_dir/.cxl.lib_info.dat"
+        if { ![file exists $dat_file] } { continue; }
+
+        # any dependent library info fetched from .cxl.lib_info.dat?
         if { [info exists a_sim_cache_lib_info($library)] } {
+          # "SystemC#common_cpp_v1_0,proto_v1_0"
           set values [split $a_sim_cache_lib_info($library) {#}]
+
+          # make sure we have some data to process
           if { [llength $values] > 1 } {
             set tag  [lindex $values 0]
             set libs [split [lindex $values 1] {,}]
@@ -3403,37 +3412,26 @@ proc xcs_find_lib { library shared_libname dir searched_file_path_arg linked_lib
           }
         }
       }
-      return true
     }
   }
-  return false
-}
 
-proc xcs_process_linked_libs { dir libs simulator linked_libs_arg clibs_dir args_arg} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
- 
-  upvar $linked_libs_arg linked_libs 
-  upvar $args_arg args
-  foreach library $libs {
-    set shared_lib_path [xcs_find_sc_library $library $simulator $clibs_dir linked_libs]
-    if { [llength $shared_lib_path] > 0 } {
-      # relative path to library
-      set lib_path [file dirname $shared_lib_path]
-      set file_dir [xcs_get_relative_file_path $lib_path $dir]
-   
-      # library name without .so/.dll suffix
-      set shared_lib_name [file tail $shared_lib_path]
-      set lib_name        [lindex [split $shared_lib_name {.}] 0]
+  # find shared library paths for the linked libraries
+  foreach library $linked_libs {
+    # target shared library name to search for
+    set shared_libname "lib${library}.${extn}"
 
-      # relative path to library include dir
-      set incl_dir "$lib_path/include"
-      set incl_dir "[xcs_get_relative_file_path $incl_dir $dir]"
-
-      lappend args "-sv_root \"$file_dir\" -sc_lib $lib_name --include \"$incl_dir\""
-    } else {
-      send_msg_id SIM-utils-104 WARNING "Failed to find simulation library '$library' from database!"
+    # iterate over target paths to search for this library name
+    foreach path $target_paths {
+      set path [file normalize $path]
+      set path [regsub -all {[\[\]]} $path {/}]
+      foreach lib_dir [glob -nocomplain -directory $path *] {
+        set sh_file_path "$lib_dir/$shared_libname"
+        if { [file exists $sh_file_path] } {
+          if { ![info exists a_shared_library_path_coln($lib_dir)] } {
+            set a_shared_library_path_coln($lib_dir) $shared_libname
+          }
+        }
+      }
     }
   }
 }
