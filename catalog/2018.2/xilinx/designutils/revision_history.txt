@@ -1,3 +1,4 @@
+1.38 revision_history
 1.37 Updated output directory for detailed reports (report_failfast)
 1.36 Enhancements to report_failfast
 1.35 Fixed path budgeting calculation for report_failfast
