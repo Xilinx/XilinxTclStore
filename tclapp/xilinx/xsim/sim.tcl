@@ -1090,14 +1090,28 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         }
        
         # reference SystemC include directories 
-        variable a_shared_library_path_coln
-        foreach key [array names a_shared_library_path_coln] {
-          set lib_path $key
-          set incl_dir "$lib_path/include"
-          if { [file exists $incl_dir] } {
+        set b_en_code false
+        if { $b_en_code } {
+          variable a_shared_library_path_coln
+          foreach key [array names a_shared_library_path_coln] {
+            set lib_path $key
+            set incl_dir "$lib_path/include"
+            if { [file exists $incl_dir] } {
+              # get relative file path for the compiled library
+              set rel_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+              lappend l_incl_dirs "$rel_dir"
+            }
+          }
+        } else {
+          set sc_libs [xcs_get_sc_libs]
+          foreach sc_lib $sc_libs {
+            set dir "$a_sim_vars(s_clibs_dir)/ip/$sc_lib/include"
+            if { ![file exists $dir] } {
+              set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
+            }
             # get relative file path for the compiled library
-            set rel_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
-            lappend l_incl_dirs "$rel_dir"
+            set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
+            lappend l_incl_dirs "$relative_dir"
           }
         }
 
