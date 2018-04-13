@@ -3420,17 +3420,10 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     "xsim" {
       if { $a_sim_vars(b_use_static_lib) } {
         puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
-        puts $fh_unix "    ip_file=\"xsim_ip.ini\""
-        puts $fh_unix "    src_file=\"\$lib_map_path/ip/\$ip_file\""
+        puts $fh_unix "    src_file=\"\$lib_map_path/\$file\""
         puts $fh_unix "    if \[\[ -e \$src_file \]\]; then"
-        puts $fh_unix "      cp \$src_file \$file"
-        puts $fh_unix "    else"
-        puts $fh_unix "      src_file=\"\$lib_map_path/\$file\""
-        puts $fh_unix "      if \[\[ -e \$src_file \]\]; then"
-        puts $fh_unix "        cp \$src_file ."
-        puts $fh_unix "      fi"
+        puts $fh_unix "      cp \$src_file ."
         puts $fh_unix "    fi"
-
         puts $fh_unix "\n    # Map local design libraries to xsim.ini"
         puts $fh_unix "    map_local_libs\n"
         puts $fh_unix "  fi"
@@ -3498,18 +3491,11 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
           }
           if { {} != $dir } {
             set clibs_dir [file normalize "$dir/data/xsim"]
-            set ip_file "$clibs_dir/ip/xsim_ip.ini"
             set target_file "$launch_dir/xsim.ini"
+            set ip_file "$clibs_dir/xsim.ini"
             if { [file exists $ip_file] } {
               if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                 send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
-              }
-            } else {
-              set ip_file "$clibs_dir/xsim.ini"
-              if { [file exists $ip_file] } {
-                if {[catch {file copy -force $ip_file $target_file} error_msg] } {
-                  send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
-                }
               }
             }
           } else {

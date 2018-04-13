@@ -564,20 +564,6 @@ proc usf_copy_ini_file { dir } {
   variable a_sim_vars
   set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
-  # check from install area (xsim/ip/xsim_ip.ini)
-  set file [file join $dir "ip" "xsim_ip.ini"]
-  if { [file exists $file] } {
-    set target_file [file join $run_dir "xsim.ini"]
-    if { [catch {file copy -force $file $target_file} error_msg] } {
-      send_msg_id USF-XSim-010 ERROR "Failed to copy file ($file): $error_msg\n"
-      return 1
-    } else {
-      send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$run_dir'\n"
-      return 0
-    }
-  }
-
-  # now copy the default xsim.ini
   set file [file join $dir "xsim.ini"]
   if { [file exists $file] } {
     if { [catch {file copy -force $file $run_dir} error_msg] } {
