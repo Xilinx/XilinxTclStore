@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated insert_buffer.tcl to better support UltraScale/UltraScale Plus. Minor update to prettyTable.</revision_history>
+      <revision_history>Fixed path budgeting calculation for report_failfast</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -152,6 +152,10 @@ explicitly set to an IO Standard</summary>
         <proc>
           <name>report_critical_hfn</name>
           <summary>Report timing critical high fanout nets based on fanout and slack</summary>
+        </proc>
+        <proc>
+          <name>report_failfast</name>
+          <summary>Generate a fail/pass report</summary>
         </proc>
         <proc>
           <name>report_hier_util</name>

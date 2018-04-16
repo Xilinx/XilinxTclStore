@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Writing BD properties individually right after their creation</revision_history>
+      <revision_history>Update message for write_project_tcl and delete run if recreating strategy fails</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

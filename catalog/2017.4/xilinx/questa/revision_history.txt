@@ -1,3 +1,4 @@
+2.64 reference xilinx_vip include directory for ovm/uvm based designs
 2.63 fetch requires_vip property on the fetched IP object
 2.62 reference xilinx_vip if requires_vip property is set on the IP instance
 2.61 reference xilinx_vip if requires_vip property is set on the IP

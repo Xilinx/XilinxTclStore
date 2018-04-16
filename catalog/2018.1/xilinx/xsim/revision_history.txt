@@ -1,3 +1,4 @@
+2.206 remove xsc option
 2.205 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
 2.204 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
 2.203 detect and fetch protoinst file from the ip_user_files for xsim

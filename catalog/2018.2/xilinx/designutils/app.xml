@@ -2,7 +2,11 @@
 <catalog>
   <apps>
     <app>
+<<<<<<< HEAD
       <revision_history>Improve runtime for utilization metrics (report_failfast)</revision_history>
+=======
+      <revision_history>Enhancements to report_failfast</revision_history>
+>>>>>>> master
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

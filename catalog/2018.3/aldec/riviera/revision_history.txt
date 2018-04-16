@@ -1,0 +1,6 @@
+1.11 Fixed bug with -scripts_only switch. Changed generated simulation script - now simulation works differently in batch mode. Removed fixed simulation resolution.
+1.10 Files grouped to speed up compilation. AXI-BFM settings updated. Pre/post tcl hooks added.
+1.9 export_simulation procedure and support for -lib_map_path switch added
+1.8 Fixed system file
+1.7 Update 1.7: Add mappings for libraries from compiled library location.
+1.6 Update 1.6: Coverage options.
