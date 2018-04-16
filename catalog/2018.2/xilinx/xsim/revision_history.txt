@@ -1,3 +1,4 @@
+2.226 remove xsc option
 2.225 control include directory paths with varible to enable previous code
 2.224 remove reference to xsim_ip.ini
 2.223 helper proc to find shared libraries
