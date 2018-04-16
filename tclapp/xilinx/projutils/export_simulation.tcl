@@ -20,18 +20,18 @@ proc export_simulation {args} {
   # Argument Usage:
   # [-simulator <arg> = all]: Simulator for which the simulation script will be created (value=all|xsim|modelsim|questa|ies|xcelium|vcs|riviera|activehdl)
   # [-of_objects <arg> = None]: Export simulation script for the specified object
-  # [-ip_user_files_dir <arg> = Empty]: Directory path to exported IP user files (for dynamic and other IP non static files)
-  # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP static files
+  # [-ip_user_files_dir <arg> = Empty]: Directory path to the exported IP/BD (Block Design) user files (for static, dynamic and data files)
+  # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP/BD static files
   # [-lib_map_path <arg> = Empty]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
-  # [-script_name <arg> = top_module.sh]: Output shell script filename. If not specified, then file with a default name will be created.
-  # [-directory <arg> = export_sim]: Directory where the simulation script will be exported
+  # [-script_name <arg> = top_module.sh]: Output script filename. If not specified, then a file with a default name will be created.
+  # [-directory <arg> = export_sim]: Directory where the simulation script will be generated
   # [-runtime <arg> = Empty]: Run simulation for this time (default:full simulation run or until a logical break or finish condition)
   # [-define <arg> = Empty]: Read verilog defines from the list specified with this switch
   # [-generic <arg> = Empty]: Read vhdl generics from the list specified with this switch
   # [-include <arg> = Empty]: Read include directory paths from the list specified with this switch
-  # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation
-  # [-absolute_path]: Make all file paths absolute wrt the reference directory
-  # [-export_source_files]: Copy design files to output directory
+  # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation. This switch requires -ip_user_files_dir and -ipstatic_source_dir switches as well for generating scripts using pre-compiled IP library.
+  # [-absolute_path]: Make all file paths absolute
+  # [-export_source_files]: Copy IP/BD design files to output directory
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
 
