@@ -1097,10 +1097,19 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
             set lib_path $key
             set incl_dir "$lib_path/include"
             if { [file exists $incl_dir] } {
-              # get relative file path for the compiled library
-              set rel_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
-              lappend l_incl_dirs "$rel_dir"
+              if { !$a_sim_vars(b_absolute_path) } {
+                # get relative file path for the compiled library
+                set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+              }
+              lappend l_incl_dirs "$incl_dir"
             }
+          }
+
+          foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
+            if { !$a_sim_vars(b_absolute_path) } {
+              set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+            }
+            lappend l_incl_dirs "$incl_dir"
           }
         } else {
           set sc_libs [xcs_get_sc_libs]
@@ -1639,6 +1648,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         set shared_lib_name $a_shared_library_path_coln($key)
         set lib_name        [file root $shared_lib_name]
         set rel_lib_path    [xcs_get_relative_file_path $lib_path $dir]
+
+        send_msg_id USF-XSim-104 INFO "Referencing library '$lib_name' from '$lib_path'\n"
  
         # relative path to library include dir
         set incl_dir "$lib_path/include"

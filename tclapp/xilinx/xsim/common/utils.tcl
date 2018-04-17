@@ -3363,8 +3363,14 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir } {
 
   # target directory paths to search for
   set target_paths [list "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/systemc/protected" \
-                         "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/ext" \
-                         "$clibs_dir"]
+                         "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/ext" ]
+  # add ip dir for xsim
+  if { "xsim" == $simulator } {
+    lappend target_paths "$clibs_dir/ip"
+  }
+
+  # add compiled library directory
+  lappend target_paths "$clibs_dir"
 
   # additional linked libraries
   set linked_libs [list]
@@ -3381,6 +3387,7 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir } {
       set path [file normalize $path]
       set path [regsub -all {[\[\]]} $path {/}]
       foreach lib_dir [glob -nocomplain -directory $path *] {
+        if { ![file isdirectory $lib_dir] } { continue; }
         set sh_file_path "$lib_dir/$shared_libname"
         if { [file exists $sh_file_path] } {
           if { ![info exists a_shared_library_path_coln($lib_dir)] } {
