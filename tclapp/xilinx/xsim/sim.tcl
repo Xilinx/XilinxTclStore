@@ -260,7 +260,10 @@ proc usf_xsim_setup_simulation { args } {
 
   # find shared library paths from all IPs 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
-    xcs_find_shared_lib_paths "xsim" $a_sim_vars(s_clibs_dir)
+    set b_en_code false
+    if { $b_en_code } {
+      xcs_find_shared_lib_paths "xsim" $a_sim_vars(s_clibs_dir)
+    }
   }
 
   # create custom library directory (xsim_lib)
