@@ -14,6 +14,7 @@ namespace eval ::tclapp::xilinx::xsim {
   namespace export setup
 }
 
+
 namespace eval ::tclapp::xilinx::xsim {
 proc setup { args } {
   # Summary: initialize global vars and prepare for simulation

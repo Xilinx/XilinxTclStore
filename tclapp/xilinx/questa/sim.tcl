@@ -14,6 +14,7 @@ namespace eval ::tclapp::xilinx::questa {
   namespace export setup
 }
 
+
 namespace eval ::tclapp::xilinx::questa {
 proc setup { args } {
   # Summary: initialize global vars and prepare for simulation
