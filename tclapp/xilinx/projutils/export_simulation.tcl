@@ -20,18 +20,18 @@ proc export_simulation {args} {
   # Argument Usage:
   # [-simulator <arg> = all]: Simulator for which the simulation script will be created (value=all|xsim|modelsim|questa|ies|xcelium|vcs|riviera|activehdl)
   # [-of_objects <arg> = None]: Export simulation script for the specified object
-  # [-ip_user_files_dir <arg> = Empty]: Directory path to exported IP user files (for dynamic and other IP non static files)
-  # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP static files
+  # [-ip_user_files_dir <arg> = Empty]: Directory path to the exported IP/BD (Block Design) user files (for static, dynamic and data files)
+  # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP/BD static files
   # [-lib_map_path <arg> = Empty]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
-  # [-script_name <arg> = top_module.sh]: Output shell script filename. If not specified, then file with a default name will be created.
-  # [-directory <arg> = export_sim]: Directory where the simulation script will be exported
+  # [-script_name <arg> = top_module.sh]: Output script filename. If not specified, then a file with a default name will be created.
+  # [-directory <arg> = export_sim]: Directory where the simulation script will be generated
   # [-runtime <arg> = Empty]: Run simulation for this time (default:full simulation run or until a logical break or finish condition)
   # [-define <arg> = Empty]: Read verilog defines from the list specified with this switch
   # [-generic <arg> = Empty]: Read vhdl generics from the list specified with this switch
   # [-include <arg> = Empty]: Read include directory paths from the list specified with this switch
-  # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation
-  # [-absolute_path]: Make all file paths absolute wrt the reference directory
-  # [-export_source_files]: Copy design files to output directory
+  # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation. This switch requires -ip_user_files_dir and -ipstatic_source_dir switches as well for generating scripts using pre-compiled IP library.
+  # [-absolute_path]: Make all file paths absolute
+  # [-export_source_files]: Copy IP/BD design files to output directory
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
 
@@ -214,6 +214,7 @@ proc xps_init_vars {} {
   set a_sim_vars(s_ip_user_files_dir) ""
   set a_sim_vars(s_ipstatic_source_dir) ""
   set a_sim_vars(b_contain_systemc_sources) 0
+  set a_sim_vars(b_contain_systemc_headers) 0
 
   # initialize ip repository dir
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
@@ -1987,7 +1988,7 @@ proc xps_write_script { simulator dir filename } {
 
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
   set l_compile_order_files_uniq [xcs_uniquify_cmd_str $l_compile_order_files]
-  
+  set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
   xps_write_simulation_script $simulator $dir
   send_msg_id exportsim-Tcl-029 INFO \
     "Script generated: '$dir/$filename'\n"
@@ -2251,6 +2252,9 @@ proc xps_write_multi_step { simulator fh_unix launch_dir srcs_dir } {
       if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
         puts $fh_unix "  xvhdl \$xvhdl_opts -prj vhdl.prj $redirect"
       }
+      if { $a_sim_vars(b_contain_systemc_sources) } {
+        puts $fh_unix "  xsc \$xsc_opts -f xsc.prj $redirect"
+      }
       xps_write_xsim_prj $launch_dir $srcs_dir
     }
     "modelsim" -
@@ -2310,6 +2314,7 @@ proc xps_append_config_opts { opts_arg simulator tool } {
     "xsim" {
       if {"xvlog" == $tool} {set opts_str "--relax"}
       if {"xvhdl" == $tool} {set opts_str "--relax"}
+      if {"xsc"   == $tool} {set opts_str "-c"}
       if {"xelab" == $tool} {set opts_str "--relax --debug typical --mt auto"}
       if {"xsim"  == $tool} {set opts_str ""}
     }
@@ -2409,6 +2414,30 @@ proc xps_write_run_steps { simulator fh_unix } {
     puts $fh_unix "  simulate"
   }
   puts $fh_unix "\}\n"
+}
+
+proc xps_set_systemc_cmd { simulator fh src_file log_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  # None
+
+  variable a_sim_vars
+  upvar $log_arg log
+
+  switch $simulator {
+    "xsim" {
+      if { $a_sim_vars(b_single_step) } {
+       # 
+      } else {
+        if { $a_sim_vars(b_xport_src_files) } {
+          puts $fh "srcs/$src_file"
+        } else {
+          puts $fh "$src_file"
+        }
+      }
+    }
+  }
 }
 
 proc xps_set_initial_cmd { simulator fh cmd_str srcs_dir src_file file_type lib opts_str prev_file_type_arg prev_lib_arg log_arg } {
@@ -3752,6 +3781,12 @@ proc xps_write_xsim_prj { dir srcs_dir } {
     set file [file normalize "$dir/$filename"]
     xps_write_prj $dir $file "VHDL" $srcs_dir
   }
+
+  if { $a_sim_vars(b_contain_systemc_sources) } {
+    set filename "xsc.prj"
+    set file [file normalize "$dir/$filename"]
+    xps_write_prj $dir $file "SYSTEMC" $srcs_dir
+  }
 }
 
 proc xps_write_prj { launch_dir file ft srcs_dir } {
@@ -3863,23 +3898,31 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
           }
         }
       }
-
-      if { $b_first } {
-        set b_first false
+    
+      if { {SYSTEMC} == $ft } {
         if { $a_sim_vars(b_xport_src_files) } {
-          xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
+          xps_set_systemc_cmd "xsim" $fh $proj_src_filename log
         } else {
-          xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
+          xps_set_systemc_cmd "xsim" $fh $src_file log
         }
       } else {
-        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-          puts $fh "$src_file \\"
-        } else {
-          puts $fh ""
+        if { $b_first } {
+          set b_first false
           if { $a_sim_vars(b_xport_src_files) } {
             xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
           } else {
             xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
+          }
+        } else {
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+            puts $fh "$src_file \\"
+          } else {
+            puts $fh ""
+            if { $a_sim_vars(b_xport_src_files) } {
+              xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $proj_src_filename $file_type $lib ${opts_str} prev_file_type prev_lib log
+            } else {
+              xps_set_initial_cmd "xsim" $fh $cmd_str $srcs_dir $src_file $file_type $lib ${opts_str} prev_file_type prev_lib log
+            }
           }
         }
       }
@@ -3895,7 +3938,12 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
     }
     puts $fh "verilog $top_lib \"$gfile\""
   }
-  puts $fh "\nnosort"
+
+  if { {SYSTEMC} == $ft } {
+    # is nosort supported?
+  } else {
+    puts $fh "\nnosort"
+  }
 
   close $fh
 }
@@ -4511,6 +4559,29 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   variable l_generics
   variable l_include_dirs
   variable l_compiled_libraries
+
+  if { $a_sim_vars(b_contain_systemc_sources) } {
+    set args [list]
+    lappend args "--shared -lib $a_sim_vars(default_lib)" 
+    foreach lib [xcs_get_sc_libs] {
+      lappend args "-lib $lib"
+    }
+    set clibs_dir [xps_get_lib_map_path "xsim"]
+    set ip_objs [get_ips -all -quiet]
+    foreach shared_ip_lib [xcs_get_shared_ip_libraries $clibs_dir] {
+      foreach ip_obj $ip_objs {
+        set ipdef [get_property -quiet IPDEF $ip_obj]
+        set ip_name [lindex [split $ipdef ":"] 2]
+        if { [string first $ip_name $shared_ip_lib] != -1} {
+          lappend args "-lib $shared_ip_lib"
+        }
+      }
+    }
+    lappend args "-o libdpi.so" 
+    set args_str [join $args " "]
+    puts $fh_unix "  xsc $args_str"
+  }
+
   set args [list]
   xps_append_config_opts args "xsim" "xelab"
   if { [llength $l_defines] > 0 } {
@@ -4537,6 +4608,28 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
       lappend args "-generic_top \"$str\""
     }
   }
+  if { ($a_sim_vars(b_contain_systemc_sources)) || ($a_sim_vars(b_contain_systemc_headers)) } {
+    set unique_sysc_incl_dirs [list]
+    set l_incl_dir [list]
+    set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")"
+    set prefix_ref_dir false
+    foreach incl_dir [xcs_get_c_incl_dirs "xsim" $launch_dir $filter $a_sim_vars(s_ip_user_files_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
+        lappend unique_sysc_incl_dirs $incl_dir
+        lappend args "--include \"$incl_dir\""
+      }
+    }
+    foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $a_sim_vars(fs_obj)] {
+      if { !$a_sim_vars(b_absolute_path) } {
+        set incl_dir "[xcs_get_relative_file_path $incl_dir $launch_dir]"
+      }
+      if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
+        lappend unique_sysc_incl_dirs $incl_dir
+        lappend args "--include \"$incl_dir\""
+      }
+    }
+  }
+ 
   # add user design libraries
   set design_libs [xps_get_design_libs]
   foreach lib $design_libs {
@@ -4573,6 +4666,11 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   if { $b_reference_xpm_library } {
     lappend args "-L xpm"
   }
+  if { $a_sim_vars(b_contain_systemc_sources) } {
+    if {$::tcl_platform(platform) == "unix"} {
+      lappend args "-sv_root \".\" -sc_lib libdpi"
+    }
+  }
   lappend args "--snapshot [xps_get_snapshot]"
   foreach top [xps_get_tops] {
     lappend args "$top"
@@ -4606,8 +4704,13 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
   # Return Value:
 
   variable a_sim_vars
-  set args [list]
 
+  if { $a_sim_vars(b_contain_systemc_sources) } {
+    puts $fh_unix "  xv_lib_path=\"$::env(RDI_LIBDIR)\""
+    puts $fh_unix "  export LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH"
+  }
+
+  set args [list]
   lappend args "xsim"
   xps_append_config_opts args "xsim" "xsim"
 
@@ -4966,6 +5069,32 @@ proc xps_write_main { simulator fh_unix launch_dir } {
         xps_append_config_opts arg_list "xsim" "xvhdl"
         if { [xcs_contains_vhdl $a_sim_vars(l_design_files)] } {
           puts $fh_unix "xvhdl_opts=\"[join $arg_list " "]\""
+        }
+        if { $a_sim_vars(b_contain_systemc_sources) } {
+          set arg_list [list]
+          xps_append_config_opts arg_list "xsim" "xsc"
+
+          set simulator "xsim"
+          set prefix_ref_dir false
+          set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")"
+          set l_incl_dirs [list]
+          foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $filter $a_sim_vars(s_ip_user_files_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+            lappend l_incl_dirs "$dir"
+          }
+
+          set sc_filename "xsc.prj"
+          if { [llength $l_incl_dirs] > 0 } {
+            lappend arg_list "--gcc_compile_options"
+            set incl_dir_strs [list]
+            foreach incl_dir $l_incl_dirs {
+              lappend incl_dir_strs "-I$incl_dir"
+            }
+            set incl_dir_cmd_str [join $incl_dir_strs " "]
+            lappend arg_list "\"$incl_dir_cmd_str\""
+          }
+          lappend arg_list "-work $a_sim_vars(default_lib)"
+          lappend arg_list "-f $sc_filename"
+          puts $fh_unix "xsc_opts=\"[join $arg_list " "]\""
         }
         puts $fh_unix ""
       }

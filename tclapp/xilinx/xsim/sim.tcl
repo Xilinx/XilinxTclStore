@@ -258,9 +258,15 @@ proc usf_xsim_setup_simulation { args } {
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
 
+  # systemC headers
+  set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
+
   # find shared library paths from all IPs 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
-    xcs_find_shared_lib_paths "xsim" $a_sim_vars(s_clibs_dir)
+    set b_en_code false
+    if { $b_en_code } {
+      xcs_find_shared_lib_paths "xsim" $a_sim_vars(s_clibs_dir)
+    }
   }
 
   # create custom library directory (xsim_lib)
@@ -1097,10 +1103,19 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
             set lib_path $key
             set incl_dir "$lib_path/include"
             if { [file exists $incl_dir] } {
-              # get relative file path for the compiled library
-              set rel_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
-              lappend l_incl_dirs "$rel_dir"
+              if { !$a_sim_vars(b_absolute_path) } {
+                # get relative file path for the compiled library
+                set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+              }
+              lappend l_incl_dirs "$incl_dir"
             }
+          }
+
+          foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
+            if { !$a_sim_vars(b_absolute_path) } {
+              set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+            }
+            lappend l_incl_dirs "$incl_dir"
           }
         } else {
           set sc_libs [xcs_get_sc_libs]
@@ -1115,8 +1130,6 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           }
         }
 
-        variable l_systemc_incl_dirs
-        set l_systemc_incl_dirs $l_incl_dirs
         if { [llength $l_incl_dirs] > 0 } {
           lappend xsc_arg_list "--gcc_compile_options"
           set incl_dir_strs [list]
@@ -1639,12 +1652,14 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         set shared_lib_name $a_shared_library_path_coln($key)
         set lib_name        [file root $shared_lib_name]
         set rel_lib_path    [xcs_get_relative_file_path $lib_path $dir]
+
+        send_msg_id USF-XSim-104 INFO "Referencing library '$lib_name' from '$lib_path'\n"
  
         # relative path to library include dir
         set incl_dir "$lib_path/include"
         set incl_dir "[xcs_get_relative_file_path $incl_dir $dir]"
 
-        set sc_args "-sv_root \"$rel_lib_path\" -sc_lib $shared_lib_name --include \"$incl_dir\""
+        set sc_args "-sv_root \"$rel_lib_path\" -sc_lib $lib_name --include \"$incl_dir\""
         #puts sc_args=$sc_args
         lappend args_list $sc_args
       }
@@ -1800,7 +1815,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
       if {$::tcl_platform(platform) == "unix"} {
-        lappend args_list "-sv_root \".\" -sc_lib libdpi.so"
+        lappend args_list "-sv_root \".\" -sc_lib libdpi"
       }
     }
   }
@@ -1842,14 +1857,6 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set other_opts [get_property "XSIM.ELABORATE.XELAB.MORE_OPTIONS" $fs_obj]
   if { {} != $other_opts } {
     lappend args_list "$other_opts"
-  }
-
-  # --include
-  variable l_systemc_incl_dirs
-  if { [llength $l_systemc_incl_dirs] > 0 } {
-    foreach dir $l_systemc_incl_dirs {
-      lappend args_list "--include \"$dir\""
-    }
   }
 
   set cmd_args [join $args_list " "]
