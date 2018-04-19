@@ -1,3 +1,14 @@
+3.87 updated target paths for finding simulation models
+3.86 helper proc to find shared libraries
+3.85 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
+3.84 process referenced linked libraries from IPs
+3.83 fixed dat_file var while fetching library info
+3.82 delete stale static files for precompiled library for sync mode
+3.81 consider BD SystemC sources
+3.80 add BD file type to the file extension check while fetching SystemC sources
+3.79 consider SV design sources if param set for compiling vip library
+3.78 proc to read library info from dat file
+3.77 reference SystemC include directory
 3.76 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
 3.75 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
 3.74 detect and fetch protoinst file from the ip_user_files for xsim

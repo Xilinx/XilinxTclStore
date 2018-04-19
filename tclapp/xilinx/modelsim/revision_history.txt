@@ -1,3 +1,4 @@
+2.196 updated target paths for finding simulation models
 2.195 helper proc to find shared libraries
 2.194 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
 2.193 process referenced linked libraries from IPs
