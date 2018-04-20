@@ -1,3 +1,4 @@
+3.339 check for IP in quiet mode and return default header file if IP does not exist
 3.338 updated target paths for finding simulation models
 3.337 remove reference to xsim_ip.ini
 3.336 helper proc to find shared libraries
