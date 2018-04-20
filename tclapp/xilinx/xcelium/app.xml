@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>updated target paths for finding simulation models</revision_history>
+      <revision_history>check for IP in quiet mode and return default header file if IP does not exist</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
