@@ -321,7 +321,11 @@ proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
 
   set vh_filename   [file tail $vh_file]
   set vh_file_dir   [file dirname $vh_file]
-  set output_dir    [get_property IP_OUTPUT_DIR [lindex [get_ips -all $ip_name] 0]]
+  set output_dir    [get_property -quiet IP_OUTPUT_DIR [lindex [get_ips -quiet -all $ip_name] 0]]
+  if { [string length $output_dir] == 0 } {
+    return $vh_file
+  }
+
   set sub_file_path [xcs_get_sub_file_path $vh_file_dir $output_dir]
 
   # construct full repo dynamic file path
