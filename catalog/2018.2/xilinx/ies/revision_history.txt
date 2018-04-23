@@ -1,3 +1,4 @@
+3.87 check for IP in quiet mode and return default header file if IP does not exist
 3.86 add default compiled library for xsim
 3.85 helper proc to find shared libraries
 3.84 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS

@@ -1,3 +1,4 @@
+3.340 check for IP in quiet mode and return default header file if IP does not exist
 3.339 add default compiled library for xsim
 3.338 updated export_simulation help
 3.337 remove reference to xsim_ip.ini
