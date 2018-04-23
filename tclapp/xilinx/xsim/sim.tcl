@@ -1129,6 +1129,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
             lappend l_incl_dirs "$relative_dir"
           }
         }
+ 
+        variable l_systemc_incl_dirs
+        set l_systemc_incl_dirs $l_incl_dirs
 
         if { [llength $l_incl_dirs] > 0 } {
           lappend xsc_arg_list "--gcc_compile_options"
@@ -1667,6 +1670,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   if { $a_sim_vars(b_int_systemc_mode) } {
+    variable l_systemc_incl_dirs
     set unique_sysc_incl_dirs [list]
     set l_incl_dir [list]
     set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")" 
@@ -1675,6 +1679,14 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
         lappend unique_sysc_incl_dirs $incl_dir
         lappend args_list "--include \"$incl_dir\""
+      }
+    }
+    if { [llength $l_systemc_incl_dirs] > 0 } {
+      foreach incl_dir $l_systemc_incl_dirs {
+        if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
+          lappend unique_sysc_incl_dirs $incl_dir
+          lappend args_list "--include \"$incl_dir\""
+        }
       }
     }
   
