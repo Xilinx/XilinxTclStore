@@ -1,3 +1,4 @@
+2.230 define systemc include dirs variable
 2.229 pass systemc include dirs for elaborate
 2.228 check for IP in quiet mode and return default header file if IP does not exist
 2.227 updated target paths for finding simulation models
