@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.12
+package require ::tclapp::aldec::common::helpers 1.13
 
 namespace eval ::tclapp::aldec::activehdl {
 
@@ -35,7 +35,6 @@ proc register_options { simulator } {
     {{compile.vlog_syntax}         {enum}   {2005 2005 {1995 2001 2005}}   {Specify Verilog standard}}
     {{compile.sv_syntax}         {enum}   {2012 2012 {2005 2009 2012}}   {Specify SystemVerilog standard}}
     {{compile.vhdl_relax}   {bool}   {0}                                     {Relax strict VHDL LRM requirements}}
-    {{compile.incremental}   {bool}   {0}                                     {Perform incremental compilation}}
     {{compile.debug}         {bool}   {0}                                     {Generate debugging information}}
     {{compile.load_glbl}         {bool}   {0}                                     {Load GLBL module}}    
     {{compile.vlog.more_options}   {string} {}                                      {More Verilog compilation options}}

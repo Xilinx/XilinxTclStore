@@ -8,8 +8,8 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::sim 1.12
-package require ::tclapp::aldec::common::helpers 1.12
+package require ::tclapp::aldec::common::sim 1.13
+package require ::tclapp::aldec::common::helpers 1.13
 
 namespace eval ::tclapp::aldec::activehdl {
 
@@ -19,8 +19,9 @@ proc setup { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # true (0) if success, false (1) otherwise
-
+  #puts $args
   ::tclapp::aldec::common::helpers::usf_aldec_correctSetupArgs args
+  #puts $args
 
   return [eval ::tclapp::aldec::common::sim::setup $args]
 }

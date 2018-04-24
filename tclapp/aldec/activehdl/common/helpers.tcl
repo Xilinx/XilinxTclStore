@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.12
+package provide ::tclapp::aldec::common::helpers 1.13
 
 namespace eval ::tclapp::aldec::common {
 
@@ -59,7 +59,7 @@ proc usf_aldec_correctSetupArgs { args } {
   if { [usf_aldec_get_vivado_version] < 2016.1 } {
     return
   }
-  
+
   upvar $args _args
   regsub -- {-scripts_only} $_args "" _args
 }
@@ -69,38 +69,38 @@ proc usf_aldec_appendSimulationCoverageOptions { _optionsList } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
   upvar $_optionsList optionsList  
-  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+  set fileset_object [get_filesets $properties(simset)]
 
   set switches ""
 
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.STATEMENT_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.STATEMENT_COVERAGE] $fileset_object] } {
     append switches "s"
   }
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.BRANCH_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.BRANCH_COVERAGE] $fileset_object] } {
     append switches "b"
   }
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.FUNCTIONAL_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.FUNCTIONAL_COVERAGE] $fileset_object] } {
     append switches "f"
   }
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.EXPRESSION_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.EXPRESSION_COVERAGE] $fileset_object] } {
     append switches "e"
   }
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.CONDITION_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.CONDITION_COVERAGE] $fileset_object] } {
     append switches "c"
   }
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.PATH_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.PATH_COVERAGE] $fileset_object] } {
     append switches "p"
   }
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.TOGGLE_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.TOGGLE_COVERAGE] $fileset_object] } {
     append switches "t"
   }
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.ASSERTION_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.ASSERTION_COVERAGE] $fileset_object] } {
     append switches "a"
   }
-  if { [get_property [usf_aldec_getPropertyName SIMULATE.FSM_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName SIMULATE.FSM_COVERAGE] $fileset_object] } {
     append switches "m"
   }
 
@@ -113,35 +113,35 @@ proc usf_aldec_appendCompilationCoverageOptions { _optionsList compiler } {
   # Summary:
   # Argument Usage:
   # Return Value:
-  
-  variable a_sim_vars
-  
+
+  variable properties
+
   upvar $_optionsList optionsList
-  set fs_obj [get_filesets $a_sim_vars(s_simset)]
-  
+  set fileset_object [get_filesets $properties(simset)]
+
   # -------------- main options -------------
-  
+
   set switches ""  
-  
-  if { [get_property [usf_aldec_getPropertyName COMPILE.STATEMENT_COVERAGE] $fs_obj] } {
+
+  if { [get_property [usf_aldec_getPropertyName COMPILE.STATEMENT_COVERAGE] $fileset_object] } {
     append switches "s"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.BRANCH_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.BRANCH_COVERAGE] $fileset_object] } {
     append switches "b"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.EXPRESSION_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.EXPRESSION_COVERAGE] $fileset_object] } {
     append switches "e"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.CONDITION_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.CONDITION_COVERAGE] $fileset_object] } {
     append switches "c"
   }
-  if { ( $compiler == "acom" || $compiler == "vcom" ) && [get_property [usf_aldec_getPropertyName COMPILE.PATH_COVERAGE] $fs_obj] } {
+  if { ( $compiler == "acom" || $compiler == "vcom" ) && [get_property [usf_aldec_getPropertyName COMPILE.PATH_COVERAGE] $fileset_object] } {
     append switches "p"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.ASSERTION_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ASSERTION_COVERAGE] $fileset_object] } {
     append switches "a"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.FSM_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.FSM_COVERAGE] $fileset_object] } {
     append switches "m"
   }
 
@@ -153,22 +153,22 @@ proc usf_aldec_appendCompilationCoverageOptions { _optionsList compiler } {
 
   set switches ""
 
-  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_EXPRESSIONS_ON_SUBPROGRAM_ARGUMENTS] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_EXPRESSIONS_ON_SUBPROGRAM_ARGUMENTS] $fileset_object] } {
     lappend switches "args"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_ATOMIC_EXPRESSIONS_IN_THE_CONDITIONAL_STATEMENTS] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_ATOMIC_EXPRESSIONS_IN_THE_CONDITIONAL_STATEMENTS] $fileset_object] } {
     lappend switches "implicit"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_THE_EXPRESSIONS_CONSISTING_OF_ONE_VARIABLE_ONLY] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_THE_EXPRESSIONS_CONSISTING_OF_ONE_VARIABLE_ONLY] $fileset_object] } {
     lappend switches "onevar"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_THE_EXPRESSIONS_WITH_RELATIONAL_OPERATORS] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_THE_EXPRESSIONS_WITH_RELATIONAL_OPERATORS] $fileset_object] } {
     lappend switches "relational"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_THE_EXPRESSIONS_RETURNING_VECTORS] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_THE_EXPRESSIONS_RETURNING_VECTORS] $fileset_object] } {
     lappend switches "vectors"
   }
-  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_FSM_SEQUENCES_IN_FSM_COVERAGE] $fs_obj] } {
+  if { [get_property [usf_aldec_getPropertyName COMPILE.ENABLE_FSM_SEQUENCES_IN_FSM_COVERAGE] $fileset_object] } {
     lappend switches "fsmsequence"
   }
 
@@ -218,40 +218,43 @@ proc usf_init_vars {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
-  set project                        [current_project]
-  set a_sim_vars(s_project_name)     [get_property "NAME" $project]
-  set a_sim_vars(s_project_dir)      [get_property "DIRECTORY" $project]
-  set a_sim_vars(b_is_managed)       [get_property "MANAGED_IP" $project]
-  set a_sim_vars(s_launch_dir)       {}
-  set a_sim_vars(s_sim_top)          [get_property "TOP" [current_fileset -simset]]
+  set project                      [current_project]
+  set properties(project_name)     [get_property "NAME" $project]
+  set properties(project_dir)      [get_property "DIRECTORY" $project]
+  set properties(is_managed)       [get_property "MANAGED_IP" $project]
+  set properties(launch_directory) {}
+  set properties(s_sim_top)        [get_property "TOP" [current_fileset -simset]]
 
   # launch_simulation tcl task args
-  set a_sim_vars(s_simset)           [current_fileset -simset]
-  set a_sim_vars(s_mode)             "behavioral"
-  set a_sim_vars(s_type)             {}
-  set a_sim_vars(b_scripts_only)     0
-  set a_sim_vars(s_comp_file)        {}
-  set a_sim_vars(b_absolute_path)    0
-  set a_sim_vars(s_install_path)     {}
-  set a_sim_vars(s_lib_map_path)     {}
-  set a_sim_vars(b_batch)            0
-  set a_sim_vars(s_int_os_type)      {}
-  set a_sim_vars(s_int_debug_mode)   0
+  set properties(simset)           [current_fileset -simset]
+  set properties(mode)             "behavioral"
+  set properties(s_type)                {}
+  set properties(only_generate_scripts) 0
+  set properties(s_comp_file)           {}
+  set properties(use_absolute_paths)    0
+  set properties(s_install_path)        {}
+  set properties(s_lib_map_path)        {}
+  set properties(batch_mode_enabled)    0
+  set properties(s_int_os_type)         {}
+  set properties(s_int_debug_mode)      0
 
-  set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
-  set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
-  set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  set properties(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
+  set properties(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
+  set properties(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
-  set a_sim_vars(s_tool_bin_path)    {}
+  set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
+  set properties(ip_repository_path) [file normalize [file join $data_dir "ip/xilinx"]]
 
-  set a_sim_vars(sp_tcl_obj)         {}
-  set a_sim_vars(b_extract_ip_sim_files) 0
+  set properties(s_tool_bin_path)    {}
+
+  set properties(sp_tcl_obj)         {}
+  set properties(b_extract_ip_sim_files) 0
 
   # fileset compile order
   variable l_compile_order_files     [list]
-  variable l_design_files            [list]
+  variable designFiles               [list]
 
   # ip static libraries
   variable l_ip_static_libs          [list]
@@ -261,8 +264,8 @@ proc usf_init_vars {} {
   set l_valid_ip_extns               [list ".xci" ".bd" ".slx"]
 
   # hdl file extension types
-  variable l_valid_hdl_extns          [list]
-  set l_valid_hdl_extns               [list ".vhd" ".vhdl" ".vhf" ".vho" ".v" ".vf" ".verilog" ".vr" ".vg" ".vb" ".tf" ".vlog" ".vp" ".vm" ".vh" ".h" ".svh" ".sv" ".veo"]
+  variable valid_hdl_extensions          [list]
+  set valid_hdl_extensions               [list ".vhd" ".vhdl" ".vhf" ".vho" ".v" ".vf" ".verilog" ".vr" ".vg" ".vb" ".tf" ".vlog" ".vp" ".vm" ".vh" ".h" ".svh" ".sv" ".veo"]
  
   # data file extension types 
   variable s_data_files_filter
@@ -302,12 +305,12 @@ proc usf_init_vars {} {
   set a_sim_mode_types(funcsim)             {func}
   set a_sim_mode_types(timesim)             {timing}
 
-  set a_sim_vars(s_flow_dir_key)            {behav}
-  set a_sim_vars(s_simulation_flow)         {behav_sim}
-  set a_sim_vars(s_netlist_mode)            {funcsim}
+  set properties(s_flow_dir_key)            {behav}
+  set properties(s_simulation_flow)         {behav_sim}
+  set properties(s_netlist_mode)            {funcsim}
 
   # netlist file
-  set a_sim_vars(s_netlist_file)            {}
+  set properties(s_netlist_file)            {}
 }
 
 proc usf_create_options { simulator opts } {
@@ -320,8 +323,8 @@ proc usf_create_options { simulator opts } {
 
   if { ![get_property IS_READONLY [current_project]] } {
     # simulation fileset objects
-    foreach fs_obj [get_filesets -filter {FILESET_TYPE == SimulationSrcs}] {
-      usf_set_fs_options $fs_obj $simulator $opts
+    foreach fileset_object [get_filesets -filter {FILESET_TYPE == SimulationSrcs}] {
+      usf_set_fs_options $fileset_object $simulator $opts
     }
   }
 }
@@ -369,7 +372,7 @@ proc usf_create_fs_options_spec { simulator opts } {
   return 0
 }
 
-proc usf_set_fs_options { fs_obj simulator opts } {
+proc usf_set_fs_options { fileset_object simulator opts } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -389,13 +392,13 @@ proc usf_set_fs_options { fs_obj simulator opts } {
 
     # is enum type?
     if { {enum} == $type } {
-      set e_value   [lindex $value 0]
+      set value   [lindex $value 0]
       set e_default [lindex $value 1]
       set e_values  [lindex $value 2]
-      set_property -name "${prop_name}" -value $e_value -objects ${fs_obj}
+      set_property -name "${prop_name}" -value $value -objects ${fileset_object}
     } else {
       set v_default $value
-      set_property -name "${prop_name}" -value $value -objects ${fs_obj}
+      set_property -name "${prop_name}" -value $value -objects ${fileset_object}
     }
   }
   return 0
@@ -422,61 +425,61 @@ proc usf_set_simulation_flow {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
-  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+  set fileset_object [get_filesets $properties(simset)]
   set simulation_flow {unknown}
   set type_dir {timing}
-  if { {behavioral} == $a_sim_vars(s_mode) } {
-    if { ({functional} == $a_sim_vars(s_type)) || ({timing} == $a_sim_vars(s_type)) } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-1 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
+  if { {behavioral} == $properties(mode) } {
+    if { ({functional} == $properties(s_type)) || ({timing} == $properties(s_type)) } {
+      send_msg_id USF-[usf_aldec_getSimulatorName]-1 ERROR "Invalid simulation type '$properties(s_type)' specified. Please see 'simulate -help' for more details.\n"
       return 1
     }
     set simulation_flow "behav_sim"
-    set a_sim_vars(s_flow_dir_key) "behav"
+    set properties(s_flow_dir_key) "behav"
 
     # set simulation and netlist mode on simset
-    set_property sim_mode "behavioral" $fs_obj
+    set_property sim_mode "behavioral" $fileset_object
 
-  } elseif { {post-synthesis} == $a_sim_vars(s_mode) } {
-    if { ({functional} != $a_sim_vars(s_type)) && ({timing} != $a_sim_vars(s_type)) } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-2 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
+  } elseif { {post-synthesis} == $properties(mode) } {
+    if { ({functional} != $properties(s_type)) && ({timing} != $properties(s_type)) } {
+      send_msg_id USF-[usf_aldec_getSimulatorName]-2 ERROR "Invalid simulation type '$properties(s_type)' specified. Please see 'simulate -help' for more details.\n"
       return 1
     }
     set simulation_flow "post_synth_sim"
-    if { {functional} == $a_sim_vars(s_type) } {
+    if { {functional} == $properties(s_type) } {
       set type_dir "func"
     }
-    set a_sim_vars(s_flow_dir_key) "synth/${type_dir}"
+    set properties(s_flow_dir_key) "synth/${type_dir}"
 
     # set simulation and netlist mode on simset
-    set_property sim_mode "post-synthesis" $fs_obj
-    if { {functional} == $a_sim_vars(s_type) } {
-      set_property "NL.MODE" "funcsim" $fs_obj
+    set_property sim_mode "post-synthesis" $fileset_object
+    if { {functional} == $properties(s_type) } {
+      set_property "NL.MODE" "funcsim" $fileset_object
     }
-    if { {timing} == $a_sim_vars(s_type) } {
-      set_property "NL.MODE" "timesim" $fs_obj
+    if { {timing} == $properties(s_type) } {
+      set_property "NL.MODE" "timesim" $fileset_object
     }
-  } elseif { ({post-implementation} == $a_sim_vars(s_mode)) || ({timing} == $a_sim_vars(s_mode)) } {
-    if { ({functional} != $a_sim_vars(s_type)) && ({timing} != $a_sim_vars(s_type)) } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-3 ERROR "Invalid simulation type '$a_sim_vars(s_type)' specified. Please see 'simulate -help' for more details.\n"
+  } elseif { ({post-implementation} == $properties(mode)) || ({timing} == $properties(mode)) } {
+    if { ({functional} != $properties(s_type)) && ({timing} != $properties(s_type)) } {
+      send_msg_id USF-[usf_aldec_getSimulatorName]-3 ERROR "Invalid simulation type '$properties(s_type)' specified. Please see 'simulate -help' for more details.\n"
       return 1
     }
     set simulation_flow "post_impl_sim"
-    if { {functional} == $a_sim_vars(s_type) } {
+    if { {functional} == $properties(s_type) } {
       set type_dir "func"
     }
-    set a_sim_vars(s_flow_dir_key) "impl/${type_dir}"
+    set properties(s_flow_dir_key) "impl/${type_dir}"
 
     # set simulation and netlist mode on simset
-    set_property sim_mode "post-implementation" $fs_obj
-    if { {functional} == $a_sim_vars(s_type) } { set_property "NL.MODE" "funcsim" $fs_obj }
-    if { {timing} == $a_sim_vars(s_type) } { set_property "NL.MODE" "timesim" $fs_obj }
+    set_property sim_mode "post-implementation" $fileset_object
+    if { {functional} == $properties(s_type) } { set_property "NL.MODE" "funcsim" $fileset_object }
+    if { {timing} == $properties(s_type) } { set_property "NL.MODE" "timesim" $fileset_object }
   } else {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-4 ERROR "Invalid simulation mode '$a_sim_vars(s_mode)' specified. Please see 'simulate -help' for more details.\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-4 ERROR "Invalid simulation mode '$properties(mode)' specified. Please see 'simulate -help' for more details.\n"
     return 1
   }
-  set a_sim_vars(s_simulation_flow) $simulation_flow
+  set properties(s_simulation_flow) $simulation_flow
   return 0
 }
 
@@ -485,12 +488,12 @@ proc usf_extract_ip_files {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   if { ![get_property corecontainer.enable [current_project]] } {
     return
   }
-  set a_sim_vars(b_extract_ip_sim_files) [get_property extract_ip_sim_files [current_project]]
-  if { $a_sim_vars(b_extract_ip_sim_files) } {
+  set properties(b_extract_ip_sim_files) [get_property extract_ip_sim_files [current_project]]
+  if { $properties(b_extract_ip_sim_files) } {
     foreach ip [get_ips -all -quiet] {
       set xci_ip_name "${ip}.xci"
       set xcix_ip_name "${ip}.xcix"
@@ -507,21 +510,21 @@ proc usf_set_sim_tcl_obj {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set comp_file $a_sim_vars(s_comp_file)
+  variable properties
+  set comp_file $properties(s_comp_file)
   if { {} != $comp_file } {
     # -of_objects <full-path-to-ip-composite-file>
-    set a_sim_vars(sp_tcl_obj) [get_files -all -quiet [list "$comp_file"]]
-    set a_sim_vars(s_sim_top) [file root [file tail $a_sim_vars(sp_tcl_obj)]]
+    set properties(sp_tcl_obj) [get_files -all -quiet [list "$comp_file"]]
+    set properties(s_sim_top) [file root [file tail $properties(sp_tcl_obj)]]
   } else {
-    set a_sim_vars(sp_tcl_obj) [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
+    set properties(sp_tcl_obj) [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]
     # set current simset
-    if { {} == $a_sim_vars(sp_tcl_obj) } {
-      set a_sim_vars(sp_tcl_obj) [current_fileset -simset]
+    if { {} == $properties(sp_tcl_obj) } {
+      set properties(sp_tcl_obj) [current_fileset -simset]
     }
-    set a_sim_vars(s_sim_top) [get_property TOP [get_filesets $a_sim_vars(sp_tcl_obj)]]
+    set properties(s_sim_top) [get_property TOP [get_filesets $properties(sp_tcl_obj)]]
   }
-  send_msg_id USF-[usf_aldec_getSimulatorName]-5 INFO "Simulation object is '$a_sim_vars(sp_tcl_obj)'...\n"
+  send_msg_id USF-[usf_aldec_getSimulatorName]-5 INFO "Simulation object is '$properties(sp_tcl_obj)'...\n"
   return 0
 }
 
@@ -530,9 +533,9 @@ proc usf_write_design_netlist {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   # is behavioral?, return
-  if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
+  if { {behav_sim} == $properties(s_simulation_flow) } {
     return
   }
   set extn [usf_get_netlist_extn 1]
@@ -540,14 +543,14 @@ proc usf_write_design_netlist {} {
   # generate netlist
   set net_filename     [usf_get_netlist_filename];append net_filename "$extn"
   set sdf_filename     [usf_get_netlist_filename];append sdf_filename ".sdf"
-  set net_file         [usf_file_normalize [file join $a_sim_vars(s_launch_dir) $net_filename]]
-  set sdf_file         [usf_file_normalize [file join $a_sim_vars(s_launch_dir) $sdf_filename]]
+  set net_file         [usf_file_normalize [file join $properties(launch_directory) $net_filename]]
+  set sdf_file         [usf_file_normalize [file join $properties(launch_directory) $sdf_filename]]
   set netlist_cmd_args [usf_get_netlist_writer_cmd_args $extn]
   set sdf_cmd_args     [usf_get_sdf_writer_cmd_args]
   set design_mode      [get_property DESIGN_MODE [current_fileset]]
 
   # check run status
-  switch -regexp -- $a_sim_vars(s_simulation_flow) {
+  switch -regexp -- $properties(s_simulation_flow) {
     {post_synth_sim} {
       if { {RTL} == $design_mode } {
         if { [get_param "project.checkRunResultsForUnifiedSim"] } {
@@ -596,9 +599,9 @@ proc usf_write_design_netlist {} {
       send_msg_id USF-[usf_aldec_getSimulatorName]-9 INFO "Writing simulation netlist file for design '$design_in_memory'..."
       # write netlist/sdf
       set wv_args "-nolib $netlist_cmd_args -file $net_file"
-      if { {functional} == $a_sim_vars(s_type) } {
+      if { {functional} == $properties(s_type) } {
         set wv_args "-mode funcsim $wv_args"
-      } elseif { {timing} == $a_sim_vars(s_type) } {
+      } elseif { {timing} == $properties(s_type) } {
         set wv_args "-mode timesim $wv_args"
       }
       if { {.v} == $extn } {
@@ -608,13 +611,13 @@ proc usf_write_design_netlist {} {
         send_msg_id USF-[usf_aldec_getSimulatorName]-11 INFO "write_vhdl $wv_args"
         eval "write_vhdl $wv_args"
       }
-      if { {timing} == $a_sim_vars(s_type) } {
+      if { {timing} == $properties(s_type) } {
         send_msg_id USF-[usf_aldec_getSimulatorName]-12 INFO "Writing SDF file..."
         set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
         send_msg_id USF-[usf_aldec_getSimulatorName]-13 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
-      set a_sim_vars(s_netlist_file) $net_file
+      set properties(s_netlist_file) $net_file
     }
     {post_impl_sim} {
       set impl_run [current_run -implementation]
@@ -640,15 +643,15 @@ proc usf_write_design_netlist {} {
           current_design $impl_run
         }
       }
-      
+
       set design_in_memory [current_design]
       send_msg_id USF-[usf_aldec_getSimulatorName]-16 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
       # write netlist/sdf
       set wv_args "-nolib $netlist_cmd_args -file $net_file"
-      if { {functional} == $a_sim_vars(s_type) } {
+      if { {functional} == $properties(s_type) } {
         set wv_args "-mode funcsim $wv_args"
-      } elseif { {timing} == $a_sim_vars(s_type) } {
+      } elseif { {timing} == $properties(s_type) } {
         set wv_args "-mode timesim $wv_args"
       }
       if { {.v} == $extn } {
@@ -658,14 +661,14 @@ proc usf_write_design_netlist {} {
         send_msg_id USF-[usf_aldec_getSimulatorName]-18 INFO "write_vhdl $wv_args"
         eval "write_vhdl $wv_args"
       }
-      if { {timing} == $a_sim_vars(s_type) } {
+      if { {timing} == $properties(s_type) } {
         send_msg_id USF-[usf_aldec_getSimulatorName]-19 INFO "Writing SDF file..."
         set ws_args "-mode timesim $sdf_cmd_args -file $sdf_file"
         send_msg_id USF-[usf_aldec_getSimulatorName]-20 INFO "write_sdf $ws_args"
         eval "write_sdf $ws_args"
       }
 
-      set a_sim_vars(s_netlist_file) $net_file
+      set properties(s_netlist_file) $net_file
     }
   }
   if { [file exist $net_file] } { send_msg_id USF-[usf_aldec_getSimulatorName]-21 INFO "Netlist generated:$net_file" }
@@ -677,12 +680,12 @@ proc usf_xport_data_files { } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   variable s_data_files_filter
   variable s_non_hdl_data_files_filter
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
+  set tcl_obj $properties(sp_tcl_obj)
   if { [usf_is_ip $tcl_obj] } {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-23 INFO "Inspecting IP design source files for '$a_sim_vars(s_sim_top)'...\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-23 INFO "Inspecting IP design source files for '$properties(s_sim_top)'...\n"
 
     # export ip data files to run dir
     if { [get_param "project.copyDataFilesForSim"] } {
@@ -702,7 +705,7 @@ proc usf_xport_data_files { } {
       usf_export_data_files $data_files
     }
   } elseif { [usf_is_fileset $tcl_obj] } {
-    send_msg_id USF-[usf_aldec_getSimulatorName]-24 INFO "Inspecting design source files for '$a_sim_vars(s_sim_top)' in fileset '$tcl_obj'...\n"
+    send_msg_id USF-[usf_aldec_getSimulatorName]-24 INFO "Inspecting design source files for '$properties(s_sim_top)' in fileset '$tcl_obj'...\n"
     # export all fileset data files to run dir
     if { [get_param "project.copyDataFilesForSim"] } {
       usf_export_fs_data_files $s_data_files_filter
@@ -744,17 +747,17 @@ proc usf_get_top_library { } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
-  set flow    $a_sim_vars(s_simulation_flow)
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
+  set flow    $properties(s_simulation_flow)
+  set tcl_obj $properties(sp_tcl_obj)
 
   set src_mgmt_mode         [get_property "SOURCE_MGMT_MODE" [current_project]]
   set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
 
   # was -of_objects <ip> specified?, fetch current fileset
   if { [usf_is_ip $tcl_obj] } {
-    set tcl_obj [get_filesets $a_sim_vars(s_simset)]
+    set tcl_obj [get_filesets $properties(simset)]
   }
 
   # 1. get the default top library set for the project
@@ -826,9 +829,9 @@ proc usf_contains_vhdl { design_files } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
-  set flow $a_sim_vars(s_simulation_flow)
+  set flow $properties(s_simulation_flow)
 
   set b_vhdl_srcs 0
   foreach file $design_files {
@@ -842,7 +845,7 @@ proc usf_contains_vhdl { design_files } {
   }
 
   if { (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && (!$b_vhdl_srcs) } {
-    set extn [file extension $a_sim_vars(s_netlist_file)]
+    set extn [file extension $properties(s_netlist_file)]
     if { {.vhd} == $extn } {
       set b_vhdl_srcs 1
     }
@@ -856,9 +859,9 @@ proc usf_contains_verilog { design_files } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
-  set flow $a_sim_vars(s_simulation_flow)
+  set flow $properties(s_simulation_flow)
 
   set b_verilog_srcs 0
   foreach file $design_files {
@@ -871,7 +874,7 @@ proc usf_contains_verilog { design_files } {
   }
 
   if { (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && (!$b_verilog_srcs) } {
-    set extn [file extension $a_sim_vars(s_netlist_file)]
+    set extn [file extension $properties(s_netlist_file)]
     if { {.v} == $extn } {
       set b_verilog_srcs 1
     }
@@ -945,10 +948,10 @@ proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set fs_obj      [get_filesets $a_sim_vars(s_simset)]
+  variable properties
+  set fileset_object      [get_filesets $properties(simset)]
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-  set flow        $a_sim_vars(s_simulation_flow)
+  set flow        $properties(s_simulation_flow)
   if { [usf_contains_verilog $design_files] } {
     return 1
   }
@@ -964,8 +967,8 @@ proc usf_copy_glbl_file {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set run_dir $a_sim_vars(s_launch_dir)
+  variable properties
+  set run_dir $properties(launch_directory)
 
   set target_glbl_file [usf_file_normalize [file join $run_dir "glbl.v"]]
   if { [file exists $target_glbl_file] } {
@@ -985,15 +988,15 @@ proc usf_create_do_file { simulator do_filename } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set fs_obj [current_fileset -simset]
-  set top $::tclapp::aldec::common::helpers::a_sim_vars(s_sim_top)
-  set do_file [file join $a_sim_vars(s_launch_dir) $do_filename]
+  variable properties
+  set fileset_object [current_fileset -simset]
+  set top $::tclapp::aldec::common::helpers::properties(s_sim_top)
+  set do_file [file join $properties(launch_directory) $do_filename]
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id USF-[usf_aldec_getSimulatorName]-27 ERROR "Failed to open file to write ($do_file)\n"
   } else {
-    set time [get_property "RUNTIME" $fs_obj]
+    set time [get_property "RUNTIME" $fileset_object]
     puts $fh_do "run $time"
   }
   close $fh_do
@@ -1004,45 +1007,45 @@ proc usf_prepare_ip_for_simulation { } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  #if { [regexp {^post_} $a_sim_vars(s_simulation_flow)] } {
+  variable properties
+  #if { [regexp {^post_} $properties(s_simulation_flow)] } {
   #  return
   #}
-  variable a_sim_vars
+  variable properties
   # list of block filesets and corresponding runs to launch
-  set fs_objs        [list]
+  set fileset_objects        [list]
   set runs_to_launch [list]
   # target object (fileset or ip)
-  set target_obj $a_sim_vars(sp_tcl_obj)
+  set target_obj $properties(sp_tcl_obj)
   if { [usf_is_fileset $target_obj] } {
     set fs $target_obj
     # add specified fileset (expected simulation fileset)
-    lappend fs_objs $fs
+    lappend fileset_objects $fs
     # add linked source fileset
     if { {SimulationSrcs} == [get_property "FILESET_TYPE" [get_filesets $fs]] } {
       set src_set [get_property "SOURCE_SET" [get_filesets $fs]]
       if { {} != $src_set } {
-        lappend fs_objs $src_set
+        lappend fileset_objects $src_set
       }
     }
     # add block filesets
     set filter "FILESET_TYPE == \"BlockSrcs\""
-    foreach blk_fs_obj [get_filesets -filter $filter] {
-      lappend fs_objs $blk_fs_obj
+    foreach blk_fileset_object [get_filesets -filter $filter] {
+      lappend fileset_objects $blk_fileset_object
     }
     set ip_filter "FILE_TYPE == \"IP\""
-    foreach fs_obj $fs_objs {
-      set fs_name [get_property "NAME" [get_filesets $fs_obj]]
+    foreach fileset_object $fileset_objects {
+      set fs_name [get_property "NAME" [get_filesets $fileset_object]]
       send_msg_id USF-[usf_aldec_getSimulatorName]-28 INFO "Inspecting fileset '$fs_name' for IP generation...\n"
       # get ip composite files
-      foreach comp_file [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $ip_filter] {
+      foreach comp_file [get_files -quiet -of_objects [get_filesets $fileset_object] -filter $ip_filter] {
         usf_generate_comp_file_for_simulation $comp_file runs_to_launch
       }
     }
     # fileset contains embedded sources? generate mem files
     if { [usf_is_embedded_flow] } {
       send_msg_id USF-[usf_aldec_getSimulatorName]-29 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
-      generate_mem_files $a_sim_vars(s_launch_dir)
+      generate_mem_files $properties(launch_directory)
     }
   } elseif { [usf_is_ip $target_obj] } {
     set comp_file $target_obj
@@ -1061,7 +1064,7 @@ proc usf_prepare_ip_for_simulation { } {
   }
   # update compile order
   if { {None} != [get_property "SOURCE_MGMT_MODE" [current_project]] } {
-    foreach fs $fs_objs {
+    foreach fs $fileset_objects {
       if { [usf_fs_contains_hdl_source $fs] } {
         update_compile_order -fileset [get_filesets $fs]
       }
@@ -1074,13 +1077,13 @@ proc usf_generate_mem_files_for_simulation { } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
-  if { [usf_is_fileset $a_sim_vars(sp_tcl_obj)] } {
+  if { [usf_is_fileset $properties(sp_tcl_obj)] } {
     # fileset contains embedded sources? generate mem files
     if { [usf_is_embedded_flow] } {
       send_msg_id USF-[usf_aldec_getSimulatorName]-32 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
-      generate_mem_files $a_sim_vars(s_launch_dir)
+      generate_mem_files $properties(launch_directory)
     }
   }
 }
@@ -1091,7 +1094,7 @@ proc usf_fs_contains_hdl_source { fs } {
   # Return Value:
 
   variable l_valid_ip_extns
-  variable l_valid_hdl_extns
+  variable valid_hdl_extensions
 
   set b_contains_hdl 0
   set tokens [split [find_top -fileset $fs -return_file_paths] { }]
@@ -1105,7 +1108,7 @@ proc usf_fs_contains_hdl_source { fs } {
     if { [lsearch -exact $l_valid_ip_extns $extn] >= 0 } { continue; }
 
     # check if any HDL sources present in fileset
-    if { [lsearch -exact $l_valid_hdl_extns $extn] >= 0 } {
+    if { [lsearch -exact $valid_hdl_extensions $extn] >= 0 } {
       set b_contains_hdl 1
       break
     }
@@ -1118,14 +1121,14 @@ proc usf_aldec_set_simulator_path {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
   set bin_path  {}
   set tool_name {} 
   set path_sep  {;}
 
   if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
-  set install_path $a_sim_vars(s_install_path)
+  set install_path $properties(s_install_path)
   send_msg_id USF-[usf_aldec_getSimulatorName]-33 INFO "Finding simulator installation...\n"
 
   switch -- [get_property target_simulator [current_project]] {
@@ -1150,7 +1153,7 @@ proc usf_aldec_set_simulator_path {} {
   if { {} == $install_path } {
     set bin_path [usf_get_bin_path $tool_name $path_sep]
     if { {} == $bin_path } {
-      if { $a_sim_vars(b_scripts_only) } {
+      if { $properties(only_generate_scripts) } {
         set bin_path {<specify-simulator-tool-path>}
         send_msg_id USF-[usf_aldec_getSimulatorName]-34 WARNING \
           "Simulator executable path could not be located. Please make sure to set the path in the generated scripts manually before executing these scripts.\n"
@@ -1189,9 +1192,9 @@ proc usf_aldec_set_simulator_path {} {
     }
   }
 
-  set a_sim_vars(s_tool_bin_path) [string map {/ \\\\} $bin_path]
+  set properties(s_tool_bin_path) [string map {/ \\\\} $bin_path]
   if {$::tcl_platform(platform) == "unix"} {
-    set a_sim_vars(s_tool_bin_path) $bin_path
+    set properties(s_tool_bin_path) $bin_path
   }
 }
 
@@ -1200,10 +1203,10 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   upvar $global_files_str_arg global_files_str
 
-  set sim_flow $a_sim_vars(s_simulation_flow)
+  set sim_flow $properties(s_simulation_flow)
  
   set design_files [list]
   if { ({behav_sim} == $sim_flow) } {
@@ -1219,17 +1222,17 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   variable l_compile_order_files
   upvar $global_files_str_arg global_files_str
 
-  set files          [list]
+  set files                 [list]
   set l_compile_order_files [list]
-  set target_obj     $a_sim_vars(sp_tcl_obj)
-  set simset_obj     [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
-  set linked_src_set [get_property "SOURCE_SET" $simset_obj]
-  set target_lang    [get_property "TARGET_LANGUAGE" [current_project]]
-  set src_mgmt_mode  [get_property "SOURCE_MGMT_MODE" [current_project]]
+  set target_obj            $properties(sp_tcl_obj)
+  set simset_obj            [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]
+  set linked_src_set        [get_property "SOURCE_SET" $simset_obj]
+  set target_lang           [get_property "TARGET_LANGUAGE" [current_project]]
+  set src_mgmt_mode         [get_property "SOURCE_MGMT_MODE" [current_project]]
 
   # get global include file paths
   set incl_file_paths [list]
@@ -1242,12 +1245,22 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 
   # verilog incl dir's and verilog headers directory path if any
   send_msg_id USF-[usf_aldec_getSimulatorName]-40 INFO "Finding include directories and verilog header directory paths..."
-  set l_incl_dirs_opts [list]
-  set uniq_dirs [list]
-  foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths]] {
-    if { [lsearch -exact $uniq_dirs $dir] == -1 } {
-      lappend uniq_dirs $dir
-      lappend l_incl_dirs_opts "\"+incdir+$dir\""
+  set include_directories_options [list]
+  set unique_directories [list]
+  #puts [usf_get_verilog_header_paths]
+  foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths] ] {
+    if { [lsearch -exact $unique_directories $dir] == -1 } {
+      lappend unique_directories $dir
+      lappend include_directories_options "\"+incdir+$dir\""
+    }
+  }
+
+  if { [is_vip_ip_required] } {
+    set data_dir [rdi::get_data_dir -quiet -datafile xilinx_vip]
+    set dir "${data_dir}/xilinx_vip/include"
+    if { [lsearch -exact $unique_directories $dir] == -1 } {
+      lappend unique_directories $dir
+      lappend include_directories_options "\"+incdir+$dir\""
     }
   }
 
@@ -1264,7 +1277,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
-        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
+        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -1275,7 +1288,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # add files from block filesets
     if { {} != $linked_src_set } {
       if { [get_param project.addBlockFilesetFilesForUnifiedSim] } {
-        usf_add_block_fs_files $global_files_str l_incl_dirs_opts files l_compile_order_files
+        usf_add_block_fs_files $global_files_str include_directories_options files l_compile_order_files
       }
     }
     # add files from simulation compile order
@@ -1284,10 +1297,11 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
         if { [usf_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+        set is_type_hdl [is_hdl_type $file_type]
+        if { !$is_type_hdl } { continue }
         set g_files $global_files_str
         if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
+        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -1302,10 +1316,11 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
           send_msg_id USF-[usf_aldec_getSimulatorName]-42 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
           foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
             set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-            if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+            set is_type_hdl [is_hdl_type $file_type]
+            if { !$is_type_hdl } { continue }
             set g_files $global_files_str
             if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-            set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
+            set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
             if { {} != $cmd_str } {
               lappend files $cmd_str
               lappend l_compile_order_files $file
@@ -1317,14 +1332,15 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 
     if { $b_add_sim_files } {
       # add additional files from simulation fileset
-      send_msg_id USF-[usf_aldec_getSimulatorName]-43 INFO "Fetching design files from '$a_sim_vars(s_simset)'..."
-      foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+      send_msg_id USF-[usf_aldec_getSimulatorName]-43 INFO "Fetching design files from '$properties(simset)'..."
+      foreach file [get_files -quiet -all -of_objects [get_filesets $properties(simset)]] {
         set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+        set is_type_hdl [is_hdl_type $file_type]
+        if { !$is_type_hdl } { continue }
         if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]]} { continue }
         set g_files $global_files_str
         if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
+        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -1337,10 +1353,11 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set ip_filename [file tail $target_obj]
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+      set is_type_hdl [is_hdl_type $file_type]
+      if { !$is_type_hdl } { continue }
       set g_files $global_files_str
       if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
+      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
@@ -1355,14 +1372,14 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   variable l_compile_order_files
   upvar $global_files_str_arg global_files_str
 
   set files         [list]
   set l_compile_order_files [list]
-  set netlist_file  $a_sim_vars(s_netlist_file)
-  set target_obj    $a_sim_vars(sp_tcl_obj)
+  set netlist_file  $properties(s_netlist_file)
+  set target_obj    $properties(sp_tcl_obj)
   set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
   set src_mgmt_mode [get_property "SOURCE_MGMT_MODE" [current_project]]
 
@@ -1375,12 +1392,12 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   set global_files_str [usf_get_global_include_file_cmdstr incl_files]
 
   # verilog incl dir's and verilog headers directory path if any
-  set l_incl_dirs_opts [list]
-  set uniq_dirs [list]
+  set include_directories_options [list]
+  set unique_directories [list]
   foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths]] {
-    if { [lsearch -exact $uniq_dirs $dir] == -1 } {
-      lappend uniq_dirs $dir
-      lappend l_incl_dirs_opts "\"+incdir+$dir\""
+    if { [lsearch -exact $unique_directories $dir] == -1 } {
+      lappend unique_directories $dir
+      lappend include_directories_options "\"+incdir+$dir\""
     }
   }
 
@@ -1389,7 +1406,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     if { {.vhd} == [file extension $netlist_file] } {
       set file_type "VHDL"
     }
-    set cmd_str [usf_get_file_cmd_str $netlist_file $file_type {} l_incl_dirs_opts]
+    set cmd_str [usf_get_file_cmd_str $netlist_file $file_type {} include_directories_options]
     if { {} != $cmd_str } {
       lappend files $cmd_str
       lappend l_compile_order_files $netlist_file
@@ -1404,7 +1421,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
   #  set file_type [get_property "FILE_TYPE" $file]
-  #  set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
+  #  set cmd_str [usf_get_file_cmd_str $file $file_type {} include_directories_options]
   #  if { {} != $cmd_str } {
   #    lappend files $cmd_str
   #    lappend l_compile_order_files $file
@@ -1418,7 +1435,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
   #  set file_type [get_property "FILE_TYPE" $file]
-  #  set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
+  #  set cmd_str [usf_get_file_cmd_str $file $file_type {} include_directories_options]
   #  if { {} != $cmd_str } {
   #    lappend files $cmd_str
   #    lappend l_compile_order_files $file
@@ -1430,20 +1447,21 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
 
     # 851957 - if simulation and design source file tops are same (no testbench), skip adding simset files. Just pass the netlist above.
     set src_fs_top [get_property top [current_fileset]]
-    set sim_fs_top [get_property top [get_filesets $a_sim_vars(s_simset)]]
+    set sim_fs_top [get_property top [get_filesets $properties(simset)]]
     if { $src_fs_top == $sim_fs_top } {
       return $files
     }
 
     # add additional files from simulation fileset
-    set simset_files [get_files -compile_order sources -used_in synthesis_post -of_objects [get_filesets $a_sim_vars(s_simset)]]
+    set simset_files [get_files -compile_order sources -used_in synthesis_post -of_objects [get_filesets $properties(simset)]]
     foreach file $simset_files {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+      set is_type_hdl [is_hdl_type $file_type]
+      if { !$is_type_hdl } { continue }
       #if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]]} { continue }
       set g_files $global_files_str
       if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
+      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
@@ -1454,10 +1472,11 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     set ip_filename [file tail $target_obj]
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
       set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+      set is_type_hdl [is_hdl_type $file_type]
+      if { !$is_type_hdl } { continue }
       set g_files $global_files_str
       if { ({VHDL} == $file_type) || ({VHDL} == $file_type) } { set g_files {} }
-      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files l_incl_dirs_opts]
+      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
@@ -1467,19 +1486,19 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   return $files
 }
 
-proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg compile_order_files_arg } {
+proc usf_add_block_fs_files { global_files_str include_directories_options_arg files_arg compile_order_files_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  upvar $l_incl_dirs_opts_arg l_incl_dirs_opts
+  upvar $include_directories_options_arg include_directories_options
   upvar $files_arg files
   upvar $compile_order_files_arg compile_order_files
 
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
   foreach file [usf_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-    set cmd_str [usf_get_file_cmd_str $file $file_type {} l_incl_dirs_opts]
+    set cmd_str [usf_get_file_cmd_str $file $file_type {} include_directories_options]
     if { {} != $cmd_str } {
       lappend files $cmd_str
       lappend compile_order_files $file
@@ -1488,7 +1507,7 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
   set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
   foreach file [usf_get_files_from_block_filesets $verilog_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
-    set cmd_str [usf_get_file_cmd_str $file $file_type $global_files_str l_incl_dirs_opts]
+    set cmd_str [usf_get_file_cmd_str $file $file_type $global_files_str include_directories_options]
     if { {} != $cmd_str } {
       lappend files $cmd_str
       lappend compile_order_files $file
@@ -1515,26 +1534,26 @@ proc usf_launch_script { step } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   set extn [usf_get_script_extn]
   set scr_file ${step}$extn
-  set run_dir $a_sim_vars(s_launch_dir)
+  set run_dir $properties(launch_directory)
 
   set shell_script_file [usf_file_normalize [file join $run_dir $scr_file]]
   usf_make_file_executable $shell_script_file
 
-  if { $a_sim_vars(b_scripts_only) } {
+  if { $properties(only_generate_scripts) } {
     send_msg_id USF-[usf_aldec_getSimulatorName]-45 INFO "Script generated:[usf_file_normalize [file join $run_dir $scr_file]]"
     return 0
   }
 
   set b_wait 0
-  if { $a_sim_vars(b_batch) } {
+  if { $properties(batch_mode_enabled) } {
     set b_wait 1 
   }
   set faulty_run 0
   set cwd [pwd]
-  cd $::tclapp::aldec::common::helpers::a_sim_vars(s_launch_dir)
+  cd $::tclapp::aldec::common::helpers::properties(launch_directory)
   send_msg_id USF-[usf_aldec_getSimulatorName]-46 INFO "Executing '[string toupper $step]' step in '$run_dir'"
   set results_log {}
   switch $step {
@@ -1645,13 +1664,13 @@ proc usf_aldec_get_platform {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
   switch -- [get_property target_simulator [current_project]] {
     Riviera {
       set tool_extn {.bat}
       if { $::tcl_platform(platform) == "unix" } { set tool_extn {} }
-      set vsimsa [file join $a_sim_vars(s_tool_bin_path) "../runvsimsa$tool_extn"]
+      set vsimsa [file join $properties(s_tool_bin_path) "../runvsimsa$tool_extn"]
       if { [file isfile $vsimsa] } {
         set in [open "| \"$vsimsa\" -version"]
         set data [read $in]
@@ -1665,7 +1684,7 @@ proc usf_aldec_get_platform {} {
       }
     }
     ActiveHDL {
-      set avhdlXml [file join $a_sim_vars(s_tool_bin_path) avhdl.xml]
+      set avhdlXml [file join $properties(s_tool_bin_path) avhdl.xml]
       if { [file isfile $avhdlXml] } {
         set in [open $avhdlXml r]
         while { ![eof $in] } {
@@ -1683,10 +1702,10 @@ proc usf_aldec_get_platform {} {
   
   send_msg_id USF-[usf_aldec_getSimulatorName]-49 WARNING "Failed to detect whether 32- or 64-bit version of [usf_aldec_getSimulatorName] is installed.\n"
 
-  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+  set fileset_object [get_filesets $properties(simset)]
   set platform {}
   set os $::tcl_platform(platform)
-  set b_32_bit [get_property 32bit $fs_obj]
+  set b_32_bit [get_property 32bit $fileset_object]
   if { {windows} == $os } {
     set platform "win64"
     if { $b_32_bit } {
@@ -1779,7 +1798,7 @@ proc usf_get_netlist_extn { warning } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
 
   set extn {.v}
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
@@ -1787,10 +1806,10 @@ proc usf_get_netlist_extn { warning } {
     set extn {.vhd}
   }
   
-  if { (({VHDL} == $target_lang) && ({timing} == $a_sim_vars(s_type))) } {
+  if { (({VHDL} == $target_lang) && ({timing} == $properties(s_type))) } {
     set extn {.v}
     if { $warning } {
-      send_msg_id USF-[usf_aldec_getSimulatorName]-55 INFO "The target language is set to VHDL, it is not supported for simulation type '$a_sim_vars(s_type)', using Verilog instead.\n"
+      send_msg_id USF-[usf_aldec_getSimulatorName]-55 INFO "The target language is set to VHDL, it is not supported for simulation type '$properties(s_type)', using Verilog instead.\n"
     }
   }
   return $extn
@@ -1801,19 +1820,19 @@ proc usf_get_netlist_filename { } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set filename $a_sim_vars(s_sim_top)
-  switch -regexp -- $a_sim_vars(s_simulation_flow) {
+  variable properties
+  set filename $properties(s_sim_top)
+  switch -regexp -- $properties(s_simulation_flow) {
     {behav_sim} { set filename [append filename "_behav"] }
     {post_synth_sim} -
     {post_impl_sim} {
-      switch -regexp -- $a_sim_vars(s_type) {
+      switch -regexp -- $properties(s_type) {
         {functional} { set filename [append filename "_func"] }
         {timing} {set filename [append filename "_time"] }
       }
     }
   }
-  switch -regexp -- $a_sim_vars(s_simulation_flow) {
+  switch -regexp -- $properties(s_simulation_flow) {
     {post_synth_sim} { set filename [append filename "_synth"] }
     {post_impl_sim}  { set filename [append filename "_impl"] }
   }
@@ -1825,9 +1844,9 @@ proc usf_export_data_files { data_files } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   variable l_target_simulator
-  set export_dir $a_sim_vars(s_launch_dir)
+  set export_dir $properties(launch_directory)
   if { [llength $data_files] > 0 } {
     set data_files [usf_remove_duplicate_files $data_files]
     foreach file $data_files {
@@ -1845,7 +1864,7 @@ proc usf_export_data_files { data_files } {
       }
       set target_file [file join $export_dir [file tail $file]]
       if { [get_param project.enableCentralSimRepo] } {
-        set mem_init_dir [usf_file_normalize [file join $a_sim_vars(dynamic_repo_dir) "mem_init_files"]]
+        set mem_init_dir [usf_file_normalize [file join $properties(dynamic_repo_dir) "mem_init_files"]]
         set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
         if {[catch {file copy -force $data_file $export_dir} error_msg] } {
           send_msg_id USF-[usf_aldec_getSimulatorName]-56 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
@@ -1865,8 +1884,8 @@ proc usf_export_fs_data_files { filter } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
+  variable properties
+  set fileset_object [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]
   set data_files [list]
   # ip data files
   set ips [get_files -all -quiet -filter "FILE_TYPE == \"IP\""]
@@ -1885,11 +1904,11 @@ proc usf_export_fs_data_files { filter } {
   lappend filesets [current_fileset -srcset]
 
   # current simulation fileset data files
-  lappend filesets [get_filesets $a_sim_vars(s_simset)]
+  lappend filesets [get_filesets $properties(simset)]
 
   # collect all fileset data files
-  foreach fs_obj $filesets {
-    foreach file [get_files -all -quiet -of_objects [get_filesets $fs_obj] -filter $filter] {
+  foreach fileset_object $filesets {
+    foreach file [get_files -all -quiet -of_objects [get_filesets $fileset_object] -filter $filter] {
       lappend data_files $file
     }
   }
@@ -1901,12 +1920,12 @@ proc usf_export_fs_non_hdl_data_files {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   variable s_non_hdl_data_files_filter
 
-  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
+  set fileset_object [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]
   set data_files [list]
-  foreach file [get_files -all -quiet -of_objects [get_filesets $fs_obj] -filter $s_non_hdl_data_files_filter] {
+  foreach file [get_files -all -quiet -of_objects [get_filesets $fileset_object] -filter $s_non_hdl_data_files_filter] {
     # skip user disabled (if the file supports is_user_disabled property
     if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file] } {
@@ -1926,14 +1945,14 @@ proc usf_get_files_from_block_filesets { filter_type } {
   set file_list [list]
   set filter "FILESET_TYPE == \"BlockSrcs\""
   set used_in_val "simulation"
-  set fs_objs [get_filesets -filter $filter]
-  if { [llength $fs_objs] > 0 } {
+  set fileset_objects [get_filesets -filter $filter]
+  if { [llength $fileset_objects] > 0 } {
     send_msg_id USF-[usf_aldec_getSimulatorName]-59 INFO "Finding block fileset files..."
-    foreach fs_obj $fs_objs {
-      set fs_name [get_property "NAME" $fs_obj]
+    foreach fileset_object $fileset_objects {
+      set fs_name [get_property "NAME" $fileset_object]
       send_msg_id USF-[usf_aldec_getSimulatorName]-60 INFO "Inspecting fileset '$fs_name' for '$filter_type' files...\n"
-      #set files [usf_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]]
-      set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fs_obj] -filter $filter_type]
+      #set files [usf_remove_duplicate_files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fileset_object] -filter $filter_type]]
+      set files [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $fileset_object] -filter $filter_type]
       if { [llength $files] == 0 } {
         send_msg_id USF-[usf_aldec_getSimulatorName]-61 INFO "No files found in '$fs_name'\n"
         continue
@@ -1969,35 +1988,38 @@ proc usf_get_include_dirs { } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   set dir_names [list]
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
+  set tcl_obj $properties(sp_tcl_obj)
   set incl_dirs [list]
   set incl_dir_str {}
   if { [usf_is_ip $tcl_obj] } {
     set incl_dir_str [usf_get_incl_dirs_from_ip $tcl_obj]
     set incl_dirs [split $incl_dir_str "|"]
   } else {
+    #puts "DEBUG:" 
+    #set temp [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]
+    #puts $temp
     set incl_dir_str [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $tcl_obj]]]
     set incl_prop_dirs [split $incl_dir_str "|"]
 
     # include dirs from design source set
     set linked_src_set [get_property "SOURCE_SET" [get_filesets $tcl_obj]]
     if { {} != $linked_src_set } {
-      set src_fs_obj [get_filesets $linked_src_set]
-      set dirs [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $src_fs_obj]]]
+      set src_fileset_object [get_filesets $linked_src_set]
+      set dirs [usf_resolve_incl_dir_property_value [get_property "INCLUDE_DIRS" [get_filesets $src_fileset_object]]]
       foreach dir [split $dirs "|"] {
         if { [lsearch -exact $incl_prop_dirs $dir] == -1 } {
           lappend incl_prop_dirs $dir
-        } 
-      }  
+        }
+      }
     }
 
     foreach dir $incl_prop_dirs {
-      if { $a_sim_vars(b_absolute_path) } {
+      if { $properties(use_absolute_paths) } {
         set dir "[usf_resolve_file_path $dir]"
       } else {
-        set dir "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]]"
+        set dir "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $dir $properties(launch_directory)]]"
       }
       lappend incl_dirs $dir
     }
@@ -2014,8 +2036,8 @@ proc usf_get_verilog_header_paths {} {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set simset_obj     [get_filesets $a_sim_vars(s_simset)]
+  variable properties
+  set simset_obj     [get_filesets $properties(simset)]
   set include_paths  [list]
   # 1. get paths for verilog header files (.vh, .h)
   usf_get_header_include_paths include_paths 
@@ -2041,8 +2063,8 @@ proc usf_get_header_include_paths { incl_header_paths_arg } {
   # Return Value:
 
   upvar $incl_header_paths_arg incl_header_paths
-  variable a_sim_vars
-  set simset_obj     [get_filesets $a_sim_vars(s_simset)]
+  variable properties
+  set simset_obj     [get_filesets $properties(simset)]
   set unique_paths   [list]
   set linked_src_set [get_property "SOURCE_SET" $simset_obj]
   if { {} != $linked_src_set } {
@@ -2054,24 +2076,24 @@ proc usf_get_header_include_paths { incl_header_paths_arg } {
   usf_add_unique_incl_paths $simset_obj unique_paths incl_header_paths
   # add paths from block filesets
   set filter "FILESET_TYPE == \"BlockSrcs\""
-  foreach blk_fs_obj [get_filesets -filter $filter] {
-    set fs_name [get_property "NAME" [get_filesets $blk_fs_obj]]
-    usf_add_unique_incl_paths $blk_fs_obj unique_paths incl_header_paths
+  foreach blk_fileset_object [get_filesets -filter $filter] {
+    set fs_name [get_property "NAME" [get_filesets $blk_fileset_object]]
+    usf_add_unique_incl_paths $blk_fileset_object unique_paths incl_header_paths
   }
 }
 
-proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg } {
+proc usf_add_unique_incl_paths { fileset_object unique_paths_arg incl_header_paths_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   upvar $unique_paths_arg      unique_paths
   upvar $incl_header_paths_arg incl_header_paths
-  variable a_sim_vars
-  set dir $a_sim_vars(s_launch_dir)
+  variable properties
+  set dir $properties(launch_directory)
 
   # setup the filter to include only header types enabled for simulation
-  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"Verilog Header\""
+  set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
   set vh_files [get_files -all -quiet -filter $filter]
   foreach vh_file $vh_files {
     set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
@@ -2090,13 +2112,16 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
         if { $b_is_bd } {
           set vh_file [usf_fetch_ipi_static_file $vh_file]
         } else {
-          set vh_file [usf_fetch_ip_static_file $vh_file $vh_file_obj]
+          set vh_file_path [usf_fetch_ip_static_file $vh_file $vh_file_obj]
+          if { $properties(b_use_static_lib) && [file exists $vh_file_path] || !$properties(b_use_static_lib) } {
+            set vh_file $vh_file_path
+          }
         }
       }
     }
     set file_path [usf_file_normalize [string map {\\ /} [file dirname $vh_file]]]
     if { [lsearch -exact $unique_paths $file_path] == -1 } {
-      if { $a_sim_vars(b_absolute_path) } {
+      if { $properties(use_absolute_paths) } {
         set incl_file_path "[usf_resolve_file_path $file_path]"
       } else {
         set incl_file_path "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $file_path $dir]]"
@@ -2114,10 +2139,10 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
 
   upvar $incl_file_paths_arg incl_file_paths
   upvar $incl_files_arg      incl_files
-  variable a_sim_vars
+  variable properties
   set filesets       [list]
-  set dir            $a_sim_vars(s_launch_dir)
-  set simset_obj     [get_filesets $a_sim_vars(s_simset)]
+  set dir            $properties(launch_directory)
+  set simset_obj     [get_filesets $properties(simset)]
   set linked_src_set [get_property "SOURCE_SET" $simset_obj]
   set incl_files_set [list]
 
@@ -2126,8 +2151,8 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
   }
   lappend filesets $simset_obj
   set filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog Template\""
-  foreach fs_obj $filesets {
-    set vh_files [get_files -quiet -all -of_objects [get_filesets $fs_obj] -filter $filter]
+  foreach fileset_object $filesets {
+    set vh_files [get_files -quiet -all -of_objects [get_filesets $fileset_object] -filter $filter]
     foreach file $vh_files {
       # skip if not marked as global include
       if { ![get_property "IS_GLOBAL_INCLUDE" [lindex [get_files -quiet -all [list "$file"]] 0]] } {
@@ -2145,7 +2170,7 @@ proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir
         lappend incl_files_set $file
         lappend incl_files     $file
         set incl_file_path [usf_file_normalize [string map {\\ /} [file dirname $file]]]
-        if { $a_sim_vars(b_absolute_path) } {
+        if { $properties(use_absolute_paths) } {
           set incl_file_path "[usf_resolve_file_path $incl_file_path]"
         } else {
           if { $ref_dir } {
@@ -2163,8 +2188,8 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set launch_dir $a_sim_vars(s_launch_dir)
+  variable properties
+  set launch_dir $properties(launch_directory)
   set ip_name [file tail $tcl_obj]
   set incl_dirs [list]
   set filter "FILE_TYPE == \"Verilog Header\""
@@ -2189,10 +2214,10 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
         set dir [join [lrange [split $dir "/"] 1 end] "/"]
       }
     } else {
-      if { $a_sim_vars(b_absolute_path) } {
+      if { $properties(use_absolute_paths) } {
         set dir "[usf_resolve_file_path $dir]"
       } else {
-        set dir "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]]"
+        set dir "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $dir $properties(launch_directory)]]"
       }
     }
     lappend incl_dirs $dir
@@ -2254,14 +2279,9 @@ proc usf_get_relative_file_path { file_path_to_convert relative_to } {
   # Return Value:
   # Relative path wrt the path specified
 
-  variable a_sim_vars
   # make sure we are dealing with a valid relative_to directory. If regular file or is not a directory, get directory
   if { [file isfile $relative_to] || ![file isdirectory $relative_to] } {
     set relative_to [file dirname $relative_to]
-  }
-
-  if { [file pathtype $file_path_to_convert] eq "relative" } {
-    return $file_path_to_convert
   }
 
   set cwd [usf_file_normalize [pwd]]
@@ -2269,22 +2289,21 @@ proc usf_get_relative_file_path { file_path_to_convert relative_to } {
   if { [file pathtype $relative_to] eq "relative" } {
     set relative_to [file join $cwd $relative_to]
   }
-  
+
   # normalize
-  set file_path_to_convert [usf_file_normalize $file_path_to_convert]
-  set relative_to          [usf_file_normalize $relative_to]
-  set file_path $file_path_to_convert
+  set file_path         [usf_file_normalize $file_path_to_convert]
+  set relative_to       [usf_file_normalize $relative_to]
   set file_comps        [file split $file_path]
   set relative_to_comps [file split $relative_to]
-  set found_match false
-  set index 0
-  set fc_comps_len [llength $file_comps]
-  set rt_comps_len [llength $relative_to_comps]
+  set found_match       false
+  set index             0
+  set fc_comps_len      [llength $file_comps]
+  set rt_comps_len      [llength $relative_to_comps]
   # compare each dir element of file_to_convert and relative_to, set the flag and
   # get the final index till these sub-dirs matched
   while { $::tcl_platform(platform) == {windows} && [string equal -nocase [lindex $file_comps $index] [lindex $relative_to_comps $index]] 
     || $::tcl_platform(platform) != {windows} && [string equal [lindex $file_comps $index] [lindex $relative_to_comps $index]] } {
-    if { !$found_match } { set found_match true }
+    set found_match true
     incr index
     if { ($index == $fc_comps_len) || ($index == $rt_comps_len) } {
       break;
@@ -2300,7 +2319,6 @@ proc usf_get_relative_file_path { file_path_to_convert relative_to } {
       set parent_dir_path "../$parent_dir_path"
       incr rel_index
     }
-    #
     # at this point we have parent_dir_path setup with exact number of sub-dirs to go up
     #
     # now build up part of path which is relative to matched part
@@ -2332,8 +2350,8 @@ proc usf_resolve_file_path { file_dir_path_to_convert } {
   # Return Value:
   # Relative path wrt the path specified
 
-  variable a_sim_vars
-  set ref_dir [usf_file_normalize [string map {\\ /} $a_sim_vars(s_launch_dir)]]
+  variable properties
+  set ref_dir [usf_file_normalize [string map {\\ /} $properties(launch_directory)]]
   set ref_comps [lrange [split $ref_dir "/"] 1 end]
   set file_comps [lrange [split [usf_file_normalize [string map {\\ /} $file_dir_path_to_convert]] "/"] 1 end]
   set index 1
@@ -2384,7 +2402,7 @@ proc usf_get_compiler_name { file_type } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   set compiler ""
   if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } {
     set compiler "vcom"
@@ -2400,14 +2418,14 @@ proc usf_aldec_append_compiler_options { tool file_type opts_arg } {
   # Return Value:
 
   upvar $opts_arg opts
-  variable a_sim_vars
-  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+  variable properties
+  set fileset_object [get_filesets $properties(simset)]
   switch $tool {
     "vcom" {
-      lappend opts "\$${tool}_opts"
+      lappend opts "\{*\}\$${tool}_opts"
     }
     "vlog" {
-      lappend opts "\$${tool}_opts"
+      lappend opts "\{*\}\$${tool}_opts"
     }
   }
 }
@@ -2428,11 +2446,11 @@ proc usf_aldec_get_compiler_standard_by_file_type { file_type } {
   # Argument Usage:
   # Return Value:
   
-  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::a_sim_vars(s_simset)]
+  set fileset_object [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]
   
   switch -nocase -regexp -- $file_type {
     "^VHDL$" {
-      switch -- [get_property [usf_aldec_getPropertyName COMPILE.VHDL_SYNTAX] $fs_obj] {
+      switch -- [get_property [usf_aldec_getPropertyName COMPILE.VHDL_SYNTAX] $fileset_object] {
         93 { return "-93" }
         2002 { return "-2002" }
         2008 { return "-2008" }
@@ -2442,14 +2460,14 @@ proc usf_aldec_get_compiler_standard_by_file_type { file_type } {
       return "-2008"
     }
     "^Verilog|Verilog Header$" {
-      switch -- [get_property [usf_aldec_getPropertyName COMPILE.VLOG_SYNTAX] $fs_obj] {
+      switch -- [get_property [usf_aldec_getPropertyName COMPILE.VLOG_SYNTAX] $fileset_object] {
         1995 { return "-v95" }
         2001 { return "-v2k" }
         2005 { return "-v2k5" }
       }
     }
     "^SystemVerilog$" {
-      switch -- [get_property [usf_aldec_getPropertyName COMPILE.SV_SYNTAX] $fs_obj] {
+      switch -- [get_property [usf_aldec_getPropertyName COMPILE.SV_SYNTAX] $fileset_object] {
         2005 { return "-sv2k5" }
         2009 { return "-sv2k9" }
         2012 {
@@ -2469,13 +2487,13 @@ proc usf_append_other_options { tool file_type global_files_str opts_arg } {
   # Return Value:
 
   upvar $opts_arg opts
-  variable a_sim_vars
-  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+  variable properties
+  set fileset_object [get_filesets $properties(simset)]
   switch $tool {
     "vlog" {
       # verilog defines
       set verilog_defines [list]
-      set verilog_defines [get_property "VERILOG_DEFINE" [get_filesets $fs_obj]]
+      set verilog_defines [get_property "VERILOG_DEFINE" [get_filesets $fileset_object]]
       if { [llength $verilog_defines] > 0 } {
         usf_append_define_generics $verilog_defines $tool opts
       }
@@ -2577,12 +2595,12 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
   set src_file [usf_file_normalize $comp_file]
   set ip_basename [file root [file tail $src_file]]
   # block-fileset may not be created at this point, so quiet if not found
-  set block_fs_obj [get_filesets -quiet $ip_basename]
+  set block_fileset_object [get_filesets -quiet $ip_basename]
   # "block fileset" exists? if not create it
-  if { {} == $block_fs_obj } {
+  if { {} == $block_fileset_object } {
     create_fileset -blockset "$ip_basename"
-    set block_fs_obj [get_filesets $ip_basename]
-    send_msg_id USF-[usf_aldec_getSimulatorName]-73 INFO "Block-fileset created:$block_fs_obj"
+    set block_fileset_object [get_filesets $ip_basename]
+    send_msg_id USF-[usf_aldec_getSimulatorName]-73 INFO "Block-fileset created:$block_fileset_object"
     # set fileset top
     set comp_file_top [get_property "IP_TOP" $comp_file_obj]
     set_property "TOP" $comp_file_top [get_filesets $ip_basename]
@@ -2590,7 +2608,7 @@ proc usf_generate_ip_netlist { comp_file runs_to_launch_arg } {
     send_msg_id USF-[usf_aldec_getSimulatorName]-74 INFO "Moving ip composite source(s) to '$ip_basename' fileset"
     move_files -fileset [get_filesets $ip_basename] [get_files -of_objects [get_filesets $comp_file_fs] $src_file] 
   }
-  if { {BlockSrcs} != [get_property "FILESET_TYPE" $block_fs_obj] } {
+  if { {BlockSrcs} != [get_property "FILESET_TYPE" $block_fileset_object] } {
     send_msg_id USF-[usf_aldec_getSimulatorName]-75 ERROR "Given source file is not associated with a design source fileset.\n"
     return 1
   }
@@ -2653,7 +2671,7 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   # Return Value:
 
   upvar $incl_files_arg incl_files
-  variable a_sim_vars
+  variable properties
   set file_str [list]
   foreach file $incl_files {
     lappend file_str "\"$file\""
@@ -2661,15 +2679,14 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   return [join $file_str " "]
 }
 
-proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg } {
+proc usf_get_file_cmd_str { file file_type global_files_str include_directories_options_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  upvar $l_incl_dirs_opts_arg l_incl_dirs_opts
-  set dir             $a_sim_vars(s_launch_dir)
-  set b_absolute_path $a_sim_vars(b_absolute_path)
+  variable properties
+  upvar $include_directories_options_arg include_directories_options
+  set use_absolute_paths $properties(use_absolute_paths)
   set cmd_str {}
   set associated_library [get_property "DEFAULT_LIB" [current_project]]
   set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
@@ -2680,7 +2697,7 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
     if { [get_param "project.enableCentralSimRepo"] } {
       # no op
     } else {
-      if { $a_sim_vars(b_extract_ip_sim_files) } {
+      if { $properties(b_extract_ip_sim_files) } {
         set xcix_ip_path [get_property core_container $file_obj]
         if { {} != $xcix_ip_path } {
           set ip_name [file root [file tail $xcix_ip_path]]
@@ -2696,12 +2713,9 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
     }
   }
 
-  set ip_file  [usf_get_top_ip_filename $file]
+  set ip_file [usf_get_top_ip_filename $file]
   set b_static_ip_file 0
-  set file [usf_get_ip_file_from_repo $ip_file $file $associated_library $dir b_static_ip_file]
-
-  # any spaces in file path, escape it?
-  regsub -all { } $file {\\\\ } file
+  set file [usf_get_ip_file_from_repo $ip_file $file $associated_library $properties(launch_directory) b_static_ip_file]
 
   set compiler [usf_get_compiler_name $file_type]
   set arg_list [list]
@@ -2715,12 +2729,12 @@ proc usf_get_file_cmd_str { file file_type global_files_str l_incl_dirs_opts_arg
 
   # append include dirs for verilog sources
   if { {vlog} == $compiler } {
-    set arg_list [concat $arg_list $l_incl_dirs_opts]
+    set arg_list [concat $arg_list $include_directories_options]
   }
 
   set file_str [join $arg_list " "]
   set type [usf_get_file_type_category $file_type]
-  set cmd_str "$type|$file_type|$associated_library|$file_str|\"$file\"|$b_static_ip_file"
+  set cmd_str "$type|$file_type|$associated_library|$file_str|$file|$b_static_ip_file"
   return $cmd_str
 }
 
@@ -2775,13 +2789,13 @@ proc usf_get_netlist_writer_cmd_args { extn } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set fs_obj                 [get_filesets $a_sim_vars(s_simset)]
-  set nl_cell                [get_property "NL.CELL" $fs_obj]
-  set nl_incl_unisim_models  [get_property "NL.INCL_UNISIM_MODELS" $fs_obj]
-  set nl_rename_top          [get_property "NL.RENAME_TOP" $fs_obj]
-  set nl_sdf_anno            [get_property "NL.SDF_ANNO" $fs_obj]
-  set nl_write_all_overrides [get_property "NL.WRITE_ALL_OVERRIDES" $fs_obj]
+  variable properties
+  set fileset_object                 [get_filesets $properties(simset)]
+  set nl_cell                [get_property "NL.CELL" $fileset_object]
+  set nl_incl_unisim_models  [get_property "NL.INCL_UNISIM_MODELS" $fileset_object]
+  set nl_rename_top          [get_property "NL.RENAME_TOP" $fileset_object]
+  set nl_sdf_anno            [get_property "NL.SDF_ANNO" $fileset_object]
+  set nl_write_all_overrides [get_property "NL.WRITE_ALL_OVERRIDES" $fileset_object]
   set args                   [list]
 
   if { {} != $nl_cell }          { lappend args "-cell";lappend args $nl_cell }
@@ -2795,7 +2809,7 @@ proc usf_get_netlist_writer_cmd_args { extn } {
     }
   }
 
-  if { ({timing} == $a_sim_vars(s_type)) } {
+  if { ({timing} == $properties(s_type)) } {
     if { $nl_sdf_anno } {
       lappend args "-sdf_anno true"
     } else {
@@ -2814,11 +2828,11 @@ proc usf_get_sdf_writer_cmd_args { } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  set fs_obj            [get_filesets $a_sim_vars(s_simset)]
-  set nl_cell           [get_property "NL.CELL" $fs_obj]
-  set nl_rename_top     [get_property "NL.RENAME_TOP" $fs_obj]
-  set nl_process_corner [get_property "NL.PROCESS_CORNER" $fs_obj]
+  variable properties
+  set fileset_object            [get_filesets $properties(simset)]
+  set nl_cell           [get_property "NL.CELL" $fileset_object]
+  set nl_rename_top     [get_property "NL.RENAME_TOP" $fileset_object]
+  set nl_process_corner [get_property "NL.PROCESS_CORNER" $fileset_object]
   set args              [list]
 
   if { {} != $nl_cell } {lappend args "-cell";lappend args $nl_cell}
@@ -2836,8 +2850,8 @@ proc usf_aldec_check_errors { step results_log_arg } {
 
   upvar $results_log_arg results_log
   
-  variable a_sim_vars
-  set run_dir $a_sim_vars(s_launch_dir)
+  variable properties
+  set run_dir $properties(launch_directory)
 
   set retval 0
   set log [usf_file_normalize [file join $run_dir ${step}.log]]
@@ -2907,10 +2921,10 @@ proc usf_find_files { src_files_arg filter } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   upvar $src_files_arg src_files
 
-  set tcl_obj $a_sim_vars(sp_tcl_obj)
+  set tcl_obj $properties(sp_tcl_obj)
   if { [usf_is_ip $tcl_obj] } {
     set ip_name [file tail $tcl_obj]
     foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
@@ -2920,16 +2934,16 @@ proc usf_find_files { src_files_arg filter } {
         }
       }
       set file [usf_file_normalize $file]
-      if { $a_sim_vars(b_absolute_path) } {
+      if { $properties(use_absolute_paths) } {
         set file "[usf_resolve_file_path $file]"
       } else {
-        set file "[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+        set file "[usf_get_relative_file_path $file $properties(launch_directory)]"
       }
       lappend src_files $file
     }
   } elseif { [usf_is_fileset $tcl_obj] } {
     set filesets       [list]
-    set simset_obj     [get_filesets $a_sim_vars(s_simset)]
+    set simset_obj     [get_filesets $properties(simset)]
 
     lappend filesets $simset_obj
     set linked_src_set [get_property "SOURCE_SET" $simset_obj]
@@ -2939,22 +2953,22 @@ proc usf_find_files { src_files_arg filter } {
 
     # add block filesets
     set blk_filter "FILESET_TYPE == \"BlockSrcs\""
-    foreach blk_fs_obj [get_filesets -filter $blk_filter] {
-      lappend filesets $blk_fs_obj
+    foreach blk_fileset_object [get_filesets -filter $blk_filter] {
+      lappend filesets $blk_fileset_object
     }
 
-    foreach fs_obj $filesets {
-      foreach file [get_files -quiet -of_objects [get_filesets $fs_obj] -filter $filter] {
+    foreach fileset_object $filesets {
+      foreach file [get_files -quiet -of_objects [get_filesets $fileset_object] -filter $filter] {
         if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
           if { [get_property {IS_USER_DISABLED} $file] } {
             continue;
           }
         }
         set file [usf_file_normalize $file]
-        if { $a_sim_vars(b_absolute_path) } {
+        if { $properties(use_absolute_paths) } {
           set file "[usf_resolve_file_path $file]"
         } else {
-          set file "[usf_get_relative_file_path $file $a_sim_vars(s_launch_dir)]"
+          set file "[usf_get_relative_file_path $file $properties(launch_directory)]"
         }
         lappend src_files $file
       }
@@ -2971,8 +2985,8 @@ proc usf_xtract_file { file } {
     return $file
   }
 
-  variable a_sim_vars
-  if { $a_sim_vars(b_extract_ip_sim_files) } {
+  variable properties
+  if { $properties(b_extract_ip_sim_files) } {
     set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
     set xcix_ip_path [get_property core_container $file_obj]
     if { {} != $xcix_ip_path } {
@@ -2986,49 +3000,51 @@ proc usf_xtract_file { file } {
   }
   return $file
 }
-proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip_file_arg  } {
+
+proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir is_static_ip_file_arg  } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   variable l_ip_static_libs
-  upvar $b_static_ip_file_arg b_static_ip_file
-  set b_donot_process 0
+  upvar $is_static_ip_file_arg is_static_ip_file
 
-  if { (![get_param project.enableCentralSimRepo]) || ({} == $ip_file) } {
-    set b_donot_process 1
-  }
-
-  if { $b_donot_process } {
-    if { $a_sim_vars(b_absolute_path) } {
+  if { (![get_param project.enableCentralSimRepo]) || ({} == $ip_file)} {
+    if { $properties(use_absolute_paths) } {
       set src_file "[usf_resolve_file_path $src_file]"
     } else {
-      set src_file "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $src_file $launch_dir]]"
+      if { [file pathtype $src_file] == "absolute" } {
+        set src_file "[usf_get_relative_file_path $src_file $launch_dir]"
+      }
+      set src_file "[usf_aldec_get_origin_dir_path $src_file]"
     }
 
     return $src_file
   }
 
-  if { ({} != $a_sim_vars(dynamic_repo_dir)) && ([file exist $a_sim_vars(dynamic_repo_dir)]) } {
+  if { ({} != $properties(dynamic_repo_dir)) && ([file exist $properties(dynamic_repo_dir)]) } {
     set b_is_static 0
     set b_is_dynamic 0
     set src_file [usf_get_source_from_repo $ip_file $src_file $launch_dir b_is_static b_is_dynamic]
-    set b_static_ip_file $b_is_static
+    set is_static_ip_file $b_is_static
     if { (!$b_is_static) && (!$b_is_dynamic) } {
       send_msg_id USF-[usf_aldec_getSimulatorName]-79 "CRITICAL WARNING" "IP file is neither static or dynamic:'$src_file'\n"
     }
     # phase-2
     if { $b_is_static } {
-      set b_static_ip_file 1
+      set is_static_ip_file 1
       lappend l_ip_static_libs [string tolower $library]
     }
   }
 
-  if { $a_sim_vars(b_absolute_path) } {
+  if { $properties(use_absolute_paths) } {
     set src_file "[usf_resolve_file_path $src_file]"
   } else {
-    set src_file "[usf_aldec_get_origin_dir_path [usf_get_relative_file_path $src_file $launch_dir]]"
+    if { [file pathtype $src_file] == "absolute" } {
+      set src_file "[usf_get_relative_file_path $src_file $launch_dir]"
+    }
+    set src_file "[usf_aldec_get_origin_dir_path $src_file]"
   }
 
   return $src_file
@@ -3039,7 +3055,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   upvar $b_is_static_arg b_is_static
   upvar $b_is_dynamic_arg b_is_dynamic
 
@@ -3096,49 +3112,45 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set b_is_dynamic 0
     set dst_cip_file $ip_static_file
 
-    if { $a_sim_vars(b_use_static_lib) } {
-      # use pre-compiled lib
+    if { $b_is_bd_ip } {
+      set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
     } else {
-      if { $b_is_bd_ip } {
-        set dst_cip_file [usf_fetch_ipi_static_file $ip_static_file]
-      } else {
-        # get the parent composite file for this static file
-        set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
+      # get the parent composite file for this static file
+      set parent_comp_file [get_property parent_composite_file -quiet [lindex [get_files -all [list "$ip_static_file"]] 0]]
 
-        # calculate destination path
-        set dst_cip_file [usf_find_ipstatic_file_path $ip_static_file $parent_comp_file]
+      # calculate destination path
+      set dst_cip_file [usf_find_ipstatic_file_path $ip_static_file $parent_comp_file]
 
-        # skip if file exists
-        if { ({} == $dst_cip_file) || (![file exists $dst_cip_file]) } {
-          # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be
-          # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
-          if { {} == $parent_comp_file } {
-            set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$ip_static_file"] -base_dir $a_sim_vars(ipstatic_dir)]
-            #puts extracted_file_no_pc=$dst_cip_file
-          } else {
-            # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
-            set parent_ip_name [file root [file tail $parent_comp_file]]
-            set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
-            #puts src_ip_file=$ip_static_file
+      # skip if file exists
+      if { ({} == $dst_cip_file) || (![file exists $dst_cip_file]) } {
+        # if parent composite file is empty, extract to default ipstatic dir (the extracted path is expected to be
+        # correct in this case starting from the library name (e.g fifo_generator_v13_0_0/hdl/fifo_generator_v13_0_rfs.vhd))
+        if { {} == $parent_comp_file } {
+          set dst_cip_file [extract_files -no_ip_dir -quiet -files [list "$ip_static_file"] -base_dir $properties(ipstatic_dir)]
+          #puts extracted_file_no_pc=$dst_cip_file
+        } else {
+          # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
+          set parent_ip_name [file root [file tail $parent_comp_file]]
+          set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
+          #puts src_ip_file=$ip_static_file
   
-            # get the source ip file dir
-            set src_ip_file_dir [file dirname $ip_static_file]
+          # get the source ip file dir
+          set src_ip_file_dir [file dirname $ip_static_file]
   
-            # strip the ip_output_dir path from source ip file and prepend static dir
-            set lib_dir [usf_get_sub_file_path $src_ip_file_dir $ip_output_dir]
-            set target_extract_dir [usf_file_normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
-            #puts target_extract_dir=$target_extract_dir
+          # strip the ip_output_dir path from source ip file and prepend static dir
+          set lib_dir [usf_get_sub_file_path $src_ip_file_dir $ip_output_dir]
+          set target_extract_dir [usf_file_normalize [file join $properties(ipstatic_dir) $lib_dir]]
+          #puts target_extract_dir=$target_extract_dir
   
-            set dst_cip_file [extract_files -no_path -quiet -files [list "$ip_static_file"] -base_dir $target_extract_dir]
-            #puts extracted_file_with_pc=$dst_cip_file
-          }
+          set dst_cip_file [extract_files -no_path -quiet -files [list "$ip_static_file"] -base_dir $target_extract_dir]
+          #puts extracted_file_with_pc=$dst_cip_file
         }
       }
     }
   }
 
   if { [file exist $dst_cip_file] } {
-    if { $a_sim_vars(b_absolute_path) } {
+    if { $properties(use_absolute_paths) } {
       set dst_cip_file "[usf_resolve_file_path $dst_cip_file]"
     } else {
       if { $b_add_ref } {
@@ -3220,10 +3232,10 @@ proc usf_fetch_ip_static_file { file vh_file_obj } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
-  if { $a_sim_vars(b_use_static_lib) } {
-    return $file
-  }
+  variable properties
+#  if { $properties(b_use_static_lib) } {
+#    return $file
+#  }
 
   # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
   set src_ip_file $file
@@ -3258,7 +3270,7 @@ proc usf_fetch_ip_static_file { file vh_file_obj } {
   set lib_file_path [join [lrange $src_file_dirs $index end] "/"]
   #puts lib_file_path=$lib_file_path
 
-  set dst_cip_file [file join $a_sim_vars(ipstatic_dir) $lib_file_path]
+  set dst_cip_file [file join $properties(ipstatic_dir) $lib_file_path]
   # /tmp/tp/tp.ip_user_files/ipstatic/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
   #puts dst_cip_file=$dst_cip_file
   return $dst_cip_file
@@ -3269,10 +3281,10 @@ proc usf_fetch_ipi_static_file { file } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   set src_ip_file $file
 
-  if { $a_sim_vars(b_use_static_lib) } {
+  if { $properties(b_use_static_lib) } {
     return $src_ip_file
   }
 
@@ -3293,7 +3305,7 @@ proc usf_fetch_ipi_static_file { file } {
 
   #puts ip_lib_dir=$ip_lib_dir
   set ip_lib_dir_name [file tail $ip_lib_dir]
-  set target_ip_lib_dir [file join $a_sim_vars(ipstatic_dir) $ip_lib_dir_name]
+  set target_ip_lib_dir [file join $properties(ipstatic_dir) $ip_lib_dir_name]
   #puts target_ip_lib_dir=$target_ip_lib_dir
 
   # get the sub-dir path after "xilinx.com/xbip_utils_v3_0"
@@ -3322,7 +3334,7 @@ proc usf_get_dynamic_sim_file_core_container { src_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
-  variable a_sim_vars
+  variable properties
 
   set filename  [file tail $src_file]
   set file_dir  [file dirname $src_file]
@@ -3341,7 +3353,7 @@ proc usf_get_dynamic_sim_file_core_container { src_file } {
     set ip_dir [usf_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
   }
   set hdl_dir_file [usf_get_sub_file_path $file_dir $ip_dir]
-  set repo_src_file [file join $a_sim_vars(dynamic_repo_dir) "ip" $core_name $hdl_dir_file $filename]
+  set repo_src_file [file join $properties(dynamic_repo_dir) "ip" $core_name $hdl_dir_file $filename]
 
   if { [file exists $repo_src_file] } {
     return $repo_src_file
@@ -3356,7 +3368,7 @@ proc usf_get_dynamic_sim_file_core_classic { src_file } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   set filename  [file tail $src_file]
   set file_dir  [file dirname $src_file]
   set file_obj  [lindex [get_files -all [list "$src_file"]] 0]
@@ -3372,7 +3384,7 @@ proc usf_get_dynamic_sim_file_core_classic { src_file } {
   if { {.bd} == $extn } {
     set sub_dir "bd"
   }
-  set repo_src_file [file join $a_sim_vars(dynamic_repo_dir) $sub_dir $top_ip_name $hdl_dir_file $filename]
+  set repo_src_file [file join $properties(dynamic_repo_dir) $sub_dir $top_ip_name $hdl_dir_file $filename]
   if { [file exists $repo_src_file] } {
     return $repo_src_file
   }
@@ -3416,7 +3428,7 @@ proc usf_fetch_header_from_dynamic { vh_file b_is_bd } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   #puts vh_file=$vh_file
   set ip_file [usf_get_top_ip_filename $vh_file]
   if { {} == $ip_file } {
@@ -3440,7 +3452,7 @@ proc usf_fetch_header_from_dynamic { vh_file b_is_bd } {
   if { $b_is_bd } {
     set sub_dir "bd"
   }
-  set vh_file [file join $a_sim_vars(dynamic_repo_dir) $sub_dir $ip_name $sub_file_path $vh_filename]
+  set vh_file [file join $properties(dynamic_repo_dir) $sub_dir $ip_name $sub_file_path $vh_filename]
   #puts vh_file=$vh_file
 
   return $vh_file
@@ -3494,7 +3506,7 @@ proc usf_find_ipstatic_file_path { src_ip_file parent_comp_file } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   set dest_file {}
   set filename [file tail $src_ip_file]
   set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
@@ -3515,14 +3527,14 @@ proc usf_find_ipstatic_file_path { src_ip_file parent_comp_file } {
     if { $b_found } {
       set file_path_str [join [lrange $comps $index end] "/"]
       #puts file_path_str=$file_path_str
-      set dest_file [usf_file_normalize [file join $a_sim_vars(ipstatic_dir) $file_path_str]]
+      set dest_file [usf_file_normalize [file join $properties(ipstatic_dir) $file_path_str]]
     }
   } else {
     set parent_ip_name [file root [file tail $parent_comp_file]]
     set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
     set src_ip_file_dir [file dirname $src_ip_file]
     set lib_dir [usf_get_sub_file_path $src_ip_file_dir $ip_output_dir]
-    set target_extract_dir [usf_file_normalize [file join $a_sim_vars(ipstatic_dir) $lib_dir]]
+    set target_extract_dir [usf_file_normalize [file join $properties(ipstatic_dir) $lib_dir]]
     set dest_file [file join $target_extract_dir $filename]
   }
   return $dest_file
@@ -3533,7 +3545,7 @@ proc usf_find_file_from_compile_order { ip_name src_file } {
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  variable properties
   #puts src_file=$src_file
   set file [string map {\\ /} $src_file]
 
@@ -3593,6 +3605,28 @@ proc usf_find_comp { comps_arg index_arg to_match } {
   }
   return $b_found
 }
+
+proc is_hdl_type { file_type } {
+  return [expr { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) }]
+}
+
+proc vip_ips {} {
+    return [list "axi_vip" "axi4stream_vip"]
+}
+
+proc is_vip_ip_required {} {
+  if { [get_param project.usePreCompiledXilinxVIPLibForSim] } {
+    foreach ip_obj [get_ips -all -quiet] {
+      set ipdef [get_property -quiet IPDEF $ip_obj]
+      set ip_name [lindex [split $ipdef ":"] 2]
+      if { [lsearch -nocase [vip_ips] $ip_name] != -1 } {
+        return true
+      }
+    }
+  }
+  return false 
+}
+
 }
 
 #
@@ -3605,9 +3639,9 @@ proc usf_get_top { top_arg } {
   # Return Value:
 
   upvar $top_arg top
-  set fs_obj [get_filesets $a_sim_vars(s_simset)]
-  set fs_name [get_property "NAME" $fs_obj]
-  set top [get_property "TOP" $fs_obj]
+  set fileset_object [get_filesets $properties(simset)]
+  set fs_name [get_property "NAME" $fileset_object]
+  set top [get_property "TOP" $fileset_object]
   if { {} == $top } {
     send_msg_id USF-[usf_aldec_getSimulatorName]-81 ERROR "Top module not set for fileset '$fs_name'. Please ensure that a valid \
        value is provided for 'top'. The value for 'top' can be set/changed using the 'Top Module Name' field under\
