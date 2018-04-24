@@ -75,7 +75,23 @@ Arguments:
 
   -no_copy_sources - (Optional) Do not import sources even if they are local to
   the original project. The tool will not import the files that were local in
-  the original project into the new project. 
+  the original project into the new project. If the design contains BD sources then
+  -use_bd_files switch must also be provided.
+
+  -absolute_path - (Optional) Make all file paths absolute in the generated script.
+  This allows running the script from any location in that filesystem. By default the 
+  file paths will be relative to the origin_dir variable.
+
+  -dump_project_info - (Optional) Dump information about all properties to two text files, 
+  <project_name>_dump.txt (short), and <project_name>_def_val.txt (detailed).
+
+  -use_bd_files - (Optional) Use block design sources directly instead of writing out
+  procs to create them. If the -no_copy_sources switch is provided the BD files will be 
+  added (but not copied locally) to the project. Otherwise the files will be imported 
+  (copied locally) to the project.
+
+  -internal - (Optional) Print only basic header information in the generated tcl script.
+  By default information about required file sources will also be part of the header.
 
   -quiet - (Optional) Execute the command quietly, ignoring any command line
   errors and returning no messages. The command also returns TCL_OK regardless
