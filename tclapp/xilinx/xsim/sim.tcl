@@ -263,7 +263,7 @@ proc usf_xsim_setup_simulation { args } {
 
   # find shared library paths from all IPs 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
-    set b_en_code false
+    set b_en_code true
     if { $b_en_code } {
       xcs_find_shared_lib_paths "xsim" $a_sim_vars(s_clibs_dir)
     }
@@ -1096,7 +1096,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         }
        
         # reference SystemC include directories 
-        set b_en_code false
+        set b_en_code true
         if { $b_en_code } {
           variable a_shared_library_path_coln
           foreach key [array names a_shared_library_path_coln] {
@@ -1646,8 +1646,10 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
 
+  
+  set unique_sysc_incl_dirs [list]
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
-    set b_en_code false
+    set b_en_code true
     if { $b_en_code } {
       variable a_shared_library_path_coln
       foreach key [array names a_shared_library_path_coln] {
@@ -1661,7 +1663,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         # relative path to library include dir
         set incl_dir "$lib_path/include"
         set incl_dir "[xcs_get_relative_file_path $incl_dir $dir]"
-
+        if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
+          lappend unique_sysc_incl_dirs $incl_dir
+        }
         set sc_args "-sv_root \"$rel_lib_path\" -sc_lib $lib_name --include \"$incl_dir\""
         #puts sc_args=$sc_args
         lappend args_list $sc_args
@@ -1671,7 +1675,6 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     variable l_systemc_incl_dirs
-    set unique_sysc_incl_dirs [list]
     set l_incl_dir [list]
     set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")" 
     set prefix_ref_dir false
