@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>define systemc include dirs variable</revision_history>
+      <revision_history>enable systemc library referencing</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
