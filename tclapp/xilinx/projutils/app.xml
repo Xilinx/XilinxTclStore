@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Updated help section</revision_history>
+      <revision_history>disable duplicate inclusion of include dir options</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

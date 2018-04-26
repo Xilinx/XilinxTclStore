@@ -3178,21 +3178,23 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
       if { [llength $l_defines] > 0 } {
         xps_append_define_generics $l_defines $tool $simulator opts
       }
- 
-      # include dirs
-      set prefix_ref_dir "true"
-      set uniq_dirs [list]
-      foreach dir $l_verilog_incl_dirs {
-        if { {vlogan} == $tool } {
-          set dir [string trim $dir "\""]
-          regsub -all { } $dir {\\\\ } dir
-        }
-        if { [lsearch -exact $uniq_dirs $dir] == -1 } {
-          lappend uniq_dirs $dir
-          if { ({questa} == $simulator) || ({modelsim} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator)} {
-            lappend opts "\"+incdir+$dir\""
-          } else {
-            lappend opts "+incdir+\"$dir\""
+
+      if { "vlogan" == $tool } {
+        # include dirs
+        set prefix_ref_dir "true"
+        set uniq_dirs [list]
+        foreach dir $l_verilog_incl_dirs {
+          if { {vlogan} == $tool } {
+            set dir [string trim $dir "\""]
+            regsub -all { } $dir {\\\\ } dir
+          }
+          if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+            lappend uniq_dirs $dir
+            if { ({questa} == $simulator) || ({modelsim} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator)} {
+              lappend opts "\"+incdir+$dir\""
+            } else {
+              lappend opts "+incdir+\"$dir\""
+            }
           }
         }
       }
