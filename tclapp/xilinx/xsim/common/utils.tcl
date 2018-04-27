@@ -3293,12 +3293,16 @@ proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo
   return $src_file
 }
 
-proc xcs_fetch_lib_info { clibs_dir } {
+proc xcs_fetch_lib_info { simulator clibs_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_cache_lib_info
+
+  if { "xsim" == $simulator } {
+    set clibs_dir "$clibs_dir/ip"
+  }
 
   if { ![file exists $clibs_dir] } {
     return
