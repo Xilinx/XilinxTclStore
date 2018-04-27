@@ -3300,10 +3300,6 @@ proc xcs_fetch_lib_info { simulator clibs_dir } {
 
   variable a_sim_cache_lib_info
 
-  if { "xsim" == $simulator } {
-    set clibs_dir "$clibs_dir/ip"
-  }
-
   if { ![file exists $clibs_dir] } {
     return
   }

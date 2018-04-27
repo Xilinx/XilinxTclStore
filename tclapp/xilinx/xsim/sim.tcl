@@ -232,7 +232,11 @@ proc usf_xsim_setup_simulation { args } {
   set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
 
   # extract simulation model library info
-  xcs_fetch_lib_info "xsim" $a_sim_vars(s_clibs_dir)
+  set ip_dir "$a_sim_vars(s_clibs_dir)/ip"
+  if { ![file exists $ip_dir] } {
+    set ip_dir $a_sim_vars(s_clibs_dir)
+  }
+  xcs_fetch_lib_info "xsim" $ip_dir
 
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
