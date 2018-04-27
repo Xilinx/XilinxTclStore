@@ -1,3 +1,4 @@
+3.342 find library info from ip compiled library dir
 3.341 disable duplicate inclusion of include dir options
 3.340 Updated help section
 3.339 check for IP in quiet mode and return default header file if IP does not exist

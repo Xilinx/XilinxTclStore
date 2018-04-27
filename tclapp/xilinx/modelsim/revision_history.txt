@@ -1,3 +1,4 @@
+2.198 find library info from ip compiled library dir
 2.197 check for IP in quiet mode and return default header file if IP does not exist
 2.196 updated target paths for finding simulation models
 2.195 helper proc to find shared libraries

@@ -1,3 +1,4 @@
+2.232 find library info from ip compiled library dir
 2.231 enable systemc library referencing
 2.230 define systemc include dirs variable
 2.229 pass systemc include dirs for elaborate

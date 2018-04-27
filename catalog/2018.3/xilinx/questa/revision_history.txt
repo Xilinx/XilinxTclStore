@@ -1,3 +1,4 @@
+2.106 find library info from ip compiled library dir
 2.105 check for IP in quiet mode and return default header file if IP does not exist
 2.104 updated target paths for finding simulation models
 2.103 remove sccom option
