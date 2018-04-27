@@ -9,7 +9,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ##
-## Version:        2017.10.09
+## Version:        2018.04.27
 ## Description:    This package provides a simple way to handle formatted tables
 ##
 ##
@@ -251,6 +251,12 @@ namespace eval ::tclapp::xilinx::designutils {
 ########################################################################################
 
 ########################################################################################
+## 2018.04.27 - Added 'insertrow' method
+##            - Added 'reordercols' method
+##            - Added 'version' method
+##            - Added support for -skip_header/-noheader/-append ('import' method)
+##            - Minor fixes and enhancements
+## 2018.04.16 - Fixed issue with -return_table ('search' method)
 ## 2017.10.09 - Fixed sorting of columns with heterogeneous data ('sort' method)
 ##            - Added 'transpose' method
 ## 2017.06.05 - Fixed example code
@@ -342,7 +348,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable {
   variable n 0
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
   variable params [list indent 0 title {} tableFormat {classic} cellAlignment {left} maxNumRows -1 maxNumRowsToDisplay -1 columnsToDisplay {} origin {topleft} offsetx 0 offsety 0 template {} methods {method}]
-  variable version {2017.10.09}
+  variable version {2018.04.27}
 } ]
 
 #------------------------------------------------------------------------
@@ -391,6 +397,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
       # Create table based on template
       return [eval [concat ::tclapp::xilinx::designutils::prettyTable::Template $args] ]
     }
+    version {
+      # Return the package version
+      return $::tclapp::xilinx::designutils::prettyTable::version
+    }
     default {
       # The 'method' variable has the table's title. Since it can have multiple words
       # it is cast as a List to work well with 'eval'
@@ -408,6 +418,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
                   [sizeof]                 - Provides the memory consumption of all the prettyTable objects
                   [info]                   - Provides a summary of all the prettyTable objects that have been created
                   [destroyall]             - Destroy all the prettyTable objects and release the memory
+                  [version]                - Return the package version
                   [-u|-usage|-h|-help]     - This help message
 
       Description: Utility to create and manipulate tables
@@ -1410,9 +1421,9 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:insertcolumn {self col_i
   if {$col_idx == {}} {
     return {}
   }
-  if {$col_idx == {end}} {
-    set col_idx [llength $header]
-  } elseif {$col_idx > [llength $header]} {
+  if {[regexp {^end$} $col_idx]} { set col_idx [expr [llength $header] -0] }
+  if {[regexp {^end-([0-9]+)$} $col_idx - num]} { set col_idx [expr [llength $header] -0 - $num] }
+  if {($col_idx < 0) || ($col_idx > [llength $header])} {
     puts " -W- column '$col_idx' out of bound"
     return {}
   }
@@ -1426,6 +1437,48 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:insertcolumn {self col_i
       lappend L $row
     }
     set table $L
+  } errorstring]} {
+    puts " -W- $errorstring"
+  } else {
+  }
+  return -code ok
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::method:insertrow
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> insertrow <row_idx> <row_filler>
+#------------------------------------------------------------------------
+# Insert a row
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::method:insertrow {self row_idx row} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+
+  # Insert a row
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::numRows numRows
+  if {$row_idx == {}} {
+    return {}
+  }
+  if {[regexp {^end$} $row_idx]} { set row_idx [expr [llength $table] -0] }
+  if {[regexp {^end-([0-9]+)$} $row_idx - num]} { set row_idx [expr [llength $table] -0 - $num] }
+  if {($row_idx < 0) || ($row_idx > [llength $table])} {
+    puts " -W- row '$row_idx' out of bound"
+    return {}
+  }
+  if {[llength $row] != [llength $header]} {
+    puts " -W- row size ([llength $row]) does not match the header size ([llength $header])"
+    return {}
+  }
+  if {[catch {
+    # Insert row
+    set table [linsert $table $row_idx $row]
+    incr numRows
   } errorstring]} {
     puts " -W- $errorstring"
   } else {
@@ -1454,7 +1507,18 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:delcolumns {self columns
   if {$columns == {}} {
     return {}
   }
-  foreach col [lsort -integer -decreasing $columns] {
+  set L [list]
+  foreach column $columns {
+  if {[regexp {^end$} $column]} { set column [expr [llength $header] -1] }
+  if {[regexp {^end-([0-9]+)$} $column - num]} { set column [expr [llength $header] -1 - $num] }
+  if {($column < 0) || ($column > [expr [llength $header] -1])} {
+    puts " -W- column '$column' out of bound"
+    continue
+  }
+    lappend L $column
+  }
+  set columns $L
+  foreach col [lsort -unique -integer -decreasing $columns] {
     if {[catch {
       # Remove column from header
       set header [lreplace $header $col $col]
@@ -1494,7 +1558,18 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:delrows {self rows} {
   if {$rows == {}} {
     return {}
   }
-  foreach pos [lsort -integer -decreasing $rows] {
+  set L [list]
+  foreach row $rows {
+    if {[regexp {^end$} $row]} { set row [expr [llength $table] -1] }
+    if {[regexp {^end-([0-9]+)$} $row - num]} { set row [expr [llength $table] -1 - $num] }
+    if {($row < 0) || ($row > [expr [llength $table] -1])} {
+      puts " -W- row '$row' out of bound"
+      continue
+    }
+    lappend L $row
+  }
+  set rows $L
+  foreach pos [lsort -unique -integer -decreasing $rows] {
     if {[catch {
       set table [lreplace $table $pos $pos]
     } errorstring]} {
@@ -1527,11 +1602,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:getcell {self column row
   if {($column == {}) || ($row == {})} {
     return {}
   }
-  if {$column > [expr [llength $header] -1]} {
+  if {[regexp {^end$} $column]} { set column [expr [llength $header] -1] }
+  if {[regexp {^end-([0-9]+)$} $column - num]} { set column [expr [llength $header] -1 - $num] }
+  if {($column < 0) || ($column > [expr [llength $header] -1])} {
     puts " -W- column '$column' out of bound"
     return {}
   }
-  if {$row > [expr [llength $table] -1]} {
+  if {[regexp {^end$} $row]} { set row [expr [llength $table] -1] }
+  if {[regexp {^end-([0-9]+)$} $row - num]} { set row [expr [llength $table] -1 - $num] }
+  if {($row < 0) || ($row > [expr [llength $table] -1])} {
     puts " -W- row '$row' out of bound"
     return {}
   }
@@ -1562,11 +1641,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:setcell {self column row
   if {($column == {}) || ($row == {})} {
     return {}
   }
-  if {$column > [expr [llength $header] -1]} {
+  if {[regexp {^end$} $column]} { set column [expr [llength $header] -1] }
+  if {[regexp {^end-([0-9]+)$} $column - num]} { set column [expr [llength $header] -1 - $num] }
+  if {($column < 0) || ($column > [expr [llength $header] -1])} {
     puts " -W- column '$column' out of bound"
     return {}
   }
-  if {$row > [expr [llength $table] -1]} {
+  if {[regexp {^end$} $row]} { set row [expr [llength $table] -1] }
+  if {[regexp {^end-([0-9]+)$} $row - num]} { set row [expr [llength $table] -1 - $num] }
+  if {($row < 0) || ($row > [expr [llength $table] -1])} {
     puts " -W- row '$row' out of bound"
     return {}
   }
@@ -1599,11 +1682,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:appendcell {self column 
   if {($column == {}) || ($row == {})} {
     return {}
   }
-  if {$column > [expr [llength $header] -1]} {
+  if {[regexp {^end$} $column]} { set column [expr [llength $header] -1] }
+  if {[regexp {^end-([0-9]+)$} $column - num]} { set column [expr [llength $header] -1 - $num] }
+  if {($column < 0) || ($column > [expr [llength $header] -1])} {
     puts " -W- column '$column' out of bound"
     return {}
   }
-  if {$row > [expr [llength $table] -1]} {
+  if {[regexp {^end$} $row]} { set row [expr [llength $table] -1] }
+  if {[regexp {^end-([0-9]+)$} $row - num]} { set row [expr [llength $table] -1 - $num] }
+  if {($row < 0) || ($row > [expr [llength $table] -1])} {
     puts " -W- row '$row' out of bound"
     return {}
   }
@@ -1637,11 +1724,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:prependcell {self column
   if {($column == {}) || ($row == {})} {
     return {}
   }
-  if {$column > [expr [llength $header] -1]} {
+  if {[regexp {^end$} $column]} { set column [expr [llength $header] -1] }
+  if {[regexp {^end-([0-9]+)$} $column - num]} { set column [expr [llength $header] -1 - $num] }
+  if {($column < 0) || ($column > [expr [llength $header] -1])} {
     puts " -W- column '$column' out of bound"
     return {}
   }
-  if {$row > [expr [llength $table] -1]} {
+  if {[regexp {^end$} $row]} { set row [expr [llength $table] -1] }
+  if {[regexp {^end-([0-9]+)$} $row - num]} { set row [expr [llength $table] -1 - $num] }
+  if {($row < 0) || ($row > [expr [llength $table] -1])} {
     puts " -W- row '$row' out of bound"
     return {}
   }
@@ -1675,11 +1766,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:incrcell {self column ro
   if {($column == {}) || ($row == {})} {
     return {}
   }
-  if {$column > [expr [llength $header] -1]} {
+  if {[regexp {^end$} $column]} { set column [expr [llength $header] -1] }
+  if {[regexp {^end-([0-9]+)$} $column - num]} { set column [expr [llength $header] -1 - $num] }
+  if {($column < 0) || ($column > [expr [llength $header] -1])} {
     puts " -W- column '$column' out of bound"
     return {}
   }
-  if {$row > [expr [llength $table] -1]} {
+  if {[regexp {^end$} $row]} { set row [expr [llength $table] -1] }
+  if {[regexp {^end-([0-9]+)$} $row - num]} { set row [expr [llength $table] -1 - $num] }
+  if {($row < 0) || ($row > [expr [llength $table] -1])} {
     puts " -W- row '$row' out of bound"
     return {}
   }
@@ -1714,6 +1809,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:setrow {self idx row} {
   upvar #0 ${self}::table table
   upvar #0 ${self}::numRows numRows
   if {$idx == {end}} { set idx [expr [llength $table] -1] }
+  if {[regexp {^end-([0-9]+)$} $idx - num]} { set idx [expr [llength $table] -1 - $num] }
   if {($idx < 0) || ($idx > [expr [llength $table] -1])} {
     puts " -W- row '$idx' out of bound"
     return {}
@@ -1745,6 +1841,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:setcolumn {self idx colu
   upvar #0 ${self}::table table
   upvar #0 ${self}::numRows numRows
   if {$idx == {end}} { set idx [expr [llength $header] -1] }
+  if {[regexp {^end-([0-9]+)$} $idx - num]} { set idx [expr [llength $header] -1 - $num] }
   if {($idx < 0) || ($idx > [expr [llength $header] -1])} {
     puts " -W- column '$idx' out of bound"
     return {}
@@ -1870,7 +1967,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:numrows {self args} {
 
 
   # Get the number of rows
-  return [subst $${self}::numRows]
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::numRows numRows
+  set numRows [llength $table]
+  return $numRows
+#   return [llength [subst $${self}::table]]
+#   return [subst $${self}::numRows]
 }
 
 #------------------------------------------------------------------------
@@ -2900,27 +3002,42 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   set error 0
   set help 0
   set filename {}
+  set csvHasHeader 1
+  set importHeader 1
+  set append 0
   set csvDelimiter {,}
   set inlineContent {}
   if {[llength $args] == 0} { incr help }
   while {[llength $args]} {
     set name [lshift args]
-    switch -exact -- $name {
-      -d -
-      -delimiter {
+    switch -regexp -- $name {
+      {^-delimiter$} -
+      {^-d(e(l(i(m(i(t(er?)?)?)?)?)?)?)?$} {
            set csvDelimiter [lshift args]
       }
-      -f -
-      -file {
+      {^-file$} -
+      {^-f(i(le?)?)?$} {
            set filename [lshift args]
       }
-      -i -
-      -inline {
+      {^-inline$} -
+      {^-i(n(l(i(ne?)?)?)?)?$} {
            set inlineContent [lshift args]
       }
-      -h -
-      -help {
-           set help 1
+      {^-noheader$} -
+      {^-n(o(h(e(a(d(er?)?)?)?)?)?)?$} {
+           set csvHasHeader 0
+      }
+      {^-skip_header$} -
+      {^-s(k(i(p(_(h(e(a(d(er?)?)?)?)?)?)?)?)?)?$} {
+           set importHeader 0
+      }
+      {^-append$} -
+      {^-a(p(p(e(nd?)?)?)?)?$} {
+           set append 1
+      }
+      {^-help$} -
+      {^-h(e(lp?)?)?$} {
+        set help 1
       }
      default {
             if {[string match "-*" $name]} {
@@ -2940,9 +3057,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
               [-file <filename>]
               [-inline <inline_CSV_content>]
               [-delimiter <csv_delimiter>]
+              [-append]
+              [-noheader]
               [-help|-h]
 
   Description: Create table from CSV file.
+
+    -append: append CSV to the table
+    -noheader: CSV file does not have header
+    -skip_header: skip the CSV header
 
   Example:
      <prettyTableObject> import -file table.csv
@@ -2971,7 +3094,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
     # Reset object but preserve some of the parameters
     set limit $params(maxNumRows)
 #     set displayLimit $params(maxNumRowsToDisplay)
-    eval $self reset
+    if {!$append} {
+      # Reset the table when not appending
+      set tmpHeader $header
+      eval $self reset
+      if {!$csvHasHeader || !$importHeader} {
+        # If header is not imported, preserve the previous one
+        set header $tmpHeader
+      }
+    }
     set params(maxNumRows) $limit
 #     set params(maxNumRowsToDisplay) $displayLimit
 
@@ -2984,7 +3115,25 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
       if {[regexp {^\s*#} $line]} { continue }
       if {[regexp {^\s*$} $line]} { continue }
       if {$first} {
-        set header [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
+        if {$csvHasHeader} {
+          if {$importHeader} {
+            # Set the header when -skip_header is not used
+            set header [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
+          }
+        } else {
+          # The CSV does not have a header
+          set row [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
+          if {($header == {}) && (!$append)} {
+            # Generate header as list of indexes only when the header
+            # does not exist and -append is not used
+            set L [list]
+            for {set i 0} {$i < [llength $row]} {incr i} {
+              lappend L $i
+            }
+            set header $L
+          }
+          $self addrow $row
+        }
         set first 0
       } else {
         $self addrow [::tclapp::xilinx::designutils::prettyTable::csv2list $line $csvDelimiter]
@@ -3387,7 +3536,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:search {self args} {
         lappend res [list $rowidx $colidx [lindex $row $colidx]]
       }
       lappend matchrows $row
-      if {$print} {
+      if {$print || ($returnformat == {table})} {
         $tbl addrow $row
       }
     }
@@ -3512,6 +3661,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:filter {self args} {
   Description: Filter table content
 
     The filter proc should be defined as: proc <procname> {row args} { ... ; return $row }
+    When TCL_ERROR is returned by the proc, the row is discarded.
 
   Example:
      <prettyTableObject> filter myprocname
@@ -3564,6 +3714,96 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:filter {self args} {
   }
 
   return -code ok
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::method:reordercols
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> reordercols <list_of_column_indexes>
+#------------------------------------------------------------------------
+# Reorder a list of column(s). When a column index is specified multiple
+# times, the column is duplicated
+#------------------------------------------------------------------------
+
+proc ::tclapp::xilinx::designutils::prettyTable::method:reordercols {self columns} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+
+  # Reorder a list of column(s)
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::numRows numRows
+  if {$columns == {}} {
+    return {}
+  }
+  set L [list]
+  foreach column $columns {
+  if {[regexp {^end$} $column]} { set column [expr [llength $header] -1] }
+  if {[regexp {^end-([0-9]+)$} $column - num]} { set column [expr [llength $header] -1 - $num] }
+  if {($column < 0) || ($column > [expr [llength $header] -1])} {
+    puts " -W- column '$column' out of bound"
+    continue
+  }
+    lappend L $column
+  }
+  set columns $L
+  # Build the temporary fragment table that will make the
+  # first columns of the final table
+  set fragHeader [list]
+  set fragTable [list]
+  for {set idx 0} {$idx < $numRows} {incr idx} {
+    lappend fragTable [list]
+  }
+  foreach col $columns {
+    lappend fragHeader [lindex $header $col]
+    set L [list]
+    foreach row $table fragRow $fragTable {
+      # Remove column from row
+      lappend fragRow [lindex $row $col]
+      lappend L $fragRow
+    }
+    set fragTable $L
+  }
+  # Remove columns from current table
+  foreach col [lsort -unique -integer -decreasing $columns] {
+    if {[catch {
+      # Remove column
+      $self delcolumns $col
+    } errorstring]} {
+      puts " -W- $errorstring"
+    } else {
+    }
+  }
+  # Merge the fragment table with the original table: fragment table first
+  set header [concat $fragHeader $header]
+  set L [list]
+  foreach row $table fragRow $fragTable {
+    lappend L [concat $fragRow $row]
+  }
+  set table $L
+  # Done
+  return -code ok
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::method:version
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> version
+#------------------------------------------------------------------------
+# Return the version number
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::method:version {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+
+  # Return the package version
+  return $::tclapp::xilinx::designutils::prettyTable::version
 }
 
 ###########################################################################
@@ -3771,7 +4011,7 @@ if {0} {
       set channel [open $options(-file) {w}]
     }
 
-    set tbl [tb::prettyTable template deviceview]
+    set tbl [::tclapp::xilinx::designutils::prettyTable template deviceview]
 
     foreach cell [get_cells -quiet [lsort -unique $cells]] {
 
