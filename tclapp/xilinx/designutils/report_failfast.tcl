@@ -5,6 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2018.05.01 - Fixed issue when the Vivado version includes letters
 ## 2018.04.10 - Added support to 'report_utilization -evaluate_pblocks' to reduce
 ##              the utilization metrics runtime (2018.2 and above)
 ##            - Added support for -no_header
@@ -320,7 +321,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2018.04.10}
+  variable version {2018.05.01}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -372,7 +373,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(transpose) 0
   set params(show_resources) 0
   set params(max_paths) 100
-  set params(vivado_version) [version -short]
+#   set params(vivado_version) [version -short]
+  set params(vivado_version) [regsub -all {[a-zA-Z]} [version -short] {0}] ; # Remove any letter that would fail 'package vcompare'
   set pid {tmp}
   catch { set pid [pid] }
   set filename {}
