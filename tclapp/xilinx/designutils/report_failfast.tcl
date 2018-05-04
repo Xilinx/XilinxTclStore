@@ -5,6 +5,8 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2018.05.04 - Changes -no_methodology_check => -no_methodology_checks to match
+##              the command line option name inside Tcl Store
 ## 2018.05.01 - Fixed issue when the Vivado version includes letters
 ## 2018.04.10 - Added support to 'report_utilization -evaluate_pblocks' to reduce
 ##              the utilization metrics runtime (2018.2 and above)
@@ -321,7 +323,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2018.05.01}
+  variable version {2018.05.04}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -463,7 +465,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         # Do not try to auto detect PR designs
         set prDetect 0
       }
-      {^-no_m(e(t(h(o(d(o(l(o(g(y(_(c(h(e(ck?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
+      {^-no_m(e(t(h(o(d(o(l(o(g(y(_(c(h(e(c(ks?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
         lappend skipChecks {methodology_check}
       }
       {^-no_pa(t(h(_(b(u(d(g(e(t(i(ng?)?)?)?)?)?)?)?)?)?)?)?$} {
@@ -617,7 +619,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
               [-pblock <pblock>]
               [-slr <slr>][-by_slr]
               [-regions <pattern>]
-              [-no_methodology_check]
+              [-no_methodology_checks]
               [-no_path_budgeting]
               [-no_hfn]
               [-no_fanout]
@@ -650,7 +652,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     Use -region for Clock Region-based analysis (more info with -longhelp)
     Use -slr for SLR-based analysis (more info with -longhelp)
     Use -by_slr to automatically run the analysis for each SLR
-    Use -no_methodology_check to prevent extraction of the TIMING-* metrics
+    Use -no_methodology_checks to prevent extraction of the TIMING-* metrics
     Use -no_fanout to prevent calculation of the average fanout
     Use -no_path_budgeting to prevent calculation of the LUT/Net budgeting
     Use -no_hfn to prevent calculation of Non-FD high fanout nets
