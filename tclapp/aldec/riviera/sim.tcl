@@ -8,8 +8,8 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::sim 1.12
-package require ::tclapp::aldec::common::helpers 1.12
+package require ::tclapp::aldec::common::sim 1.13
+package require ::tclapp::aldec::common::helpers 1.13
 
 namespace eval ::tclapp::aldec::riviera {
 
@@ -31,7 +31,7 @@ proc compile { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
-  
+
   return [eval ::tclapp::aldec::common::sim::compile $args]
 }
 
@@ -41,7 +41,7 @@ proc elaborate { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
-  
+
   return [eval ::tclapp::aldec::common::sim::elaborate $args]
 }
 
@@ -51,7 +51,7 @@ proc simulate { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
-  
+
   return [eval ::tclapp::aldec::common::sim::simulate $args]
 }
 
@@ -88,13 +88,13 @@ proc export_simulation { args } {
       "-mode"        { incr i; append switches " -mode [lindex $args $i]" }
       "-type"        { incr i; append switches " -type [lindex $args $i]" }
     }
-  }  
+  }
 
   setup "\{ $switches \}"
   compile
   elaborate
   simulate
-  
+
   # restore previous simulator
   if { $currentSimulator != "" } {
     set_property target_simulator $currentSimulator [current_project]
