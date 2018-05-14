@@ -2077,6 +2077,7 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
   set data_files [xcs_remove_duplicate_files $data_files]
   foreach file $data_files {
     set extn [file extension $file]
+    set filename [file tail $file]
     switch -- $extn {
       {.bd} -
       {.png} -
@@ -2086,12 +2087,14 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
       {.hwdef} -
       {.xml} {
         if { {} != [xcs_cache_result {xcs_get_top_ip_filename $file}] } {
-          continue
+          if { [regexp {_addr_map.xml} ${filename}] } {
+            # keep these files
+          } else {
+            continue
+          }
         }
       }
     }
-
-    set filename [file tail $file]
 
     # skip bd files
     if { ([string match *_bd* $filename])        && ({.tcl} == $extn) } { continue }
