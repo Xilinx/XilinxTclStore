@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed xsim ip compiled library dir path</revision_history>
+      <revision_history>export addr_map.xml sources into simulation run dir</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

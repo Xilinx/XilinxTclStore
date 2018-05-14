@@ -1,3 +1,4 @@
+3.91 export addr_map.xml sources into simulation run dir
 3.90 fixed xsim ip compiled library dir path
 3.89 find library info from ip compiled library dir
 3.88 check for IP in quiet mode and return default header file if IP does not exist
