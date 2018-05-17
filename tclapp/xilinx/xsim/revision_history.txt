@@ -1,3 +1,4 @@
+2.235 donot reference systemc libraries for xsc step
 2.234 export addr_map.xml sources into simulation run dir
 2.233 fixed xsim ip compiled library dir path
 2.232 find library info from ip compiled library dir
