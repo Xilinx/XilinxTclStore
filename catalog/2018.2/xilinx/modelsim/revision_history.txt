@@ -1,3 +1,15 @@
+2.197 check for IP in quiet mode and return default header file if IP does not exist
+2.196 add default compiled library for xsim
+2.195 helper proc to find shared libraries
+2.194 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
+2.193 process referenced linked libraries from IPs
+2.192 fixed dat_file var while fetching library info
+2.191 delete stale static files for precompiled library for sync mode
+2.190 consider BD SystemC sources
+2.189 add BD file type to the file extension check while fetching SystemC sources
+2.188 consider SV design sources if param set for compiling vip library
+2.187 proc to read library info from dat file
+2.186 reference SystemC include directory
 2.185 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
 2.184 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
 2.183 detect and fetch protoinst file from the ip_user_files for xsim

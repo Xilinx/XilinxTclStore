@@ -187,10 +187,10 @@ proc create_rqs_run { args } {
   }
 
   if { [info exists optOptions ] } {
-    set_property {STEPS.OPT_DESIGN.ARGS.MORE OPTIONS} $optOptions [get_runs $new_impl_run]
+    set_property -name {STEPS.OPT_DESIGN.ARGS.MORE OPTIONS} -value $optOptions -objects [get_runs $new_impl_run]
   }
   if { [info exists placeOptions ] } {
-    set_property {STEPS.PLACE_DESIGN.ARGS.MORE OPTIONS} $placeOptions [get_runs $new_impl_run]
+    set_property -name {STEPS.PLACE_DESIGN.ARGS.MORE OPTIONS} -value $placeOptions -objects [get_runs $new_impl_run]
   }
   current_run [get_runs $new_synth_run] 
   launch_runs [get_runs $new_impl_run] 

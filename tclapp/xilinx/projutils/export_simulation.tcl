@@ -20,18 +20,18 @@ proc export_simulation {args} {
   # Argument Usage:
   # [-simulator <arg> = all]: Simulator for which the simulation script will be created (value=all|xsim|modelsim|questa|ies|xcelium|vcs|riviera|activehdl)
   # [-of_objects <arg> = None]: Export simulation script for the specified object
-  # [-ip_user_files_dir <arg> = Empty]: Directory path to exported IP user files (for dynamic and other IP non static files)
-  # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP static files
+  # [-ip_user_files_dir <arg> = Empty]: Directory path to the exported IP/BD (Block Design) user files (for static, dynamic and data files)
+  # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP/BD static files
   # [-lib_map_path <arg> = Empty]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
-  # [-script_name <arg> = top_module.sh]: Output shell script filename. If not specified, then file with a default name will be created.
-  # [-directory <arg> = export_sim]: Directory where the simulation script will be exported
+  # [-script_name <arg> = top_module.sh]: Output script filename. If not specified, then a file with a default name will be created.
+  # [-directory <arg> = export_sim]: Directory where the simulation script will be generated
   # [-runtime <arg> = Empty]: Run simulation for this time (default:full simulation run or until a logical break or finish condition)
   # [-define <arg> = Empty]: Read verilog defines from the list specified with this switch
   # [-generic <arg> = Empty]: Read vhdl generics from the list specified with this switch
   # [-include <arg> = Empty]: Read include directory paths from the list specified with this switch
-  # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation
-  # [-absolute_path]: Make all file paths absolute wrt the reference directory
-  # [-export_source_files]: Copy design files to output directory
+  # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation. This switch requires -ip_user_files_dir and -ipstatic_source_dir switches as well for generating scripts using pre-compiled IP library.
+  # [-absolute_path]: Make all file paths absolute
+  # [-export_source_files]: Copy IP/BD design files to output directory
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
 
@@ -2029,7 +2029,7 @@ proc xps_set_permissions { file } {
     }
   } else {
     if {[catch {exec attrib /D -R $file} error_msg] } {
-      send_msg_id USF-XSim-070 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
+      send_msg_id USF-XSim-071 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   }
 }
@@ -3420,17 +3420,10 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     "xsim" {
       if { $a_sim_vars(b_use_static_lib) } {
         puts $fh_unix "  if \[\[ (\$lib_map_path != \"\") \]\]; then"
-        puts $fh_unix "    ip_file=\"xsim_ip.ini\""
-        puts $fh_unix "    src_file=\"\$lib_map_path/ip/\$ip_file\""
+        puts $fh_unix "    src_file=\"\$lib_map_path/\$file\""
         puts $fh_unix "    if \[\[ -e \$src_file \]\]; then"
-        puts $fh_unix "      cp \$src_file \$file"
-        puts $fh_unix "    else"
-        puts $fh_unix "      src_file=\"\$lib_map_path/\$file\""
-        puts $fh_unix "      if \[\[ -e \$src_file \]\]; then"
-        puts $fh_unix "        cp \$src_file ."
-        puts $fh_unix "      fi"
+        puts $fh_unix "      cp \$src_file ."
         puts $fh_unix "    fi"
-
         puts $fh_unix "\n    # Map local design libraries to xsim.ini"
         puts $fh_unix "    map_local_libs\n"
         puts $fh_unix "  fi"
@@ -3498,18 +3491,11 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
           }
           if { {} != $dir } {
             set clibs_dir [file normalize "$dir/data/xsim"]
-            set ip_file "$clibs_dir/ip/xsim_ip.ini"
             set target_file "$launch_dir/xsim.ini"
+            set ip_file "$clibs_dir/xsim.ini"
             if { [file exists $ip_file] } {
               if {[catch {file copy -force $ip_file $target_file} error_msg] } {
                 send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
-              }
-            } else {
-              set ip_file "$clibs_dir/xsim.ini"
-              if { [file exists $ip_file] } {
-                if {[catch {file copy -force $ip_file $target_file} error_msg] } {
-                  send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$ip_file' to '$launch_dir' : $error_msg\n"
-                }
               }
             }
           } else {
@@ -4635,10 +4621,26 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
   lappend args "-tclbatch"
   lappend args "$cmd_file"
 
-  foreach pinst_file [xcs_get_protoinst_files $a_sim_vars(s_ip_user_files_dir)] {
-    lappend args "-protoinst"
-    set rel_path [xcs_get_relative_file_path $pinst_file $dir]
-    lappend args "\"$rel_path\""
+  set p_inst_files [xcs_get_protoinst_files $a_sim_vars(s_ip_user_files_dir)]
+  if { [llength $p_inst_files] > 0 } {
+    set target_pinst_dir "$dir/protoinst_files"
+    if { ![file exists $target_pinst_dir] } {
+      [catch {file mkdir $target_pinst_dir} error_msg]
+    }
+    foreach p_file $p_inst_files {
+      if { ![file exists $p_file] } { continue; }
+      set filename [file tail $p_file]
+      set target_p_file "$target_pinst_dir/$filename"
+      if { ![file exists $target_p_file] } {
+        if { [catch {file copy -force $p_file $target_pinst_dir} error_msg] } {
+          [catch {send_msg_id exportsim-Tcl-072 ERROR "Failed to copy file '$p_file' to '$target_pinst_dir': $error_msg\n"} err]
+        } else {
+          #send_msg_id exportsim-Tcl-073 INFO "File '$p_file' copied to '$target_pinst_dir'\n"
+        }
+      }
+      lappend args "-protoinst"
+      lappend args "\"protoinst_files/$filename\""
+    }
   }
 
   set log_file "simulate";append log_file ".log"

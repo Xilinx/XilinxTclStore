@@ -321,7 +321,11 @@ proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
 
   set vh_filename   [file tail $vh_file]
   set vh_file_dir   [file dirname $vh_file]
-  set output_dir    [get_property IP_OUTPUT_DIR [lindex [get_ips -all $ip_name] 0]]
+  set output_dir    [get_property -quiet IP_OUTPUT_DIR [lindex [get_ips -quiet -all $ip_name] 0]]
+  if { [string length $output_dir] == 0 } {
+    return $vh_file
+  }
+
   set sub_file_path [xcs_get_sub_file_path $vh_file_dir $output_dir]
 
   # construct full repo dynamic file path
@@ -1817,7 +1821,7 @@ proc xcs_get_netlist_file { design_in_memory s_launch_dir extn s_sim_top s_simul
   if { {.v} == $extn } {
     set netlist_extn $extn
     # contain SV construct?
-    set design_prop "XLNX_ADC_DAC_SV_PINS"
+    set design_prop "XLNX_REAL_CELL_SV_PINS"
     if { [lsearch -exact [list_property $design_in_memory] "$design_prop"] != -1 } {
       if { [get_property -quiet $design_prop $design_in_memory] } {
         set netlist_extn ".sv"
@@ -2658,14 +2662,16 @@ proc xcs_find_sv_pkg_libs { run_dir } {
    [catch {file delete -force $tmp_dir} error_msg]
   }
 
-  # find SV package libraries from the design
-  set filter "FILE_TYPE == \"SystemVerilog\""
-  foreach sv_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
-    if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
-      set library [get_property -quiet "LIBRARY" $sv_file_obj]
-      if { {} != $library } {
-        if { [lsearch -exact $a_sim_sv_pkg_libs $library] == -1 } {
-          lappend a_sim_sv_pkg_libs $library
+  if { [get_param "project.compileXilinxVipLocalForDesign"] } {
+    # find SV package libraries from the design
+    set filter "FILE_TYPE == \"SystemVerilog\""
+    foreach sv_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
+      if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
+        set library [get_property -quiet "LIBRARY" $sv_file_obj]
+        if { {} != $library } {
+          if { [lsearch -exact $a_sim_sv_pkg_libs $library] == -1 } {
+            lappend a_sim_sv_pkg_libs $library
+          }
         }
       }
     }
@@ -3043,7 +3049,7 @@ proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_x
   set incl_dirs [list]
   set uniq_incl_dirs [list]
 
-  foreach file [get_files -all -filter $c_filter] {
+  foreach file [get_files -all -quiet -filter $c_filter] {
     set file_extn [file extension $file]
 
     # consider header (.h) files only
@@ -3187,7 +3193,7 @@ proc xcs_get_sc_files { sc_filter } {
         continue
       }
       set file_extn [file extension $comp_file]
-      if { ".xci" == $file_extn } {
+      if { (".xci" == $file_extn) } {
         set ip_name [file root [file tail $comp_file]]
         set ip [get_ips -quiet -all $ip_name]
         if { "" != $ip } {
@@ -3202,6 +3208,8 @@ proc xcs_get_sc_files { sc_filter } {
             }
           }
         }
+      } elseif { (".bd" == $file_extn) } {
+        lappend sc_files $file_obj
       }
     } else {
       lappend sc_files $file_obj
@@ -3271,4 +3279,170 @@ proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo
     return $repo_src_file
   }
   return $src_file
+}
+
+proc xcs_fetch_lib_info { clibs_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_cache_lib_info
+
+  if { ![file exists $clibs_dir] } {
+    return
+  }
+
+  foreach lib_dir [glob -nocomplain -directory $clibs_dir *] {
+    set dat_file "$lib_dir/.cxl.lib_info.dat"
+    if { ![file exists $dat_file] } { continue; }
+    set fh 0
+    if { [catch {open $dat_file r} fh] } { continue; }
+    set lib_data [split [read $fh] "\n"]
+    close $fh
+
+    set library {}
+    set type    {}
+    set ldlibs  {}
+
+    foreach line $lib_data {
+      set line [string trim $line]
+      if { [string length $line] == 0 } { continue; }
+      if { [regexp {^#} $line] } { continue; }
+      set tokens [split $line {:}]
+      set tag   [lindex $tokens 0]
+      set value [lindex $tokens 1]
+      if { "Name" == $tag } {
+        set library $value
+      } elseif { "Type" == $tag } {
+        set type $value
+      } elseif { "Link" == $tag } {
+        set ldlibs $value
+      }
+    }
+    set array_value "$type#$ldlibs"
+    set a_sim_cache_lib_info($library) $array_value
+  }
+}
+
+proc xcs_get_vivado_release_version {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # Vivado v201*.*.0 (64-bit)
+  set vivado_version [lindex [split [version] "\n"] 0]
+  # v201*.*.0
+  set version_str [lindex [split $vivado_version " "] 1]
+  # 201*.*.0
+  set version_str [string trimleft $version_str {v}]
+  # 201*.*
+  set version [join [lrange [split $version_str {.}] 0 1] {.}]
+
+  return $version
+} 
+
+proc xcs_find_shared_lib_paths { simulator clibs_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # any library referenced in IP?
+  set lib_coln [xcs_get_sc_libs]
+  if { [llength $lib_coln] == 0 } {
+    return
+  }
+
+  # platform and library extension
+  set platform "win64"
+  set extn     "dll"
+  if {$::tcl_platform(platform) == "unix"} {
+    set platform "lnx64"
+    set extn "so"
+  }
+  
+  # simulator, gcc version, data dir
+  set sim_version [get_param "simulator.${simulator}.version"]
+  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+  set data_dir    [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+
+  # target directory paths to search for
+  set target_paths [list "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/systemc/protected" \
+                         "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/ext" ]
+  # add ip dir for xsim
+  if { "xsim" == $simulator } {
+    lappend target_paths "$clibs_dir/ip"
+  }
+
+  # add compiled library directory
+  lappend target_paths "$clibs_dir"
+
+  # additional linked libraries
+  set linked_libs [list]
+
+  variable a_shared_library_path_coln
+  variable a_sim_cache_lib_info
+
+  foreach library $lib_coln {
+    # target shared library name to search for
+    set shared_libname "lib${library}.${extn}"
+
+    # iterate over target paths to search for this library name
+    foreach path $target_paths {
+      set path [file normalize $path]
+      set path [regsub -all {[\[\]]} $path {/}]
+      foreach lib_dir [glob -nocomplain -directory $path *] {
+        if { ![file isdirectory $lib_dir] } { continue; }
+        set sh_file_path "$lib_dir/$shared_libname"
+        if { [file exists $sh_file_path] } {
+          if { ![info exists a_shared_library_path_coln($lib_dir)] } {
+            set a_shared_library_path_coln($lib_dir) $shared_libname
+          }
+        }
+
+        # get any dependent libraries if any from this shared library dir
+        set dat_file "$lib_dir/.cxl.lib_info.dat"
+        if { ![file exists $dat_file] } { continue; }
+
+        # any dependent library info fetched from .cxl.lib_info.dat?
+        if { [info exists a_sim_cache_lib_info($library)] } {
+          # "SystemC#common_cpp_v1_0,proto_v1_0"
+          set values [split $a_sim_cache_lib_info($library) {#}]
+
+          # make sure we have some data to process
+          if { [llength $values] > 1 } {
+            set tag  [lindex $values 0]
+            set libs [split [lindex $values 1] {,}]
+            if { ("SystemC" == $tag) || ("C" == $tag) || ("CPP" == $tag)} {
+              if { [llength $libs] > 0 } {
+                foreach lib $libs {
+                  lappend linked_libs $lib
+                  #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  # find shared library paths for the linked libraries
+  foreach library $linked_libs {
+    # target shared library name to search for
+    set shared_libname "lib${library}.${extn}"
+
+    # iterate over target paths to search for this library name
+    foreach path $target_paths {
+      set path [file normalize $path]
+      set path [regsub -all {[\[\]]} $path {/}]
+      foreach lib_dir [glob -nocomplain -directory $path *] {
+        set sh_file_path "$lib_dir/$shared_libname"
+        if { [file exists $sh_file_path] } {
+          if { ![info exists a_shared_library_path_coln($lib_dir)] } {
+            set a_shared_library_path_coln($lib_dir) $shared_libname
+          }
+        }
+      }
+    }
+  }
 }
