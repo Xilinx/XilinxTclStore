@@ -1906,11 +1906,11 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   lappend args_list "-lib $a_sim_vars(default_top_library)"
 
   if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) } {
-      foreach lib [xcs_get_sc_libs] {
-        lappend args_list "-lib $lib"
-      }
-    }
+    #if { $a_sim_vars(b_contain_systemc_sources) } {
+    #  foreach lib [xcs_get_sc_libs] {
+    #    lappend args_list "-lib $lib"
+    #  }
+    #}
     set ip_objs [get_ips -all -quiet]
     foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
       foreach ip_obj $ip_objs {
