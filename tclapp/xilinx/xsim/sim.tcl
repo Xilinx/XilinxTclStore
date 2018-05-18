@@ -1662,7 +1662,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         set lib_name        [file root $shared_lib_name]
         set rel_lib_path    [xcs_get_relative_file_path $lib_path $dir]
 
-        send_msg_id USF-XSim-104 INFO "Referencing library '$lib_name' from '$lib_path'\n"
+        #send_msg_id USF-XSim-104 INFO "Referencing library '$lib_name' from '$lib_path'\n"
  
         # relative path to library include dir
         set incl_dir "$lib_path/include"
