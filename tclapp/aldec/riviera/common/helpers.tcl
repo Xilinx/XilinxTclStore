@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.13
+package provide ::tclapp::aldec::common::helpers 1.14
 
 namespace eval ::tclapp::aldec::common {
 
@@ -3615,13 +3615,18 @@ proc vip_ips {} {
 }
 
 proc is_vip_ip_required {} {
-  if { [get_param project.usePreCompiledXilinxVIPLibForSim] } {
-    foreach ip_obj [get_ips -all -quiet] {
-      set ipdef [get_property -quiet IPDEF $ip_obj]
-      set ip_name [lindex [split $ipdef ":"] 2]
-      if { [lsearch -nocase [vip_ips] $ip_name] != -1 } {
-        return true
-      }
+  foreach ip_obj [get_ips -all -quiet] {
+    set requires_vip [get_property -quiet requires_vip $ip_obj]
+    if { $requires_vip } {
+      return true
+    }
+  }
+
+  foreach ip_obj [get_ips -all -quiet] {
+    set ipdef [get_property -quiet IPDEF $ip_obj]
+    set ip_name [lindex [split $ipdef ":"] 2]
+    if { [lsearch -nocase [vip_ips] $ip_name] != -1 } {
+      return true
     }
   }
   return false 
