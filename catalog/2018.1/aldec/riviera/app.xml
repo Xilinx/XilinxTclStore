@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Removed superfluous option for incremental compilation. Fixed generated paths in compilation and simulation scripts. Added handling of &amp;apos;xilinx_vip&amp;apos; library.</revision_history>
+      <revision_history>If the xilinx_vip library is in the use, it is included automatically in the compilation and simulation scripts.</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
