@@ -1,3 +1,4 @@
+2.237 added helper proc to resolve verilog header sources from ip_user_files dir
 2.236 updated write_project_tcl help examples
 2.235 donot reference systemc libraries for xsc step
 2.234 export addr_map.xml sources into simulation run dir

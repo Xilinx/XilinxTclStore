@@ -1,3 +1,4 @@
+3.346 added helper proc to resolve verilog header sources from ip_user_files dir
 3.345 updated write_project_tcl help examples
 3.344 export addr_map.xml sources into simulation run dir
 3.342 fixed xsim ip compiled library dir path

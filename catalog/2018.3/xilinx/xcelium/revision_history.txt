@@ -1,3 +1,4 @@
+5.7 added helper proc to resolve verilog header sources from ip_user_files dir
 5.6 export addr_map.xml sources into simulation run dir
 5.5 fixed xsim ip compiled library dir path
 5.4 find library info from ip compiled library dir
