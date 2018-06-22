@@ -351,6 +351,74 @@ proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
   return $vh_file
 }
 
+proc xcs_fetch_header_from_export { vh_file b_is_bd dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  #
+  variable a_sim_cache_all_design_files_obj
+
+  # get the header file object
+  set vh_file_obj  {}
+  if { [info exists a_sim_cache_all_design_files_obj($vh_file)] } {
+    set vh_file_obj $a_sim_cache_all_design_files_obj($vh_file)
+  } else {
+    set vh_file_obj [lindex [get_files -all -quiet $vh_file] 0]
+  }
+
+  # get the ip name from parent composite filename
+  set props [list_property $vh_file_obj]
+  if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
+    set ip_file [get_property PARENT_COMPOSITE_FILE $vh_file_obj]
+  } else {
+    return $vh_file 
+  }
+
+  if { $ip_file eq "" } {
+    return $vh_file 
+  }
+
+  # fetch the output directory from the IP this header file belongs to
+  set ip_name [file root [file tail $ip_file]] 
+  set output_dir [get_property -quiet IP_OUTPUT_DIR [lindex [get_ips -quiet -all $ip_name] 0]]
+  if { [string length $output_dir] == 0 } {
+    return $vh_file
+  }
+
+  # find out the extra sub-file path from the header source file wrt the output directory value,
+  # and construct the output file path
+  set vh_filename   [file tail $vh_file]
+  set vh_file_dir   [file dirname $vh_file]
+  set sub_file_path [xcs_get_sub_file_path $vh_file_dir $output_dir]
+
+  set output_file_path "$output_dir/$sub_file_path"
+
+  if { [regexp -nocase "sources_1/bd" $output_file_path] } {
+    # traverse the path
+    set dir   [string map {\\ /} $output_file_path]
+    set dirs  [split $dir {/}]
+    set index [lsearch $dirs "sources_1"]
+    incr index
+    set bd_path [join [lrange $dirs $index end] "/"]
+    set ip_user_vh_file "$dynamic_repo_dir/$bd_path/$vh_filename"
+    if { [file exists $ip_user_vh_file] } {
+      return $ip_user_vh_file
+    }
+  }
+
+  # fall-back : construct full repo dynamic file path
+  set sub_dir "ip"
+  if { $b_is_bd } {
+    set sub_dir "bd"
+  }
+  set ip_user_vh_file [file join $dynamic_repo_dir $sub_dir $ip_name $sub_file_path $vh_filename]
+  if { [file exists $ip_user_vh_file] } {
+    return $ip_user_vh_file
+  }
+
+  return $vh_file
+}
+
 proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
   # Summary:
   # Argument Usage:
@@ -3079,7 +3147,7 @@ proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_x
     }
 
     # fetch header file
-    set sc_header_file [xcs_fetch_header_from_dynamic $file false $s_ip_user_files_dir]
+    set sc_header_file [xcs_fetch_header_from_export $file true $s_ip_user_files_dir]
     set dir [file normalize [file dirname $sc_header_file]]
 
     # is export_source_files? copy to local incl dir

@@ -107,6 +107,7 @@ proc usf_init_vars {} {
                 FILE_TYPE != \"SystemVerilog\"                && \
                 FILE_TYPE != \"Verilog Header\"               && \
                 FILE_TYPE != \"Verilog/SystemVerilog Header\" && \
+                FILE_TYPE != \"SystemC Header\"               && \
                 FILE_TYPE != \"Verilog Template\"             && \
                 FILE_TYPE != \"VHDL\"                         && \
                 FILE_TYPE != \"VHDL 2008\"                    && \

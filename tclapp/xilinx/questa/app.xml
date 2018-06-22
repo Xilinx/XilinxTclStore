@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export addr_map.xml sources into simulation run dir</revision_history>
+      <revision_history>added helper proc to resolve verilog header sources from ip_user_files dir</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
