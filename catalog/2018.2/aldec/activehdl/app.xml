@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Generated scripts are now automatically made executable. List of libraries is now included in vlog command.</revision_history>
+      <revision_history>Removed superfluous option for incremental compilation. Fixed generated paths in compilation and simulation scripts. Added handling of ('xilinx_vip') library.</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
