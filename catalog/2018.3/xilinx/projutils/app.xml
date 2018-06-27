@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added helper proc to resolve verilog header sources from ip_user_files dir</revision_history>
+      <revision_history>Enable suppressing write_project_tcl messages when -quiet flag is used</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
