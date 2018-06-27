@@ -42,6 +42,7 @@ proc write_project_tcl {args} {
   # [-dump_project_info]: Write object values
   # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
   # [-internal]: Print basic header information in the generated tcl script
+  # [-quiet]: Execute the command quietly, returning no messages from the command.
   # file: Name of the tcl script file to generate
 
   # Return Value:
@@ -84,6 +85,7 @@ proc write_project_tcl {args} {
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
       "-internal"             { set a_global_vars(b_internal) 1 }
+      "-quiet"                { set a_global_vars(b_arg_quiet) 1}
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -94,15 +96,25 @@ proc write_project_tcl {args} {
       }
     }
   }
+  # suppress all messages if -quiet flag is provided
+  if { $a_global_vars(b_arg_quiet) } {
+    suppress_messages
+  }
  
   # script file is a must
   if { [string equal $a_global_vars(script_file) ""] } {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-002 ERROR "Missing value for option 'file', please type 'write_project_tcl -help' for usage info.\n"
     return
   }
         
   # should not be a directory
   if { [file isdirectory $a_global_vars(script_file)] } {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-003 ERROR "The specified filename is a directory ($a_global_vars(script_file)), please type 'write_project_tcl -help' for usage info.\n"
     return
   }
@@ -117,12 +129,18 @@ proc write_project_tcl {args} {
   set file_path [file dirname $a_global_vars(script_file)]
   if { ! [file exists $file_path] } {
     set script_filename [file tail $a_global_vars(script_file)]
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-013 ERROR "Directory in which file ${script_filename} is to be written does not exist \[$a_global_vars(script_file)\]\n"
     return
   }
     
   # recommend -force if file exists
   if { [file exists $a_global_vars(script_file)] && !$a_global_vars(b_arg_force) } {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-004 ERROR "Tcl Script '$a_global_vars(script_file)' already exist. Use -force option to overwrite.\n"
     return
   }
@@ -131,6 +149,9 @@ proc write_project_tcl {args} {
  
   # -no_copy_sources cannot be used without -use_bd_files
   if { $a_global_vars(b_arg_no_copy_srcs) && !$a_global_vars(b_arg_use_bd_files) } {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-019 ERROR "This design contains BD sources. The option -no_copy_sources cannot be used without -use_bd_files.\
       Please remove -no_copy_sources if you wish to write out BD's as procs in the project tcl, otherwise add the option -use_bd_files to directly\
       include the *.bd files to the new project \n"
@@ -142,6 +163,9 @@ proc write_project_tcl {args} {
   
   # now write
   if {[write_project_tcl_script]} {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     return
   }
 }
@@ -204,6 +228,7 @@ proc reset_global_vars {} {
   set a_global_vars(dp_fh)                0
   set a_global_vars(def_val_fh)           0
   set a_global_vars(script_file)          ""
+  set a_global_vars(b_arg_quiet)          0
   
   if { [get_param project.enableMergedProjTcl] } {
     set a_global_vars(b_arg_use_bd_files)   0
@@ -266,6 +291,9 @@ proc write_project_tcl_script {} {
   # output file script handle
   set file $a_global_vars(script_file)
   if {[catch {open $file w} a_global_vars(fh)]} {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-005 ERROR "failed to open file for write ($file)\n"
     return 1
   }
@@ -274,6 +302,9 @@ proc write_project_tcl_script {} {
   if { $a_global_vars(b_arg_dump_proj_info) } {
     set dump_file [file normalize [file join $a_global_vars(s_path_to_script_dir) ${proj_name}_dump.txt]]
     if {[catch {open $dump_file w} a_global_vars(dp_fh)]} {
+      if { $a_global_vars(b_arg_quiet) } {
+        reset_msg_setting
+      }
       send_msg_id Vivado-projutils-006 ERROR "failed to open file for write ($dump_file)\n"
       return 1
     }
@@ -281,6 +312,9 @@ proc write_project_tcl_script {} {
     # default value output file script handle
     set def_val_file [file normalize [file join $a_global_vars(s_path_to_script_dir) ${proj_name}_def_val.txt]]
     if {[catch {open $def_val_file w} a_global_vars(def_val_fh)]} {
+      if { $a_global_vars(b_arg_quiet) } {
+        reset_msg_setting
+      }
       send_msg_id Vivado-projutils-007 ERROR "failed to open file for write ($file)\n"
       return 1
     }
@@ -333,6 +367,7 @@ proc write_project_tcl_script {} {
 
   set script_filename [file tail $file]
   set out_dir [file dirname [file normalize $file]]
+  if { !$a_global_vars(b_arg_quiet) } {
   send_msg_id Vivado-projutils-008 INFO "Tcl script '$script_filename' generated in output directory '$out_dir'\n\n"
 
   if { $a_global_vars(b_absolute_path) } {
@@ -357,13 +392,19 @@ proc write_project_tcl_script {} {
       then set the origin dir using '-tclargs --origin_dir <path>'. For example, 'vivado -mode tcl -source $script_filename -tclargs --origin_dir \"..\"\n"
     }
   }
+  }
 
+  if { !$a_global_vars(b_arg_quiet) } {
   if { $a_global_vars(b_local_sources) } {
     print_local_file_msg "warning"
   } else {
     print_local_file_msg "info"
   }
+  }
 
+  if { $a_global_vars(b_arg_quiet) } {
+    reset_msg_setting
+  }
   reset_global_vars
 
   return 0
@@ -540,6 +581,7 @@ proc write_bd_as_proc { bd_file } {
   # Argument: BD file
   # Return Value: None
 
+  variable a_global_vars
   variable l_added_bds
   variable l_bd_proc_calls
   variable l_script_data
@@ -583,6 +625,9 @@ proc write_bd_as_proc { bd_file } {
 
   # Get proc call
   if {[catch {open $temp_bd_file r} fp]} {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-020 ERROR "failed to write out proc for $bd_file \n"
     return 1
   }
@@ -699,6 +744,9 @@ proc wr_bd {} {
     set is_locked [get_property IS_LOCKED [get_files [list "$bd_file"] ] ]
     if { $is_locked == 1 } {
       file delete $a_global_vars(script_file)
+      if { $a_global_vars(b_arg_quiet) } {
+        reset_msg_setting
+      }
       send_msg_id Vivado-projutils-018 ERROR "Project tcl cannot be written as the design contains one or more \
       locked/out-of-date design(s). Please run report_ip_status and update the design.\n"
       return 1
@@ -1099,7 +1147,7 @@ proc write_properties { prop_info_list get_what tcl_obj {delim "#"} } {
       } else {
         # comment "is_readonly" project property
         if { [string equal $get_what "get_projects"] && [string equal "$name" "is_readonly"] } {
-          if { ! $a_global_vars(b_arg_all_props) } {
+          if { ! $a_global_vars(b_arg_all_props) && !$a_global_vars(b_arg_quiet) } {
             send_msg_id Vivado-projutils-012 INFO "The current project is in 'read_only' state. The generated script will create a writable project."
           }
           continue
@@ -3040,5 +3088,33 @@ proc write_report_props { report } {
   }
 
   write_properties $prop_info_list "get_report_configs" $report
+}
+
+proc suppress_messages {} {
+  variable levels_to_suppress
+  set levels_to_suppress { {STATUS} {INFO} {WARNING} {CRITICAL WARNING} }
+  set msg_rules [split [ debug::get_msg_control_rules -as_tcl ] \n]
+  foreach line  $msg_rules {
+    set idx_suppress [lsearch $line "-suppress"]
+    if { $idx_suppress >= 0  } {
+      set idx_severity [lsearch $line "-severity"]
+      if { $idx_suppress == $idx_severity + 2 } {
+        set lvl_idx [ lsearch $levels_to_suppress [lindex $line $idx_suppress-1 ] ]
+        if { $lvl_idx >= 0 } {
+          set levels_to_suppress [ lreplace $levels_to_suppress $lvl_idx $lvl_idx]
+        }
+      }
+    }
+  }
+  foreach level $levels_to_suppress {
+    set_msg_config -suppress -severity $level
+  }
+}
+
+proc reset_msg_setting {} {
+  variable levels_to_suppress
+  foreach level $levels_to_suppress {
+    reset_msg_config -suppress -severity $level
+  }
 }
 }

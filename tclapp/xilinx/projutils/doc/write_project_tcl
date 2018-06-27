@@ -93,9 +93,7 @@ Arguments:
   -internal - (Optional) Print only basic header information in the generated tcl script.
   By default information about required file sources will also be part of the header.
 
-  -quiet - (Optional) Execute the command quietly, ignoring any command line
-  errors and returning no messages. The command also returns TCL_OK regardless
-  of any errors encountered during execution.
+  -quiet - (Optional) Execute the command quietly, returning only ERROR messages. 
 
   -verbose - (Optional) Temporarily override any message limits and return all
   messages from this command.
