@@ -1834,7 +1834,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
       if {$::tcl_platform(platform) == "unix"} {
-        lappend args_list "-sv_root \".\" -sc_lib libdpi"
+        lappend args_list "-sv_root \".\" -sc_lib libdpi.so"
       }
     }
   }
