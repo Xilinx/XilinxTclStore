@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added helper proc to resolve verilog header sources from ip_user_files dir</revision_history>
+      <revision_history>pass libdpi with extension to fix an issue with dynamic linking</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
