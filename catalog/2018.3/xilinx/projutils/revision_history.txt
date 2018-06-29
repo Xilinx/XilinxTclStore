@@ -1,3 +1,4 @@
+3.347 Changing dashboard gadget commands as per TCL committee feedback
 3.346 Enable suppressing write_project_tcl messages when -quiet flag is used
 3.345 updated write_project_tcl help examples
 3.344 export addr_map.xml sources into simulation run dir
