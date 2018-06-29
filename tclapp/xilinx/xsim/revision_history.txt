@@ -1,3 +1,4 @@
+2.239 reference compiled simulation library from custom paths
 2.238 pass libdpi with extension to fix an issue with dynamic linking
 2.237 added helper proc to resolve verilog header sources from ip_user_files dir
 2.236 updated write_project_tcl help examples
