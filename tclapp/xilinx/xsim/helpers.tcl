@@ -68,6 +68,9 @@ proc usf_init_vars {} {
 
   set a_sim_vars(sp_tcl_obj)         {}
 
+  set a_sim_vars(custom_protected_lib_path) [get_param "project.protectedCompiledLibrary"]
+  set a_sim_vars(custom_simmodel_lib_path)  [get_param "project.simmodelCompiledLibrary"]
+
   # fileset compile order
   variable l_compile_order_files     [list]
   variable l_compile_order_files_uniq [list]

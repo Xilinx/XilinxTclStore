@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass libdpi with extension to fix an issue with dynamic linking</revision_history>
+      <revision_history>reference compiled simulation library from custom paths</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

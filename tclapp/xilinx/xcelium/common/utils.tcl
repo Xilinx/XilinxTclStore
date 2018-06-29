@@ -3428,7 +3428,8 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
-
+ 
+  variable a_sim_vars
   # any library referenced in IP?
   set lib_coln [xcs_get_sc_libs]
   if { [llength $lib_coln] == 0 } {
@@ -3446,14 +3447,26 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir } {
   # simulator, gcc version, data dir
   set sim_version [get_param "simulator.${simulator}.version"]
   set gcc_version [get_param "simulator.${simulator}.gcc.version"]
-  set data_dir    [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+  set cpt_dir     [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+
+  # custom protected library path specified? 
+  set custom_cpt_dir $a_sim_vars(custom_protected_lib_path)
+  if { ($custom_cpt_dir != "") && ([file exists $custom_cpt_dir]) && ([file isdirectory $custom_cpt_dir]) } {
+    set cpt_dir $custom_cpt_dir
+  }
 
   # target directory paths to search for
-  set target_paths [list "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/systemc/protected" \
-                         "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/ext" ]
+  set target_paths [list "$cpt_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/systemc/protected" \
+                         "$cpt_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/ext" ]
   # add ip dir for xsim
   if { "xsim" == $simulator } {
-    lappend target_paths "$clibs_dir/ip"
+    # custom simmodel library path specified? 
+    set sm_lib_path $a_sim_vars(custom_simmodel_lib_path)
+    if { ($sm_lib_path != "") && ([file exists $sm_lib_path]) && ([file isdirectory $sm_lib_path]) } { 
+      lappend target_paths $sm_lib_path
+    } else {
+      lappend target_paths "$clibs_dir/ip"
+    }
   }
 
   # add compiled library directory

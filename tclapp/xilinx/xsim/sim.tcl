@@ -294,6 +294,10 @@ proc usf_xsim_setup_simulation { args } {
     if { [file exists $file] } {
       # re-align local libraries for the ones that were not found in compiled library
       usf_realign_local_mappings $file l_local_design_libraries
+
+      # re-align sim model libraries if custom path specified
+      usf_realign_custom_simmodel_libraries $file
+
       set b_create_default_ini 0
     }
   }
@@ -400,6 +404,100 @@ proc usf_realign_local_mappings { ini_file l_local_design_libraries_arg } {
     puts $fh $line
   }
   close $fh
+}
+
+proc usf_realign_custom_simmodel_libraries { ini_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_vars 
+  if { ![file exists $ini_file] } {
+    return
+  }
+  # is custom compiled library specified for simulation models?
+  set lib_path $a_sim_vars(custom_simmodel_lib_path)
+  if { ("" == $lib_path) || (![file exists $lib_path]) || (![file isdirectory $lib_path]) } {
+    return
+  }
+
+  # find simulation model libraries from stat file
+  set stat_file "$lib_path/.cxl.stat"
+  if { ![file exists $stat_file] } {
+    return
+  }
+  set fh 0
+  if { [catch {open $stat_file r} fh] } {
+    [catch {send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($stat_file)\n"} error]
+    return 0
+  }
+  set stat_data [read $fh]
+  close $fh
+
+  set simlibs_coln [list]
+  set libs [list]
+  set stat_data [split $stat_data "\n"]
+  foreach line $stat_data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } {
+      continue;
+    }
+    set fields [split $line ","]
+    if { [llength $fields] > 1 } {
+      set library_name [lindex $fields 0]
+      lappend simlibs_coln $library_name
+    }
+  }
+  if { [llength $simlibs_coln] == 0 } {
+    return
+  }
+
+  # replace mappings paths
+  set fh 0
+  if {[catch {open $ini_file r} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($ini_file)\n"
+    return
+  }
+  set data [split [read $fh] "\n"]
+  close $fh
+
+  # get the updated mappings collection
+  set l_updated_mappings [list]
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } {
+      continue;
+    }
+    set library [string trim [lindex [split $line "="] 0]]
+    if { [lsearch -exact $simlibs_coln $library] != -1 } {
+      set line "$library=$lib_path/$library"
+    }
+    lappend l_updated_mappings $line
+  }
+
+  # delete exisiting bak file, if exist and then make backup
+  set ini_file_bak ${ini_file}.bak
+  if { [file exists $ini_file_bak] } {
+    [catch {file delete -force $ini_file_bak} error_msg]
+  }
+  [catch {file copy -force $ini_file $ini_file_bak} error_msg]
+
+  # delete ini file
+  [catch {file delete -force $ini_file} error_msg]
+
+  # create fresh updated copy of ini file with updated mappings
+  set fh 0
+  if {[catch {open $ini_file w} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($ini_file)\n"
+    # revert backup ini file
+    [catch {file copy -force $ini_file_bak $ini_file} error_msg]
+    return
+  }
+  foreach line $l_updated_mappings {
+    puts $fh $line
+  }
+  close $fh 
+  return
 }
 
 proc usf_xsim_init_simulation_vars {} {
@@ -1122,11 +1220,15 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
             lappend l_incl_dirs "$incl_dir"
           }
         } else {
+          set sm_lib_path $a_sim_vars(custom_simmodel_lib_path)
           set sc_libs [xcs_get_sc_libs]
           foreach sc_lib $sc_libs {
             set dir "$a_sim_vars(s_clibs_dir)/ip/$sc_lib/include"
             if { ![file exists $dir] } {
               set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
+            }
+            if { ($sm_lib_path != "") && ([file exists $sm_lib_path]) && ([file isdirectory $sm_lib_path]) } {
+              set dir "$sm_lib_path/$sc_lib/include"
             }
             # get relative file path for the compiled library
             set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
