@@ -356,7 +356,7 @@ proc validate_drcs { { _group "ValidateDRCs" } } {
 
   # DRCs: RunAllDRCs
   set testcase [ new_testcase $results $testsuite "RunAllDRCs" $_group ]
-  reset_drc
+  # reset_drc
   set failureMsg [ report_drc -return_string ]
   set cmd "get_drc_violations -quiet"
   if { [ llength [ run_silent $cmd ] ] > 0 } {
@@ -382,7 +382,7 @@ proc validate_logic { { _group "ValidateLogic" } } {
   # Synthesis: DriverlessNetsDRC
   set testcase [ new_testcase $results $testsuite "DriverlessNetsDRC" $_group ]
   set rule "NDRV-1"
-  reset_drc
+  # reset_drc
   set cmd "report_drc -checks $rule -return_string"
   set failureMsg [ run_silent $cmd ]
   set violations [ llength [ get_drc_violations -quiet ${rule}* ] ] 
