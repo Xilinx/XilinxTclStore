@@ -1,3 +1,4 @@
+1.14 If the xilinx_vip library is in the use, it is included automatically in the compilation and simulation scripts.
 1.13 Removed superfluous option for incremental compilation. Fixed generated paths in compilation and simulation scripts. Added handling of &apos;xilinx_vip&apos; library.
 1.12 Generated scripts are now automatically made executable. List of libraries is now included in vlog command.
 1.11 Fixed bug with -scripts_only switch. Changed generated simulation script - now simulation works differently in batch mode. Removed fixed simulation resolution.
