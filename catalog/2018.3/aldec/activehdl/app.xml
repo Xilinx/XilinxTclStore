@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Generated scripts are now automatically made executable. List of libraries is now included in vlog command.</revision_history>
+      <revision_history>If the xilinx_vip library is in the use, it is included automatically in the compilation and simulation scripts.</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
