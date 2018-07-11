@@ -47,6 +47,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_int_debug_mode)   0
   set a_sim_vars(b_int_systemc_mode) 0
   set a_sim_vars(b_int_rtl_kernel_mode) 0
+  set a_sim_vars(custom_sm_lib_dir)  {}
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
@@ -67,9 +68,6 @@ proc usf_init_vars {} {
   set a_sim_vars(s_tool_bin_path)    {}
 
   set a_sim_vars(sp_tcl_obj)         {}
-
-  set a_sim_vars(custom_protected_lib_path) [get_param "project.protectedCompiledLibrary"]
-  set a_sim_vars(custom_simmodel_lib_path)  [get_param "project.simmodelCompiledLibrary"]
 
   # fileset compile order
   variable l_compile_order_files     [list]
@@ -165,6 +163,9 @@ proc usf_init_vars {} {
 
   variable a_shared_library_path_coln
   array unset a_shared_library_path_coln
+
+  variable a_shared_library_mapping_path_coln
+  array unset a_shared_library_mapping_path_coln
 
   variable a_sim_sv_pkg_libs [list]
 

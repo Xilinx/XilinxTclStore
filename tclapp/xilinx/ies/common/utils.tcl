@@ -3436,83 +3436,86 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir } {
     return
   }
 
-  # platform and library extension
-  set platform "win64"
-  set extn     "dll"
+  # target directory paths to search for
+  set target_paths [xcs_get_target_sm_paths $simulator $clibs_dir]
+
+  # additional linked libraries
+  set linked_libs           [list]
+  set uniq_linked_libs      [list]
+  set processed_shared_libs [list]
+
+  variable a_shared_library_path_coln
+  variable a_shared_library_mapping_path_coln
+  variable a_sim_cache_lib_info
+
+  set extn "dll"
   if {$::tcl_platform(platform) == "unix"} {
-    set platform "lnx64"
     set extn "so"
   }
   
-  # simulator, gcc version, data dir
-  set sim_version [get_param "simulator.${simulator}.version"]
-  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
-  set cpt_dir     [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
-
-  # custom protected library path specified? 
-  set custom_cpt_dir $a_sim_vars(custom_protected_lib_path)
-  if { ($custom_cpt_dir != "") && ([file exists $custom_cpt_dir]) && ([file isdirectory $custom_cpt_dir]) } {
-    set cpt_dir $custom_cpt_dir
-  }
-
-  # target directory paths to search for
-  set target_paths [list "$cpt_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/systemc/protected" \
-                         "$cpt_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/ext" ]
-  # add ip dir for xsim
-  if { "xsim" == $simulator } {
-    # custom simmodel library path specified? 
-    set sm_lib_path $a_sim_vars(custom_simmodel_lib_path)
-    if { ($sm_lib_path != "") && ([file exists $sm_lib_path]) && ([file isdirectory $sm_lib_path]) } { 
-      lappend target_paths $sm_lib_path
-    } else {
-      lappend target_paths "$clibs_dir/ip"
-    }
-  }
-
-  # add compiled library directory
-  lappend target_paths "$clibs_dir"
-
-  # additional linked libraries
-  set linked_libs [list]
-
-  variable a_shared_library_path_coln
-  variable a_sim_cache_lib_info
-
+  # Iterate over the shared library collection found from the packaged IPs in the design (systemc_libraries) and
+  # search for this shared library from the known paths. Also find the linked libraries that were referenced in
+  # the dat file for a given library that was packaged in IP.
   foreach library $lib_coln {
     # target shared library name to search for
     set shared_libname "lib${library}.${extn}"
 
+    #puts "Finding shared library '$shared_libname'..."
     # iterate over target paths to search for this library name
     foreach path $target_paths {
       set path [file normalize $path]
       set path [regsub -all {[\[\]]} $path {/}]
+
+      # is this shared library already processed from a given path? 
+      if { [lsearch -exact $processed_shared_libs $shared_libname] != -1 } { continue; }
+
+      #puts " + Library search path:$path"
+      set lib_dir_path_found ""
       foreach lib_dir [glob -nocomplain -directory $path *] {
         if { ![file isdirectory $lib_dir] } { continue; }
+
         set sh_file_path "$lib_dir/$shared_libname"
         if { [file exists $sh_file_path] } {
-          if { ![info exists a_shared_library_path_coln($lib_dir)] } {
-            set a_shared_library_path_coln($lib_dir) $shared_libname
+          if { ![info exists a_shared_library_path_coln($shared_libname)] } {
+            set a_shared_library_path_coln($shared_libname) $lib_dir
+            set lib_path_dir [file dirname $lib_dir]
+            set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            #puts "  + Added '$shared_libname:$lib_dir' to collection" 
+            lappend processed_shared_libs $shared_libname
+            set lib_dir_path_found $lib_dir
+            break;
           }
         }
+      }
 
+      if { $lib_dir_path_found != "" } {
         # get any dependent libraries if any from this shared library dir
-        set dat_file "$lib_dir/.cxl.lib_info.dat"
-        if { ![file exists $dat_file] } { continue; }
+        set dat_file "$lib_dir_path_found/.cxl.lib_info.dat"
+        if { [file exists $dat_file] } {
+          # any dependent library info fetched from .cxl.lib_info.dat?
+          if { [info exists a_sim_cache_lib_info($library)] } {
+            # "SystemC#common_cpp_v1_0,proto_v1_0"
+            set values [split $a_sim_cache_lib_info($library) {#}]
 
-        # any dependent library info fetched from .cxl.lib_info.dat?
-        if { [info exists a_sim_cache_lib_info($library)] } {
-          # "SystemC#common_cpp_v1_0,proto_v1_0"
-          set values [split $a_sim_cache_lib_info($library) {#}]
+            # make sure we have some data to process
+            if { [llength $values] > 1 } {
+              set tag  [lindex $values 0]
+              set libs [split [lindex $values 1] {,}]
+              if { ("SystemC" == $tag) || ("C" == $tag) || ("CPP" == $tag)} {
+                if { [llength $libs] > 0 } {
+                  foreach lib $libs {
+                    if { [lsearch -exact $uniq_linked_libs $lib] == -1 } {
+                      # is linked library already part of search collection?
+                      if { [lsearch -exact $lib_coln $lib] != -1 } {
+                        continue;
+                      }
 
-          # make sure we have some data to process
-          if { [llength $values] > 1 } {
-            set tag  [lindex $values 0]
-            set libs [split [lindex $values 1] {,}]
-            if { ("SystemC" == $tag) || ("C" == $tag) || ("CPP" == $tag)} {
-              if { [llength $libs] > 0 } {
-                foreach lib $libs {
-                  lappend linked_libs $lib
-                  #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
+                      lappend linked_libs $lib
+                      lappend uniq_linked_libs $lib
+                      #puts "    + Added linked library:$lib"
+                      #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
+                    }
+                  }
                 }
               }
             }
@@ -3522,11 +3525,12 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir } {
     }
   }
 
+  #puts "Processing linked libraries..."
   # find shared library paths for the linked libraries
   foreach library $linked_libs {
     # target shared library name to search for
     set shared_libname "lib${library}.${extn}"
-
+    #puts " + Finding linked shared library:$shared_libname"
     # iterate over target paths to search for this library name
     foreach path $target_paths {
       set path [file normalize $path]
@@ -3534,11 +3538,132 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir } {
       foreach lib_dir [glob -nocomplain -directory $path *] {
         set sh_file_path "$lib_dir/$shared_libname"
         if { [file exists $sh_file_path] } {
-          if { ![info exists a_shared_library_path_coln($lib_dir)] } {
-            set a_shared_library_path_coln($lib_dir) $shared_libname
+          if { ![info exists a_shared_library_path_coln($shared_libname)] } {
+            set a_shared_library_path_coln($shared_libname) $lib_dir
+            set lib_path_dir [file dirname $lib_dir]
+            set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            #puts "  + Added '$shared_libname:$lib_dir' to collection" 
           }
         }
       }
     }
   }
+
+  # print extracted shared library information
+  #xcs_print_shared_lib_info
+}
+
+proc xcs_get_target_sm_paths { simulator clibs_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set target_paths [list]
+
+  set sm_cpt_dir [xcs_get_simmodel_dir $simulator "cpt"]
+  set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+
+  # default protected dir
+  set tp "$cpt_dir/$sm_cpt_dir"
+  if { ([file exists $tp]) && ([file isdirectory $tp]) } {
+    lappend target_paths $tp
+  } else {
+    # fallback
+    if { "xsim" == $simulator } {
+      set tp [file dirname $clibs_dir]
+      set tp "$tp/$sm_cpt_dir"
+      if { ([file exists $tp]) && ([file isdirectory $tp]) } {
+        lappend target_paths $tp
+      }
+    }
+  }
+
+  # default ext dir
+  set sm_ext_dir [xcs_get_simmodel_dir $simulator "ext"]
+  lappend target_paths "$cpt_dir/$sm_ext_dir"
+
+  # add ip dir for xsim
+  if { "xsim" == $simulator } {
+    lappend target_paths "$clibs_dir/ip"
+  }
+
+  # prepend custom simmodel library paths, if specified? 
+  set sm_lib_path $a_sim_vars(custom_sm_lib_dir)
+  if { $sm_lib_path != "" } {
+    set custom_paths [list]
+    foreach cpath [split $sm_lib_path ":"] {
+      if { ($cpath != "") && ([file exists $cpath]) && ([file isdirectory $cpath]) } {
+        lappend custom_paths $cpath
+      }
+    }
+    if { [llength $custom_paths] > 0 } {
+      set target_paths [concat $custom_paths $target_paths]
+    }
+  }
+
+  # add compiled library directory
+  lappend target_paths "$clibs_dir"
+
+  #puts "-----------------------------------------------------------------------------------------------------------"
+  #puts "Target paths to search"
+  #puts "-----------------------------------------------------------------------------------------------------------"
+  #foreach target_path $target_paths {
+  #  puts "Path: $target_path"
+  #}
+  #puts "-----------------------------------------------------------------------------------------------------------"
+
+  return $target_paths
+}
+
+proc xcs_print_shared_lib_info { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_shared_library_path_coln
+  set fmt {%-25s%-2s%-80s}
+  set sep ":"
+  set libs [list]
+  set dirs [list]
+  foreach {library lib_dir} [array get a_shared_library_path_coln] {
+    lappend libs $library
+    lappend dirs $lib_dir
+  }
+  puts "-----------------------------------------------------------------------------------------------------------"
+  puts "Extracted shared library path information"
+  puts "-----------------------------------------------------------------------------------------------------------"
+  foreach lib $libs dir $dirs {
+    puts [format $fmt $lib $sep $dir]
+  }
+  puts "-----------------------------------------------------------------------------------------------------------"
+}
+
+proc xcs_get_simmodel_dir { simulator type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  # platform and library extension
+  set platform "win64"
+  set extn     "dll"
+  if {$::tcl_platform(platform) == "unix"} {
+    set platform "lnx64"
+    set extn "so"
+  }
+  # simulator, gcc version, data dir
+  set sim_version [get_param "simulator.${simulator}.version"]
+  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+
+  # prefix path
+  set prefix_dir "simmodels/${simulator}/${sim_version}/${platform}/${gcc_version}"
+
+  # construct path
+  set dir {}
+  if { "cpt" == $type } {
+    set dir "${prefix_dir}/systemc/protected"
+  } elseif { "ext" == $type } {
+    set dir "${prefix_dir}/ext"
+  }
+  return $dir
 }

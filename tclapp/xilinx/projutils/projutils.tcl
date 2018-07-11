@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::projutils {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::projutils 3.348
+package provide ::tclapp::xilinx::projutils 3.349

@@ -411,45 +411,16 @@ proc usf_realign_custom_simmodel_libraries { ini_file } {
   # Argument Usage:
   # Return Value:
  
-  variable a_sim_vars 
   if { ![file exists $ini_file] } {
     return
   }
-  # is custom compiled library specified for simulation models?
-  set lib_path $a_sim_vars(custom_simmodel_lib_path)
-  if { ("" == $lib_path) || (![file exists $lib_path]) || (![file isdirectory $lib_path]) } {
-    return
-  }
 
-  # find simulation model libraries from stat file
-  set stat_file "$lib_path/.cxl.stat"
-  if { ![file exists $stat_file] } {
-    return
-  }
-  set fh 0
-  if { [catch {open $stat_file r} fh] } {
-    [catch {send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($stat_file)\n"} error]
-    return 0
-  }
-  set stat_data [read $fh]
-  close $fh
-
-  set simlibs_coln [list]
-  set libs [list]
-  set stat_data [split $stat_data "\n"]
-  foreach line $stat_data {
-    set line [string trim $line]
-    if { [string length $line] == 0 } {
-      continue;
-    }
-    set fields [split $line ","]
-    if { [llength $fields] > 1 } {
-      set library_name [lindex $fields 0]
-      lappend simlibs_coln $library_name
-    }
-  }
-  if { [llength $simlibs_coln] == 0 } {
-    return
+  set lib_coln [list]
+  set lib_paths [list]
+  variable a_shared_library_mapping_path_coln
+  foreach {library lib_dir} [array get a_shared_library_mapping_path_coln] {
+    lappend lib_coln $library
+    lappend lib_paths $lib_dir
   }
 
   # replace mappings paths
@@ -469,7 +440,8 @@ proc usf_realign_custom_simmodel_libraries { ini_file } {
       continue;
     }
     set library [string trim [lindex [split $line "="] 0]]
-    if { [lsearch -exact $simlibs_coln $library] != -1 } {
+    if { [lsearch -exact $lib_coln $library] != -1 } {
+      set lib_path $a_shared_library_mapping_path_coln($library)
       set line "$library=$lib_path/$library"
     }
     lappend l_updated_mappings $line
@@ -522,6 +494,7 @@ proc usf_xsim_setup_args { args } {
   # [-lib_map_path <arg>]: Precompiled simulation library directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-run_dir <arg>]: Simulation run directory
+  # [-int_sm_lib_dir <arg>]: Simulation model library directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
@@ -551,6 +524,7 @@ proc usf_xsim_setup_args { args } {
       "-int_debug_mode" { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
       "-int_systemc_mode" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1 }
       "-int_rtl_kernel_mode" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_rtl_kernel_mode) 1 }
+      "-int_sm_lib_dir"      { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -1201,8 +1175,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         set b_en_code true
         if { $b_en_code } {
           variable a_shared_library_path_coln
-          foreach key [array names a_shared_library_path_coln] {
-            set lib_path $key
+          foreach {key value} [array get a_shared_library_path_coln] {
+            set shared_lib_name $key
+            set lib_path        $value
             set incl_dir "$lib_path/include"
             if { [file exists $incl_dir] } {
               if { !$a_sim_vars(b_absolute_path) } {
@@ -1218,21 +1193,6 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
               set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
             }
             lappend l_incl_dirs "$incl_dir"
-          }
-        } else {
-          set sm_lib_path $a_sim_vars(custom_simmodel_lib_path)
-          set sc_libs [xcs_get_sc_libs]
-          foreach sc_lib $sc_libs {
-            set dir "$a_sim_vars(s_clibs_dir)/ip/$sc_lib/include"
-            if { ![file exists $dir] } {
-              set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
-            }
-            if { ($sm_lib_path != "") && ([file exists $sm_lib_path]) && ([file isdirectory $sm_lib_path]) } {
-              set dir "$sm_lib_path/$sc_lib/include"
-            }
-            # get relative file path for the compiled library
-            set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
-            lappend l_incl_dirs "$relative_dir"
           }
         }
  
@@ -1604,8 +1564,46 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
 
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
-        puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
-        puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+        variable a_shared_library_path_coln
+
+        # default Vivado install path
+        set vivado_install_path $::env(XILINX_VIVADO)
+	
+        # custom Vivado install path set via VIVADO_LOC
+        set custom_vivado_install_path ""
+        if { [info exists ::env(VIVADO_LOC)] } {
+          set custom_vivado_install_path $::env(VIVADO_LOC)
+        }
+
+        puts $fh_scr "\nxv_ref_path=\$\{VIVADO_LOC:-\"$vivado_install_path\"\}"
+  
+        # get the install path
+        set install_path $vivado_install_path
+        if { ($custom_vivado_install_path != "") && ([file exists $custom_vivado_install_path]) && ([file isdirectory $custom_vivado_install_path]) } {
+          set install_path $custom_vivado_install_path
+        }
+
+        set libraries    [list]
+        set sm_lib_paths [list]
+        foreach {library lib_dir} [array get a_shared_library_path_coln] {
+          lappend libraries $library
+          set sm_lib_dir [file normalize $lib_dir]
+          set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+
+          set match_string "/data/xsim/ip/"
+          set b_processed_lib_path [usf_append_sm_lib_path sm_lib_paths $install_path $sm_lib_dir $match_string]
+          if { !$b_processed_lib_path } {
+            set match_string "/data/simmodels/xsim/"
+            set b_processed_lib_path [usf_append_sm_lib_path sm_lib_paths $install_path $sm_lib_dir $match_string]
+          }
+      
+          if { !$b_processed_lib_path } {
+            lappend sm_lib_paths $sm_lib_dir
+          }
+        }
+        set sm_lib_path_str [join $sm_lib_paths ":"]
+        puts $fh_scr "xv_lib_path=\"\$xv_ref_path/lib/lnx64.o/Default:\$xv_ref_path/lib/lnx64.o\""
+        puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:$sm_lib_path_str:\$LD_LIBRARY_PATH\n"
       }
     }
 
@@ -1755,12 +1753,16 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   
   set unique_sysc_incl_dirs [list]
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+    set lib_extn ".dll"
+    if {$::tcl_platform(platform) == "unix"} {
+      set lib_extn ".so"
+    }
     set b_en_code true
     if { $b_en_code } {
       variable a_shared_library_path_coln
-      foreach key [array names a_shared_library_path_coln] {
-        set lib_path        $key
-        set shared_lib_name $a_shared_library_path_coln($key)
+      foreach {key value} [array get a_shared_library_path_coln] {
+        set shared_lib_name $key
+        set lib_path        $value
         set lib_name        [file root $shared_lib_name]
         set rel_lib_path    [xcs_get_relative_file_path $lib_path $dir]
 
@@ -1772,7 +1774,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
           lappend unique_sysc_incl_dirs $incl_dir
         }
-        set sc_args "-sv_root \"$rel_lib_path\" -sc_lib $lib_name --include \"$incl_dir\""
+        set sc_args "-sv_root \"$rel_lib_path\" -sc_lib ${lib_name}${lib_extn} --include \"$incl_dir\""
         #puts sc_args=$sc_args
         lappend args_list $sc_args
       }
@@ -2559,5 +2561,40 @@ proc usf_get_rdi_bin_path {} {
   set rdi_path $::env(RDI_BINROOT)
   set rdi_path [string map {/ \\\\} $rdi_path]
   return $rdi_path
+}
+
+proc usf_append_sm_lib_path { sm_lib_paths_arg install_path sm_lib_dir match_string } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $sm_lib_paths_arg sm_lib_paths
+
+  if { [regexp -nocase $match_string $sm_lib_dir] } {
+    # find location of the sub-string directory path from simulation model library dir
+    set index [string first $match_string $sm_lib_dir]
+    if { $index == -1 } {
+      return false
+    }
+
+    # find last part of the directory structure starting from this index
+    set file_path_str [string range $sm_lib_dir $index end] 
+
+    # check if simulation model sub-directory exist from install path. The install path could be workspace
+    # where the directory may not exist, in which case fall back to default library path.
+
+    # default library path
+    set ref_dir $sm_lib_dir
+
+    # install path (if exist)
+    set path_to_consider "$install_path$file_path_str"
+    if { ([file exists $path_to_consider]) && ([file isdirectory $path_to_consider]) } {
+      set ref_dir "\$xv_ref_path$file_path_str"
+    }
+    lappend sm_lib_paths $ref_dir
+
+    return true
+  }
+  return false
 }
 }
