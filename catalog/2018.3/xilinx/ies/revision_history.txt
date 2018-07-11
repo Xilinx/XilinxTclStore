@@ -1,3 +1,4 @@
+3.93 updated algorithm to reference compiled simulation library from custom paths
 3.92 reference compiled simulation library from custom paths
 3.91 added helper proc to resolve verilog header sources from ip_user_files dir
 3.90 export addr_map.xml sources into simulation run dir

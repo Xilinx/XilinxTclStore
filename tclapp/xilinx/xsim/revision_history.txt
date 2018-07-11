@@ -1,3 +1,4 @@
+2.240 updated algorithm to reference compiled simulation library from custom paths
 2.239 reference compiled simulation library from custom paths
 2.238 pass libdpi with extension to fix an issue with dynamic linking
 2.237 added helper proc to resolve verilog header sources from ip_user_files dir
