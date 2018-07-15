@@ -1,3 +1,4 @@
+3.95 update protoinst file in repo directory
 3.94 updated algorithm to reference compiled simulation library from custom paths
 3.93 reference compiled simulation library from custom paths
 3.92 added helper proc to resolve verilog header sources from ip_user_files dir
