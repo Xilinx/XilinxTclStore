@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>updated algorithm to reference compiled simulation library from custom paths</revision_history>
+      <revision_history>update protoinst file in repo directory</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

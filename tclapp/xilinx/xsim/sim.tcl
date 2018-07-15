@@ -2119,12 +2119,13 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
       if { ![file exists $p_file] } { continue; }
       set filename [file tail $p_file]
       set target_p_file "$target_pinst_dir/$filename"
-      if { ![file exists $target_p_file] } {
-        if { [catch {file copy -force $p_file $target_pinst_dir} error_msg] } {
-          [catch {send_msg_id USF-XSim-010 ERROR "Failed to copy file '$p_file' to '$target_pinst_dir': $error_msg\n"} err]
-        } else {
-          #send_msg_id USF-XSim-011 INFO "File '$p_file' copied to '$target_pinst_dir'\n"
-        }
+      if { [file exists $target_p_file] } {
+        [catch {file delete -force $target_p_file} error_msg]
+      }
+      if { [catch {file copy -force $p_file $target_pinst_dir} error_msg] } {
+        [catch {send_msg_id USF-XSim-010 ERROR "Failed to copy file '$p_file' to '$target_pinst_dir': $error_msg\n"} err]
+      } else {
+        #send_msg_id USF-XSim-011 INFO "File '$p_file' copied to '$target_pinst_dir'\n"
       }
       lappend args_list "-protoinst"
       lappend args_list "\"protoinst_files/$filename\""

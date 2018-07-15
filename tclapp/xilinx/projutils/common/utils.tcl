@@ -3356,9 +3356,12 @@ proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo
   }
   
   set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
-  set repo_src_file [file join $dynamic_repo_dir "bd" $core_name $hdl_dir_file $filename]
+  set repo_target_dir [file join $dynamic_repo_dir "bd" $core_name $hdl_dir_file]
+  set repo_src_file "$repo_target_dir/$filename"
+
   if { [file exists $repo_src_file] } {
     set b_found_in_repo 1
+    [catch {file copy -force $src_file $repo_target_dir} error_msg]
     return $repo_src_file
   }
   return $src_file
