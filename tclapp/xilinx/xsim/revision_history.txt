@@ -1,3 +1,4 @@
+2.242 fixed compile script formatting
 2.241 update protoinst file in repo directory
 2.240 updated algorithm to reference compiled simulation library from custom paths
 2.239 reference compiled simulation library from custom paths
