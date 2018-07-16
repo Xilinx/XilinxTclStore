@@ -926,7 +926,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     puts $fh_scr "echo \"$cmd\""
     if {$::tcl_platform(platform) == "unix"} {
       set full_cmd "vivado $vivado_cmd_str"
-      puts $fh_scr "ExecStep $full_cmd"
+      puts $fh_scr "ExecStep $full_cmd\n"
     } else {
       puts $fh_scr "call vivado $vivado_cmd_str"
     }
@@ -1035,7 +1035,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
       set full_cmd "xvlog $xvlog_cmd_str 2>&1 | tee $log_cmd_str"
-      puts $fh_scr "ExecStep $full_cmd"
+      puts $fh_scr "ExecStep $full_cmd\n"
     } else {
       set log_cmd_str " -log xvlog.log"
       puts $fh_scr "call xvlog $s_dbg_sw $xvlog_cmd_str$log_cmd_str"
@@ -1113,7 +1113,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
       set full_cmd "xvhdl $xvhdl_cmd_str 2>&1 | tee -a $log_cmd_str"
-      puts $fh_scr "ExecStep $full_cmd"
+      puts $fh_scr "ExecStep $full_cmd\n"
     } else {
       set log_cmd_str " -log xvhdl.log"
       puts $fh_scr "call xvhdl $s_dbg_sw $xvhdl_cmd_str$log_cmd_str"
@@ -1212,11 +1212,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         lappend xsc_arg_list "-f $sc_filename"
         set xsc_cmd_str [join $xsc_arg_list " "]
 
-        puts $fh_scr "\necho \"xsc $xsc_cmd_str\""
+        puts $fh_scr "echo \"xsc $xsc_cmd_str\""
         if {$::tcl_platform(platform) == "unix"} {
           set log_cmd_str $log_filename
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
-          puts $fh_scr "ExecStep $full_cmd"
+          puts $fh_scr "ExecStep $full_cmd\n"
         } else {
           set log_cmd_str " -log $log_filename"
           puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str$log_cmd_str"
@@ -1284,11 +1284,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         lappend xsc_arg_list "-f $cpp_filename"
         set xsc_cmd_str [join $xsc_arg_list " "]
 
-        puts $fh_scr "\necho \"xsc $xsc_cmd_str\""
+        puts $fh_scr "echo \"xsc $xsc_cmd_str\""
         if {$::tcl_platform(platform) == "unix"} {
           set log_cmd_str $log_filename
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
-          puts $fh_scr "ExecStep $full_cmd"
+          puts $fh_scr "ExecStep $full_cmd\n"
         } else {
           set log_cmd_str " -log $log_filename"
           puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str$log_cmd_str"
@@ -1356,11 +1356,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         lappend xsc_arg_list "-f $c_filename"
         set xsc_cmd_str [join $xsc_arg_list " "]
 
-        puts $fh_scr "\necho \"xsc $xsc_cmd_str\""
+        puts $fh_scr "echo \"xsc $xsc_cmd_str\""
         if {$::tcl_platform(platform) == "unix"} {
           set log_cmd_str $log_filename
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
-          puts $fh_scr "ExecStep $full_cmd"
+          puts $fh_scr "ExecStep $full_cmd\n"
         } else {
           set log_cmd_str " -log $log_filename"
           puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str$log_cmd_str"
