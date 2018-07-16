@@ -87,7 +87,8 @@ proc simulate { args } {
   set cmd_file {}
   set wcfg_file {}
   set b_add_view 0
-  set cmd_args [usf_xsim_write_simulate_script cmd_file wcfg_file b_add_view scr_filename]
+  set l_sm_lib_paths [list]
+  set cmd_args [usf_xsim_write_simulate_script l_sm_lib_paths cmd_file wcfg_file b_add_view scr_filename]
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
@@ -130,7 +131,13 @@ proc simulate { args } {
   cd $dir
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
     if {$::tcl_platform(platform) == "unix"} {
-      set cmd "set ::env(LD_LIBRARY_PATH) \"$dir:$::env(RDI_LIBDIR):$::env(LD_LIBRARY_PATH)\""
+      set cmd "set ::env(LD_LIBRARY_PATH) \"$dir:$::env(RDI_LIBDIR)"
+      if { [llength l_sm_lib_paths] > 0 } {
+        foreach sm_lib_path $l_sm_lib_paths {
+          append cmd ":$sm_lib_path"
+        }
+      }
+      append cmd ":$::env(LD_LIBRARY_PATH)\""
       if {[catch {eval $cmd} err_msg]} {
         puts $err_msg
         [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LD_LIBRARY_PATH!"}]
@@ -1447,13 +1454,13 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
   close $fh_scr
 }
 
-proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg scr_filename_arg } {
+proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_arg b_add_view_arg scr_filename_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   upvar $scr_filename_arg scr_filename
-
+  upvar $l_sm_lib_paths_arg l_sm_lib_paths
   upvar $cmd_file_arg cmd_file
   upvar $wcfg_file_arg wcfg_file
   upvar $b_add_view_arg b_add_view
@@ -1600,6 +1607,9 @@ proc usf_xsim_write_simulate_script { cmd_file_arg wcfg_file_arg b_add_view_arg 
           if { !$b_processed_lib_path } {
             lappend sm_lib_paths $sm_lib_dir
           }
+        }
+        foreach sm_path $sm_lib_paths {
+          lappend l_sm_lib_paths $sm_path
         }
         set sm_lib_path_str [join $sm_lib_paths ":"]
         puts $fh_scr "xv_lib_path=\"\$xv_ref_path/lib/lnx64.o/Default:\$xv_ref_path/lib/lnx64.o\""
