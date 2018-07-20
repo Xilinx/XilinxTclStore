@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>update protoinst file in repo directory</revision_history>
+      <revision_history>support for binding cpp source objects for vcs with g++</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

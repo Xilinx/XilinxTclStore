@@ -126,9 +126,6 @@ proc usf_init_vars {} {
   # wrapper file for executing user tcl
   set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
 
-  set a_sim_vars(b_link_gt_lib) 0
-  set a_sim_vars(gt_lib) {}
-
   variable a_sim_cache_result
   array unset a_sim_cache_result
 
