@@ -142,7 +142,7 @@ proc xcs_set_ref_dir { fh b_absolute_path s_launch_dir } {
   puts $fh ""
 }
 
-proc xcs_compile_glbl_file { simulator b_load_glbl design_files s_simset s_simulation_flow s_netlist_file } {
+proc xcs_compile_glbl_file { simulator b_load_glbl b_int_compile_glbl design_files s_simset s_simulation_flow s_netlist_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -176,6 +176,11 @@ proc xcs_compile_glbl_file { simulator b_load_glbl design_files s_simset s_simul
       }
     }
   }
+
+  if { $b_int_compile_glbl } {
+    return 1
+  }
+
   return 0
 }
 

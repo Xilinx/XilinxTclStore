@@ -48,6 +48,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_int_systemc_mode) 0
   set a_sim_vars(b_int_rtl_kernel_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
+  set a_sim_vars(b_int_compile_glbl) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
