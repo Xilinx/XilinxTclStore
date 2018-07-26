@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for binding cpp source objects for vcs with g++</revision_history>
+      <revision_history>compile glbl if set by internal flow for VHDL designs instantiating verilog primitives</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -1,3 +1,4 @@
+2.113 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
 2.112 update protoinst file in repo directory
 2.111 updated algorithm to reference compiled simulation library from custom paths
 2.110 reference compiled simulation library from custom paths

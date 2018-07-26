@@ -1,3 +1,4 @@
+3.97 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
 3.96 support for binding cpp source objects for vcs with g++
 3.95 update protoinst file in repo directory
 3.94 updated algorithm to reference compiled simulation library from custom paths
