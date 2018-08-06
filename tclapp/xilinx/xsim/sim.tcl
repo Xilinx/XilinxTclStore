@@ -131,6 +131,19 @@ proc simulate { args } {
   cd $dir
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
     if {$::tcl_platform(platform) == "unix"} {
+      # default Vivado install path
+      set vivado_install_path $::env(XILINX_VIVADO)
+      if { [info exists ::env(VIVADO_LOC)] } {
+        set vivado_install_path $::env(VIVADO_LOC)
+      }
+      set cmd "set ::env(xv_ref_path) \"$vivado_install_path\""
+      if {[catch {eval $cmd} err_msg]} {
+        puts $err_msg
+        [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the xv_ref_path!"}]
+      } else {
+        #[catch {send_msg_id USF-XSim-103 STATUS "xv_ref_path=$::env(xv_ref_path)"}]
+      }
+
       set cmd "set ::env(LD_LIBRARY_PATH) \"$dir:$::env(RDI_LIBDIR)"
       if { [llength l_sm_lib_paths] > 0 } {
         foreach sm_lib_path $l_sm_lib_paths {
@@ -138,6 +151,7 @@ proc simulate { args } {
         }
       }
       append cmd ":$::env(LD_LIBRARY_PATH)\""
+      set cmd [regsub -all {\$xv_ref_path} $cmd {$::env(xv_ref_path)}]
       if {[catch {eval $cmd} err_msg]} {
         puts $err_msg
         [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LD_LIBRARY_PATH!"}]
