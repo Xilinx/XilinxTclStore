@@ -1,0 +1,43 @@
+
+Description: 
+
+    Implements and generates bit stream of a 2RP synthesized design.
+
+Arguments:
+
+    <pr_config> - (Required) Partial configuration for the implementation run.
+
+    <output_dir> - (Required) Directory to save the results.
+    
+    -base_platform_dcp - (Optional) Base platform dcp file, contains only static routed region.
+    
+    -rl_platform_dcp - (Optional) Reconfigurable logic platform dcp file.
+    
+    -exclude_constrs - (Optional) List of constraint file to be excluded from generation of bit files.
+    
+    -post_link_design_hook - (Optional) List of tcl commands to execute post link design for bit generation step.
+
+Examples:
+
+    Below examples are based on a design which has a 'top' bd, 'top' bd has a module reference to a partition def 'wrapper' as 'wrapper_def_0',
+    'wrapper_def_0' has two module references to partition defs 'dynamic' and 'shell' as 'dynamic_region' and 'shell_region' respectively. 
+
+    1. The following example generates everything base platform, rl platform, full and partial bitstreams.
+
+        % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output
+
+    2. The following example generates everything base platform, rl platform, full and partial bitstreams and have a provision of excluding constraints files from implementation as well. 
+
+        % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -exclude_constrs [get_files rest.xdc]
+
+    3. The following example generates everything rl platform, full and partial bitstreams (starts from post base platform generation step).
+        
+        % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -exclude_constrs [get_files rest.xdc] -base_platform_dcp ./output/base_platform.dcp 
+
+    4. The following example generates everything full and partial bitstreams (starts from post rl platform generation step).
+        
+        % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -exclude_constrs [get_files rest.xdc] -rl_platform_dcp ./output/platform.dcp 
+    
+    5. The following example generates everything full and partial bitstreams and also executes post link design hook script (starts from post rl platform generation step).
+
+        % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -exclude_constrs [get_files rest.xdc] -rl_platform_dcp ./output/platform.dcp -post_link_design_hook {"set_param hd.skipPartitionPinReductionOnCell top_i/wrapper_def_0/dynamic_region"}
