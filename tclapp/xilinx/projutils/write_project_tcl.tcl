@@ -2630,15 +2630,40 @@ proc wr_reconfigModules { proj_dir proj_name } {
   set reconfigModules [get_reconfig_modules]
   variable a_global_vars
 
+  # associate a bd with rm to be used with write_specified_reconfig_module
+  set bd_rm_map [dict create]
   foreach rm $reconfigModules {
-    if { !$a_global_vars(b_arg_use_bd_files) } {
-      set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd]
-      foreach rm_bd $rm_bds {
-            write_bd_as_proc $rm_bd
+    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd]
+    foreach rm_bd1 $rm_bds {
+      dict set bd_rm_map $rm_bd1 $rm
+    }
+  }
+
+  set done_bds [list]
+  foreach rm $reconfigModules {
+    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd]
+    # get the dependent bd for a rm and process it first, this is required for 2RP support
+    set rm_bd_dep [lindex [get_files -references -quiet -of_objects [get_reconfig_modules $rm] *.bd] 0]
+    if {[llength $rm_bd_dep] == 1} {
+      if { !$a_global_vars(b_arg_use_bd_files) } {
+        write_bd_as_proc $rm_bd_dep
       }
+      set rm1 [dict get $bd_rm_map $rm_bd_dep]
+      write_specified_reconfig_module $proj_dir $proj_name $rm1
+      lappend done_bds $rm_bd_dep
     }
 
-    write_specified_reconfig_module $proj_dir $proj_name $rm
+    foreach rm_bd $rm_bds {
+      # process bd only if it has not already been processed
+      if {$rm_bd ni $done_bds} {
+        if { !$a_global_vars(b_arg_use_bd_files) } {
+          write_bd_as_proc $rm_bd
+        }
+        set rm1 [dict get $bd_rm_map $rm_bd]
+        write_specified_reconfig_module $proj_dir $proj_name $rm1
+        lappend done_bds $rm_bd
+      }
+    }
   }
 }
 
