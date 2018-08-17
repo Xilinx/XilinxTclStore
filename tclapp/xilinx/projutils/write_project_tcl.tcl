@@ -2664,6 +2664,11 @@ proc wr_reconfigModules { proj_dir proj_name } {
         lappend done_bds $rm_bd
       }
     }
+
+    # when no RM BDs are present
+    if {[llength $rm_bds] == 0} {
+      write_specified_reconfig_module $proj_dir $proj_name $rm
+    }
   }
 }
 
