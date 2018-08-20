@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Initial Release v1.0</revision_history>
+      <revision_history>Partial and full bitstream generation.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>

@@ -263,6 +263,9 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                 }
                 if { ![string equal [lindex $args $i] ""] } {
                     set a_global_vars(output_dir) [file normalize [lindex $args $i]]
+                    if { ![file exists $a_global_vars(output_dir)] } {
+                        file mkdir $a_global_vars(output_dir)
+                    }
                 }
 
                 set a_global_vars(log) [file normalize [file join $a_global_vars(output_dir) "x2rp.log"]]
@@ -547,10 +550,34 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ::tclapp::xilinx::x2rp::log 061 INFO "Executing Cmd: set_property PLATFORM.IMPL 2 \[current_design\]"
     set_property PLATFORM.IMPL 2 [current_design]
 
-    ::tclapp::xilinx::x2rp::log 062 INFO "Executing Cmd: write_bitstream -force [file join $a_global_vars(output_dir) $a_global_vars(full_routed_bit)]"
-    write_bitstream -force [file join $a_global_vars(output_dir) $a_global_vars(full_routed_bit)]
+    ::tclapp::xilinx::x2rp::log 062 INFO "Write partial and full bitstream step started."
+    catch { write_mem_info -force [file join $a_global_vars(output_dir) ${a_global_vars(top)}.mmi] }
+    write_bitstream -force -no_partial_bitfile [file join $a_global_vars(output_dir) $a_global_vars(top).bit]
+    foreach rm_config $a_global_vars(pr_config) {
+        set instance_path [lindex [split $rm_config :] 0]
+        set rm [lindex [split $rm_config :] 1]
 
-    ::tclapp::xilinx::x2rp::log 063 INFO "Write bitstream step completed"
+        if { [lsearch -exact $a_global_vars(reconfig_partitions) $instance_path] != -1} {
+            set partial_bit_name [string map {/ _} "${instance_path}_${rm}_partial"]
+            write_bitstream -force -cell $instance_path [file join $a_global_vars(output_dir) ${partial_bit_name}.bit]
+        }
+    }
+
+
+    catch { write_sysdef -hwdef [file join $a_global_vars(output_dir) $a_global_vars(top).hwdef] -bitfile [file join $a_global_vars(output_dir) $a_global_vars(top).bit] -meminfo [file join $a_global_vars(output_dir) $a_global_vars(top).mmi] -file [file join $a_global_vars(output_dir) $a_global_vars(top).sysdef] }
+    catch  {write_debug_probes -no_partial_ltxfile -quiet -force [file join $a_global_vars(output_dir) $a_global_vars(top)] }
+    catch {file copy -force [file join $a_global_vars(output_dir) $a_global_vars(top).ltx] [file join $a_global_vars(output_dir) debug_nets.ltx] }
+
+    foreach rm_config $a_global_vars(pr_config) {
+        set instance_path [lindex [split $rm_config :] 0]
+        set rm [lindex [split $rm_config :] 1]
+
+        if { [lsearch -exact $a_global_vars(reconfig_partitions) $instance_path] != -1} {
+            set partial_bit_name [string map {/ _} "${instance_path}_${rm}_partial"]            
+            catch {write_debug_probes -quiet -force -cell $instance_path -file [file join $a_global_vars(output_dir) ${partial_bit_name}.ltx ]}        
+        }
+    }
+    ::tclapp::xilinx::x2rp::log 063 INFO "Write partial and full bitstream step completed"
     close_project
 }
 
