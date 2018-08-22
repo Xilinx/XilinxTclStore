@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set xv_ref_path and resolve this env for LD_LIBRARY_PATH for integrated simulation runs</revision_history>
+      <revision_history>compile glbl explicitly</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

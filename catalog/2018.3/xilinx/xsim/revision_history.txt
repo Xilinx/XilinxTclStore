@@ -1,3 +1,4 @@
+2.246 compile glbl explicitly
 2.245 set xv_ref_path and resolve this env for LD_LIBRARY_PATH for integrated simulation runs
 2.244 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
 2.243 reference simulation model library paths during run
