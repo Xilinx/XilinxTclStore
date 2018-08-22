@@ -903,6 +903,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   set target_lang   [get_property "TARGET_LANGUAGE" [current_project]]
 
   set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+  # compile glbl explicitly
+  if { $a_sim_vars(b_int_compile_glbl) && (!$b_contain_verilog_srcs) } {
+    set b_contain_verilog_srcs true 
+  }
   set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
 
   # set param to force nosort (default is false)
