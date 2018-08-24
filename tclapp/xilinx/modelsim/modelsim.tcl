@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::modelsim {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::modelsim 2.205
+package provide ::tclapp::xilinx::modelsim 2.206

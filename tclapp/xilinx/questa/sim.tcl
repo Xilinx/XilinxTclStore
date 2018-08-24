@@ -462,7 +462,7 @@ proc usf_questa_create_wave_do_file { file } {
     return 1
   }
   usf_questa_write_header $fh $file
-  puts $fh "add wave *"
+  puts $fh "\[catch \{\[add wave *\]\}\]"
 
   if { ([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) } {
     puts $fh "add wave /glbl/GSR"
