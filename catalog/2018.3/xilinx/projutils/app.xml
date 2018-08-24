@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix write_project_tcl for non-BD cases</revision_history>
+      <revision_history>filter allowed_sim_types and preferred_sim_model project properties</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

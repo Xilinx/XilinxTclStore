@@ -1,3 +1,4 @@
+3.354 filter allowed_sim_types and preferred_sim_model project properties
 3.353 Fix write_project_tcl for non-BD cases
 3.352 Enhancements to the write_project_tcl tclapp to handle 2RP project
 3.351 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
