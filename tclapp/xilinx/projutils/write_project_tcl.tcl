@@ -1068,7 +1068,7 @@ proc filter { prop val { file {} } } {
   }
 
   # filter sim_types
-  if { [string equal -nocase $prop {sim_types}] } {
+  if { ([string equal -nocase $prop {allowed_sim_models}]) || ([string equal -nocase $prop {preferred_sim_model}]) } {
     return 1
   }
 
