@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>call add wave in catch block</revision_history>
+      <revision_history>call add wave in catch block to handle no objects found error</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

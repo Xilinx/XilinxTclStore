@@ -1,3 +1,4 @@
+2.207 call add wave in catch block to handle no objects found error
 2.206 call add wave in catch block
 2.205 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
 2.204 update protoinst file in repo directory
