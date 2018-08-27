@@ -1,3 +1,4 @@
+2.116 do not compile XPM component file if simulator language is verilog
 2.115 call add wave in catch block to handle no objects found error
 2.114 call add wave in catch block
 2.113 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives

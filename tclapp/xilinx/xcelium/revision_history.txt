@@ -1,3 +1,4 @@
+6.2 do not compile XPM component file if simulator language is verilog
 6.1 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
 6.0 update protoinst file in repo directory
 5.9 updated algorithm to reference compiled simulation library from custom paths
