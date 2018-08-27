@@ -69,6 +69,10 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(reconfig_modules) {}
     set a_global_vars(rm_configs) {}
     set a_global_vars(exclude_constrs) {}
+
+    set a_global_vars(shell) ""
+    set a_global_vars(rl_platform_provided) 0
+    set a_global_vars(exclude_constrs_provided) 0
 }
 
 proc ::tclapp::xilinx::x2rp::validate_args {} {
@@ -98,6 +102,10 @@ proc ::tclapp::xilinx::x2rp::validate_args {} {
         }
     }
 
+    if { !$a_global_vars(exclude_constrs_provided) } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing option '-exclude_constrs'."
+    }
+
     set xdc_norm {}
     foreach xdc $a_global_vars(exclude_constrs) {
         lappend xdc_norm [file normalize $xdc]
@@ -106,6 +114,10 @@ proc ::tclapp::xilinx::x2rp::validate_args {} {
         }
     }
     set a_global_vars(exclude_constrs) $xdc_norm
+
+    if { !$a_global_vars(rl_platform_provided) && [string equal $a_global_vars(shell) ""] } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-shell'. '-shell' must be provided when '-rl_platform_dcp' option is not used."
+    }
 }
 
 proc ::tclapp::xilinx::x2rp::dump_program_options {} {
@@ -118,7 +130,7 @@ proc ::tclapp::xilinx::x2rp::dump_program_options {} {
     # None
 
     variable a_global_vars
-    set args {pr_config output_dir base_platform platform exclude_constrs log post_link_design_hook}
+    set args {pr_config output_dir base_platform platform exclude_constrs log post_link_design_hook shell}
     ::tclapp::xilinx::x2rp::log 002 INFO "xilinx::x2rp::run is invoked with following options."        
     foreach key [lsort $args] {
         ::tclapp::xilinx::x2rp::log 003 INFO "\t$key = $a_global_vars($key)"
@@ -198,9 +210,10 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # Argument Usage:
     # -pr_config <arg>: Partial configuration for the implementation run.
     # -output_dir <arg>: Directory to save the results.
+    # -exclude_constrs <arg>: List of constraint file to be excluded from generation of bit files.
+    # [-shell <arg>]: RL/Shell instance path. Must be mentioned in case rl_platform_dcp option is not provided.
     # [-base_platform_dcp <arg>]: Base platform dcp file, contains only static routed region.
     # [-rl_platform_dcp <arg>]: Reconfigurable logic platform dcp file.
-    # [-exclude_constrs <arg>]: List of constraint file to be excluded from generation of bit files.
     # [-post_link_design_hook <arg>]: List of tcl commands to execute post link design for bit generation step.
 
     # Return Value:
@@ -244,6 +257,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                     ::tclapp::xilinx::x2rp::log 001 ERROR "Reconfigurable logic dcp file doesn't exist. Please provide a valid rl platform dcp file path."
                     return
                 }
+                set a_global_vars(rl_platform_provided) 1
             }
             "-pr_config" {
                 incr i;            
@@ -308,6 +322,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                     return
                 }
                 set a_global_vars(exclude_constrs) [lindex $args $i]
+                set a_global_vars(exclude_constrs_provided) 1
             }   
             "-post_link_design_hook" {
                 incr i;            
@@ -316,6 +331,14 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                     return
                 }         
                 set a_global_vars(post_link_design_hook) [lindex $args $i]       
+            }
+            "-shell" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {                
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid list of tcl commands immediately following '$option'"
+                    return
+                }         
+                set a_global_vars(shell) [lindex $args $i]       
             }
         }
     }
@@ -379,8 +402,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
         }
         
         ::tclapp::xilinx::x2rp::log 018 INFO "Generate RL platform step started."        
-        ::tclapp::xilinx::x2rp::log 019 INFO "Executing Cmd: 'generate_rl_platform -use_source $a_global_vars(wrapper_post_synth) -base_platform $a_global_vars(base_platform) -platform [file join $a_global_vars(output_dir) $a_global_vars(platform)] -reconfig_platform [list $a_global_vars(reconfig_partitions)]'"
-        generate_rl_platform -use_source "$a_global_vars(wrapper_post_synth)" -base_platform "$a_global_vars(base_platform)" -platform [file join $a_global_vars(output_dir) $a_global_vars(platform)] -reconfig_platform "{[list $a_global_vars(reconfig_partitions)]}"
+        ::tclapp::xilinx::x2rp::log 019 INFO "Executing Cmd: 'generate_rl_platform -use_source $a_global_vars(wrapper_post_synth) -base_platform $a_global_vars(base_platform) -platform [file join $a_global_vars(output_dir) $a_global_vars(platform)] -reconfig_platform {$a_global_vars(shell)}'"
+        generate_rl_platform -use_source "$a_global_vars(wrapper_post_synth)" -base_platform "$a_global_vars(base_platform)" -platform [file join $a_global_vars(output_dir) $a_global_vars(platform)] -reconfig_platform "{$a_global_vars(shell)}"
         set a_global_vars(platform) [file join $a_global_vars(output_dir) $a_global_vars(platform)]
         ::tclapp::xilinx::x2rp::log 020 INFO "Generate RL platform step completed. RL Platform = $a_global_vars(platform)"
         close_project
