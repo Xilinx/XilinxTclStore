@@ -25,6 +25,7 @@ proc usf_init_vars {} {
   variable a_sim_vars
 
   set project                         [current_project]
+  set a_sim_vars(simulator_language)  [get_property "SIMULATOR_LANGUAGE" $project]
   set a_sim_vars(src_mgmt_mode)       [get_property "SOURCE_MGMT_MODE" $project]
   set a_sim_vars(default_top_library) [get_property "DEFAULT_LIB" $project]
   set a_sim_vars(s_project_name)      [get_property "NAME" $project]
@@ -586,16 +587,20 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
     if { $b_using_xpm_libraries } {
-      set xpm_library [xcs_get_common_xpm_library]
-      set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
-      foreach file $common_xpm_vhdl_files {
-        set file_type "VHDL"
-        set g_files {}
-        set b_is_xpm true
-        set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files other_ver_opts $xpm_library]
-        if { {} != $cmd_str } {
-          lappend files $cmd_str
-          lappend l_compile_order_files $file
+      if { [string equal -nocase $a_sim_vars(simulator_language) "verilog"] == 1 } {
+        # do not compile vhdl component file if simulator language is verilog
+      } else {
+        set xpm_library [xcs_get_common_xpm_library]
+        set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
+        foreach file $common_xpm_vhdl_files {
+          set file_type "VHDL"
+          set g_files {}
+          set b_is_xpm true
+          set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files other_ver_opts $xpm_library]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $file
+          }
         }
       }
     }

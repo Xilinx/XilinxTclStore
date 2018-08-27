@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>compile glbl explicitly</revision_history>
+      <revision_history>do not compile XPM component file if simulator language is verilog</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
