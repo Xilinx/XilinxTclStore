@@ -54,6 +54,7 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(wrapper) ""
     set a_global_vars(initial_routed) ""
     set a_global_vars(base_platform) ""
+    set a_global_vars(base_reset_partial_bit) "base_reset_partial.bit"
     set a_global_vars(platform) "platform.dcp"
     set a_global_vars(post_link_design_hook) ""
 
@@ -71,8 +72,16 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(exclude_constrs) {}
 
     set a_global_vars(shell) ""
+    set a_global_vars(base_platform_provided) 0
     set a_global_vars(rl_platform_provided) 0
     set a_global_vars(exclude_constrs_provided) 0
+    set a_global_vars(generate_dsa) 0
+
+    # directives - defaults
+    set a_global_vars(opt_directive) "ExploreWithRemap"
+    set a_global_vars(place_directive) "Explore -fanout_opt"
+    set a_global_vars(route_directive) "Explore -tns_cleanup"
+    set a_global_vars(phys_opt_directive) "-directive AggressiveExplore"
 }
 
 proc ::tclapp::xilinx::x2rp::validate_args {} {
@@ -102,7 +111,7 @@ proc ::tclapp::xilinx::x2rp::validate_args {} {
         }
     }
 
-    if { !$a_global_vars(exclude_constrs_provided) } {
+    if { !$a_global_vars(base_platform_provided) && !$a_global_vars(rl_platform_provided) && !$a_global_vars(exclude_constrs_provided) } {
         ::tclapp::xilinx::x2rp::log 004 ERROR "Missing option '-exclude_constrs'."
     }
 
@@ -130,7 +139,7 @@ proc ::tclapp::xilinx::x2rp::dump_program_options {} {
     # None
 
     variable a_global_vars
-    set args {pr_config output_dir base_platform platform exclude_constrs log post_link_design_hook shell}
+    set args {pr_config output_dir base_platform platform exclude_constrs log post_link_design_hook shell opt_directive place_directive route_directive phys_opt_directive}
     ::tclapp::xilinx::x2rp::log 002 INFO "xilinx::x2rp::run is invoked with following options."        
     foreach key [lsort $args] {
         ::tclapp::xilinx::x2rp::log 003 INFO "\t$key = $a_global_vars($key)"
@@ -210,11 +219,16 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # Argument Usage:
     # -pr_config <arg>: Partial configuration for the implementation run.
     # -output_dir <arg>: Directory to save the results.
-    # -exclude_constrs <arg>: List of constraint file to be excluded from generation of bit files.
+    # [-exclude_constrs <arg>]: List of constraint file to be excluded from generation of bit files.
     # [-shell <arg>]: RL/Shell instance path. Must be mentioned in case rl_platform_dcp option is not provided.
     # [-base_platform_dcp <arg>]: Base platform dcp file, contains only static routed region.
     # [-rl_platform_dcp <arg>]: Reconfigurable logic platform dcp file.
     # [-post_link_design_hook <arg>]: List of tcl commands to execute post link design for bit generation step.
+    # [-opt_directive <arg>]: Directive for opt design step.
+    # [-place_directive <arg>]: Directive for place design step.
+    # [-route_directive <arg>]: Directive for route design step.
+    # [-phys_opt_directive <arg>]: Directive for phys opt design step.
+    # [-generate_dsa <arg>]: Generates DSA.
 
     # Return Value:
     # Generates full and partial bit streams for a 2RP design.
@@ -234,6 +248,9 @@ proc ::tclapp::xilinx::x2rp::run {args} {
             "-verbose" {
                 set a_global_vars(verbose) 1
             }
+            "-generate_dsa" {
+                set a_global_vars(generate_dsa) 1
+            }            
             "-base_platform_dcp" {
                 incr i;            
                 if { [regexp {^-} [lindex $args $i]] } {
@@ -245,6 +262,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                     ::tclapp::xilinx::x2rp::log 001 ERROR "Base platform dcp file doesn't exist. Please provide a valid base platform dcp file path."
                     return
                 }
+                set a_global_vars(base_platform_provided) 1
             }
             "-rl_platform_dcp" {
                 incr i;            
@@ -335,11 +353,43 @@ proc ::tclapp::xilinx::x2rp::run {args} {
             "-shell" {
                 incr i;            
                 if { [regexp {^-} [lindex $args $i]] } {                
-                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid list of tcl commands immediately following '$option'"
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid shell instance path immediately following '$option'"
                     return
                 }         
                 set a_global_vars(shell) [lindex $args $i]       
             }
+            "-opt_directive" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {                
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid directive immediately following '$option'"
+                    return
+                }         
+                set a_global_vars(opt_directive) [lindex $args $i]    
+            }
+            "-place_directive" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {                
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid directive immediately following '$option'"
+                    return
+                }         
+                set a_global_vars(place_directive) [lindex $args $i]                    
+            }
+            "-route_directive" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {                
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid directive immediately following '$option'"
+                    return
+                }         
+                set a_global_vars(route_directive) [lindex $args $i]                
+            }
+            "-phys_opt_directive" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {                
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid directive immediately following '$option'"
+                    return
+                }         
+                set a_global_vars(phys_opt_directive) [lindex $args $i]                
+            }                                    
         }
     }
     ::tclapp::xilinx::x2rp::log 004 INFO "Processing of command line arguments completed."    
@@ -508,8 +558,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ::tclapp::xilinx::x2rp::log 040 INFO "Opt design started" 
     
-    ::tclapp::xilinx::x2rp::log 041 INFO "Executing Cmd: opt_design -directive ExploreWithRemap"       
-    opt_design -directive ExploreWithRemap
+    ::tclapp::xilinx::x2rp::log 041 INFO "Executing Cmd: opt_design -directive $a_global_vars(opt_directive)"       
+    opt_design -directive $a_global_vars(opt_directive)
     
     ::tclapp::xilinx::x2rp::log 042 INFO "Executing Cmd: opt_design -merge_equivalent_drivers -sweep"       
     opt_design -merge_equivalent_drivers -sweep
@@ -524,8 +574,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     #################################################
     ::tclapp::xilinx::x2rp::log 045 INFO "Place design started"        
 
-    ::tclapp::xilinx::x2rp::log 046 INFO "Executing Cmd: place_design -directive Explore -fanout_opt"       
-    place_design -directive Explore -fanout_opt
+    ::tclapp::xilinx::x2rp::log 046 INFO "Executing Cmd: place_design -directive $a_global_vars(place_directive)"       
+    place_design -directive $a_global_vars(place_directive)
 
     ::tclapp::xilinx::x2rp::log 047 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_place_design)]"
     write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_place_design)]
@@ -537,8 +587,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ::tclapp::xilinx::x2rp::log 049 INFO "Physical opt design started"        
 
-    ::tclapp::xilinx::x2rp::log 050 INFO "Executing Cmd: phys_opt_design -directive AggressiveExplore"     
-    phys_opt_design -directive AggressiveExplore
+    ::tclapp::xilinx::x2rp::log 050 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(phys_opt_directive)"     
+    phys_opt_design -directive $a_global_vars(phys_opt_directive)
     
     ::tclapp::xilinx::x2rp::log 051 INFO "Physical opt design completed"        
 
@@ -547,8 +597,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ::tclapp::xilinx::x2rp::log 052 INFO "Route design started"      
 
-    ::tclapp::xilinx::x2rp::log 053 INFO "Executing Cmd: route_design -directive Explore -tns_cleanup"
-    route_design -directive Explore -tns_cleanup
+    ::tclapp::xilinx::x2rp::log 053 INFO "Executing Cmd: route_design -directive $a_global_vars(route_directive)"
+    route_design -directive $a_global_vars(route_directive)
 
     ::tclapp::xilinx::x2rp::log 054 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]"
     write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]
@@ -560,8 +610,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ::tclapp::xilinx::x2rp::log 056 INFO "Post route physical opt design started"      
 
-    ::tclapp::xilinx::x2rp::log 057 INFO "Executing Cmd: phys_opt_design -directive AggressiveExplore"
-    phys_opt_design -directive AggressiveExplore
+    ::tclapp::xilinx::x2rp::log 057 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(phys_opt_directive)"
+    phys_opt_design -directive $a_global_vars(phys_opt_directive)
 
     ::tclapp::xilinx::x2rp::log 058 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_route_phys_opt)]"
     write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_route_phys_opt)]
@@ -601,6 +651,13 @@ proc ::tclapp::xilinx::x2rp::run {args} {
         }
     }
     ::tclapp::xilinx::x2rp::log 063 INFO "Write partial and full bitstream step completed"
+
+    if { $a_global_vars(generate_dsa) } {
+        ::tclapp::xilinx::x2rp::log 080 INFO "Write DSA step started"
+        write_dsa -force [file join $a_global_vars(output_dir) $a_global_vars(top).dsa]
+        ::tclapp::xilinx::x2rp::log 081 INFO "Write DSA step completed"
+    }
+
     close_project
 }
 
@@ -632,6 +689,7 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
 
         set_property HD.PLATFORM_WRAPPER 1 $wrapper_cell
         update_design -black_box -cells $wrapper_cell
+        write_bitstream -cell $wrapper_cell [file join $a_global_vars(output_dir) $a_global_vars(base_reset_partial_bit)]
         write_checkpoint -force [file join $a_global_vars(output_dir) base_platform.dcp]
         set a_global_vars(base_platform) [file join $a_global_vars(output_dir) base_platform.dcp]
         close_project
@@ -791,7 +849,10 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
     ::tclapp::xilinx::x2rp::log 077 INFO "Executing Cmd: update_design -black_box -cells $wrapper_cell"    
     update_design -black_box -cells $wrapper_cell
 
-    ::tclapp::xilinx::x2rp::log 078 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) base_platform.dcp]"    
+    ::tclapp::xilinx::x2rp::log 078 INFO "Executing Cmd: write_bitstream -cell $wrapper_cell [file join $a_global_vars(output_dir) $a_global_vars(base_reset_partial_bit)]"
+    write_bitstream -cell $wrapper_cell [file join $a_global_vars(output_dir) $a_global_vars(base_reset_partial_bit)]
+
+    ::tclapp::xilinx::x2rp::log 079 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) base_platform.dcp]"    
     write_checkpoint -force [file join $a_global_vars(output_dir) base_platform.dcp]
 
     set a_global_vars(base_platform) [file join $a_global_vars(output_dir) base_platform.dcp]
