@@ -1757,6 +1757,19 @@ proc usf_xsim_get_xelab_cmdline_args {} {
      if { {sdfmin} == $delay } { lappend args_list "--mindelay" }
      if { {sdfmax} == $delay } { lappend args_list "--maxdelay" }
   }
+
+  if { [xcs_find_ip "gt_quad_base"] } {
+    set gt_lib "gtye5_quad"
+    set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $dir]"
+    set clibs_dir [string map {\\ /} $clibs_dir]
+    # default install location
+    set shared_lib_dir "${clibs_dir}/verilog/secureip"
+    if { ![file exists $shared_lib_dir] } {
+      # custome compile location
+      set shared_lib_dir "${clibs_dir}/secureip"
+    }
+    lappend args_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
+  }
  
   if { [get_param "project.allowSharedLibraryType"] } {
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
