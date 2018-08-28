@@ -1445,7 +1445,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
-        puts $fh_scr "\nExecStep xsc $args -o libdpi.so"
+        puts $fh_scr "\nExecStep xsc $args"
       }
     }
     set args [usf_xsim_get_xelab_cmdline_args]
@@ -2041,6 +2041,11 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   set sim_flow $a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
 
+  set lib_extn ".dll"
+  if {$::tcl_platform(platform) == "unix"} {
+    set lib_extn ".so"
+  }
+
   set args_list [list]
 
   lappend args_list "--shared"
@@ -2067,7 +2072,28 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
         }
       }
     }
+
+    set b_en_code true
+    if { $b_en_code } {
+      set b_bind_shared_lib 0
+      [catch {set b_bind_shared_lib [get_param project.bindSharedLibraryForXSCElab]} err]
+      if { $b_bind_shared_lib } {
+        variable a_shared_library_path_coln
+        foreach {key value} [array get a_shared_library_path_coln] {
+          set shared_lib_name $key
+          set lib_path        $value
+          set lib_name        [file root $shared_lib_name]
+          set lib_name        [string trimleft $lib_name {lib}]
+          set rel_lib_path    [xcs_get_relative_file_path $lib_path $dir]
+          #send_msg_id USF-XSim-104 INFO "Referencing library '$lib_name' from '$lib_path'\n"
+          set sc_args "-gcc_link_options \"-L$rel_lib_path -l${lib_name}\"" 
+          lappend args_list $sc_args
+        }
+      }
+    }
   }
+
+  lappend args_list "-o libdpi.so"
 
   set cmd_args [join $args_list " "]
   return $cmd_args
