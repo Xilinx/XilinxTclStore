@@ -1,3 +1,4 @@
+2.248 bind gt quad library
 2.247 do not compile XPM component file if simulator language is verilog
 2.246 compile glbl explicitly
 2.245 set xv_ref_path and resolve this env for LD_LIBRARY_PATH for integrated simulation runs
