@@ -1,15 +1,17 @@
 
 Description: 
 
-    Implements and generates bit stream of a 2RP synthesized design.
+    Implements and generates bitstreams of a 2RP synthesized design.
 
 Arguments:
 
     <pr_config> - (Required) Partial configuration for the implementation run.
 
     <output_dir> - (Required) Directory to save the results.
+
+    <constrset> - (Required) Constraints set to be use with the pr configuration provided in option '-pr_config'.
     
-    -exclude_constrs - (Optional) List of constraint file to be excluded from generation of bit files.
+    -exclude_constrs - (Optional) List of constraint files to be excluded from generation of bit files.
 
     -shell - (Optional) RL/Shell instance path. Must be mentioned in case rl_platform_dcp option is not provided.
 
@@ -23,11 +25,15 @@ Arguments:
 
     -place_directive - (Optional) Directive for place design step.
 
+    -enable_post_place_phys_opt - (Optional) Enable post place physical optimization (Default: 0).
+
+    -post_place_phys_opt_directive - (Optional) Directive for post place phys opt design step.
+
     -route_directive - (Optional) Directive for route design step.
 
-    -phys_opt_directive - (Optional) Directive for phys opt design step.
+    -post_route_phys_opt_directive - (Optional) Directive for post route phys opt design step.
 
-    -generate_dsa - (Optional) Generates DSA.
+    -generate_dsa - (Optional) Generates DSA (Default: 0).
     
 Examples:
 
@@ -35,22 +41,22 @@ Examples:
     'wrapper_def_0' has two module references to partition defs 'dynamic' and 'shell' as 'dynamic_region' and 'shell_region' respectively. 
 
     1. The following example generates everything base platform, rl platform, full and partial bitstreams.
-       One need to have a Pblock for wrapper_def_0 inside an xdc file that contains everything except the static. 
-       One need to specify this file in exclude_constrs switch (here rest.xdc).
+       The 2RP flow requires to have a Pblock for wrapper_def_0 inside an xdc file that contains everything except the static. 
+       The 2RP flow requires the XDC file, here rest.xdc, to be specified using the exclude_constrs switch.
 
-       % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output -exclude_constrs [get_files rest.xdc] -shell top_i/wrapper_def_0/shell_region
+       % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output -exclude_constrs [get_files rest.xdc] -shell top_i/wrapper_def_0/shell_region -constrset [get_filesets constrs_1]
 
     2. The following example generates everything rl platform, full and partial bitstreams (starts from post base platform generation step).
        Note: If you have a Pblock for wrapper_def_0, you need to exclude it using exclude_constrs switch.
 
-       % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -base_platform_dcp ./output/base_platform.dcp -shell top_i/wrapper_def_0/shell_region
+       % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -base_platform_dcp ./output/base_platform.dcp -shell top_i/wrapper_def_0/shell_region -constrset constrs_1
 
     3. The following example generates everything full and partial bitstreams (starts from post rl platform generation step).
        Note: If you have a Pblock for wrapper_def_0, you need to exclude it using exclude_constrs switch.
 
-       % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -rl_platform_dcp ./output/platform.dcp 
+       % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -rl_platform_dcp ./output/platform.dcp -constrset constrs_1
     
     4. The following example generates everything full and partial bitstreams and also executes post link design hook script (starts from post rl platform generation step).
        Note: If you have a Pblock for wrapper_def_0, you need to exclude it using exclude_constrs switch.
 
-       % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -rl_platform_dcp ./output/platform.dcp -post_link_design_hook {"set_param hd.skipPartitionPinReductionOnCell top_i/wrapper_def_0/dynamic_region"}
+       % xilinx::x2rp::run -pr_config {top_i/wrapper_def_0:w1 top_i/wrapper_def_0/dynamic_region:user top_i/wrapper_def_0/shell_region:design_2} -output_dir ./output/ -rl_platform_dcp ./output/platform.dcp -post_link_design_hook {"set_param hd.skipPartitionPinReductionOnCell top_i/wrapper_def_0/dynamic_region"} -constrset constrs_1
