@@ -1,3 +1,4 @@
+3.99 inspect TLM property value for IP while determining systemc libraries
 3.98 do not compile XPM component file if simulator language is verilog
 3.97 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
 3.96 support for binding cpp source objects for vcs with g++

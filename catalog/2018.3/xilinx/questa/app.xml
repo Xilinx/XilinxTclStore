@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>bind gt quad library</revision_history>
+      <revision_history>inspect TLM property value for IP while determining systemc libraries</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
