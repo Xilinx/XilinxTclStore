@@ -64,8 +64,9 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(post_link_design) "postlinkdesign.dcp"
     set a_global_vars(post_opt_design) "postopt.dcp"
     set a_global_vars(post_place_design) "postplace.dcp"
-    set a_global_vars(full_routed_design) "full_routed.dcp"
+    set a_global_vars(post_place_phys_opt) "postplphysopt.dcp" 
     set a_global_vars(post_route_phys_opt) "postrtphysopt.dcp"
+    set a_global_vars(full_routed_design) "full_routed.dcp"
     set a_global_vars(full_routed_bit) "full_routed.bit"
 
     set a_global_vars(reconfig_partitions) {}
@@ -525,6 +526,21 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # add RMs post synthesis DCP files
     foreach rm_config $a_global_vars(rm_configs) {
         set instance_path [lindex [split $rm_config :] 0]
+
+        # add wrapper bd file
+        if { [string equal $a_global_vars(wrapper) $instance_path] } {
+            set rm_top_file [lindex [split $rm_config :] 3]
+            
+            if { [file exists $rm_top_file] } {
+                set_param project.isImplRun true
+                ::tclapp::xilinx::x2rp::log 027 INFO "Executing Cmd: add_files -quiet $rm_top_file"
+                add_files -quiet $rm_top_file
+                set_param project.isImplRun false
+            } else {
+                ::tclapp::xilinx::x2rp::log 028 ERROR "Failed to add top bd file for rm instance '$instance_path'."
+            }
+        }
+
         if { [lsearch -exact $a_global_vars(reconfig_partitions) $instance_path] != -1} {
             set rm_top_file [lindex [split $rm_config :] 3]
 
@@ -598,8 +614,9 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ::tclapp::xilinx::x2rp::log 040 INFO "Opt design started" 
     
-    ::tclapp::xilinx::x2rp::log 041 INFO "Executing Cmd: opt_design -directive [list {*}$a_global_vars(opt_directive)]"       
-    opt_design -directive [list {*}$a_global_vars(opt_directive)]
+    ::tclapp::xilinx::x2rp::log 041 INFO "Executing Cmd: opt_design -directive $a_global_vars(opt_directive)"       
+    set opt_design_cmd "opt_design -directive $a_global_vars(opt_directive)"
+    eval $opt_design_cmd
     
     ::tclapp::xilinx::x2rp::log 042 INFO "Executing Cmd: opt_design -merge_equivalent_drivers -sweep"       
     opt_design -merge_equivalent_drivers -sweep
@@ -614,8 +631,9 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     #################################################
     ::tclapp::xilinx::x2rp::log 045 INFO "Place design started"        
 
-    ::tclapp::xilinx::x2rp::log 046 INFO "Executing Cmd: place_design -directive [list {*}$a_global_vars(place_directive)]"       
-    place_design -directive [list {*}$a_global_vars(place_directive)]
+    ::tclapp::xilinx::x2rp::log 046 INFO "Executing Cmd: place_design -directive $a_global_vars(place_directive)"       
+    set place_design_cmd "place_design -directive $a_global_vars(place_directive)"
+    eval $place_design_cmd
 
     ::tclapp::xilinx::x2rp::log 047 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_place_design)]"
     write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_place_design)]
@@ -628,9 +646,13 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     if { $a_global_vars(enable_post_place_phys_opt) } {
         ::tclapp::xilinx::x2rp::log 049 INFO "Physical opt design started"        
 
-        ::tclapp::xilinx::x2rp::log 050 INFO "Executing Cmd: phys_opt_design -directive [list {*}$a_global_vars(post_place_phys_opt_directive)]"     
-        phys_opt_design -directive [list {*}$a_global_vars(post_place_phys_opt_directive)]
+        ::tclapp::xilinx::x2rp::log 050 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(post_place_phys_opt_directive)"     
+        set post_place_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(post_place_phys_opt_directive)"
+        eval $post_place_phys_opt_design_cmd
         
+        ::tclapp::xilinx::x2rp::log 051 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_place_phys_opt)]"
+        write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_place_phys_opt)]
+
         ::tclapp::xilinx::x2rp::log 051 INFO "Physical opt design completed"
     }
 
@@ -639,8 +661,9 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ::tclapp::xilinx::x2rp::log 052 INFO "Route design started"      
 
-    ::tclapp::xilinx::x2rp::log 053 INFO "Executing Cmd: route_design -directive [list {*}$a_global_vars(route_directive)]"
-    route_design -directive [list {*}$a_global_vars(route_directive)]
+    ::tclapp::xilinx::x2rp::log 053 INFO "Executing Cmd: route_design -directive $a_global_vars(route_directive)"
+    set route_design_cmd "route_design -directive $a_global_vars(route_directive)"
+    eval $route_design_cmd
 
     ::tclapp::xilinx::x2rp::log 054 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]"
     write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]
@@ -652,8 +675,9 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ::tclapp::xilinx::x2rp::log 056 INFO "Post route physical opt design started"      
 
-    ::tclapp::xilinx::x2rp::log 057 INFO "Executing Cmd: phys_opt_design -directive [list {*}$a_global_vars(post_route_phys_opt_directive)]"
-    phys_opt_design -directive [list {*}$a_global_vars(post_route_phys_opt_directive)]
+    ::tclapp::xilinx::x2rp::log 057 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(post_route_phys_opt_directive)"
+    set post_route_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(post_route_phys_opt_directive)"
+    eval $post_route_phys_opt_design_cmd
 
     ::tclapp::xilinx::x2rp::log 058 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_route_phys_opt)]"
     write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_route_phys_opt)]

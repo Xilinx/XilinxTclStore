@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::x2rp {
   }
 }
 
-package provide ::tclapp::xilinx::x2rp 1.4
+package provide ::tclapp::xilinx::x2rp 1.5
