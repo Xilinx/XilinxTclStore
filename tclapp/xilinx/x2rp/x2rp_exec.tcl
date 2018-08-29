@@ -44,7 +44,9 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
 
     set a_global_vars(top) [get_property TOP [current_fileset -srcset]]
     set a_global_vars(part) [get_property PART [current_project]]
-    set a_global_vars(constr_files) [get_files -compile_order constraints -used_in implementation -of_objects [current_fileset -constrset]]
+    set a_global_vars(constrset) ""
+    set a_global_vars(constrs_files) {} 
+    
     set a_global_vars(ip_output_repo) [get_property IP_OUTPUT_REPO [current_project]]
     set a_global_vars(xpm_libs) [get_property XPM_LIBRARIES [current_project]]
 
@@ -78,10 +80,12 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(generate_dsa) 0
 
     # directives - defaults
+    set a_global_vars(enable_post_place_phys_opt) 0
     set a_global_vars(opt_directive) "ExploreWithRemap"
     set a_global_vars(place_directive) "Explore -fanout_opt"
+    set a_global_vars(post_place_phys_opt_directive) "AggressiveExplore"
     set a_global_vars(route_directive) "Explore -tns_cleanup"
-    set a_global_vars(phys_opt_directive) "-directive AggressiveExplore"
+    set a_global_vars(post_route_phys_opt_directive) "AggressiveExplore"
 }
 
 proc ::tclapp::xilinx::x2rp::validate_args {} {
@@ -127,6 +131,18 @@ proc ::tclapp::xilinx::x2rp::validate_args {} {
     if { !$a_global_vars(rl_platform_provided) && [string equal $a_global_vars(shell) ""] } {
         ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-shell'. '-shell' must be provided when '-rl_platform_dcp' option is not used."
     }
+
+    if { [string equal $a_global_vars(constrset) ""] } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-constrset'."
+    }
+
+    if { [llength $a_global_vars(constrs_files)] == 0 } {
+        if { [string equal $a_global_vars(constrset) ""] } {
+            ::tclapp::xilinx::x2rp::log 004 CRITICAL_WARNING "No constraint files found."
+        } else {
+            ::tclapp::xilinx::x2rp::log 004 CRITICAL_WARNING "No constraint files found for constraint set '$a_global_vars(constrset)'."
+        }
+    }
 }
 
 proc ::tclapp::xilinx::x2rp::dump_program_options {} {
@@ -139,7 +155,7 @@ proc ::tclapp::xilinx::x2rp::dump_program_options {} {
     # None
 
     variable a_global_vars
-    set args {pr_config output_dir base_platform platform exclude_constrs log post_link_design_hook shell opt_directive place_directive route_directive phys_opt_directive}
+    set args {pr_config output_dir constrset constrs_files base_platform platform exclude_constrs log post_link_design_hook shell opt_directive place_directive enable_post_place_phys_opt post_place_phys_opt_directive route_directive post_route_phys_opt_directive}
     ::tclapp::xilinx::x2rp::log 002 INFO "xilinx::x2rp::run is invoked with following options."        
     foreach key [lsort $args] {
         ::tclapp::xilinx::x2rp::log 003 INFO "\t$key = $a_global_vars($key)"
@@ -214,21 +230,24 @@ proc ::tclapp::xilinx::x2rp::remove_wrapper_from_rps {index} {
 }
 
 proc ::tclapp::xilinx::x2rp::run {args} {
-    # Summary: Implements the 2RP Design
+    # Summary: Implements the 2RP Design.
 
     # Argument Usage:
     # -pr_config <arg>: Partial configuration for the implementation run.
     # -output_dir <arg>: Directory to save the results.
+    # -constrset <arg>: Constraints set to be use with the pr configuration provided in option '-pr_config'.
     # [-exclude_constrs <arg>]: List of constraint file to be excluded from generation of bit files.
     # [-shell <arg>]: RL/Shell instance path. Must be mentioned in case rl_platform_dcp option is not provided.
     # [-base_platform_dcp <arg>]: Base platform dcp file, contains only static routed region.
     # [-rl_platform_dcp <arg>]: Reconfigurable logic platform dcp file.
     # [-post_link_design_hook <arg>]: List of tcl commands to execute post link design for bit generation step.
-    # [-opt_directive <arg>]: Directive for opt design step.
-    # [-place_directive <arg>]: Directive for place design step.
-    # [-route_directive <arg>]: Directive for route design step.
-    # [-phys_opt_directive <arg>]: Directive for phys opt design step.
-    # [-generate_dsa <arg>]: Generates DSA.
+    # [-opt_directive <arg> = ExploreWithRemap]: Directive for opt design step.
+    # [-place_directive <arg> = Explore -fanout_opt]: Directive for place design step.
+    # [-enable_post_place_phys_opt]: Enable post place physical optimization (Default: 0).
+    # [-post_place_phys_opt_directive <arg> = AggressiveExplore]: Directive for post place phys opt design step.
+    # [-route_directive <arg> = Explore -tns_cleanup]: Directive for route design step.
+    # [-post_route_phys_opt_directive <arg> = AggressiveExplore]: Directive for post route phys opt design step.    
+    # [-generate_dsa]: Generates DSA. (Default: 0)
 
     # Return Value:
     # Generates full and partial bit streams for a 2RP design.
@@ -250,7 +269,10 @@ proc ::tclapp::xilinx::x2rp::run {args} {
             }
             "-generate_dsa" {
                 set a_global_vars(generate_dsa) 1
-            }            
+            }           
+            "-enable_post_place_phys_opt" {
+                set a_global_vars(enable_post_place_phys_opt) 1
+            } 
             "-base_platform_dcp" {
                 incr i;            
                 if { [regexp {^-} [lindex $args $i]] } {
@@ -318,7 +340,17 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                 close $fp
 
                 set a_global_vars(log_enabled) 1  
-            }            
+            }  
+            "-constrset" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {
+                    puts "[lindex $args $i]"
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid constraint set immediately following '$option'"
+                    return
+                }
+                set a_global_vars(constrset) [lindex $args $i]
+                set a_global_vars(constrs_files) [get_files -compile_order constraints -used_in implementation -of_objects [get_filesets $a_global_vars(constrset)]]
+            }
             "-initial_routed_dcp" {
                 incr i;            
                 if { [regexp {^-} [lindex $args $i]] } {
@@ -374,6 +406,14 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                 }         
                 set a_global_vars(place_directive) [lindex $args $i]                    
             }
+            "-post_place_phys_opt_directive" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {                
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid directive immediately following '$option'"
+                    return
+                }         
+                set a_global_vars(post_place_phys_opt_directive) [lindex $args $i]                
+            }             
             "-route_directive" {
                 incr i;            
                 if { [regexp {^-} [lindex $args $i]] } {                
@@ -382,13 +422,13 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                 }         
                 set a_global_vars(route_directive) [lindex $args $i]                
             }
-            "-phys_opt_directive" {
+            "-post_route_phys_opt_directive" {
                 incr i;            
                 if { [regexp {^-} [lindex $args $i]] } {                
                     ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid directive immediately following '$option'"
                     return
                 }         
-                set a_global_vars(phys_opt_directive) [lindex $args $i]                
+                set a_global_vars(post_route_phys_opt_directive) [lindex $args $i]                
             }                                    
         }
     }
@@ -442,7 +482,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     
     # extract wrapper post synth dcp
     set a_global_vars(wrapper_post_synth) [extract_post_synth_dcp $a_global_vars(wrapper)]
-    ::tclapp::xilinx::x2rp::log 015 INFO "Extracted wrapper post synth dcp : '$a_global_vars(wrapper_post_synth)'."
+    ::tclapp::xilinx::x2rp::log 015 INFO "Extracted wrapper post synth dcp : '$a_global_vars(wrapper_post_synth)'."  
 
     if { ![file exists $a_global_vars(platform)] } {
         if { [string equal $a_global_vars(base_platform) ""] } {
@@ -512,7 +552,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     }
 
     # add constraint files
-    foreach cf $a_global_vars(constr_files) {
+    foreach cf $a_global_vars(constrs_files) {
         if { [lsearch -exact $a_global_vars(exclude_constrs) $cf] == -1 } {
             add_files $cf    
             ::tclapp::xilinx::x2rp::log 032 INFO "Adding constraint file $cf"
@@ -558,8 +598,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ::tclapp::xilinx::x2rp::log 040 INFO "Opt design started" 
     
-    ::tclapp::xilinx::x2rp::log 041 INFO "Executing Cmd: opt_design -directive $a_global_vars(opt_directive)"       
-    opt_design -directive $a_global_vars(opt_directive)
+    ::tclapp::xilinx::x2rp::log 041 INFO "Executing Cmd: opt_design -directive [list {*}$a_global_vars(opt_directive)]"       
+    opt_design -directive [list {*}$a_global_vars(opt_directive)]
     
     ::tclapp::xilinx::x2rp::log 042 INFO "Executing Cmd: opt_design -merge_equivalent_drivers -sweep"       
     opt_design -merge_equivalent_drivers -sweep
@@ -574,8 +614,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     #################################################
     ::tclapp::xilinx::x2rp::log 045 INFO "Place design started"        
 
-    ::tclapp::xilinx::x2rp::log 046 INFO "Executing Cmd: place_design -directive $a_global_vars(place_directive)"       
-    place_design -directive $a_global_vars(place_directive)
+    ::tclapp::xilinx::x2rp::log 046 INFO "Executing Cmd: place_design -directive [list {*}$a_global_vars(place_directive)]"       
+    place_design -directive [list {*}$a_global_vars(place_directive)]
 
     ::tclapp::xilinx::x2rp::log 047 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_place_design)]"
     write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_place_design)]
@@ -585,20 +625,22 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ### Phys Opt design
     ##################################################
-    ::tclapp::xilinx::x2rp::log 049 INFO "Physical opt design started"        
+    if { $a_global_vars(enable_post_place_phys_opt) } {
+        ::tclapp::xilinx::x2rp::log 049 INFO "Physical opt design started"        
 
-    ::tclapp::xilinx::x2rp::log 050 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(phys_opt_directive)"     
-    phys_opt_design -directive $a_global_vars(phys_opt_directive)
-    
-    ::tclapp::xilinx::x2rp::log 051 INFO "Physical opt design completed"        
+        ::tclapp::xilinx::x2rp::log 050 INFO "Executing Cmd: phys_opt_design -directive [list {*}$a_global_vars(post_place_phys_opt_directive)]"     
+        phys_opt_design -directive [list {*}$a_global_vars(post_place_phys_opt_directive)]
+        
+        ::tclapp::xilinx::x2rp::log 051 INFO "Physical opt design completed"
+    }
 
     ##################################################
     ### Route design
     ##################################################
     ::tclapp::xilinx::x2rp::log 052 INFO "Route design started"      
 
-    ::tclapp::xilinx::x2rp::log 053 INFO "Executing Cmd: route_design -directive $a_global_vars(route_directive)"
-    route_design -directive $a_global_vars(route_directive)
+    ::tclapp::xilinx::x2rp::log 053 INFO "Executing Cmd: route_design -directive [list {*}$a_global_vars(route_directive)]"
+    route_design -directive [list {*}$a_global_vars(route_directive)]
 
     ::tclapp::xilinx::x2rp::log 054 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]"
     write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]
@@ -610,8 +652,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ##################################################
     ::tclapp::xilinx::x2rp::log 056 INFO "Post route physical opt design started"      
 
-    ::tclapp::xilinx::x2rp::log 057 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(phys_opt_directive)"
-    phys_opt_design -directive $a_global_vars(phys_opt_directive)
+    ::tclapp::xilinx::x2rp::log 057 INFO "Executing Cmd: phys_opt_design -directive [list {*}$a_global_vars(post_route_phys_opt_directive)]"
+    phys_opt_design -directive [list {*}$a_global_vars(post_route_phys_opt_directive)]
 
     ::tclapp::xilinx::x2rp::log 058 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_route_phys_opt)]"
     write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_route_phys_opt)]
@@ -714,7 +756,7 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
     set synth_1_run [get_runs -filter $synth_1_run_filter]
     set synth_1_run_dir [get_property DIRECTORY $synth_1_run]
 
-    set constr_files [get_files -compile_order constraints -used_in implementation -of_objects [current_fileset -constrset]]
+    set constrs_files [get_files -compile_order constraints -used_in implementation -of_objects [get_filesets $a_global_vars(constrset)]]
 
     if {![string equal [get_property PROGRESS $synth_1_run] 100%] } {
         ::tclapp::xilinx::x2rp::log 064 ERROR "Sythesis is not completed yet. Run command 'launch_runs [get_property NAME $synth_1_run]'"
@@ -794,7 +836,7 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
     }
 
     # add constraint files
-    foreach cf $constr_files {
+    foreach cf $constrs_files {
         add_files $cf    
     }
 
