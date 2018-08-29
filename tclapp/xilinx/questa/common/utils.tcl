@@ -3201,19 +3201,50 @@ proc xcs_get_sc_libs {} {
   # Argument Usage:
   # Return Value:
 
-  set sc_libs [list]
-  set uniq_sc_libs [list]
-  # find systemc libraries from IP
+  # find referenced libraries from IP
   set prop_name "systemc_libraries"
+  set ref_libs            [list]
+  set uniq_ref_libs       [list]
+  set v_ip_defs           [list]
+  set v_allowed_sim_types [list]
+  set v_tlm_types         [list]
+  set v_sysc_libs         [list]
+
   foreach ip_obj [get_ips -quiet -all] {
-    foreach lib [get_property -quiet $prop_name $ip_obj] {
-      if { [lsearch -exact $uniq_sc_libs $lib] == -1 } {
-        lappend uniq_sc_libs $lib
-        lappend sc_libs $lib
+    if { ([lsearch -exact [list_property $ip_obj] {SYSTEMC_LIBRARIES}] != -1) && ([lsearch -exact [list_property $ip_obj] {SELECTED_SIM_MODEL}] != -1) } {
+      set ip_def            [get_property -quiet ipdef              $ip_obj]
+      set allowed_sim_types [get_property -quiet allowed_sim_types  $ip_obj]
+      set tlm_type          [get_property -quiet selected_sim_model $ip_obj]
+      set sysc_libs         [get_property -quiet $prop_name         $ip_obj]
+      set ip_def            [lindex [split $ip_def {:}] 2]
+      lappend v_ip_defs $ip_def;lappend v_allowed_sim_types $allowed_sim_types;lappend v_tlm_types $tlm_type;lappend v_sysc_libs $sysc_libs
+      if { [string equal -nocase $tlm_type "tlm"] == 1 } {
+        #puts " +$ip_def:$tlm_type:$sysc_libs"
+        foreach lib [get_property -quiet $prop_name $ip_obj] {
+          if { [lsearch -exact $uniq_ref_libs $lib] == -1 } {
+            lappend uniq_ref_libs $lib
+            lappend ref_libs $lib
+          }
+        }
       }
     }
   }
-  return $sc_libs
+  set fmt {%-15s%-2s%-15s%-2s%-10s%-2s%-20s}
+  set sep ":"
+  #puts "-----------------------------------------------------------------------------------"
+  #puts " IP              Allowed          Selected    SystemC Libraries"
+  #puts "-----------------------------------------------------------------------------------"
+  foreach def $v_ip_defs sim_type $v_allowed_sim_types tlm_type $v_tlm_types sys_lib $v_sysc_libs {
+    #puts [format $fmt $def $sep $sim_type $sep $tlm_type $sep $sys_lib]
+  }
+  #puts "-----------------------------------------------------------------------------------"
+  #puts "\nLibraries referenced from IP's"
+  #puts "------------------------------"
+  foreach sc_lib $ref_libs {
+    #puts " + $sc_lib" 
+  }
+  #puts "------------------------------"
+  return $ref_libs
 }
 
 proc xcs_find_ip { name } {
