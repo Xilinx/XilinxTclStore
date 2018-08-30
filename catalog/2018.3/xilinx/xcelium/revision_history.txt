@@ -1,3 +1,4 @@
+6.4 print debug information for referenced shared libraries
 6.3 inspect TLM property value for IP while determining systemc libraries
 6.2 do not compile XPM component file if simulator language is verilog
 6.1 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives

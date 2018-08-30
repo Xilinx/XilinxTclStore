@@ -1,3 +1,4 @@
+3.356 print debug information for referenced shared libraries
 3.354 inspect TLM property value for IP while determining systemc libraries
 3.353 Fix write_project_tcl for non-BD cases
 3.352 Enhancements to the write_project_tcl tclapp to handle 2RP project
