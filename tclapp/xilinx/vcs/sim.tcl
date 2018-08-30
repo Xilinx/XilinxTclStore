@@ -817,6 +817,13 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     }
   }
 
+  # for pure VHDL design instantiating verilog primitives, do not set glbl top
+  if { {behav_sim} == $sim_flow } {
+    if { $a_sim_vars(b_int_compile_glbl) && [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)] } { 
+      set b_add_glbl 0
+    }
+  }
+
   if { $b_add_glbl } {
     set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"

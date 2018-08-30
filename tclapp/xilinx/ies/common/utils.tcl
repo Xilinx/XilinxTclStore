@@ -238,6 +238,24 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   return $b_verilog_srcs
 }
 
+proc xcs_is_pure_vhdl_design { design_files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_is_vhdl 0
+  foreach file $design_files {
+    set type [lindex [split $file {|}] 0]
+    if { {VHDL} == $type } { 
+      set b_is_vhdl 1
+    } else {
+      set b_is_vhdl 0
+      return $b_is_vhdl
+    }
+  }
+  return $b_is_vhdl
+}
+
 proc xcs_contains_system_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   # Summary:
   # Argument Usage:
