@@ -1,3 +1,4 @@
+2.252 helper proc to determine if pure vhdl design required for glbl determination
 2.251 print debug information for referenced shared libraries
 2.250 inspect TLM property value for IP while determining systemc libraries
 2.249 bind shared libraries during XSC stage for loading symbols for xelab

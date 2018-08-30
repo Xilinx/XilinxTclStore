@@ -1,3 +1,4 @@
+3.99 helper proc to determine if pure vhdl design required for glbl determination
 3.98 print debug information for referenced shared libraries
 3.97 inspect TLM property value for IP while determining systemc libraries
 3.96 do not compile XPM component file if simulator language is verilog
