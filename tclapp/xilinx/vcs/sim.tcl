@@ -697,6 +697,8 @@ proc usf_vcs_write_elaborate_script {} {
       }
       lappend arg_list "-liblist"
       lappend arg_list "secureip"
+      lappend arg_list "-liblist"
+      lappend arg_list "xil_defaultlib"
     } elseif { {VHDL} == $target_lang } {
       if { {functional} == $type } {
         # not required
@@ -706,6 +708,8 @@ proc usf_vcs_write_elaborate_script {} {
         lappend arg_list "-liblist"
         lappend arg_list "secureip"
       }
+      lappend arg_list "-liblist"
+      lappend arg_list "xil_defaultlib"
     }
   }
 
@@ -803,6 +807,12 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
 
   if { !$b_add_glbl } {
     if { $a_sim_vars(b_int_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $b_load_glbl } {
       set b_add_glbl 1
     }
   }

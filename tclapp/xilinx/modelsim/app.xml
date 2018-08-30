@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>inspect TLM property value for IP while determining systemc libraries</revision_history>
+      <revision_history>print debug information for referenced shared libraries</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

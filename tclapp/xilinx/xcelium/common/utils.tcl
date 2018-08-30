@@ -177,6 +177,10 @@ proc xcs_compile_glbl_file { simulator b_load_glbl b_int_compile_glbl design_fil
     }
   }
 
+  if { $b_load_glbl } {
+    return 1
+  }
+
   if { $b_int_compile_glbl } {
     return 1
   }
@@ -3205,6 +3209,7 @@ proc xcs_get_sc_libs {} {
   set prop_name "systemc_libraries"
   set ref_libs            [list]
   set uniq_ref_libs       [list]
+  set v_ip_names          [list]
   set v_ip_defs           [list]
   set v_allowed_sim_types [list]
   set v_tlm_types         [list]
@@ -3212,14 +3217,15 @@ proc xcs_get_sc_libs {} {
 
   foreach ip_obj [get_ips -quiet -all] {
     if { ([lsearch -exact [list_property $ip_obj] {SYSTEMC_LIBRARIES}] != -1) && ([lsearch -exact [list_property $ip_obj] {SELECTED_SIM_MODEL}] != -1) } {
+      set ip_name           [get_property -quiet name               $ip_obj]
       set ip_def            [get_property -quiet ipdef              $ip_obj]
       set allowed_sim_types [get_property -quiet allowed_sim_types  $ip_obj]
       set tlm_type          [get_property -quiet selected_sim_model $ip_obj]
       set sysc_libs         [get_property -quiet $prop_name         $ip_obj]
       set ip_def            [lindex [split $ip_def {:}] 2]
-      lappend v_ip_defs $ip_def;lappend v_allowed_sim_types $allowed_sim_types;lappend v_tlm_types $tlm_type;lappend v_sysc_libs $sysc_libs
+      lappend v_ip_names $ip_name;lappend v_ip_defs $ip_def;lappend v_allowed_sim_types $allowed_sim_types;lappend v_tlm_types $tlm_type;lappend v_sysc_libs $sysc_libs
       if { [string equal -nocase $tlm_type "tlm"] == 1 } {
-        #puts " +$ip_def:$tlm_type:$sysc_libs"
+        #puts " +$ip_name:$ip_def:$tlm_type:$sysc_libs"
         foreach lib [get_property -quiet $prop_name $ip_obj] {
           if { [lsearch -exact $uniq_ref_libs $lib] == -1 } {
             lappend uniq_ref_libs $lib
@@ -3229,15 +3235,15 @@ proc xcs_get_sc_libs {} {
       }
     }
   }
-  set fmt {%-15s%-2s%-15s%-2s%-10s%-2s%-20s}
+  set fmt {%-50s%-2s%-30s%-2s%-20s%-2s%-10s%-2s%-20s}
   set sep ":"
-  #puts "-----------------------------------------------------------------------------------"
-  #puts " IP              Allowed          Selected    SystemC Libraries"
-  #puts "-----------------------------------------------------------------------------------"
-  foreach def $v_ip_defs sim_type $v_allowed_sim_types tlm_type $v_tlm_types sys_lib $v_sysc_libs {
-    #puts [format $fmt $def $sep $sim_type $sep $tlm_type $sep $sys_lib]
+  #puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+  #puts " IP                                                 IPDEF                           Allowed Types         Selected    SystemC Libraries"
+  #puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+  foreach name $v_ip_names def $v_ip_defs sim_type $v_allowed_sim_types tlm_type $v_tlm_types sys_lib $v_sysc_libs {
+    #puts [format $fmt $name $sep $def $sep $sim_type $sep $tlm_type $sep $sys_lib]
+    #puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
   }
-  #puts "-----------------------------------------------------------------------------------"
   #puts "\nLibraries referenced from IP's"
   #puts "------------------------------"
   foreach sc_lib $ref_libs {

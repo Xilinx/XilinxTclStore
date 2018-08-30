@@ -1122,9 +1122,9 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_top_level_glbl_inst_set 1
   }
 
+  set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" $fs_obj]
   if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $b_verilog_sim_netlist } {
     if { {behav_sim} == $sim_flow } {
-      set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" $fs_obj]
       if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
         set b_add_glbl 1
       }
@@ -1138,6 +1138,12 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
 
   if { !$b_add_glbl } {
     if { $a_sim_vars(b_int_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $b_load_glbl } {
       set b_add_glbl 1
     }
   }
