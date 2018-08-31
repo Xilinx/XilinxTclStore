@@ -1,4 +1,4 @@
-3.357 helper proc to determine if pure vhdl design required for glbl determination
+3.357 donot reference glbl by default unless conditions met
 3.356 print debug information for referenced shared libraries
 3.354 inspect TLM property value for IP while determining systemc libraries
 3.353 Fix write_project_tcl for non-BD cases

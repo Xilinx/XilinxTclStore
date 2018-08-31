@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>helper proc to determine if pure vhdl design required for glbl determination</revision_history>
+      <revision_history>donot reference glbl by default unless conditions met</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -1,3 +1,4 @@
+4.2 donot reference glbl by default unless conditions met
 4.1 helper proc to determine if pure vhdl design required for glbl determination
 4.0 print debug information for referenced shared libraries
 3.99 inspect TLM property value for IP while determining systemc libraries
