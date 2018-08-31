@@ -841,7 +841,8 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
 
   if { !$b_add_glbl } {
     if { $b_load_glbl } {
-      set b_add_glbl 1
+      # TODO: revisit this for pure vhdl, causing failures
+      #set b_add_glbl 1
     }
   }
 

@@ -177,9 +177,10 @@ proc xcs_compile_glbl_file { simulator b_load_glbl b_int_compile_glbl design_fil
     }
   }
 
-  if { $b_load_glbl } {
-    return 1
-  }
+  # TODO: revisit this for pure vhdl, causing failures
+  #if { $b_load_glbl } {
+  #  return 1
+  #}
 
   if { $b_int_compile_glbl } {
     return 1
