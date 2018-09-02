@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix for MRL-45 to add shim support and directive list flattening issue.</revision_history>
+      <revision_history>Fix for MRL - 48, 49 and 52.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>
