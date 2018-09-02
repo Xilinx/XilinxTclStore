@@ -37,6 +37,7 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     # None
 
     variable a_global_vars
+    variable dsa_props
 
     set a_global_vars(verbose) 0
     set a_global_vars(log) ""
@@ -54,11 +55,11 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
 
     set a_global_vars(pr_config) {}
     set a_global_vars(wrapper) ""
-    set a_global_vars(initial_routed) ""
     set a_global_vars(base_platform) ""
     set a_global_vars(base_reset_partial_bit) "base_reset_partial.bit"
     set a_global_vars(platform) "platform.dcp"
     set a_global_vars(post_link_design_hook) ""
+    set a_global_vars(cl_sh_bb_routed_dcp) ""
 
     # internals    
     set a_global_vars(post_link_design) "postlinkdesign.dcp"
@@ -77,8 +78,10 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(shell) ""
     set a_global_vars(base_platform_provided) 0
     set a_global_vars(rl_platform_provided) 0
+    set a_global_vars(cl_sh_bb_routed_dcp_provided) 0
     set a_global_vars(exclude_constrs_provided) 0
     set a_global_vars(generate_dsa) 0
+    set a_global_vars(generate_base_only) 0
 
     # directives - defaults
     set a_global_vars(enable_post_place_phys_opt) 0
@@ -87,6 +90,8 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(post_place_phys_opt_directive) "AggressiveExplore"
     set a_global_vars(route_directive) "Explore -tns_cleanup"
     set a_global_vars(post_route_phys_opt_directive) "AggressiveExplore"
+
+    gather_dsa_props_from_project [current_project]
 }
 
 proc ::tclapp::xilinx::x2rp::validate_args {} {
@@ -129,8 +134,8 @@ proc ::tclapp::xilinx::x2rp::validate_args {} {
     }
     set a_global_vars(exclude_constrs) $xdc_norm
 
-    if { !$a_global_vars(rl_platform_provided) && [string equal $a_global_vars(shell) ""] } {
-        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-shell'. '-shell' must be provided when '-rl_platform_dcp' option is not used."
+    if { !$a_global_vars(cl_sh_bb_routed_dcp_provided) && !$a_global_vars(rl_platform_provided) && [string equal $a_global_vars(shell) ""] } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-shell'. '-shell' must be provided when '-rl_platform_dcp' or '-cl_sh_bb_routed_dcp' option is not used."
     }
 
     if { [string equal $a_global_vars(constrset) ""] } {
@@ -156,10 +161,21 @@ proc ::tclapp::xilinx::x2rp::dump_program_options {} {
     # None
 
     variable a_global_vars
-    set args {pr_config output_dir constrset constrs_files base_platform platform exclude_constrs log post_link_design_hook shell opt_directive place_directive enable_post_place_phys_opt post_place_phys_opt_directive route_directive post_route_phys_opt_directive}
+    variable dsa_props
+
+    set args {pr_config output_dir constrset constrs_files base_platform platform exclude_constrs log post_link_design_hook shell opt_directive place_directive enable_post_place_phys_opt post_place_phys_opt_directive route_directive post_route_phys_opt_directive cl_sh_bb_routed_dcp}
     ::tclapp::xilinx::x2rp::log 002 INFO "xilinx::x2rp::run is invoked with following options."        
     foreach key [lsort $args] {
-        ::tclapp::xilinx::x2rp::log 003 INFO "\t$key = $a_global_vars($key)"
+        if { [info exists a_global_vars($key)] } {
+            ::tclapp::xilinx::x2rp::log 003 INFO "\t$key = $a_global_vars($key)"
+        }
+    }
+    
+    if { [array exists dsa_props] } {
+        ::tclapp::xilinx::x2rp::log 002 INFO "Project DSA properties:-"        
+        foreach key [lsort [array names dsa_props]] {
+            ::tclapp::xilinx::x2rp::log 003 INFO "\t$key = $dsa_props($key)"                
+        }
     }
     
     if { $a_global_vars(verbose) } {
@@ -230,6 +246,23 @@ proc ::tclapp::xilinx::x2rp::remove_wrapper_from_rps {index} {
     set a_global_vars(reconfig_partitions) [lreplace $a_global_vars(reconfig_partitions) $index $index]
 }
 
+proc ::tclapp::xilinx::x2rp::gather_dsa_props_from_project {project} {
+    variable dsa_props
+
+    set props [list_property -regexp $project DSA.*]
+
+    foreach prop $props {
+        set dsa_props($prop) [get_property $prop $project]
+    }
+}
+
+proc ::tclapp::xilinx::x2rp::apply_dsa_properties_to_project {project} {
+    variable dsa_props
+    foreach key [array names dsa_props] {
+        set_property $key $dsa_props($key) $project
+    }
+}
+
 proc ::tclapp::xilinx::x2rp::run {args} {
     # Summary: Implements the 2RP Design.
 
@@ -241,6 +274,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # [-shell <arg>]: RL/Shell instance path. Must be mentioned in case rl_platform_dcp option is not provided.
     # [-base_platform_dcp <arg>]: Base platform dcp file, contains only static routed region.
     # [-rl_platform_dcp <arg>]: Reconfigurable logic platform dcp file.
+    # [-cl_sh_bb_routed_dcp <arg>]: CL and SH blackbox routed dcp. (for update CL, SH or both)
     # [-post_link_design_hook <arg>]: List of tcl commands to execute post link design for bit generation step.
     # [-opt_directive <arg> = ExploreWithRemap]: Directive for opt design step.
     # [-place_directive <arg> = Explore -fanout_opt]: Directive for place design step.
@@ -249,6 +283,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # [-route_directive <arg> = Explore -tns_cleanup]: Directive for route design step.
     # [-post_route_phys_opt_directive <arg> = AggressiveExplore]: Directive for post route phys opt design step.    
     # [-generate_dsa]: Generates DSA. (Default: 0)
+    # [-generate_base_only]: Only generates base platform dcp. (Default: 0)
 
     # Return Value:
     # Generates full and partial bit streams for a 2RP design.
@@ -257,7 +292,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
 
     variable a_global_vars
     
-    reset_global_vars
+    ::tclapp::xilinx::x2rp::reset_global_vars
     ::tclapp::xilinx::x2rp::log 002 INFO "Resetting of global arguments completed."
     # process_args $args    
     ::tclapp::xilinx::x2rp::log 003 INFO "Processing command line arguments."
@@ -270,7 +305,10 @@ proc ::tclapp::xilinx::x2rp::run {args} {
             }
             "-generate_dsa" {
                 set a_global_vars(generate_dsa) 1
-            }           
+            }   
+            "-generate_base_only" {
+                set a_global_vars(generate_base_only) 1
+            }                    
             "-enable_post_place_phys_opt" {
                 set a_global_vars(enable_post_place_phys_opt) 1
             } 
@@ -299,6 +337,19 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                     return
                 }
                 set a_global_vars(rl_platform_provided) 1
+            }
+            "-cl_sh_bb_routed_dcp" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid dcp file immediately following '$option'"
+                    return
+                }
+                set a_global_vars(cl_sh_bb_routed_dcp) [file normalize [lindex $args $i]]
+                if { ![file exists $a_global_vars(cl_sh_bb_routed_dcp)] } {
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "CL and SH black box routed dcp file doesn't exist. Please provide a valid CL and SH black box routed dcp file path."
+                    return
+                }
+                set a_global_vars(cl_sh_bb_routed_dcp_provided) 1
             }
             "-pr_config" {
                 incr i;            
@@ -351,19 +402,6 @@ proc ::tclapp::xilinx::x2rp::run {args} {
                 }
                 set a_global_vars(constrset) [lindex $args $i]
                 set a_global_vars(constrs_files) [get_files -compile_order constraints -used_in implementation -of_objects [get_filesets $a_global_vars(constrset)]]
-            }
-            "-initial_routed_dcp" {
-                incr i;            
-                if { [regexp {^-} [lindex $args $i]] } {
-                    puts "[lindex $args $i]"
-                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid dcp immediately following '$option'"
-                    return
-                }
-                set a_global_vars(initial_routed) [file normalize [lindex $args $i]]
-                if { ![file exists $a_global_vars(initial_routed)] } {
-                    ::tclapp::xilinx::x2rp::log 001 ERROR "Initial routed dcp file doesn't exist. Please provide a valid initial routed dcp file path."
-                    return
-                }
             }
             "-exclude_constrs" {
                 incr i;            
@@ -436,10 +474,10 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ::tclapp::xilinx::x2rp::log 004 INFO "Processing of command line arguments completed."    
 
     ::tclapp::xilinx::x2rp::log 005 INFO "Program Options:"
-    dump_program_options    
+    ::tclapp::xilinx::x2rp::dump_program_options    
 
     ::tclapp::xilinx::x2rp::log 006 INFO "Validating command line arguments."
-    validate_args
+    ::tclapp::xilinx::x2rp::validate_args
     ::tclapp::xilinx::x2rp::log 007 INFO "Validation of command line arguments completed."
 
     # resetting the vars again
@@ -479,31 +517,38 @@ proc ::tclapp::xilinx::x2rp::run {args} {
 
     # determine and remove wrapper from the RPs
     ::tclapp::xilinx::x2rp::log 014 INFO "Determining wrapper and reconfig partitions."
-    remove_wrapper_from_rps [determine_wrapper]
+    ::tclapp::xilinx::x2rp::remove_wrapper_from_rps [::tclapp::xilinx::x2rp::determine_wrapper]
     
     # extract wrapper post synth dcp
     set a_global_vars(wrapper_post_synth) [extract_post_synth_dcp $a_global_vars(wrapper)]
     ::tclapp::xilinx::x2rp::log 015 INFO "Extracted wrapper post synth dcp : '$a_global_vars(wrapper_post_synth)'."  
 
-    if { ![file exists $a_global_vars(platform)] } {
-        if { [string equal $a_global_vars(base_platform) ""] } {
-            ::tclapp::xilinx::x2rp::log 016 INFO "Generate Base platform step started."
-            create_base_platform
-            ::tclapp::xilinx::x2rp::log 017 INFO "Generate Base platform step completed."
-        }
-        
-        ::tclapp::xilinx::x2rp::log 018 INFO "Generate RL platform step started."        
-        ::tclapp::xilinx::x2rp::log 019 INFO "Executing Cmd: 'generate_rl_platform -use_source $a_global_vars(wrapper_post_synth) -base_platform $a_global_vars(base_platform) -platform [file join $a_global_vars(output_dir) $a_global_vars(platform)] -reconfig_platform {$a_global_vars(shell)}'"
-        generate_rl_platform -use_source "$a_global_vars(wrapper_post_synth)" -base_platform "$a_global_vars(base_platform)" -platform [file join $a_global_vars(output_dir) $a_global_vars(platform)] -reconfig_platform "{$a_global_vars(shell)}"
-        set a_global_vars(platform) [file join $a_global_vars(output_dir) $a_global_vars(platform)]
-        ::tclapp::xilinx::x2rp::log 020 INFO "Generate RL platform step completed. RL Platform = $a_global_vars(platform)"
-        close_project
-    }
+    # check to figure out if user wants to run normal flow or CL/SH update flow
+    if { !$a_global_vars(cl_sh_bb_routed_dcp_provided) } {
+        if { ![file exists $a_global_vars(platform)] } {
+            if { [string equal $a_global_vars(base_platform) ""] } {
+                ::tclapp::xilinx::x2rp::log 016 INFO "Generate Base platform step started."
+                ::tclapp::xilinx::x2rp::create_base_platform
+                ::tclapp::xilinx::x2rp::log 017 INFO "Generate Base platform step completed."
+            }
 
-    # At this stage we must have rl platform knowledge
-    if { ![file exists $a_global_vars(platform)] } {
-        ::tclapp::xilinx::x2rp::log 021 ERROR "RL platform dcp is not generated, could not proceed any further."
-        return
+            if { $a_global_vars(generate_base_only) } {
+                return
+            }
+            
+            ::tclapp::xilinx::x2rp::log 018 INFO "Generate RL platform step started."        
+            ::tclapp::xilinx::x2rp::log 019 INFO "Executing Cmd: 'generate_rl_platform -use_source $a_global_vars(wrapper_post_synth) -base_platform $a_global_vars(base_platform) -platform [file join $a_global_vars(output_dir) $a_global_vars(platform)] -reconfig_platform {$a_global_vars(shell)}'"
+            generate_rl_platform -use_source "$a_global_vars(wrapper_post_synth)" -base_platform "$a_global_vars(base_platform)" -platform [file join $a_global_vars(output_dir) $a_global_vars(platform)] -reconfig_platform "{$a_global_vars(shell)}"
+            set a_global_vars(platform) [file join $a_global_vars(output_dir) $a_global_vars(platform)]
+            ::tclapp::xilinx::x2rp::log 020 INFO "Generate RL platform step completed. RL Platform = $a_global_vars(platform)"
+            close_project
+        }
+
+        # At this stage we must have rl platform knowledge
+        if { ![file exists $a_global_vars(platform)] } {
+            ::tclapp::xilinx::x2rp::log 021 ERROR "RL platform dcp is not generated, could not proceed any further."
+            return
+        }
     }
 
     ::tclapp::xilinx::x2rp::log 022 INFO "Link step started"
@@ -518,9 +563,19 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     set_property ip_cache_permissions {read write} [current_project]
     set_property XPM_LIBRARIES $a_global_vars(xpm_libs) [current_project]
 
-    # output from generate step is added here
-    ::tclapp::xilinx::x2rp::log 025 INFO "Executing Cmd: add_files $a_global_vars(platform)"
-    add_files $a_global_vars(platform)
+    # apply dsa properties
+    ::tclapp::xilinx::x2rp::log 024 INFO "*** Applying dsa properties."
+    apply_dsa_properties_to_project [current_project]
+
+    #if it CL/SH update mode then add cl_sh_bb_routed_dcp other wise add dcp generated from generate_rl_platform step
+    if { $a_global_vars(cl_sh_bb_routed_dcp_provided) } {
+        ::tclapp::xilinx::x2rp::log 025 INFO "Executing Cmd: add_files $a_global_vars(cl_sh_bb_routed_dcp)"
+        add_files $a_global_vars(cl_sh_bb_routed_dcp)
+    } else {
+        # output from generate step is added here
+        ::tclapp::xilinx::x2rp::log 025 INFO "Executing Cmd: add_files $a_global_vars(platform)"
+        add_files $a_global_vars(platform)
+    }
 
     ::tclapp::xilinx::x2rp::log 026 INFO "Adding RMs dcp and top source files."
     # add RMs post synthesis DCP files
@@ -581,8 +636,13 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ::tclapp::xilinx::x2rp::log 034 INFO "Executing Cmd: link_design -top $a_global_vars(top) -part $a_global_vars(part) -reconfig_partitions [list $a_global_vars(reconfig_partitions)]"
     link_design -top $a_global_vars(top) -part $a_global_vars(part) -reconfig_partitions $a_global_vars(reconfig_partitions)
 
-    ::tclapp::xilinx::x2rp::log 035 INFO "Executing Cmd: set_property PLATFORM.IMPL 1 \[current_design\]"
-    set_property PLATFORM.IMPL 1 [current_design]
+    if { $a_global_vars(cl_sh_bb_routed_dcp_provided) } {
+        ::tclapp::xilinx::x2rp::log 035 INFO "Executing Cmd: set_property PLATFORM.IMPL 2 \[current_design\]"
+        set_property PLATFORM.IMPL 2 [current_design]    
+    } else {
+        ::tclapp::xilinx::x2rp::log 035 INFO "Executing Cmd: set_property PLATFORM.IMPL 1 \[current_design\]"
+        set_property PLATFORM.IMPL 1 [current_design]
+    }
     
     ::tclapp::xilinx::x2rp::log 036 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_link_design)]"
     write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_link_design)]
@@ -702,7 +762,6 @@ proc ::tclapp::xilinx::x2rp::run {args} {
         }
     }
 
-
     catch { write_sysdef -hwdef [file join $a_global_vars(output_dir) $a_global_vars(top).hwdef] -bitfile [file join $a_global_vars(output_dir) $a_global_vars(top).bit] -meminfo [file join $a_global_vars(output_dir) $a_global_vars(top).mmi] -file [file join $a_global_vars(output_dir) $a_global_vars(top).sysdef] }
     catch  {write_debug_probes -no_partial_ltxfile -quiet -force [file join $a_global_vars(output_dir) $a_global_vars(top)] }
     catch {file copy -force [file join $a_global_vars(output_dir) $a_global_vars(top).ltx] [file join $a_global_vars(output_dir) debug_nets.ltx] }
@@ -718,13 +777,46 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     }
     ::tclapp::xilinx::x2rp::log 063 INFO "Write partial and full bitstream step completed"
 
+    set result 0
+    set einfo ""
+    set ecode "NONE"
+    set resulttext ""
     if { $a_global_vars(generate_dsa) } {
-        ::tclapp::xilinx::x2rp::log 080 INFO "Write DSA step started"
-        write_dsa -force [file join $a_global_vars(output_dir) $a_global_vars(top).dsa]
+        ::tclapp::xilinx::x2rp::log 080 INFO "Write DSA step started"        
+        # catch any errors that may happen at write_dsa step so that we can successfully generate CL_SH_BB_routed.dcp after this
+        set result [catch { write_dsa -force [file join $a_global_vars(output_dir) $a_global_vars(top).dsa] } resulttext]
+        if { $result } {
+            set einfo $::errorInfo
+            set ecode $::errorCode
+        }
         ::tclapp::xilinx::x2rp::log 081 INFO "Write DSA step completed"
     }
 
+    # if app is not ran in CL/SH update mode, only then generate the CL_SH_BB_routed.dcp
+    if { !$a_global_vars(cl_sh_bb_routed_dcp_provided) } {
+        ::tclapp::xilinx::x2rp::log 082 INFO "Write CL_SH_BB_routed.dcp step started."
+        ::tclapp::xilinx::x2rp::generate_cl_sh_bb_routed_dcp
+        ::tclapp::xilinx::x2rp::log 086 INFO "Write CL_SH_BB_routed.dcp step completed."
+    }
     close_project
+    
+    if { $result } {
+        return -code $result \
+               -errorcode $ecode \
+               -errorinfo $einfo \
+               $resulttext
+    }
+}
+
+proc ::tclapp::xilinx::x2rp::generate_cl_sh_bb_routed_dcp {} {
+    variable a_global_vars
+
+    ::tclapp::xilinx::x2rp::log 083 INFO "Executing Cmd: update_design -black_box -cells [list $a_global_vars(reconfig_partitions)]"
+    update_design -black_box -cells $a_global_vars(reconfig_partitions)
+    ::tclapp::xilinx::x2rp::log 084 INFO "Executing Cmd: lock_design -level routing"
+    lock_design -level routing
+    ::tclapp::xilinx::x2rp::log 085 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) CL_SH_BB_routed.dcp]"
+    write_checkpoint -force [file join $a_global_vars(output_dir) CL_SH_BB_routed.dcp]
 }
 
 proc ::tclapp::xilinx::x2rp::create_base_platform {} {
@@ -738,31 +830,6 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
 
     variable a_global_vars
 
-    # check if the initial routed dcp is given make use of that to create base platform and return
-    if { [file exists $a_global_vars(initial_routed)] } {
-        open_checkpoint $a_global_vars(initial_routed)
-
-        set wrapper_cell [get_cells -hierarchical -filter {HD.RECONFIGURABLE == 1} -quiet]
-        if { [string equal $wrapper_cell ""] } {
-            ::tclapp::xilinx::x2rp::log 002 ERROR "Failed to determine wrapper cell. Wrapper cell should have the HD.RECONFIGURABLE property set to true."
-        }
-
-        ::tclapp::xilinx::x2rp::log 003 INFO "Found wrapper cell, with instance path '$wrapper_cell'."
-
-        # Pre-requisites to create base platform
-        # (1) for your base platform implementation, create a static PBLOCK and make sure the RP PBLOCK covers the rest of the device 
-        # (2) set_property HD.PLATFORM_WRAPPER 1 on your base platform reconfigurable module (wrapper).
-
-        set_property HD.PLATFORM_WRAPPER 1 $wrapper_cell
-        update_design -black_box -cells $wrapper_cell
-        write_bitstream -cell $wrapper_cell [file join $a_global_vars(output_dir) $a_global_vars(base_reset_partial_bit)]
-        write_checkpoint -force [file join $a_global_vars(output_dir) base_platform.dcp]
-        set a_global_vars(base_platform) [file join $a_global_vars(output_dir) base_platform.dcp]
-        close_project
-        return
-    }
-
-    # initial routed dcp is not provided create it first and then the base platform
     # getting required properties from current project
     set currentFS [current_fileset]
     set project_name [get_property NAME [current_project]]
@@ -915,8 +982,11 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
     ::tclapp::xilinx::x2rp::log 077 INFO "Executing Cmd: update_design -black_box -cells $wrapper_cell"    
     update_design -black_box -cells $wrapper_cell
 
+    ::tclapp::xilinx::x2rp::log 077 INFO "*** a) Executing Cmd: lock_design -level routing"
+    lock_design -level routing
+
     ::tclapp::xilinx::x2rp::log 078 INFO "Executing Cmd: write_bitstream -cell $wrapper_cell [file join $a_global_vars(output_dir) $a_global_vars(base_reset_partial_bit)]"
-    write_bitstream -cell $wrapper_cell [file join $a_global_vars(output_dir) $a_global_vars(base_reset_partial_bit)]
+    write_bitstream -force -cell $wrapper_cell [file join $a_global_vars(output_dir) $a_global_vars(base_reset_partial_bit)]
 
     ::tclapp::xilinx::x2rp::log 079 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) base_platform.dcp]"    
     write_checkpoint -force [file join $a_global_vars(output_dir) base_platform.dcp]
