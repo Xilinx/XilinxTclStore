@@ -1,3 +1,4 @@
+4.3 glob object files for linking during elaboration
 4.2 donot reference glbl by default unless conditions met
 4.1 helper proc to determine if pure vhdl design required for glbl determination
 4.0 print debug information for referenced shared libraries
