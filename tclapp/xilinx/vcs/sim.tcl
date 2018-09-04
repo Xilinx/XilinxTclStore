@@ -731,10 +731,9 @@ proc usf_vcs_write_elaborate_script {} {
   if { [xcs_find_ip "gt_quad_base"] } {
     variable a_vcs_sim_vars
     set clibs_dir $a_vcs_sim_vars(s_compiled_lib_dir)
-    set obj_1 "$clibs_dir/secureip/RateAccess.o"
-    set obj_2 "$clibs_dir/secureip/RateAccess_Wrapper.o"
-    if { [file exists $obj_1] && [file exists $obj_2] } {
-      set obj_files [list $obj_1 $obj_2]
+    append clibs_dir "/secureip"
+    set obj_files [glob -nocomplain -directory $clibs_dir *.o]
+    if { [llength $obj_files] > 0 } {
       set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
       lappend arg_list $gcc_cmd
     }
