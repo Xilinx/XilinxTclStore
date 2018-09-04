@@ -812,7 +812,10 @@ proc ::tclapp::xilinx::x2rp::generate_cl_sh_bb_routed_dcp {} {
     variable a_global_vars
 
     ::tclapp::xilinx::x2rp::log 083 INFO "Executing Cmd: update_design -black_box -cells [list $a_global_vars(reconfig_partitions)]"
-    update_design -black_box -cells $a_global_vars(reconfig_partitions)
+    # this loop is required because currently update_design doesn't work with list of cells (CR-1001665). Remove loop once CR-1001665 gets fixed.
+    foreach rp $a_global_vars(reconfig_partitions) {
+        update_design -black_box -cells $rp
+    }
     ::tclapp::xilinx::x2rp::log 084 INFO "Executing Cmd: lock_design -level routing"
     lock_design -level routing
     ::tclapp::xilinx::x2rp::log 085 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) CL_SH_BB_routed.dcp]"
