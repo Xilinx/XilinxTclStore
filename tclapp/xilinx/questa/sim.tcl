@@ -190,6 +190,18 @@ proc usf_questa_setup_simulation { args } {
   set ::tclapp::xilinx::questa::a_sim_vars(l_design_files) \
      [xcs_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
 
+  # systemC headers
+  set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
+
+  # find shared library paths from all IPs
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+    # TODO: enable this once models compile
+    set b_en_code false
+    if { $b_en_code } {
+      xcs_find_shared_lib_paths "questa" $a_sim_vars(s_clibs_dir)
+    }
+  }
+
   # create library directory
   usf_questa_create_lib_dir
 
@@ -220,6 +232,7 @@ proc usf_questa_setup_args { args } {
   # [-install_path <arg>]: Custom Questa installation directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-run_dir <arg>]: Simulation run directory
+  # [-int_sm_lib_dir <arg>]: Simulation model library directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
@@ -250,6 +263,7 @@ proc usf_questa_setup_args { args } {
       "-int_os_type"         { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode"      { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
       "-int_systemc_mode"    { set ::tclapp::xilinx::questa::a_sim_vars(b_int_systemc_mode) 1 }
+      "-int_sm_lib_dir"      { incr i;set ::tclapp::xilinx::questa::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
       "-int_compile_glbl"    { set ::tclapp::xilinx::questa::a_sim_vars(b_int_compile_glbl) 1 }
       default {
         # is incorrect switch specified?

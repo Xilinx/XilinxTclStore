@@ -47,6 +47,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
   set a_sim_vars(b_int_systemc_mode) 0
+  set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
@@ -56,6 +57,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_contain_systemc_sources) 0
   set a_sim_vars(b_contain_cpp_sources)     0
   set a_sim_vars(b_contain_c_sources)       0
+  set a_sim_vars(b_contain_systemc_headers) 0
 
   # initialize ip repository dir
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
@@ -146,6 +148,12 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
+
+  variable a_shared_library_path_coln
+  array unset a_shared_library_path_coln
+
+  variable a_shared_library_mapping_path_coln
+  array unset a_shared_library_mapping_path_coln
 
   variable a_sim_sv_pkg_libs [list]
 
@@ -343,6 +351,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   variable l_compile_order_files
   variable l_valid_ip_extns
   variable l_compiled_libraries
+
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
   upvar $global_files_str_arg global_files_str
 
   set files          [list]
@@ -386,6 +397,31 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
           lappend l_compile_order_files $file
         }
       }
+    }
+  }
+
+  set b_en_code false
+  if { $b_en_code } {
+    variable a_shared_library_path_coln
+    foreach {key value} [array get a_shared_library_path_coln] {
+      set shared_lib_name $key
+      set lib_path        $value
+
+      set incl_dir "$lib_path/include"
+      if { [file exists $incl_dir] } {
+        if { !$a_sim_vars(b_absolute_path) } {
+          # get relative file path for the compiled library
+          set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+        }
+        lappend l_incl_dirs_opts "\"+incdir+$incl_dir\""
+      }
+    }
+
+    foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
+      if { !$a_sim_vars(b_absolute_path) } {
+        set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+      }
+      lappend l_incl_dirs_opts "\"+incdir+$incl_dir\""
     }
   }
 
