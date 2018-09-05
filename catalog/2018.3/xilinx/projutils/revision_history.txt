@@ -1,3 +1,4 @@
+3.359 Fix for create bd proc appearing twice in 2RP flow
 3.357 donot reference glbl by default unless conditions met
 3.356 print debug information for referenced shared libraries
 3.354 inspect TLM property value for IP while determining systemc libraries

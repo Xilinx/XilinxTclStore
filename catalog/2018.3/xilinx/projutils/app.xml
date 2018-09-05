@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>donot reference glbl by default unless conditions met</revision_history>
+      <revision_history>Fix for create bd proc appearing twice in 2RP flow</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
