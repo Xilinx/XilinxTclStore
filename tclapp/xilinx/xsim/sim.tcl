@@ -1765,8 +1765,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     # default install location
     set shared_lib_dir "${clibs_dir}/verilog/secureip"
     if { ![file exists $shared_lib_dir] } {
-      # custome compile location
+      # custom compile location
       set shared_lib_dir "${clibs_dir}/secureip"
+      send_msg_id USF-XSim-010 WARNING "Default compiled library path for secureip library does not exist ($shared_lib_dir). Using library from '$shared_lib_dir'.\n"
     }
     lappend args_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
   }
