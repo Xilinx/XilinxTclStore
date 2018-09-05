@@ -2645,12 +2645,14 @@ proc wr_reconfigModules { proj_dir proj_name } {
     # get the dependent bd for a rm and process it first, this is required for 2RP support
     set rm_bd_dep [lindex [get_files -references -quiet -of_objects [get_reconfig_modules $rm] *.bd] 0]
     if {[llength $rm_bd_dep] == 1} {
-      if { !$a_global_vars(b_arg_use_bd_files) } {
-        write_bd_as_proc $rm_bd_dep
+      if {$rm_bd ni $done_bds} {
+        if { !$a_global_vars(b_arg_use_bd_files) } {
+          write_bd_as_proc $rm_bd_dep
+        }
+        set rm1 [dict get $bd_rm_map $rm_bd_dep]
+        write_specified_reconfig_module $proj_dir $proj_name $rm1
+        lappend done_bds $rm_bd_dep
       }
-      set rm1 [dict get $bd_rm_map $rm_bd_dep]
-      write_specified_reconfig_module $proj_dir $proj_name $rm1
-      lappend done_bds $rm_bd_dep
     }
 
     foreach rm_bd $rm_bds {
