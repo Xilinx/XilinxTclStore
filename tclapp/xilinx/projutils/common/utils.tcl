@@ -3362,6 +3362,18 @@ proc xcs_get_sc_files { sc_filter } {
   return $sc_files
 }
 
+proc xcs_contains_C_files {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set c_filter  "(USED_IN_SIMULATION == 1) && ((FILE_TYPE == \"SystemC\") || (FILE_TYPE == \"CPP\") || (FILE_TYPE == \"C\"))"
+  if { [llength [get_files -quiet -all -filter $c_filter ]] > 0 } {
+    return true
+  }
+  return false
+}
+
 proc xcs_get_protoinst_files { dynamic_repo_dir } {
   # Summary:
   # Argument Usage:

@@ -169,6 +169,9 @@ proc usf_questa_setup_simulation { args } {
     }
   }
 
+  # extract simulation model library info
+  xcs_fetch_lib_info "questa" $a_sim_vars(s_clibs_dir)
+
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
@@ -185,22 +188,20 @@ proc usf_questa_setup_simulation { args } {
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
 
-  # fetch design files
-  set global_files_str {}
-  set ::tclapp::xilinx::questa::a_sim_vars(l_design_files) \
-     [xcs_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
-
   # systemC headers
   set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
 
   # find shared library paths from all IPs
-  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
-    # TODO: enable this once models compile
-    set b_en_code false
-    if { $b_en_code } {
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { [xcs_contains_C_files] } {
       xcs_find_shared_lib_paths "questa" $a_sim_vars(s_clibs_dir)
     }
   }
+
+  # fetch design files
+  set global_files_str {}
+  set ::tclapp::xilinx::questa::a_sim_vars(l_design_files) \
+     [xcs_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
 
   # create library directory
   usf_questa_create_lib_dir
@@ -1301,8 +1302,11 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         if { {elaborate} == $step } {
           set shared_ip_libs [list]
 
-          foreach sc_lib [xcs_get_sc_libs] {
-            set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
+          variable a_shared_library_path_coln
+          foreach {key value} [array get a_shared_library_path_coln] {
+            set sc_lib   $key
+            set lib_path $value
+            set lib_dir "$lib_path"
             lappend shared_ip_libs $lib_dir
           }
   
@@ -1490,17 +1494,20 @@ proc usf_questa_get_sccom_cmd_args {} {
       if { {} != $more_opts } {
         lappend args "$more_opts"
       }
-     
-      set sc_libs [xcs_get_sc_libs]
-      if { [llength $sc_libs] > 0 } {
-        foreach sc_lib $sc_libs {
-          set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
-          lappend args "-lib $sc_lib"
-          if { {remote_port_v4} == $sc_lib } {
-            set lib_name "${sc_lib}_c"
-            lappend args "-L$lib_dir"
-            lappend args "-l$lib_name"
-          }
+
+      variable a_shared_library_path_coln
+      foreach {key value} [array get a_shared_library_path_coln] {
+        set sc_lib   $key
+        set lib_path $value
+        set lib_name [file root $sc_lib]
+        set lib_name [string trimleft $lib_name {lib}]
+        lappend args "-lib $lib_name"
+
+        set lib_dir "$lib_path"
+        if { {remote_port_v4} == $lib_name } {
+          set lib_name "lib${lib_name}_c"
+          lappend args "-L$lib_dir"
+          lappend args "-l$lib_name"
         }
       }
   
