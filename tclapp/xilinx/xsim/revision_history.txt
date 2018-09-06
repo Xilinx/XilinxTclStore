@@ -1,3 +1,4 @@
+2.255 helper proc to find C, SystemC, CPP sources in the design
 2.254 print warning message if default secureip directory not found
 2.253 donot reference glbl by default unless conditions met
 2.252 helper proc to determine if pure vhdl design required for glbl determination

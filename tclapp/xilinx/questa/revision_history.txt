@@ -1,3 +1,4 @@
+2.124 helper proc to find C, SystemC, CPP sources in the design
 2.123 calculate include directory paths for simulation models
 2.121 donot reference glbl by default unless conditions met
 2.120 helper proc to determine if pure vhdl design required for glbl determination

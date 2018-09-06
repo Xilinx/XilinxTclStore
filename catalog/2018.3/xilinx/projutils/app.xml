@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix for create bd proc appearing twice in 2RP flow</revision_history>
+      <revision_history>helper proc to find C, SystemC, CPP sources in the design</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

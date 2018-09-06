@@ -1,3 +1,4 @@
+4.01 helper proc to find C, SystemC, CPP sources in the design
 4.00 donot reference glbl by default unless conditions met
 3.99 helper proc to determine if pure vhdl design required for glbl determination
 3.98 print debug information for referenced shared libraries
