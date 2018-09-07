@@ -2,6 +2,7 @@ package require Vivado 1.2017.1
 
 namespace eval ::tclapp::xilinx::x2rp {
     namespace export run
+    namespace export open_checkpoint_for_dsa_generation
 }
 
 proc ::tclapp::xilinx::x2rp::log {idx type msg} {
@@ -263,6 +264,88 @@ proc ::tclapp::xilinx::x2rp::apply_dsa_properties_to_project {project} {
     }
 }
 
+proc ::tclapp::xilinx::x2rp::open_checkpoint_for_dsa_generation {args} {
+    # Summary: Opens routed design checkpoint in the current project context for DSA generation.
+
+    # Argument Usage:
+    # -routed_dcp <arg>: Routed dcp for which DSA generation is required.
+    # [-exclude_constrs <arg>]: List of constraint file to be excluded from generation of DSA.
+
+    # Return Value:
+    # Open routed design checkpoint in the current project context.
+    
+    # Categories: xilinxtclstore, x2rp, 2RP, Multiple RL
+
+    set verbose 0    
+    set exclude_constrs {}
+    for {set i 0} {$i < [llength $args]} {incr i} {
+        set option [string trim [lindex $args $i]]
+        puts $option
+        switch -regexp -- $option {
+            "-verbose" {
+                set verbose 1
+            }
+            "-routed_dcp" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {
+                    send_msg_id vivado-x2rp-001 ERROR "Missing value for the $option option.\nPlease provide a valid dcp file immediately following '$option'"
+                    return
+                }
+                set routed_dcp [file normalize [lindex $args $i]]
+                if { ![file exists $routed_dcp] } {
+                    send_msg_id vivado-x2rp-001 ERROR "Routed dcp file doesn't exist. Please provide a valid routed dcp file path."
+                    return
+                }
+            }
+            "-exclude_constrs" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {
+                    puts "[lindex $args $i]"
+                    send_msg_id vivado-x2rp-001 ERROR "Missing value for the $option option.\nPlease provide a list of constraint files to be excluded immediately following '$option'"
+                    return
+                }
+                set exclude_constrs [lindex $args $i]
+            } 
+        }
+    }
+
+    send_msg_id vivado-x2rp-087 INFO "Opening routed dcp in current project context for DSA generation."
+    
+    set result 0
+    set einfo ""
+    set ecode "NONE"
+    set resulttext ""
+    
+    # enable the param here which enables to open checkpoint in current project context
+    set_param project.enableOpenCheckpointWithCurrentProject 1
+
+    # disable excluded constraint files before opening the checkpoint 
+    foreach cf $exclude_constrs {
+        set_property IS_ENABLED 0 [get_files $cf]
+    }
+
+    set result [ catch { open_checkpoint $routed_dcp } resulttext]
+    if {$result} {
+        set ecode $::errorCode
+        set einfo $::errorInfo
+    }
+
+    # disable the param here which enables to open checkpoint in current project context
+    set_param project.enableOpenCheckpointWithCurrentProject 0
+
+    # enable excluded constraint files before opening the checkpoint 
+    foreach cf $exclude_constrs {
+        set_property IS_ENABLED 1 [get_files $cf]
+    }
+    
+    if { $result } {
+        send_msg_id vivado-x2rp-088 INFO "Failed to open routed dcp in current project context for DSA generation."
+        return -code $result -errorcode $ecode -errorinfo $einfo $resulttext
+    } else {
+        send_msg_id vivado-x2rp-089 INFO "Opened routed dcp in current project context for DSA generation successfully."
+    }
+}
+
 proc ::tclapp::xilinx::x2rp::run {args} {
     # Summary: Implements the 2RP Design.
 
@@ -282,7 +365,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # [-post_place_phys_opt_directive <arg> = AggressiveExplore]: Directive for post place phys opt design step.
     # [-route_directive <arg> = Explore -tns_cleanup]: Directive for route design step.
     # [-post_route_phys_opt_directive <arg> = AggressiveExplore]: Directive for post route phys opt design step.    
-    # [-generate_dsa]: Generates DSA. (Default: 0)
+    # [-generate_dsa]: Opens routed design checkpoint in current project context for DSA generation. (Default: 0)
     # [-generate_base_only]: Only generates base platform dcp. (Default: 0)
 
     # Return Value:
@@ -777,21 +860,6 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     }
     ::tclapp::xilinx::x2rp::log 063 INFO "Write partial and full bitstream step completed"
 
-    set result 0
-    set einfo ""
-    set ecode "NONE"
-    set resulttext ""
-    if { $a_global_vars(generate_dsa) } {
-        ::tclapp::xilinx::x2rp::log 080 INFO "Write DSA step started"        
-        # catch any errors that may happen at write_dsa step so that we can successfully generate CL_SH_BB_routed.dcp after this
-        set result [catch { write_dsa -force [file join $a_global_vars(output_dir) $a_global_vars(top).dsa] } resulttext]
-        if { $result } {
-            set einfo $::errorInfo
-            set ecode $::errorCode
-        }
-        ::tclapp::xilinx::x2rp::log 081 INFO "Write DSA step completed"
-    }
-
     # if app is not ran in CL/SH update mode, only then generate the CL_SH_BB_routed.dcp
     if { !$a_global_vars(cl_sh_bb_routed_dcp_provided) } {
         ::tclapp::xilinx::x2rp::log 082 INFO "Write CL_SH_BB_routed.dcp step started."
@@ -799,12 +867,14 @@ proc ::tclapp::xilinx::x2rp::run {args} {
         ::tclapp::xilinx::x2rp::log 086 INFO "Write CL_SH_BB_routed.dcp step completed."
     }
     close_project
-    
-    if { $result } {
-        return -code $result \
-               -errorcode $ecode \
-               -errorinfo $einfo \
-               $resulttext
+
+    # Opening the routed dcp for DSA generation
+    if { $a_global_vars(generate_dsa) } {
+        set routed_dcp [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]
+
+        if { [file exists $routed_dcp] } {
+            ::tclapp::xilinx::x2rp::open_checkpoint_for_dsa_generation -routed_dcp $routed_dcp 
+        }
     }
 }
 

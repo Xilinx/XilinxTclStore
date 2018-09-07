@@ -27,7 +27,7 @@ Arguments:
 
     -place_directive - (Optional) Directive for place design step.
 
-    -enable_post_place_phys_opt - (Optional) Enable post place physical optimization (Default: 0).
+    -enable_post_place_phys_opt - (Optional) Enable post place physical optimization. (Default: 0).
 
     -post_place_phys_opt_directive - (Optional) Directive for post place phys opt design step.
 
@@ -35,7 +35,7 @@ Arguments:
 
     -post_route_phys_opt_directive - (Optional) Directive for post route phys opt design step.
 
-    -generate_dsa - (Optional) Generates DSA (Default: 0).
+    -generate_dsa - (Optional) Open routed design checkpoint in current project context for DSA generation. (Default: 0).
     
     -generate_base_only - (Optional) Only generates base platform dcp. (Default: 0)
 
