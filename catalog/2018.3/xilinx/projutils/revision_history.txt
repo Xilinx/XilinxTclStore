@@ -1,3 +1,4 @@
+3.361 inspect list property for IP in quiet mode
 3.360 helper proc to find C, SystemC, CPP sources in the design
 3.359 Fix for create bd proc appearing twice in 2RP flow
 3.357 donot reference glbl by default unless conditions met
