@@ -5732,7 +5732,7 @@ proc xps_print_message_for_unsupported_simulator_ip { ip simulator } {
 
   set ip_filename [file tail $ip]
   set ip_name [file rootname [file tail $ip_filename]]
-  set ip_props [list_property [lindex [get_ips -all $ip_name] 0]]
+  set ip_props [list_property -quiet [lindex [get_ips -all $ip_name] 0]]
   if { [lsearch -nocase $ip_props "unsupported_simulators"] != -1 } {
     set invalid_simulators [get_property -quiet unsupported_simulators [get_ips -quiet $ip_name]]
     if { [lsearch -nocase $invalid_simulators $simulator] != -1 } {
