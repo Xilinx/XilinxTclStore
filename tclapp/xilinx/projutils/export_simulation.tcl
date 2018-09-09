@@ -842,7 +842,7 @@ proc xps_xport_data_files { data_files_arg } {
     set ip_name [file tail $tcl_obj]
     set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
     foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
-      if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+      if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
         if { [get_property {IS_USER_DISABLED} $file] } {
           continue;
         }
@@ -867,7 +867,7 @@ proc xps_export_fs_non_hdl_data_files { data_files_arg } {
   variable s_non_hdl_data_files_filter
   upvar $data_files_arg data_files
   foreach file [get_files -all -quiet -of_objects [get_filesets $a_sim_vars(fs_obj)] -filter $s_non_hdl_data_files_filter] {
-    if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file] } {
         continue;
       }
@@ -1573,7 +1573,7 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
       set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
     }
     if { {} != $file_obj } {
-      if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+      if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
         set associated_library [get_property "LIBRARY" $file_obj]
       }
       if { ($a_sim_vars(b_extract_ip_sim_files) || $a_sim_vars(b_xport_src_files)) } {
@@ -5487,7 +5487,7 @@ proc xps_get_incl_dirs_from_ip { simulator launch_dir tcl_obj } {
       }
       set associated_library {}
       if { {} != $file_obj } {
-        if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+        if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
           set associated_library [get_property "LIBRARY" $file_obj]
         }
       }

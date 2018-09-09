@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>inspect list property for IP in quiet mode</revision_history>
+      <revision_history>inspect list property for IPs and file objects in quiet mode</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

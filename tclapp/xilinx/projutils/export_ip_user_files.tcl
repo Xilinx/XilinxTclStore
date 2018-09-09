@@ -295,7 +295,7 @@ proc xif_export_ip_files { obj } {
     set ip_name [file root [file tail $obj]]
     set file_obj [get_ips -all -quiet $ip_name]
     # is bd?
-    if { [lsearch -exact [list_property $file_obj] {SCOPE}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {SCOPE}] != -1 } {
       set bd_file [get_property {SCOPE} $file_obj]
       #puts bd_file=$bd_file
       if { {} != $bd_file } {
@@ -374,14 +374,14 @@ proc xif_export_ip { obj } {
 
     if { $a_vars(b_use_static_lib) } {
       set file_type {}
-      if { [lsearch -exact [list_property $file_obj] {FILE_TYPE}] != -1 } {
+      if { [lsearch -exact [list_property -quiet $file_obj] {FILE_TYPE}] != -1 } {
         set file_type [get_property file_type $file_obj]
       }
       if { ({Verilog Header} == $file_type) || ({Verilog/SystemVerilog Header} == $file_type) } {
         # consider verilog header files always for pre-compile flow
       } else {
         # is compiled library available from clibs? continue, else extract to ip_user_files dir
-        if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+        if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
           set library [get_property library $file_obj]
           if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
             # delete stale IP static files for precompiled library
@@ -676,7 +676,7 @@ proc xif_is_bd_ip_file { src_file_obj bd_file_arg } {
   while (1) {
     incr count
     if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set props [list_property $src_file_obj]
+    set props [list_property -quiet $src_file_obj]
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
     }
@@ -715,7 +715,7 @@ proc xif_export_bd { obj } {
   foreach {src_ip_file file_obj} [array get a_cache_all_bd_static_files_obj] {
     set filename [file tail $src_ip_file]
     if { {} == $file_obj } { continue; }
-    if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file_obj] } {
         continue;
       }
@@ -741,14 +741,14 @@ proc xif_export_bd { obj } {
 
     if { $a_vars(b_use_static_lib) } {
       set file_type {}
-      if { [lsearch -exact [list_property $file_obj] {FILE_TYPE}] != -1 } {
+      if { [lsearch -exact [list_property -quiet $file_obj] {FILE_TYPE}] != -1 } {
         set file_type [get_property file_type $file_obj]
       }
       if { ({Verilog Header} == $file_type) || ({Verilog/SystemVerilog Header} == $file_type) } {
         # consider verilog header files always for pre-compile flow
       } else {
         # is compiled library available from clibs? continue, else extract to ip_user_files dir
-        if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+        if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
           set library [get_property library $file_obj]
           if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
             # This is causing performance issues (in case the file was present in ipstatic dir from previous run)
@@ -1342,7 +1342,7 @@ proc xif_get_ip_name { src_file } {
     set file_obj [lindex [get_files -all -quiet [file tail $src_file]] 0]
   }
 
-  set props [list_property $file_obj]
+  set props [list_property -quiet $file_obj]
   if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
     set ip [get_property "PARENT_COMPOSITE_FILE" $file_obj]
   }
