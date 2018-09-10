@@ -35,7 +35,7 @@ Arguments:
 
     -post_route_phys_opt_directive - (Optional) Directive for post route phys opt design step.
 
-    -generate_dsa - (Optional) Open routed design checkpoint in current project context for DSA generation. (Default: 0).
+    -open_design_for_dsa_gen - (Optional) Open routed design checkpoint in current project context for DSA generation. (Default: 0).
     
     -generate_base_only - (Optional) Only generates base platform dcp. (Default: 0)
 

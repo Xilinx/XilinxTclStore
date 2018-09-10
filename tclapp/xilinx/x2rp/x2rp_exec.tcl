@@ -81,7 +81,7 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(rl_platform_provided) 0
     set a_global_vars(cl_sh_bb_routed_dcp_provided) 0
     set a_global_vars(exclude_constrs_provided) 0
-    set a_global_vars(generate_dsa) 0
+    set a_global_vars(open_design_for_dsa_gen) 0
     set a_global_vars(generate_base_only) 0
 
     # directives - defaults
@@ -92,7 +92,8 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(route_directive) "Explore -tns_cleanup"
     set a_global_vars(post_route_phys_opt_directive) "AggressiveExplore"
 
-    gather_dsa_props_from_project [current_project]
+    # Not needed since we are just opening design for dsa generation, not inheriting any dsa properties
+    # gather_dsa_props_from_project [current_project]
 }
 
 proc ::tclapp::xilinx::x2rp::validate_args {} {
@@ -171,13 +172,14 @@ proc ::tclapp::xilinx::x2rp::dump_program_options {} {
             ::tclapp::xilinx::x2rp::log 003 INFO "\t$key = $a_global_vars($key)"
         }
     }
-    
-    if { [array exists dsa_props] } {
-        ::tclapp::xilinx::x2rp::log 002 INFO "Project DSA properties:-"        
-        foreach key [lsort [array names dsa_props]] {
-            ::tclapp::xilinx::x2rp::log 003 INFO "\t$key = $dsa_props($key)"                
-        }
-    }
+
+    # Not needed since we are just opening design for dsa generation not inheriting any dsa properties
+    # if { [array exists dsa_props] } {
+    #     ::tclapp::xilinx::x2rp::log 002 INFO "Project DSA properties:-"        
+    #     foreach key [lsort [array names dsa_props]] {
+    #         ::tclapp::xilinx::x2rp::log 003 INFO "\t$key = $dsa_props($key)"                
+    #     }
+    # }
     
     if { $a_global_vars(verbose) } {
         ::tclapp::xilinx::x2rp::log 002 INFO "xilinx::x2rp::run all internal options."        
@@ -365,7 +367,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # [-post_place_phys_opt_directive <arg> = AggressiveExplore]: Directive for post place phys opt design step.
     # [-route_directive <arg> = Explore -tns_cleanup]: Directive for route design step.
     # [-post_route_phys_opt_directive <arg> = AggressiveExplore]: Directive for post route phys opt design step.    
-    # [-generate_dsa]: Opens routed design checkpoint in current project context for DSA generation. (Default: 0)
+    # [-open_design_for_dsa_gen]: Opens routed design checkpoint in current project context for DSA generation. (Default: 0)
     # [-generate_base_only]: Only generates base platform dcp. (Default: 0)
 
     # Return Value:
@@ -386,8 +388,8 @@ proc ::tclapp::xilinx::x2rp::run {args} {
             "-verbose" {
                 set a_global_vars(verbose) 1
             }
-            "-generate_dsa" {
-                set a_global_vars(generate_dsa) 1
+            "-open_design_for_dsa_gen" {
+                set a_global_vars(open_design_for_dsa_gen) 1
             }   
             "-generate_base_only" {
                 set a_global_vars(generate_base_only) 1
@@ -646,9 +648,10 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     set_property ip_cache_permissions {read write} [current_project]
     set_property XPM_LIBRARIES $a_global_vars(xpm_libs) [current_project]
 
+    # Not needed since we are just opening design for dsa generation, not inheriting any dsa properties.    
     # apply dsa properties
-    ::tclapp::xilinx::x2rp::log 024 INFO "*** Applying dsa properties."
-    apply_dsa_properties_to_project [current_project]
+    # ::tclapp::xilinx::x2rp::log 024 INFO "*** Applying dsa properties."
+    # apply_dsa_properties_to_project [current_project]
 
     #if it CL/SH update mode then add cl_sh_bb_routed_dcp other wise add dcp generated from generate_rl_platform step
     if { $a_global_vars(cl_sh_bb_routed_dcp_provided) } {
@@ -869,7 +872,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     close_project
 
     # Opening the routed dcp for DSA generation
-    if { $a_global_vars(generate_dsa) } {
+    if { $a_global_vars(open_design_for_dsa_gen) } {
         set routed_dcp [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]
 
         if { [file exists $routed_dcp] } {
