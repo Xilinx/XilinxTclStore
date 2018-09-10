@@ -1,3 +1,4 @@
+1.9 DSA properties inheritence stopped, as design is opened in current project context for DSA generation, option updated from -generate_dsa to -open_design_for_dsa_gen.
 1.8 Fix for MRL-22 (open routed dcp in current project context for DSA generation)
 1.7 Fix for MRL-54.
 1.6 Fix for MRL - 48, 49 and 52.

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix for MRL-22 (open routed dcp in current project context for DSA generation)</revision_history>
+      <revision_history>DSA properties inheritence stopped, as design is opened in current project context for DSA generation, option updated from -generate_dsa to -open_design_for_dsa_gen.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>
