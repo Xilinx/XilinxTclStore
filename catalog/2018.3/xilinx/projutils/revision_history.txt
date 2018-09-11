@@ -1,3 +1,4 @@
+3.363 Handling gadget name with space in writing dashboard information
 3.362 inspect list property for IPs and file objects in quiet mode
 3.361 inspect list property for IP in quiet mode
 3.360 helper proc to find C, SystemC, CPP sources in the design
