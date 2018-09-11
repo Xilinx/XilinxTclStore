@@ -2501,19 +2501,19 @@ proc write_specified_gadget { proj_dir proj_name gadget dashboard} {
   
   variable l_script_data
   set db_name [get_property name [get_dashboards $dashboard]]
-    
-  set gadgetName [get_property name [get_dashboard_gadgets -of_objects [get_dashboards $db_name] $gadget]]
-  set gadgetType [get_property type [get_dashboard_gadgets -of_objects [get_dashboards $db_name] $gadget]]
+
+  set gadgetName [get_property name [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"]]]
+  set gadgetType [get_property type [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"]]]
 
   set cmd_str "create_dashboard_gadget -name {$gadgetName} -type $gadgetType -dashboard $dashboard"
 
   lappend l_script_data "# Create '$gadgetName' gadget (if not found)"
-  lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets -of_objects \[get_dashboards $db_name\] $gadget \] \"\"\]\} \{"
+  lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets -of_objects \[get_dashboards $db_name\] \[ list \"$gadget\" \] \] \"\"\]\} \{"
   lappend l_script_data "$cmd_str"
   lappend l_script_data "\}"
 
-  lappend l_script_data "set obj \[get_dashboard_gadgets -of_objects \[get_dashboards $db_name\] $gadget \]"
-  set tcl_obj [get_dashboard_gadgets -of_objects [get_dashboards $db_name] $gadget ]
+  lappend l_script_data "set obj \[get_dashboard_gadgets -of_objects \[get_dashboards $db_name\] \[ list \"$gadget\" \] \]"
+  set tcl_obj [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"] ]
   set get_what "get_dashboard_gadgets -of_objects \[get_dashboards $db_name\]"
   write_props $proj_dir $proj_name $get_what $tcl_obj "gadget" "$"
 }
