@@ -265,7 +265,7 @@ proc xps_init_vars {} {
   set l_valid_ip_extns                [list ".xci" ".bd" ".slx"]
 
   variable s_data_files_filter
-  set s_data_files_filter             "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
+  set s_data_files_filter             "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" ||  FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\""
 
   variable s_embedded_files_filter
   set s_embedded_files_filter         "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ELF\""
