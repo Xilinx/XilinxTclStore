@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>helper proc to find C, SystemC, CPP sources in the design</revision_history>
+      <revision_history>support for printing debug msgs for library referencing</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

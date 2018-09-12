@@ -1,3 +1,4 @@
+3.364 support for printing debug msgs for library referencing
 3.363 Handling gadget name with space in writing dashboard information
 3.362 inspect list property for IPs and file objects in quiet mode
 3.361 inspect list property for IP in quiet mode
