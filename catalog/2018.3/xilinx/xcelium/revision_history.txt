@@ -1,3 +1,4 @@
+6.9 support for exporting CSV files to simulation run dir
 6.8 support for printing debug msgs for library referencing
 6.7 helper proc to find C, SystemC, CPP sources in the design
 6.6 donot reference glbl by default unless conditions met

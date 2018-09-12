@@ -1,3 +1,4 @@
+2.126 support for exporting CSV files to simulation run dir
 2.125 support for printing debug msgs for library referencing
 2.124 helper proc to find C, SystemC, CPP sources in the design
 2.123 calculate include directory paths for simulation models
