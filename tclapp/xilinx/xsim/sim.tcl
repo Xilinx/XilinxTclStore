@@ -290,7 +290,7 @@ proc usf_xsim_setup_simulation { args } {
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
     set b_en_code true
     if { $b_en_code } {
-      xcs_find_shared_lib_paths "xsim" $a_sim_vars(s_clibs_dir)
+      xcs_find_shared_lib_paths "xsim" $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
     }
   }
 
@@ -521,6 +521,7 @@ proc usf_xsim_setup_args { args } {
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_rtl_kernel_mode]: RTL Kernel simulation mode (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
+  # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
  
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -533,21 +534,22 @@ proc usf_xsim_setup_args { args } {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-simset"              { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_simset) [lindex $args $i] }
-      "-mode"                { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_mode) [lindex $args $i] }
-      "-type"                { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_type) [lindex $args $i] }
-      "-scripts_only"        { set ::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) 1 }
-      "-of_objects"          { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_comp_file) [lindex $args $i]}
-      "-absolute_path"       { set ::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) 1 }
-      "-lib_map_path"        { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path) [lindex $args $i] }
-      "-batch"               { set ::tclapp::xilinx::xsim::a_sim_vars(b_batch) 1 }
-      "-run_dir"             { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i] }
-      "-int_os_type"         { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
-      "-int_debug_mode"      { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
-      "-int_systemc_mode"    { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1 }
-      "-int_rtl_kernel_mode" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_rtl_kernel_mode) 1 }
-      "-int_sm_lib_dir"      { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
-      "-int_compile_glbl"    { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_compile_glbl) 1 }
+      "-simset"               { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_simset) [lindex $args $i]          }
+      "-mode"                 { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_mode) [lindex $args $i]            }
+      "-type"                 { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_type) [lindex $args $i]            }
+      "-scripts_only"         { set ::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) 1                           }
+      "-of_objects"           { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_comp_file) [lindex $args $i]       }
+      "-absolute_path"        { set ::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) 1                          }
+      "-lib_map_path"         { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
+      "-batch"                { set ::tclapp::xilinx::xsim::a_sim_vars(b_batch) 1                                  }
+      "-run_dir"              { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i]      }
+      "-int_os_type"          { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i]     }
+      "-int_debug_mode"       { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_systemc_mode"     { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_rtl_kernel_mode"  { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_rtl_kernel_mode) 1                    }
+      "-int_sm_lib_dir"       { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
+      "-int_compile_glbl"     { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_compile_glbl) 1                       }
+      "-int_sm_lib_ref_debug" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -1759,15 +1761,21 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   if { [xcs_find_ip "gt_quad_base"] } {
-    set gt_lib "gtye5_quad"
-    set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $dir]"
-    set clibs_dir [string map {\\ /} $clibs_dir]
-    # default install location
-    set shared_lib_dir "${clibs_dir}/verilog/secureip"
-    if { ![file exists $shared_lib_dir] } {
-      # custom compile location
-      set shared_lib_dir "${clibs_dir}/secureip"
-      send_msg_id USF-XSim-010 WARNING "Default compiled library path for secureip library does not exist ($shared_lib_dir). Using library from '$shared_lib_dir'.\n"
+    set gt_lib         "gtye5_quad"
+    set shared_lib_dir "verilog/secureip"
+    if { ([string length $a_sim_vars(s_clibs_dir)] == 0) || (![file exists $a_sim_vars(s_clibs_dir)]) } {
+      send_msg_id USF-XSim-010 WARNING "Compiled library directory path does not exist! '$a_sim_vars(s_clibs_dir)'\n"
+    } else {
+      # default install location
+      set install_secureip "$a_sim_vars(s_clibs_dir)/$shared_lib_dir"
+      if { [file exists $install_secureip] } {
+        set shared_lib_dir "[xcs_get_relative_file_path $install_secureip $dir]"
+      } else {
+        set shared_lib_dir "$a_sim_vars(s_clibs_dir)/secureip"
+        send_msg_id USF-XSim-010 WARNING "Default compiled library path for secureip library does not exist ($install_secureip). Using library from '$shared_lib_dir'.\n"
+        set shared_lib_dir "[xcs_get_relative_file_path $shared_lib_dir $dir]"
+      }
+      set shared_lib_dir [string map {\\ /} $shared_lib_dir]
     }
     lappend args_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
   }
@@ -1993,10 +2001,10 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set int_delay 0
   set tpd_prop "TRANSPORT_PATH_DELAY"
   set tid_prop "TRANSPORT_INT_DELAY"
-  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+  if { [lsearch -exact [list_property -quiet $fs_obj] $tpd_prop] != -1 } {
     set path_delay [get_property $tpd_prop $fs_obj]
   }
-  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+  if { [lsearch -exact [list_property -quiet $fs_obj] $tid_prop] != -1 } {
     set int_delay [get_property $tid_prop $fs_obj]
   }
 
@@ -2058,11 +2066,6 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   lappend args_list "-lib $a_sim_vars(default_top_library)"
 
   if { $a_sim_vars(b_int_systemc_mode) } {
-    #if { $a_sim_vars(b_contain_systemc_sources) } {
-    #  foreach lib [xcs_get_sc_libs] {
-    #    lappend args_list "-lib $lib"
-    #  }
-    #}
     set ip_objs [get_ips -all -quiet]
     foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
       foreach ip_obj $ip_objs {

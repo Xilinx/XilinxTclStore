@@ -651,10 +651,10 @@ proc usf_xcelium_write_elaborate_script {} {
   set int_delay 0
   set tpd_prop "TRANSPORT_PATH_DELAY"
   set tid_prop "TRANSPORT_INT_DELAY"
-  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+  if { [lsearch -exact [list_property -quiet $fs_obj] $tpd_prop] != -1 } {
     set path_delay [get_property $tpd_prop $fs_obj]
   }
-  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+  if { [lsearch -exact [list_property -quiet $fs_obj] $tid_prop] != -1 } {
     set int_delay [get_property $tid_prop $fs_obj]
   }
 

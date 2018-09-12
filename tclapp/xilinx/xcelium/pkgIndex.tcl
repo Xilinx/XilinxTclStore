@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::xcelium 6.7 [list source [file join $dir xcelium.tcl]]
+package ifneeded ::tclapp::xilinx::xcelium 6.8 [list source [file join $dir xcelium.tcl]]

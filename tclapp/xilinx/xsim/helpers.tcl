@@ -50,6 +50,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_int_rtl_kernel_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
+  set a_sim_vars(b_int_sm_lib_ref_debug) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
@@ -704,7 +705,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   # add testbench files if any
   #set vhdl_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\")"
   #foreach file [usf_get_testbench_files_from_ip $vhdl_filter] {
-  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #  if { [lsearch -exact [list_property -quiet $file] {FILE_TYPE}] == -1 } {
   #    continue;
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -718,7 +719,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   #set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\" && FILE_TYPE == \"Verilog/SystemVerilog Header\""
   #set verilog_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\")"
   #foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
-  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #  if { [lsearch -exact [list_property -quiet $file] {FILE_TYPE}] == -1 } {
   #    continue;
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -1088,7 +1089,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
     set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
   }
   if { {} != $file_obj } {
-    if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
       set associated_library [get_property "LIBRARY" $file_obj]
     }
   } else { ; # File object is not defined. Check if this is an XPM file...

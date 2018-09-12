@@ -215,7 +215,7 @@ proc isl_export_files { obj } {
     set ip_name [file root [file tail $obj]]
     set file_obj [get_ips -all -quiet $ip_name]
     # is bd?
-    if { [lsearch -exact [list_property $file_obj] {SCOPE}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {SCOPE}] != -1 } {
       set bd_file [get_property {SCOPE} $file_obj]
       if { {} != $bd_file } {
         set bd_extn [file extension $bd_file]
@@ -275,7 +275,7 @@ proc isl_export_ip { obj } {
     set filename [file tail $src_ip_file]
     set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
     if { {} == $file_obj } { continue; }
-    if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file_obj] } {
         continue;
       }
@@ -293,7 +293,7 @@ proc isl_export_ip { obj } {
       set extracted_file [extract_files -no_path -quiet -files [list "$src_ip_file"] -base_dir $target_extract_dir]
     }
 
-    if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
       set library [get_property "LIBRARY" $file_obj]
       if { [lsearch $ip_libs $library] == -1 } {
         lappend ip_libs $library
@@ -333,7 +333,7 @@ proc isl_export_bd { obj } {
   foreach src_ip_file $l_static_files {
     set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
     set library {}
-    if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
       set library [get_property "LIBRARY" $file_obj]
     }
     set src_ip_file [string map {\\ /} $src_ip_file]
@@ -393,7 +393,7 @@ proc isl_export_bd { obj } {
       isl_copy_files_recursive $ip_hdl_dir $target_ip_lib_dir
     }
 
-    if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
       set library [get_property "LIBRARY" $file_obj]
       set file_type [string tolower [get_property "FILE_TYPE" $file_obj]]
       #set ip_file_path "[xcs_get_relative_file_path $dst_file $a_isl_vars(ipstatic_dir)/$library]"
@@ -419,7 +419,7 @@ proc isl_get_ip_name { src_file } {
     set file_obj [lindex [get_files -all -quiet [file tail $src_file]] 0]
   }
 
-  set props [list_property $file_obj]
+  set props [list_property -quiet $file_obj]
   if { [lsearch $props parent_composite_file] != -1 } {
     set ip [get_property parent_composite_file -quiet $file_obj]
   }

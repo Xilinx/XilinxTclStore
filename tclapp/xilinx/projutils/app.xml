@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Handling gadget name with space in writing dashboard information</revision_history>
+      <revision_history>support for printing debug msgs for library referencing</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
