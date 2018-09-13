@@ -1769,11 +1769,17 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       # default install location
       set install_secureip "$a_sim_vars(s_clibs_dir)/$shared_lib_dir"
       if { [file exists $install_secureip] } {
-        set shared_lib_dir "[xcs_get_relative_file_path $install_secureip $dir]"
+        if { !$a_sim_vars(b_absolute_path) } {
+          set shared_lib_dir "[xcs_get_relative_file_path $install_secureip $dir]"
+        } else {
+          set shared_lib_dir $install_secureip
+        }
       } else {
         set shared_lib_dir "$a_sim_vars(s_clibs_dir)/secureip"
         send_msg_id USF-XSim-010 WARNING "Default compiled library path for secureip library does not exist ($install_secureip). Using library from '$shared_lib_dir'.\n"
-        set shared_lib_dir "[xcs_get_relative_file_path $shared_lib_dir $dir]"
+        if { !$a_sim_vars(b_absolute_path) } {
+          set shared_lib_dir "[xcs_get_relative_file_path $shared_lib_dir $dir]"
+        }
       }
       set shared_lib_dir [string map {\\ /} $shared_lib_dir]
     }
