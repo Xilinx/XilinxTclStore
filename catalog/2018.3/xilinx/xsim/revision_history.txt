@@ -1,3 +1,4 @@
+2.259 set sv_root path to absolute
 2.258 set sv_root path to absolute if -absolute path specified
 2.257 support for exporting CSV files to simulation run dir
 2.256 support for printing debug msgs for library referencing
