@@ -917,6 +917,12 @@ proc usf_xcelium_write_simulate_script {} {
     set tool_path_val "$tool"
   }
   set arg_list [list "${tool_path_val}" "\$${tool}_opts" "${top_lib}.$top" "-input" "$do_filename"]
+  if { [xcs_find_ip "gt_quad_base"] } {
+    variable a_xcelium_sim_vars
+    set clibs_dir $a_xcelium_sim_vars(s_compiled_lib_dir)
+    lappend arg_list "-sv_root \"$clibs_dir/secureip\""
+    lappend arg_list "-sv_lib gtye5_quad.so"
+  }
   set cmd_str [join $arg_list " "]
 
   puts $fh_scr "# run simulation"
