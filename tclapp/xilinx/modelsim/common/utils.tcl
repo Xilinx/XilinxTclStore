@@ -2875,8 +2875,10 @@ proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
   # Return Value:
 
   variable a_sim_sv_pkg_libs
-
   set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
+  if { "" == $ip_def } {
+    return
+  }
   set ip_xml  [get_property xml_file_name $ip_def]
   set ip_comp [ipx::open_core -set_current false $ip_xml]
 
