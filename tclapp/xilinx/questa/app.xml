@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set debug msgs as optional arg for sc libs proc</revision_history>
+      <revision_history>compile glbl for post simulation when internal glbl flag is set</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

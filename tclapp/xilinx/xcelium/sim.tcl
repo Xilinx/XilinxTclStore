@@ -591,7 +591,8 @@ proc usf_xcelium_write_compile_script {} {
     }
   } else {
     # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang) } {
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl))) } {
       if { ({timing} == $::tclapp::xilinx::xcelium::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
