@@ -1,3 +1,4 @@
+2.262 compile glbl for post simulation when internal glbl flag is set
 2.261 set debug msgs as optional arg for sc libs proc
 2.260 check for ipdef var before getting the xml filename
 2.259 set sv_root path to absolute

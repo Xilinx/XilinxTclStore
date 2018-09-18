@@ -1,3 +1,4 @@
+2.129 compile glbl for post simulation when internal glbl flag is set
 2.128 set debug msgs as optional arg for sc libs proc
 2.127 check for ipdef var before getting the xml filename
 2.126 support for exporting CSV files to simulation run dir
