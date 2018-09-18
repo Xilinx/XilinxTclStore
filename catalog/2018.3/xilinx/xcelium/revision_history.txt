@@ -1,3 +1,4 @@
+7.2 set debug msgs as optional arg for sc libs proc
 7.1 check for ipdef var before getting the xml filename
 7.0 support for linking quad library
 6.9 support for exporting CSV files to simulation run dir

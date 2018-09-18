@@ -1,3 +1,4 @@
+4.06 set debug msgs as optional arg for sc libs proc
 4.05 check for ipdef var before getting the xml filename
 4.04 support for linking quad library
 4.03 support for exporting CSV files to simulation run dir

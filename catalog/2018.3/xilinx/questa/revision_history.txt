@@ -1,3 +1,4 @@
+2.128 set debug msgs as optional arg for sc libs proc
 2.127 check for ipdef var before getting the xml filename
 2.126 support for exporting CSV files to simulation run dir
 2.125 support for printing debug msgs for library referencing

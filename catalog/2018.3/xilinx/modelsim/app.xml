@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>check for ipdef var before getting the xml filename</revision_history>
+      <revision_history>set debug msgs as optional arg for sc libs proc</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
