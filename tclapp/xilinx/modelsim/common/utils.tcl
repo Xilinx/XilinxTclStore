@@ -3221,7 +3221,7 @@ proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_x
   return $incl_dirs
 }
 
-proc xcs_get_sc_libs { b_int_sm_lib_ref_debug } {
+proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:

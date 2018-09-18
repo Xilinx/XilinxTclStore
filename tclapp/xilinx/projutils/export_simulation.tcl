@@ -1148,7 +1148,7 @@ proc xps_get_files { simulator launch_dir } {
           }
  
           # is dynamic? process
-          set used_in_values [get_property "USED_IN" $file]
+          set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
           if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
             set file_type "SystemC"
             set compiler [xcs_get_compiler_name $simulator $file_type]
