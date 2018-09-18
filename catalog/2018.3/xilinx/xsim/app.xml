@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set sv_root path to absolute</revision_history>
+      <revision_history>check for ipdef var before getting the xml filename</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

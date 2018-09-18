@@ -1,3 +1,4 @@
+2.127 check for ipdef var before getting the xml filename
 2.126 support for exporting CSV files to simulation run dir
 2.125 support for printing debug msgs for library referencing
 2.124 helper proc to find C, SystemC, CPP sources in the design

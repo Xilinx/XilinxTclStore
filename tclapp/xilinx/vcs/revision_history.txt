@@ -1,3 +1,4 @@
+4.7 check for ipdef var before getting the xml filename
 4.6 support for exporting CSV files to simulation run dir
 4.5 support for printing debug msgs for library referencing
 4.4 helper proc to find C, SystemC, CPP sources in the design
