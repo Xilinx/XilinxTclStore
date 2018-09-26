@@ -393,7 +393,7 @@ proc xcs_fetch_header_from_export { vh_file b_is_bd dynamic_repo_dir } {
   } else {
     set vh_file_obj [lindex [get_files -all -quiet $vh_file] 0]
   }
-
+  set ip_file ""
   # get the ip name from parent composite filename
   set props [list_property -quiet $vh_file_obj]
   if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
@@ -407,8 +407,16 @@ proc xcs_fetch_header_from_export { vh_file b_is_bd dynamic_repo_dir } {
   }
 
   # fetch the output directory from the IP this header file belongs to
-  set ip_name [file root [file tail $ip_file]] 
-  set output_dir [get_property -quiet IP_OUTPUT_DIR [lindex [get_ips -quiet -all $ip_name] 0]]
+  set ip_filename [file tail $ip_file]
+  set ip_name     [file root $ip_filename]
+  set output_dir {}
+  set ip_obj [lindex [get_ips -quiet -all $ip_name] 0]
+  if { "" != $ip_obj } {
+    set output_dir [get_property -quiet IP_OUTPUT_DIR $ip_obj]
+  } else {
+    set output_dir [get_property -quiet NAME [get_files -all $ip_filename]]
+    set output_dir [file dirname $output_dir]
+  }
   if { [string length $output_dir] == 0 } {
     return $vh_file
   }
