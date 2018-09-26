@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>compile glbl for post simulation when internal glbl flag is set</revision_history>
+      <revision_history>fetch output directory from IP file name if IP_OUTPUT_DIR not set</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

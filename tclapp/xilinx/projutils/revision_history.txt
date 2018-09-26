@@ -1,3 +1,4 @@
+3.369 fetch output directory from IP file name if IP_OUTPUT_DIR not set
 3.368 adding -include_layout to write_bd_tcl invocation
 3.367 set debug msgs as optional arg for sc libs proc
 3.366 check for ipdef var before getting the xml filename
