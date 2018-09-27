@@ -2534,10 +2534,16 @@ proc write_specified_dashboard { proj_dir proj_name dashboard } {
   lappend l_script_data "set obj \[$get_what $dashboard\]"
   write_props $proj_dir $proj_name $get_what $dashboard "dashboard"
 
+  #Create map of gadgets wrt to their position, so that gadget position can be restored.
+  set gadgetPositionMap [dict create]
+
   ##get gadgets of this dashboard
   set gadgets [get_dashboard_gadgets -of_objects [$get_what $dashboard]]
   foreach gd $gadgets {
     write_specified_gadget $proj_dir $proj_name $gd $dashboard
+    set gadgetCol [get_property COL [get_dashboard_gadgets -of_objects [$get_what $dashboard] [list "$gd"]]]
+    set gadgetRow [get_property ROW [get_dashboard_gadgets -of_objects [$get_what $dashboard] [list "$gd"]]]
+    dict set gadgetPositionMap $gadgetCol $gadgetRow $gd
   }
 
   #if current dashboard is "default_dashboard"
@@ -2548,12 +2554,24 @@ proc write_specified_dashboard { proj_dir proj_name dashboard } {
     foreach dgd $default_gadgets {
       #if dgd is not in gadgets, then delete dgd
       if {$dgd ni $gadgets } {
-        set cmd_str "delete_dashboard_gadgets -gadgets $dgd"
         lappend l_script_data "# Delete the gadget '$dgd' "
+        lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets -of_objects \[$get_what $dashboard\] \[ list \"$dgd\" \] \] \"$dgd\"\]\} \{"
+        set cmd_str "delete_dashboard_gadgets -gadgets $dgd"
         lappend l_script_data "$cmd_str"
+        lappend l_script_data "\}"
       }
     }
   }
+
+  foreach col [lsort [dict keys $gadgetPositionMap]] {
+    set rowDict [dict get $gadgetPositionMap $col]
+    foreach row [lsort [dict keys $rowDict]] {
+      set gadgetName [dict get $rowDict $row]
+      set cmd_str "move_dashboard_gadget -name {$gadgetName} -row $row -col $col"
+      lappend l_script_data "$cmd_str"
+    }
+  }
+
 }
 
 proc wr_prflow { proj_dir proj_name } {
