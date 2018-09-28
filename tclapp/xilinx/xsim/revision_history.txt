@@ -1,3 +1,4 @@
+2.265 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
 2.263 fetch output directory from IP file name if IP_OUTPUT_DIR not set
 2.262 compile glbl for post simulation when internal glbl flag is set
 2.261 set debug msgs as optional arg for sc libs proc
