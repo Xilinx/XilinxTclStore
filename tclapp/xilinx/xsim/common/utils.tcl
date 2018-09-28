@@ -1938,7 +1938,7 @@ proc xcs_get_netlist_file { design_in_memory s_launch_dir extn s_sim_top s_simul
     set netlist_extn $extn
     # contain SV construct?
     set design_prop "XLNX_REAL_CELL_SV_PINS"
-    if { [get_property -quiet $design_prop $design_in_memory] } {
+    if { "1" == [get_property -quiet $design_prop $design_in_memory] } {
       set netlist_extn ".sv"
     }
     append net_filename "$netlist_extn"
