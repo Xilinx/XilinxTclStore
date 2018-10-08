@@ -1,3 +1,37 @@
+4.10 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
+4.08 fetch output directory from IP file name if IP_OUTPUT_DIR not set
+4.07 compile glbl for post simulation when internal glbl flag is set
+4.06 set debug msgs as optional arg for sc libs proc
+4.05 check for ipdef var before getting the xml filename
+4.04 support for linking quad library
+4.03 support for exporting CSV files to simulation run dir
+4.02 support for printing debug msgs for library referencing
+4.01 helper proc to find C, SystemC, CPP sources in the design
+4.00 donot reference glbl by default unless conditions met
+3.99 helper proc to determine if pure vhdl design required for glbl determination
+3.98 print debug information for referenced shared libraries
+3.97 inspect TLM property value for IP while determining systemc libraries
+3.96 do not compile XPM component file if simulator language is verilog
+3.95 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
+3.94 update protoinst file in repo directory
+3.93 updated algorithm to reference compiled simulation library from custom paths
+3.92 reference compiled simulation library from custom paths
+3.91 added helper proc to resolve verilog header sources from ip_user_files dir
+3.90 export addr_map.xml sources into simulation run dir
+3.89 fixed xsim ip compiled library dir path
+3.88 find library info from ip compiled library dir
+3.87 check for IP in quiet mode and return default header file if IP does not exist
+3.86 updated target paths for finding simulation models
+3.85 helper proc to find shared libraries
+3.84 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
+3.83 process referenced linked libraries from IPs
+3.82 fixed dat_file var while fetching library info
+3.81 delete stale static files for precompiled library for sync mode
+3.80 consider BD SystemC sources
+3.79 add BD file type to the file extension check while fetching SystemC sources
+3.78 consider SV design sources if param set for compiling vip library
+3.77 proc to read library info from dat file
+3.76 reference SystemC include directory
 3.75 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
 3.74 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
 3.73 detect and fetch protoinst file from the ip_user_files for xsim

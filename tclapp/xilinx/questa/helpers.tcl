@@ -23,6 +23,7 @@ proc usf_init_vars {} {
   variable a_sim_vars
 
   set project                         [current_project]
+  set a_sim_vars(simulator_language)  [get_property "SIMULATOR_LANGUAGE" $project]
   set a_sim_vars(src_mgmt_mode)       [get_property "SOURCE_MGMT_MODE" $project]
   set a_sim_vars(default_top_library) [get_property "DEFAULT_LIB" $project]
   set a_sim_vars(s_project_name)      [get_property "NAME" $project]
@@ -46,6 +47,9 @@ proc usf_init_vars {} {
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
   set a_sim_vars(b_int_systemc_mode) 0
+  set a_sim_vars(custom_sm_lib_dir)  {}
+  set a_sim_vars(b_int_compile_glbl) 0
+  set a_sim_vars(b_int_sm_lib_ref_debug) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
@@ -54,6 +58,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_contain_systemc_sources) 0
   set a_sim_vars(b_contain_cpp_sources)     0
   set a_sim_vars(b_contain_c_sources)       0
+  set a_sim_vars(b_contain_systemc_headers) 0
 
   # initialize ip repository dir
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
@@ -86,7 +91,7 @@ proc usf_init_vars {} {
  
   # data file extension types 
   variable s_data_files_filter
-  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
+  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\""
 
   # embedded file extension types 
   variable s_embedded_files_filter
@@ -144,6 +149,12 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
+
+  variable a_shared_library_path_coln
+  array unset a_shared_library_path_coln
+
+  variable a_shared_library_mapping_path_coln
+  array unset a_shared_library_mapping_path_coln
 
   variable a_sim_sv_pkg_libs [list]
 
@@ -341,6 +352,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   variable l_compile_order_files
   variable l_valid_ip_extns
   variable l_compiled_libraries
+
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
   upvar $global_files_str_arg global_files_str
 
   set files          [list]
@@ -370,6 +384,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
   }
 
+  set l_C_incl_dirs_opts     [list]
+  set l_dummy_incl_dirs_opts [list]
+
   # if xilinx_vip not referenced, compile it locally
   if { ([lsearch -exact $l_compiled_libraries "xilinx_vip"] == -1) } {
     variable a_sim_sv_pkg_libs
@@ -378,10 +395,41 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       foreach file [xcs_get_xilinx_vip_files] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
-        set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files incl_dir_opts "" "xilinx_vip"]
+        set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files incl_dir_opts l_dummy_incl_dirs_opts "" "xilinx_vip"]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
+        }
+      }
+    }
+  }
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    set b_en_code true
+    if { $b_en_code } {
+      if { [xcs_contains_C_files] } {
+        variable a_shared_library_path_coln
+        foreach {key value} [array get a_shared_library_path_coln] {
+          set shared_lib_name $key
+          set lib_path        $value
+    
+          set incl_dir "$lib_path/include"
+          if { [file exists $incl_dir] } {
+            if { !$a_sim_vars(b_absolute_path) } {
+              # get relative file path for the compiled library
+              set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+            }
+            #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
+            lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
+          }
+        }
+    
+        foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
+          if { !$a_sim_vars(b_absolute_path) } {
+            set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+          }
+          #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
+          lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
         }
       }
     }
@@ -415,7 +463,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
-        set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files l_incl_dirs_opts]
+        set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files l_incl_dirs_opts l_dummy_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -424,16 +472,20 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
     if { $b_using_xpm_libraries } {
-      set xpm_library [xcs_get_common_xpm_library]
-      set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
-      foreach file $common_xpm_vhdl_files {
-        set file_type "VHDL"
-        set g_files {}
-        set b_is_xpm true
-        set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files other_ver_opts $xpm_library]
-        if { {} != $cmd_str } {
-          lappend files $cmd_str
-          lappend l_compile_order_files $file
+      if { [string equal -nocase $a_sim_vars(simulator_language) "verilog"] == 1 } {
+        # do not compile vhdl component file if simulator language is verilog
+      } else {
+        set xpm_library [xcs_get_common_xpm_library]
+        set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
+        foreach file $common_xpm_vhdl_files {
+          set file_type "VHDL"
+          set g_files {}
+          set b_is_xpm true
+          set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files l_dummy_incl_dirs_opts l_dummy_incl_dirs_opts $xpm_library]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $file
+          }
         }
       }
     }
@@ -463,7 +515,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         set g_files $global_files_str
         if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-        set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
+        set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts l_dummy_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -481,7 +533,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
             if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
             set g_files $global_files_str
             if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-            set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
+            set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts l_dummy_incl_dirs_opts]
             if { {} != $cmd_str } {
               lappend files $cmd_str
               lappend l_compile_order_files $file
@@ -500,7 +552,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { [get_property "IS_AUTO_DISABLED" $file]} { continue }
         set g_files $global_files_str
         if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-        set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
+        set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts l_dummy_incl_dirs_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -516,7 +568,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
       if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-      set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
+      set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts l_dummy_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
@@ -553,12 +605,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         lappend l_incl_dir "-I \"$dir\""
       }
 
-      # reference SystemC include directories
-      foreach sc_lib [xcs_get_sc_libs] {
-        set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
-        # get relative file path for the compiled library
-        set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
-        lappend l_incl_dir "-I \"$relative_dir\""
+      # append simulation model libraries
+      foreach C_incl_dir $l_C_incl_dirs_opts {
+        lappend l_incl_dir $C_incl_dir
       }
 
       foreach file $sc_files {
@@ -575,7 +624,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
           set file_type "SystemC"
-          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_dummy_incl_dirs_opts l_incl_dir]
           if { {} != $cmd_str } {
             lappend files $cmd_str
             lappend compile_order_files $file
@@ -595,12 +644,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         lappend l_incl_dir "-I \"$dir\""
       }
 
-      # reference SystemC include directories
-      foreach sc_lib [xcs_get_sc_libs] {
-        set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
-        # get relative file path for the compiled library
-        set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
-        lappend l_incl_dir "-I \"$relative_dir\""
+      # append simulation model libraries
+      foreach C_incl_dir $l_C_incl_dirs_opts {
+        lappend l_incl_dir $C_incl_dir
       }
 
       foreach file $cpp_files {
@@ -620,7 +666,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
           set file_type "CPP"
-          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_dummy_incl_dirs_opts l_incl_dir]
           if { {} != $cmd_str } {
             lappend files $cmd_str
             lappend compile_order_files $file
@@ -640,12 +686,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         lappend l_incl_dir "-I \"$dir\""
       }
 
-      # reference SystemC include directories
-      foreach sc_lib [xcs_get_sc_libs] {
-        set dir "$a_sim_vars(s_clibs_dir)/$sc_lib/include"
-        # get relative file path for the compiled library
-        set relative_dir "[xcs_get_relative_file_path $dir $a_sim_vars(s_launch_dir)]"
-        lappend l_incl_dir "-I \"$relative_dir\""
+      # append simulation model libraries
+      foreach C_incl_dir $l_C_incl_dirs_opts {
+        lappend l_incl_dir $C_incl_dir
       }
 
       foreach file $c_files {
@@ -665,7 +708,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
           set file_type "C"
-          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir]
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_dummy_incl_dirs_opts l_incl_dir]
           if { {} != $cmd_str } {
             lappend files $cmd_str
             lappend compile_order_files $file
@@ -704,6 +747,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
 
   # verilog incl dir's and verilog headers directory path if any
   set l_incl_dirs_opts [list]
+  set l_dummy_incl_dirs_opts [list]
   set uniq_dirs [list]
   foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths] [xcs_get_vip_include_dirs]] {
     if { [lsearch -exact $uniq_dirs $dir] == -1 } {
@@ -720,7 +764,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     } elseif { {.vhd} == $extn } {
       set file_type "VHDL"
     }
-    set cmd_str [usf_get_file_cmd_str $netlist_file $file_type false {} l_incl_dirs_opts]
+    set cmd_str [usf_get_file_cmd_str $netlist_file $file_type false {} l_incl_dirs_opts l_dummy_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
       lappend l_compile_order_files $netlist_file
@@ -730,7 +774,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   # add testbench files if any
   #set vhdl_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\")"
   #foreach file [usf_get_testbench_files_from_ip $vhdl_filter] {
-  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #  if { [lsearch -exact [list_property -quiet $file] {FILE_TYPE}] == -1 } {
   #    continue;
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -744,7 +788,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   ##set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\" && FILE_TYPE == \"Verilog/SystemVerilog Header\""
   #set verilog_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\")"
   #foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
-  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #  if { [lsearch -exact [list_property -quiet $file] {FILE_TYPE}] == -1 } {
   #    continue;
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -773,7 +817,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
       #if { [get_property "IS_AUTO_DISABLED" $file]} { continue }
       set g_files $global_files_str
       if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
-      set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
+      set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts l_dummy_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
@@ -787,7 +831,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
       set g_files $global_files_str
       if { ({VHDL} == $file_type) || ({VHDL} == $file_type) } { set g_files {} }
-      set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
+      set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts l_dummy_incl_dirs_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
@@ -806,10 +850,11 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
   upvar $files_arg files
   upvar $compile_order_files_arg compile_order_files
 
+  set l_dummy_incl_dirs_opts [list]
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
   foreach file [xcs_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" $file]
-    set cmd_str [usf_get_file_cmd_str $file $file_type false {} l_incl_dirs_opts]
+    set cmd_str [usf_get_file_cmd_str $file $file_type false {} l_incl_dirs_opts l_dummy_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
       lappend compile_order_files $file
@@ -818,7 +863,7 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
   set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
   foreach file [xcs_get_files_from_block_filesets $verilog_filter] {
     set file_type [get_property "FILE_TYPE" $file]
-    set cmd_str [usf_get_file_cmd_str $file $file_type false $global_files_str l_incl_dirs_opts]
+    set cmd_str [usf_get_file_cmd_str $file $file_type false $global_files_str l_incl_dirs_opts l_dummy_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
       lappend compile_order_files $file
@@ -1156,7 +1201,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
       set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
       set associated_library {}
       if { {} != $file_obj } {
-        if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+        if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
           set associated_library [get_property "LIBRARY" $file_obj]
         }
       }
@@ -1307,13 +1352,14 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   return [join $file_str " "]
 }
 
-proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_opts_arg {xpm_library {}} {xv_lib {}}} {
+proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_opts_arg l_C_incl_dirs_opts_arg {xpm_library {}} {xv_lib {}}} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
   upvar $l_incl_dirs_opts_arg l_incl_dirs_opts
+  upvar $l_C_incl_dirs_opts_arg l_C_incl_dirs_opts
   variable a_sim_cache_all_design_files_obj
   set dir             $a_sim_vars(s_launch_dir)
   set b_absolute_path $a_sim_vars(b_absolute_path)
@@ -1326,7 +1372,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
     set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
   }
   if { {} != $file_obj } {
-    if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
       set associated_library [get_property "LIBRARY" $file_obj]
     }
     if { [get_param "project.enableCentralSimRepo"] } {
@@ -1387,9 +1433,9 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
   if { {vlog} == $compiler } {
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   } elseif { {sccom} == $compiler } {
-    set arg_list [concat $arg_list $l_incl_dirs_opts]
+    set arg_list [concat $arg_list $l_C_incl_dirs_opts]
   } elseif { ({g++} == $compiler) || ({gcc} == $compiler) } {
-    set arg_list [concat $arg_list $l_incl_dirs_opts]
+    set arg_list [concat $arg_list $l_C_incl_dirs_opts]
   }
 
   set file_str [join $arg_list " "]

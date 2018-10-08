@@ -142,7 +142,7 @@ proc xcs_set_ref_dir { fh b_absolute_path s_launch_dir } {
   puts $fh ""
 }
 
-proc xcs_compile_glbl_file { simulator b_load_glbl design_files s_simset s_simulation_flow s_netlist_file } {
+proc xcs_compile_glbl_file { simulator b_load_glbl b_int_compile_glbl design_files s_simset s_simulation_flow s_netlist_file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -176,6 +176,16 @@ proc xcs_compile_glbl_file { simulator b_load_glbl design_files s_simset s_simul
       }
     }
   }
+
+  # TODO: revisit this for pure vhdl, causing failures
+  #if { $b_load_glbl } {
+  #  return 1
+  #}
+
+  if { $b_int_compile_glbl } {
+    return 1
+  }
+
   return 0
 }
 
@@ -229,6 +239,24 @@ proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   return $b_verilog_srcs
 }
 
+proc xcs_is_pure_vhdl_design { design_files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set b_is_vhdl 0
+  foreach file $design_files {
+    set type [lindex [split $file {|}] 0]
+    if { {VHDL} == $type } { 
+      set b_is_vhdl 1
+    } else {
+      set b_is_vhdl 0
+      return $b_is_vhdl
+    }
+  }
+  return $b_is_vhdl
+}
+
 proc xcs_contains_system_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   # Summary:
   # Argument Usage:
@@ -254,6 +282,18 @@ proc xcs_contains_system_verilog { design_files {flow "NULL"} {s_netlist_file {}
   }
 
   return $b_system_verilog_srcs
+}
+
+proc xcs_contains_systemc_headers {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")"
+  if { [llength [get_files -all -quiet -filter $filter]] > 0 } {
+    return true
+  } 
+  return false
 }
 
 proc xcs_contains_vhdl { design_files {flow "NULL"} {s_netlist_file {}} } {
@@ -335,6 +375,82 @@ proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
   }
   set vh_file [file join $dynamic_repo_dir $sub_dir $ip_name $sub_file_path $vh_filename]
   #puts vh_file=$vh_file
+
+  return $vh_file
+}
+
+proc xcs_fetch_header_from_export { vh_file b_is_bd dynamic_repo_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  #
+  variable a_sim_cache_all_design_files_obj
+
+  # get the header file object
+  set vh_file_obj  {}
+  if { [info exists a_sim_cache_all_design_files_obj($vh_file)] } {
+    set vh_file_obj $a_sim_cache_all_design_files_obj($vh_file)
+  } else {
+    set vh_file_obj [lindex [get_files -all -quiet $vh_file] 0]
+  }
+  set ip_file ""
+  # get the ip name from parent composite filename
+  set props [list_property -quiet $vh_file_obj]
+  if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
+    set ip_file [get_property PARENT_COMPOSITE_FILE $vh_file_obj]
+  } else {
+    return $vh_file 
+  }
+
+  if { $ip_file eq "" } {
+    return $vh_file 
+  }
+
+  # fetch the output directory from the IP this header file belongs to
+  set ip_filename [file tail $ip_file]
+  set ip_name     [file root $ip_filename]
+  set output_dir {}
+  set ip_obj [lindex [get_ips -quiet -all $ip_name] 0]
+  if { "" != $ip_obj } {
+    set output_dir [get_property -quiet IP_OUTPUT_DIR $ip_obj]
+  } else {
+    set output_dir [get_property -quiet NAME [get_files -all $ip_filename]]
+    set output_dir [file dirname $output_dir]
+  }
+  if { [string length $output_dir] == 0 } {
+    return $vh_file
+  }
+
+  # find out the extra sub-file path from the header source file wrt the output directory value,
+  # and construct the output file path
+  set vh_filename   [file tail $vh_file]
+  set vh_file_dir   [file dirname $vh_file]
+  set sub_file_path [xcs_get_sub_file_path $vh_file_dir $output_dir]
+
+  set output_file_path "$output_dir/$sub_file_path"
+
+  if { [regexp -nocase "sources_1/bd" $output_file_path] } {
+    # traverse the path
+    set dir   [string map {\\ /} $output_file_path]
+    set dirs  [split $dir {/}]
+    set index [lsearch $dirs "sources_1"]
+    incr index
+    set bd_path [join [lrange $dirs $index end] "/"]
+    set ip_user_vh_file "$dynamic_repo_dir/$bd_path/$vh_filename"
+    if { [file exists $ip_user_vh_file] } {
+      return $ip_user_vh_file
+    }
+  }
+
+  # fall-back : construct full repo dynamic file path
+  set sub_dir "ip"
+  if { $b_is_bd } {
+    set sub_dir "bd"
+  }
+  set ip_user_vh_file [file join $dynamic_repo_dir $sub_dir $ip_name $sub_file_path $vh_filename]
+  if { [file exists $ip_user_vh_file] } {
+    return $ip_user_vh_file
+  }
 
   return $vh_file
 }
@@ -581,7 +697,7 @@ proc xcs_find_top_level_ip_file { src_file } {
     if { [info exists a_sim_cache_parent_comp_files($comp_file)] } {
       break
     } else {
-      set props [list_property $file_obj]
+      set props [list_property -quiet $file_obj]
       if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
         set a_sim_cache_parent_comp_files($comp_file) true
         break
@@ -880,7 +996,7 @@ proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
     if { [info exists a_sim_cache_parent_comp_files($comp_file)] } {
       break
     } else {
-      set props [list_property $file_obj]
+      set props [list_property -quiet $file_obj]
       if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
         set a_sim_cache_parent_comp_files($comp_file) true
         break
@@ -1054,7 +1170,7 @@ proc xcs_get_top_ip_filename { src_file } {
   if { {} == $file_obj } {
     return $top_ip_file
   }
-  set props [list_property $file_obj]
+  set props [list_property -quiet $file_obj]
   # get the hierarchical top level ip file name if parent comp file is defined
   if { [lsearch $props "PARENT_COMPOSITE_FILE"] != -1 } {
     set top_ip_file [xcs_find_top_level_ip_file $src_file]
@@ -1084,7 +1200,7 @@ proc xcs_is_bd_file { src_file } {
     if { [info exists a_sim_cache_parent_comp_files($comp_file)] } {
       break
     } else {
-      set props [list_property $file_obj]
+      set props [list_property -quiet $file_obj]
       if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
         set a_sim_cache_parent_comp_files($comp_file) true
         break
@@ -1822,10 +1938,8 @@ proc xcs_get_netlist_file { design_in_memory s_launch_dir extn s_sim_top s_simul
     set netlist_extn $extn
     # contain SV construct?
     set design_prop "XLNX_REAL_CELL_SV_PINS"
-    if { [lsearch -exact [list_property $design_in_memory] "$design_prop"] != -1 } {
-      if { [get_property -quiet $design_prop $design_in_memory] } {
-        set netlist_extn ".sv"
-      }
+    if { "1" == [get_property -quiet $design_prop $design_in_memory] } {
+      set netlist_extn ".sv"
     }
     append net_filename "$netlist_extn"
   } else {
@@ -2065,6 +2179,7 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
   set data_files [xcs_remove_duplicate_files $data_files]
   foreach file $data_files {
     set extn [file extension $file]
+    set filename [file tail $file]
     switch -- $extn {
       {.bd} -
       {.png} -
@@ -2074,12 +2189,14 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
       {.hwdef} -
       {.xml} {
         if { {} != [xcs_cache_result {xcs_get_top_ip_filename $file}] } {
-          continue
+          if { [regexp {_addr_map.xml} ${filename}] } {
+            # keep these files
+          } else {
+            continue
+          }
         }
       }
     }
-
-    set filename [file tail $file]
 
     # skip bd files
     if { ([string match *_bd* $filename])        && ({.tcl} == $extn) } { continue }
@@ -2501,7 +2618,7 @@ proc xcs_export_fs_non_hdl_data_files { s_simset s_launch_dir dynamic_repo_dir }
   set data_files [list]
 
   foreach file_obj [get_files -all -quiet -of_objects [get_filesets $s_simset] -filter $s_non_hdl_data_files_filter] {
-    if { [lsearch -exact [list_property $file_obj] {IS_USER_DISABLED}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file_obj] } {
         continue;
       }
@@ -2666,7 +2783,7 @@ proc xcs_find_sv_pkg_libs { run_dir } {
     # find SV package libraries from the design
     set filter "FILE_TYPE == \"SystemVerilog\""
     foreach sv_file_obj [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter] {
-      if { [lsearch -exact [list_property $sv_file_obj] {LIBRARY}] != -1 } {
+      if { [lsearch -exact [list_property -quiet $sv_file_obj] {LIBRARY}] != -1 } {
         set library [get_property -quiet "LIBRARY" $sv_file_obj]
         if { {} != $library } {
           if { [lsearch -exact $a_sim_sv_pkg_libs $library] == -1 } {
@@ -2764,8 +2881,10 @@ proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
   # Return Value:
 
   variable a_sim_sv_pkg_libs
-
   set ip_def  [get_ipdefs -quiet -all -vlnv $vlnv]
+  if { "" == $ip_def } {
+    return
+  }
   set ip_xml  [get_property xml_file_name $ip_def]
   set ip_comp [ipx::open_core -set_current false $ip_xml]
 
@@ -2860,7 +2979,7 @@ proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
 
       # non-hdl data files
       foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
-        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+        if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
           if { [get_property {IS_USER_DISABLED} $file] } {
             continue;
           }
@@ -3064,7 +3183,7 @@ proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_x
     }
 
     # fetch header file
-    set sc_header_file [xcs_fetch_header_from_dynamic $file false $s_ip_user_files_dir]
+    set sc_header_file [xcs_fetch_header_from_export $file true $s_ip_user_files_dir]
     set dir [file normalize [file dirname $sc_header_file]]
 
     # is export_source_files? copy to local incl dir
@@ -3108,24 +3227,61 @@ proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_x
   return $incl_dirs
 }
 
-proc xcs_get_sc_libs {} {
+proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  set sc_libs [list]
-  set uniq_sc_libs [list]
-  # find systemc libraries from IP
+  # find referenced libraries from IP
   set prop_name "systemc_libraries"
+  set ref_libs            [list]
+  set uniq_ref_libs       [list]
+  set v_ip_names          [list]
+  set v_ip_defs           [list]
+  set v_allowed_sim_types [list]
+  set v_tlm_types         [list]
+  set v_sysc_libs         [list]
+
   foreach ip_obj [get_ips -quiet -all] {
-    foreach lib [get_property -quiet $prop_name $ip_obj] {
-      if { [lsearch -exact $uniq_sc_libs $lib] == -1 } {
-        lappend uniq_sc_libs $lib
-        lappend sc_libs $lib
+    if { ([lsearch -exact [list_property -quiet $ip_obj] {SYSTEMC_LIBRARIES}] != -1) && ([lsearch -exact [list_property -quiet $ip_obj] {SELECTED_SIM_MODEL}] != -1) } {
+      set ip_name           [get_property -quiet name               $ip_obj]
+      set ip_def            [get_property -quiet ipdef              $ip_obj]
+      set allowed_sim_types [get_property -quiet allowed_sim_types  $ip_obj]
+      set tlm_type          [get_property -quiet selected_sim_model $ip_obj]
+      set sysc_libs         [get_property -quiet $prop_name         $ip_obj]
+      set ip_def            [lindex [split $ip_def {:}] 2]
+      lappend v_ip_names $ip_name;lappend v_ip_defs $ip_def;lappend v_allowed_sim_types $allowed_sim_types;lappend v_tlm_types $tlm_type;lappend v_sysc_libs $sysc_libs
+      if { [string equal -nocase $tlm_type "tlm"] == 1 } {
+        if { $b_int_sm_lib_ref_debug } {
+          #puts " +$ip_name:$ip_def:$tlm_type:$sysc_libs"
+        }
+        foreach lib [get_property -quiet $prop_name $ip_obj] {
+          if { [lsearch -exact $uniq_ref_libs $lib] == -1 } {
+            lappend uniq_ref_libs $lib
+            lappend ref_libs $lib
+          }
+        }
       }
     }
   }
-  return $sc_libs
+  set fmt {%-50s%-2s%-30s%-2s%-20s%-2s%-10s%-2s%-20s}
+  set sep ":"
+  if { $b_int_sm_lib_ref_debug } {
+    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+    puts " IP                                                 IPDEF                           Allowed Types         Selected    SystemC Libraries"
+    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+    foreach name $v_ip_names def $v_ip_defs sim_type $v_allowed_sim_types tlm_type $v_tlm_types sys_lib $v_sysc_libs {
+      puts [format $fmt $name $sep $def $sep $sim_type $sep $tlm_type $sep $sys_lib]
+      puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+    }
+    puts "\nLibraries referenced from IP's"
+    puts "------------------------------"
+    foreach sc_lib $ref_libs {
+      puts " + $sc_lib" 
+    }
+    puts "------------------------------"
+  }
+  return $ref_libs
 }
 
 proc xcs_find_ip { name } {
@@ -3187,7 +3343,7 @@ proc xcs_get_sc_files { sc_filter } {
  
   set sc_files [list]
   foreach file_obj [get_files -quiet -all -filter $sc_filter] {
-    if { [lsearch -exact [list_property $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
       set comp_file [get_property parent_composite_file -quiet $file_obj]
       if { "" == $comp_file } {
         continue
@@ -3216,6 +3372,18 @@ proc xcs_get_sc_files { sc_filter } {
     }
   }
   return $sc_files
+}
+
+proc xcs_contains_C_files {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set c_filter  "(USED_IN_SIMULATION == 1) && ((FILE_TYPE == \"SystemC\") || (FILE_TYPE == \"CPP\") || (FILE_TYPE == \"C\"))"
+  if { [llength [get_files -quiet -all -filter $c_filter ]] > 0 } {
+    return true
+  }
+  return false
 }
 
 proc xcs_get_protoinst_files { dynamic_repo_dir } {
@@ -3273,15 +3441,18 @@ proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo
   }
   
   set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
-  set repo_src_file [file join $dynamic_repo_dir "bd" $core_name $hdl_dir_file $filename]
+  set repo_target_dir [file join $dynamic_repo_dir "bd" $core_name $hdl_dir_file]
+  set repo_src_file "$repo_target_dir/$filename"
+
   if { [file exists $repo_src_file] } {
     set b_found_in_repo 1
+    [catch {file copy -force $src_file $repo_target_dir} error_msg]
     return $repo_src_file
   }
   return $src_file
 }
 
-proc xcs_fetch_lib_info { clibs_dir } {
+proc xcs_fetch_lib_info { simulator clibs_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -3341,82 +3512,106 @@ proc xcs_get_vivado_release_version {} {
   return $version
 } 
 
-proc xcs_find_shared_lib_paths { simulator clibs_dir } {
+proc xcs_find_shared_lib_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
-
+ 
+  variable a_sim_vars
   # any library referenced in IP?
-  set lib_coln [xcs_get_sc_libs]
+  set lib_coln [xcs_get_sc_libs $b_int_sm_lib_ref_debug]
   if { [llength $lib_coln] == 0 } {
     return
   }
 
-  # platform and library extension
-  set platform "win64"
-  set extn     "dll"
+  # target directory paths to search for
+  set target_paths [xcs_get_target_sm_paths $simulator $clibs_dir $b_int_sm_lib_ref_debug]
+
+  # additional linked libraries
+  set linked_libs           [list]
+  set uniq_linked_libs      [list]
+  set processed_shared_libs [list]
+
+  variable a_shared_library_path_coln
+  variable a_shared_library_mapping_path_coln
+  variable a_sim_cache_lib_info
+
+  set extn "dll"
   if {$::tcl_platform(platform) == "unix"} {
-    set platform "lnx64"
     set extn "so"
   }
   
-  # simulator, gcc version, data dir
-  set sim_version [get_param "simulator.${simulator}.version"]
-  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
-  set data_dir    [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
-
-  # target directory paths to search for
-  set target_paths [list "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/systemc/protected" \
-                         "$data_dir/simmodels/$simulator/$sim_version/$platform/$gcc_version/ext" ]
-  # add ip dir for xsim
-  if { "xsim" == $simulator } {
-    lappend target_paths "$clibs_dir/ip"
-  }
-
-  # add compiled library directory
-  lappend target_paths "$clibs_dir"
-
-  # additional linked libraries
-  set linked_libs [list]
-
-  variable a_shared_library_path_coln
-  variable a_sim_cache_lib_info
-
+  # Iterate over the shared library collection found from the packaged IPs in the design (systemc_libraries) and
+  # search for this shared library from the known paths. Also find the linked libraries that were referenced in
+  # the dat file for a given library that was packaged in IP.
   foreach library $lib_coln {
     # target shared library name to search for
     set shared_libname "lib${library}.${extn}"
 
+    if { $b_int_sm_lib_ref_debug } {
+      puts "Finding shared library '$shared_libname'..."
+    }
     # iterate over target paths to search for this library name
     foreach path $target_paths {
       set path [file normalize $path]
       set path [regsub -all {[\[\]]} $path {/}]
+
+      # is this shared library already processed from a given path? 
+      if { [lsearch -exact $processed_shared_libs $shared_libname] != -1 } { continue; }
+
+      if { $b_int_sm_lib_ref_debug } {
+        puts " + Library search path:$path"
+      }
+      set lib_dir_path_found ""
       foreach lib_dir [glob -nocomplain -directory $path *] {
         if { ![file isdirectory $lib_dir] } { continue; }
+
         set sh_file_path "$lib_dir/$shared_libname"
         if { [file exists $sh_file_path] } {
-          if { ![info exists a_shared_library_path_coln($lib_dir)] } {
-            set a_shared_library_path_coln($lib_dir) $shared_libname
+          if { ![info exists a_shared_library_path_coln($shared_libname)] } {
+            set a_shared_library_path_coln($shared_libname) $lib_dir
+            set lib_path_dir [file dirname $lib_dir]
+            set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            if { $b_int_sm_lib_ref_debug } {
+              puts "  + Added '$shared_libname:$lib_dir' to collection" 
+            }
+            lappend processed_shared_libs $shared_libname
+            set lib_dir_path_found $lib_dir
+            break;
           }
         }
+      }
 
+      if { $lib_dir_path_found != "" } {
         # get any dependent libraries if any from this shared library dir
-        set dat_file "$lib_dir/.cxl.lib_info.dat"
-        if { ![file exists $dat_file] } { continue; }
+        set dat_file "$lib_dir_path_found/.cxl.lib_info.dat"
+        if { [file exists $dat_file] } {
+          # any dependent library info fetched from .cxl.lib_info.dat?
+          if { [info exists a_sim_cache_lib_info($library)] } {
+            # "SystemC#common_cpp_v1_0,proto_v1_0"
+            set values [split $a_sim_cache_lib_info($library) {#}]
 
-        # any dependent library info fetched from .cxl.lib_info.dat?
-        if { [info exists a_sim_cache_lib_info($library)] } {
-          # "SystemC#common_cpp_v1_0,proto_v1_0"
-          set values [split $a_sim_cache_lib_info($library) {#}]
+            # make sure we have some data to process
+            if { [llength $values] > 1 } {
+              set tag  [lindex $values 0]
+              set libs [split [lindex $values 1] {,}]
+              if { ("SystemC" == $tag) || ("C" == $tag) || ("CPP" == $tag)} {
+                if { [llength $libs] > 0 } {
+                  foreach lib $libs {
+                    if { [lsearch -exact $uniq_linked_libs $lib] == -1 } {
+                      # is linked library already part of search collection?
+                      if { [lsearch -exact $lib_coln $lib] != -1 } {
+                        continue;
+                      }
 
-          # make sure we have some data to process
-          if { [llength $values] > 1 } {
-            set tag  [lindex $values 0]
-            set libs [split [lindex $values 1] {,}]
-            if { ("SystemC" == $tag) || ("C" == $tag) || ("CPP" == $tag)} {
-              if { [llength $libs] > 0 } {
-                foreach lib $libs {
-                  lappend linked_libs $lib
-                  #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
+                      lappend linked_libs $lib
+                      lappend uniq_linked_libs $lib
+                      if { $b_int_sm_lib_ref_debug } {
+                        puts "    + Added linked library:$lib"
+                      }
+                      #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
+                    }
+                  }
                 }
               }
             }
@@ -3426,11 +3621,16 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir } {
     }
   }
 
+  if { $b_int_sm_lib_ref_debug } {
+    puts "Processing linked libraries..."
+  }
   # find shared library paths for the linked libraries
   foreach library $linked_libs {
     # target shared library name to search for
     set shared_libname "lib${library}.${extn}"
-
+    if { $b_int_sm_lib_ref_debug } {
+      puts " + Finding linked shared library:$shared_libname"
+    }
     # iterate over target paths to search for this library name
     foreach path $target_paths {
       set path [file normalize $path]
@@ -3438,11 +3638,138 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir } {
       foreach lib_dir [glob -nocomplain -directory $path *] {
         set sh_file_path "$lib_dir/$shared_libname"
         if { [file exists $sh_file_path] } {
-          if { ![info exists a_shared_library_path_coln($lib_dir)] } {
-            set a_shared_library_path_coln($lib_dir) $shared_libname
+          if { ![info exists a_shared_library_path_coln($shared_libname)] } {
+            set a_shared_library_path_coln($shared_libname) $lib_dir
+            set lib_path_dir [file dirname $lib_dir]
+            set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            if { $b_int_sm_lib_ref_debug } {
+              puts "  + Added '$shared_libname:$lib_dir' to collection" 
+            }
           }
         }
       }
     }
   }
+
+  # print extracted shared library information
+  if { $b_int_sm_lib_ref_debug } {
+    xcs_print_shared_lib_info
+  }
+}
+
+proc xcs_get_target_sm_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set target_paths [list]
+
+  set sm_cpt_dir [xcs_get_simmodel_dir $simulator "cpt"]
+  set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+
+  # default protected dir
+  set tp "$cpt_dir/$sm_cpt_dir"
+  if { ([file exists $tp]) && ([file isdirectory $tp]) } {
+    lappend target_paths $tp
+  } else {
+    # fallback
+    if { "xsim" == $simulator } {
+      set tp [file dirname $clibs_dir]
+      set tp "$tp/$sm_cpt_dir"
+      if { ([file exists $tp]) && ([file isdirectory $tp]) } {
+        lappend target_paths $tp
+      }
+    }
+  }
+
+  # default ext dir
+  set sm_ext_dir [xcs_get_simmodel_dir $simulator "ext"]
+  lappend target_paths "$cpt_dir/$sm_ext_dir"
+
+  # add ip dir for xsim
+  if { "xsim" == $simulator } {
+    lappend target_paths "$clibs_dir/ip"
+  }
+
+  # prepend custom simmodel library paths, if specified? 
+  set sm_lib_path $a_sim_vars(custom_sm_lib_dir)
+  if { $sm_lib_path != "" } {
+    set custom_paths [list]
+    foreach cpath [split $sm_lib_path ":"] {
+      if { ($cpath != "") && ([file exists $cpath]) && ([file isdirectory $cpath]) } {
+        lappend custom_paths $cpath
+      }
+    }
+    if { [llength $custom_paths] > 0 } {
+      set target_paths [concat $custom_paths $target_paths]
+    }
+  }
+
+  # add compiled library directory
+  lappend target_paths "$clibs_dir"
+
+  if { $b_int_sm_lib_ref_debug } {
+    puts "-----------------------------------------------------------------------------------------------------------"
+    puts "Target paths to search"
+    puts "-----------------------------------------------------------------------------------------------------------"
+    foreach target_path $target_paths {
+      puts "Path: $target_path"
+    }
+    puts "-----------------------------------------------------------------------------------------------------------"
+  }
+
+  return $target_paths
+}
+
+proc xcs_print_shared_lib_info { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_shared_library_path_coln
+  set fmt {%-25s%-2s%-80s}
+  set sep ":"
+  set libs [list]
+  set dirs [list]
+  foreach {library lib_dir} [array get a_shared_library_path_coln] {
+    lappend libs $library
+    lappend dirs $lib_dir
+  }
+  puts "-----------------------------------------------------------------------------------------------------------"
+  puts "Extracted shared library path information"
+  puts "-----------------------------------------------------------------------------------------------------------"
+  foreach lib $libs dir $dirs {
+    puts [format $fmt $lib $sep $dir]
+  }
+  puts "-----------------------------------------------------------------------------------------------------------"
+}
+
+proc xcs_get_simmodel_dir { simulator type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  # platform and library extension
+  set platform "win64"
+  set extn     "dll"
+  if {$::tcl_platform(platform) == "unix"} {
+    set platform "lnx64"
+    set extn "so"
+  }
+  # simulator, gcc version, data dir
+  set sim_version [get_param "simulator.${simulator}.version"]
+  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+
+  # prefix path
+  set prefix_dir "simmodels/${simulator}/${sim_version}/${platform}/${gcc_version}"
+
+  # construct path
+  set dir {}
+  if { "cpt" == $type } {
+    set dir "${prefix_dir}/systemc/protected"
+  } elseif { "ext" == $type } {
+    set dir "${prefix_dir}/ext"
+  }
+  return $dir
 }

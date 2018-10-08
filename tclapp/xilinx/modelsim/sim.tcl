@@ -222,6 +222,7 @@ proc usf_modelsim_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_compile_glbl]: Compile glbl (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -234,24 +235,24 @@ proc usf_modelsim_setup_args { args } {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-simset"         { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_simset) [lindex $args $i] }
-      "-mode"           { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_mode) [lindex $args $i] }
-      "-type"           { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_type) [lindex $args $i] }
-      "-scripts_only"   { set ::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only) 1 }
-      "-of_objects"     { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_comp_file) [lindex $args $i]}
-      "-absolute_path"  { set ::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) 1 }
-      "-lib_map_path"   { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_lib_map_path) [lindex $args $i] }
-      "-install_path"   { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_install_path) [lindex $args $i];\
+      "-simset"              { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_simset) [lindex $args $i] }
+      "-mode"                { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_mode) [lindex $args $i] }
+      "-type"                { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_type) [lindex $args $i] }
+      "-scripts_only"        { set ::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only) 1 }
+      "-of_objects"          { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_comp_file) [lindex $args $i]}
+      "-absolute_path"       { set ::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path) 1 }
+      "-lib_map_path"        { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_lib_map_path) [lindex $args $i] }
+      "-install_path"        { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_install_path) [lindex $args $i];\
                                  set ::tclapp::xilinx::modelsim::a_sim_vars(b_install_path_specified) 1 }
-      "-batch"          { set ::tclapp::xilinx::modelsim::a_sim_vars(b_batch) 1 }
-      "-run_dir"        { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) [lindex $args $i] }
-      "-int_os_type"    { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
-      "-int_debug_mode" { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
+      "-batch"               { set ::tclapp::xilinx::modelsim::a_sim_vars(b_batch) 1 }
+      "-run_dir"             { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) [lindex $args $i] }
+      "-int_os_type"         { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) [lindex $args $i] }
+      "-int_debug_mode"      { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
+      "-int_compile_glbl"    { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_compile_glbl) 1 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id USF-ModelSim-006 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
-          return 1
+          send_msg_id USF-ModelSim-006 WARNING "Unknown option '$option' specified (ignored)\n"
         }
       }
     }
@@ -461,9 +462,9 @@ proc usf_modelsim_create_wave_do_file { file } {
     return 1
   }
   usf_modelsim_write_header $fh $file
-  puts $fh "add wave *"
+  puts $fh "if \{ \[catch \{\[add wave *\]\}\] \} \{\}"
 
-  if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+  if { ([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) } {
     puts $fh "add wave /glbl/GSR"
   }
   close $fh
@@ -678,7 +679,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
-    if { [xcs_compile_glbl_file "modelsim" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+    if { [xcs_compile_glbl_file "modelsim" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
@@ -686,7 +687,8 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     }
   } else {
     # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang) } {
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl))) } {
       if { ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
@@ -905,7 +907,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
-  if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {    
+  if { ([xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) } {    
     lappend arg_list "${top_lib}.glbl"
   }
   lappend arg_list "-o"
@@ -970,10 +972,10 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set int_delay 0
   set tpd_prop "TRANSPORT_PATH_DELAY"
   set tid_prop "TRANSPORT_INT_DELAY"
-  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+  if { [lsearch -exact [list_property -quiet $fs_obj] $tpd_prop] != -1 } {
     set path_delay [get_property $tpd_prop $fs_obj]
   }
-  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+  if { [lsearch -exact [list_property -quiet $fs_obj] $tid_prop] != -1 } {
     set int_delay [get_property $tid_prop $fs_obj]
   }
 
@@ -1121,9 +1123,9 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_top_level_glbl_inst_set 1
   }
 
+  set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" $fs_obj]
   if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $b_verilog_sim_netlist } {
     if { {behav_sim} == $sim_flow } {
-      set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" $fs_obj]
       if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
         set b_add_glbl 1
       }
@@ -1132,6 +1134,19 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
       if { !$b_top_level_glbl_inst_set } {
         set b_add_glbl 1
       }
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $a_sim_vars(b_int_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $b_load_glbl } {
+      # TODO: revisit this for pure vhdl, causing failures
+      #set b_add_glbl 1
     }
   }
 

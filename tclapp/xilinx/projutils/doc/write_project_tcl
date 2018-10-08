@@ -75,11 +75,25 @@ Arguments:
 
   -no_copy_sources - (Optional) Do not import sources even if they are local to
   the original project. The tool will not import the files that were local in
-  the original project into the new project. 
+  the original project into the new project. If the design contains BD sources then
+  -use_bd_files switch must also be provided.
 
-  -quiet - (Optional) Execute the command quietly, ignoring any command line
-  errors and returning no messages. The command also returns TCL_OK regardless
-  of any errors encountered during execution.
+  -absolute_path - (Optional) Make all file paths absolute in the generated script.
+  This allows running the script from any location in that filesystem. By default the 
+  file paths will be relative to the origin_dir variable.
+
+  -dump_project_info - (Optional) Dump information about all properties to two text files, 
+  <project_name>_dump.txt (short), and <project_name>_def_val.txt (detailed).
+
+  -use_bd_files - (Optional) Use block design sources directly instead of writing out
+  procs to create them. If the -no_copy_sources switch is provided the BD files will be 
+  added (but not copied locally) to the project. Otherwise the files will be imported 
+  (copied locally) to the project.
+
+  -internal - (Optional) Print only basic header information in the generated tcl script.
+  By default information about required file sources will also be part of the header.
+
+  -quiet - (Optional) Execute the command quietly, returning only ERROR messages. 
 
   -verbose - (Optional) Temporarily override any message limits and return all
   messages from this command.
@@ -92,43 +106,55 @@ Arguments:
 
 Examples:
 
-  The following example exports a Tcl script named "recreate.tcl" for the current
-  project:-
+  The following example exports a Tcl script named "recreate.tcl" for the test project:-
+  
+  Start Vivado in tcl mode and execute following commands:
+    % open_project test/test.xpr
+    % write_project_tcl recreate.tcl
+    % close_project
 
-  % write_project_tcl recreate.tcl
-
-  The following example exports a Tcl script named "recreate.tcl" for the current
+  The following example exports a Tcl script named "recreate.tcl" for the test
   project in the "./script" directory and specifies the "/tmp/test" directory path
   in the "create_project" command. When the "recreate.tcl" script is sourced in the
   Vivado Tcl shell, the project will be re-created in "/tmp/test" directory:-
 
-  % write_project_tcl -target_proj_dir "/tmp/test" ./script/recreate.tcl
+  Start Vivado in tcl mode and execute following commands:
+    % open_project test/test.xpr
+    % write_project_tcl -target_proj_dir "/tmp/test" ./script/recreate.tcl
+    % close_project
+    % source script/recreate.tcl
 
   The following Tcl commands exports Tcl script for the current project and writes
   all the properties, both default or non-default values:-
 
   % write_project_tcl -all_properties recreate.tcl
 
-  The following Tcl commands exports Tcl script for the current project and adds
-  files that are local in this project. The recreated project will reference these
-  files:-
+  The following Tcl commands exports Tcl script for the current project and adds files
+  that are local in this project. The recreated project will reference these files:-
 
   % write_project_tcl -no_copy_sources recreate.tcl
 
-  The following Tcl commands exports "recreate.tcl" script for the current project in
-  the current working directory, creates a new project in ./my_test directory, prints
-  the list of files in the new project, prints the current project settings and then
-  closes the newly created project:-
+  The following Tcl and shell commands opens a test project, exports "recreate.tcl"
+  script for the current project in the current working directory, creates a new
+  project in ./my_test directory, prints the list of files in the new project, prints
+  the current project settings and then closes the newly created project:-
 
-  % open_project ./test/test.xpr
-  % write_project_tcl -force recreate.tcl
-  % close_project
-  % file mkdir my_test
-  % cd my_test
-  % source ../recreate.tcl
-  % get_files -of_objects [get_filesets sources_1]
-  % report_property [current_project]
-  % close_project
+  Start Vivado in tcl mode and execute following commands:
+    % open_project test/test.xpr
+    % write_project_tcl -force recreate.tcl
+    % close_project
+    % exit
+
+  From OS shell:
+    # mkdir my_test
+    # cd my_test
+    # vivado -mode batch -source ../recreate.tcl -tclargs --origin_dir ..
+
+  Start Vivado in tcl mode and execute following commands:
+    % open_project test/test.xpr 
+    % get_files -of_objects [get_filesets sources_1]
+    % report_property [current_project]
+    % close_project
 
   The following Tcl commands creates a new project named bft_test, adds files to the
   project, sets the fileset property, exports a tcl script named "bft.tcl" in the current
@@ -136,18 +162,25 @@ Examples:
   files in the new project (test_1.v and test_2.v), prints the "verilog_define" property
   value and then closes the newly created project:-
 
-  % create_project bft_test ./bft_test
-  % add_files test_1.v
-  % add_files test_2.v
-  % set_property verilog_define {a=10} [get_filesets sources_1]
-  % write_project_tcl -force bft.tcl
-  % close_project
-  % file mkdir my_bft
-  % cd my_bft
-  % source ../bft.tcl
-  % get_files -of_objects [get_filesets sources_1]
-  % get_property verilog_define [get_filesets sources_1]
-  % close_project
+  Start Vivado in tcl mode and execute following commands:
+    % create_project bft_test ./bft_test
+    % add_files test_1.v
+    % add_files test_2.v
+    % set_property verilog_define {a=10} [get_filesets sources_1]
+    % write_project_tcl -force bft.tcl
+    % close_project
+    % exit
+
+  From OS shell:
+    # mkdir my_bft
+    # cd my_bft
+    # vivado -mode batch -source ../bft.tcl -tclargs --origin_dir ..
+    
+  Start Vivado in tcl mode and execute following commands:
+    % open_project bft_test/bft_test.xpr 
+    % get_files -of_objects [get_filesets sources_1]
+    % get_property verilog_define [get_filesets sources_1]
+    % close_project
 
 See Also:
 

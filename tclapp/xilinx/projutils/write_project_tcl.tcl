@@ -42,6 +42,7 @@ proc write_project_tcl {args} {
   # [-dump_project_info]: Write object values
   # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
   # [-internal]: Print basic header information in the generated tcl script
+  # [-quiet]: Execute the command quietly, returning no messages from the command.
   # file: Name of the tcl script file to generate
 
   # Return Value:
@@ -84,6 +85,7 @@ proc write_project_tcl {args} {
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
       "-internal"             { set a_global_vars(b_internal) 1 }
+      "-quiet"                { set a_global_vars(b_arg_quiet) 1}
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -94,15 +96,25 @@ proc write_project_tcl {args} {
       }
     }
   }
+  # suppress all messages if -quiet flag is provided
+  if { $a_global_vars(b_arg_quiet) } {
+    suppress_messages
+  }
  
   # script file is a must
   if { [string equal $a_global_vars(script_file) ""] } {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-002 ERROR "Missing value for option 'file', please type 'write_project_tcl -help' for usage info.\n"
     return
   }
         
   # should not be a directory
   if { [file isdirectory $a_global_vars(script_file)] } {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-003 ERROR "The specified filename is a directory ($a_global_vars(script_file)), please type 'write_project_tcl -help' for usage info.\n"
     return
   }
@@ -117,12 +129,18 @@ proc write_project_tcl {args} {
   set file_path [file dirname $a_global_vars(script_file)]
   if { ! [file exists $file_path] } {
     set script_filename [file tail $a_global_vars(script_file)]
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-013 ERROR "Directory in which file ${script_filename} is to be written does not exist \[$a_global_vars(script_file)\]\n"
     return
   }
     
   # recommend -force if file exists
   if { [file exists $a_global_vars(script_file)] && !$a_global_vars(b_arg_force) } {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-004 ERROR "Tcl Script '$a_global_vars(script_file)' already exist. Use -force option to overwrite.\n"
     return
   }
@@ -131,6 +149,9 @@ proc write_project_tcl {args} {
  
   # -no_copy_sources cannot be used without -use_bd_files
   if { $a_global_vars(b_arg_no_copy_srcs) && !$a_global_vars(b_arg_use_bd_files) } {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-019 ERROR "This design contains BD sources. The option -no_copy_sources cannot be used without -use_bd_files.\
       Please remove -no_copy_sources if you wish to write out BD's as procs in the project tcl, otherwise add the option -use_bd_files to directly\
       include the *.bd files to the new project \n"
@@ -142,6 +163,9 @@ proc write_project_tcl {args} {
   
   # now write
   if {[write_project_tcl_script]} {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     return
   }
 }
@@ -204,6 +228,7 @@ proc reset_global_vars {} {
   set a_global_vars(dp_fh)                0
   set a_global_vars(def_val_fh)           0
   set a_global_vars(script_file)          ""
+  set a_global_vars(b_arg_quiet)          0
   
   if { [get_param project.enableMergedProjTcl] } {
     set a_global_vars(b_arg_use_bd_files)   0
@@ -266,6 +291,9 @@ proc write_project_tcl_script {} {
   # output file script handle
   set file $a_global_vars(script_file)
   if {[catch {open $file w} a_global_vars(fh)]} {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-005 ERROR "failed to open file for write ($file)\n"
     return 1
   }
@@ -274,6 +302,9 @@ proc write_project_tcl_script {} {
   if { $a_global_vars(b_arg_dump_proj_info) } {
     set dump_file [file normalize [file join $a_global_vars(s_path_to_script_dir) ${proj_name}_dump.txt]]
     if {[catch {open $dump_file w} a_global_vars(dp_fh)]} {
+      if { $a_global_vars(b_arg_quiet) } {
+        reset_msg_setting
+      }
       send_msg_id Vivado-projutils-006 ERROR "failed to open file for write ($dump_file)\n"
       return 1
     }
@@ -281,6 +312,9 @@ proc write_project_tcl_script {} {
     # default value output file script handle
     set def_val_file [file normalize [file join $a_global_vars(s_path_to_script_dir) ${proj_name}_def_val.txt]]
     if {[catch {open $def_val_file w} a_global_vars(def_val_fh)]} {
+      if { $a_global_vars(b_arg_quiet) } {
+        reset_msg_setting
+      }
       send_msg_id Vivado-projutils-007 ERROR "failed to open file for write ($file)\n"
       return 1
     }
@@ -333,6 +367,7 @@ proc write_project_tcl_script {} {
 
   set script_filename [file tail $file]
   set out_dir [file dirname [file normalize $file]]
+  if { !$a_global_vars(b_arg_quiet) } {
   send_msg_id Vivado-projutils-008 INFO "Tcl script '$script_filename' generated in output directory '$out_dir'\n\n"
 
   if { $a_global_vars(b_absolute_path) } {
@@ -357,13 +392,19 @@ proc write_project_tcl_script {} {
       then set the origin dir using '-tclargs --origin_dir <path>'. For example, 'vivado -mode tcl -source $script_filename -tclargs --origin_dir \"..\"\n"
     }
   }
+  }
 
+  if { !$a_global_vars(b_arg_quiet) } {
   if { $a_global_vars(b_local_sources) } {
     print_local_file_msg "warning"
   } else {
     print_local_file_msg "info"
   }
+  }
 
+  if { $a_global_vars(b_arg_quiet) } {
+    reset_msg_setting
+  }
   reset_global_vars
 
   return 0
@@ -540,6 +581,7 @@ proc write_bd_as_proc { bd_file } {
   # Argument: BD file
   # Return Value: None
 
+  variable a_global_vars
   variable l_added_bds
   variable l_bd_proc_calls
   variable l_script_data
@@ -571,7 +613,7 @@ proc write_bd_as_proc { bd_file } {
     incr temp_offset
   } 
   set temp_bd_file [file join $temp_dir "temp_$temp_offset.tcl"]
-  write_bd_tcl -no_project_wrapper -make_local $temp_bd_file
+  write_bd_tcl -no_project_wrapper -make_local -include_layout $temp_bd_file
   
   # Set non default properties for the BD
   wr_bd_properties $bd_file
@@ -583,6 +625,9 @@ proc write_bd_as_proc { bd_file } {
 
   # Get proc call
   if {[catch {open $temp_bd_file r} fp]} {
+    if { $a_global_vars(b_arg_quiet) } {
+      reset_msg_setting
+    }
     send_msg_id Vivado-projutils-020 ERROR "failed to write out proc for $bd_file \n"
     return 1
   }
@@ -699,6 +744,9 @@ proc wr_bd {} {
     set is_locked [get_property IS_LOCKED [get_files [list "$bd_file"] ] ]
     if { $is_locked == 1 } {
       file delete $a_global_vars(script_file)
+      if { $a_global_vars(b_arg_quiet) } {
+        reset_msg_setting
+      }
       send_msg_id Vivado-projutils-018 ERROR "Project tcl cannot be written as the design contains one or more \
       locked/out-of-date design(s). Please run report_ip_status and update the design.\n"
       return 1
@@ -1020,7 +1068,7 @@ proc filter { prop val { file {} } } {
   }
 
   # filter sim_types
-  if { [string equal -nocase $prop {sim_types}] } {
+  if { ([string equal -nocase $prop {allowed_sim_models}]) || ([string equal -nocase $prop {preferred_sim_model}]) } {
     return 1
   }
 
@@ -1099,7 +1147,7 @@ proc write_properties { prop_info_list get_what tcl_obj {delim "#"} } {
       } else {
         # comment "is_readonly" project property
         if { [string equal $get_what "get_projects"] && [string equal "$name" "is_readonly"] } {
-          if { ! $a_global_vars(b_arg_all_props) } {
+          if { ! $a_global_vars(b_arg_all_props) && !$a_global_vars(b_arg_quiet) } {
             send_msg_id Vivado-projutils-012 INFO "The current project is in 'read_only' state. The generated script will create a writable project."
           }
           continue
@@ -1166,7 +1214,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
     set tcl_obj [ list "$tcl_obj"]
   }
   if { [string first " " $get_what 0] != -1 } {
-    # For cases where get_what is multiple workds like "get_gadgets -of_object..."
+    # For cases where get_what is multiple workds like "get_dashboard_gadgets -of_object..."
     set current_obj [ eval $get_what $tcl_obj]
   } else {
     set current_obj [$get_what $tcl_obj]
@@ -2453,20 +2501,20 @@ proc write_specified_gadget { proj_dir proj_name gadget dashboard} {
   
   variable l_script_data
   set db_name [get_property name [get_dashboards $dashboard]]
-    
-  set gadgetName [get_property name [get_gadgets -of_objects [get_dashboards $db_name] $gadget]]
-  set gadgetType [get_property type [get_gadgets -of_objects [get_dashboards $db_name] $gadget]]
 
-  set cmd_str "create_gadget -name {$gadgetName} -type $gadgetType -dashboard $dashboard"
+  set gadgetName [get_property name [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"]]]
+  set gadgetType [get_property type [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"]]]
+
+  set cmd_str "create_dashboard_gadget -name {$gadgetName} -type $gadgetType -dashboard $dashboard"
 
   lappend l_script_data "# Create '$gadgetName' gadget (if not found)"
-  lappend l_script_data "if \{\[string equal \[get_gadgets -of_objects \[get_dashboards $db_name\] $gadget \] \"\"\]\} \{"
+  lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets -of_objects \[get_dashboards $db_name\] \[ list \"$gadget\" \] \] \"\"\]\} \{"
   lappend l_script_data "$cmd_str"
   lappend l_script_data "\}"
 
-  lappend l_script_data "set obj \[get_gadgets -of_objects \[get_dashboards $db_name\] $gadget \]"
-  set tcl_obj [get_gadgets -of_objects [get_dashboards $db_name] $gadget ]
-  set get_what "get_gadgets -of_objects \[get_dashboards $db_name\]"
+  lappend l_script_data "set obj \[get_dashboard_gadgets -of_objects \[get_dashboards $db_name\] \[ list \"$gadget\" \] \]"
+  set tcl_obj [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"] ]
+  set get_what "get_dashboard_gadgets -of_objects \[get_dashboards $db_name\]"
   write_props $proj_dir $proj_name $get_what $tcl_obj "gadget" "$"
 }
 
@@ -2486,10 +2534,16 @@ proc write_specified_dashboard { proj_dir proj_name dashboard } {
   lappend l_script_data "set obj \[$get_what $dashboard\]"
   write_props $proj_dir $proj_name $get_what $dashboard "dashboard"
 
+  #Create map of gadgets wrt to their position, so that gadget position can be restored.
+  set gadgetPositionMap [dict create]
+
   ##get gadgets of this dashboard
-  set gadgets [get_gadgets -of_objects [$get_what $dashboard]]
+  set gadgets [get_dashboard_gadgets -of_objects [$get_what $dashboard]]
   foreach gd $gadgets {
     write_specified_gadget $proj_dir $proj_name $gd $dashboard
+    set gadgetCol [get_property COL [get_dashboard_gadgets -of_objects [$get_what $dashboard] [list "$gd"]]]
+    set gadgetRow [get_property ROW [get_dashboard_gadgets -of_objects [$get_what $dashboard] [list "$gd"]]]
+    dict set gadgetPositionMap $gadgetCol $gadgetRow $gd
   }
 
   #if current dashboard is "default_dashboard"
@@ -2500,12 +2554,24 @@ proc write_specified_dashboard { proj_dir proj_name dashboard } {
     foreach dgd $default_gadgets {
       #if dgd is not in gadgets, then delete dgd
       if {$dgd ni $gadgets } {
-        set cmd_str "delete_gadgets -gadgets $dgd"
         lappend l_script_data "# Delete the gadget '$dgd' "
+        lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets -of_objects \[$get_what $dashboard\] \[ list \"$dgd\" \] \] \"$dgd\"\]\} \{"
+        set cmd_str "delete_dashboard_gadgets -gadgets $dgd"
         lappend l_script_data "$cmd_str"
+        lappend l_script_data "\}"
       }
     }
   }
+
+  foreach col [lsort [dict keys $gadgetPositionMap]] {
+    set rowDict [dict get $gadgetPositionMap $col]
+    foreach row [lsort [dict keys $rowDict]] {
+      set gadgetName [dict get $rowDict $row]
+      set cmd_str "move_dashboard_gadget -name {$gadgetName} -row $row -col $col"
+      lappend l_script_data "$cmd_str"
+    }
+  }
+
 }
 
 proc wr_prflow { proj_dir proj_name } {
@@ -2582,15 +2648,47 @@ proc wr_reconfigModules { proj_dir proj_name } {
   set reconfigModules [get_reconfig_modules]
   variable a_global_vars
 
+  # associate a bd with rm to be used with write_specified_reconfig_module
+  set bd_rm_map [dict create]
   foreach rm $reconfigModules {
-    if { !$a_global_vars(b_arg_use_bd_files) } {
-      set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd]
-      foreach rm_bd $rm_bds {
-            write_bd_as_proc $rm_bd
+    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd]
+    foreach rm_bd1 $rm_bds {
+      dict set bd_rm_map $rm_bd1 $rm
+    }
+  }
+
+  set done_bds [list]
+  foreach rm $reconfigModules {
+    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd]
+    # get the dependent bd for a rm and process it first, this is required for 2RP support
+    set rm_bd_dep [lindex [get_files -references -quiet -of_objects [get_reconfig_modules $rm] *.bd] 0]
+    if {[llength $rm_bd_dep] == 1} {
+      if {$rm_bd ni $done_bds} {
+        if { !$a_global_vars(b_arg_use_bd_files) } {
+          write_bd_as_proc $rm_bd_dep
+        }
+        set rm1 [dict get $bd_rm_map $rm_bd_dep]
+        write_specified_reconfig_module $proj_dir $proj_name $rm1
+        lappend done_bds $rm_bd_dep
       }
     }
 
-    write_specified_reconfig_module $proj_dir $proj_name $rm
+    foreach rm_bd $rm_bds {
+      # process bd only if it has not already been processed
+      if {$rm_bd ni $done_bds} {
+        if { !$a_global_vars(b_arg_use_bd_files) } {
+          write_bd_as_proc $rm_bd
+        }
+        set rm1 [dict get $bd_rm_map $rm_bd]
+        write_specified_reconfig_module $proj_dir $proj_name $rm1
+        lappend done_bds $rm_bd
+      }
+    }
+
+    # when no RM BDs are present
+    if {[llength $rm_bds] == 0} {
+      write_specified_reconfig_module $proj_dir $proj_name $rm
+    }
   }
 }
 
@@ -3040,5 +3138,33 @@ proc write_report_props { report } {
   }
 
   write_properties $prop_info_list "get_report_configs" $report
+}
+
+proc suppress_messages {} {
+  variable levels_to_suppress
+  set levels_to_suppress { {STATUS} {INFO} {WARNING} {CRITICAL WARNING} }
+  set msg_rules [split [ debug::get_msg_control_rules -as_tcl ] \n]
+  foreach line  $msg_rules {
+    set idx_suppress [lsearch $line "-suppress"]
+    if { $idx_suppress >= 0  } {
+      set idx_severity [lsearch $line "-severity"]
+      if { $idx_suppress == $idx_severity + 2 } {
+        set lvl_idx [ lsearch $levels_to_suppress [lindex $line $idx_suppress-1 ] ]
+        if { $lvl_idx >= 0 } {
+          set levels_to_suppress [ lreplace $levels_to_suppress $lvl_idx $lvl_idx]
+        }
+      }
+    }
+  }
+  foreach level $levels_to_suppress {
+    set_msg_config -suppress -severity $level
+  }
+}
+
+proc reset_msg_setting {} {
+  variable levels_to_suppress
+  foreach level $levels_to_suppress {
+    reset_msg_config -suppress -severity $level
+  }
 }
 }

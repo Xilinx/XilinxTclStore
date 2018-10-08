@@ -1,5 +1,28 @@
+2.221 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
+2.219 fetch output directory from IP file name if IP_OUTPUT_DIR not set
+2.218 compile glbl for post simulation when internal glbl flag is set
+2.217 set debug msgs as optional arg for sc libs proc
+2.216 check for ipdef var before getting the xml filename
+2.215 support for exporting CSV files to simulation run dir
+2.214 support for printing debug msgs for library referencing
+2.213 helper proc to find C, SystemC, CPP sources in the design
+2.212 donot reference glbl by default unless conditions met
+2.211 helper proc to determine if pure vhdl design required for glbl determination
+2.210 print debug information for referenced shared libraries
+2.209 inspect TLM property value for IP while determining systemc libraries
+2.208 do not compile XPM component file if simulator language is verilog
+2.207 call add wave in catch block to handle no objects found error
+2.206 call add wave in catch block
+2.205 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
+2.204 update protoinst file in repo directory
+2.203 updated algorithm to reference compiled simulation library from custom paths
+2.202 reference compiled simulation library from custom paths
+2.201 added helper proc to resolve verilog header sources from ip_user_files dir
+2.200 export addr_map.xml sources into simulation run dir
+2.199 fixed xsim ip compiled library dir path
+2.198 find library info from ip compiled library dir
 2.197 check for IP in quiet mode and return default header file if IP does not exist
-2.196 add default compiled library for xsim
+2.196 updated target paths for finding simulation models
 2.195 helper proc to find shared libraries
 2.194 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
 2.193 process referenced linked libraries from IPs

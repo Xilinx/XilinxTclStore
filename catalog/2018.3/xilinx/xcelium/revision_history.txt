@@ -1,3 +1,37 @@
+7.6 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
+7.4 fetch output directory from IP file name if IP_OUTPUT_DIR not set
+7.3 compile glbl for post simulation when internal glbl flag is set
+7.2 set debug msgs as optional arg for sc libs proc
+7.1 check for ipdef var before getting the xml filename
+7.0 support for linking quad library
+6.9 support for exporting CSV files to simulation run dir
+6.8 support for printing debug msgs for library referencing
+6.7 helper proc to find C, SystemC, CPP sources in the design
+6.6 donot reference glbl by default unless conditions met
+6.5 helper proc to determine if pure vhdl design required for glbl determination
+6.4 print debug information for referenced shared libraries
+6.3 inspect TLM property value for IP while determining systemc libraries
+6.2 do not compile XPM component file if simulator language is verilog
+6.1 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
+6.0 update protoinst file in repo directory
+5.9 updated algorithm to reference compiled simulation library from custom paths
+5.8 reference compiled simulation library from custom paths
+5.7 added helper proc to resolve verilog header sources from ip_user_files dir
+5.6 export addr_map.xml sources into simulation run dir
+5.5 fixed xsim ip compiled library dir path
+5.4 find library info from ip compiled library dir
+5.3 check for IP in quiet mode and return default header file if IP does not exist
+5.2 updated target paths for finding simulation models
+5.1 helper proc to find shared libraries
+5.0 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
+4.9 process referenced linked libraries from IPs
+4.8 fixed dat_file var while fetching library info
+4.7 delete stale static files for precompiled library for sync mode
+4.6 consider BD SystemC sources
+4.5 add BD file type to the file extension check while fetching SystemC sources
+4.4 consider SV design sources if param set for compiling vip library
+4.3 proc to read library info from dat file
+4.2 reference SystemC include directory
 4.1 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
 4.0 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
 3.9 detect and fetch protoinst file from the ip_user_files for xsim

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>check for IP in quiet mode and return default header file if IP does not exist</revision_history>
+      <revision_history>the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

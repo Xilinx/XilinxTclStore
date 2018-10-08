@@ -23,6 +23,7 @@ proc usf_init_vars {} {
   variable a_sim_vars
 
   set project                         [current_project]
+  set a_sim_vars(simulator_language)  [get_property "SIMULATOR_LANGUAGE" $project]
   set a_sim_vars(src_mgmt_mode)       [get_property "SOURCE_MGMT_MODE" $project]
   set a_sim_vars(default_top_library) [get_property "DEFAULT_LIB" $project]
   set a_sim_vars(s_project_name)      [get_property "NAME" $project]
@@ -47,6 +48,9 @@ proc usf_init_vars {} {
   set a_sim_vars(s_int_debug_mode)   0
   set a_sim_vars(b_int_systemc_mode) 0
   set a_sim_vars(b_int_rtl_kernel_mode) 0
+  set a_sim_vars(custom_sm_lib_dir)  {}
+  set a_sim_vars(b_int_compile_glbl) 0
+  set a_sim_vars(b_int_sm_lib_ref_debug) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
@@ -55,6 +59,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_contain_systemc_sources) 0
   set a_sim_vars(b_contain_cpp_sources)     0
   set a_sim_vars(b_contain_c_sources)       0
+  set a_sim_vars(b_contain_systemc_headers) 0
   
   set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set a_sim_vars(compiled_design_lib) "xsim.dir"
@@ -93,7 +98,7 @@ proc usf_init_vars {} {
  
   # data file extension types 
   variable s_data_files_filter
-  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"Coefficient Files\""
+  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\""
 
   # embedded file extension types 
   variable s_embedded_files_filter
@@ -106,6 +111,7 @@ proc usf_init_vars {} {
                 FILE_TYPE != \"SystemVerilog\"                && \
                 FILE_TYPE != \"Verilog Header\"               && \
                 FILE_TYPE != \"Verilog/SystemVerilog Header\" && \
+                FILE_TYPE != \"SystemC Header\"               && \
                 FILE_TYPE != \"Verilog Template\"             && \
                 FILE_TYPE != \"VHDL\"                         && \
                 FILE_TYPE != \"VHDL 2008\"                    && \
@@ -160,6 +166,9 @@ proc usf_init_vars {} {
 
   variable a_shared_library_path_coln
   array unset a_shared_library_path_coln
+
+  variable a_shared_library_mapping_path_coln
+  array unset a_shared_library_mapping_path_coln
 
   variable a_sim_sv_pkg_libs [list]
 
@@ -441,16 +450,20 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
     if { $b_using_xpm_libraries } {
-      set xpm_library [xcs_get_common_xpm_library]
-      set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
-      foreach file $common_xpm_vhdl_files {
-        set file_type "VHDL"
-        set g_files {}
-        set b_is_xpm true
-        set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files other_ver_opts $xpm_library]
-        if { {} != $cmd_str } {
-          lappend files $cmd_str
-          lappend l_compile_order_files $file
+      if { [string equal -nocase $a_sim_vars(simulator_language) "verilog"] == 1 } {
+        # do not compile vhdl component file if simulator language is verilog
+      } else {
+        set xpm_library [xcs_get_common_xpm_library]
+        set common_xpm_vhdl_files [xcs_get_common_xpm_vhdl_files]
+        foreach file $common_xpm_vhdl_files {
+          set file_type "VHDL"
+          set g_files {}
+          set b_is_xpm true
+          set cmd_str [usf_get_file_cmd_str $file $file_type $b_is_xpm $g_files other_ver_opts $xpm_library]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $file
+          }
         }
       }
     }
@@ -692,7 +705,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   # add testbench files if any
   #set vhdl_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\")"
   #foreach file [usf_get_testbench_files_from_ip $vhdl_filter] {
-  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #  if { [lsearch -exact [list_property -quiet $file] {FILE_TYPE}] == -1 } {
   #    continue;
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -706,7 +719,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   #set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\" && FILE_TYPE == \"Verilog/SystemVerilog Header\""
   #set verilog_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\")"
   #foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
-  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #  if { [lsearch -exact [list_property -quiet $file] {FILE_TYPE}] == -1 } {
   #    continue;
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -1076,7 +1089,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
     set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
   }
   if { {} != $file_obj } {
-    if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
       set associated_library [get_property "LIBRARY" $file_obj]
     }
   } else { ; # File object is not defined. Check if this is an XPM file...
