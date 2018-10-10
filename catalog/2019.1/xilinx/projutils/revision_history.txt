@@ -1,3 +1,48 @@
+3.373 fetch systemc sources from the parent composite file for a BD if selected sim model is tlm
+3.372 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
+3.370 Updated write_project_tcl to restore gadget locations to dashboard
+3.369 fetch output directory from IP file name if IP_OUTPUT_DIR not set
+3.368 adding -include_layout to write_bd_tcl invocation
+3.367 set debug msgs as optional arg for sc libs proc
+3.366 check for ipdef var before getting the xml filename
+3.365 support for exporting CSV files to simulation run dir
+3.364 support for printing debug msgs for library referencing
+3.363 Handling gadget name with space in writing dashboard information
+3.362 inspect list property for IPs and file objects in quiet mode
+3.361 inspect list property for IP in quiet mode
+3.360 helper proc to find C, SystemC, CPP sources in the design
+3.359 Fix for create bd proc appearing twice in 2RP flow
+3.357 donot reference glbl by default unless conditions met
+3.356 print debug information for referenced shared libraries
+3.354 inspect TLM property value for IP while determining systemc libraries
+3.353 Fix write_project_tcl for non-BD cases
+3.352 Enhancements to the write_project_tcl tclapp to handle 2RP project
+3.351 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
+3.350 update protoinst file in repo directory
+3.349 updated algorithm to reference compiled simulation library from custom paths
+3.348 reference compiled simulation library from custom paths
+3.347 Changing dashboard gadget commands as per TCL committee feedback
+3.346 Enable suppressing write_project_tcl messages when -quiet flag is used
+3.345 updated write_project_tcl help examples
+3.344 export addr_map.xml sources into simulation run dir
+3.342 fixed xsim ip compiled library dir path
+3.341 disable duplicate inclusion of include dir options
+3.340 Updated help section
+3.339 check for IP in quiet mode and return default header file if IP does not exist
+3.338 updated target paths for finding simulation models
+3.337 remove reference to xsim_ip.ini
+3.336 helper proc to find shared libraries
+3.335 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
+3.332 process referenced linked libraries from IPs
+3.331 fixed dat_file var while fetching library info
+3.330 delete stale static files for precompiled library for sync mode
+3.329 consider BD SystemC sources
+3.328 add BD file type to the file extension check while fetching SystemC sources
+3.327 consider SV design sources if param set for compiling vip library
+3.326 proc to read library info from dat file
+3.325 handle special character in set_property
+3.324 Removing redundant BD creation in case of PR flow designs
+3.323 reference SystemC include directory
 3.322 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
 3.321 Fixing bug in for loop to process command line args to generated script and file quoting to handle project paths with whitespaces
 3.320 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade

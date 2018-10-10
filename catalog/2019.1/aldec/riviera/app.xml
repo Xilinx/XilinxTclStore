@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixed bug with -scripts_only switch. Changed generated simulation script - now simulation works differently in batch mode. Removed fixed simulation resolution.</revision_history>
+      <revision_history>If the xilinx_vip library is in the use, it is included automatically in the compilation and simulation scripts.</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

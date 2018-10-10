@@ -1,3 +1,63 @@
+2.266 fetch systemc sources from the parent composite file for a BD if selected sim model is tlm
+2.265 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
+2.263 fetch output directory from IP file name if IP_OUTPUT_DIR not set
+2.262 compile glbl for post simulation when internal glbl flag is set
+2.261 set debug msgs as optional arg for sc libs proc
+2.260 check for ipdef var before getting the xml filename
+2.259 set sv_root path to absolute
+2.258 set sv_root path to absolute if -absolute path specified
+2.257 support for exporting CSV files to simulation run dir
+2.256 support for printing debug msgs for library referencing
+2.255 helper proc to find C, SystemC, CPP sources in the design
+2.254 print warning message if default secureip directory not found
+2.253 donot reference glbl by default unless conditions met
+2.252 helper proc to determine if pure vhdl design required for glbl determination
+2.251 print debug information for referenced shared libraries
+2.250 inspect TLM property value for IP while determining systemc libraries
+2.249 bind shared libraries during XSC stage for loading symbols for xelab
+2.248 bind gt quad library
+2.247 do not compile XPM component file if simulator language is verilog
+2.246 compile glbl explicitly
+2.245 set xv_ref_path and resolve this env for LD_LIBRARY_PATH for integrated simulation runs
+2.244 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
+2.243 reference simulation model library paths during run
+2.242 fixed compile script formatting
+2.241 update protoinst file in repo directory
+2.240 updated algorithm to reference compiled simulation library from custom paths
+2.239 reference compiled simulation library from custom paths
+2.238 pass libdpi with extension to fix an issue with dynamic linking
+2.237 added helper proc to resolve verilog header sources from ip_user_files dir
+2.236 updated write_project_tcl help examples
+2.235 donot reference systemc libraries for xsc step
+2.234 export addr_map.xml sources into simulation run dir
+2.233 fixed xsim ip compiled library dir path
+2.232 find library info from ip compiled library dir
+2.231 enable systemc library referencing
+2.230 define systemc include dirs variable
+2.229 pass systemc include dirs for elaborate
+2.228 check for IP in quiet mode and return default header file if IP does not exist
+2.227 updated target paths for finding simulation models
+2.226 remove xsc option
+2.225 control include directory paths with varible to enable previous code
+2.224 remove reference to xsim_ip.ini
+2.223 helper proc to find shared libraries
+2.222 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
+2.221 process referenced linked libraries from IPs
+2.220 copy and reference protoinst files from simulation run dir
+2.219 set ld_library_path to point to install libraries and current dir
+2.218 fixed dat_file var while fetching library info
+2.217 delete stale static files for precompiled library for sync mode
+2.216 consider BD SystemC sources
+2.215 add BD file type to the file extension check while fetching SystemC sources
+2.214 consider SV design sources if param set for compiling vip library
+2.213 proc to read library info from dat file
+2.212 use SystemC Header filter for header files
+2.211 reverted common_cpp referencing
+2.210 revert SystemC include directory temporarily
+2.209 fixed dpi library name
+2.208 reference SystemC include directory
+2.207 fixed common_cpp library name
+2.206 find and reference shared library for the specific IP
 2.205 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
 2.204 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
 2.203 detect and fetch protoinst file from the ip_user_files for xsim
