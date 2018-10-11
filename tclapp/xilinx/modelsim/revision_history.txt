@@ -1,3 +1,4 @@
+2.222 fetch systemc sources from the parent composite file for a BD if selected sim model is tlm
 2.221 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
 2.219 fetch output directory from IP file name if IP_OUTPUT_DIR not set
 2.218 compile glbl for post simulation when internal glbl flag is set
