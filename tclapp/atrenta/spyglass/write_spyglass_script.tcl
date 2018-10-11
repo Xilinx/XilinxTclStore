@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# write_spyglass_script.tcl (Routine for Atrenta SpyGlass App.)
+# write_spyglass_script.tcl (Routine for synopsys SpyGlass App.)
 #
-# Script created on 05/06/2015 by Satrajit Pal (Atrenta Inc) & 
+# Script created on 05/06/2015 by Satrajit Pal (synopsys Inc) & 
 #                                 Ravi Kurlagunda
 #
 # 2015.1 - v1.1 (rev 1.1)
@@ -20,21 +20,30 @@
 #
 #  * Remove the use of the 'synth_fileset' variable
 #
+#  rev 1.4 07/16/2018
+#  * Changing legacy name "atrenta" to "synopsys"
+#  * Changing the methodology path to the latest so no manual changes are 
+#    required in generated .prj file.
+#  * Updated this tcl file to pick the correct library file as per the FPGA
+#    device used. 
+#  * To supress SDC_257 violation, Parameter force_genclk_for_txv set to 1
+#  * Adding missing XPM components
+#
 ###############################################################################
 package require Vivado 1.2015.1
 
-namespace eval ::tclapp::atrenta::spyglass {
+namespace eval ::tclapp::synopsys::spyglass {
     # Export procs that should be allowed to import into other namespaces
     namespace export write_spyglass_script
 }
 
-proc ::tclapp::atrenta::spyglass::matches_default_libs {lib} {
+proc ::tclapp::synopsys::spyglass::matches_default_libs {lib} {
 
   # Summary: internally used routine to check if default libs used
   # Argument Usage: 
   # lib: name of lib to check if default lib
   # Return Value: 
-  # Categories: xilinxtclstore, atrenta, spyglass
+  # Categories: xilinxtclstore, synopsys, spyglass
 
   regsub ":.*" $lib {} lib
   if {[string match -nocase $lib "xil_defaultlib"]} {
@@ -46,14 +55,14 @@ proc ::tclapp::atrenta::spyglass::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::atrenta::spyglass::uniquify_lib {lib lang num} {
+proc ::tclapp::synopsys::spyglass::uniquify_lib {lib lang num} {
 
   # Summary: internally used routine to uniquify libs
   # Argument Usage:
   # lib: lib name to match
   # num: uniquified lib name
   # Return Value:
-  # Categories: xilinxtclstore, atrenta, spyglass
+  # Categories: xilinxtclstore, synopsys, spyglass
 
   set new_lib ""
   if {[matches_default_libs $lib]} {
@@ -64,16 +73,16 @@ proc ::tclapp::atrenta::spyglass::uniquify_lib {lib lang num} {
   return $new_lib
 }
 
-proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
+proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
 
   # Summary : This proc generates the spyglass project file
   # Argument Usage:
   # top_module: Provide the design top name
   # outfile: Provide the file name to store the SpyGlass Configuration data
   # Return Value: Returns '1' on successful completion
-  # Categories: xilinxtclstore, atrenta, spyglass
+  # Categories: xilinxtclstore, synopsys, spyglass
 
-  puts "Calling ::tclapp::atrenta::spyglass::write_spyglass_script"
+  puts "Calling ::tclapp::synopsys::spyglass::write_spyglass_script"
 
   ## Set return code to 0
   set rc 0
@@ -141,12 +150,65 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   puts $sg_fh "set_option libhdlfiles unisim   $vivado_dir/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhd"
   puts $sg_fh "set_option libhdlfiles unimacro $vivado_dir/data/vhdl/src/unimacro/unimacro_VCOMP.vhd\n"
 
-  if {[regexp {virtexu|kintexu} $arch_name]} {
-    puts $sg_fh "read_file -type gateslib $vivado_dir/data/parts/xilinx/$arch_name/$arch_name/devint/$arch_name.lib\n"
-  } else {
-    puts $sg_fh "read_file -type gateslib $vivado_dir/data/parts/xilinx/$arch_name/devint/$arch_name.lib\n"
-  }
+  puts $sg_fh "read_file -type verilog $vivado_dir/data/ip/xpm/xpm_cdc/hdl/xpm_cdc.sv" 
+  puts $sg_fh "read_file -type verilog $vivado_dir/data/ip/xpm/xpm_memory/hdl/xpm_memory.sv" 
+  puts $sg_fh "read_file -type verilog $vivado_dir/data/ip/xpm/xpm_VCOMP.vhd" 
+  puts $sg_fh "read_file -type verilog $vivado_dir/data/ip/xpm/xpm_fifo/hdl/xpm_fifo.sv\n" 
+  
+  puts $sg_fh "set_option lib xpm xpm"
+  puts $sg_fh "set_option libhdlfiles xpm $vivado_dir/data/ip/xpm/xpm_VCOMP.vhd\n"
 
+
+  set part [get_parts -of_objects [get_projects]]
+  set lib_dir_path $vivado_dir/data/parts/xilinx/$arch_name/public/liberty
+  set arch_name_pt $arch_name\_pt
+  puts $part
+  puts $lib_dir_path
+  puts $arch_name_pt
+
+	if {[regexp $arch_name {[artix7*|kintex7*|virtex7*|zynq*|spartan7*]} ]} {
+		puts $sg_fh "read_file -type gateslib $vivado_dir/data/parts/xilinx/$arch_name/public/liberty/$arch_name\_pt.lib\n"
+
+	} elseif {[regexp $arch_name {kintexu*|kintexuplus*|virtexu*|virtexuplus*|virtexuplusHBM*|zynquplus*|zynquplusRFSOC*} ]} {
+		set README_path $lib_dir_path\/README
+		puts $README_path
+
+		if { [file exists $README_path] == 1} {
+			set fh [open "$README_path" r]
+			set file_data [read $fh]
+			close $fh
+
+			set data [split $file_data "\n"]
+		
+			foreach line $data {
+				if {[regexp ($part)\t[ ](.*) $line key dev_name lib_name]} {
+				puts "$dev_name : $lib_name"
+				puts "$lib_name"
+				}
+			} 
+
+			proc remove_blank_using_list s {join [split $s " "] ""}
+		
+			set lib_name1 [remove_blank_using_list $lib_name]
+			set library_path $lib_dir_path/$lib_name1
+		
+			puts $sg_fh "read_file -type gateslib $library_path\n"
+
+		} else {
+			puts "README file does not exists !!!!!"
+			puts "Not dumping the library file into the .prj file. Please include it manually by the command mentioned below !!!!!"
+			puts "read_file -type gateslib #library_path\n"
+		
+		}
+
+	} else {
+		puts "Spyglass do not have support for the selected device family!!!!"
+		puts "Not dumping the library file into the .prj file. Please include it manually by the command mentioned below !!!!!"
+		puts "read_file -type gateslib #library_path\n"
+	}
+
+
+	
   ## Blackbox unisims - get_lib_cells appears to work only in certain context so commenting it out
 #  link_design -part [get_parts [get_property PART [current_project]]]
 #  puts "set_option stop {\\"
@@ -274,22 +336,22 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
 # --------------------------------------------
 # ALOKE: Create the sgdc file for blk_mem_gen
 # --------------------------------------------
-        if {[regexp {^blk_mem_gen_v\d+_\d+.*$} $lib_no_num] } {
-           set sgdc_file "$lib_no_num.sgdc"
-           if { [catch {open $sgdc_file w} result] } {
-              puts stderr "ERROR: Could not open $sgdc_file for writing\n$result"
-              set rc 1
-              return $rc
-           } else {
-              set sg_sgdc_fh $result
-              puts "INFO: Writing blk_mem_gen constraints to file $sgdc_file"
-              puts $sg_sgdc_fh "current_design $top_module"
-              puts $sg_sgdc_fh "abstract_port -module $lib_no_num -ports douta[0:17] -clock clka"
-              puts $sg_sgdc_fh "abstract_port -module $lib_no_num -ports doutb[0:17] -clock clkb"
-            close $sg_sgdc_fh
-          }
-          lappend sgdc_file_list $sgdc_file
-        }
+#        if {[regexp {^blk_mem_gen_v\d+_\d+.*$} $lib_no_num] } {
+#           set sgdc_file "$lib_no_num.sgdc"
+#           if { [catch {open $sgdc_file w} result] } {
+#              puts stderr "ERROR: Could not open $sgdc_file for writing\n$result"
+#              set rc 1
+#              return $rc
+#           } else {
+#              set sg_sgdc_fh $result
+#              puts "INFO: Writing blk_mem_gen constraints to file $sgdc_file"
+#              puts $sg_sgdc_fh "current_design $top_module"
+#              puts $sg_sgdc_fh "abstract_port -module $lib_no_num -ports douta[0:17] -clock clka"
+#              puts $sg_sgdc_fh "abstract_port -module $lib_no_num -ports doutb[0:17] -clock clkb"
+#            close $sg_sgdc_fh
+#          }
+#          lappend sgdc_file_list $sgdc_file
+#        }
 #
         if {[string match $lang "VHDL"]} {
           if {![regexp {^blk_mem_gen_v\d+_\d+.*$} $lib] } {
@@ -366,6 +428,7 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   puts $sg_fh "set_option work WORK"
   puts $sg_fh "set_option enableSV yes"
   puts $sg_fh "set_option language_mode mixed"
+  puts $sg_fh "set_option sort yes"
   puts $sg_fh "set_option pragma { synopsys synthesis }"
   puts $sg_fh "set_option disable_hdllibdu_lexical_checks yes"
   puts $sg_fh "set_option top $top_module"
@@ -373,11 +436,14 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   puts $sg_fh "set_option enable_auto_infer_bus_pins yes"
   puts $sg_fh "set_option read_protected_envelope yes"
   puts $sg_fh "set_option enable_fpga yes\n\n"
-  puts $sg_fh "current_methodology \$SPYGLASS_HOME/GuideWare2.0/block/rtl_handoff\n"
+  puts $sg_fh "current_methodology \$SPYGLASS_HOME/GuideWare/latest/block/rtl_handoff\n"
   puts $sg_fh "current_goal cdc/cdc_setup"
-  puts $sg_fh "set_goal_option addrules Setup_blackbox01\n"
+  puts $sg_fh "set_goal_option addrules Setup_blackbox01"
+  puts $sg_fh "set_parameter  force_genclk_for_txv  1\n"
 
   puts $sg_fh "current_goal cdc/cdc_verify_struct"
+  puts $sg_fh "set_parameter  force_genclk_for_txv  1\n"
+
   if {[llength $sgdc_file_list] != 0} {
     puts $sg_fh "read_file -type sgdc { \\"
     foreach sgdc_file $sgdc_file_list {
@@ -389,4 +455,3 @@ proc ::tclapp::atrenta::spyglass::write_spyglass_script {top_module outfile} {
   close $sg_fh
   return $rc
 }
-
