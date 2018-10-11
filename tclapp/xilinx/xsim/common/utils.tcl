@@ -3336,13 +3336,13 @@ proc xcs_get_shared_ip_libraries { clibs_dir } {
   return $shared_ip_libs
 }
 
-proc xcs_get_sc_files { sc_filter } {
+proc xcs_get_c_files { c_filter } {
   # Summary:
   # Argument Usage:
   # Return Value:
  
-  set sc_files [list]
-  foreach file_obj [get_files -quiet -all -filter $sc_filter] {
+  set c_files [list]
+  foreach file_obj [get_files -quiet -all -filter $c_filter] {
     if { [lsearch -exact [list_property -quiet $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
       set comp_file [get_property parent_composite_file -quiet $file_obj]
       if { "" == $comp_file } {
@@ -3350,28 +3350,50 @@ proc xcs_get_sc_files { sc_filter } {
       }
       set file_extn [file extension $comp_file]
       if { (".xci" == $file_extn) } {
-        set ip_name [file root [file tail $comp_file]]
-        set ip [get_ips -quiet -all $ip_name]
-        if { "" != $ip } {
-          set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
-          if { "tlm" == $selected_sim_model } {
-            foreach ip_file_obj [get_files -quiet -all -filter $sc_filter -of_objects $ip] {
-              set used_in_values [get_property "USED_IN" $ip_file_obj]
-              if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
-                continue;
+        xcs_add_c_files_from_xci $comp_file $c_filter c_files
+      } elseif { (".bd" == $file_extn) } {
+        set bd_file_name [file tail $comp_file]
+        set bd_obj [get_files -quiet -all $bd_file_name]
+        if { "" != $bd_obj } {
+          if { [lsearch -exact [list_property -quiet $bd_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+            set comp_file [get_property parent_composite_file -quiet $bd_obj]
+            if { "" != $comp_file } {
+              set file_extn [file extension $comp_file]
+              if { (".xci" == $file_extn) } {
+                xcs_add_c_files_from_xci $comp_file $c_filter c_files
               }
-              set sc_files [concat $sc_files $ip_file_obj]
             }
           }
         }
-      } elseif { (".bd" == $file_extn) } {
-        lappend sc_files $file_obj
       }
     } else {
-      lappend sc_files $file_obj
+      lappend c_files $file_obj
     }
   }
-  return $sc_files
+  return $c_files
+}
+
+proc xcs_add_c_files_from_xci { comp_file c_filter c_files_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $c_files_arg c_files
+
+  set ip_name [file root [file tail $comp_file]]
+  set ip [get_ips -quiet -all $ip_name]
+  if { "" != $ip } {
+    set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
+    if { "tlm" == $selected_sim_model } {
+      foreach ip_file_obj [get_files -quiet -all -filter $c_filter -of_objects $ip] {
+        set used_in_values [get_property "USED_IN" $ip_file_obj]
+        if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
+          continue;
+        }
+        set c_files [concat $c_files $ip_file_obj]
+      }
+    }
+  }
 }
 
 proc xcs_contains_C_files {} {

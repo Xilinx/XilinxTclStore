@@ -589,7 +589,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set c_header_filter   "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")"
 
     # fetch systemc files
-    set sc_files [xcs_get_sc_files $sc_filter]
+    set sc_files [xcs_get_c_files $sc_filter]
     if { [llength $sc_files] > 0 } {
       set g_files {}
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
@@ -634,7 +634,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
 
     # fetch cpp files
-    set cpp_files [get_files -quiet -all -filter $cpp_filter]
+    set cpp_files [xcs_get_c_files $cpp_filter]
     if { [llength $cpp_files] > 0 } {
       set g_files {}
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
@@ -676,7 +676,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
 
     # fetch c files
-    set c_files [get_files -quiet -all -filter $c_filter]
+    set c_files [xcs_get_c_files $c_filter]
     if { [llength $c_files] > 0 } {
       set g_files {}
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."

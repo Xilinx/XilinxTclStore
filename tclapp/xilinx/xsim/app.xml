@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1</revision_history>
+      <revision_history>fetch systemc sources from the parent composite file for a BD if selected sim model is tlm</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
