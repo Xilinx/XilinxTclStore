@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fetch systemc sources for the BD if it is a top level BD with no parent composite</revision_history>
+      <revision_history>Adding -quiet to set_msg_config and reset_msg_config. Removing the set_msg_config commands from appearing in the generated tcl</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

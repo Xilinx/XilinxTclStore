@@ -1,3 +1,4 @@
+3.375 Adding -quiet to set_msg_config and reset_msg_config. Removing the set_msg_config commands from appearing in the generated tcl
 3.374 fetch systemc sources for the BD if it is a top level BD with no parent composite
 3.373 fetch systemc sources from the parent composite file for a BD if selected sim model is tlm
 3.372 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
