@@ -539,15 +539,6 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "set proj_dir \[get_property directory \[current_project\]\]"
 
   lappend l_script_data ""
-  lappend l_script_data "# Reconstruct message rules"
-
-  set msg_control_rules [ debug::get_msg_control_rules -as_tcl ]
-  if { [string length $msg_control_rules] > 0 } {
-    lappend l_script_data "${msg_control_rules}"
-  } else {
-    lappend l_script_data "# None"
-  }
-  lappend l_script_data ""
 }
 
 proc wr_project_properties { proj_dir proj_name } {
@@ -3157,14 +3148,14 @@ proc suppress_messages {} {
     }
   }
   foreach level $levels_to_suppress {
-    set_msg_config -suppress -severity $level
+    set_msg_config -quiet -suppress -severity $level
   }
 }
 
 proc reset_msg_setting {} {
   variable levels_to_suppress
   foreach level $levels_to_suppress {
-    reset_msg_config -suppress -severity $level
+    reset_msg_config -quiet -suppress -severity $level
   }
 }
 }
