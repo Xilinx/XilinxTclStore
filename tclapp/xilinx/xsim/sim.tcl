@@ -2391,7 +2391,13 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   }
     
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
-    puts $fh_scr "quit"
+    set b_no_quit [get_property "XSIM.SIMULATE.NO_QUIT" $fs_obj]
+    if { $b_no_quit } {
+      # do not quit simulation
+    } else {
+      # quit simulation
+      puts $fh_scr "quit"
+    }
   }
   close $fh_scr
 }
