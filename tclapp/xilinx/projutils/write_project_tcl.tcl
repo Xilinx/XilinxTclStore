@@ -2496,7 +2496,7 @@ proc write_specified_gadget { proj_dir proj_name gadget dashboard} {
   set gadgetName [get_property name [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"]]]
   set gadgetType [get_property type [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"]]]
 
-  set cmd_str "create_dashboard_gadget -name {$gadgetName} -type $gadgetType -dashboard $dashboard"
+  set cmd_str "create_dashboard_gadget -name {$gadgetName} -type $gadgetType"
 
   lappend l_script_data "# Create '$gadgetName' gadget (if not found)"
   lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets -of_objects \[get_dashboards $db_name\] \[ list \"$gadget\" \] \] \"\"\]\} \{"
