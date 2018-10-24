@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixing the change in the create_dashboard_gadget command which was changed to not take -dashboard option</revision_history>
+      <revision_history>Renamed -help- TCL proc in write_project_tcl generated script to remove conflict with vivado help</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
