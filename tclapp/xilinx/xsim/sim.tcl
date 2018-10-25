@@ -2263,6 +2263,18 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
     lappend args_list "\{$log_file\}"
   }
 
+  # allow positional args from command line
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
+    set b_positional_args [get_property "XSIM.SIMULATE.ADD_POSITIONAL" $fs_obj]
+    if { $b_positional_args } {
+      if {$::tcl_platform(platform) == "unix"} {
+        lappend args_list "\$*"
+      } else { 
+        lappend args_list "%*"
+      }
+    }
+  }
+
   # more options
   set more_sim_options [string trim [get_property "XSIM.SIMULATE.XSIM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
