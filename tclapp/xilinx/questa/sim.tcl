@@ -902,6 +902,12 @@ proc usf_questa_get_elaboration_cmdline {} {
     set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
   }
 
+  if { $a_sim_vars(b_int_compile_glbl) } {
+    if { ([lsearch -exact $arg_list "unisims_ver"] == -1) } {
+      set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+    }
+  }
+
   # add secureip
   set arg_list [linsert $arg_list end "-L" "secureip"]
 

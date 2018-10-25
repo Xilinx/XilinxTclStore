@@ -1958,6 +1958,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-L unimacro_ver"
   }
 
+  if { $a_sim_vars(b_int_compile_glbl) } {
+    if { ([lsearch -exact $args_list "unisims_ver"] == -1) } {
+      lappend args_list "-L unisims_ver"
+    }
+  }
+
   # add secureip
   lappend args_list "-L secureip"
   
