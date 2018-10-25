@@ -82,7 +82,7 @@ proc usf_init_vars {} {
  
   # data file extension types 
   variable s_data_files_filter
-  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\""
+  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"STATIC MEMORY FILE\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\""
 
   # embedded file extension types 
   variable s_embedded_files_filter

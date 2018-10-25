@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>option to add parameter for passing command line arguments to XSim</revision_history>
+      <revision_history>support for static memory data file</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
