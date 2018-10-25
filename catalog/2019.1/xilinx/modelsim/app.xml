@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fetch systemc sources for the BD if it is a top level BD with no parent composite</revision_history>
+      <revision_history>support for static memory data file</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

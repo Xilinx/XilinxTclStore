@@ -1,3 +1,4 @@
+2.270 support for static memory data file
 2.269 option to add parameter for passing command line arguments to XSim
 2.268 option to disable quit from simulation run
 2.267 fetch systemc sources for the BD if it is a top level BD with no parent composite

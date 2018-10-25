@@ -1,3 +1,4 @@
+3.378 support for static memory data file
 3.377 Renamed -help- TCL proc in write_project_tcl generated script to remove conflict with vivado help
 3.376 Fixing the change in the create_dashboard_gadget command which was changed to not take -dashboard option
 3.375 Adding -quiet to set_msg_config and reset_msg_config. Removing the set_msg_config commands from appearing in the generated tcl
