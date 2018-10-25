@@ -170,6 +170,9 @@ proc usf_questa_setup_simulation { args } {
     }
   }
 
+  # extract simulation model library info
+  xcs_fetch_lib_info "questa" $a_sim_vars(s_clibs_dir)
+
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
@@ -185,6 +188,16 @@ proc usf_questa_setup_simulation { args } {
 
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
+
+  # systemC headers
+  set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
+
+  # find shared library paths from all IPs
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { [xcs_contains_C_files] } {
+      xcs_find_shared_lib_paths "questa" $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
+    }
+  }
 
   # fetch design files
   set global_files_str {}
@@ -221,9 +234,12 @@ proc usf_questa_setup_args { args } {
   # [-install_path <arg>]: Custom Questa installation directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-run_dir <arg>]: Simulation run directory
+  # [-int_sm_lib_dir <arg>]: Simulation model library directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_compile_glbl]: Compile glbl (internal use)
+  # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -236,25 +252,27 @@ proc usf_questa_setup_args { args } {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-simset"         { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_simset) [lindex $args $i] }
-      "-mode"           { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_mode) [lindex $args $i] }
-      "-type"           { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_type) [lindex $args $i] }
-      "-scripts_only"   { set ::tclapp::xilinx::questa::a_sim_vars(b_scripts_only) 1 }
-      "-of_objects"     { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_comp_file) [lindex $args $i]}
-      "-absolute_path"  { set ::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) 1 }
-      "-lib_map_path"   { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_lib_map_path) [lindex $args $i] }
-      "-install_path"   { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_install_path) [lindex $args $i];\
-                                 set ::tclapp::xilinx::questa::a_sim_vars(b_install_path_specified) 1 }
-      "-batch"          { set ::tclapp::xilinx::questa::a_sim_vars(b_batch) 1 }
-      "-run_dir"        { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_launch_dir) [lindex $args $i] }
-      "-int_os_type"    { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_os_type) [lindex $args $i] }
-      "-int_debug_mode" { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
-      "-int_systemc_mode" { set ::tclapp::xilinx::questa::a_sim_vars(b_int_systemc_mode) 1 }
+      "-simset"               { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_simset) [lindex $args $i]          }
+      "-mode"                 { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_mode) [lindex $args $i]            }
+      "-type"                 { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_type) [lindex $args $i]            }
+      "-scripts_only"         { set ::tclapp::xilinx::questa::a_sim_vars(b_scripts_only) 1                           }
+      "-of_objects"           { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_comp_file) [lindex $args $i]       }
+      "-absolute_path"        { set ::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) 1                          }
+      "-lib_map_path"         { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
+      "-install_path"         { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_install_path) [lindex $args $i];\
+                                 set ::tclapp::xilinx::questa::a_sim_vars(b_install_path_specified) 1                }
+      "-batch"                { set ::tclapp::xilinx::questa::a_sim_vars(b_batch) 1                                  }
+      "-run_dir"              { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_launch_dir) [lindex $args $i]      }
+      "-int_os_type"          { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_os_type) [lindex $args $i]     }
+      "-int_debug_mode"       { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_systemc_mode"     { set ::tclapp::xilinx::questa::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_sm_lib_dir"       { incr i;set ::tclapp::xilinx::questa::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
+      "-int_compile_glbl"     { set ::tclapp::xilinx::questa::a_sim_vars(b_int_compile_glbl) 1                       }
+      "-int_sm_lib_ref_debug" { set ::tclapp::xilinx::questa::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
-          send_msg_id USF-Questa-006 ERROR "Unknown option '$option', please type 'launch_simulation -help' for usage info.\n"
-          return 1
+          send_msg_id USF-Questa-006 WARNING "Unknown option '$option' specified (ignored)\n"
         }
       }
     }
@@ -462,9 +480,9 @@ proc usf_questa_create_wave_do_file { file } {
     return 1
   }
   usf_questa_write_header $fh $file
-  puts $fh "add wave *"
+  puts $fh "if \{ \[catch \{\[add wave *\]\}\] \} \{\}"
 
-  if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+  if { ([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) } {
     puts $fh "add wave /glbl/GSR"
   }
   close $fh
@@ -679,7 +697,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]]
-    if { [xcs_compile_glbl_file "questa" $b_load_glbl $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+    if { [xcs_compile_glbl_file "questa" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
@@ -687,7 +705,8 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     }
   } else {
     # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang) } {
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl))) } {
       if { ({timing} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
@@ -946,10 +965,10 @@ proc usf_questa_get_simulation_cmdline {} {
   set int_delay 0
   set tpd_prop "TRANSPORT_PATH_DELAY"
   set tid_prop "TRANSPORT_INT_DELAY"
-  if { [lsearch -exact [list_property $fs_obj] $tpd_prop] != -1 } {
+  if { [lsearch -exact [list_property -quiet $fs_obj] $tpd_prop] != -1 } {
     set path_delay [get_property $tpd_prop $fs_obj]
   }
-  if { [lsearch -exact [list_property $fs_obj] $tid_prop] != -1 } {
+  if { [lsearch -exact [list_property -quiet $fs_obj] $tid_prop] != -1 } {
     set int_delay [get_property $tid_prop $fs_obj]
   }
 
@@ -964,6 +983,15 @@ proc usf_questa_get_simulation_cmdline {} {
   set more_sim_options [string trim [get_property "QUESTA.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_sim_options } {
     set arg_list [linsert $arg_list end "$more_sim_options"]
+  }
+
+  if { [xcs_find_ip "gt_quad_base"] } {
+    set gt_lib "gtye5_quad"
+    set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $dir]"
+    set clibs_dir [string map {\\ /} $clibs_dir]
+    # default install location
+    set shared_lib_dir "${clibs_dir}/secureip"
+    lappend arg_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
   }
 
   if { [get_param "project.allowSharedLibraryType"] } {
@@ -1029,9 +1057,9 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_top_level_glbl_inst_set 1
   }
 
+  set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" $fs_obj]
   if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $b_verilog_sim_netlist } {
     if { {behav_sim} == $sim_flow } {
-      set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" $fs_obj]
       if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
         set b_add_glbl 1
       }
@@ -1040,6 +1068,19 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
       if { !$b_top_level_glbl_inst_set } {
         set b_add_glbl 1
       }
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $a_sim_vars(b_int_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $b_load_glbl } {
+      # TODO: revisit this for pure vhdl, causing failures
+      #set b_add_glbl 1
     }
   }
 
@@ -1265,8 +1306,11 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         if { {elaborate} == $step } {
           set shared_ip_libs [list]
 
-          foreach sc_lib [xcs_get_sc_libs] {
-            set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
+          variable a_shared_library_path_coln
+          foreach {key value} [array get a_shared_library_path_coln] {
+            set sc_lib   $key
+            set lib_path $value
+            set lib_dir "$lib_path"
             lappend shared_ip_libs $lib_dir
           }
   
@@ -1454,17 +1498,20 @@ proc usf_questa_get_sccom_cmd_args {} {
       if { {} != $more_opts } {
         lappend args "$more_opts"
       }
-     
-      set sc_libs [xcs_get_sc_libs]
-      if { [llength $sc_libs] > 0 } {
-        foreach sc_lib $sc_libs {
-          set lib_dir "$a_sim_vars(s_clibs_dir)/$sc_lib"
-          lappend args "-lib $sc_lib"
-          if { {remote_port_v4} == $sc_lib } {
-            set lib_name "${sc_lib}_c"
-            lappend args "-L$lib_dir"
-            lappend args "-l$lib_name"
-          }
+
+      variable a_shared_library_path_coln
+      foreach {key value} [array get a_shared_library_path_coln] {
+        set sc_lib   $key
+        set lib_path $value
+        set lib_name [file root $sc_lib]
+        set lib_name [string trimleft $lib_name {lib}]
+        lappend args "-lib $lib_name"
+
+        set lib_dir "$lib_path"
+        if { {remote_port_v4} == $lib_name } {
+          set lib_name "lib${lib_name}_c"
+          lappend args "-L$lib_dir"
+          lappend args "-l$lib_name"
         }
       }
   

@@ -1,0 +1,20 @@
+
+Description: 
+
+    Opens routed design checkpoint in the current project context for DSA generation.
+
+Arguments:
+
+    <routed_dcp> - (Required) Routed dcp for which DSA generation is required.
+
+    -exclude_constrs - (Optional) List of constraint file to be excluded from generation of DSA.
+
+Examples:
+
+    1. To open routed design checkpoint 'full_routed.dcp' in current project context for DSA generation.
+        
+        % xilinx::x2rp::open_checkpoint_for_dsa_generation -routed_dcp full_routed.dcp
+
+    2. To open routed design checkpoint 'full_routed.dcp' in current project context for DSA generation and exclude some constraint files as well.
+    
+        % xilinx::x2rp::open_checkpoint_for_dsa_generation -routed_dcp ./test2/full_routed.dcp -exclude_constrs [get_files rest.xdc]

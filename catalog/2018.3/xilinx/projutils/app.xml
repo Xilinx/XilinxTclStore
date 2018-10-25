@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>compile xilinx_vip locally if mapping not found or if running in non-precompile mode</revision_history>
+      <revision_history>Renamed -help- TCL proc in write_project_tcl generated script to remove conflict with vivado help</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
