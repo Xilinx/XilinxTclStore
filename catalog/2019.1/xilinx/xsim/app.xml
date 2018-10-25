@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for static memory data file</revision_history>
+      <revision_history>reference unisims_ver for VHDL based designs instantiating verilog primitives</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
