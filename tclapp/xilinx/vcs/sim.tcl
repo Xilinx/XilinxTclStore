@@ -736,7 +736,7 @@ proc usf_vcs_write_elaborate_script {} {
     set obj_files [glob -nocomplain -directory $clibs_dir *.o]
     if { [llength $obj_files] > 0 } {
       set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
-      lappend arg_list $gcc_cmd
+      #lappend arg_list $gcc_cmd
     }
   }
 
