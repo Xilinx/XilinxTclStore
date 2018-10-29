@@ -1,3 +1,4 @@
+8.2 use compile order for cosim using internal switch
 8.1 disable gt quad
 8.0 support for static memory data file
 7.8 fetch systemc sources for the BD if it is a top level BD with no parent composite

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>disable gt quad</revision_history>
+      <revision_history>use compile order for cosim using internal switch</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
