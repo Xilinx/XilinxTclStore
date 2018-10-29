@@ -3336,41 +3336,47 @@ proc xcs_get_shared_ip_libraries { clibs_dir } {
   return $shared_ip_libs
 }
 
-proc xcs_get_c_files { c_filter } {
+proc xcs_get_c_files { c_filter {b_csim_compile_order 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
  
   set c_files [list]
-  foreach file_obj [get_files -quiet -all -filter $c_filter] {
-    if { [lsearch -exact [list_property -quiet $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
-      set comp_file [get_property parent_composite_file -quiet $file_obj]
-      if { "" == $comp_file } {
-        continue
-      }
-      set file_extn [file extension $comp_file]
-      if { (".xci" == $file_extn) } {
-        xcs_add_c_files_from_xci $comp_file $c_filter c_files
-      } elseif { (".bd" == $file_extn) } {
-        set bd_file_name [file tail $comp_file]
-        set bd_obj [get_files -quiet -all $bd_file_name]
-        if { "" != $bd_obj } {
-          if { [lsearch -exact [list_property -quiet $bd_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
-            set comp_file [get_property parent_composite_file -quiet $bd_obj]
-            if { "" != $comp_file } {
-              set file_extn [file extension $comp_file]
-              if { (".xci" == $file_extn) } {
-                xcs_add_c_files_from_xci $comp_file $c_filter c_files
+  if { $b_csim_compile_order } {
+    foreach file_obj [get_files -quiet -compile_order sources -used_in simulation -filter $c_filter -of_objects [current_fileset -simset]] {
+      lappend c_files $file_obj
+    }
+  } else {
+    foreach file_obj [get_files -quiet -all -filter $c_filter] {
+      if { [lsearch -exact [list_property -quiet $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+        set comp_file [get_property parent_composite_file -quiet $file_obj]
+        if { "" == $comp_file } {
+          continue
+        }
+        set file_extn [file extension $comp_file]
+        if { (".xci" == $file_extn) } {
+          xcs_add_c_files_from_xci $comp_file $c_filter c_files
+        } elseif { (".bd" == $file_extn) } {
+          set bd_file_name [file tail $comp_file]
+          set bd_obj [get_files -quiet -all $bd_file_name]
+          if { "" != $bd_obj } {
+            if { [lsearch -exact [list_property -quiet $bd_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+              set comp_file [get_property parent_composite_file -quiet $bd_obj]
+              if { "" != $comp_file } {
+                set file_extn [file extension $comp_file]
+                if { (".xci" == $file_extn) } {
+                  xcs_add_c_files_from_xci $comp_file $c_filter c_files
+                }
               }
+            } else {
+              # this is top level BD for this SystemC/CPP/C file, so add it
+              lappend c_files $file_obj
             }
-          } else {
-            # this is top level BD for this SystemC/CPP/C file, so add it
-            lappend c_files $file_obj
           }
         }
+      } else {
+        lappend c_files $file_obj
       }
-    } else {
-      lappend c_files $file_obj
     }
   }
   return $c_files

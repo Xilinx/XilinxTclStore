@@ -47,6 +47,8 @@ proc usf_init_vars {} {
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
   set a_sim_vars(b_int_compile_glbl) 0
+  set a_sim_vars(b_int_sm_lib_ref_debug) 0
+  set a_sim_vars(b_int_csim_compile_order) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]

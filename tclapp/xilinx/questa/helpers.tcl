@@ -50,6 +50,7 @@ proc usf_init_vars {} {
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
   set a_sim_vars(b_int_sm_lib_ref_debug) 0
+  set a_sim_vars(b_int_csim_compile_order) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
@@ -589,7 +590,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set c_header_filter   "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")"
 
     # fetch systemc files
-    set sc_files [xcs_get_c_files $sc_filter]
+    set sc_files [xcs_get_c_files $sc_filter $a_sim_vars(b_int_csim_compile_order)]
     if { [llength $sc_files] > 0 } {
       set g_files {}
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
@@ -634,7 +635,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
 
     # fetch cpp files
-    set cpp_files [xcs_get_c_files $cpp_filter]
+    set cpp_files [xcs_get_c_files $cpp_filter $a_sim_vars(b_int_csim_compile_order)]
     if { [llength $cpp_files] > 0 } {
       set g_files {}
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
@@ -676,7 +677,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
 
     # fetch c files
-    set c_files [xcs_get_c_files $c_filter]
+    set c_files [xcs_get_c_files $c_filter $a_sim_vars(b_int_csim_compile_order)]
     if { [llength $c_files] > 0 } {
       set g_files {}
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
