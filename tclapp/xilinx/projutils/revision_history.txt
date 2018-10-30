@@ -1,3 +1,4 @@
+3.380 Fix get_dashboard_gadgets command to remove -of_objects support
 3.379 use compile order for cosim using internal switch
 3.378 support for static memory data file
 3.377 Renamed -help- TCL proc in write_project_tcl generated script to remove conflict with vivado help
