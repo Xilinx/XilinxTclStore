@@ -2466,24 +2466,12 @@ proc wr_dashboards { proj_dir proj_name } {
   # get all dash boards
   # For each dash boards
   # 	create dash board
-  variable l_script_data
 
-  set dashboardsExist 0
-  set dashboards [get_dashboards]
-  foreach db $dashboards {
-    write_specified_dashboard $proj_dir $proj_name $db
-    set dashboardsExist 1
-  }
-  if { $dashboardsExist == 0} {
-    return 
-  }
+  write_specified_dashboard $proj_dir $proj_name 
 
-  set currentDashboard [current_dashboard]
-  lappend l_script_data "# Set current dashboard to '$currentDashboard' "
-  lappend l_script_data "current_dashboard $currentDashboard "
 }
 
-proc write_specified_gadget { proj_dir proj_name gadget dashboard} {
+proc write_specified_gadget { proj_dir proj_name gadget } {
   # Summary: write the specified gadget 
   # This helper command is used to script help.
   # Argument Usage: 
@@ -2491,26 +2479,25 @@ proc write_specified_gadget { proj_dir proj_name gadget dashboard} {
   # none 
   
   variable l_script_data
-  set db_name [get_property name [get_dashboards $dashboard]]
 
-  set gadgetName [get_property name [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"]]]
-  set gadgetType [get_property type [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"]]]
+  set gadgetName [get_property name [get_dashboard_gadgets [list "$gadget"]]]
+  set gadgetType [get_property type [get_dashboard_gadgets [list "$gadget"]]]
 
   set cmd_str "create_dashboard_gadget -name {$gadgetName} -type $gadgetType"
 
   lappend l_script_data "# Create '$gadgetName' gadget (if not found)"
-  lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets -of_objects \[get_dashboards $db_name\] \[ list \"$gadget\" \] \] \"\"\]\} \{"
+  lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets  \[ list \"$gadget\" \] \] \"\"\]\} \{"
   lappend l_script_data "$cmd_str"
   lappend l_script_data "\}"
 
-  lappend l_script_data "set obj \[get_dashboard_gadgets -of_objects \[get_dashboards $db_name\] \[ list \"$gadget\" \] \]"
-  set tcl_obj [get_dashboard_gadgets -of_objects [get_dashboards $db_name] [list "$gadget"] ]
-  set get_what "get_dashboard_gadgets -of_objects \[get_dashboards $db_name\]"
+  lappend l_script_data "set obj \[get_dashboard_gadgets \[ list \"$gadget\" \] \]"
+  set tcl_obj [get_dashboard_gadgets [list "$gadget"] ]
+  set get_what "get_dashboard_gadgets "
   write_props $proj_dir $proj_name $get_what $tcl_obj "gadget" "$"
 }
 
 
-proc write_specified_dashboard { proj_dir proj_name dashboard } {
+proc write_specified_dashboard { proj_dir proj_name } {
   # Summary: write the specified dashboard 
   # This helper command is used to script help.
   # Argument Usage: 
@@ -2518,41 +2505,34 @@ proc write_specified_dashboard { proj_dir proj_name dashboard } {
   # none 
 
   variable l_script_data
-  set get_what "get_dashboards"
-
-  set dashboardName [get_property name  [$get_what $dashboard]]
-
-  lappend l_script_data "set obj \[$get_what $dashboard\]"
-  write_props $proj_dir $proj_name $get_what $dashboard "dashboard"
 
   #Create map of gadgets wrt to their position, so that gadget position can be restored.
   set gadgetPositionMap [dict create]
 
   ##get gadgets of this dashboard
-  set gadgets [get_dashboard_gadgets -of_objects [$get_what $dashboard]]
+  set gadgets [get_dashboard_gadgets ]
   foreach gd $gadgets {
-    write_specified_gadget $proj_dir $proj_name $gd $dashboard
-    set gadgetCol [get_property COL [get_dashboard_gadgets -of_objects [$get_what $dashboard] [list "$gd"]]]
-    set gadgetRow [get_property ROW [get_dashboard_gadgets -of_objects [$get_what $dashboard] [list "$gd"]]]
+    write_specified_gadget $proj_dir $proj_name $gd 
+    set gadgetCol [get_property COL [get_dashboard_gadgets [list "$gd"]]]
+    set gadgetRow [get_property ROW [get_dashboard_gadgets [list "$gd"]]]
     dict set gadgetPositionMap $gadgetCol $gadgetRow $gd
   }
 
   #if current dashboard is "default_dashboard"
   #check if the above "gadgets" variable has all the default_gadgets, if any default gadget is not there in "gadgets" variable, it means user has deleted those gadgets but as part of create_project, all the default gadgets are created. So we have to delete the gadgets which user has deleted. 
-  set def_db "default_dashboard"
-  if { [string equal $def_db $dashboard] } {
+
     set default_gadgets {"drc_1" "methodology_1" "power_1" "timing_1" "utilization_1" "utilization_2"}
     foreach dgd $default_gadgets {
       #if dgd is not in gadgets, then delete dgd
       if {$dgd ni $gadgets } {
         lappend l_script_data "# Delete the gadget '$dgd' "
-        lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets -of_objects \[$get_what $dashboard\] \[ list \"$dgd\" \] \] \"$dgd\"\]\} \{"
+        lappend l_script_data "if \{\[string equal \[get_dashboard_gadgets \[ list \"$dgd\" \] \] \"$dgd\"\]\} \{"
         set cmd_str "delete_dashboard_gadgets -gadgets $dgd"
         lappend l_script_data "$cmd_str"
         lappend l_script_data "\}"
       }
     }
-  }
+
 
   foreach col [lsort [dict keys $gadgetPositionMap]] {
     set rowDict [dict get $gadgetPositionMap $col]
