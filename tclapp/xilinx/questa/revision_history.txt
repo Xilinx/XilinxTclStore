@@ -1,3 +1,4 @@
+2.139 enable GT simulation
 2.138 use compile order for cosim using internal switch
 2.137 disable gt quad
 2.136 reference unisims_ver for VHDL based designs instantiating verilog primitives
