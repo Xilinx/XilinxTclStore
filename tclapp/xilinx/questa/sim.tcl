@@ -999,7 +999,7 @@ proc usf_questa_get_simulation_cmdline {} {
     set clibs_dir [string map {\\ /} $clibs_dir]
     # default install location
     set shared_lib_dir "${clibs_dir}/secureip"
-    #lappend arg_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
+    lappend arg_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
   }
 
   if { [get_param "project.allowSharedLibraryType"] } {
