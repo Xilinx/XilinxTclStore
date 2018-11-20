@@ -83,6 +83,7 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(exclude_constrs_provided) 0
     set a_global_vars(open_design_for_dsa_gen) 0
     set a_global_vars(generate_base_only) 0
+    set a_global_vars(generate_rl_only) 0
 
     # directives - defaults
     set a_global_vars(enable_post_place_phys_opt) 0
@@ -407,6 +408,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # [-rl_scripts <arg>]: Directory which has pre/post tcl scripts used after rl platform generation.
     # [-open_design_for_dsa_gen]: Opens routed design checkpoint in current project context for DSA generation. (Default: 0)
     # [-generate_base_only]: Only generates base platform dcp. (Default: 0)
+    # [-generate_rl_only]: Only generates rl platform dcp. (Default: 0)
 
     # Return Value:
     # Generates full and partial bit streams for a 2RP design.
@@ -431,7 +433,10 @@ proc ::tclapp::xilinx::x2rp::run {args} {
             }   
             "-generate_base_only" {
                 set a_global_vars(generate_base_only) 1
-            }                    
+            } 
+            "-generate_rl_only" {
+                set a_global_vars(generate_rl_only) 1
+            }                     
             "-enable_post_place_phys_opt" {
                 set a_global_vars(enable_post_place_phys_opt) 1
             }
@@ -732,6 +737,10 @@ proc ::tclapp::xilinx::x2rp::run {args} {
             set a_global_vars(platform) [file join $a_global_vars(output_dir) $a_global_vars(platform)]
             ::tclapp::xilinx::x2rp::log 020 INFO "Generate RL platform step completed. RL Platform = $a_global_vars(platform)"
             close_project
+
+            if { $a_global_vars(generate_rl_only) } {
+                return
+            }
         }
 
         # At this stage we must have rl platform knowledge
@@ -937,7 +946,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) route_design post
     ::tclapp::xilinx::x2rp::log 055 INFO "Route design completed"      
 
-    if { [::tclapp::xilinx::x2rp::check_if_met_timing route] } {
+    if { [::tclapp::xilinx::x2rp::check_if_met_timing route post_rl_platform] } {
         ::tclapp::xilinx::x2rp::log 056 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]"
         write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(full_routed_design)]
         ::tclapp::xilinx::x2rp::post_met_timing
@@ -958,7 +967,7 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) post_route_phys_opt_design post
     ::tclapp::xilinx::x2rp::log 059 INFO "Post route physical opt design completed"   
 
-    if { [::tclapp::xilinx::x2rp::check_if_met_timing rt_physopt] } {
+    if { [::tclapp::xilinx::x2rp::check_if_met_timing rt_physopt post_rl_platform] } {
         ::tclapp::xilinx::x2rp::log 060 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_route_phys_opt)]"
         write_checkpoint -force  [file join $a_global_vars(output_dir) $a_global_vars(post_route_phys_opt)]
         ::tclapp::xilinx::x2rp::post_met_timing
@@ -968,18 +977,24 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     ::tclapp::xilinx::x2rp::log 061 ERROR "Design did not meet the timing." 
 }
 
-proc ::tclapp::xilinx::x2rp::check_if_met_timing {{stage ""}} {
+proc ::tclapp::xilinx::x2rp::check_if_met_timing {{stage ""} {platform_stage ""}} {
     variable a_global_vars
 
     if { ![string equal $stage ""] } {
-        report_timing -delay_type max -path_type full_clock_expanded -max_paths 10 -nworst 1 -input_pins -slice_pins -sort_by group -significant_digits 3 -file [file join $a_global_vars(output_dir) ${stage}_max.timing.txt]
-        report_timing -delay_type min -path_type full_clock_expanded -max_paths 10 -nworst 1 -input_pins -slice_pins -sort_by group -significant_digits 3 -file [file join $a_global_vars(output_dir) ${stage}_min.timing.txt]
+        report_timing -delay_type max -path_type full_clock_expanded -max_paths 10 -nworst 1 -input_pins -slice_pins -sort_by group -significant_digits 3 -file [file join $a_global_vars(output_dir) ${stage}_max.${platform_stage}.timing.txt]
+        report_timing -delay_type min -path_type full_clock_expanded -max_paths 10 -nworst 1 -input_pins -slice_pins -sort_by group -significant_digits 3 -file [file join $a_global_vars(output_dir) ${stage}_min.${platform_stage}.timing.txt]
     }
     set setupPaths [get_timing_paths -max_paths 1 -slack_lesser_than 0 -setup]
 	set holdPaths [get_timing_paths -max_paths 1 -slack_lesser_than 0 -hold]
+
+    if {[string equal $platform_stage "base_platform"]} { set platform_stage "base platform"} else { set platform_stage "post rl platform"}
+
 	if {[llength $setupPaths] == 0 && [llength $holdPaths] == 0} {
+        ::tclapp::xilinx::x2rp::log 094 INFO "Design has met timing at ${stage}_design step of $platform_stage generation phase."
         return 1
 	}
+
+    ::tclapp::xilinx::x2rp::log 094 INFO "Design has not met timing at ${stage}_design step of $platform_stage generation phase."
     return 0
 }
 
@@ -1275,19 +1290,23 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) route_design post
 
-    ::tclapp::xilinx::x2rp::log 084 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) ${top}_routed.dcp]"
-    write_checkpoint -force [file join $a_global_vars(output_dir) ${top}_routed.dcp]
+    if { [::tclapp::xilinx::x2rp::check_if_met_timing route base_platform] } {
+        ::tclapp::xilinx::x2rp::log 084 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) ${top}_routed.dcp]"
+        write_checkpoint -force [file join $a_global_vars(output_dir) ${top}_routed.dcp]
+    } elseif { [::tclapp::xilinx::x2rp::check_if_met_timing rt_physopt base_platform] } {
+        ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) post_route_phys_opt_design pre
 
-    ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) post_route_phys_opt_design pre
+        ::tclapp::xilinx::x2rp::log 085 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(bp_post_route_phys_opt_directive)"
+        set post_route_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(bp_post_route_phys_opt_directive)"
+        eval $post_route_phys_opt_design_cmd
 
-    ::tclapp::xilinx::x2rp::log 085 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(bp_post_route_phys_opt_directive)"
-    set post_route_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(bp_post_route_phys_opt_directive)"
-    eval $post_route_phys_opt_design_cmd
+        ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) post_route_phys_opt_design post
 
-    ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) post_route_phys_opt_design post
-
-    ::tclapp::xilinx::x2rp::log 086 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) ${top}_postrtphysopt.dcp]"
-    write_checkpoint -force  [file join $a_global_vars(output_dir) ${top}_postrtphysopt.dcp]
+        ::tclapp::xilinx::x2rp::log 086 INFO "Executing Cmd: write_checkpoint -force  [file join $a_global_vars(output_dir) ${top}_postrtphysopt.dcp]"
+        write_checkpoint -force  [file join $a_global_vars(output_dir) ${top}_postrtphysopt.dcp]
+    } else {
+        ::tclapp::xilinx::x2rp::log 095 ERROR "Design did not meet timing during base platform generation." 
+    }
 
     set wrapper_cell [get_cells -hierarchical -filter {HD.RECONFIGURABLE == 1} -quiet]
 
@@ -1300,7 +1319,7 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
     # Pre-requisites to create base platform
     # (1) for your base platform implementation, create a static PBLOCK and make sure the RP PBLOCK covers the rest of the device 
     # (2) set_property HD.PLATFORM_WRAPPER 1 on your base platform reconfigurable module (wrapper).
-    
+
     ::tclapp::xilinx::x2rp::log 089 INFO "Executing Cmd: set_property HD.PLATFORM_WRAPPER 1 $wrapper_cell"
     set_property HD.PLATFORM_WRAPPER 1 $wrapper_cell
     
