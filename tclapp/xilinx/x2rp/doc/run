@@ -63,6 +63,8 @@ Arguments:
     
     -generate_base_only - (Optional) Only generates base platform dcp. (Default: 0)
 
+    -generate_rl_only - (Optional) Only generates rl platform dcp. (Default: 0)
+
     
 Examples:
 
