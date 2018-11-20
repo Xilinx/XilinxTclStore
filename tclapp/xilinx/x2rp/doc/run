@@ -35,6 +35,30 @@ Arguments:
 
     -post_route_phys_opt_directive - (Optional) Directive for post route phys opt design step.
 
+    -bp_enable_post_place_phys_opt - (Optional) Enable post place physical optimization for base platform generation (Default: 0).
+
+    -bp_opt_directive - (Optional) Directive for opt design step for base platform generation.
+
+    -bp_place_directive - (Optional) Directive for place design step for base platform generation.
+
+    -bp_post_place_phys_opt_directive - (Optional) Directive for post place phys opt design step for base platform generation.
+
+    -bp_route_directive <arg> - (Optional) Directive for route design step for base platform generation.
+
+    -bp_post_route_phys_opt_directive - (Optional) Directive for post route phys opt design step for base platform generation.    
+
+    -base_scripts - (Optional) Directory which has pre/post tcl scripts for base platform generation.
+                    Inside the folder it will look for pre/post scripts in <pre|post><design step>.tcl format.
+                    Example: For design step link_design
+                        Pre script  = prelinkdesign.tcl
+                        Post script = postlinkdesign.tcl
+
+    -rl_scripts - (Optional) Directory which has pre/post tcl scripts used after rl platform generation.
+                    Inside the folder it will look for pre/post scripts in <pre|post><design step>.tcl format.
+                    Example: For design step place_design
+                        Pre script  = preplacedesign.tcl
+                        Post script = postplacedesign.tcl
+
     -open_design_for_dsa_gen - (Optional) Open routed design checkpoint in current project context for DSA generation. (Default: 0).
     
     -generate_base_only - (Optional) Only generates base platform dcp. (Default: 0)
