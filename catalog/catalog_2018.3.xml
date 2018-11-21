@@ -147,8 +147,8 @@
     <app>
       <name>x2rp</name>
       <company>xilinx</company>
-      <commit_id>61ef7ce9914f210daecf8a84dc15cb4be62191d5</commit_id>
-      <revision>1.10</revision>
+      <commit_id>54bf3382856378048ee265d36fa3ce43ef54ea4d</commit_id>
+      <revision>1.11</revision>
     </app>
     <app>
       <name>xcelium</name>
