@@ -1,3 +1,4 @@
+2.001 Fixed base platform default directives to empty strings, allowed empty strings for all directives.
 2.0 Revision update to 2.0.
 1.11 Added timing checks for base platform generation and generate_rl_only option.
 1.10 Added timing checks, directive options for base platform generations and pre/post scripts support for base and rl platform generation.
