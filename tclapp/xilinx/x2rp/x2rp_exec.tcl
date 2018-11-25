@@ -96,10 +96,10 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     # directives - for base platform generation
     set a_global_vars(bp_enable_post_place_phys_opt) 0
     set a_global_vars(bp_opt_directive) ""
-    set a_global_vars(bp_place_directive) "AltSpreadLogic_medium -fanout_opt"
-    set a_global_vars(bp_post_place_phys_opt_directive) "AggressiveExplore"
-    set a_global_vars(bp_route_directive) "Explore -tns_cleanup"
-    set a_global_vars(bp_post_route_phys_opt_directive) "AggressiveExplore"
+    set a_global_vars(bp_place_directive) ""
+    set a_global_vars(bp_post_place_phys_opt_directive) ""
+    set a_global_vars(bp_route_directive) ""
+    set a_global_vars(bp_post_route_phys_opt_directive) ""
 
     # pre/post scripts for base and rl platforms
     set a_global_vars(base_scripts) ""
@@ -400,10 +400,10 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # [-post_route_phys_opt_directive <arg> = AggressiveExplore]: Directive for post route phys opt design step. 
     # [-bp_enable_post_place_phys_opt]: Enable post place physical optimization for base platform generation (Default: 0).
     # [-bp_opt_directive <arg>]: Directive for opt design step for base platform generation.
-    # [-bp_place_directive <arg> = Explore -fanout_opt]: Directive for place design step for base platform generation.
-    # [-bp_post_place_phys_opt_directive <arg> = AggressiveExplore]: Directive for post place phys opt design step for base platform generation.
-    # [-bp_route_directive <arg> = Explore -tns_cleanup]: Directive for route design step for base platform generation.
-    # [-bp_post_route_phys_opt_directive <arg> = AggressiveExplore]: Directive for post route phys opt design step for base platform generation.    
+    # [-bp_place_directive <arg>]: Directive for place design step for base platform generation.
+    # [-bp_post_place_phys_opt_directive <arg>]: Directive for post place phys opt design step for base platform generation.
+    # [-bp_route_directive <arg>]: Directive for route design step for base platform generation.
+    # [-bp_post_route_phys_opt_directive <arg>]: Directive for post route phys opt design step for base platform generation.    
     # [-base_scripts <arg>]: Directory which has pre/post tcl scripts for base platform generation.
     # [-rl_scripts <arg>]: Directory which has pre/post tcl scripts used after rl platform generation.
     # [-open_design_for_dsa_gen]: Opens routed design checkpoint in current project context for DSA generation. (Default: 0)
@@ -880,9 +880,14 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) opt_design pre
 
-    ::tclapp::xilinx::x2rp::log 041 INFO "Executing Cmd: opt_design -directive $a_global_vars(opt_directive)"       
-    set opt_design_cmd "opt_design -directive $a_global_vars(opt_directive)"
-    eval $opt_design_cmd
+    if { [string equal $a_global_vars(opt_directive) ""] } {
+        ::tclapp::xilinx::x2rp::log 041 INFO "Executing Cmd: opt_design"
+        opt_design
+    } else {
+        ::tclapp::xilinx::x2rp::log 041 INFO "Executing Cmd: opt_design -directive $a_global_vars(opt_directive)"       
+        set opt_design_cmd "opt_design -directive $a_global_vars(opt_directive)"
+        eval $opt_design_cmd
+    }
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) opt_design post
     
@@ -901,9 +906,14 @@ proc ::tclapp::xilinx::x2rp::run {args} {
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) place_design pre        
 
-    ::tclapp::xilinx::x2rp::log 046 INFO "Executing Cmd: place_design -directive $a_global_vars(place_directive)"       
-    set place_design_cmd "place_design -directive $a_global_vars(place_directive)"
-    eval $place_design_cmd
+    if { [string equal $a_global_vars(place_directive) ""] } {
+        ::tclapp::xilinx::x2rp::log 046 INFO "Executing Cmd: place_design"
+        place_design
+    } else {
+        ::tclapp::xilinx::x2rp::log 046 INFO "Executing Cmd: place_design -directive $a_global_vars(place_directive)"       
+        set place_design_cmd "place_design -directive $a_global_vars(place_directive)"
+        eval $place_design_cmd
+    }
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) place_design post
 
@@ -920,9 +930,14 @@ proc ::tclapp::xilinx::x2rp::run {args} {
 
         ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) post_place_phys_opt_design pre
 
-        ::tclapp::xilinx::x2rp::log 050 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(post_place_phys_opt_directive)"     
-        set post_place_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(post_place_phys_opt_directive)"
-        eval $post_place_phys_opt_design_cmd
+        if { [string equal $a_global_vars(post_place_phys_opt_directive) ""] } {
+            ::tclapp::xilinx::x2rp::log 050 INFO "Executing Cmd: phys_opt_design"
+            phys_opt_design
+        } else {
+            ::tclapp::xilinx::x2rp::log 050 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(post_place_phys_opt_directive)"     
+            set post_place_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(post_place_phys_opt_directive)"
+            eval $post_place_phys_opt_design_cmd
+        }
         
         ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) post_place_phys_opt_design post
 
@@ -939,9 +954,14 @@ proc ::tclapp::xilinx::x2rp::run {args} {
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) route_design pre
 
-    ::tclapp::xilinx::x2rp::log 054 INFO "Executing Cmd: route_design -directive $a_global_vars(route_directive)"
-    set route_design_cmd "route_design -directive $a_global_vars(route_directive)"
-    eval $route_design_cmd
+    if { [string equal $a_global_vars(route_directive) ""] } {
+        ::tclapp::xilinx::x2rp::log 054 INFO "Executing Cmd: route_design"
+        route_design
+    } else {
+        ::tclapp::xilinx::x2rp::log 054 INFO "Executing Cmd: route_design -directive $a_global_vars(route_directive)"
+        set route_design_cmd "route_design -directive $a_global_vars(route_directive)"
+        eval $route_design_cmd
+    }
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) route_design post
     ::tclapp::xilinx::x2rp::log 055 INFO "Route design completed"      
@@ -960,9 +980,14 @@ proc ::tclapp::xilinx::x2rp::run {args} {
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) post_route_phys_opt_design pre
 
-    ::tclapp::xilinx::x2rp::log 058 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(post_route_phys_opt_directive)"
-    set post_route_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(post_route_phys_opt_directive)"
-    eval $post_route_phys_opt_design_cmd
+    if { [string equal $a_global_vars(post_route_phys_opt_directive) ""] } {
+        ::tclapp::xilinx::x2rp::log 058 INFO "Executing Cmd: phys_opt_design"
+        phys_opt_design
+    } else {
+        ::tclapp::xilinx::x2rp::log 058 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(post_route_phys_opt_directive)"
+        set post_route_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(post_route_phys_opt_directive)"
+        eval $post_route_phys_opt_design_cmd
+    }
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) post_route_phys_opt_design post
     ::tclapp::xilinx::x2rp::log 059 INFO "Post route physical opt design completed"   
@@ -1260,9 +1285,14 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
     # place design
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) place_design pre
 
-    ::tclapp::xilinx::x2rp::log 080 INFO "Executing Cmd: place_design -directive $a_global_vars(bp_place_directive)"       
-    set place_design_cmd "place_design -directive $a_global_vars(bp_place_directive)"
-    eval $place_design_cmd
+    if { [string equal $a_global_vars(bp_place_directive) ""] } {
+        ::tclapp::xilinx::x2rp::log 080 INFO "Executing Cmd: place_design"
+        place_design
+    } else {
+        ::tclapp::xilinx::x2rp::log 080 INFO "Executing Cmd: place_design -directive $a_global_vars(bp_place_directive)"       
+        set place_design_cmd "place_design -directive $a_global_vars(bp_place_directive)"
+        eval $place_design_cmd
+    }
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) place_design post
     
@@ -1274,9 +1304,14 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
 
         ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) post_place_phys_opt_design pre
 
-        ::tclapp::xilinx::x2rp::log 082 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(bp_post_place_phys_opt_directive)"     
-        set post_place_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(bp_post_place_phys_opt_directive)"
-        eval $post_place_phys_opt_design_cmd
+        if { [string equal $a_global_vars(bp_post_place_phys_opt_directive) ""] } {
+            ::tclapp::xilinx::x2rp::log 082 INFO "Executing Cmd: phys_opt_design"
+            phys_opt_design
+        } else {
+            ::tclapp::xilinx::x2rp::log 082 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(bp_post_place_phys_opt_directive)"     
+            set post_place_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(bp_post_place_phys_opt_directive)"
+            eval $post_place_phys_opt_design_cmd
+        }
         
         ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) post_place_phys_opt_design post
     }
@@ -1284,9 +1319,14 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
     # route design
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) route_design pre
     
-    ::tclapp::xilinx::x2rp::log 083 INFO "Executing Cmd: route_design -directive $a_global_vars(bp_route_directive)"
-    set route_design_cmd "route_design -directive $a_global_vars(bp_route_directive)"
-    eval $route_design_cmd 
+    if { [string equal $a_global_vars(bp_route_directive) ""] } {
+        ::tclapp::xilinx::x2rp::log 083 INFO "Executing Cmd: route_design"
+        route_design
+    } else {
+        ::tclapp::xilinx::x2rp::log 083 INFO "Executing Cmd: route_design -directive $a_global_vars(bp_route_directive)"
+        set route_design_cmd "route_design -directive $a_global_vars(bp_route_directive)"
+        eval $route_design_cmd 
+    }
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) route_design post
 
@@ -1296,9 +1336,14 @@ proc ::tclapp::xilinx::x2rp::create_base_platform {} {
     } elseif { [::tclapp::xilinx::x2rp::check_if_met_timing rt_physopt base_platform] } {
         ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) post_route_phys_opt_design pre
 
-        ::tclapp::xilinx::x2rp::log 085 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(bp_post_route_phys_opt_directive)"
-        set post_route_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(bp_post_route_phys_opt_directive)"
-        eval $post_route_phys_opt_design_cmd
+        if { [string equal $a_global_vars(bp_post_route_phys_opt_directive) ""] } {
+            ::tclapp::xilinx::x2rp::log 085 INFO "Executing Cmd: phys_opt_design"
+            phys_opt_design
+        } else {
+            ::tclapp::xilinx::x2rp::log 085 INFO "Executing Cmd: phys_opt_design -directive $a_global_vars(bp_post_route_phys_opt_directive)"
+            set post_route_phys_opt_design_cmd "phys_opt_design -directive $a_global_vars(bp_post_route_phys_opt_directive)"
+            eval $post_route_phys_opt_design_cmd
+        }
 
         ::tclapp::xilinx::x2rp::execute_script $a_global_vars(base_scripts) post_route_phys_opt_design post
 
