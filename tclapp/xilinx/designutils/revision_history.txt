@@ -1,3 +1,4 @@
+1.41 Added support for newer architectures (report_failfast, get_sll_nets, get_sll_nodes). Major enhancements (prettyTable)
 1.40 Fixed issue (report_failfast). Various enhancements (prettyTable)
 1.39 Various enhancements (prettyTable)
 1.38 Improve runtime for utilization metrics (report_failfast)

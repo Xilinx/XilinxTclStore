@@ -49,6 +49,7 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nets {} {
     artix7 -
     kintex7 -
     virtex7 -
+    spartan7 -
     zynq {
       set nodes [::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_7serie]
       set nets [get_nets -quiet -of $nodes]
@@ -71,7 +72,10 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nets {} {
     }
     zynquplus -
     kintexuplus -
-    virtexuplus {
+    virtexuplus -
+    virtexuplus58g -
+    virtexuplusHBM -
+    zynquplusRFSOC {
       set nodes [::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_ultrascale_plus]
       set nets [get_nets -quiet -of $nodes]
       return $nets
@@ -99,6 +103,7 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes {} {
     artix7 -
     kintex7 -
     virtex7 -
+    spartan7 -
     zynq {
       set res [::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_7serie]
       return $res
@@ -112,7 +117,10 @@ proc ::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes {} {
     }
     zynquplus -
     kintexuplus -
-    virtexuplus {
+    virtexuplus -
+    virtexuplus58g -
+    virtexuplusHBM -
+    zynquplusRFSOC {
       set res [::tclapp::xilinx::designutils::get_sll_nets::get_sll_nodes_ultrascale_plus]
       return $res
     }
