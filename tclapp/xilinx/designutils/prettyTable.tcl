@@ -9,7 +9,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ##
-## Version:        2018.05.02
+## Version:        2018.07.03
 ## Description:    This package provides a simple way to handle formatted tables
 ##
 ##
@@ -251,6 +251,24 @@ namespace eval ::tclapp::xilinx::designutils {
 ########################################################################################
 
 ########################################################################################
+## 2018.07.03 - Added 'eval' method
+##            - Added 'createpivot', 'refreshpivot' methods
+##            - Added 'create_table' and 'print_table' to ::tclapp::xilinx::designutils::prettyTable
+##              and to namespace ::tclapp::xilinx::designutils
+##            - Added support for -rows/-eq/-lt/-gt/-bt ('search' method)
+##            - Added support for column names for -columns ('search' method)
+##            - Added support for -inline ('filter' method)
+##            - Added support for -from_row/-to_row/-head/-tail ('export' method)
+##            - Added support for JSON/dict formats ('export' method)
+##            - Added support for dict and gzip formats ('import' method)
+##            - Added support for -next_to/-show_column_indexes/-head/-tail ('print' method)
+##            - Added support for compact format (-compact) ('print' method)
+##            - Added math functions and operators
+##            - Updated 'getcells', 'setcells', 'incrcells', 'appendcells',
+##              'prependcells' methods to support range of cells
+##            - Renamed 'getcell', 'setcell', 'incrcell', 'appendcell',
+##              'prependcell' methods to enable multiple cells
+## 2018.05.04 - Added 'reorderrows' method
 ## 2018.05.02 - Updated 'reordercols' method
 ##            - Added support for -from_row/-to_row ('print' method)
 ##            - Changed return value to the table object itself (methods 'creatematrix',
@@ -352,12 +370,16 @@ proc ::tclapp::xilinx::designutils::prettyTable { args } {
 # Namespace for the package
 #------------------------------------------------------------------------
 
+interp alias {} ::tclapp::xilinx::designutils::print_table {} ::tclapp::xilinx::designutils::prettyTable print_table
+interp alias {} ::tclapp::xilinx::designutils::create_table {} ::tclapp::xilinx::designutils::prettyTable create_table
+
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable {
   variable n 0
 #   set params [list indent 0 maxNumRows 10000 maxNumRowsToDisplay 50 title {} ]
   variable params [list indent 0 title {} tableFormat {classic} cellAlignment {left} maxNumRows -1 maxNumRowsToDisplay -1 columnsToDisplay {} origin {topleft} offsetx 0 offsety 0 template {} methods {method}]
-  variable version {2018.05.02}
+  variable history
+  variable version {2018.07.03}
 } ]
 
 #------------------------------------------------------------------------
@@ -371,42 +393,52 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   #-------------------------------------------------------
   # Process command line arguments
   #-------------------------------------------------------
   set error 0
   set show_help 0
   set method [lshift args]
-  switch -exact -- $method {
-    sizeof {
+  switch -regexp -- $method {
+    {^sizeof$} -
+    {^si(z(e(of?)?)?)?$} {
       return [eval [concat ::tclapp::xilinx::designutils::prettyTable::Sizeof] ]
     }
-    info {
+    {^info$} -
+    {^in(fo?)?$} {
       return [eval [concat ::tclapp::xilinx::designutils::prettyTable::Info] ]
     }
-    destroyall {
+    {^destroyall$} -
+    {^de(s(t(r(o(y(a(ll?)?)?)?)?)?)?)?$} {
       return [eval [concat ::tclapp::xilinx::designutils::prettyTable::DestroyAll] ]
     }
-    -u -
-    -us -
-    -usa -
-    -usag -
-    -usage -
-    -h -
-    -he -
-    -hel -
-    -help {
+    {^-help$} -
+    {^-h(e(lp?)?)?$} -
+    {^-usage$} -
+    {^-u(s(a(ge?)?)?)?$} {
       incr show_help
     }
-    create {
+    {^create$} -
+    {^cr(e(a(te?)?)?)?$} {
       return [eval [concat ::tclapp::xilinx::designutils::prettyTable::Create $args] ]
     }
-    template {
+    {^template$} -
+    {^te(m(p(l(a(te?)?)?)?)?)?$} {
       # Create table based on template
       return [eval [concat ::tclapp::xilinx::designutils::prettyTable::Template $args] ]
     }
-    version {
+    {^print_table$} -
+    {^pr(i(n(t(_(t(a(b(le?)?)?)?)?)?)?)?)?$} {
+      # Create->print->delete table
+      return [::tclapp::xilinx::designutils::prettyTable::print_table {*}$args]
+    }
+    {^create_table$} -
+    {^create_(t(a(b(le?)?)?)?)?$} {
+      # Create table
+      return [::tclapp::xilinx::designutils::prettyTable::create_table {*}$args]
+    }
+    {^version$} -
+    {^v(e(r(s(i(on?)?)?)?)?)?$} {
       # Return the package version
       return $::tclapp::xilinx::designutils::prettyTable::version
     }
@@ -424,6 +456,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::prettyTable { args } {
                   [<title>]                - Create a new prettyTable object (optional table title)
                   [create|create <title>]  - Create a new prettyTable object (optional table title)
                   [template <name>]        - Create a new prettyTable object based on template
+                  [create_table]           - Create a new prettyTable object from table content (-help)
+                  [print_table]            - Create and print a prettyTable from table content (-help)
                   [sizeof]                 - Provides the memory consumption of all the prettyTable objects
                   [info]                   - Provides a summary of all the prettyTable objects that have been created
                   [destroyall]             - Destroy all the prettyTable objects and release the memory
@@ -469,7 +503,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::Create { {title {}} } {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   variable n
   # Search for the next available object number, i.e namespace should not
@@ -548,7 +581,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::Template { {name {}} } {
       for {set i $maxY} {$i >= 0} {incr i -1} {
         lappend column0 "Y$i"
       }
-      set tbl [::tclapp::xilinx::designutils::prettyTable]
+      set tbl [tb::prettyTable]
       $tbl creatematrix [expr $maxX +2] [expr $maxY +1]
       $tbl configure -align_right -origin bottomleft -offsetx 1 -offsety 0
       $tbl header $header
@@ -576,6 +609,207 @@ proc ::tclapp::xilinx::designutils::prettyTable::Template { {name {}} } {
 }
 
 #------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::print_table
+#------------------------------------------------------------------------
+# Create/print/delete a prettyTable based on existing content
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::print_table {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set title {}
+  set header {}
+  set table {}
+  set channel {stdout}
+  set error 0
+  set help 0
+  set verbose 0
+  if {[llength $args] == 0} { incr help }
+  while {[llength $args]} {
+    set name [lshift args]
+    switch -regexp -- $name {
+      {^-values$} -
+      {^-va(l(u(es?)?)?)?$} {
+        set table [lshift args]
+      }
+      {^-c(o(l(u(m(ns?)?)?)?)?)?$} {
+        set header [lshift args]
+      }
+      {^-title$} -
+      {^-ti(t(le?)?)?$} {
+        set title [lshift args]
+      }
+      {^-channel$} -
+      {^-ch(a(n(n(el?)?)?)?)?$} {
+        set channel [lshift args]
+      }
+      {^-v(e(r(b(o(se?)?)?)?)?)?$} {
+        set verbose 1
+      }
+      {^\?$} -
+      {^-h(e(lp?)?)?$} {
+        set help 1
+      }
+      default {
+        if {[string match "-*" $name]} {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        } else {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        }
+      }
+    }
+  }
+
+  if {$help} {
+    puts [format {
+  Usage: ::tclapp::xilinx::designutils::prettyTable print_table
+              -values <row(s)>
+              -columns <column(s)>
+              [-title <title>]
+              [-channel <channel>]
+              [-verbose|-v]
+              [-help|-h]
+
+  Description: Print table from table content
+
+    -columns: table column names
+    -values: table rows
+    -title: table title
+    -channel: output channel. Default: stdout
+
+  Example:
+     ::tclapp::xilinx::designutils::prettyTable print_table -columns {Name # %%} -values [list {LUT 9754 66.51} {CARRY 2622 17.88} ]
+} ]
+    # HELP -->
+    return {}
+  }
+
+  if {[llength $header] == 0} {
+    puts " -E- no column defined (-columns)"
+    incr error
+  }
+
+  if {$error} {
+    error " -E- some error(s) happened. Cannot continue"
+  }
+
+  if {[catch {
+    set tbl [::tclapp::xilinx::designutils::prettyTable]
+    if {$title != {}} {
+      $tbl title $title
+    }
+    $tbl header $header
+    $tbl settable $table
+    puts $channel [$tbl print]
+    catch {$tbl destroy}
+  } errorstring]} {
+    puts " -E- $errorstring"
+  }
+  return -code ok
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::create_table
+#------------------------------------------------------------------------
+# Create a prettyTable based on existing content
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::create_table {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set title {}
+  set header {}
+  set table {}
+  set error 0
+  set help 0
+  set verbose 0
+  if {[llength $args] == 0} { incr help }
+  while {[llength $args]} {
+    set name [lshift args]
+    switch -regexp -- $name {
+      {^-values$} -
+      {^-va(l(u(es?)?)?)?$} {
+        set table [lshift args]
+      }
+      {^-c(o(l(u(m(ns?)?)?)?)?)?$} {
+        set header [lshift args]
+      }
+      {^-title$} -
+      {^-ti(t(le?)?)?$} {
+        set title [lshift args]
+      }
+      {^-v(e(r(b(o(se?)?)?)?)?)?$} {
+        set verbose 1
+      }
+      {^\?$} -
+      {^-h(e(lp?)?)?$} {
+        set help 1
+      }
+      default {
+        if {[string match "-*" $name]} {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        } else {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        }
+      }
+    }
+  }
+
+  if {$help} {
+    puts [format {
+  Usage: ::tclapp::xilinx::designutils::prettyTable create_table
+              -values <row(s)>
+              -columns <column(s)>
+              [-title <title>]
+              [-verbose|-v]
+              [-help|-h]
+
+  Description: Create table from table content
+
+    -columns: table column names
+    -values: table rows
+    -title: table title
+    -channel: output channel. Default: stdout
+
+  Example:
+     ::tclapp::xilinx::designutils::prettyTable create_table -columns {Name # %%} -values [list {LUT 9754 66.51} {CARRY 2622 17.88} ]
+} ]
+    # HELP -->
+    return {}
+  }
+
+  if {[llength $header] == 0} {
+    puts " -E- no column defined (-columns)"
+    incr error
+  }
+
+  if {$error} {
+    error " -E- some error(s) happened. Cannot continue"
+  }
+
+  set tbl {}
+  if {[catch {
+    set tbl [::tclapp::xilinx::designutils::prettyTable]
+    if {$title != {}} {
+      $tbl title $title
+    }
+    $tbl header $header
+    $tbl settable $table
+  } errorstring]} {
+    puts " -E- $errorstring"
+  }
+  return $tbl
+}
+
+#------------------------------------------------------------------------
 # ::tclapp::xilinx::designutils::prettyTable::Sizeof
 #------------------------------------------------------------------------
 # Memory footprint of all the existing prettyTable objects
@@ -585,7 +819,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::Sizeof {} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   return [::tclapp::xilinx::designutils::prettyTable::method:sizeof ::tclapp::xilinx::designutils::prettyTable]
 }
@@ -600,7 +833,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::Info {} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   foreach child [lsort -dictionary [namespace children]] {
     puts "\n  Object $child"
@@ -620,7 +852,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::DestroyAll {} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   set count 0
   foreach child [namespace children] {
@@ -643,7 +874,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::docstring procname {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   if {[info proc $procname] ne $procname} { return }
   # reports a proc's args and leading comments.
@@ -673,7 +903,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::lshift {inputlist} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   upvar $inputlist argv
   set arg  [lindex $argv 0]
   set argv [lrange $argv 1 end]
@@ -697,6 +926,42 @@ proc ::tclapp::xilinx::designutils::prettyTable::lrevert L {
        lappend res [lindex $L [incr i -1]]
    }
    set res
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::min
+# ::tclapp::xilinx::designutils::prettyTable::max
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Return min/max. Handles empty strings
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::min {x y} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  if {$y == {}} {
+    set y $x
+  } elseif {$x == {}} {
+    set x $y
+  }
+  expr {$x<$y? $x:$y}
+}
+
+proc ::tclapp::xilinx::designutils::prettyTable::max {x y} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  if {$y == {}} {
+    set y $x
+  } elseif {$x == {}} {
+    set x $y
+  }
+  expr {$x>$y?$x:$y}
 }
 
 #------------------------------------------------------------------------
@@ -765,6 +1030,34 @@ proc ::tclapp::xilinx::designutils::prettyTable::sort_double_decr {one two} {
 }
 
 #------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::getFrequencyDistribution
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Example:
+#   getFrequencyDistribution [list clk_out2_pll_clrx_2 clk_out2_pll_lnrx_3 clk_out2_pll_lnrx_3 ]
+# => {clk_out2_pll_lnrx_3 2} {clk_out2_pll_clrx_2 1}
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::getFrequencyDistribution {L} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  catch {unset arr}
+  set res [list]
+  foreach el $L {
+    if {![info exists arr($el)]} { set arr($el) 0 }
+    incr arr($el)
+  }
+  foreach {el num} [array get arr] {
+    lappend res [list $el $num]
+  }
+  set res [lsort -decreasing -real -index 1 [lsort -increasing -dictionary -index 0 $res]]
+  return $res
+}
+
+#------------------------------------------------------------------------
 # ::tclapp::xilinx::designutils::prettyTable::list2csv
 #------------------------------------------------------------------------
 # **INTERNAL**
@@ -776,7 +1069,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::list2csv { list {sepChar ,} } {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   set out ""
   set sep {}
@@ -803,7 +1095,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::csv2list { str {sepChar ,} } {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   regsub -all {(\A\"|\"\Z)} $str \0 str
   set str [string map [list $sepChar\"\"$sepChar $sepChar$sepChar] $str]
@@ -835,7 +1126,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::csv2list { str {sepChar ,} } {
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
-# Convert coordonates for getcell/setcell/appendcell
+# Convert coordonates for getcells/setcells/appendcells/prependcells
 #------------------------------------------------------------------------
 proc ::tclapp::xilinx::designutils::prettyTable::convertCoordinates {self X Y} {
   # Summary :
@@ -882,7 +1173,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::export:tcl {self args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   array set defaults [list \
       -return_var {} \
@@ -939,7 +1229,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::export:csv {self args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   array set defaults [list \
       -header 1 \
@@ -1020,7 +1309,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::export:list {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   array set defaults [list \
       -delimiter { } \
       -return_var {} \
@@ -1097,7 +1385,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::export:array {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   array set defaults [list \
       -return_var {} \
     ]
@@ -1138,6 +1425,337 @@ proc ::tclapp::xilinx::designutils::prettyTable::export:array {self args} {
 }
 
 #------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::export:dict
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Dump the content of the prettyTable object as Tcl Dict format
+# The result is returned as a single string or through upvar
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::export:dict {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::params params
+  upvar #0 ${self}::separators separators
+  upvar #0 ${self}::numRows numRows
+
+  array set defaults [list \
+      -return_var {} \
+      -verbose 0 \
+    ]
+  array set options [array get defaults]
+#   array set options $args
+
+  set error 0
+  set help 0
+  if {[llength $args] == 0} { incr help }
+  while {[llength $args]} {
+    set name [lshift args]
+    switch -regexp -- $name {
+      {^-header$} -
+      {^-h(e(a(d(er?)?)?)?)?$} {
+        # Do nothing. Unused option
+        lshift args
+      }
+      {^-title$} -
+      {^-t(i(t(le?)?)?)?$} {
+        # Do nothing. Unused option
+        lshift args
+      }
+      {^-delimiter$} -
+      {^-d(e(l(i(m(i(t(er?)?)?)?)?)?)?)?$} {
+        # Do nothing. Unused option
+        lshift args
+      }
+      {^-return_var$} -
+      {^-re(t(u(r(n(_(v(ar?)?)?)?)?)?)?)?$} {
+        set options(-return_var) [lshift args]
+      }
+      {^-v(e(r(b(o(se?)?)?)?)?)?$} {
+        set options(-verbose) [lshift args]
+      }
+      {^\?$} -
+      {^-help$} -
+      {^-h(e(lp?)?)?$} {
+        set help 1
+      }
+     default {
+            if {[string match "-*" $name]} {
+              puts " -E- option '$name' is not a valid option."
+              incr error
+            } else {
+              puts " -E- option '$name' is not a valid option."
+              incr error
+            }
+      }
+    }
+  }
+
+  if {$help} {
+    puts [format {
+  Usage: <prettyTableObject> export -format dict
+              [-help|-h]
+
+  Description: Export table as Tcl Dict format
+
+  Example:
+     <prettyTableObject> export -format dict
+     set dict [<prettyTableObject> export -format dict]
+} ]
+    # HELP -->
+    return {}
+  }
+
+  if {$error} {
+    error " -E- some error(s) happened. Cannot continue"
+  }
+
+  # 'options(-return_var)' holds the variable name from the caller's environment
+  # that should receive the content of the report
+  if {$options(-return_var) != {}} {
+    # The caller's environment is 1 levels up
+    upvar 1 $options(-return_var) res
+  }
+
+  # Create the dictionary
+  set res [dict create {header} $header {params} [array get params] {rows} $table {separators} $separators]
+
+  if {$options(-return_var) != {}} {
+    # The report is returned through the upvar
+    return {}
+  } else {
+    return $res
+  }
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::export:json
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Dump the content of the prettyTable object as JSON format
+# The result is returned as a single string or through upvar
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::export:json {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::params params
+  upvar #0 ${self}::separators separators
+  upvar #0 ${self}::numRows numRows
+
+  array set defaults [list \
+      -return_var {} \
+      -verbose 0 \
+    ]
+  array set options [array get defaults]
+#   array set options $args
+
+  set format {default}
+  set numericAsString 0
+  set literalAsString 0
+  set rowsOnly 0
+  set error 0
+  set help 0
+  if {[llength $args] == 0} { incr help }
+  while {[llength $args]} {
+    set name [lshift args]
+    switch -regexp -- $name {
+      {^-numeral_as_strings$} -
+      {^-nu(m(e(r(a(l(_(a(s(_(s(t(r(i(n(gs?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
+        set numericAsString 1
+      }
+      {^-literal_as_strings$} -
+      {^-li(t(e(r(a(l(_(a(s(_(s(t(r(i(n(gs?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
+        set literalAsString 1
+      }
+      {^-only_rows$} -
+      {^-on(l(y(_(r(o(ws?)?)?)?)?)?)?$} {
+        set rowsOnly 1
+      }
+      {^-compact$} -
+      {^-co(m(p(a(ct?)?)?)?)?$} {
+        set format {compact}
+      }
+      {^-header$} -
+      {^-h(e(a(d(er?)?)?)?)?$} {
+        # Do nothing. Unused option
+        lshift args
+      }
+      {^-title$} -
+      {^-t(i(t(le?)?)?)?$} {
+        # Do nothing. Unused option
+        lshift args
+      }
+      {^-delimiter$} -
+      {^-d(e(l(i(m(i(t(er?)?)?)?)?)?)?)?$} {
+        # Do nothing. Unused option
+        lshift args
+      }
+      {^-return_var$} -
+      {^-re(t(u(r(n(_(v(ar?)?)?)?)?)?)?)?$} {
+        set options(-return_var) [lshift args]
+      }
+      {^-v(e(r(b(o(se?)?)?)?)?)?$} {
+        set options(-verbose) [lshift args]
+      }
+      {^\?$} -
+      {^-help$} -
+      {^-h(e(lp?)?)?$} {
+        set help 1
+      }
+     default {
+            if {[string match "-*" $name]} {
+              puts " -E- option '$name' is not a valid option."
+              incr error
+            } else {
+              puts " -E- option '$name' is not a valid option."
+              incr error
+            }
+      }
+    }
+  }
+
+  if {$help} {
+    puts [format {
+  Usage: <prettyTableObject> export -format json
+              [-compact]
+              [-numeral_as_strings]
+              [-literal_as_strings]
+              [-only_rows]
+              [-help|-h]
+
+  Description: Export table as JSON format
+
+    -compact: compact format
+    -numeral_as_strings: numeric values are encoded as strings
+    -literal_as_strings: true/false/null are encoded as strings
+    -only_rows: generate JSON for rows only
+
+  Example:
+     <prettyTableObject> export -format json
+     <prettyTableObject> export -format json -args {-compact}
+     <prettyTableObject> export -format json -- -compact
+     <prettyTableObject> export -format json -- -compact -numeral_as_strings
+} ]
+    # HELP -->
+    return {}
+  }
+
+  if {$error} {
+    error " -E- some error(s) happened. Cannot continue"
+  }
+
+  # 'options(-return_var)' holds the variable name from the caller's environment
+  # that should receive the content of the report
+  if {$options(-return_var) != {}} {
+    # The caller's environment is 1 levels up
+    upvar 1 $options(-return_var) res
+  }
+  set res {}
+
+  set jsonHeaderStr [format {"%s"} [join $header {", "}] ]
+  set jsonParamsStr {}
+  set jsonRowsStr {}
+
+  set L [list]
+  foreach param [lsort [array names params]] {
+    set value $params($param)
+    if {[regexp {^[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?$} $value]} {
+      # floating point numbers
+      if {$numericAsString} {
+        lappend L [format {"%s": "%s"} $param $value]
+      } else {
+        lappend L [format {"%s": %s} $param $value]
+      }
+    } elseif {[regexp -nocase {^(true|false|null)$} $value]} {
+      if {$literalAsString} {
+        lappend L [format {"%s": "%s"} $param $value]
+      } else {
+        lappend L [format {"%s": %s} $param $value]
+      }
+    } else {
+      lappend L [format {"%s": "%s"} $param $value]
+    }
+  }
+  append jsonParamsStr "\n"
+  if {$format == {compact}} {
+    append jsonParamsStr [format {        { %s },} [join $L {, }]]
+  } else {
+    append jsonParamsStr [format "        {\n          %s\n       }," [join $L ",\n          "]]
+  }
+  # remove last ','
+  set jsonParamsStr [string range $jsonParamsStr 0 end-1]
+
+  set idx -1
+  foreach row $table {
+    incr idx
+    set L [list]
+    foreach h $header r $row {
+      if {[regexp {^[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?$} $r]} {
+        # floating point numbers
+        if {$numericAsString} {
+          lappend L [format {"%s": "%s"} $h $r]
+        } else {
+          lappend L [format {"%s": %s} $h $r]
+        }
+      } elseif {[regexp -nocase {^(true|false|null)$} $r]} {
+        if {$literalAsString} {
+          lappend L [format {"%s": "%s"} $h $r]
+        } else {
+          lappend L [format {"%s": %s} $h $r]
+        }
+      } else {
+        lappend L [format {"%s": "%s"} $h $r]
+      }
+    }
+    append jsonRowsStr "\n"
+    if {$format == {compact}} {
+      append jsonRowsStr [format {        { %s },} [join $L {, }]]
+    } else {
+      append jsonRowsStr [format "        {\n          %s\n        }," [join $L ",\n          "]]
+    }
+  }
+  # remove last ','
+  set jsonRowsStr [string range $jsonRowsStr 0 end-1]
+
+  if {$rowsOnly} {
+    set JSON [format {[%s%s]} $jsonRowsStr \n ]
+  } else {
+
+    set JSON [format {{
+  "table": {
+    "header": [%s],
+    "params": [%s
+    ],
+    "rows": [%s
+    ]
+  }
+}
+} $jsonHeaderStr $jsonParamsStr $jsonRowsStr ]
+
+  }
+
+  set res $JSON
+
+  if {$options(-return_var) != {}} {
+    # The report is returned through the upvar
+    return {}
+  } else {
+    return $res
+  }
+}
+
+#------------------------------------------------------------------------
 # ::tclapp::xilinx::designutils::prettyTable::do
 #------------------------------------------------------------------------
 # **INTERNAL**
@@ -1150,9 +1768,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::do {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   upvar #0 ${self}::table table
-  upvar #0 ${self}::indent indent
+  upvar #0 ${self}::history history
   if {[llength $args] == 0} {
 #     error " -E- wrong number of parameters: <prettyTableObject> <method> \[<arguments>\]"
     set method {?}
@@ -1164,6 +1781,17 @@ proc ::tclapp::xilinx::designutils::prettyTable::do {self args} {
   # The line below only match if $methods has a length of 1 and the
   # full method name has been specified by the user
   if {[info proc ::tclapp::xilinx::designutils::prettyTable::${methods}:${method}] == "::tclapp::xilinx::designutils::prettyTable::${methods}:${method}"} {
+    switch $method {
+      clone -
+      destroy -
+      info {
+        # Do not save the history
+      }
+      default {
+        # Save the history
+#         lappend history [list $self $method {*}$args]
+      }
+    }
     eval ::tclapp::xilinx::designutils::prettyTable::${methods}:${method} $self $args
   } else {
     # Search for a unique matching method among all the available methods
@@ -1185,8 +1813,20 @@ proc ::tclapp::xilinx::designutils::prettyTable::do {self args} {
       }
       1 {
         # Last win: if multiple methods match (with different paths), take the last one
-        set method [lindex [dict get $match $keys] end]
-        eval $method $self $args
+        set procname [lindex [dict get $match $keys] end]
+        regexp {:([^:]+)$} $procname - method
+        switch $method {
+          clone -
+          destroy -
+          info {
+            # Do not save the history
+          }
+          default {
+            # Save the history
+#             lappend history [list $self $method {*}$args]
+          }
+        }
+        eval $procname $self $args
       }
       default {
         error " -E- multiple methods match '$method': $keys"
@@ -1208,7 +1848,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:? {self args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # This help message
   puts "   Usage: <prettyTableObject> <method> \[<arguments>\]"
@@ -1250,7 +1889,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:title {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Set/get the title of the table
   switch [llength $args] {
     0 {
@@ -1280,7 +1918,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:header {self args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Set/get the header of the table
   switch [llength $args] {
@@ -1312,7 +1949,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:addrow {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Add a row to the table (?)
   if {$args == {}} { set args {-help} }
   if {[lsearch {-h -help ?} [lindex $args 0]] != -1} {
@@ -1341,7 +1977,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:appendrow {self args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Append a row to the previous row (?)
   upvar #0 ${self}::table table
@@ -1404,7 +2039,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:creatematrix {self numco
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Create a matrix
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
@@ -1435,7 +2069,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:insertcolumn {self col_i
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Insert a column
   upvar #0 ${self}::header header
@@ -1480,7 +2113,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:insertrow {self row_idx 
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Insert a row
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
@@ -1521,7 +2153,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:delcolumns {self columns
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Delete a list of column(s)
   upvar #0 ${self}::header header
@@ -1573,7 +2204,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:delrows {self rows} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Delete a list of row(s)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
@@ -1605,23 +2235,48 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:delrows {self rows} {
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::designutils::prettyTable::method:getcell
+# ::tclapp::xilinx::designutils::prettyTable::method:getcells
 #------------------------------------------------------------------------
-# Usage: <prettyTableObject> getcell <col> <row>
+# Usage: <prettyTableObject> getcells <col> <row>
+#        <prettyTableObject> getcells <range(s)>
 #------------------------------------------------------------------------
-# Return a cell by its <col> and <row> index
+# Return a cell by its <col> and <row> index or by ranges
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::designutils::prettyTable::method:getcell {self column row} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:getcells {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
-  # Get a table cell value
+  # Get table cell value(s) (?)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::numRows numRows
+
+  if {([llength $args] == 0) || ([llength $args] > 2)} { set args {-help} }
+  if {[lsearch {-h -help ?} [lindex $args 0]] != -1} {
+    puts [format {  Usage: <prettyTableObject> getcells <column> <row>}]
+    puts [format {         <prettyTableObject> getcells <range(s)>}]
+    puts [format {  Multiple ranges can be specified. For example: c2:3r0,c1r2:3 }]
+    return -code ok
+  }
+
+  set column {}
+  set row {}
+  set range {}
+
+  switch [llength $args] {
+    1 {
+      set range $args
+      set res [::tclapp::xilinx::designutils::prettyTable::expandRange $self $range -mode value]
+      return $res
+    }
+    2 {
+      set column [lindex $args 0]
+      set row [lindex $args 1]
+    }
+  }
+
   if {($column == {}) || ($row == {})} {
     return {}
   }
@@ -1644,23 +2299,54 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:getcell {self column row
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::designutils::prettyTable::method:setcell
+# ::tclapp::xilinx::designutils::prettyTable::method:setcells
 #------------------------------------------------------------------------
-# Usage: <prettyTableObject> setcell <col> <row>
+# Usage: <prettyTableObject> setcells <col> <row>
 #------------------------------------------------------------------------
 # Set a cell value directly by its <col> and <row> index
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::designutils::prettyTable::method:setcell {self column row value} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:setcells {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
-  # Set a table cell value
+  # Set table cell value(s) (?)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::numRows numRows
+
+  if {([llength $args] != 2) && ([llength $args] != 3)} { set args {-help} }
+  if {[lsearch {-h -help ?} [lindex $args 0]] != -1} {
+    puts [format {  Usage: <prettyTableObject> setcells <column> <row> <value>}]
+    puts [format {         <prettyTableObject> setcells <range(s)> <value>}]
+    puts [format {  Multiple ranges can be specified. For example: c2:3r0,c1r2:3 }]
+    return -code ok
+  }
+
+  set column {}
+  set row {}
+  set range {}
+  set value {}
+
+  switch [llength $args] {
+    2 {
+      set range [lindex $args 0]
+      set value [lindex $args 1]
+      set cells [::tclapp::xilinx::designutils::prettyTable::expandRange $self $range -mode coord]
+      foreach cell $cells {
+        foreach {col row} $cell { break }
+        $self setcells $col $row $value
+      }
+      return $value
+    }
+    3 {
+      set column [lindex $args 0]
+      set row [lindex $args 1]
+      set value [lindex $args 2]
+    }
+  }
+
   if {($column == {}) || ($row == {})} {
     return {}
   }
@@ -1685,23 +2371,56 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:setcell {self column row
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::designutils::prettyTable::method:appendcell
+# ::tclapp::xilinx::designutils::prettyTable::method:appendcells
 #------------------------------------------------------------------------
-# Usage: <prettyTableObject> appendcell <col> <row>
+# Usage: <prettyTableObject> appendcells <col> <row> <value>
+#        <prettyTableObject> appendcells <range(s)> <value>
 #------------------------------------------------------------------------
 # Append to a cell value directly by its <col> and <row> index
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::designutils::prettyTable::method:appendcell {self column row value} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:appendcells {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
-  # Append to a table cell value
+  # Append to table cell value(s) (?)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::numRows numRows
+
+  if {([llength $args] != 2) && ([llength $args] != 3)} { set args {-help} }
+  if {[lsearch {-h -help ?} [lindex $args 0]] != -1} {
+    puts [format {  Usage: <prettyTableObject> appendcells <column> <row> <value>}]
+    puts [format {         <prettyTableObject> appendcells <range(s)> <value>}]
+    puts [format {  Multiple ranges can be specified. For example: c2:3r0,c1r2:3 }]
+    return -code ok
+  }
+
+  set column {}
+  set row {}
+  set range {}
+  set value {}
+
+  switch [llength $args] {
+    2 {
+      set range [lindex $args 0]
+      set value [lindex $args 1]
+      set cells [::tclapp::xilinx::designutils::prettyTable::expandRange $self $range -mode coord]
+      set res {}
+      foreach cell $cells {
+        foreach {col row} $cell { break }
+        set res [$self appendcells $col $row $value]
+      }
+      return $res
+    }
+    3 {
+      set column [lindex $args 0]
+      set row [lindex $args 1]
+      set value [lindex $args 2]
+    }
+  }
+
   if {($column == {}) || ($row == {})} {
     return {}
   }
@@ -1727,23 +2446,56 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:appendcell {self column 
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::designutils::prettyTable::method:prependcell
+# ::tclapp::xilinx::designutils::prettyTable::method:prependcells
 #------------------------------------------------------------------------
-# Usage: <prettyTableObject> prependcell <col> <row>
+# Usage: <prettyTableObject> prependcells <col> <row> <value>
+#      : <prettyTableObject> prependcells <range(s)> <value>
 #------------------------------------------------------------------------
 # Prepend to a cell value directly by its <col> and <row> index
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::designutils::prettyTable::method:prependcell {self column row value} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:prependcells {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
-  # Prepend to a table cell value
+  # Prepend to table cell value(s) (?)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::numRows numRows
+
+  if {([llength $args] != 2) && ([llength $args] != 3)} { set args {-help} }
+  if {[lsearch {-h -help ?} [lindex $args 0]] != -1} {
+    puts [format {  Usage: <prettyTableObject> prependcells <column> <row> <value>}]
+    puts [format {         <prettyTableObject> prependcells <range(s)> <value>}]
+    puts [format {  Multiple ranges can be specified. For example: c2:3r0,c1r2:3 }]
+    return -code ok
+  }
+
+  set column {}
+  set row {}
+  set range {}
+  set value {}
+
+  switch [llength $args] {
+    2 {
+      set range [lindex $args 0]
+      set value [lindex $args 1]
+      set cells [::tclapp::xilinx::designutils::prettyTable::expandRange $self $range -mode coord]
+      set res {}
+      foreach cell $cells {
+        foreach {col row} $cell { break }
+        set res [$self prependcells $col $row $value]
+      }
+      return $res
+    }
+    3 {
+      set column [lindex $args 0]
+      set row [lindex $args 1]
+      set value [lindex $args 2]
+    }
+  }
+
   if {($column == {}) || ($row == {})} {
     return {}
   }
@@ -1769,23 +2521,78 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:prependcell {self column
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::designutils::prettyTable::method:incrcell
+# ::tclapp::xilinx::designutils::prettyTable::method:incrcells
 #------------------------------------------------------------------------
-# Usage: <prettyTableObject> incrcell <col> <row> <value>
+# Usage: <prettyTableObject> incrcells <col> <row> <value>
+#        <prettyTableObject> incrcells <range(s)> <value>
 #------------------------------------------------------------------------
 # Incerment cell value directly by its <col> and <row> index
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::designutils::prettyTable::method:incrcell {self column row {value 1}} {
+proc ::tclapp::xilinx::designutils::prettyTable::method:incrcells {self args} {
   # Summary :
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
-  # Increment a table cell value
+  # Increment table cell value(s) (?)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::numRows numRows
+
+  if {([llength $args] == 0) || ([llength $args] > 3)} { set args {-help} }
+  if {[lsearch {-h -help ?} [lindex $args 0]] != -1} {
+    puts [format {  Usage: <prettyTableObject> incrcells <column> <row> [<value>]}]
+    puts [format {         <prettyTableObject> incrcells <range(s)> [<value>]}]
+    puts [format {  Multiple ranges can be specified. For example: c2:3r0,c1r2:3 }]
+    return -code ok
+  }
+
+  set column {}
+  set row {}
+  set range {}
+  set value 1
+
+  if [regexp {(c|C|r|R)} [lindex $args 0]] {
+    # Range is specified
+    switch [llength $args] {
+      1 {
+        set range [lindex $args 0]
+      }
+      2 {
+        set range [lindex $args 0]
+        set value [lindex $args 1]
+      }
+      default {
+        puts " -E- incorrect number of arguments"
+        return -code ok
+      }
+    }
+    set cells [::tclapp::xilinx::designutils::prettyTable::expandRange $self $range -mode coord]
+    set res {}
+    foreach cell $cells {
+      foreach {col row} $cell { break }
+      set res [$self incrcells $col $row $value]
+    }
+    return $res
+  } else {
+    # <column> <row> are specified
+    switch [llength $args] {
+      2 {
+        set column [lindex $args 0]
+        set row [lindex $args 1]
+      }
+      3 {
+        set column [lindex $args 0]
+        set row [lindex $args 1]
+        set value [lindex $args 2]
+      }
+      default {
+        puts " -E- incorrect number of arguments"
+        return -code ok
+      }
+    }
+  }
+
   if {($column == {}) || ($row == {})} {
     return {}
   }
@@ -1801,7 +2608,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:incrcell {self column ro
     puts " -W- row '$row' out of bound"
     return {}
   }
-  set currentvalue [$self getcell $column $row]
+  set currentvalue [$self getcells $column $row]
   if {$currentvalue == {}} {
     set currentvalue 0
   }
@@ -1809,7 +2616,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:incrcell {self column ro
     puts " -E- $errorstring"
     return -code ok
   }
-  $self setcell $column $row $newvalue
+  $self setcells $column $row $newvalue
   return $newvalue
 }
 
@@ -1825,7 +2632,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:setrow {self idx row} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Set a row
   upvar #0 ${self}::header header
@@ -1857,7 +2663,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:setcolumn {self idx colu
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Set a column
   upvar #0 ${self}::header header
@@ -1892,7 +2697,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:getcolumns {self columns
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Return a list of column(s)
   upvar #0 ${self}::table table
@@ -1929,7 +2733,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:getrow {self index} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Return a row
   upvar #0 ${self}::table table
   return [lindex $table $index]
@@ -1947,7 +2750,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:settable {self rows} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Set the table content
   upvar #0 ${self}::table table
@@ -1969,7 +2771,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:gettable {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Return the table
   upvar #0 ${self}::table table
   return $table
@@ -1987,7 +2788,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:numrows {self args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Get the number of rows
   upvar #0 ${self}::table table
@@ -2011,7 +2811,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:numcols {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Get the number of columns
   return [llength [subst $${self}::header]]
 }
@@ -2028,7 +2827,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:indent {self args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Set the indent level for the table
   if {$args != {}} {
@@ -2054,7 +2852,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:get_param {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   if {[llength $args] != 1} {
     error " -E- wrong number of parameters: <prettyTableObject> get_param <param>"
   }
@@ -2079,7 +2876,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:set_param {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   if {[llength $args] < 2} {
     error " -E- wrong number of parameters: <prettyTableObject> set_param <param> <value>"
   }
@@ -2099,7 +2895,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:separator {self args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Add a row separator (?)
   if {[lsearch {-h -help ?} [lindex $args 0]] != -1} {
@@ -2138,7 +2933,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:cleartable {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Clear table content
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
@@ -2173,12 +2967,11 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:reset {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Reset object and empty all the data
   set ${self}::header [list]
   set ${self}::table [list]
   set ${self}::separators [list]
-  set ${self}::columnsToDisplay [list]
+  set ${self}::history [list]
   set ${self}::numRows 0
   catch {unset ${self}::params}
   array set ${self}::params $::tclapp::xilinx::designutils::prettyTable::params
@@ -2200,12 +2993,11 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:destroy {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Destroy object
   set ${self}::header [list]
   set ${self}::table [list]
   set ${self}::separators [list]
-  set ${self}::columnsToDisplay [list]
+  set ${self}::history [list]
   set ${self}::numRows 0
   catch {unset ${self}::params}
   namespace delete $self
@@ -2224,7 +3016,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sizeof {ns args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Return memory footprint of the object
   set sum [expr wide(0)]
@@ -2295,7 +3086,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Print table. The output can be captured in a variable (-help)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
@@ -2318,6 +3108,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   set append 0
   set returnVar {}
   set columnsToDisplay $params(columnsToDisplay)
+  set printNextTo {}
+  set showColIndexes 0
   while {[llength $args]} {
     set name [lshift args]
     switch -regexp -- $name {
@@ -2336,6 +3128,18 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       {^-to_row$} -
       {^-to(_(r(ow?)?)?)?$} {
         set endRow [lshift args]
+      }
+      {^-head$} -
+      {^-he(ad?)?$} {
+        set n [lshift args]
+        set startRow 0
+        set endRow [min [expr $n - 1] [expr $numRows - 1] ]
+      }
+      {^-tail$} -
+      {^-ta(il?)?$} {
+        set n [lshift args]
+        set startRow [max 0 [expr $numRows - $n] ]
+        set endRow {end}
       }
       {^-return_var$} -
       {^-re(t(u(r(n(_(v(ar?)?)?)?)?)?)?)?$} {
@@ -2369,9 +3173,17 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       {^-cl(a(s(s(ic?)?)?)?)?$} {
         set format {classic}
       }
+      {^-compact$} -
+      {^-co(m(p(a(ct?)?)?)?)?$} {
+        set format {compact}
+      }
       {^-format$} -
       {^-fo(r(m(at?)?)?)?$} {
         set format [lshift args]
+      }
+      {^-next_to$} -
+      {^-ne(x(t(_(to?)?)?)?)?$} {
+        set printNextTo [lshift args]
       }
       {^-indent$} -
       {^-in(d(e(nt?)?)?)?$} {
@@ -2395,6 +3207,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       {^-ti(t(le?)?)?$} {
         # Hidden ommand line option to be compatible with 'export' method
         set printTitle [lshift args]
+      }
+      {^-show_column_indexes$} -
+      {^-sh(o(w(_(c(o(l(u(m(n(_(i(n(d(e(x(es?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
+        set showColIndexes 1
       }
       {^-delimiter$} -
       {^-d(e(l(i(m(i(t(er?)?)?)?)?)?)?)?$} -
@@ -2423,34 +3239,52 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
               [-append]
               [-return_var <tcl_var_name>]
               [-columns <list_of_columns_to_display>]
-              [-from_row <start_row_index>]
-              [-to_row <end_row_index>]
+              [-from_row <start_row_index>][-to_row <end_row_index>][-head <num>][-tail <num>]
               [-align_left|-left]
               [-align_right|-right]
-              [-format classic|lean][-lean][-classic]
+              [-format classic|lean|compact][-lean][-classic][-compact]
               [-indent <indent_level>]
+              [-next_to <string>]
               [-noheader]
               [-notitle]
+              [-show_column_indexes]
               [-help|-h]
 
-  Description: Return table content.
+  Description: Return table content
+
+    -columns: unordered list of columns to display. Other columns are hidden
+    -indent: indent table
+    -next_to: print table on the right side of another table. Use -indent to
+      leave increase space(s) between both tables
+    -show_column_indexes: show the column indexes in the table header
+    -from_row/-to_row/-head/-tail: control the number of rows that are reported
 
   Example:
      <prettyTableObject> print
      <prettyTableObject> print -columns {0 2 5}
      <prettyTableObject> print -return_var report
      <prettyTableObject> print -file output.rpt -append
+     <prettyTableObject> print -indent 1 -next_to [<prettyTableObject> print]
+
 } ]
     # HELP -->
     return {}
   }
 
   switch $format {
-    lean -
+    nospacing {
+      set gap {}
+    }
+    compact {
+      set gap { }
+    }
+    lean {
+      set gap {  }
+    }
     classic {
     }
     default {
-      puts " -E- invalid format '$format'. The valid formats are: classic|lean"
+      puts " -E- invalid format '$format'. The valid formats are: classic|lean|compact"
       incr error
     }
   }
@@ -2482,29 +3316,38 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   }
 
   set maxs {}
+  set idx -1
   foreach item $header {
+    incr idx
+    if {$showColIndexes} {
+      # Format" <columnName> (<columnIndex>)
+      lappend maxs [string length "$item ($idx)"]
+    } else {
       lappend maxs [string length $item]
+    }
   }
   set numCols [llength $header]
   set count 0
   set maxNumRowsToDisplay [subst $${self}::params(maxNumRowsToDisplay)]
   foreach row [lrange $table $startRow $endRow] {
-      incr count
-      if {($count > $maxNumRowsToDisplay) && ($maxNumRowsToDisplay != -1)} {
-        # Did we reach the maximum of rows to be displayed?
-        break
+    incr count
+    if {($count > $maxNumRowsToDisplay) && ($maxNumRowsToDisplay != -1)} {
+      # Did we reach the maximum of rows to be displayed?
+      break
+    }
+    for {set j 0} {$j<$numCols} {incr j} {
+      set item [lindex $row $j]
+      set max [lindex $maxs $j]
+      if {[string length $item]>$max} {
+        lset maxs $j [string length $item]
       }
-      for {set j 0} {$j<$numCols} {incr j} {
-           set item [lindex $row $j]
-           set max [lindex $maxs $j]
-           if {[string length $item]>$max} {
-              lset maxs $j [string length $item]
-          }
-      }
+    }
   }
   # Create the row separator string
   set indentString [string repeat " " $indent]
   switch $format {
+    nospacing -
+    compact -
     lean {
       set separator "${indentString}"
     }
@@ -2517,8 +3360,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   for {set index 0} {$index < $numCols} {incr index} {
     if {[lsearch $columnsToDisplay $index] == -1} { continue }
     switch $format {
+      nospacing -
+      compact -
       lean {
-        append separator "[string repeat - [lindex $maxs $index]]  "
+        append separator "[string repeat - [lindex $maxs $index]]${gap}"
       }
       classic {
         append separator "-[string repeat - [lindex $maxs $index]]-+"
@@ -2530,6 +3375,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
     if {$params(title) ne {}} {
       # The upper separator should something like +----...----+
       switch $format {
+        nospacing -
+        compact -
         lean {
           append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]\n"
         }
@@ -2542,6 +3389,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
         append res "${indentString}| "
         append res [format "%-[expr [string length $separator] - [string length $indentString] -4]s" $line]
         switch $format {
+          nospacing -
+          compact -
           lean {
             append res " \n"
           }
@@ -2551,6 +3400,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
         }
       }
       switch $format {
+        nospacing -
+        compact -
         lean {
           append res "${indentString}+[string repeat - [expr [string length $separator] - [string length $indentString] -2]]\n\n"
         }
@@ -2563,6 +3414,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   if {$printHeader} {
     # Generate the table header
     switch $format {
+      nospacing -
+      compact -
       lean {
         append res "${indentString}"
       }
@@ -2576,11 +3429,23 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
     for {set index 0} {$index < $numCols} {incr index} {
       if {[lsearch $columnsToDisplay $index] == -1} { continue }
       switch $format {
+        nospacing -
+        compact -
         lean {
-          append res [format "%-[lindex $maxs $index]s  " [lindex $header $index]]
+          if {$showColIndexes} {
+            append res [format "%-[lindex $maxs $index]s${gap}" "[lindex $header $index] ($index)" ]
+          } else {
+            append res [format "%-[lindex $maxs $index]s${gap}" [lindex $header $index]]
+          }
+#           append res [format "%-[lindex $maxs $index]s  " [lindex $header $index]]
         }
         classic {
-          append res [format " %-[lindex $maxs $index]s |" [lindex $header $index]]
+          if {$showColIndexes} {
+            append res [format " %-[lindex $maxs $index]s |" "[lindex $header $index] ($index)" ]
+          } else {
+            append res [format " %-[lindex $maxs $index]s |" [lindex $header $index]]
+          }
+#           append res [format " %-[lindex $maxs $index]s |" [lindex $header $index]]
         }
       }
     }
@@ -2596,6 +3461,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
         break
       }
       switch $format {
+        nospacing -
+        compact -
         lean {
           append res "${indentString}"
         }
@@ -2605,17 +3472,19 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       }
       # Build the row string based on the list of columns to be displayed
 #       foreach item $row max $maxs {append res [format " %-${max}s |" $item]}
-       for {set index 0} {$index < $numCols} {incr index} {
-         if {[lsearch $columnsToDisplay $index] == -1} { continue }
-         switch $format {
-           lean {
-             append res [format "%${align}[lindex $maxs $index]s  " [lindex $row $index]]
-           }
-           classic {
-             append res [format " %${align}[lindex $maxs $index]s |" [lindex $row $index]]
-           }
-         }
-       }
+      for {set index 0} {$index < $numCols} {incr index} {
+        if {[lsearch $columnsToDisplay $index] == -1} { continue }
+        switch $format {
+          nospacing -
+          compact -
+          lean {
+            append res [format "%${align}[lindex $maxs $index]s${gap}" [lindex $row $index]]
+          }
+          classic {
+            append res [format " %${align}[lindex $maxs $index]s |" [lindex $row $index]]
+          }
+        }
+      }
       append res \n
       # Check if a separator has been assigned to this row number and add a separator
       # if so.
@@ -2627,6 +3496,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   # is printed twice
   if {[lsearch $separators $count] == -1} {
     switch $format {
+      nospacing -
+      compact -
       lean {
       }
       classic {
@@ -2634,6 +3505,31 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       }
     }
   }
+
+  # By by side printing: the table is printed on the right side of the provided string
+  if {$printNextTo != {}} {
+    set sideLeft [split $printNextTo \n]
+    set sideRight [split $res \n]
+    set L [list]
+    foreach line $sideLeft {
+      lappend L [string length $line]
+    }
+    # Extract the maximum line length of $sideLeft
+    set maxLineLength [expr max([join $L ,])]
+    set L [list]
+    # Process $sideLeft and $sideRight line-by-line
+    for {set linenum 0} {$linenum < [max [llength $sideLeft] [llength $sideRight]]} {incr linenum} {
+      # Start with $sideLeft
+      set line [lindex $sideLeft $linenum]
+      # Add space to make sure that the line length matches the maximum line length of $sideLeft
+      append line [string repeat { } [expr $maxLineLength - [string length $line]]]
+      # Append the line from the table
+      append line [format {%s} [lindex $sideRight $linenum]]
+      lappend L $line
+    }
+    set res [join $L \n]
+  }
+
   if {($count > $maxNumRowsToDisplay) && ($maxNumRowsToDisplay != -1)} {
     # Did we reach the maximum of rows to be displayed?
     append res "\n\n -W- Table truncated. Only the first [subst $${self}::params(maxNumRowsToDisplay)] rows are displayed\n"
@@ -2669,11 +3565,11 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:info {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Information about the object
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::params params
+  upvar #0 ${self}::history history
   puts [format {    Header: %s} $header]
   puts [format {    # Cols: %s} [llength $header]]
   puts [format {    # Rows: %s} [subst $${self}::numRows] ]
@@ -2681,6 +3577,11 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:info {self args} {
     puts [format {    Param[%s]: %s} $param $params($param)]
   }
   puts [format {    Memory footprint: %d bytes} [::tclapp::xilinx::designutils::prettyTable::method:sizeof $self]]
+#   puts [format {    History (%s)} [llength $history] ]
+#   foreach el $history {
+#     puts [format {        %s} $el]
+#   }
+  return -code ok
 }
 
 #------------------------------------------------------------------------
@@ -2696,7 +3597,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:sort {self args} {
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Sort the table based on one or more column headers (-help)
   upvar #0 ${self}::header header
@@ -2895,7 +3795,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:configure {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Configure object (-help)
   set error 0
   set help 0
@@ -3017,10 +3916,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:configure {self args} {
 
   Description: Configure some of the internal parameters.
 
-    -origin: set the origin of coordinates for setcell/getcell/appendcell
+    -origin: set the origin of coordinates for setcells/getcells/appendcells/prependcells
       Valid values are: topleft|topright|bottomleft|bottomright
       Default value is: topleft
-    -offsetx/-offsety: offset added to coordinates for setcell/getcell/appendcell
+    -offsetx/-offsety: offset added to coordinates for setcells/getcells/appendcells/prependcells
 
   Example:
      <prettyTableObject> configure -format lean -align_right
@@ -3047,7 +3946,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:clone {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Clone object. Return new object
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
@@ -3068,7 +3966,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:clone {self args} {
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> import [<options>]
 #------------------------------------------------------------------------
-# Create the table from a CSV file
+# Create the table from a CSV file or Tcl Dictionary
 #------------------------------------------------------------------------
 proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   # Summary :
@@ -3076,8 +3974,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
-  # Create table from CSV file (-help)
+  # Import table from CSV file or Tcl Dict (-help)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::params params
@@ -3086,7 +3983,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
 
   set error 0
   set help 0
+  set verbose 0
   set filename {}
+  set format {csv}
+  set dictionary {}
   set csvHasHeader 1
   set importHeader 1
   set append 0
@@ -3096,29 +3996,47 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   while {[llength $args]} {
     set name [lshift args]
     switch -regexp -- $name {
+      {^-format$} -
+      {^-fo(r(m(at?)?)?)?$} {
+        set format [lshift args]
+      }
+      {^-csv$} -
+      {^-csv?$} {
+        set format {csv}
+      }
+      {^-dict$} -
+      {^-di(ct?)?$} {
+        set dictionary [lshift args]
+        set format {dict}
+      }
       {^-delimiter$} -
       {^-d(e(l(i(m(i(t(er?)?)?)?)?)?)?)?$} {
-           set csvDelimiter [lshift args]
+        set csvDelimiter [lshift args]
       }
       {^-file$} -
       {^-f(i(le?)?)?$} {
-           set filename [lshift args]
+        set filename [lshift args]
       }
       {^-inline$} -
       {^-i(n(l(i(ne?)?)?)?)?$} {
-           set inlineContent [lshift args]
+        set inlineContent [lshift args]
+        set format {csv}
       }
       {^-noheader$} -
       {^-n(o(h(e(a(d(er?)?)?)?)?)?)?$} {
-           set csvHasHeader 0
+        set csvHasHeader 0
       }
       {^-skip_header$} -
       {^-s(k(i(p(_(h(e(a(d(er?)?)?)?)?)?)?)?)?)?$} {
-           set importHeader 0
+        set importHeader 0
       }
       {^-append$} -
       {^-a(p(p(e(nd?)?)?)?)?$} {
-           set append 1
+        set append 1
+      }
+      {^-verbose$} -
+      {^-v(e(r(b(o(se?)?)?)?)?)?$} {
+        set verbose 1
       }
       {^\?$} -
       {^-help$} -
@@ -3126,13 +4044,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
         set help 1
       }
      default {
-            if {[string match "-*" $name]} {
-              puts " -E- option '$name' is not a valid option."
-              incr error
-            } else {
-              puts " -E- option '$name' is not a valid option."
-              incr error
-            }
+        if {[string match "-*" $name]} {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        } else {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        }
       }
     }
   }
@@ -3140,18 +4058,25 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
   if {$help} {
     puts [format {
   Usage: <prettyTableObject> import
+              [-format csv|dict][-csv]
+              [-dict <dictionary>]
               [-file <filename>]
               [-inline <inline_CSV_content>]
               [-delimiter <csv_delimiter>]
               [-append]
               [-noheader]
+              [-skip_header]
+              [-verbose]
               [-help|-h]
 
-  Description: Create table from CSV file.
+  Description: Create table from CSV file or Tcl dictionary
 
-    -append: append CSV to the table
+    -file: input file. Gzip supported
+    -format: import format. Default: csv
+    -append: append CSV/Dict to the table
     -noheader: CSV file does not have header
     -skip_header: skip the CSV header
+    -verbose: report the number of imported row(s)
 
   Example:
      <prettyTableObject> import -file table.csv
@@ -3162,19 +4087,113 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
 "CLK->CLKDIV","0.481","0.391"
 "CLKOUT0","0.403","0.345","0.208","0.166"
 "CLKOUT2","0.403","0.345","0.208","0.166"
+     <prettyTableObject> import -format dict -file table.dict.gz
+     <prettyTableObject> import -dict $dictionary
+     <prettyTableObject> import -dict $dictionary -append
     }
 } ]
     # HELP -->
     return {}
   }
 
+  if {($filename != {}) && ![file exists $filename]} {
+    puts " -E- file '$filename' does not exist"
+    incr error
+  }
+
+  switch $format {
+    csv {
+    }
+    dict {
+      if {[file exists $filename]} {
+        if {[regexp {.gz$} $filename]} {
+          # gzip-ed file
+          set FH [open "| zcat $filename" {r}]
+        } else {
+          set FH [open $filename {r}]
+        }
+        set dictionary [read $FH]
+        close $FH
+      }
+      if {$dictionary == {}} {
+        puts " -E- empty dictionary (-dict)"
+        incr error
+      } else {
+        if {![dict exists $dictionary {header}]} {
+          puts " -E- dictionary is missing header (key 'header')"
+          incr error
+        }
+        if {![dict exists $dictionary {rows}]} {
+          puts " -E- dictionary is missing row(s) (key 'rows')"
+          incr error
+        }
+      }
+    }
+    default {
+      puts " -E- invalid format '$format'. The valid formats are: csv|dict"
+      incr error
+    }
+  }
+
   if {$error} {
     error " -E- some error(s) happened. Cannot continue"
   }
 
-  if {![file exists $filename] && ($filename != {})} {
-    error " -E- file '$filename' does not exist"
+  ## Import from Tcl Dictionary
+
+  if {$format == {dict}} {
+    if {$append} {
+      if {[llength [dict get $dictionary {header}]] != [llength $header]} {
+        puts " -E- the number of columns do not match (table:[llength $header] / import:[llength [dict get $dictionary {header}]])"
+        return -code ok
+      }
+    } else {
+      # Import from Tcl Dictionary
+      set header [dict get $dictionary {header}]
+    }
+    # Save the number of rows from the original table (-append)
+    set offset [llength $table]
+    set limit $params(maxNumRows)
+    if {$append} {
+      # Append to the existing table
+      set table [concat $table [dict get $dictionary {rows}] ]
+    } else {
+      set table [dict get $dictionary {rows}]
+    }
+    if {$limit != -1} {
+      # Max number of rows has been specified
+      set table [lrange [dict get $dictionary {rows}] 0 [expr $limit -1] ]
+    }
+    if {[dict exists $dictionary {separators}]} {
+      if {!$append} {
+        set separators [dict get $dictionary {separators}]
+      } else {
+        foreach el [dict get $dictionary {separators}] {
+          # Need to offset the separator index by the number of rows from original table
+          lappend separators [expr $el + $offset]
+        }
+      }
+    } else {
+      if {!$append} {
+        # Reset seperators when -append is not used
+        set separators {}
+      }
+    }
+    if {[dict exists $dictionary {params}]} {
+      if {!$append} {
+        # Import param when -append is not used
+        array set params [dict get $dictionary {params}]
+      }
+    }
+    # Update number of rows
+    $self numrows
+    if {$verbose} {
+      puts " -I- Number of imported row(s): $numRows"
+    }
+    return -code ok
   }
+
+  ## Import from CSV
 
   if {$filename != {}} {
     # Reset object but preserve some of the parameters
@@ -3192,7 +4211,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
     set params(maxNumRows) $limit
 #     set params(maxNumRowsToDisplay) $displayLimit
 
-    set FH [open $filename]
+    if {[regexp {.gz$} $filename]} {
+      # gzip-ed file
+      set FH [open "| zcat $filename" {r}]
+    } else {
+      set FH [open $filename {r}]
+    }
     set first 1
     set count 0
     while {![eof $FH]} {
@@ -3227,8 +4251,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
       }
     }
     close $FH
-    puts " -I- Header: $header"
-    puts " -I- Number of imported row(s): $count"
+    if {$verbose} {
+      puts " -I- Header: $header"
+      puts " -I- Number of imported row(s): $count"
+    }
   } elseif {$inlineContent != {}} {
     # Reset object but preserve some of the parameters
     set limit $params(maxNumRows)
@@ -3254,7 +4280,9 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
     puts " -I- Header: $header"
     puts " -I- Number of imported row(s): $count"
   }
-  return 0
+  # Update number of rows
+  $self numrows
+  return -code ok
 }
 
 #------------------------------------------------------------------------
@@ -3270,14 +4298,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
-  # Export table (table/list/CSV format/tcl script) (-help)
+  # Export table (table/CSV/JSON/tcl/..) (-help)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
   upvar #0 ${self}::separators separators
   upvar #0 ${self}::params params
   upvar #0 ${self}::numRows numRows
-
 
   set error 0
   set help 0
@@ -3285,6 +4311,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   set verbose 0
   set filename {}
   set append 0
+  set startRow 0
+  set endRow {end}
   set printHeader 1
   set printTitle 1
   set returnVar {}
@@ -3318,6 +4346,26 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
       {^-append$} -
       {^-a(p(p(e(nd?)?)?)?)?$} {
         set append 1
+      }
+      {^-from_row$} -
+      {^-fr(o(m(_(r(ow?)?)?)?)?)?$} {
+        set startRow [lshift args]
+      }
+      {^-to_row$} -
+      {^-to(_(r(ow?)?)?)?$} {
+        set endRow [lshift args]
+      }
+      {^-head$} -
+      {^-he(ad?)?$} {
+        set n [lshift args]
+        set startRow 0
+        set endRow [min [expr $n - 1] [expr $numRows - 1] ]
+      }
+      {^-tail$} -
+      {^-ta(il?)?$} {
+        set n [lshift args]
+        set startRow [max 0 [expr $numRows - $n] ]
+        set endRow {end}
       }
       {^-return_var$} -
       {^-re(t(u(r(n(_(v(ar?)?)?)?)?)?)?)?$} {
@@ -3357,7 +4405,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
       }
       {^-args$} -
       {^-ar(gs?)?$} {
-        set customArgs [lshift args]
+        set customArgs [concat $customArgs [lshift args] ]
       }
       {^-verbose$} -
       {^-v(e(r(b(o(se?)?)?)?)?)?$} {
@@ -3374,7 +4422,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
         set longhelp 1
       }
       default {
-        if {[string match "-*" $name]} {
+        if {[string match "--" $name]} {
+          # Use "--" to start command line option for the export proc. Same as -args
+          set customArgs [concat $customArgs $args]
+          # Empty the list of arguments
+          set args [list]
+        } elseif {[string match "-*" $name]} {
           puts " -E- option '$name' is not a valid option."
           incr error
         } else {
@@ -3389,7 +4442,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
     puts [format {
   Usage: <prettyTableObject> export
               -format %s
-              [-table classic|lean]
+              [-table classic|lean|compact]
               [-delimiter <csv_delimiter>]
               [-file <filename>]
               [-append]
@@ -3400,13 +4453,14 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
               [-align_right|-right]
               [-noheader]
               [-notitle]
-              [-args <list_arguments>]
+              [-from_row <start_row_index>][-to_row <end_row_index>][-head <num>][-tail <num>]
+              [-args <list_arguments>][-- <list_arguments>]
               [-verbose|-v]
               [-help|-h]
               [-longhelp]
 
   Description: Export table content. The -columns argument is only available for the
-               'list' and 'table' export formats.
+               'list' and 'table' export formats
 
     -columns: list of columns to display. Order based on table header
     -order_columns: ordered list of columns
@@ -3414,9 +4468,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
     -align_left: cell alignment. For table format only
     -align_right: cell alignment. For table format only
     -args: specify additional arguments for custom formats (format: -<key> <value>)
+      Equivalent to "--" to separate command line options to the export proc
+    -from_row/-to_row/-head/-tail: control the number of rows that are exported
 
   Example:
      <prettyTableObject> export -format csv
+     <prettyTableObject> export -format <custom> -args <arguments>
+     <prettyTableObject> export -format <custom> -- <arguments>
      <prettyTableObject> export -format csv -return_var report
      <prettyTableObject> export -file output.rpt -append -columns {0 2 3 4}
      <prettyTableObject> export -file output.rpt -append -order_columns {0 4 3}
@@ -3475,11 +4533,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   }
 
   switch $tableFormat {
+    nospacing -
+    compact -
     lean -
     classic {
     }
     default {
-      puts " -E- invalid table format '$tableFormat'. The valid formats are: classic|lean"
+      puts " -E- invalid table format '$tableFormat'. The valid formats are: classic|lean|compact"
       incr error
     }
   }
@@ -3523,6 +4583,16 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:export {self args} {
   if {$reorderColumns != {}} {
     # Trim columns that are not specified
     $clone reordercols $reorderColumns -trim 1
+  }
+  if {($startRow != 0) || ($endRow != {end})} {
+    # Only keep the rows between -from_row and -to_row
+    $clone settable [lrange [$clone gettable] $startRow $endRow]
+    # Need to re-index the separators
+    set L [list]
+    foreach el [subst $${clone}::separators] {
+      lappend L [expr $el - $startRow]
+    }
+    set ${clone}::separators $L
   }
 
   # Common command line arguments to all export procs
@@ -3578,7 +4648,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:search {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Search inside the table (-help)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
@@ -3587,12 +4656,14 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:search {self args} {
   set error 0
   set help 0
   set verbose 0
+  set quiet 0
   set str {}
   set matchStyle {-glob}
   set caseStyle {}
   set all {}
   set returnformat {rowidx}
   set columns {}
+  set rows {}
   set print 0
   if {[llength $args] == 0} { incr help }
   while {[llength $args]} {
@@ -3613,6 +4684,18 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:search {self args} {
       {^-ex(a(ct?)?)?$} {
         set matchStyle {-exact}
       }
+      {^-gt$} {
+        set matchStyle {greatherThan}
+      }
+      {^-lt$} {
+        set matchStyle {lessThan}
+      }
+      {^-eq$} {
+        set matchStyle {equal}
+      }
+      {^-bt$} {
+        set matchStyle {between}
+      }
       {^-all?$} {
         set all {-all}
       }
@@ -3621,6 +4704,9 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:search {self args} {
       }
       {^-co(l(u(m(ns?)?)?)?)?$} {
         set columns [lshift args]
+      }
+      {^-ro(ws?)?$} {
+        set rows [lshift args]
       }
       {^-return_row_c(o(l(u(m(n(_(i(n(d(e(x(es?)?)?)?)?)?)?)?)?)?)?)?)?$} {
         set returnformat {rowcolidx}
@@ -3643,12 +4729,18 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:search {self args} {
       {^-v(e(r(b(o(se?)?)?)?)?)?$} {
         set verbose 1
       }
+      {^-q(u(i(et?)?)?)?$} {
+        set quiet 1
+      }
       {^\?$} -
       {^-h(e(lp?)?)?$} {
         set help 1
       }
       default {
-        if {[string match "-*" $name]} {
+        if {[regexp {^[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?} $name]} {
+          # Floating point numbers
+          set str $name
+        } elseif {[string match "-*" $name]} {
           puts " -E- option '$name' is not a valid option."
           incr error
         } else {
@@ -3665,8 +4757,9 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:search {self args} {
   Usage: <prettyTableObject> search
               -pattern <string>|<string>
               [-nocase]
-              [-glob][-exact][-regexp]
+              [-glob][-exact][-regexp][-eq][-gt][-lt][-bt]
               [-columns <list_of_columns_to_search>]
+              [-rows <list_of_rows_to_search>]
               [-return_row_column_indexes]
               [-return_column_indexes]
               [-return_row_indexes]
@@ -3674,16 +4767,28 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:search {self args} {
               [-return_matching_rows]
               [-return_table]
               [-print]
-              [-verbose|-v]
+              [-verbose|-v][-quiet]
               [-help|-h]
 
   Description: Search for values inside the table
 
     Returns by default the row index(es) (-return_row_indexes)
+    Use -colums to provide a list of columns to search. Column names
+      and column indexes can be provided. A column name can match multiple
+      column indexes
+    Use -rows to provide a list of rows to search
+    Use -gt/-lt/-eq/-bt to search for numbers greater or equal, less or equal
+    or equal to the expression/pattern, or between the range provided by the
+    expression/pattern
+    Use -verbose with -print to append '(*)' to matching cells
 
   Example:
      <prettyTableObject> search -pattern {foo*} -nocase -glob
      <prettyTableObject> search {foo.+} -regexp -return_matching_rows -columns {0 2 3 4}
+     <prettyTableObject> search -gt -1.23 -return_matching_rows -columns {0 2 3 4}
+     <prettyTableObject> search -gt 150 -columns {maxfo accFO}
+     <prettyTableObject> search -bt {-1.23 2.1} -return_matching_rows -columns {0 2 3 4}
+     <prettyTableObject> search -rows [<prettyTableObject> search -glob {*CARRY*CARRY*CARRY*CARRY*} -return_row_indexes] -lt -0.2 -col 3
 } ]
     # HELP -->
     return {}
@@ -3700,24 +4805,111 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:search {self args} {
     $tbl header [$self header]
   }
 
-  set rowidx -1
+  # Build the list of column indexes
+  set L [list]
+  foreach c $columns {
+    if {[regexp {^[0-9]+$} $c]} {
+      # Column index
+      lappend L $c
+    } else {
+      # Column specified by name. Need to convert it as an index
+      set idx [lsearch -all -exact -nocase $header $c]
+      if {$idx == -1} {
+        if {!$quiet} {
+          puts " -E- column '$c' does not match any table column"
+        }
+        continue
+      }
+      if {$verbose && !$quiet} {
+        puts " -I- Column '$c' -> $idx"
+      }
+      set L [concat $L $idx]
+    }
+  }
+  set columns $L
+
   set res [list]
   set matchrows [list]
   # Search for pattern for each row
-  foreach row $table {
-    incr rowidx
-    set match [lsearch {*}$all {*}$caseStyle {*}$matchStyle $row $str]
-    if {($match != {}) && ($match != {-1})} {
-      foreach colidx $match {
-        if {($columns != {}) && ([lsearch $columns $colidx] == -1)} {
-          # The column that has match is not in the list of columns specified by -columns
-          continue
+#   foreach row $table {}
+  for {set rowidx 0} {$rowidx < [llength $table]} {incr rowidx} {
+    if {($rows != {}) && ([lsearch $rows $rowidx] == -1)} {
+      # If a list of rows has been specified, only process those rows
+      continue
+    }
+    set row [lindex $table $rowidx]
+    set match {}
+    switch $matchStyle {
+      between -
+      equal -
+      greatherThan -
+      lessThan {
+        for {set idx 0} {$idx < [llength $row]} {incr idx} {
+          set value [lindex $row $idx]
+          if {![regexp {^[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?$} $value]} {
+            # Skip non-numeric values
+            continue
+          }
+          switch $matchStyle {
+            equal {
+              if {$value == $str} {
+                lappend match $idx
+              }
+            }
+            greatherThan {
+              if {$value >= $str} {
+                lappend match $idx
+              }
+            }
+            lessThan {
+              if {$value <= $str} {
+                lappend match $idx
+              }
+            }
+            between {
+              set min [min [lindex $str 0] [lindex $str 1]]
+              set max [max [lindex $str 0] [lindex $str 1]]
+              if {($value >= $min) && ($value <= $max)} {
+                lappend match $idx
+              }
+            }
+          }
         }
-        lappend res [list $rowidx $colidx [lindex $row $colidx]]
       }
-      lappend matchrows $row
-      if {$print || ($returnformat == {table})} {
-        $tbl addrow $row
+      default {
+        set match [lsearch {*}$all {*}$caseStyle {*}$matchStyle $row $str]
+      }
+    }
+#     set match [lsearch {*}$all {*}$caseStyle {*}$matchStyle $row $str]
+    if {($match != {}) && ($match != {-1})} {
+      set addrow 0
+      foreach colidx $match {
+        if {($columns != {}) && ([lsearch $columns $colidx] != -1)} {
+          # The column that has match is in the list of columns specified by -columns
+          lappend res [list $rowidx $colidx [lindex $row $colidx]]
+          if {$print || ($returnformat == {table})} {
+            if {$verbose} {
+              # In verbose mode, append the string '(*)' to the matching cells
+              set row [lreplace $row $colidx $colidx [format {%s (*)} [lindex $row $colidx] ] ]
+            }
+          }
+          set addrow 1
+        } elseif {$columns == {}} {
+          lappend res [list $rowidx $colidx [lindex $row $colidx]]
+          if {$print || ($returnformat == {table})} {
+            if {$verbose} {
+              # In verbose mode, append the string '(*)' to the matching cells
+              set row [lreplace $row $colidx $colidx [format {%s (*)} [lindex $row $colidx] ] ]
+            }
+          }
+          set addrow 1
+        }
+      }
+      if {$addrow} {
+        lappend matchrows $row
+        if {$print || ($returnformat == {table})} {
+          $tbl addrow $row
+        }
       }
     }
   }
@@ -3785,7 +4977,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:filter {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Filter table (-help)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
@@ -3796,16 +4987,22 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:filter {self args} {
   set verbose 0
   set procname {}
   set procargs [list]
+  set inlineContent {}
   set print 0
   if {[llength $args] == 0} { incr help }
   while {[llength $args]} {
     set name [lshift args]
     switch -regexp -- $name {
+      {^-pr(oc?)?$} -
       {^-co(m(m(a(nd?)?)?)?)?$} {
         set procname [lshift args]
       }
       {^-ar(gs?)?$} {
         set procargs [lshift args]
+      }
+      {^-inline$} -
+      {^-i(n(l(i(ne?)?)?)?)?$} {
+        set inlineContent [lshift args]
       }
       {^-pr(i(nt?)?)?$} {
         set print 1
@@ -3833,8 +5030,9 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:filter {self args} {
   if {$help} {
     puts [format {
   Usage: <prettyTableObject> filter
-              -command <proc>|<proc>
+              [-command <proc>|-proc <proc>|<proc>]
               [-args <list_of_arguments>]
+              [-inline <inline_content>]
               [-print]
               [-verbose|-v]
               [-help|-h]
@@ -3843,25 +5041,72 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:filter {self args} {
 
     The filter proc should be defined as: proc <procname> {row args} { ... ; return $row }
     When TCL_ERROR is returned by the proc, the row is discarded.
+    -inline: provide inline content instead of a proc name. Column indexes can be
+      refered as c<colIndex>, e.g c0 for column 0
+    -print: print the filtered table
 
   Example:
      <prettyTableObject> filter myprocname
      <prettyTableObject> filter myprocname -args {-arg1 ... -argN}
+     <prettyTableObject> filter -inline { set c3 [expr $c1 + $c5] }
 } ]
     # HELP -->
     return {}
   }
 
-  if {$procname == {}} {
-    puts " -E- no proc name specified (-command)"
+  if {($procname == {}) && ($inlineContent == {})} {
+    puts " -E- no proc name or inline content specified (-command/-inline)"
     incr error
-  } elseif { [uplevel #0 [list info proc $procname]] == {} } {
-    puts " -E- proc '$procname' does not exists<[info proc $procname]>"
+  } elseif {($procname != {}) && ($inlineContent != {})} {
+    puts " -E- -command and -inline cannot be specified together"
     incr error
+  } elseif {$procname != {}} {
+    if { [uplevel #0 [list info proc $procname]] == {} } {
+      puts " -E- proc '$procname' does not exists<[info proc $procname]>"
+      incr error
+    }
   }
 
   if {$error} {
     error " -E- some error(s) happened. Cannot continue"
+  }
+
+  if {$inlineContent != {}} {
+    # Create a local proc from the inline content:
+    # - For each row, a variable is created for the
+    #   equivalent column index: c0, c1, ... cN
+    # - The user can modify the variables
+    # - The row is recomposed from all the variables
+    set procDef [format {
+    proc dummyfilter {row args} {
+      if {[catch {
+        for {set idx 0} {$idx < [llength $row]} {incr idx} {
+          set c${idx} [lindex $row $idx]
+        }
+
+        # Inline content
+        %s
+
+        set newrow [list]
+        for {set idx 0} {$idx < [llength $row]} {incr idx} {
+          lappend newrow [set c${idx}]
+        }
+      } errorstring]} {
+        puts " -E- $errorstring"
+        set newrow $row
+      }
+      return $newrow
+    }
+} $inlineContent ]
+
+    # Eval the proc inside the local space
+    if {[catch {eval $procDef} errorstring]} {
+      puts " -E- $errorstring"
+      return -code ok
+    }
+    # Point to the created proc
+    set procname {dummyfilter}
+    set inlineContent {}
   }
 
   set res [list]
@@ -3912,7 +5157,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:reordercols {self column
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Reorder a list of column(s) (?)
   upvar #0 ${self}::header header
   upvar #0 ${self}::table table
@@ -3933,6 +5177,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:reordercols {self column
   if {$columns == {}} {
     return {}
   }
+
   set L [list]
   foreach column $columns {
   if {[regexp {^end$} $column]} { set column [expr [llength $header] -1] }
@@ -3989,6 +5234,81 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:reordercols {self column
 }
 
 #------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::method:reorderrows
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> reorderrows <list_of_row_indexes> [-trim <0|1>]
+#------------------------------------------------------------------------
+# Reorder a list of row(s). When a row index is specified multiple
+# times, the row is duplicated
+#------------------------------------------------------------------------
+
+proc ::tclapp::xilinx::designutils::prettyTable::method:reorderrows {self rows args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Reorder a list of row(s) (?)
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::numRows numRows
+
+  array set defaults [list \
+      -trim 0 \
+    ]
+  array set options [array get defaults]
+  array set options $args
+  if {[lsearch {-h -help ?} $rows] != -1} {
+    puts [format {  Usage: <prettyTableObject> reorderrows <list_of_row_indexes> [-trim 0|1]}]
+    puts [format {         -trim 1: trim unspecified row(s)}]
+    puts [format {         -trim 0 (default): append non-specified row(s)}]
+    return -code ok
+  }
+
+  if {$rows == {}} {
+    return {}
+  }
+
+  set L [list]
+  foreach row $rows {
+  if {[regexp {^end$} $row]} { set row [expr [llength $table] -1] }
+  if {[regexp {^end-([0-9]+)$} $row - num]} { set row [expr [llength $table] -1 - $num] }
+  if {($row < 0) || ($row > [expr [llength $table] -1])} {
+    puts " -W- row '$row' out of bound"
+    continue
+  }
+    lappend L $row
+  }
+  set rows $L
+  # Build the temporary fragment table that will make the
+  # first rows of the final table
+  set fragTable [list]
+  foreach row $rows {
+    lappend fragTable [lindex $table $row]
+  }
+  # Remove rows from current table
+  foreach row [lsort -unique -integer -decreasing $rows] {
+    if {[catch {
+      # Remove row
+      $self delrows $row
+    } errorstring]} {
+      puts " -W- $errorstring"
+    } else {
+    }
+  }
+  if {$options(-trim)} {
+    # Discard rows that have not been specified
+    set table $fragTable
+  } else {
+    # Merge the fragment table with the original table: fragment table first
+    set table [concat $fragTable $table]
+  }
+  set numRows [llength $table]
+  # Done
+  return $self
+}
+
+#------------------------------------------------------------------------
 # ::tclapp::xilinx::designutils::prettyTable::method:version
 #------------------------------------------------------------------------
 # Usage: <prettyTableObject> version
@@ -4001,9 +5321,1363 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:version {self args} {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
-  # Return the package version
+  # Return the prettyTable version
   return $::tclapp::xilinx::designutils::prettyTable::version
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::expandRange
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Usage: ::tclapp::xilinx::designutils::prettyTable::expandRange <range> [-mode <value|coord|cell>] [-numeric <1|0>]
+#------------------------------------------------------------------------
+# Return a range of cells. Use '-mode <mode>' to control the returned format.
+# The cells range is bounded to the table's dimensions. Multiple ranges Can
+# be specified (coma separated).
+# Use '-numeric 1' with '-mode value' to only return cell values that are
+# numeroc (floating point).
+# E.g:
+#     +--------+------+-------+
+#     | Name   | #    | %     |
+#     +--------+------+-------+
+#     | LUT    | 9754 | 66.51 |
+#     | CARRY  | 2622 | 17.88 |
+#     | FD     | 1541 | 10.51 |
+#     | RAMB   | 421  | 2.87  |
+#     | DSP    | 288  | 1.96  |
+#     | URAM   | 36   | 0.25  |
+#     | LUTRAM | 3    | 0.02  |
+#     +--------+------+-------+
+#  c1:2r1:6 (-mode cell) => c1r1 c1r2 c1r3 c1r4 c1r5 c1r6 c2r1 c2r2 c2r3 c2r4 c2r5 c2r6
+#  c1:2r1:6 (-mode coord) => {1 1} {1 2} {1 3} {1 4} {1 5} {1 6} {2 1} {2 2} {2 3} {2 4} {2 5} {2 6}
+#  c1:2r1:6 (-mode value) => 2622 17.88 1541 10.51 421 2.87 288 1.96 36 0.25 3 0.02
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::expandRange {self ranges args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Get a table cell value
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::numRows numRows
+
+  array set defaults [list \
+      -mode {value} \
+      -numeric 0 \
+    ]
+  array set options [array get defaults]
+  array set options $args
+
+  set result [list]
+  set visited [list]
+  foreach range [split $ranges {,}] {
+# puts "<range:$range>"
+  #   set rmin 0 ; set rmax {end} ; set cmin 0 ; set cmax {end}
+    set rmin 0 ; set rmax [expr [llength $table] -1] ; set cmin 0 ; set cmax [expr [llength $header] -1]
+    if {[regexp {([cC]([0-9]+)(:([0-9]+))?)([rR]([0-9]+)(:([0-9]+))?)} $range - - cmin - cmax - rmin - rmax]} {
+      # c12:3r4:5
+      # c12:3
+      foreach {cmin cmax} [list [min $cmin $cmax]  [max $cmin $cmax] ] {}
+      foreach {rmin rmax} [list [min $rmin $rmax]  [max $rmin $rmax] ] {}
+
+    } elseif {[regexp {[cC]([0-9]+)(:([0-9]+))?} $range - cmin - cmax]} {
+      # c4:5
+      foreach {cmin cmax} [list [min $cmin $cmax]  [max $cmin $cmax] ] {}
+    } elseif {[regexp {[rR]([0-9]+)(:([0-9]+))?} $range - rmin - rmax]} {
+      # r4:5
+      foreach {rmin rmax} [list [min $rmin $rmax]  [max $rmin $rmax] ] {}
+    } else {
+      return [list]
+    }
+# puts "1:<cmin:$cmin><cmax:$cmax><rmin:$rmin><rmax:$rmax>"
+    # Bound the values based on the table's dimensions
+    foreach {cmin cmax} [list [max $cmin 0]  [min $cmax [expr [llength $header] -1]] ] {}
+    foreach {rmin rmax} [list [max $rmin 0]  [min $rmax [expr [llength $table] -1]] ] {}
+# puts "2:<cmin:$cmin><cmax:$cmax><rmin:$rmin><rmax:$rmax>"
+
+    switch $options(-mode) {
+      values -
+      value {
+        for {set c $cmin} {$c <= $cmax} {incr c} {
+          for {set r $rmin} {$r <= $rmax} {incr r} {
+            if {[lsearch $visited "c${c}r${r}"] == -1} {
+              # Only add if cell has not been already visited
+              set row [lindex $table $r]
+              set value [lindex $row $c]
+              if {$options(-numeric)} {
+                if {[regexp {^[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?$} $value]} {
+                  # Only return floating point numbers (-numeric 1)
+                  lappend result $value
+                }
+              } else {
+                lappend result $value
+              }
+              lappend visited "c${c}r${r}"
+            }
+          }
+        }
+      }
+      coordonates -
+      coordonate -
+      coords -
+      coord {
+        # Return a list of cell coordonates: <column> <row>
+        for {set c $cmin} {$c <= $cmax} {incr c} {
+          for {set r $rmin} {$r <= $rmax} {incr r} {
+            if {[lsearch $visited "c${c}r${r}"] == -1} {
+              # Only add if cell has not been already visited
+              lappend result [list $c $r]
+              lappend visited "c${c}r${r}"
+            }
+          }
+        }
+      }
+      cells -
+      cell {
+        # Return a list of cell coordonates: c<column>r<row>
+        for {set c $cmin} {$c <= $cmax} {incr c} {
+          for {set r $rmin} {$r <= $rmax} {incr r} {
+            if {[lsearch $visited "c${c}r${r}"] == -1} {
+              # Only add if cell has not been already visited
+              lappend result "c${c}r${r}"
+              lappend visited "c${c}r${r}"
+            }
+          }
+        }
+      }
+      default {
+        puts " -E- unknown mode '$options(-mode)'"
+      }
+    }
+# puts "<cmin:$cmin><cmax:$cmax><rmin:$rmin><rmax:$rmax>"
+  }
+
+  return $result
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::expandRange
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Usage: ::tclapp::xilinx::designutils::prettyTable::expandExprRange <range>
+#------------------------------------------------------------------------
+# Return a range of cells. Only numeric values are returned.
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::expandExprRange {self range args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Return coma separated list (compatibility for 'expr')
+  return [join [::tclapp::xilinx::designutils::prettyTable::expandRange $self $range {*}$args -mode value -numeric 1] {,} ]
+}
+
+#------------------------------------------------------------------------
+# ::tcl::mathfunc::sum
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# New math operators
+#------------------------------------------------------------------------
+# Sum of all arguments
+proc ::tcl::mathfunc::sum {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  ::tcl::mathop::+ {*}$args
+}
+
+# Square sum of all arguments
+proc ::tcl::mathfunc::sum2 {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set sum 0
+  foreach i $args {set sum [expr {$sum+$i*$i}]}
+  set sum
+}
+
+# Average of all arguments
+proc ::tcl::mathfunc::average {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  expr {[llength $args] ? [::tcl::mathop::+ {*}$args] / double([llength $args]) : "!ERR"}
+}
+
+# Number of numeric arguments
+proc ::tcl::mathfunc::count {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  expr {[llength $args] ? [llength $args] : "!ERR"}
+}
+
+# Median
+proc ::tcl::mathfunc::median {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  if {[set len [llength $args]] % 2} then {
+    return [lindex [lsort -real $args] [expr {($len - 1) / 2}]]
+  } else {
+    return [expr {([lindex [set sl [lsort -real $args]] [expr {($len / 2) - 1}]] \
+                   + [lindex $sl [expr {$len / 2}]]) / 2.0}]
+  }
+}
+
+# Arithmetic mean
+proc ::tcl::mathfunc::mean {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  expr ([join $args +]+0)/[llength $args].
+}
+
+# Geometric mean
+proc ::tcl::mathfunc::gmean {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  expr pow([join $args *],1./[llength $args])
+}
+
+# Quadratic mean
+proc ::tcl::mathfunc::qmean {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  expr sqrt((pow([join $args ,2)+pow(],2))/[llength $args])
+}
+
+# Harmonic mean
+proc ::tcl::mathfunc::hmean {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  expr [llength $args]/(1./[join $args +1./])
+}
+
+# Square mean
+proc ::tcl::mathfunc::mean2 {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set sum 0
+  foreach i $args {set sum [expr {$sum+$i*$i}]}
+  expr {double($sum)/[llength $args]}
+}
+
+# Standard deviation
+proc ::tcl::mathfunc::stddev {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set m [mean {*}$args]
+  expr {sqrt([mean2 {*}$args]-$m*$m)}
+}
+
+# Variance
+proc ::tcl::mathfunc::variance {args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set m [mean {*}$args]
+  expr {[mean2 {*}$args]-$m*$m}
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::method:eval
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> eval [<options>]
+#------------------------------------------------------------------------
+# Evaluate an expression
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::method:eval {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Evaluate an expression (-help)
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::params params
+  upvar #0 ${self}::numRows numRows
+  set expressions {}
+  set evaluate 1
+  set error 0
+  set help 0
+  set verbose 0
+  set quiet 0
+  if {[llength $args] == 0} { incr help }
+  while {[llength $args]} {
+    set name [lshift args]
+    switch -regexp -- $name {
+      {^-expression$} -
+      {^-e(x(p(r(e(s(s(i(on?)?)?)?)?)?)?)?)?$} {
+        lappend expressions [lshift args]
+      }
+      {^-no_eval$} -
+      {^-no(_(e(v(al?)?)?)?)?$} {
+        set evaluate 0
+      }
+      {^-v(e(r(b(o(se?)?)?)?)?)?$} {
+        set verbose 1
+      }
+      {^-q(u(i(et?)?)?)?$} {
+        set quiet 1
+      }
+      {^\?$} -
+      {^-h(e(lp?)?)?$} {
+        set help 1
+      }
+      default {
+        if {[string match "-*" $name]} {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        } else {
+          set expressions $name
+#           puts " -E- option '$name' is not a valid option."
+#           incr error
+        }
+      }
+    }
+  }
+
+  if {$help} {
+    puts [format {
+  Usage: <prettyTableObject> eval
+              -expression <expr>|<expr>
+              [-no_eval]
+              [-verbose|-v]
+              [-help|-h]
+
+  Description: Evaluate math expression on the table content
+
+    Multiple expressions can be specified through multiple -expression
+
+    -no_eval: return the expression without evaluation
+
+  Example of operators:
+          min            gmean (geometic mean)
+          max            qmean (quadrtic mean)
+          sum            hmean (harmonic mean)
+          average        mean2 (square mean)
+          median         stddev (standard deviation)
+          mean           variance
+          count
+
+  Example:
+     <prettyTableObject> eval {sum(c2)}
+     <prettyTableObject> eval {sum(c1r0:6,c2:3r7:8)}
+     <prettyTableObject> eval -e sum(c1) -e min(c1) -e max(c1)
+} ]
+    # HELP -->
+    return {}
+  }
+
+  if {$expressions == {}} {
+    puts " -E- no expression specified (-expression)"
+    incr error
+  }
+
+  if {$error} {
+    error " -E- some error(s) happened. Cannot continue"
+  }
+
+  set result {}
+  foreach expression $expressions {
+    # Ranges with cC&rR
+    set res [regsub -all {(([cC][0-9]+(:[0-9]+)?)([rR][0-9]+(:[0-9]+)?))} $expression [format {[expandExprRange %s \1]} $self] ]
+    set res [subst $res]
+    # Ranges with cC only
+    set res [regsub -all {([cC][0-9]+(:[0-9]+)?)} $res [format {[expandExprRange %s \1]} $self] ]
+    set res [subst $res]
+    # Ranges with rR only
+    set res [regsub -all {([rR][0-9]+(:[0-9]+)?)} $res [format {[expandExprRange %s \1]} $self] ]
+    set res [subst $res]
+
+    if {$evaluate} {
+      if {[catch {set _result [expr [subst $res]]} errorstring]} {
+        if {!$quiet} {
+          puts " -E- failed during evaluation: $errorstring"
+          puts "     expression: $res"
+        }
+        lappend result {}
+      } else {
+        lappend result $_result
+      }
+    } else {
+      lappend result $res
+    }
+  }
+
+  return $result
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::applyMathOperator
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Apply a math operator to a list. Used to generate the pivot table
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::applyMathOperator {op L {quiet 0} {precision 3}} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set res {#ERR}
+  # Only keep numeric values
+  set values [getNumericValues $L]
+  if {$precision == -1} {
+    # No limit
+    set precision {%s}
+  } else {
+    # Number of digits after dot
+    set precision "%.${precision}f"
+  }
+  if {[catch {set res [format $precision [$op {*}$values]] } errorcode]} {
+    if {!$quiet} {
+      puts " -E- '$op': $errorcode"
+    }
+  }
+  return $res
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::truncateList
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Truncate list
+#    -0.135 -0.136 -0.137 -0.138 -0.139 ... -0.391 -0.392 -0.393 -0.394 -0.395
+#    -0.135 -0.136 -0.137 -0.138 -0.139 -0.140 -0.141 -0.142 -0.143 -0.144 ...
+#    ... -0.135 -0.136 -0.137 -0.138 -0.139 -0.140 -0.141 -0.142 -0.143 -0.144
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::truncateList {L {max end} {type center}} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  if {$max == {end}} { return $L }
+  if {[llength $L] > $max} {
+    switch $type {
+      end {
+        # Insert '...' at the end of the list:
+        #    -0.135 -0.136 -0.137 -0.138 -0.139 -0.140 -0.141 -0.142 -0.143 -0.144 ...
+        set L [lrange $L 0 [expr $max -1]]
+        lappend L {...}
+      }
+      start {
+        # Insert '...' at the start of the list:
+        #    ... -0.135 -0.136 -0.137 -0.138 -0.139 -0.140 -0.141 -0.142 -0.143 -0.144
+        set L [concat {...} [lrange $L end-[expr $max -1] {end}] ]
+      }
+      center -
+      default {
+        # Insert '...' in the middle of the list:
+        #     -0.135 -0.136 -0.137 -0.138 -0.139 ... -0.391 -0.392 -0.393 -0.394 -0.395
+        set first [expr int($max / 2) -1]
+        set last [expr $max - $first -2]
+        set L [concat [lrange $L 0 $first] {...} [lrange $L end-$last end] ]
+      }
+    }
+  }
+  return $L
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::getNumericValues
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Exclude elements from the list that do not match a float
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::getNumericValues {L} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set values [list]
+  foreach el $L {
+    if {[regexp {^[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?$} $el]} {
+      # Only keep floating point numbers
+      lappend values $el
+    }
+  }
+  return $values
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::getHistogramDistribution
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Return histogram distribution
+# E.g:
+#   % ::tclapp::xilinx::designutils::prettyTable::getHistogramDistribution {0 1 2 3 4 5 6 7 8 9 10 11 16 21 26 31} <list_of_values>
+#   => 0 2 0 0 0 0 47 25 83 75 42 16 287 93 0 0 0
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::getHistogramDistribution {limits values} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  if { [llength $limits] < 1 } {
+    return -code error -errorcode ARG -errorinfo {No limits given} {No limits given}
+  }
+
+  set limits [lsort -real -decreasing $limits]
+
+  for { set index 0 } { $index <= [llength $limits] } { incr index } {
+    set buckets($index) 0
+  }
+
+  foreach value $values {
+    if { $value == {} } {
+      continue
+    }
+
+    set index [llength $limits]
+    set found 0
+    foreach limit $limits {
+      if { $value >= $limit } {
+        set found 1
+        incr buckets($index)
+        break
+      }
+      incr index -1
+    }
+
+    if { $found == 0 } {
+      # Values that are smaller than the smallest limit
+      incr buckets(0)
+    }
+  }
+
+  set result {}
+  for { set index 0 } { $index <= [llength $limits] } { incr index } {
+    lappend result $buckets($index)
+  }
+
+  # Do not return the first bucket that is filled by values that are smaller
+  # than the smallest limit
+  return [lrange $result 1 end]
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::generatePivotTable
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Generate a pivot table from a source table, a list of rows and list
+# of columns. Rows and columns can be specified by row/column index or
+# names.
+# With each row, a display type can be provided:
+#    <column>[:<type>]
+# <type>:
+#    min
+#    max
+#    sum
+#    average
+#    median
+#    mean
+#    gmean (geometic mean)
+#    qmean (quadrtic mean)
+#    hmean (harmonic mean)
+#    mean2 (square mean)
+#    stddev (standard deviation)
+#    freq (frequency distribution)
+#    count
+#    default
+#------------------------------------------------------------------------
+# Example of pivot table with single column
+#   % set pivot [$tbl createpivot -rows {sptype eptype} -columns {lvls} -max -1 -print -prec 2]
+#   +------------+--------------+-------+----------+--------------------------------------------+
+#   | spType     | epType       | count | count(%) | lvls                                       |
+#   +------------+--------------+-------+----------+--------------------------------------------+
+#   | FDRE       | FDRE         | 670   | 67.00    | 1 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 |
+#   | RAMB18E2   | RAMB18E2     | 189   | 18.90    | 9 10 11 12                                 |
+#   | FDRE       | RAMB18E2     | 60    | 6.00     | 9 10 11                                    |
+#   | FDRE       | RAMB36E2     | 39    | 3.90     | 6 7 9                                      |
+#   | FDSE       | FDRE         | 12    | 1.20     | 12 13                                      |
+#   | DSP_M_DATA | FDRE         | 11    | 1.10     | 12                                         |
+#   | FDRE       | RAMD32       | 9     | 0.90     | 8 9                                        |
+#   | RAMB36E2   | FDRE         | 6     | 0.60     | 11 12                                      |
+#   | FDRE       | URAM288      | 2     | 0.20     | 4                                          |
+#   | RAMB18E2   | DSP_A_B_DATA | 1     | 0.10     | 6                                          |
+#   | URAM288    | FDRE         | 1     | 0.10     | 6                                          |
+#   +------------+--------------+-------+----------+--------------------------------------------+
+#
+# Example of pivot table with distribution table
+#   % set pivot [$tbl createpivot -rows {sptype eptype} -columns {lvls} -max -1 -print -prec 2 -bins {0 1 2 3 4 5 6 7 8 9 10 11 16 21 26 31} -names {0 1 2 3 4 5 6 7 8 9 10 11-15 16-20 21-25 26-30 31+}]
+#   +------------+--------------+-------+----------+---+---+---+---+---+---+----+----+----+----+----+-------+-------+-------+-------+-----+
+#   | spType     | epType       | count | count(%) | 0 | 1 | 2 | 3 | 4 | 5 | 6  | 7  | 8  | 9  | 10 | 11-15 | 16-20 | 21-25 | 26-30 | 31+ |
+#   +------------+--------------+-------+----------+---+---+---+---+---+---+----+----+----+----+----+-------+-------+-------+-------+-----+
+#   | FDRE       | FDRE         | 670   | 67.00    | 0 | 2 | 0 | 0 | 0 | 0 | 47 | 25 | 83 | 75 | 42 | 16    | 287   | 93    | 0     | 0   |
+#   | RAMB18E2   | RAMB18E2     | 189   | 18.90    | 0 | 0 | 0 | 0 | 0 | 0 | 0  | 0  | 0  | 2  | 93 | 23    | 71    | 0     | 0     | 0   |
+#   | FDRE       | RAMB18E2     | 60    | 6.00     | 0 | 0 | 0 | 0 | 0 | 0 | 0  | 0  | 0  | 23 | 30 | 7     | 0     | 0     | 0     | 0   |
+#   | FDRE       | RAMB36E2     | 39    | 3.90     | 0 | 0 | 0 | 0 | 0 | 0 | 5  | 30 | 0  | 4  | 0  | 0     | 0     | 0     | 0     | 0   |
+#   | FDSE       | FDRE         | 12    | 1.20     | 0 | 0 | 0 | 0 | 0 | 0 | 0  | 0  | 0  | 0  | 0  | 0     | 12    | 0     | 0     | 0   |
+#   | DSP_M_DATA | FDRE         | 11    | 1.10     | 0 | 0 | 0 | 0 | 0 | 0 | 0  | 0  | 0  | 0  | 0  | 0     | 11    | 0     | 0     | 0   |
+#   | FDRE       | RAMD32       | 9     | 0.90     | 0 | 0 | 0 | 0 | 0 | 0 | 0  | 0  | 1  | 8  | 0  | 0     | 0     | 0     | 0     | 0   |
+#   | RAMB36E2   | FDRE         | 6     | 0.60     | 0 | 0 | 0 | 0 | 0 | 0 | 0  | 0  | 0  | 0  | 0  | 1     | 5     | 0     | 0     | 0   |
+#   | FDRE       | URAM288      | 2     | 0.20     | 0 | 0 | 0 | 0 | 2 | 0 | 0  | 0  | 0  | 0  | 0  | 0     | 0     | 0     | 0     | 0   |
+#   | RAMB18E2   | DSP_A_B_DATA | 1     | 0.10     | 0 | 0 | 0 | 0 | 0 | 0 | 1  | 0  | 0  | 0  | 0  | 0     | 0     | 0     | 0     | 0   |
+#   | URAM288    | FDRE         | 1     | 0.10     | 0 | 0 | 0 | 0 | 0 | 0 | 1  | 0  | 0  | 0  | 0  | 0     | 0     | 0     | 0     | 0   |
+#   +------------+--------------+-------+----------+---+---+---+---+---+---+----+----+----+----+----+-------+-------+-------+-------+-----+
+#
+# Example of pivot table with distribution table
+#   % set pivot [$tbl createpivot -rows {sptype eptype} -columns {skew} -max -1 -print -prec 2 -bins {-1.0 -0.55 -0.5 -0.4 -0.3 -0.2 -0.1 0 0.1 0.2 0.3}]
+#   +------------+--------------+-------+----------+------+-------+------+------+------+------+------+----+-----+-----+-----+
+#   | spType     | epType       | count | count(%) | -1.0 | -0.55 | -0.5 | -0.4 | -0.3 | -0.2 | -0.1 | 0  | 0.1 | 0.2 | 0.3 |
+#   +------------+--------------+-------+----------+------+-------+------+------+------+------+------+----+-----+-----+-----+
+#   | FDRE       | FDRE         | 670   | 67.00    | 35   | 145   | 14   | 14   | 40   | 149  | 191  | 75 | 6   | 1   | 0   |
+#   | RAMB18E2   | RAMB18E2     | 189   | 18.90    | 0    | 3     | 36   | 56   | 45   | 20   | 28   | 0  | 1   | 0   | 0   |
+#   | FDRE       | RAMB18E2     | 60    | 6.00     | 0    | 0     | 0    | 26   | 22   | 10   | 0    | 2  | 0   | 0   | 0   |
+#   | FDRE       | RAMB36E2     | 39    | 3.90     | 2    | 0     | 8    | 6    | 0    | 0    | 0    | 23 | 0   | 0   | 0   |
+#   | FDSE       | FDRE         | 12    | 1.20     | 0    | 0     | 0    | 0    | 2    | 2    | 3    | 5  | 0   | 0   | 0   |
+#   | DSP_M_DATA | FDRE         | 11    | 1.10     | 0    | 0     | 0    | 0    | 0    | 3    | 8    | 0  | 0   | 0   | 0   |
+#   | FDRE       | RAMD32       | 9     | 0.90     | 0    | 0     | 4    | 5    | 0    | 0    | 0    | 0  | 0   | 0   | 0   |
+#   | RAMB36E2   | FDRE         | 6     | 0.60     | 0    | 0     | 0    | 0    | 6    | 0    | 0    | 0  | 0   | 0   | 0   |
+#   | FDRE       | URAM288      | 2     | 0.20     | 0    | 0     | 0    | 0    | 2    | 0    | 0    | 0  | 0   | 0   | 0   |
+#   | RAMB18E2   | DSP_A_B_DATA | 1     | 0.10     | 0    | 0     | 0    | 1    | 0    | 0    | 0    | 0  | 0   | 0   | 0   |
+#   | URAM288    | FDRE         | 1     | 0.10     | 0    | 0     | 0    | 0    | 1    | 0    | 0    | 0  | 0   | 0   | 0   |
+#   +------------+--------------+-------+----------+------+-------+------+------+------+------+------+----+-----+-----+-----+
+proc ::tclapp::xilinx::designutils::prettyTable::generatePivotTable {srcTbl pivotTbl selRows selCols args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+#   upvar #0 ${srcTbl}::header srcHeader
+#   upvar #0 ${srcTbl}::table srcTable
+  upvar #0 ${pivotTbl}::header pvtHeader
+  upvar #0 ${pivotTbl}::table pvtTable
+
+  # Default options
+  array set defaults [list \
+      -quiet 0 \
+      -max_list_size {end} \
+      -precision 3 \
+      -bins {} \
+      -names {} \
+      -hide_zeros 0 \
+      -filter {} \
+      -verbose 0 \
+    ]
+  array set options [array get defaults]
+  array set options $args
+  set verbose $options(-verbose)
+  set quiet $options(-quiet)
+  set maxListSize $options(-max_list_size)
+  set precision $options(-precision)
+  set filter $options(-filter)
+  set distributionTableBins $options(-bins)
+  set distributionTableCols $options(-names)
+  set distributionHideZeroBins $options(-hide_zeros)
+  if {($distributionTableBins != {}) && ([llength $selCols] != 1)} {
+    # Distribution table is only valid when a single column has been specified
+    set distributionTableBins {}
+  }
+
+  # The source for the pivot table should always refer to the original table
+  # even when filtering has been defined
+  set originalSrcTbl $srcTbl
+
+  if {$filter != {}} {
+    # If filtering has been specified, create new table
+    if {[catch {set srcTbl [$srcTbl search {*}$filter -return_table]} errorstring]} {
+      puts "$errorstring"
+      puts " -W- filtering not applied"
+      upvar #0 ${srcTbl}::header srcHeader
+      upvar #0 ${srcTbl}::table srcTable
+    } else {
+      # Set variables based on filtered table
+      set srcHeader [$srcTbl header]
+      set srcTable [$srcTbl gettable]
+    }
+  } else {
+    # Set variables based on source table
+    upvar #0 ${srcTbl}::header srcHeader
+    upvar #0 ${srcTbl}::table srcTable
+  }
+
+  # Build the list of column indexes that are used in the pivot table rows
+  set pivotRows [list]
+  foreach row $selRows {
+    if {[regexp {^[0-9]+$} $row]} {
+      # Row index
+      lappend pivotRows $row
+    } else {
+      # Row specified by name. Need to convert it as an index
+      set idx [lsearch -exact -nocase $srcHeader $row]
+      if {$idx == -1} {
+        if {!$quiet} {
+          puts " -E- column '$row' does not match any table column"
+        }
+        continue
+      }
+      if {$verbose && !$quiet} {
+        puts " -I- Row '$row' -> $idx"
+      }
+      lappend pivotRows $idx
+    }
+  }
+
+  set pivotColumns [list]
+  set pivotColumnXform [list]
+  set pivotColumnHeader [list]
+  # Build the list of column indexes that are used in the pivot table columns
+  foreach column $selCols {
+    # The column can be specified with a transformation type:
+    #     <columnName>[:<type>]
+    # E.g: -columns {slack:average}
+    set columnName {}
+    # Extract the column type. If none is specified, then assign 'default'
+    if {[regexp {^(.+)(:(.+))$} $column - name - type]} {
+      set column $name
+    } else {
+      set type {default}
+    }
+    if {[regexp {^[0-9]+$} $column]} {
+      # Column index
+      set columnName [lindex $srcHeader $column]
+      lappend pivotColumns $column
+    } else {
+      # Column specified by name. Need to convert it as an index
+      set idx [lsearch -exact -nocase $srcHeader $column]
+      if {$idx == -1} {
+        if {!$quiet} {
+          puts " -E- column '$column' does not match any table column"
+        }
+        continue
+      }
+      if {$verbose && !$quiet} {
+        puts " -I- Column '$column' -> $idx"
+      }
+      set columnName [lindex $srcHeader $idx]
+      lappend pivotColumns $idx
+    }
+    if {$distributionTableBins != {}} {
+      # For distribution table, force the type to 'dist'
+      set type {dist}
+    }
+    # Save the transformation for the column
+    lappend pivotColumnXform [string tolower $type]
+    # Build the column header name based on the transformation type
+    if {$type == {default}} {
+      lappend pivotColumnHeader [format {%s} $columnName]
+    } else {
+      lappend pivotColumnHeader [format {%s(%s)} [string tolower $type] $columnName]
+    }
+  }
+
+  if {![llength $pivotRows]} {
+    if {!$quiet} {
+      puts " -E- no valid row specified"
+    }
+    return -code ok
+  }
+
+  if {($distributionTableBins != {}) && ([llength $selCols] == 1)} {
+    # Distribution table is only valid when a single column has been specified
+    if {[regexp -nocase {^auto(:([0-9]+))?$} $distributionTableBins - - numBins]} {
+      # Generate the number of sizes of bins automatically
+      if {$numBins == {}} {
+        # Default number of bins
+        set numBins 10
+      }
+      # Get all the numeric values from the column
+      set values [getNumericValues [$srcTbl getcolumns $pivotColumns]]
+      set min [lindex [lsort -real -increasing $values] 0]
+      set max [lindex [lsort -real -increasing $values] end]
+      set distributionTableBins [list]
+      for {set idx 0} {$idx < $numBins} {incr idx} {
+        # Are all the values integers?
+        if {[regexp {\.} $values]} {
+          # No, some value(s) are float
+          lappend distributionTableBins [format {%.3f} [expr $min + $idx * ($max - $min) / [expr $numBins + 1.0] ] ]
+        } else {
+          # Yes, all values are integer => keep all the bin values as integer
+          lappend distributionTableBins [format {%s} [expr int($min + $idx * ($max - $min) / [expr $numBins + 1.0]) ] ]
+        }
+      }
+    }
+
+    # Adjust the columns names of the distribution table
+    if {$distributionTableCols == {}} {
+      # If the column names for the distribution buckets have not been specified,
+      # use the values specified for the buckets
+      set distributionTableCols $distributionTableBins
+    } elseif {[llength $distributionTableCols] < [llength $distributionTableBins]} {
+      set distributionTableCols [concat $distributionTableCols \
+                                        [lrange $distributionTableBins [llength $distributionTableCols] end] \
+                                ]
+    } elseif {[llength $distributionTableCols] > [llength $distributionTableBins]} {
+      set distributionTableCols [lrange $distributionTableCols 0 [expr [llength $distributionTableBins] -1] ]
+    }
+
+  }
+
+  $pivotTbl reset
+  # Copy the source table inside the pivot table
+  set pvtHeader $srcHeader
+  set pvtTable $srcTable
+#   $pivotTbl header [$srcTbl header]
+#   $pivotTbl settable [$srcTbl gettable]
+  # Remove all the columns that have not be specified in the list of rows
+  $pivotTbl reordercols $pivotRows -trim 1
+  # Generate the frequency distribution
+  set rows [$pivotTbl gettable]
+  set distribution [getFrequencyDistribution $rows]
+  # Adding the columns 'count' and 'count(%)'
+  set pivotTblHeader [concat $pvtHeader {count} {count(%)} $pivotColumnHeader]
+
+  if {$distributionTableBins != {}} {
+    # For distribution table: the header should include all the column names of the buckets
+    set pivotTblHeader [concat $pvtHeader {count} {count(%)} $pivotColumnHeader $distributionTableCols]
+  }
+
+  # Reset the pivot table and build the final pivot table
+  $pivotTbl reset
+  $pivotTbl header $pivotTblHeader
+  $pivotTbl set_param {template} {pivottable}
+  $pivotTbl set_param {methods} {method pivottable}
+  $pivotTbl set_param {pivotSource} $originalSrcTbl
+  $pivotTbl set_param {pivotMaxListSize} $maxListSize
+  $pivotTbl set_param {pivotPrecision} $precision
+  $pivotTbl set_param {pivotFilter} $filter
+  $pivotTbl set_param {pivotRows} $selRows
+  $pivotTbl set_param {pivotColumns} $selCols
+  $pivotTbl set_param {pivotDistributionBins} $distributionTableBins
+  $pivotTbl set_param {pivotDistributionNames} $distributionTableCols
+  $pivotTbl set_param {pivotDistributionNoEmptyBins} $distributionHideZeroBins
+  if {$filter != {}} {
+    # For information
+#     $pivotTbl title [format {filter: %s} $filter]
+  }
+
+  # Build data structure:
+  # Key for associative array: table values for each column selected as the 'pivot table rows'
+  #  + column index selected as the 'pivot table columns'
+  catch { unset data }
+  foreach row $srcTable {
+    set L [list]
+    foreach idx $pivotRows {
+      lappend L [lindex $row $idx]
+    }
+    set key [join $L \0]
+    # Build the data only once for each unique column
+    foreach column [lsort -unique $pivotColumns] {
+      lappend data(${key}\1${column}) [lindex $row $column]
+    }
+  }
+
+  # Populate pivot table
+  foreach el $distribution {
+    set row [list]
+    foreach col [concat [lindex $el 0] [lindex $el 1]] {
+      # The first columns of the pivot table are the columns specified as
+      # the 'pivot table rows' + the 'count' column
+      lappend row $col
+    }
+    # The last value for $col represent the 'count' column. The value for 'count(%)' is
+    # calculated as a percent based on the number of samples
+    if {[llength $srcTable]} {
+      lappend row [format {%.2f} [expr 100.0 * $col / [llength $srcTable]]]
+    } else {
+      lappend row {-}
+    }
+    set key [join [lindex $el 0] \0]
+    # Add columns specified as the 'pivot table columns'
+    foreach column $pivotColumns xform $pivotColumnXform {
+      if {[info exists data(${key}\1${column})]} {
+        set values $data(${key}\1${column})
+        if {[catch {
+          switch $xform {
+            max {
+              lappend row [lindex [lsort -real [getNumericValues $values]] end]
+            }
+            min {
+              lappend row [lindex [lsort -real [getNumericValues $values]] 0]
+            }
+            sum {
+              lappend row [applyMathOperator ::tcl::mathfunc::sum [getNumericValues $values] $quiet $precision]
+            }
+            sum2 {
+              lappend row [applyMathOperator ::tcl::mathfunc::sum2 [getNumericValues $values] $quiet $precision]
+            }
+            average {
+              lappend row [applyMathOperator ::tcl::mathfunc::average [getNumericValues $values] $quiet $precision]
+            }
+            median {
+              lappend row [applyMathOperator ::tcl::mathfunc::median [getNumericValues $values] $quiet $precision]
+            }
+            mean {
+              lappend row [applyMathOperator ::tcl::mathfunc::mean [getNumericValues $values] $quiet $precision]
+            }
+            gmean {
+              lappend row [applyMathOperator ::tcl::mathfunc::gmean [getNumericValues $values] $quiet $precision]
+            }
+            qmean {
+              lappend row [applyMathOperator ::tcl::mathfunc::qmean [getNumericValues $values] $quiet $precision]
+            }
+            hmean {
+              lappend row [applyMathOperator ::tcl::mathfunc::hmean [getNumericValues $values] $quiet $precision]
+            }
+            mean2 {
+              lappend row [applyMathOperator ::tcl::mathfunc::mean2 [getNumericValues $values] $quiet $precision]
+            }
+            stddev {
+              lappend row [applyMathOperator ::tcl::mathfunc::stddev [getNumericValues $values] $quiet $precision]
+            }
+            var -
+            variance {
+              lappend row [applyMathOperator ::tcl::mathfunc::variance [getNumericValues $values] $quiet $precision]
+            }
+            freq {
+              lappend row [truncateList [getFrequencyDistribution $values] $maxListSize]
+            }
+            count {
+              lappend row [llength $values]
+            }
+            dist {
+              # For distribution table only
+              #                                                   |-> distribution table ->
+              #    +------------+--------------+-------+----------+---+---+---+---+---+---+----+----+----+----+----+-------+-------+-------+-------+-----+
+              #    | spType     | epType       | count | count(%) | 0 | 1 | 2 | 3 | 4 | 5 | 6  | 7  | 8  | 9  | 10 | 11-15 | 16-20 | 21-25 | 26-30 | 31+ |
+              #    +------------+--------------+-------+----------+---+---+---+---+---+---+----+----+----+----+----+-------+-------+-------+-------+-----+
+              #    | FDRE       | FDRE         | 670   | 67.00    | 0 | 2 | 0 | 0 | 0 | 0 | 47 | 25 | 83 | 75 | 42 | 16    | 287   | 93    | 0     | 0   |
+              #    | RAMB18E2   | RAMB18E2     | 189   | 18.90    | 0 | 0 | 0 | 0 | 0 | 0 | 0  | 0  | 0  | 2  | 93 | 23    | 71    | 0     | 0     | 0   |
+              #    | FDRE       | RAMB18E2     | 60    | 6.00     | 0 | 0 | 0 | 0 | 0 | 0 | 0  | 0  | 0  | 23 | 30 | 7     | 0     | 0     | 0     | 0   |
+              #    ...
+              #    +------------+--------------+-------+----------+---+---+---+---+---+---+----+----+----+----+----+-------+-------+-------+-------+-----+
+              lappend row [lsort -dictionary $values]
+              # Add each column of the distribution table
+              foreach el [::tclapp::xilinx::designutils::prettyTable::getHistogramDistribution $distributionTableBins $values] {
+                if {$distributionHideZeroBins && ($el == 0)} {
+                  # Hide the value when it's '0'
+                  lappend row {}
+                } else {
+                  lappend row $el
+                }
+              }
+            }
+            "default" {
+              lappend row [truncateList [lsort -dictionary -unique $values] $maxListSize]
+            }
+            default {
+              puts " -W- unknown column transform type '$xform'"
+              lappend row [truncateList [lsort -dictionary -unique $values] $maxListSize]
+            }
+          }
+        } errorstring]} {
+          if {!$quiet} {
+            puts " -E- $errorstring"
+          }
+          lappend row [truncateList [lsort -dictionary -unique $values] $maxListSize]
+        }
+      } else {
+        puts " -E- cannot find '[lindex $el 0]' for column $column"
+      }
+    }
+    $pivotTbl addrow $row
+  }
+
+  if {$distributionTableBins != {}} {
+    # For distribution table. Remove column index that is the column used to
+    # build the distribution table: 2 + number of columns for the table rows
+    $pivotTbl delcolumns [expr [llength $selRows] +2]
+  }
+
+  return -code ok
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::method:createpivot
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> createpivot [<options>]
+#------------------------------------------------------------------------
+# Create a pivot table from the table object. The original object is not
+# modified. The new pivot table is returned
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::method:createpivot {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Create a pivot table (-help)
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::numRows numRows
+  set rows [list]
+  set columns [list]
+  set maxListSize {end}
+  set precision 3
+  set distributionTableBins [list]
+  set distributionHideZeroBins 0
+  set histogramNames [list]
+  set filter {}
+  set print 0
+  set error 0
+  set help 0
+  set verbose 0
+  set quiet 0
+  if {[llength $args] == 0} { incr help }
+  while {[llength $args]} {
+    set name [lshift args]
+    switch -regexp -- $name {
+      {^-r(o(ws?)?)?$} {
+        set rows [lshift args]
+      }
+      {^-c(o(l(u(m(ns?)?)?)?)?)?$} {
+        set columns [lshift args]
+      }
+      {^-m(ax?)?$} {
+        set maxListSize [lshift args]
+      }
+      {^-pre(c(i(s(i(on?)?)?)?)?)?$} {
+        set precision [lshift args]
+      }
+      {^-bins$} -
+      {^-bi(ns?)?$} {
+        set distributionTableBins [lshift args]
+      }
+      {^-names$} -
+      {^-na(m(es?)?)?$} {
+        set histogramNames [lshift args]
+      }
+      {^-filter$} -
+      {^-f(i(l(t(er?)?)?)?)?$} {
+        set filter [lshift args]
+      }
+      {^-hide_zeros$} -
+      {^-hi(d(e(_(z(e(r(os?)?)?)?)?)?)?)?$} {
+        set distributionHideZeroBins 1
+      }
+      {^-pri(nt?)?$} {
+        set print 1
+      }
+      {^-q(u(i(et?)?)?)?$} {
+        set quiet 1
+      }
+      {^-v(e(r(b(o(se?)?)?)?)?)?$} {
+        set verbose 1
+      }
+      {^\?$} -
+      {^-h(e(lp?)?)?$} {
+        set help 1
+      }
+      default {
+        if {[string match "-*" $name]} {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        } else {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        }
+      }
+    }
+  }
+
+  if {$help} {
+    puts [format {
+  Usage: <prettyTableObject> createpivot
+              -rows <row(s)>
+              [-columns <column(s)>]
+              [-max <max_list_size>]
+              [-precision <number>]
+              [-filter <options>]
+              [-bins <list_histogram_bins>|-bins auto[:<number_of_bins]]
+              [-names <list_histogram_column_names>]
+              [-hide_zeros]
+              [-print]
+              [-quiet]
+              [-verbose|-v]
+              [-help|-h]
+
+  Description: Create a pivot table
+
+    -rows: tables columns to be used for the pivot table rows. Columns names or
+      columns indexes can be specified
+    -columns: tables columns to be used for the pivot table columns. Columns
+      names or columns indexes can be specified
+        Format: <column>[:<type>]
+          <type>: min           gmean (geometic mean)
+                  max           qmean (quadrtic mean)
+                  sum           hmean (harmonic mean)
+                  average       mean2 (square mean)
+                  median        stddev (standard deviation)
+                  mean          variance
+                  count         freq (frequency distribution)
+                  default (uniquify values)
+    -max: maximum length for lists (-1: no limit)
+    -precision: numeric precision. Default 3 digits (-1 to remove limit)
+    -filter: filtering applied to the source data prior creating the pivot table
+      Same options that can be specified for method 'search'
+    -bins: list of bins for the distribution table. A single column (-columns) must be specified
+      The specified values represent the minimal values for each bin.
+    -names: header names for the distribution table. A single column (-columns) must be specified
+    -hide_zeros: hide distribution table bins with 0
+
+  Example:
+     <prettyTableObject> createpivot -rows {sptype eptype}
+     <prettyTableObject> createpivot -rows {sptype eptype} -filter {-columns 3 -gt 2.0}
+     <prettyTableObject> createpivot -rows {sptype eptype} -columns {maxfo slack:min slack:max}
+     <prettyTableObject> createpivot -rows {1 2} -columns {4 5:min 5:max slack:average} -precision -1
+     <prettyTableObject> createpivot -rows {sptype eptype} -columns {lvls} -bins {0 1 2 3 4 5 6 7 8 9 10 11 16 21 26 31}
+     <prettyTableObject> createpivot -rows {sptype eptype} -columns {lvls} -bins {0 1 2 3 4 5 6 7 8 9 10 11 16 21 26 31} -names {0 1 2 3 4 5 6 7 8 9 10 11-15 16-10 21-25 26-30 31+}
+     <prettyTableObject> createpivot -rows {sptype eptype} -columns {lvls} -bins auto
+     <prettyTableObject> createpivot -rows {sptype eptype} -columns {lvls} -bins auto:15 -hide_zeros
+} ]
+    # HELP -->
+    return {}
+  }
+
+  if {$rows == {}} {
+    puts " -E- no row selected (-rows)"
+    incr error
+  }
+
+  if {([llength $columns] != 1) && ([llength $distributionTableBins])} {
+    puts " -E- distribution table (-bin) can only be used when a single column has been specified (-columns)"
+    incr error
+  }
+
+  if {$error} {
+    error " -E- some error(s) happened. Cannot continue"
+  }
+
+  if {$maxListSize == -1} {
+    set maxListSize {end}
+  }
+
+  set pivotTbl [::tclapp::xilinx::designutils::prettyTable::Create]
+
+  ::tclapp::xilinx::designutils::prettyTable::generatePivotTable $self $pivotTbl $rows $columns \
+                                        -filter $filter \
+                                        -bins $distributionTableBins -names $histogramNames \
+                                        -max_list_size $maxListSize -precision $precision \
+                                        -hide_zeros $distributionHideZeroBins \
+                                        -quiet $quiet -verbose $verbose
+  if {$print} {
+    puts [$pivotTbl print]
+  }
+
+  return $pivotTbl
+}
+
+###########################################################################
+##
+## Methods for template 'pivottable'
+##
+###########################################################################
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::pivottable:refreshtable
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> refreshtable [<options>]
+#------------------------------------------------------------------------
+# Clone the object and return the cloned object. The original object
+# is not modified
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::pivottable:refreshtable {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Refresh the pivot table (-help)
+  set print 0
+  set error 0
+  set help 0
+  set verbose 0
+  set quiet 0
+#   if {[llength $args] == 0} { incr help }
+  while {[llength $args]} {
+    set name [lshift args]
+    switch -regexp -- $name {
+      {^-r(o(ws?)?)?$} {
+        $self set_param {pivotRows} [lshift args]
+      }
+      {^-c(o(l(u(m(ns?)?)?)?)?)?$} {
+        $self set_param {pivotColumns} [lshift args]
+      }
+      {^-m(ax?)?$} {
+        $self set_param {pivotMaxListSize} [lshift args]
+      }
+      {^-s(o(u(r(ce?)?)?)?)?$} {
+        $self set_param {pivotSource} [lshift args]
+      }
+      {^-pre(c(i(s(i(on?)?)?)?)?)?$} {
+        $self set_param {pivotPrecision} [lshift args]
+      }
+      {^-bins$} -
+      {^-bi(ns?)?$} {
+        $self set_param {pivotDistributionBins} [lshift args]
+        # Reset the column names
+        $self set_param {pivotDistributionNames} {}
+      }
+      {^-names$} -
+      {^-na(m(es?)?)?$} {
+        $self set_param {pivotDistributionNames} [lshift args]
+      }
+      {^-filter$} -
+      {^-f(i(l(t(er?)?)?)?)?$} {
+        $self set_param {pivotFilter} [lshift args]
+      }
+      {^-hide_zeros$} -
+      {^-hi(d(e(_(z(e(r(os?)?)?)?)?)?)?)?$} {
+        $self set_param {pivotDistributionNoEmptyBins} 1
+      }
+      {^-show_zeros$} -
+      {^-sh(o(w(_(z(e(r(os?)?)?)?)?)?)?)?$} {
+        $self set_param {pivotDistributionNoEmptyBins} 0
+      }
+      {^-pri(nt?)?$} {
+        set print 1
+      }
+      {^-q(u(i(et?)?)?)?$} {
+        set quiet 1
+      }
+      {^-v(e(r(b(o(se?)?)?)?)?)?$} {
+        set verbose 1
+      }
+      {^\?$} -
+      {^-h(e(lp?)?)?$} {
+        set help 1
+      }
+      default {
+        if {[string match "-*" $name]} {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        } else {
+          puts " -E- option '$name' is not a valid option."
+          incr error
+        }
+      }
+    }
+  }
+
+  if {$help} {
+    puts [format {
+  Usage: <prettyTableObject> refreshtable
+              [-rows <row(s)>]
+              [-columns <column(s)>]
+              [-max <max_list_size>]
+              [-precision <number>]
+              [-filter <options>]
+              [-bins <list_histogram_bins>|-bins auto[:<number_of_bins]]
+              [-names <list_histogram_column_names>]
+              [-hide_zeros][-show_zeros]
+              [-source <prettyTableObject>]
+              [-print]
+              [-quiet]
+              [-verbose|-v]
+              [-help|-h]
+
+  Description: Refresh a pivot table
+
+    -rows: tables columns to be used for the pivot table rows. Columns names or
+      columns indexes can be specified
+    -columns: tables columns to be used for the pivot table columns. Columns
+      names or columns indexes can be specified
+    -max: maximum length for lists (-1: no limit)
+    -precision: numeric precision. Default 3 digits (-1 to remove limit)
+    -filter: filtering applied to the source data prior creating the pivot table
+      Same options that can be specified for method 'search'
+    -source: change the source to build the pivot table
+    -bins: list of bins for the distribution table. A single column (-columns) must be specified
+      The specified values represent the minimal values for each bin.
+    -names: header names for the distribution table. A single column (-columns) must be specified
+    -hide_zeros: hide distribution table bins with 0
+    -show_zeros: show distribution table bins with 0
+
+  Example:
+     <prettyTableObject> refreshtable
+     <prettyTableObject> refreshtable -source <prettyTableObject> -filter {-columns 3 -gt 2.0}
+     <prettyTableObject> refreshtable -rows {sptype eptype} -columns {maxfo slack:min slack:max}
+     <prettyTableObject> refreshtable -rows {1 2} -columns {4 5:min 5:max slack:average} -precision -1
+     <prettyTableObject> refreshtable -rows {1 2} -columns {4 5:min 5:max slack:average} -precision -1
+     <prettyTableObject> refreshtable -columns {maxfo} -bins {0 10 50 100 300 500 1000 10000}
+     <prettyTableObject> refreshtable -columns {maxfo} -bins auto
+     <prettyTableObject> refreshtable -columns {maxfo} -bins auto:15 -show_zeros
+} ]
+    # HELP -->
+    return {}
+  }
+
+  if {[$self get_param {pivotRows}] == {}} {
+    puts " -E- no row selected (-rows)"
+    incr error
+  }
+
+  if {$error} {
+    error " -E- some error(s) happened. Cannot continue"
+  }
+
+  if {[$self get_param {pivotMaxListSize}] == -1} {
+    $self set_param {pivotMaxListSize} {end}
+  }
+
+  if {!$quiet} {
+    puts " -I- refreshing pivot table from '[$self get_param {pivotSource}]'"
+    if {[$self get_param {pivotFilter}] != {}} {
+      puts " -I- filtering: [$self get_param {pivotFilter}]"
+    }
+  }
+  ::tclapp::xilinx::designutils::prettyTable::generatePivotTable [$self get_param {pivotSource}] \
+                                        $self \
+                                        [$self get_param {pivotRows}] \
+                                        [$self get_param {pivotColumns}] \
+                                        -filter [$self get_param {pivotFilter}] \
+                                        -bins [$self get_param {pivotDistributionBins}] -names [$self get_param {pivotDistributionNames}] \
+                                        -hide_zeros [$self get_param {pivotDistributionNoEmptyBins}] \
+                                        -max_list_size [$self get_param {pivotMaxListSize}] \
+                                        -precision [$self get_param {pivotPrecision}] \
+                                        -quiet $quiet -verbose $verbose
+
+  if {$print} {
+    puts [$self print]
+  }
+  return $self
 }
 
 ###########################################################################
@@ -4025,7 +6699,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::deviceview:plotregions {self L 
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Plot a list of clock regions
   array set defaults [list \
       -clear 1 \
@@ -4038,8 +6711,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::deviceview:plotregions {self L 
   foreach el $L {
     if {$el == {}} { continue }
     if {[regexp {^X([0-9]+)Y([0-9]+)$} $el - X Y]} {
-#       $self incrcell $X $Y
-      ::tclapp::xilinx::designutils::prettyTable::method:incrcell $self $X $Y
+#       $self incrcells $X $Y
+      ::tclapp::xilinx::designutils::prettyTable::method:incrcells $self $X $Y
     }
   }
   return $self
@@ -4057,7 +6730,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::deviceview:plotcells {self cell
   # Argument Usage:
   # Return Value:
   # Categories: xilinxtclstore, designutils
-
 
   # Plot a list of cells
   array set defaults [list \
@@ -4092,7 +6764,6 @@ proc ::tclapp::xilinx::designutils::prettyTable::deviceview:plotnets {self nets 
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
-
   # Plot a list of nets
   array set defaults [list \
       -clear 1 \
@@ -4122,19 +6793,19 @@ proc ::tclapp::xilinx::designutils::prettyTable::deviceview:plotnets {self nets 
   foreach region [dict keys $drvs] {
     set num [dict get $drvs $region]
     if {[regexp {^X([0-9]+)Y([0-9]+)$} $region - X Y]} {
-#       $self appendcell $X $Y " (D)"
-      set val [::tclapp::xilinx::designutils::prettyTable::method:getcell $self $X $Y]
+#       $self appendcells $X $Y " (D)"
+      set val [::tclapp::xilinx::designutils::prettyTable::method:getcells $self $X $Y]
       if {$num >= 2} {
 #         set val [format {(%sxD) %s} $num $val]
         set val [format {(%s D) %s} $num $val]
-#         ::tclapp::xilinx::designutils::prettyTable::method:prependcell $self $X $Y "(${num} D) "
-#         ::tclapp::xilinx::designutils::prettyTable::method:appendcell $self $X $Y " (${num} D)"
+#         ::tclapp::xilinx::designutils::prettyTable::method:prependcells $self $X $Y "(${num} D) "
+#         ::tclapp::xilinx::designutils::prettyTable::method:appendcells $self $X $Y " (${num} D)"
       } else {
         set val [format {(D) %s} $val]
-#         ::tclapp::xilinx::designutils::prettyTable::method:prependcell $self $X $Y "(D) "
-#         ::tclapp::xilinx::designutils::prettyTable::method:appendcell $self $X $Y " (D)"
+#         ::tclapp::xilinx::designutils::prettyTable::method:prependcells $self $X $Y "(D) "
+#         ::tclapp::xilinx::designutils::prettyTable::method:appendcells $self $X $Y " (D)"
       }
-      ::tclapp::xilinx::designutils::prettyTable::method:setcell $self $X $Y $val
+      ::tclapp::xilinx::designutils::prettyTable::method:setcells $self $X $Y $val
     }
   }
   return $self
@@ -4211,7 +6882,7 @@ if {0} {
       set channel [open $options(-file) {w}]
     }
 
-    set tbl [::tclapp::xilinx::designutils::prettyTable template deviceview]
+    set tbl [tb::prettyTable template deviceview]
 
     foreach cell [get_cells -quiet [lsort -unique $cells]] {
 
@@ -4225,14 +6896,14 @@ if {0} {
       foreach load [get_cells -quiet -of $loads] {
         set region [get_clock_regions -quiet -of $load]
         regexp {^X([0-9]+)Y([0-9]+)$} $region - X Y
-        $tbl incrcell $X $Y
+        $tbl incrcells $X $Y
       }
 
       foreach c [get_cells -quiet -of $driver] {
         set region [get_clock_regions -quiet -of $c]
         regexp {^X([0-9]+)Y([0-9]+)$} $region - X Y
-      #   $tbl appendcell $X $Y " (D)"
-        $tbl prependcell $X $Y "(D) "
+      #   $tbl appendcells $X $Y " (D)"
+        $tbl prependcells $X $Y "(D) "
       }
 
       set clockRoot [get_property -quiet CLOCK_ROOT $net]
@@ -4240,12 +6911,12 @@ if {0} {
 
       if {$clockRoot != {}} {
         regexp {^X([0-9]+)Y([0-9]+)$} $clockRoot - X Y
-        $tbl prependcell $X $Y "(R) "
+        $tbl prependcells $X $Y "(R) "
       }
 
       if {$userClockRoot != {}} {
         regexp {^X([0-9]+)Y([0-9]+)$} $userClockRoot - X Y
-        $tbl prependcell $X $Y "(U) "
+        $tbl prependcells $X $Y "(U) "
       }
 
       if {$clockRoot != {}} {

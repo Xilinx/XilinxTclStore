@@ -5,6 +5,9 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2018.11.16 - Added support for spartan7, zynquplusRFSOC, virtexuplus58g
+##              and virtexuplusHBM
+## 2018.05.11 - Fixed check for empty name for -cell/-pblock/-slr
 ## 2018.05.04 - Changes -no_methodology_check => -no_methodology_checks to match
 ##              the command line option name inside Tcl Store
 ## 2018.05.01 - Fixed issue when the Vivado version includes letters
@@ -323,7 +326,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2018.05.04}
+  variable version {2018.11.16}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -733,36 +736,52 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     }
   }
 
-  if {$prPblock != {}} {
-    set pblock [get_pblocks -quiet $prPblock]
-    if {$pblock == {}} {
-      puts " -E- pblock '$prPblock' does not exists (-pblock)"
-      incr error
+  if {$optionPblock} {
+    if {$prPblock != {}} {
+      set pblock [get_pblocks -quiet $prPblock]
+      if {$pblock == {}} {
+        puts " -E- Pblock '$prPblock' does not exists (-pblock)"
+        incr error
+      } else {
+        set prPblock $pblock
+      }
     } else {
-      set prPblock $pblock
+      incr error
+      puts " -E- empty Pblock (-pblock)"
+      incr error
     }
   }
 
-  if {$slrs != {}} {
-    set slr [get_slrs -quiet $slrs]
-    if {$slr == {}} {
-      puts " -E- SLR '$slrs' does not exists (-slr)"
-      incr error
-    } elseif {[llength $slrs] > 1} {
-      puts " -E- cannot specify multiple SLRs at the same time (-slr)"
-      incr error
+  if {$optionSlr} {
+    if {$slrs != {}} {
+      set slr [get_slrs -quiet $slrs]
+      if {$slr == {}} {
+        puts " -E- SLR '$slrs' does not exists (-slr)"
+        incr error
+      } elseif {[llength $slrs] > 1} {
+        puts " -E- cannot specify multiple SLRs at the same time (-slr)"
+        incr error
+      } else {
+        set slrs $slr
+      }
     } else {
-      set slrs $slr
+      puts " -E- empty SLR (-slr)"
+      incr error
     }
   }
 
-  if {$prCell != {}} {
-    set cell [get_cells -quiet $prCell]
-    if {$cell == {}} {
-      puts " -E- cell '$prCell' does not exists (-cell)"
-      incr error
+  if {$optionCell} {
+    if {$prCell != {}} {
+      set cell [get_cells -quiet $prCell]
+      if {$cell == {}} {
+        puts " -E- cell '$prCell' does not exists (-cell)"
+        incr error
+      } else {
+        set prCell $cell
+      }
     } else {
-      set prCell $cell
+      puts " -E- empty cell (-cell)"
+      incr error
     }
   }
 
@@ -2040,6 +2059,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         artix7 -
         kintex7 -
         virtex7 -
+        spartan7 -
         zynq {
           switch -regexp -- $speedgrade {
             "-1.*" {
@@ -2085,7 +2105,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         }
         zynquplus -
         kintexuplus -
-        virtexuplus {
+        virtexuplus -
+        virtexuplus58g -
+        virtexuplusHBM -
+        zynquplusRFSOC {
           switch -regexp -- $speedgrade {
             "-1.*" {
               set timBudgetPerLUT 0.350
