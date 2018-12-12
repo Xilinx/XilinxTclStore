@@ -1,3 +1,4 @@
+2.273 do not pass -log switch to xsc
 2.272 use compile order for cosim using internal switch
 2.271 reference unisims_ver for VHDL based designs instantiating verilog primitives
 2.270 support for static memory data file
