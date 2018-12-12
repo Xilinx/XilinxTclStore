@@ -1249,8 +1249,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
           puts $fh_scr "ExecStep $full_cmd\n"
         } else {
-          set log_cmd_str " -log $log_filename"
-          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str$log_cmd_str"
+          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str"
           puts $fh_scr "call type xsc.log >> $log_filename"
         }
       }
@@ -1321,8 +1320,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
           puts $fh_scr "ExecStep $full_cmd\n"
         } else {
-          set log_cmd_str " -log $log_filename"
-          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str$log_cmd_str"
+          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str"
           puts $fh_scr "call type xsc.log >> $log_filename"
         }
       }
@@ -1393,8 +1391,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
           puts $fh_scr "ExecStep $full_cmd\n"
         } else {
-          set log_cmd_str " -log $log_filename"
-          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str$log_cmd_str"
+          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str"
           puts $fh_scr "call type xsc.log >> $log_filename"
         }
       }
