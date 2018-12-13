@@ -1399,12 +1399,17 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   }
   
   if {$::tcl_platform(platform) != "unix"} {
+    set b_call_script_exit [get_property -quiet "XSIM.CALL_SCRIPT_EXIT" $fs_obj]
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
-    puts $fh_scr "exit 1"
+    if { $b_call_script_exit } {
+      puts $fh_scr "exit 1"
+    }
     puts $fh_scr ":SUCCESS"
-    puts $fh_scr "exit 0"
+    if { $b_call_script_exit } {
+      puts $fh_scr "exit 0"
+    }
   }
   close $fh_scr
 }
@@ -1419,6 +1424,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
 
   set top $::tclapp::xilinx::xsim::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+  set fs_obj [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]
 
   # write elaborate.sh/.bat
   set scr_filename "elaborate";append scr_filename [xcs_get_script_extn "xsim"]
@@ -1447,10 +1453,12 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
-        puts $fh_scr "\nExecStep xsc $args"
+        puts $fh_scr "echo \"xsc $args\""
+        puts $fh_scr "ExecStep xsc $args\n"
       }
     }
     set args [usf_xsim_get_xelab_cmdline_args]
+    puts $fh_scr "echo \"xelab $args\""
     puts $fh_scr "ExecStep xelab $args"
   } else {
     puts $fh_scr "@echo off"
@@ -1458,19 +1466,26 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
+        puts $fh_scr "echo \"xsc $args\""
         puts $fh_scr "call xsc $s_dbg_sw $args"
         puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
         puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
       }
     }
     set args [usf_xsim_get_xelab_cmdline_args]
+    set b_call_script_exit [get_property -quiet "XSIM.CALL_SCRIPT_EXIT" $fs_obj]
+    puts $fh_scr "echo \"xelab $args\""
     puts $fh_scr "call xelab $s_dbg_sw $args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr ":END"
-    puts $fh_scr "exit 1"
+    if { $b_call_script_exit } {
+      puts $fh_scr "exit 1"
+    }
     puts $fh_scr ":SUCCESS"
-    puts $fh_scr "exit 0"
+    if { $b_call_script_exit } {
+      puts $fh_scr "exit 0"
+    }
   }
   close $fh_scr
 }
@@ -1557,6 +1572,13 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     send_msg_id USF-XSim-018 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
+
+  set s_dbg_sw {}
+  set dbg $::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode)
+  if { $dbg } {
+    set s_dbg_sw {-dbg}
+  }
+
   set b_batch 1
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
@@ -1639,18 +1661,25 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     }
 
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
+    puts $fh_scr "echo \"xsim $cmd_args\""
     puts $fh_scr "ExecStep xsim $cmd_args"
   } else {
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr "simulate" "xsim"
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
-    puts $fh_scr "call xsim $cmd_args"
+    set b_call_script_exit [get_property -quiet "XSIM.CALL_SCRIPT_EXIT" $fs_obj]
+    puts $fh_scr "echo \"xsim $cmd_args\""
+    puts $fh_scr "call xsim $s_dbg_sw $cmd_args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr ":END"
-    puts $fh_scr "exit 1"
+    if { $b_call_script_exit } {
+      puts $fh_scr "exit 1"
+    }
     puts $fh_scr ":SUCCESS"
-    puts $fh_scr "exit 0"
+    if { $b_call_script_exit } {
+      puts $fh_scr "exit 0"
+    }
   }
   close $fh_scr
 
