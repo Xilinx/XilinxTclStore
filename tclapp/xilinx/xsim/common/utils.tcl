@@ -3579,6 +3579,9 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
     # target shared library name to search for
     set shared_libname "lib${library}.${extn}"
 
+    # is systemc library?
+    set b_is_systemc_library [xcs_is_sc_library $library]
+
     if { $b_int_sm_lib_ref_debug } {
       puts "Finding shared library '$shared_libname'..."
     }
@@ -3597,7 +3600,23 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
       foreach lib_dir [glob -nocomplain -directory $path *] {
         if { ![file isdirectory $lib_dir] } { continue; }
 
+        # make sure we deal with the right shared library path (library=xtlm, path=/tmp/foo/bar/xtlm)
+        set lib_leaf_dir_name [file tail $lib_dir]
+        if { $library != $lib_leaf_dir_name } {
+          continue
+        }
         set sh_file_path "$lib_dir/$shared_libname"
+        if { $b_is_systemc_library } {
+          if { {questa} == $simulator } {
+            set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+            if {$::tcl_platform(platform) == "unix"} {
+              set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
+              if { $b_int_sm_lib_ref_debug } {
+                puts "  + shared lib path:$sh_file_path"
+              }
+            }
+          }
+        }
         if { [file exists $sh_file_path] } {
           if { ![info exists a_shared_library_path_coln($shared_libname)] } {
             set a_shared_library_path_coln($shared_libname) $lib_dir
@@ -3686,6 +3705,75 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
   if { $b_int_sm_lib_ref_debug } {
     xcs_print_shared_lib_info
   }
+}
+
+proc xcs_is_sc_library { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_cache_lib_info
+  if { {} == $library } {
+    return 0
+  }
+
+  if { [info exists a_sim_cache_lib_info($library)] } {
+    # "SystemC#common_cpp_v1_0,proto_v1_0"
+    set values [split $a_sim_cache_lib_info($library) {#}]
+    if { [llength $values] > 1 } {
+      set lang_type  [lindex $values 0]
+      if { ([string compare -nocase "SystemC" $lang_type] == 0) } {
+        return 1
+      }
+    }
+  }
+  return 0
+}
+
+proc xcs_is_c_library { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_cache_lib_info
+  if { {} == $library } {
+    return 0
+  }
+
+  if { [info exists a_sim_cache_lib_info($library)] } {
+    # "C#common_cpp_v1_0,proto_v1_0"
+    set values [split $a_sim_cache_lib_info($library) {#}]
+    if { [llength $values] > 1 } {
+      set lang_type  [lindex $values 0]
+      if { ([string compare -nocase "C" $lang_type] == 0) } {
+        return 1
+      }
+    }
+  }
+  return 0
+}
+
+proc xcs_is_cpp_library { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_cache_lib_info
+  if { {} == $library } {
+    return 0
+  }
+
+  if { [info exists a_sim_cache_lib_info($library)] } {
+    # "CPP#common_cpp_v1_0,proto_v1_0"
+    set values [split $a_sim_cache_lib_info($library) {#}]
+    if { [llength $values] > 1 } {
+      set lang_type  [lindex $values 0]
+      if { ([string compare -nocase "CPP" $lang_type] == 0) } {
+        return 1
+      }
+    }
+  }
+  return 0
 }
 
 proc xcs_get_target_sm_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
