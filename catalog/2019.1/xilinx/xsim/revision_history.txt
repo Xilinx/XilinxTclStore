@@ -1,3 +1,4 @@
+2.276 redirect stderr to xsc_err.log and type to compile.log
 2.275 find systemc library for Questa from internal path
 2.274 control script exit with call_script_exit value
 2.273 do not pass -log switch to xsc
