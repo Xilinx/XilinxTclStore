@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>redirect stderr to xsc_err.log and type to compile.log</revision_history>
+      <revision_history>call script exit in scripts_only mode</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
