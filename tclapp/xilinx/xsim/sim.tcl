@@ -1249,8 +1249,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
           puts $fh_scr "ExecStep $full_cmd\n"
         } else {
-          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str"
+          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
           puts $fh_scr "call type xsc.log >> $log_filename"
+          puts $fh_scr "call type xsc_err.log >> $log_filename"
+          puts $fh_scr "call type xsc_err.log"
         }
       }
     }
@@ -1320,8 +1322,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
           puts $fh_scr "ExecStep $full_cmd\n"
         } else {
-          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str"
+          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
           puts $fh_scr "call type xsc.log >> $log_filename"
+          puts $fh_scr "call type xsc_err.log >> $log_filename"
+          puts $fh_scr "call type xsc_err.log"
         }
       }
     }
@@ -1391,8 +1395,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
           puts $fh_scr "ExecStep $full_cmd\n"
         } else {
-          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str"
+          puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
           puts $fh_scr "call type xsc.log >> $log_filename"
+          puts $fh_scr "call type xsc_err.log >> $log_filename"
+          puts $fh_scr "call type xsc_err.log"
         }
       }
     }
@@ -1461,13 +1467,17 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     puts $fh_scr "echo \"xelab $args\""
     puts $fh_scr "ExecStep xelab $args"
   } else {
+    set log_filename "elaborate_xsc.log"
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr "elaborate" "xsim"
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
         puts $fh_scr "echo \"xsc $args\""
-        puts $fh_scr "call xsc $s_dbg_sw $args"
+        puts $fh_scr "call xsc $s_dbg_sw $args 2> xsc_err.log"
+        puts $fh_scr "call type xsc.log >> $log_filename"
+        puts $fh_scr "call type xsc_err.log >> $log_filename"
+        puts $fh_scr "call type xsc_err.log"
         puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
         puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
       }
