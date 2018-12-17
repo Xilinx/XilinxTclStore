@@ -1409,11 +1409,15 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr ":END"
-    if { $b_call_script_exit } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) && !($b_call_script_exit) } {
+      # no exit
+    } else {
       puts $fh_scr "exit 1"
     }
     puts $fh_scr ":SUCCESS"
-    if { $b_call_script_exit } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) && !($b_call_script_exit) } {
+      # no exit
+    } else {
       puts $fh_scr "exit 0"
     }
   }
@@ -1489,11 +1493,15 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr ":END"
-    if { $b_call_script_exit } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) && !($b_call_script_exit) } {
+      # no exit
+    } else {
       puts $fh_scr "exit 1"
     }
     puts $fh_scr ":SUCCESS"
-    if { $b_call_script_exit } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) && !($b_call_script_exit) } {
+      # no exit
+    } else {
       puts $fh_scr "exit 0"
     }
   }
@@ -1683,11 +1691,15 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr ":END"
-    if { $b_call_script_exit } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) && !($b_call_script_exit) } {
+      # no exit
+    } else {
       puts $fh_scr "exit 1"
     }
     puts $fh_scr ":SUCCESS"
-    if { $b_call_script_exit } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) && !($b_call_script_exit) } {
+      # no exit
+    } else {
       puts $fh_scr "exit 0"
     }
   }
