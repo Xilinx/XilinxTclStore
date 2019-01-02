@@ -1311,7 +1311,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_contain_systemc_sources) } {
-        if { {elaborate} == $step } {
+        if { ({elaborate} == $step) || ({simulate} == $step) } {
           set shared_ip_libs [list]
 
           variable a_shared_library_path_coln
@@ -1326,7 +1326,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
             lappend shared_ip_libs $lib_dir
           }
-            if { [llength $shared_ip_libs] > 0 } {
+          if { [llength $shared_ip_libs] > 0 } {
             set shared_ip_libs_env_path [join $shared_ip_libs ":"]
             puts $fh_scr "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
           }
@@ -1513,13 +1513,14 @@ proc usf_questa_get_sccom_cmd_args {} {
         set lib_path $value
         set lib_name [file root $sc_lib]
         set lib_name [string trimleft $lib_name {lib}]
-        lappend args "-lib $lib_name"
-
         set lib_dir "$lib_path"
-        if { {remote_port_v4} == $lib_name } {
-          set lib_name "lib${lib_name}_c"
+        
+        # is C/CPP library?
+        if { ([xcs_is_c_library $lib_name]) || ([xcs_is_cpp_library $lib_name]) } {
           lappend args "-L$lib_dir"
           lappend args "-l$lib_name"
+        } else {
+          lappend args "-lib $lib_name"
         }
       }
   
