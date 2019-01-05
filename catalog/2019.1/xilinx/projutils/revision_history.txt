@@ -1,3 +1,4 @@
+3.382 resolve simulation model library path with xv_cxl_lib_path variable
 3.381 find systemc library for Questa from internal path
 3.380 Fix get_dashboard_gadgets command to remove -of_objects support
 3.379 use compile order for cosim using internal switch

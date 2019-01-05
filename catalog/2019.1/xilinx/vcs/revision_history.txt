@@ -1,3 +1,4 @@
+6.0 resolve simulation model library path with xv_cxl_lib_path variable
 5.9 find systemc library for Questa from internal path
 5.8 use compile order for cosim using internal switch
 5.7 disable gt quad
