@@ -3666,6 +3666,10 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
               }
             }
           }
+        } else {
+          if { $b_int_sm_lib_ref_debug } {
+            puts "    + error: file does not exist '$dat_file'"
+          }
         }
       }
     }
@@ -3891,4 +3895,59 @@ proc xcs_get_simmodel_dir { simulator type } {
     set dir "${prefix_dir}/ext"
   }
   return $dir
+}
+
+proc xcs_resolve_cxl_lib_dir { clibs_dir src_lib_dir_arg b_cxl_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $b_cxl_arg b_cxl
+
+  # initialize flag
+  set b_cxl 0
+
+  # default full path
+  set sub_lib_path $src_lib_dir_arg
+  
+  # is clibs dir empty? return default full path
+  if { "" == $clibs_dir } {
+    return $sub_lib_path
+  }
+
+  # normalize and split into sub-dirs
+  set clib_sub_dirs [file split [file normalize $clibs_dir]]
+  set path_sub_dirs [file split [file normalize $sub_lib_path]]
+
+  # sub-dirs length
+  set clib_len [llength $clib_sub_dirs]
+  set path_len [llength $path_sub_dirs]
+
+  # if clibs_dir path equal to or greater than the lib path, no need to resolve
+  if { ($clib_len == $path_len) || ($clib_len > $path_len) } {
+    return $sub_lib_path
+  }
+
+  # increment index for each sub-dir match till end of clibs sub-dir
+  set index 0
+  set b_found_match 0
+  while { [lindex $clib_sub_dirs $index] == [lindex $path_sub_dirs $index] } {
+    incr index
+    # index matches with clibs sub-dir length (got exact match of all clib sub-dirs)
+    if { $index == $clib_len } {
+      set b_found_match 1
+      break
+    }
+  }
+ 
+  # if exact match found, set the remaining library directory path and return it, else return default library path
+  if { $b_found_match } {
+    #
+    # $xv_cxl_lib_path/$sub_lib_path   // linux
+    # %xv_cxl_lib_path%/$sub_lib_path  // windows
+    #
+    set sub_lib_path [join [lrange $path_sub_dirs $index end] "/"]
+    set b_cxl 1
+  }
+  return $sub_lib_path
 }
