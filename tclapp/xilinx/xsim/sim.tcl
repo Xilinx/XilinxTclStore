@@ -1498,11 +1498,11 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
         puts $fh_scr "echo \"xsc $args\""
         puts $fh_scr "call xsc $s_dbg_sw $args 2> xsc_err.log"
+        puts $fh_scr "set exit_code=%errorlevel%"
         puts $fh_scr "call type xsc.log >> $log_filename"
         puts $fh_scr "call type xsc_err.log >> $log_filename"
         puts $fh_scr "call type xsc_err.log"
-        puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
-        puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
+        puts $fh_scr "if \"%exit_code%\"==\"1\" goto END"
       }
     }
     set args [usf_xsim_get_xelab_cmdline_args]
