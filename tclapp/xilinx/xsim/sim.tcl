@@ -1219,9 +1219,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
                 # is clibs dir? replace with variable
                 set b_cxl 0
                 set sub_lib_path {}
-                if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) } {
-                  set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $incl_dir b_cxl]
-                }
+                set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $incl_dir b_cxl]
                 if { $b_cxl } {
                   if {$::tcl_platform(platform) == "unix"} {
                     set incl_dir "\$xv_cxl_lib_path/$sub_lib_path"
@@ -1699,9 +1697,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
           # is clibs dir? replace with variable
           set b_cxl 0
           set sub_lib_path {}
-          if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) } {
-            set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $sm_path b_cxl]
-          }
+          set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $sm_path b_cxl]
           if { $b_cxl } {
             if {$::tcl_platform(platform) == "unix"} {
               set lib_dir "\$xv_cxl_lib_path/$sub_lib_path"
@@ -1923,9 +1919,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         # is clibs dir? replace with variable
         set b_cxl 0
         set sub_lib_path {}
-        if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) } {
-          set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $incl_dir b_cxl]
-        }
+        set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $incl_dir b_cxl]
         if { $b_cxl } {
           if {$::tcl_platform(platform) == "unix"} {
             set incl_dir "\$xv_cxl_lib_path/$sub_lib_path"
@@ -1943,9 +1937,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         # is clibs dir? replace with variable
         set b_cxl 0
         set sub_lib_path {}
-        if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) } {
-          set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $lib_path b_cxl]
-        }
+        set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $lib_path b_cxl]
         if { $b_cxl } {
           if {$::tcl_platform(platform) == "unix"} {
             set rel_lib_path "\$xv_cxl_lib_path/$sub_lib_path"
@@ -2227,9 +2219,7 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
           # is clibs dir? replace with variable
           set b_cxl 0
           set sub_lib_path {}
-          if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) } {
-            set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $lib_path b_cxl]
-          }
+          set sub_lib_path [xcs_resolve_cxl_lib_dir $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $lib_path b_cxl]
           if { $b_cxl } {
             if {$::tcl_platform(platform) == "unix"} {
               set rel_lib_path "\$xv_cxl_lib_path/$sub_lib_path"
