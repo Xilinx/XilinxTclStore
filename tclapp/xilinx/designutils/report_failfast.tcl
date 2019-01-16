@@ -5,6 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2019.01.10 - Added support for US+ -1LV/-2LV
 ## 2018.11.16 - Added support for spartan7, zynquplusRFSOC, virtexuplus58g
 ##              and virtexuplusHBM
 ## 2018.05.11 - Fixed check for empty name for -cell/-pblock/-slr
@@ -326,7 +327,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2018.11.16}
+  variable version {2019.01.10}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -2110,9 +2111,19 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         virtexuplusHBM -
         zynquplusRFSOC {
           switch -regexp -- $speedgrade {
+            "-1.*LV.*" {
+              # US+ -1LV == US -1
+              set timBudgetPerLUT 0.490
+              set timBudgetPerNet 0.342
+            }
             "-1.*" {
               set timBudgetPerLUT 0.350
               set timBudgetPerNet 0.239
+            }
+            "-2.*LV.*" {
+              # US+ -2LV == US -2
+              set timBudgetPerLUT 0.425
+              set timBudgetPerNet 0.298
             }
             "-2.*" {
               set timBudgetPerLUT 0.300
