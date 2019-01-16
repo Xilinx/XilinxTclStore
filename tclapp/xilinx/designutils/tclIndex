@@ -6,7 +6,6 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
-
 set auto_index(::tclapp::xilinx::designutils::bisect_pblock) [list source [file join $dir bisect_pblock.tcl]]
 set auto_index(::tclapp::xilinx::designutils::check_cdc_paths) [list source [file join $dir check_cdc_paths.tcl]]
 set auto_index(::tclapp::xilinx::designutils::clone_cell) [list source [file join $dir replicate_high_fanout_registers.tcl]]
