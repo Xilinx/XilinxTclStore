@@ -1,3 +1,4 @@
+2.281 fixed xsc switch and extension for windows
 2.280 enable xv_cxl_lib_path var for setting install path
 2.279 do not exit on success for xsc step
 2.278 resolve simulation model library path with xv_cxl_lib_path variable
