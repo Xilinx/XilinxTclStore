@@ -2177,14 +2177,15 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   set sim_flow $a_sim_vars(s_simulation_flow)
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
 
+  set args_list [list]
   set lib_extn ".dll"
   if {$::tcl_platform(platform) == "unix"} {
     set lib_extn ".so"
+    lappend args_list "--shared"
+  } else {
+    lappend args_list "--shared_systemc"
   }
 
-  set args_list [list]
-
-  lappend args_list "--shared"
   # other options
   set other_opts [get_property "XSIM.ELABORATE.XSC.MORE_OPTIONS" $fs_obj]
   if { {} != $other_opts } {
@@ -2238,7 +2239,7 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
     }
   }
 
-  lappend args_list "-o libdpi.so"
+  lappend args_list "-o libdpi${lib_extn}"
 
   set cmd_args [join $args_list " "]
   return $cmd_args
