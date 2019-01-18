@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass sc_lib for windows to reference libdpi</revision_history>
+      <revision_history>helper to construct vlnv name from ip definition</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

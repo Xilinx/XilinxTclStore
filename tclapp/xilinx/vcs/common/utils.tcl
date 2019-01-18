@@ -3951,3 +3951,27 @@ proc xcs_resolve_cxl_lib_dir { clibs_dir src_lib_dir_arg b_cxl_arg } {
   }
   return $sub_lib_path
 }
+
+proc xcs_get_library_vlnv_name { ip_def vlnv } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set library_name {}
+  if { ({} == $ip_def) || ({} == $vlnv) } {
+    return $library_name
+  }
+
+  set values     [split $vlnv {:}]
+  set ip_name    [lindex $values 2]
+  set rel_ver    [lindex $values 3]
+
+  set rel_values [split $rel_ver {.}]
+  set sw_rev     [lindex $rel_values 0]
+  set minor_rev  [lindex $rel_values 1]
+
+  set core_rev [get_property -quiet core_revision $ip_def]
+  set library_name ${ip_name}_v${sw_rev}_${minor_rev}_${core_rev}
+
+  return $library_name
+}

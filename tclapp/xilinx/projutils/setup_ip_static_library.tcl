@@ -29,6 +29,8 @@ proc isl_init_vars {} {
   set a_isl_vars(b_project_switch)  0
   set a_isl_vars(co_file_list)      ""
   set a_isl_vars(ip_incl_dir)       ""
+  set a_isl_vars(ip_lib_name)       ""
+  set a_isl_vars(b_ip_lib_name_specified) 0
 
   variable compile_order_data       [list]
 
@@ -64,6 +66,7 @@ proc setup_ip_static_library {args} {
   # [-directory <arg>]: Extract static files in the specified directory
   # [-ip_repo_path <arg>]: Extract static files from the specified IP repository path
   # [-ips <arg> = Empty]: Extract static files for the specified IPs only
+  # [-library <arg> = Empty]: Extract static files for the specified IP library
   # [-project]: Extract static files for the current project
   # [-install]: Extract static files for the IP catalog
   # [-no_update_catalog]: Do no update IP catalog
@@ -84,13 +87,14 @@ proc setup_ip_static_library {args} {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-directory" { incr i;set a_isl_vars(ipstatic_dir) [lindex $args $i];set a_isl_vars(b_dir_specified) 1 }
-      "-ip_repo_path" { incr i;set l_ip_repo_paths [lindex $args $i];set a_isl_vars(b_ip_repo_paths_specified)  1 }
-      "-ips"       { incr i;set l_ips [lindex $args $i];set a_isl_vars(b_ips_specified)                    1 }
-      "-project"   { set a_isl_vars(b_project_mode) 1;set a_isl_vars(b_project_switch)  1 }
-      "-install"   { set a_isl_vars(b_install_mode) 1 }
-      "-no_update_catalog"   { set a_isl_vars(b_no_update_catalog) 1 }
-      "-force"     { set a_isl_vars(b_force) 1 }
+      "-directory"         { incr i;set a_isl_vars(ipstatic_dir) [lindex $args $i];set a_isl_vars(b_dir_specified) 1        }
+      "-ip_repo_path"      { incr i;set l_ip_repo_paths [lindex $args $i];set a_isl_vars(b_ip_repo_paths_specified)  1      }
+      "-ips"               { incr i;set l_ips [lindex $args $i];set a_isl_vars(b_ips_specified)                    1        }
+      "-library"           { incr i;set a_isl_vars(ip_lib_name) [lindex $args $i];set a_isl_vars(b_ip_lib_name_specified) 1 }
+      "-project"           { set a_isl_vars(b_project_mode) 1;set a_isl_vars(b_project_switch)  1                           }
+      "-install"           { set a_isl_vars(b_install_mode) 1                                                               }
+      "-no_update_catalog" { set a_isl_vars(b_no_update_catalog) 1                                                          }
+      "-force"             { set a_isl_vars(b_force) 1                                                                      }
       default {
         if { [regexp {^-} $option] } {
           send_msg_id setup_ip_static_library-Tcl-001 ERROR "Unknown option '$option', please type 'setup_ip_static_library -help' for usage info.\n"
@@ -982,6 +986,17 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
       lappend interface_pkgs "xilinx_vip"
     }
     set vlnv    [get_property vlnv $ip_comp]
+
+    # resolve vlnv name if extracting for specified library
+    if { $a_isl_vars(b_ip_lib_name_specified) } {
+      set ip_def_obj [get_ipdefs -quiet -all -vlnv $vlnv]
+      set vlnv_library_name [xcs_get_library_vlnv_name $ip_def_obj $vlnv]
+      #puts vlnv_library_name=$vlnv_library_name
+      if { $a_isl_vars(ip_lib_name) != $vlnv_library_name } {
+        continue;
+      }
+    }
+
     puts -nonewline "."
     incr current_index
     

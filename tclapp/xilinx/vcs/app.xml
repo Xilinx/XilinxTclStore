@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>resolve simulation model library path with xv_cxl_lib_path variable</revision_history>
+      <revision_history>helper to construct vlnv name from ip definition</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
