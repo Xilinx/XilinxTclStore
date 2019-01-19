@@ -972,6 +972,7 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
   }
 
   foreach ip_xml $ip_component_filelist {
+    set b_ip_processed false
     set ip_dir  [file dirname $ip_xml]
     set ip_comp [ipx::open_core -set_current false $ip_xml]
     set ip_def_name [get_property name $ip_comp]
@@ -992,9 +993,11 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
       set ip_def_obj [get_ipdefs -quiet -all -vlnv $vlnv]
       set vlnv_library_name [xcs_get_library_vlnv_name $ip_def_obj $vlnv]
       #puts vlnv_library_name=$vlnv_library_name
-      if { $a_isl_vars(ip_lib_name) != $vlnv_library_name } {
-        continue;
-      }
+      if { $a_isl_vars(ip_lib_name) == $vlnv_library_name } {
+        set b_ip_processed true
+      } else {
+        continue
+      }      
     }
 
     puts -nonewline "."
@@ -1123,6 +1126,9 @@ proc isl_build_static_library { b_extract_sub_cores ip_component_filelist ip_lib
       }
     }
     ipx::unload_core $ip_comp
+    if { $b_ip_processed } {
+      break
+    }
   }
   return $current_index
 }
