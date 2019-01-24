@@ -1,3 +1,4 @@
+6.2 vars to reference protected and ext library paths
 6.1 helper to construct vlnv name from ip definition
 6.0 resolve simulation model library path with xv_cxl_lib_path variable
 5.9 find systemc library for Questa from internal path

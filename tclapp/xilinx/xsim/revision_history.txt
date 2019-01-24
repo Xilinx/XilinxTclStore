@@ -1,3 +1,4 @@
+2.284 vars to reference protected and ext library paths
 2.283 helper to construct vlnv name from ip definition
 2.282 pass sc_lib for windows to reference libdpi
 2.281 fixed xsc switch and extension for windows

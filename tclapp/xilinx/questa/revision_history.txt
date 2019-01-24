@@ -1,3 +1,4 @@
+2.144 vars to reference protected and ext library paths
 2.143 helper to construct vlnv name from ip definition
 2.142 resolve simulation model library path with xv_cxl_lib_path variable
 2.141 reference library paths for c and cpp simulation models

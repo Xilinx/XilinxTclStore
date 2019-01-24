@@ -1,3 +1,4 @@
+3.385 vars to reference protected and ext library paths
 3.384 skip processing loop after current ip
 3.383 helper to construct vlnv name from ip definition
 3.382 resolve simulation model library path with xv_cxl_lib_path variable
