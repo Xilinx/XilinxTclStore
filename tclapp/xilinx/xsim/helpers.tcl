@@ -911,6 +911,13 @@ proc usf_check_errors { step results_log_arg } {
         set results_log [file normalize [file join $run_dir "${token}.log"]]
         return 1
       }
+      # errors in xsc?
+      set token "xsc"
+      if { [usf_found_errors_in_file $token] } {
+        set token "compile"
+        set results_log [file normalize [file join $run_dir "${token}.log"]]
+        return 1
+      }
     }
     {elaborate} {
       # errors in xelab?
@@ -951,11 +958,15 @@ proc usf_found_errors_in_file { token } {
     switch $token {
       {xvlog}     -
       {xvhdl}     -
+      {xsc}       -
       {elaborate} { if { [regexp {^ERROR} $line_str] } { set retval 1;break } }
     }
   }
 
   if { $retval } {
+    if { "xsc" == $token } {
+      set token "compile"
+    }
     set results_log [file normalize [file join $run_dir "${token}.log"]]
     [catch {send_msg_id USF-XSim-099 INFO "Step results log file:'$results_log'\n"}]
     return 1
