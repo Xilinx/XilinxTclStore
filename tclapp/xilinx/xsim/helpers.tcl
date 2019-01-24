@@ -62,6 +62,9 @@ proc usf_init_vars {} {
   set a_sim_vars(b_contain_cpp_sources)     0
   set a_sim_vars(b_contain_c_sources)       0
   set a_sim_vars(b_contain_systemc_headers) 0
+ 
+  set a_sim_vars(sp_cpt_dir) {}
+  set a_sim_vars(sp_ext_dir) {}
   
   set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set a_sim_vars(compiled_design_lib) "xsim.dir"

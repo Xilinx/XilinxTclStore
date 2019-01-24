@@ -61,6 +61,9 @@ proc usf_init_vars {} {
   set a_sim_vars(b_contain_c_sources)       0
   set a_sim_vars(b_contain_systemc_headers) 0
 
+  set a_sim_vars(sp_cpt_dir) {}
+  set a_sim_vars(sp_ext_dir) {}
+
   # initialize ip repository dir
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
   set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]

@@ -3543,12 +3543,14 @@ proc xcs_get_vivado_release_version {} {
   return $version
 } 
 
-proc xcs_find_shared_lib_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
+proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  upvar $sp_cpt_dir_arg sp_cpt_dir
+  upvar $sp_ext_dir_arg sp_ext_dir
  
-  variable a_sim_vars
   # any library referenced in IP?
   set lib_coln [xcs_get_sc_libs $b_int_sm_lib_ref_debug]
   if { [llength $lib_coln] == 0 } {
@@ -3556,7 +3558,7 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
   }
 
   # target directory paths to search for
-  set target_paths [xcs_get_target_sm_paths $simulator $clibs_dir $b_int_sm_lib_ref_debug]
+  set target_paths [xcs_get_target_sm_paths $simulator $clibs_dir $custom_sm_lib_dir $b_int_sm_lib_ref_debug sp_cpt_dir sp_ext_dir]
 
   # additional linked libraries
   set linked_libs           [list]
@@ -3587,7 +3589,7 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
     }
     # iterate over target paths to search for this library name
     foreach path $target_paths {
-      set path [file normalize $path]
+      #set path [file normalize $path]
       set path [regsub -all {[\[\]]} $path {/}]
 
       # is this shared library already processed from a given path? 
@@ -3687,7 +3689,7 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
     }
     # iterate over target paths to search for this library name
     foreach path $target_paths {
-      set path [file normalize $path]
+      #set path [file normalize $path]
       set path [regsub -all {[\[\]]} $path {/}]
       foreach lib_dir [glob -nocomplain -directory $path *] {
         set sh_file_path "$lib_dir/$shared_libname"
@@ -3780,12 +3782,14 @@ proc xcs_is_cpp_library { library } {
   return 0
 }
 
-proc xcs_get_target_sm_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
+proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  variable a_sim_vars
+  upvar $sp_cpt_dir_arg sp_cpt_dir
+  upvar $sp_ext_dir_arg sp_ext_dir
+
   set target_paths [list]
 
   set sm_cpt_dir [xcs_get_simmodel_dir $simulator "cpt"]
@@ -3806,9 +3810,13 @@ proc xcs_get_target_sm_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
     }
   }
 
+  set sp_cpt_dir $tp
+
   # default ext dir
   set sm_ext_dir [xcs_get_simmodel_dir $simulator "ext"]
   lappend target_paths "$cpt_dir/$sm_ext_dir"
+
+  set sp_ext_dir "$cpt_dir/$sm_ext_dir"
 
   # add ip dir for xsim
   if { "xsim" == $simulator } {
@@ -3816,7 +3824,7 @@ proc xcs_get_target_sm_paths { simulator clibs_dir b_int_sm_lib_ref_debug } {
   }
 
   # prepend custom simmodel library paths, if specified? 
-  set sm_lib_path $a_sim_vars(custom_sm_lib_dir)
+  set sm_lib_path $custom_sm_lib_dir
   if { $sm_lib_path != "" } {
     set custom_paths [list]
     foreach cpath [split $sm_lib_path ":"] {
@@ -3897,7 +3905,7 @@ proc xcs_get_simmodel_dir { simulator type } {
   return $dir
 }
 
-proc xcs_resolve_cxl_lib_dir { clibs_dir src_lib_dir_arg b_cxl_arg } {
+proc xcs_resolve_sim_lib_dir { sim_dir src_lib_dir_arg b_cxl_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -3910,31 +3918,31 @@ proc xcs_resolve_cxl_lib_dir { clibs_dir src_lib_dir_arg b_cxl_arg } {
   # default full path
   set sub_lib_path $src_lib_dir_arg
   
-  # is clibs dir empty? return default full path
-  if { "" == $clibs_dir } {
+  # is sim dir empty? return default full path
+  if { "" == $sim_dir } {
     return $sub_lib_path
   }
 
   # normalize and split into sub-dirs
-  set clib_sub_dirs [file split [file normalize $clibs_dir]]
+  set sim_sub_dirs  [file split [file normalize $sim_dir]]
   set path_sub_dirs [file split [file normalize $sub_lib_path]]
 
   # sub-dirs length
-  set clib_len [llength $clib_sub_dirs]
+  set sim_len [llength $sim_sub_dirs]
   set path_len [llength $path_sub_dirs]
 
-  # if clibs_dir path equal to or greater than the lib path, no need to resolve
-  if { ($clib_len == $path_len) || ($clib_len > $path_len) } {
+  # if sim_dir path equal to or greater than the lib path, no need to resolve
+  if { ($sim_len == $path_len) || ($sim_len > $path_len) } {
     return $sub_lib_path
   }
 
-  # increment index for each sub-dir match till end of clibs sub-dir
+  # increment index for each sub-dir match till end of sim sub-dir
   set index 0
   set b_found_match 0
-  while { [lindex $clib_sub_dirs $index] == [lindex $path_sub_dirs $index] } {
+  while { [lindex $sim_sub_dirs $index] == [lindex $path_sub_dirs $index] } {
     incr index
-    # index matches with clibs sub-dir length (got exact match of all clib sub-dirs)
-    if { $index == $clib_len } {
+    # index matches with sim sub-dir length (got exact match of all sim sub-dirs)
+    if { $index == $sim_len } {
       set b_found_match 1
       break
     }
@@ -3942,14 +3950,49 @@ proc xcs_resolve_cxl_lib_dir { clibs_dir src_lib_dir_arg b_cxl_arg } {
  
   # if exact match found, set the remaining library directory path and return it, else return default library path
   if { $b_found_match } {
-    #
-    # $xv_cxl_lib_path/$sub_lib_path   // linux
-    # %xv_cxl_lib_path%/$sub_lib_path  // windows
-    #
     set sub_lib_path [join [lrange $path_sub_dirs $index end] "/"]
     set b_cxl 1
   }
   return $sub_lib_path
+}
+
+proc xcs_resolve_sim_model_dir { lib_path clib_dir cpt_dir ext_dir b_resolved_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $b_resolved_arg b_resolved
+  
+  set b_resolved 0
+  set resolved_path {}
+
+  set sub_lib_path [xcs_resolve_sim_lib_dir $clib_dir $lib_path b_resolved]
+  if { $b_resolved } {
+    if {$::tcl_platform(platform) == "unix"} {
+      set resolved_path "\$xv_cxl_lib_path/$sub_lib_path"
+    } else {
+      set resolved_path "%xv_cxl_lib_path%/$sub_lib_path"
+    }
+  } else {
+    set sub_lib_path [xcs_resolve_sim_lib_dir $cpt_dir $lib_path b_resolved]
+    if { $b_resolved } {
+      if {$::tcl_platform(platform) == "unix"} {
+        set resolved_path "\$xv_cpt_lib_path/$sub_lib_path"
+      } else {
+        set resolved_path "%xv_cpt_lib_path%/$sub_lib_path"
+      }
+    } else {
+      set sub_lib_path [xcs_resolve_sim_lib_dir $ext_dir $lib_path b_resolved]
+      if { $b_resolved } {
+        if {$::tcl_platform(platform) == "unix"} {
+          set resolved_path "\$xv_ext_lib_path/$sub_lib_path"
+        } else {
+          set resolved_path "%xv_ext_lib_path%/$sub_lib_path"
+        }
+      }
+    }
+  }
+  return $resolved_path
 }
 
 proc xcs_get_library_vlnv_name { ip_def vlnv } {

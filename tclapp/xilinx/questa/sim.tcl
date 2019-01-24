@@ -195,7 +195,7 @@ proc usf_questa_setup_simulation { args } {
   # find shared library paths from all IPs
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { [xcs_contains_C_files] } {
-      xcs_find_shared_lib_paths "questa" $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
+      xcs_find_shared_lib_paths "questa" $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
     }
   }
 
