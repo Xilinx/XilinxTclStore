@@ -129,7 +129,7 @@ proc simulate { args } {
 
   set cwd [pwd]
   cd $dir
-  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     if {$::tcl_platform(platform) == "unix"} {
       # default Vivado install path
       set vivado_install_path $::env(XILINX_VIVADO)
@@ -281,13 +281,18 @@ proc usf_xsim_setup_simulation { args } {
   set ::tclapp::xilinx::xsim::a_sim_vars(l_design_files) \
      [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
 
+  # is system design?
+  if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
+    set a_sim_vars(b_system_sim_design) 1
+  }
+
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
 
   # systemC headers
   set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
 
   # find shared library paths from all IPs 
-  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     set b_en_code true
     if { $b_en_code } {
       xcs_find_shared_lib_paths "xsim" $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
@@ -938,7 +943,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     puts $fh_scr "#!/bin/bash -f"
     xcs_write_script_header $fh_scr "compile" "xsim"
     xcs_write_shell_step_fn $fh_scr
-    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\"\n"
@@ -946,7 +951,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   } else {
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr "compile" "xsim"
-    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nset xv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "set xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "set xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\"\n"
@@ -1169,7 +1174,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   }
 
   if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) } {
+    if { $a_sim_vars(b_system_sim_design) } {
       set sc_filename "${top}_xsc.prj"
       set sc_file [file normalize [file join $a_sim_vars(s_launch_dir) $sc_filename]]
       set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
@@ -1477,13 +1482,13 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     }
 
     xcs_write_shell_step_fn $fh_scr
-    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\"\n"
     }
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
-      if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
         puts $fh_scr "echo \"xsc $args\""
         puts $fh_scr "ExecStep xsc $args\n"
@@ -1496,13 +1501,13 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     set log_filename "elaborate_xsc.log"
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr "elaborate" "xsim"
-    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nset xv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "set xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "set xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\"\n"
     }
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
-      if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
         puts $fh_scr "echo \"xsc $args\""
         puts $fh_scr "call xsc $s_dbg_sw $args 2> xsc_err.log"
@@ -1629,7 +1634,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     puts $fh_scr "#!/bin/bash -f"
     xcs_write_script_header $fh_scr "simulate" "xsim"
     xcs_write_shell_step_fn $fh_scr
-    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
@@ -1663,7 +1668,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     }
 
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
-      if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
         variable a_shared_library_path_coln
 
         # default Vivado install path
@@ -1725,7 +1730,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
   } else {
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr "simulate" "xsim"
-    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nset xv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "set xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "set xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\"\n"
@@ -1908,7 +1913,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   
   set unique_sysc_incl_dirs [list]
-  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     set lib_extn ".dll"
     if {$::tcl_platform(platform) == "unix"} {
       set lib_extn ".so"
@@ -2114,7 +2119,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
-    if { $::tclapp::xilinx::xsim::a_sim_vars(b_contain_systemc_sources) } {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       lappend args_list "-sv_root \".\" -sc_lib libdpi${lib_extn}"
     }
   }
@@ -2191,7 +2196,7 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   }
   lappend args_list "-lib $a_sim_vars(default_top_library)"
 
-  if { $a_sim_vars(b_int_systemc_mode) } {
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     set ip_objs [get_ips -all -quiet]
     foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
       foreach ip_obj $ip_objs {
@@ -2214,7 +2219,15 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
           set lib_path        $value
           set lib_name        [file root $shared_lib_name]
           set lib_name        [string trimleft $lib_name {lib}]
-          set rel_lib_path    [xcs_get_relative_file_path $lib_path $dir]
+
+          set b_resolved 0
+          set rel_lib_path {}
+          set resolved_path [xcs_resolve_sim_model_dir $lib_path $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved]
+          if { $b_resolved } {
+            set rel_lib_path $resolved_path
+          } else {
+            set rel_lib_path [xcs_get_relative_file_path $lib_path $dir]
+          }
 
           #send_msg_id USF-XSim-104 INFO "Referencing library '$lib_name' from '$lib_path'\n"
           set sc_args "-gcc_link_options \"-L$rel_lib_path -l${lib_name}\"" 
