@@ -1,3 +1,4 @@
+2.286 check errors for xsc and return non zero status
 2.285 set system design flag for xv vars
 2.284 vars to reference protected and ext library paths
 2.283 helper to construct vlnv name from ip definition
