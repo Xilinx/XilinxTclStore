@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>check errors for xsc and return non zero status</revision_history>
+      <revision_history>reference boost headers</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

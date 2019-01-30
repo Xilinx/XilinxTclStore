@@ -3224,6 +3224,11 @@ proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_x
       lappend incl_dirs "$dir"
     }
   }
+
+  # add boost header references 
+  set boost_dir "\$xv_boost_lib_path/boost"
+  lappend incl_dirs "$boost_dir"
+
   return $incl_dirs
 }
 
