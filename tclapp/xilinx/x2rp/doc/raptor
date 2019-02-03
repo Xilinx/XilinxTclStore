@@ -1,0 +1,52 @@
+
+Description: 
+
+    Implements the 2RP Design using DCP files as sources.
+
+Arguments:
+
+    <top> - (Required) Design top name.
+    
+    <shell> - (Required) RL/Shell instance path.
+    
+    <level_0> - (Required) Level 0 dcp file, contains only static routed region.
+    
+    <level_1> - (Required) Level 1 dcp file, SHIM routed with RL and CL as blackboxes.
+    
+    <constrset> - (Required) Constraints set to be use with the pr configuration provided in option '-pr_config'.
+    
+    <output_dir> - (Required) Directory to save the results.
+    
+    <reconfig_partitions> - (Required) Reconfigurable partition instance paths.
+    
+    -exclude_constrs - (Optional) List of constraint file to be excluded from generation of bit files.    
+    
+    -post_link_design_hook - (Optional) List of tcl commands to execute post link design for bit generation step.
+    
+    -opt_directive - (Optional) Directive for opt design step.
+    
+    -place_directive - (Optional) Directive for place design step.
+    
+    -enable_post_place_phys_opt - (Optional) Enable post place physical optimization (Default: 0).
+    
+    -post_place_phys_opt_directive - (Optional) Directive for post place phys opt design step.
+    
+    -route_directive - (Optional) Directive for route design step.
+    
+    -post_route_phys_opt_directive - (Optional) Directive for post route phys opt design step.
+    
+    -rl_scripts - (Optional) Directory which has pre/post tcl scripts used after rl platform generation.
+                    Inside the folder it will look for pre/post scripts in <pre|post><design step>.tcl format.
+                    Example: For design step place_design
+                        Pre script  = preplacedesign.tcl
+                        Post script = postplacedesign.tcl
+    
+Examples:
+
+    Below examples are based on a design which has a 'top' bd with top name 'top_wrapper', 'top' bd has a module reference to a partition def 'wrapper' as 'wrapper_def_0',
+    'wrapper_def_0' has two module references to partition defs 'dynamic' and 'shell' as 'dynamic_region' and 'shell_region' respectively. 
+    'w1', 'user' and 'design_2' are reconfigurable module names.
+
+    1. The following example generates full and partial bitstreams along with base_reset.bit.
+
+       % xilinx::x2rp::raptor -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -reconfig_partitions {top_i/wrapper_def_0 top_i/wrapper_def_0/dynamic_region top_i/wrapper_def_0/shell_region} -output_dir ./output -shell top_i/wrapper_def_0/shell_region -constrset [get_filesets constrs_1]

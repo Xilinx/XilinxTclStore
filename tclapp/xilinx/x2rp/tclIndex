@@ -7,4 +7,6 @@
 # a script that loads the command.
 
 set auto_index(::tclapp::xilinx::x2rp::run) [list source [file join $dir x2rp_exec.tcl]]
+set auto_index(::tclapp::xilinx::x2rp::raptor) [list source [file join $dir x2rp_exec.tcl]]
+set auto_index(::tclapp::xilinx::x2rp::hpr) [list source [file join $dir x2rp_exec.tcl]]
 set auto_index(::tclapp::xilinx::x2rp::open_checkpoint_for_dsa_generation) [list source [file join $dir x2rp_exec.tcl]]

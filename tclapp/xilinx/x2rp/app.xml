@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added timing checks for base platform generation and generate_rl_only option.</revision_history>
+      <revision_history>Added support for raptor and hpr.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>
@@ -12,8 +12,16 @@
       <display>Xilinx 2RP App</display>
       <procs>
         <proc>
+          <name>hpr</name>
+          <summary>Implements the HPR (Hierarchical Partial Reconfiguration) design using DCP files as sources.</summary>
+        </proc>
+        <proc>
           <name>open_checkpoint_for_dsa_generation</name>
           <summary>Opens routed design checkpoint in the current project context for DSA generation.</summary>
+        </proc>
+        <proc>
+          <name>raptor</name>
+          <summary>Implements the 2RP Design using DCP files as sources.</summary>
         </proc>
         <proc>
           <name>run</name>
