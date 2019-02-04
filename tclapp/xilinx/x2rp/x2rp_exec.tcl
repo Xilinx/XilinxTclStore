@@ -1659,14 +1659,17 @@ proc ::tclapp::xilinx::x2rp::hpr {args} {
     open_checkpoint $a_global_vars(base_platform)
     ::tclapp::xilinx::x2rp::log 092 INFO "Executing Cmd: write_bitstream -cell $a_global_vars(wrapper) [file join $a_global_vars(output_dir) base_reset.bit]"
     write_bitstream -force -cell $a_global_vars(wrapper) [file join $a_global_vars(output_dir) base_reset.bit]
-    close_project
+    catch {close_design}
+    catch {close_project}
 
     ::tclapp::xilinx::x2rp::log 018 INFO "Generate RL platform step started."
+    open_checkpoint $a_global_vars(base_platform)
     pr_subdivide -cell $a_global_vars(wrapper) -subcells $a_global_vars(reconfig_partitions) $a_global_vars(wrapper_post_synth)
     write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(platform)]
     set a_global_vars(platform) [file join $a_global_vars(output_dir) $a_global_vars(platform)]
     ::tclapp::xilinx::x2rp::log 020 INFO "Generate RL platform step completed. RL Platform = $a_global_vars(platform)"
-    close_project
+    catch {close_design}
+    catch {close_project}
 
     # At this stage we must have rl platform knowledge
     if { ![file exists $a_global_vars(platform)] } {
@@ -1689,6 +1692,7 @@ proc ::tclapp::xilinx::x2rp::hpr {args} {
     #Add the required files but don't add the base platform
     foreach dcp_file $dcp_files {
         if {![string equal $dcp_file $a_global_vars(base_platform)] && ![string equal $dcp_file $a_global_vars(wrapper_post_synth)]} {
+            ::tclapp::xilinx::x2rp::log 025 INFO "Executing Cmd: add_files $dcp_file"
             add_files $dcp_file
         }
     }
