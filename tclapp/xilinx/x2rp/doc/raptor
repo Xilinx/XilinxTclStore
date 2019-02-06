@@ -19,6 +19,8 @@ Arguments:
 
     <reconfig_partitions> - (Required) Reconfigurable partition instance paths.
 
+    -hpr - (Optional) Enables hierarchical partial reconfiguration flow for raptor, otherwise multi-rl flow is selected for raptor by default.
+
     -exclude_constrs - (Optional) List of constraint file to be excluded from generation of bit files.    
 
     -post_link_design_hook - (Optional) List of tcl commands to execute post link design for bit generation step.
@@ -50,3 +52,7 @@ Examples:
     1. The following example generates full and partial bitstreams along with base_reset.bit.
 
        % xilinx::x2rp::raptor -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -reconfig_partitions {top_i/rest top_i/rest/dynamic_region top_i/rest/shell_region} -output_dir ./output -shell top_i/rest/shell_region -constrset [get_filesets constrs_1]
+    
+    2. The following example generates full and partial bitstreams along with base_reset.bit (with HPR flow enabled).
+
+        % xilinx::x2rp::raptor -hpr -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -reconfig_partitions {top_i/rest top_i/rest/dynamic_region top_i/rest/shell_region} -output_dir ./output -shell top_i/rest/shell_region -constrset [get_filesets constrs_1]
