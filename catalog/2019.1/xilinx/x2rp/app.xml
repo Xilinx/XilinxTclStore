@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Minor bug fixes for raptor and hpr support</revision_history>
+      <revision_history>Merged raptor and hpr procs to raptor and enabled hpr flow with -hpr option on raptor.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>
@@ -11,10 +11,6 @@
       <summary>This app helps in creating and managing designs with 2 RPs.</summary>
       <display>Xilinx 2RP App</display>
       <procs>
-        <proc>
-          <name>hpr</name>
-          <summary>Implements the HPR (Hierarchical Partial Reconfiguration) design using DCP files as sources.</summary>
-        </proc>
         <proc>
           <name>open_checkpoint_for_dsa_generation</name>
           <summary>Opens routed design checkpoint in the current project context for DSA generation.</summary>
