@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Merged raptor and hpr procs to raptor and enabled hpr flow with -hpr option on raptor.</revision_history>
+      <revision_history>Minor bug fix - unbalanced open paranthesis.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>

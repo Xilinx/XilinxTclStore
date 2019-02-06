@@ -1229,7 +1229,7 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     catch {close_design}
     catch {close_project}
 
-    if ( $a_global_vars(hpr) ) {
+    if { $a_global_vars(hpr) } {
         ::tclapp::xilinx::x2rp::log 018 INFO "Generate RL platform step started."
         open_checkpoint $a_global_vars(base_platform)
         pr_subdivide -cell $a_global_vars(wrapper) -subcells $a_global_vars(reconfig_partitions) $a_global_vars(wrapper_post_synth)
