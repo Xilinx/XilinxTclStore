@@ -1,0 +1,36 @@
+./virtual_packet_fifo_wrapper.v:`ifdef USE_DDR3_FIFO
+./virtual_packet_fifo_wrapper.v:`ifdef USE_DDR3_FIFO
+./virtual_packet_fifo_wrapper.v:`ifdef VERIF
+./virtual_packet_fifo_wrapper.v:`ifdef USE_DDR3_FIFO
+./virtual_packet_fifo_wrapper.v:  `ifdef SIMULATION
+./raw_data_packet.v:`ifdef CHIPSCOPE
+./virtual_packet_fifo/virtual_packet_fifo.v:`ifdef USE_DDR3_FIFO
+./virtual_packet_fifo/virtual_packet_fifo.v:`ifdef USE_7SERIES    
+./virtual_packet_fifo/virtual_packet_fifo.v:`ifdef USE_DDR3_FIFO  
+./virtual_packet_fifo/virtual_packet_fifo.v:`ifdef USE_DDR3_FIFO    
+./virtual_packet_fifo/virtual_packet_fifo.v:`ifdef USE_DDR3_FIFO    
+./virtual_packet_fifo/virtual_packet_fifo.v:`ifdef USE_DDR3_FIFO
+./virtual_packet_fifo/virtual_packet_fifo.v:`ifdef VERIF
+./virtual_packet_fifo/packetized_vfifo_controller.v:`ifdef USE_DDR3_FIFO
+./virtual_packet_fifo/packetized_vfifo_controller.v:`ifdef USE_DDR3_FIFO
+./virtual_packet_fifo/packetized_vfifo_controller.v:  `ifdef VERIF
+./virtual_packet_fifo/multiport_mc.v:`ifdef USE_XPS_IC
+./virtual_packet_fifo/multiport_mc.v: // `ifdef SIMULATION
+./virtual_packet_fifo/multiport_mc.v:`ifdef KC705
+./virtual_packet_fifo/vfifo_controller/address_manager.v:  `ifdef SIMULATION
+./virtual_packet_fifo/vfifo_controller/address_manager.v:`ifdef SIMULATION
+./virtual_packet_fifo/vfifo_controller/address_manager.v:`ifdef SIMULATION
+./virtual_packet_fifo/vfifo_controller/address_manager.v:  `ifdef SIMULATION
+./virtual_packet_fifo/vfifo_controller/address_manager.v:  `ifdef SIMULATION
+./k7_pcie_dma_ddr3_base.v:  `ifdef PCIEx8
+./k7_pcie_dma_ddr3_base.v:  `ifdef USE_DDR3_FIFO
+./k7_pcie_dma_ddr3_base.v:`ifdef USE_DDR3_FIFO
+./k7_pcie_dma_ddr3_base.v:`ifdef GEN2_CAP
+./k7_pcie_dma_ddr3_base.v:`ifdef USE_DDR3_FIFO 
+./k7_pcie_dma_ddr3_base.v:`ifdef SIMULATION
+./k7_pcie_dma_ddr3_base.v:          `ifdef SIMULATION                                      // PCIe Link Speed
+./k7_pcie_dma_ddr3_base.v:`ifdef GEN2_CAP
+./k7_pcie_dma_ddr3_base.v:`ifdef DMA_LOOPBACK
+./k7_pcie_dma_ddr3_base.v:`ifdef USE_DDR3_FIFO
+./k7_pcie_dma_ddr3_base.v:`ifdef SIMULATION
+./k7_pcie_dma_ddr3_base.v:`ifdef USE_DDR3_FIFO

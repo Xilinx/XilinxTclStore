@@ -1,0 +1,59 @@
+read_file -type verilog /global/snps_apps4/vivado_2015.4/Vivado/2015.4/data/verilog/src/glbl.v
+
+set_option lib unisim ./unisim
+set_option lib unimacro ./unimacro
+set_option y /global/snps_apps4/vivado_2015.4/Vivado/2015.4/data/verilog/src/retarget
+set_option y /global/snps_apps4/vivado_2015.4/Vivado/2015.4/data/verilog/src/xeclib
+set_option y /global/snps_apps4/vivado_2015.4/Vivado/2015.4/data/verilog/src/unimacro
+set_option libhdlfiles unisim   /global/snps_apps4/vivado_2015.4/Vivado/2015.4/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhd
+set_option libhdlfiles unimacro /global/snps_apps4/vivado_2015.4/Vivado/2015.4/data/vhdl/src/unimacro/unimacro_VCOMP.vhd
+
+read_file -type gateslib /global/snps_apps4/vivado_2015.4/Vivado/2015.4/data/parts/xilinx/kintex7/devint/kintex7.lib
+
+
+
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/meta_harden.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/debouncer.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/uart_tx_ctl.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/out_ddr_flop.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/reset_bridge.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/uart_rx_ctl.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/clk_div.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/to_bcd.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/uart_baud_gen.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/clk_gen.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/cmd_parse.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/dac_spi.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/lb_ctl.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/rst_gen.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/samp_gen.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/samp_ram.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/uart_rx.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/clkx_bus.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/resp_gen.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/uart_tx.v 
+read_file -type verilog /remote/vgrnd99/alokedas/static/FPGA/tcl_app/tc_from_ravi/project_1/project_1.srcs/sources_1/imports/Sources/kintex7/wave_gen.v 
+
+set_option stop {BRAM_TDP_MACRO}
+set_option enable_save_restore no
+set_option enable_pass_exit_codes true
+set_option projectwdir sg_results
+set_option libext { .v .sv .vhd .vh }
+set_option work WORK
+set_option enableSV yes
+set_option language_mode mixed
+set_option pragma { synopsys synthesis }
+set_option disable_hdllibdu_lexical_checks yes
+set_option top wave_gen
+#set_option prefer_tech_lib yes
+set_option enable_auto_infer_bus_pins yes
+set_option read_protected_envelope yes
+set_option enable_fpga yes
+
+
+current_methodology $SPYGLASS_HOME/GuideWare2.0/block/rtl_handoff
+
+current_goal cdc/cdc_setup
+set_goal_option addrules Setup_blackbox01
+
+current_goal cdc/cdc_verify_struct
