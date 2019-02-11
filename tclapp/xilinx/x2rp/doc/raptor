@@ -51,8 +51,12 @@ Examples:
 
     1. The following example generates full and partial bitstreams along with base_reset.bit.
 
-       % xilinx::x2rp::raptor -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -reconfig_partitions {top_i/rest top_i/rest/dynamic_region top_i/rest/shell_region} -output_dir ./output -shell top_i/rest/shell_region -constrset [get_filesets constrs_1]
+       % xilinx::x2rp::raptor -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -PRP [get_files shell.dcp] -reconfig_partitions {top_i/rest top_i/rest/dynamic_region top_i/rest/shell_region} -output_dir ./output -shell top_i/rest/shell_region -constrset [get_filesets constrs_1]
     
     2. The following example generates full and partial bitstreams along with base_reset.bit (with HPR flow enabled).
 
-        % xilinx::x2rp::raptor -hpr -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -reconfig_partitions {top_i/rest top_i/rest/dynamic_region top_i/rest/shell_region} -output_dir ./output -shell top_i/rest/shell_region -constrset [get_filesets constrs_1]
+        % xilinx::x2rp::raptor -hpr -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -PRP [get_files shell.dcp] -reconfig_partitions {top_i/rest top_i/rest/dynamic_region top_i/rest/shell_region} -output_dir ./output -shell top_i/rest/shell_region -constrset [get_filesets constrs_1]
+
+    3. The following example generates full and partial bitstreams along with base_reset.bit, for a DCP based PR flow project.
+
+        % xilinx::x2rp::raptor -hpr -pr_config {top_i/rest:rest top_i/rest/dynamic_region:user top_i/rest/shell_region:design_2} -top top_wrapper -level_0 [get_files MET_TIMING.dcp] -output_dir ./output -shell top_i/rest/shell_region -constrset constrs_1

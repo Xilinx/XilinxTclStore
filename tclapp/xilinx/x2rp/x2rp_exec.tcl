@@ -29,6 +29,7 @@ proc ::tclapp::xilinx::x2rp::log {idx type msg} {
         close $fp
     }
 }
+
 proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     # Summary: 
     # Resets global variables
@@ -45,6 +46,7 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
     set a_global_vars(log) ""
     set a_global_vars(log_enabled) 0
     set a_global_vars(hpr) 0
+    set a_global_vars(PRP) ""
 
     set a_global_vars(top) [get_property TOP [current_fileset -srcset]]
     set a_global_vars(part) [get_property PART [current_project]]
@@ -165,6 +167,87 @@ proc ::tclapp::xilinx::x2rp::validate_args {} {
         } else {
             ::tclapp::xilinx::x2rp::log 004 {CRITICAL WARNING} "No constraint files found for constraint set '$a_global_vars(constrset)'."
         }
+    }
+}
+
+proc ::tclapp::xilinx::x2rp::validate_args_for_raptor {} {
+    # Summary: 
+    # Validates arguments
+
+    # Argument Usage: 
+
+    # Return Value:
+    # None
+
+    variable a_global_vars
+
+    if { [string equal $a_global_vars(part) ""] } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Project board part is invalid."
+    }
+
+    if { [string equal $a_global_vars(output_dir) ""] } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Output directory does not have a valid path. Please provide a valid path after '-output_dir' switch."
+    }
+
+    if { ![file exists $a_global_vars(output_dir)] } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Output directory '$a_global_vars(output_dir)' does not exists."
+    } else {
+        if { ![file isdirectory $a_global_vars(output_dir)] } {
+            ::tclapp::xilinx::x2rp::log 004 ERROR "Output directory '$a_global_vars(output_dir)' is invalid. Make sure ouput directory is a valid writable directory path."
+        }
+    }
+
+    set xdc_norm {}
+    foreach xdc $a_global_vars(exclude_constrs) {
+        lappend xdc_norm [file normalize $xdc]
+        if { ![file exists $xdc_norm] } {
+            ::tclapp::xilinx::x2rp::log 004 ERROR "Invalid XDC file path, does not exist at location '[file normalize $xdc]'"
+        }
+    }
+    set a_global_vars(exclude_constrs) $xdc_norm
+
+    if { [string equal $a_global_vars(shell) ""] } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-shell'."
+    }
+
+    if { [string equal $a_global_vars(constrset) ""] } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-constrset'."
+    }
+
+    if { [llength $a_global_vars(constrs_files)] == 0 } {
+        if { [string equal $a_global_vars(constrset) ""] } {
+            ::tclapp::xilinx::x2rp::log 004 {CRITICAL WARNING} "No constraint files found."
+        } else {
+            ::tclapp::xilinx::x2rp::log 004 {CRITICAL WARNING} "No constraint files found for constraint set '$a_global_vars(constrset)'."
+        }
+    }
+
+    if { [string equal $a_global_vars(top) ""] } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-top'."
+    }
+
+    if { !$a_global_vars(base_platform_provided) } {
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-level-0'. Provide a valid level 0 dcp file path."
+    }
+
+    set pr_flow [get_property PR_FLOW [current_project]]
+    if { $a_global_vars(pr_config) != {} } {
+        if { !$pr_flow } {
+            ::tclapp::xilinx::x2rp::log 004 ERROR "This is not a pr flow project. Option '-pr_config' must be used with a pr flow project only."
+        }
+    } else {
+        if { [string equal $a_global_vars(PRP) ""] } {
+            ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-PRP'. For a non-pr project '-PRP' must be specified with a valid dcp path."
+        }
+
+        # check whether wrapper dcp is provided or not
+        if { [string equal $a_global_vars(wrapper_post_synth) ""] } {
+            ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-level_1'. For a non-pr project '-level_1' must be specified with a valid dcp path."
+        }   
+
+        if { $a_global_vars(reconfig_partitions) == {} } {
+            ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-reconfig_partitions'. For a non-pr project '-reconfig_partitions' must be specified with a valid dcp path."
+        }    
     }
 }
 
@@ -992,10 +1075,12 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     # -top <arg>: Design top name.
     # -shell <arg>: RL/Shell instance path.
     # -level_0 <arg>: Level 0 dcp file, contains only static routed region.
-    # -level_1 <arg>: Level 1 dcp file, SHIM routed with RL and CL as blackboxes.
     # -constrset <arg>: Constraints set to be use with the pr configuration provided in option '-pr_config'.
     # -output_dir <arg>: Directory to save the results.
-    # -reconfig_partitions <arg>: Reconfigurable partition instance paths.
+    # [-level_1 <arg>]: Level 1 dcp file, SHIM routed with RL and CL as blackboxes.
+    # [-PRP <arg>]: Platform (shell) reconfigurable partition dcp file.
+    # [-reconfig_partitions] <arg>: Reconfigurable partition instance paths.
+    # [-pr_config <arg>]: Partial configuration for the implementation run.
     # [-hpr]: Enables hierarchical partial reconfiguration flow for raptor, otherwise multi-rl flow is selected for raptor by default.
     # [-exclude_constrs <arg>]: List of constraint file to be excluded from generation of bit files.    
     # [-post_link_design_hook <arg>]: List of tcl commands to execute post link design for bit generation step.
@@ -1017,10 +1102,17 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     puts [join [get_files -of_objects [current_fileset -srcset]] \n]
 
     set dcp_files [get_files -of_objects [current_fileset -srcset]]
+    set pr_flow [get_property PR_FLOW [current_project]]
 
     ::tclapp::xilinx::x2rp::reset_global_vars
+    # reset impl step directives to defaults for raptor.
+    set a_global_vars(opt_directive) "Default"
+    set a_global_vars(place_directive) "Default"
+    set a_global_vars(post_place_phys_opt_directive) "Default"
+    set a_global_vars(route_directive) "Default"
+    set a_global_vars(post_route_phys_opt_directive) "Default"
+
     ::tclapp::xilinx::x2rp::log 002 INFO "Resetting of global arguments completed."
-    # process_args $args    
     ::tclapp::xilinx::x2rp::log 003 INFO "Processing command line arguments."
     for {set i 0} {$i < [llength $args]} {incr i} {
         set option [string trim [lindex $args $i]]
@@ -1044,6 +1136,15 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
             "-hpr" {
                 set a_global_vars(hpr) 1
             }
+            "-pr_config" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {
+                    puts "[lindex $args $i]"
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid pr configuration immediately following '$option'"
+                    return
+                }
+                set a_global_vars(pr_config) [lindex $args $i]
+            }
             "-top" {
                 incr i;            
                 if { [regexp {^-} [lindex $args $i]] } {
@@ -1060,7 +1161,7 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
                 }
                 set a_global_vars(wrapper_post_synth) [file normalize [lindex $args $i]]
                 if { ![file exists $a_global_vars(wrapper_post_synth)] } {
-                    ::tclapp::xilinx::x2rp::log 001 ERROR "Wrapper dcp file doesn't exist. Please provide a valid wrapper dcp file path."
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Level 1 dcp file doesn't exist. Please provide a valid level 1 dcp file path."
                     return
                 }
             } 
@@ -1072,10 +1173,22 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
                 }
                 set a_global_vars(base_platform) [file normalize [lindex $args $i]]
                 if { ![file exists $a_global_vars(base_platform)] } {
-                    ::tclapp::xilinx::x2rp::log 001 ERROR "Base platform dcp file doesn't exist. Please provide a valid base platform dcp file path."
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Level 0 dcp file doesn't exist. Please provide a valid level 0 dcp file path."
                     return
                 }
                 set a_global_vars(base_platform_provided) 1
+            }
+            "-PRP" {
+                incr i;            
+                if { [regexp {^-} [lindex $args $i]] } {
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "Missing value for the $option option.\nPlease provide a valid dcp file immediately following '$option'"
+                    return
+                }
+                set a_global_vars(PRP) [file normalize [lindex $args $i]]
+                if { ![file exists $a_global_vars(PRP)] } {
+                    ::tclapp::xilinx::x2rp::log 001 ERROR "PRP dcp file doesn't exist. Please provide a valid PRP dcp file path."
+                    return
+                }
             }
             "-output_dir" {
                 incr i;            
@@ -1208,8 +1321,7 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     ::tclapp::xilinx::x2rp::dump_program_options raptor    
 
     ::tclapp::xilinx::x2rp::log 006 INFO "Validating command line arguments."
-    #TODO: commented for now should be enabled
-    ::tclapp::xilinx::x2rp::validate_args
+    ::tclapp::xilinx::x2rp::validate_args_for_raptor
     ::tclapp::xilinx::x2rp::log 007 INFO "Validation of command line arguments completed."
 
     if { $a_global_vars(hpr) } {
@@ -1217,16 +1329,45 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     } else {
         ::tclapp::xilinx::x2rp::log 007 INFO "Raptor Multi-RL flow is selected for execution"
     }
+    
+    if { $a_global_vars(pr_config) != {} && $pr_flow } {
+        # resetting the vars again
+        set a_global_vars(reconfig_partitions) {}
+        set a_global_vars(reconfig_modules) {}
+        set a_global_vars(rm_configs) {}
 
+        # identifying wrapper and other RMs
+        ::tclapp::xilinx::x2rp::log 008 INFO "Identifying wrapper and other partition defs information."
+        foreach config $a_global_vars(pr_config) {
+            set instance_path [lindex [split $config :] 0]
+            lappend a_global_vars(reconfig_partitions) $instance_path
+
+            set rm [lindex [split $config :] 1]
+            lappend a_global_vars(reconfig_modules) $rm
+
+            ::tclapp::xilinx::x2rp::log 009 INFO "$instance_path has rm $rm"
+            set rm_dcp_file [get_files -of_objects [get_filesets -of_objects [get_reconfig_modules $rm]]]        
+
+            lappend a_global_vars(rm_configs) $config:$rm_dcp_file
+            ::tclapp::xilinx::x2rp::log 010 INFO "RM : $rm"
+            ::tclapp::xilinx::x2rp::log 011 INFO "\tDCP File : $rm_dcp_file"
+        }
+    }
+    
     # determine and remove wrapper from the RPs
     ::tclapp::xilinx::x2rp::log 014 INFO "Determining wrapper and reconfig partitions."
     ::tclapp::xilinx::x2rp::remove_wrapper_from_rps [::tclapp::xilinx::x2rp::determine_wrapper]
+
+    if { $a_global_vars(pr_config) != {} && $pr_flow } {
+        # extract wrapper dcp
+        set a_global_vars(wrapper_post_synth) [extract_post_synth_dcp $a_global_vars(wrapper)]
+        ::tclapp::xilinx::x2rp::log 015 INFO "Extracted wrapper dcp : '$a_global_vars(wrapper_post_synth)'." 
+    }
 
     ::tclapp::xilinx::x2rp::log 093 INFO "Generating base reset bit file."
     open_checkpoint $a_global_vars(base_platform)
     ::tclapp::xilinx::x2rp::log 092 INFO "Executing Cmd: write_bitstream -cell $a_global_vars(wrapper) [file join $a_global_vars(output_dir) base_reset.bit]"
     write_bitstream -force -cell $a_global_vars(wrapper) [file join $a_global_vars(output_dir) base_reset.bit]
-    catch {close_design}
     catch {close_project}
 
     if { $a_global_vars(hpr) } {
@@ -1236,7 +1377,6 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
         write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(platform)]
         set a_global_vars(platform) [file join $a_global_vars(output_dir) $a_global_vars(platform)]
         ::tclapp::xilinx::x2rp::log 020 INFO "Generate RL platform step completed. RL Platform = $a_global_vars(platform)"
-        catch {close_design}
         catch {close_project}
     } else {
         ::tclapp::xilinx::x2rp::log 018 INFO "Generate RL platform step started."        
@@ -1244,7 +1384,6 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
         generate_rl_platform -use_source "$a_global_vars(wrapper_post_synth)" -base_platform "$a_global_vars(base_platform)" -platform [file join $a_global_vars(output_dir) $a_global_vars(platform)] -reconfig_platform "{$a_global_vars(shell)}"
         set a_global_vars(platform) [file join $a_global_vars(output_dir) $a_global_vars(platform)]
         ::tclapp::xilinx::x2rp::log 020 INFO "Generate RL platform step completed. RL Platform = $a_global_vars(platform)"
-        catch {close_design}
         catch {close_project}
     }
 
@@ -1266,27 +1405,48 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     set_property ip_cache_permissions {read write} [current_project]
     set_property XPM_LIBRARIES $a_global_vars(xpm_libs) [current_project]
 
-    #Add the required files but don't add the base platform
-    foreach dcp_file $dcp_files {
-        if {![string equal $dcp_file $a_global_vars(base_platform)] && ![string equal $dcp_file $a_global_vars(wrapper_post_synth)]} {
-            ::tclapp::xilinx::x2rp::log 025 INFO "Executing Cmd: add_files $dcp_file"
-            add_files $dcp_file
+    if { $a_global_vars(pr_config) != {} && $pr_flow } {
+        # Add the required files but don't add the base platform
+        ::tclapp::xilinx::x2rp::log 026 INFO "Adding RMs dcp files."
+        # add RMs post synthesis DCP files
+        foreach rm_config $a_global_vars(rm_configs) {
+            set instance_path [lindex [split $rm_config :] 0]
+            if { [lsearch -exact $a_global_vars(reconfig_partitions) $instance_path] != -1} {
+                # adding RM DCP file
+                set dcp_file [lindex [split $rm_config :] 2]
+                if { [file exists $dcp_file] } {
+                    ::tclapp::xilinx::x2rp::log 029 INFO "Executing Cmd: add_files $dcp_file"
+                    add_files $dcp_file
+                    ::tclapp::xilinx::x2rp::log 030 INFO "Executing Cmd: set_property SCOPED_TO_CELLS [list $instance_path] [get_files $dcp_file]"
+                    set_property SCOPED_TO_CELLS [list $instance_path] [get_files $dcp_file]
+                } else {
+                    ::tclapp::xilinx::x2rp::log 031 ERROR "Failed to add dcp file for rm instance '$instance_path'."
+                }
+            }
+        }
+    } else {
+        foreach dcp_file $dcp_files {
+            if {![string equal $dcp_file $a_global_vars(base_platform)] && ![string equal $dcp_file $a_global_vars(wrapper_post_synth)]} {
+                ::tclapp::xilinx::x2rp::log 025 INFO "Executing Cmd: add_files $dcp_file"
+                add_files $dcp_file
+                if { [string equal $dcp_file $a_global_vars(PRP)] } {
+                    ::tclapp::xilinx::x2rp::log 025 INFO "Executing Cmd: set_property SCOPED_TO_CELLS $a_global_vars(shell) [get_files $dcp_file]"
+                    set_property SCOPED_TO_CELLS $a_global_vars(shell) [get_files $dcp_file]
+                } else {
+                    foreach inst $a_global_vars(reconfig_partitions) {
+                        if { ![string equal $a_global_vars(shell) $inst] } {
+                            ::tclapp::xilinx::x2rp::log 025 INFO "Executing Cmd: set_property SCOPED_TO_CELLS $inst [get_files $dcp_file]"
+                            set_property SCOPED_TO_CELLS $inst [get_files $dcp_file]
+                        }
+                    }
+                }
+            }
         }
     }
 
     # add generated RL platform
     ::tclapp::xilinx::x2rp::log 025 INFO "Executing Cmd: add_files $a_global_vars(platform)"
     add_files $a_global_vars(platform)
-
-    # add constraint files
-    foreach cf $a_global_vars(constrs_files) {
-        if { [lsearch -exact $a_global_vars(exclude_constrs) $cf] == -1 } {
-            add_files $cf    
-            ::tclapp::xilinx::x2rp::log 032 INFO "Adding constraint file $cf"
-        } else {
-            ::tclapp::xilinx::x2rp::log 033 INFO "Ignored constraint file $cf"
-        }
-    }
 
     # link the design
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) link_design pre
@@ -1329,6 +1489,16 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     # TODO: fix this part where we need to identify CL cell and set param for it
     # set_param hd.skipPartitionPinReductionOnCell $a_global_vars(stc_cl) 
 
+    # add constraint files
+    foreach cf $a_global_vars(constrs_files) {
+        if { [lsearch -exact $a_global_vars(exclude_constrs) $cf] == -1 } {
+            add_files $cf    
+            ::tclapp::xilinx::x2rp::log 032 INFO "Adding constraint file $cf"
+        } else {
+            ::tclapp::xilinx::x2rp::log 033 INFO "Ignored constraint file $cf"
+        }
+    }
+
     ##################################################
     ### Opt design
     ##################################################
@@ -1341,9 +1511,6 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     eval $opt_design_cmd
 
     ::tclapp::xilinx::x2rp::execute_script $a_global_vars(rl_scripts) opt_design post
-    
-    ::tclapp::xilinx::x2rp::log 042 INFO "Executing Cmd: opt_design -merge_equivalent_drivers -sweep"       
-    opt_design -merge_equivalent_drivers -sweep
     
     ::tclapp::xilinx::x2rp::log 043 INFO "Executing Cmd: write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_opt_design)]"       
     write_checkpoint -force [file join $a_global_vars(output_dir) $a_global_vars(post_opt_design)]
