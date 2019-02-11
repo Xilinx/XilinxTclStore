@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Minor bug fix - unbalanced open paranthesis.</revision_history>
+      <revision_history>Added support for DCP based PR flow project for raptor.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>
