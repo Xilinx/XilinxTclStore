@@ -1,0 +1,6 @@
+synopsys/spyglass/test
+
+# This folder has the testcase to run the app - ::tclapp::synopsys::spyglass
+# A test designs is loaded into Vivado and the configuation file spy_run.prj
+# is generated.
+
