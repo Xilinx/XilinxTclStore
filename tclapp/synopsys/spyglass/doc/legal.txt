@@ -1,4 +1,4 @@
-Copyright (c) 2014, Atrenta
+Copyright (c) 2014, Synopsys
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -15,4 +15,4 @@ This file must be included in <app>/doc/legal.txt for all accepted contributions
 All contributors must date and digitally sign once below in order to submit to the Xilinx Tcl Store
 <YYYYMMDD Date>::<github id>::<Full Name>
 =================================================================================================
-20150505::atrenta-us::Satrajit Pal
+20190213::ajkumarsnps::Ajay Kumar
