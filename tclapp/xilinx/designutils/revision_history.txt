@@ -1,3 +1,4 @@
+1.43 Added support for Vivado patches (report_failfast)
 1.42 Added support for US+ -1LV/-2LV (report_failfast)
 1.41 Added support for newer architectures (report_failfast, get_sll_nets, get_sll_nodes). Major enhancements (prettyTable)
 1.40 Fixed issue (report_failfast). Various enhancements (prettyTable)
