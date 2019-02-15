@@ -79,7 +79,7 @@ proc usf_init_vars {} {
 
   set a_sim_vars(sp_tcl_obj)         {}
 
-  set a_sim_vars(s_boost_dir) "[file dirname [rdi::get_data_dir -quiet -datafile "simmodels/xsim"]]/tps/boost_1_64_0"
+  set a_sim_vars(s_boost_dir)        {}
 
   # fileset compile order
   variable l_compile_order_files     [list]
