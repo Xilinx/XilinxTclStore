@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::x2rp 1.16 [list source [file join $dir x2rp.tcl]]
+package ifneeded ::tclapp::xilinx::x2rp 1.17 [list source [file join $dir x2rp.tcl]]

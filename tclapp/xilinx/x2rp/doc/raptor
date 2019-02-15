@@ -1,29 +1,39 @@
 
 Description: 
 
-    Implements the 2RP Design using DCP files as sources.
+    Implements the platform designs using DCP files as sources.
 
 Arguments:
 
     <top> - (Required) Design top name.
 
-    <shell> - (Required) RL/Shell instance path.
+    <prp_inst> - (Required) Provider reconfigurable partition instance path.
 
-    <level_0> - (Required) Level 0 dcp file, contains only static routed region.
+    <level_0> - (Required) Level 0 dcp file, contains base logic design and isolation interfaces.
 
-    <level_1> - (Required) Level 1 dcp file, SHIM routed with RL and CL as blackboxes.
-
-    <constrset> - (Required) Constraints set to be use with the pr configuration provided in option '-pr_config'.
-
+    <constrset> - (Required) Constraints set to be used during design implementation.
+    
     <output_dir> - (Required) Directory to save the results.
 
-    <reconfig_partitions> - (Required) Reconfigurable partition instance paths.
+    -skip_level_0_reset - (Optional) Skip generation of level 0 reset bit file.
+    
+    -level_1 - (Optional) Level 1 dcp file, dcp which has routed isolation interfaces with PRP and URP as black-boxes.
+
+    -reconfig_partitions - (Optional) Reconfigurable partition instance paths. Format should be a list of {<instance path>}.
+                                      Lets say there are three partition definitions LEVEL_1, PRP, URP with reconfigurable modules LEVEL_1, PRP, URP respectively.
+                                      Reconfigurable modules LEVEL_1, PRP, URP has instance paths LEVEL_1_INST, LEVEL_1_INST/PRP_INST, LEVEL_1_INST/URP_INST respectively.
+                                      Then reconfig_partitions will be {LEVEL_1_INST LEVEL_1_INST/PRP_INST LEVEL_1_INST/URP_INST}
+
+    -pr_config - (Optional) Partial configuration to be used during implementation. Format should be a list of {<instance path>:<rm_name>}.
+                            Lets say there are three partition definitions LEVEL_1, PRP, URP with reconfigurable modules LEVEL_1, PRP, URP respectively.
+                            Reconfigurable modules LEVEL_1, PRP, URP has instance paths LEVEL_1_INST, LEVEL_1_INST/PRP_INST, LEVEL_1_INST/URP_INST respectively.
+                            Then pr_config will be {LEVEL_1_INST:LEVEL_1 LEVEL_1_INST/PRP_INST:PRP LEVEL_1_INST/URP_INST:URP}
 
     -hpr - (Optional) Enables hierarchical partial reconfiguration flow for raptor, otherwise multi-rl flow is selected for raptor by default.
 
-    -exclude_constrs - (Optional) List of constraint file to be excluded from generation of bit files.    
+    -exclude_constrs - (Optional) List of constraint files to be excluded from implementation.
 
-    -post_link_design_hook - (Optional) List of tcl commands to execute post link design for bit generation step.
+    -post_link_design_hook - (Optional) List of tcl commands to execute post link design.
 
     -opt_directive - (Optional) Directive for opt design step.
 
@@ -37,26 +47,85 @@ Arguments:
 
     -post_route_phys_opt_directive - (Optional) Directive for post route phys opt design step.
 
-    -rl_scripts - (Optional) Directory which has pre/post tcl scripts used after rl platform generation.
-                    Inside the folder it will look for pre/post scripts in <pre|post><design step>.tcl format.
-                    Example: For design step place_design
-                        Pre script  = preplacedesign.tcl
-                        Post script = postplacedesign.tcl
-    
+    -hook_scripts - (Optional) Directory which has pre/post tcl hook scripts to be used during implementation.
+                               Inside the folder it will look for pre/post scripts in <pre|post><design step>.tcl format.
+                               Example: For design step place_design
+                                    * Pre hook script  = preplacedesign.tcl
+                                    * Post hook script = postplacedesign.tcl
+
+Terminology / Abbreviation
+    * BLD   = Base Logic Design
+    * IINTF = Isolation Interfaces
+    * PRP   = Provider Reconfigurable Partition
+    * URP   = User Reconfigurable Partition
+
+Design Components Definitions
+
+    * Base Logic Design
+        * Contains minimal logic to maintain link to host (PCIe, ICAP…)
+
+    * Isolation Interfaces
+        * Provides an interface contract between reconfigurable partitions
+
+    * Provider Reconfigurable Partition
+        * Contains specialization logic (ie: xdma/qdma)
+        
+    * User Reconfigurable Partition
+        * Contains end user logic (ie: acceleration kernels)
+
+______________________________________________________________________________________________________________
+|                                                                                                            |
+|   FPGA                                                                                     LEVEL 0         |
+|           _____________   _____________________________________________________________________________    |
+|           |           |   |                                _____________                              |    |
+|           |           |   |                                |           |                   LEVEL 1    |    |
+|           |           |   |        _____________________   |           |   _________________________  |    |
+|           |           |   |        |                   |   |           |   |                       |  |    |
+|           |           |   |        |                   |   |           |   |                       |  |    |
+|           |           |   |        |                   |   |           |   |                       |  |    |
+|           | IINTF (0) |   |        |        PRP        |   | IINTF (1) |   |         URP           |  |    |
+|           |           |   |        |                   |   |           |   |                       |  |    |
+|           |           |   |        |                   |   |           |   |                       |  |    |
+|           |           |   |        |___________________|   |           |   |_______________________|  |    |
+|           |           |   |                                |___________|                              |    |
+|           |___________|   |___________________________________________________________________________|    |
+|____________________________________________________________________________________________________________|
+
+-------------------------------------- Figure 1: Platform Design Layout --------------------------------------
+
 Examples:
 
-    Below examples are based on a design which has a 'top' bd with top name 'top_wrapper', 'top' bd has a module reference to a partition def 'wrapper' as 'rest',
-    'rest' has two module references to partition defs 'dynamic' and 'shell' as 'dynamic_region' and 'shell_region' respectively. 
-    'w1', 'user' and 'design_2' are reconfigurable module names.
+    Below examples are based on a design which has a 'top' block design with top name 'top_wrapper' and instance name is 'top_i', 
+    'top' block design has a module reference to a reconfigurable module 'LEVEL_1' of partition definition 'LEVEL_1' with instance name as 'LEVEL_1_INST',
+    'LEVEL_1' reconfigurable module block design has two module references
+        1. to reconfigurable module 'PRP' of partition definition 'PRP' with instance name as 'PRP_INST'.
+        2. to reconfigurable module 'URP' of partition definition 'URP' with instance name as 'URP_INST'. 
 
-    1. The following example generates full and partial bitstreams along with base_reset.bit.
+    Case #1: DCP based Non-PR Project Flow
 
-       % xilinx::x2rp::raptor -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -PRP [get_files shell.dcp] -reconfig_partitions {top_i/rest top_i/rest/dynamic_region top_i/rest/shell_region} -output_dir ./output -shell top_i/rest/shell_region -constrset [get_filesets constrs_1]
+        Assumption:- DCP of PRP and URP have SCOPED_TO_CELLS property set with proper instance paths as mentioned in '-reconfig_partitions' option.
+
+        1. The following example generates full and partial bitstreams along with level_0_reset.bit.
     
-    2. The following example generates full and partial bitstreams along with base_reset.bit (with HPR flow enabled).
+           % xilinx::x2rp::raptor -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -reconfig_partitions {top_i/LEVEL_1_INST top_i/LEVEL_1_INST/URP_INST top_i/LEVEL_1_INST/PRP_INST} -output_dir ./output -prp_inst top_i/LEVEL_1_INST/PRP_INST -constrset [get_filesets constrs_1]
+    
+        2. The following example generates full and partial bitstreams along with level_0_reset.bit (Hierarchical Partial Reconfiguration Flow).
+    
+           % xilinx::x2rp::raptor -hpr -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -reconfig_partitions {top_i/LEVEL_1_INST top_i/LEVEL_1_INST/URP_INST top_i/LEVEL_1_INST/PRP_INST} -output_dir ./output -prp_inst top_i/LEVEL_1_INST/PRP_INST -constrset [get_filesets constrs_1]
+    
+        Note* : For DCP based Non-PR Project Flow case - apart from required options, -level_1 and -reconfig_partitions options are mandatory.
 
-        % xilinx::x2rp::raptor -hpr -top top_wrapper -level_0 [get_files level_0.dcp] -level_1 [get_files level_1.dcp] -PRP [get_files shell.dcp] -reconfig_partitions {top_i/rest top_i/rest/dynamic_region top_i/rest/shell_region} -output_dir ./output -shell top_i/rest/shell_region -constrset [get_filesets constrs_1]
+    
+    Case #2: DCP based PR Project Flow
+    
+        Assumption:- Partion definitions for LEVEL_1, PRP and URP are created with their respective RMs and underlying dcp sources, as provide in '-pr_config' option.
 
-    3. The following example generates full and partial bitstreams along with base_reset.bit, for a DCP based PR flow project.
+        1. The following example generates full and partial bitstreams along with level_0_reset.bit.
 
-        % xilinx::x2rp::raptor -hpr -pr_config {top_i/rest:rest top_i/rest/dynamic_region:user top_i/rest/shell_region:design_2} -top top_wrapper -level_0 [get_files MET_TIMING.dcp] -output_dir ./output -shell top_i/rest/shell_region -constrset constrs_1
+            % xilinx::x2rp::raptor -pr_config {top_i/LEVEL_1_INST:LEVEL_1 top_i/LEVEL_1_INST/URP_INST:URP top_i/LEVEL_1_INST/PRP_INST:PRP} -top top_wrapper -level_0 [get_files level_0.dcp] -output_dir ./output -prp_inst top_i/LEVEL_1_INST/PRP_INST -constrset [get_filesets constrs_1]
+
+        2. The following example generates full and partial bitstreams along with level_0_reset.bit (Hierarchical Partial Reconfiguration Flow).
+
+            % xilinx::x2rp::raptor -hpr -pr_config {top_i/LEVEL_1_INST:LEVEL_1 top_i/LEVEL_1_INST/URP_INST:URP top_i/LEVEL_1_INST/PRP_INST:PRP} -top top_wrapper -level_0 [get_files level_0.dcp] -output_dir ./output -prp_inst top_i/LEVEL_1_INST/PRP_INST -constrset [get_filesets constrs_1]
+
+        Note* : For DCP based PR Project Flow case - apart from required options, -pr_config option is mandatory.

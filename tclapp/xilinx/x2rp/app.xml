@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added support for DCP based PR flow project for raptor.</revision_history>
+      <revision_history>Fix for CRs - {1022456, 1022371, 1022370, 1022368, 1022366, 1022364, 1022333, 1022224, 1022222}.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>
@@ -17,7 +17,7 @@
         </proc>
         <proc>
           <name>raptor</name>
-          <summary>Implements the 2RP Design using DCP files as sources.</summary>
+          <summary>Implements the Platform Design using DCP files as sources.</summary>
         </proc>
         <proc>
           <name>run</name>
