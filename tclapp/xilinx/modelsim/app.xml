@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>vars to reference protected and ext library paths</revision_history>
+      <revision_history>helper to fetch boost header include path from RDI_DATADIR</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

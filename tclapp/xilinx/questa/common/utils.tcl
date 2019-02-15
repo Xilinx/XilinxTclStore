@@ -3224,6 +3224,11 @@ proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_x
       lappend incl_dirs "$dir"
     }
   }
+
+  # add boost header references 
+  set boost_dir "\$xv_boost_lib_path/boost"
+  lappend incl_dirs "$boost_dir"
+
   return $incl_dirs
 }
 
@@ -4017,4 +4022,30 @@ proc xcs_get_library_vlnv_name { ip_def vlnv } {
   set library_name ${ip_name}_v${sw_rev}_${minor_rev}_${core_rev}
 
   return $library_name
+}
+
+proc xcs_get_boost_library_path {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set boost_incl_dir {}
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+
+  if { [info exists ::env(RDI_DATADIR)] } {
+    foreach data_dir [split $::env(RDI_DATADIR) $sep] {
+      set incl_dir "[file dirname $data_dir]/tps/boost_1_64_0"
+      if { [file exists $incl_dir] } {
+        set boost_incl_dir $incl_dir
+        set boost_incl_dir [regsub -all {[\[\]]} $boost_incl_dir {/}]
+        break
+      }
+    }
+  } else {
+    send_msg_id SIM-utils-059 WARNING "RDI_DATADIR environment variable is not set\n"
+  }
+  return $boost_incl_dir
 }

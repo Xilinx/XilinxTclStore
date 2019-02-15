@@ -4023,3 +4023,29 @@ proc xcs_get_library_vlnv_name { ip_def vlnv } {
 
   return $library_name
 }
+
+proc xcs_get_boost_library_path {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set boost_incl_dir {}
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+
+  if { [info exists ::env(RDI_DATADIR)] } {
+    foreach data_dir [split $::env(RDI_DATADIR) $sep] {
+      set incl_dir "[file dirname $data_dir]/tps/boost_1_64_0"
+      if { [file exists $incl_dir] } {
+        set boost_incl_dir $incl_dir
+        set boost_incl_dir [regsub -all {[\[\]]} $boost_incl_dir {/}]
+        break
+      }
+    }
+  } else {
+    send_msg_id SIM-utils-059 WARNING "RDI_DATADIR environment variable is not set\n"
+  }
+  return $boost_incl_dir
+}

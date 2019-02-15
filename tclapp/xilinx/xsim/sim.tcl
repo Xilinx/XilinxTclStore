@@ -209,6 +209,9 @@ proc usf_xsim_setup_simulation { args } {
   # initialize Vivado simulator variables
   usf_xsim_init_simulation_vars
 
+  # initialize boost library reference
+  set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
+
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
