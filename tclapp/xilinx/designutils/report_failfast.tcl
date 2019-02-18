@@ -5,6 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2019.02.13 - Added support for Vivado patches
 ## 2019.01.10 - Added support for US+ -1LV/-2LV
 ## 2018.11.16 - Added support for spartan7, zynquplusRFSOC, virtexuplus58g
 ##              and virtexuplusHBM
@@ -327,7 +328,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2019.01.10}
+  variable version {2019.02.13}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -380,7 +381,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(show_resources) 0
   set params(max_paths) 100
 #   set params(vivado_version) [version -short]
-  set params(vivado_version) [regsub -all {[a-zA-Z]} [version -short] {0}] ; # Remove any letter that would fail 'package vcompare'
+  # Remove from the Vivado version any letter that would fail 'package vcompare' + remove reference to
+  # any patched version (_ARxxxxx)
+  set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_AR[0-9]+$} [version -short] {}] {0}]
   set pid {tmp}
   catch { set pid [pid] }
   set filename {}
