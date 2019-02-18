@@ -1135,7 +1135,6 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     variable a_global_vars
     ::tclapp::xilinx::x2rp::reset_global_vars
     ::tclapp::xilinx::x2rp::log 002 INFO "Resetting of global arguments completed."
-    ::tclapp::xilinx::x2rp::reset_msg_setting
 
     puts [join [get_files -of_objects [current_fileset -srcset]] \n]
 

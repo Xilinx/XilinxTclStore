@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix for CRs - {1022456, 1022371, 1022370, 1022368, 1022366, 1022364, 1022333, 1022224, 1022222}.</revision_history>
+      <revision_history>Fix for issue can&apos;t read &apos;levels_to_suppress&apos;: no such variable</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>
