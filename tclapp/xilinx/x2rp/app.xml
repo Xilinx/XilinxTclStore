@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix for issue can&apos;t read &apos;levels_to_suppress&apos;: no such variable</revision_history>
+      <revision_history>Changes in write bitstream step.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>

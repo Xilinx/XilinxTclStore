@@ -1637,32 +1637,41 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
         ::tclapp::xilinx::x2rp::log 063 INFO "Executing Cmd: set_property PLATFORM.IMPL 2 \[current_design\]"
         set_property PLATFORM.IMPL 2 [current_design]
 
-        ::tclapp::xilinx::x2rp::log 064 INFO "Write partial and full bitstream step started."
+        ::tclapp::xilinx::x2rp::log 064 INFO "Writing full bitstream..."
+        ::tclapp::xilinx::x2rp::log 100 INFO "Writing mem info..."
         catch { write_mem_info -force [file join $a_global_vars(output_dir) top.mmi] }
+        ::tclapp::xilinx::x2rp::log 101 INFO "Executing Cmd: write_bitstream -force -no_partial_bitfile [file join $a_global_vars(output_dir) top.bit]"
         write_bitstream -force -no_partial_bitfile [file join $a_global_vars(output_dir) top.bit]
+        ::tclapp::xilinx::x2rp::log 102 INFO "Writing sysdef ..."
         catch { write_sysdef -hwdef [file join $a_global_vars(output_dir) top.hwdef] -bitfile [file join $a_global_vars(output_dir) top.bit] -meminfo [file join $a_global_vars(output_dir) top.mmi] -file [file join $a_global_vars(output_dir) top.sysdef] }
+        ::tclapp::xilinx::x2rp::log 103 INFO "Writing debug probes information..."
         catch  {write_debug_probes -no_partial_ltxfile -quiet -force [file join $a_global_vars(output_dir) top] }
         catch {file copy -force [file join $a_global_vars(output_dir) top.ltx] [file join $a_global_vars(output_dir) debug_nets.ltx] }
-
+        ::tclapp::xilinx::x2rp::log 104 INFO "Full bitstream written successfully!"
+        ::tclapp::xilinx::x2rp::log 105 INFO "Writing partial bits and debug probes information..."
         foreach rp $a_global_vars(reconfig_partitions) {
-            if { [lsearch -exact $a_global_vars(reconfig_partitions) $a_global_vars(shell)] != -1} {
+            if { [string equal $rp $a_global_vars(shell)] } {
+                ::tclapp::xilinx::x2rp::log 106 INFO "Executing Cmd: write_bitstream -force -cell $rp [file join $a_global_vars(output_dir) PRP.bit]"
                 write_bitstream -force -cell $rp [file join $a_global_vars(output_dir) PRP.bit]
-                catch {write_debug_probes -quiet -force -cell $rp -file [file join $a_global_vars(output_dir) PRP.ltx ]}
+                ::tclapp::xilinx::x2rp::log 107 INFO "Writing debug probes information for cell '$rp'..."
+                catch {write_debug_probes -quiet -force -cell $rp -file [file join $a_global_vars(output_dir) PRP.ltx]}
             } else {
+                ::tclapp::xilinx::x2rp::log 108 INFO "Executing Cmd: write_bitstream -force -cell $rp [file join $a_global_vars(output_dir) URP.bit]"
                 write_bitstream -force -cell $rp [file join $a_global_vars(output_dir) URP.bit]
-                catch {write_debug_probes -quiet -force -cell $rp -file [file join $a_global_vars(output_dir) URP.ltx ]}
+                ::tclapp::xilinx::x2rp::log 109 INFO "Writing debug probes information for cell '$rp'..."
+                catch {write_debug_probes -quiet -force -cell $rp -file [file join $a_global_vars(output_dir) URP.ltx]}
             }
         }
 
         if { $a_global_vars(hpr) } {
-            ::tclapp::xilinx::x2rp::log 096 INFO "Starting pr_recombine process..."
+            ::tclapp::xilinx::x2rp::log 110 INFO "Starting pr_recombine process..."
             pr_recombine -cell $a_global_vars(wrapper)
-            ::tclapp::xilinx::x2rp::log 097 INFO "Completed pr_recombine process..."
+            ::tclapp::xilinx::x2rp::log 111 INFO "Completed pr_recombine process..."
 
-            ::tclapp::xilinx::x2rp::log 098 INFO "Executing Cmd: write_bitstream -cell $a_global_vars(wrapper) -force [file join $a_global_vars(output_dir) recombine.bit]"
+            ::tclapp::xilinx::x2rp::log 112 INFO "Executing Cmd: write_bitstream -cell $a_global_vars(wrapper) -force [file join $a_global_vars(output_dir) recombine.bit]"
             write_bitstream -cell $a_global_vars(wrapper) -force [file join $a_global_vars(output_dir) recombine.bit]
-            
-            ::tclapp::xilinx::x2rp::log 099 INFO "Executing Cmd: pr_verify -in_memory -additional $a_global_vars(base_platform)"
+
+            ::tclapp::xilinx::x2rp::log 113 INFO "Executing Cmd: pr_verify -in_memory -additional $a_global_vars(base_platform)"
             pr_verify -in_memory -additional $a_global_vars(base_platform)
         }
         
@@ -1691,30 +1700,41 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
         ::tclapp::xilinx::x2rp::log 063 INFO "Executing Cmd: set_property PLATFORM.IMPL 2 \[current_design\]"
         set_property PLATFORM.IMPL 2 [current_design]
 
-        ::tclapp::xilinx::x2rp::log 064 INFO "Write partial and full bitstream step started."
+        ::tclapp::xilinx::x2rp::log 064 INFO "Writing full bitstream..."
+        ::tclapp::xilinx::x2rp::log 100 INFO "Writing mem info..."
         catch { write_mem_info -force [file join $a_global_vars(output_dir) top.mmi] }
+        ::tclapp::xilinx::x2rp::log 101 INFO "Executing Cmd: write_bitstream -force -no_partial_bitfile [file join $a_global_vars(output_dir) top.bit]"
         write_bitstream -force -no_partial_bitfile [file join $a_global_vars(output_dir) top.bit]
+        ::tclapp::xilinx::x2rp::log 102 INFO "Writing sysdef ..."
         catch { write_sysdef -hwdef [file join $a_global_vars(output_dir) top.hwdef] -bitfile [file join $a_global_vars(output_dir) top.bit] -meminfo [file join $a_global_vars(output_dir) top.mmi] -file [file join $a_global_vars(output_dir) top.sysdef] }
+        ::tclapp::xilinx::x2rp::log 103 INFO "Writing debug probes information..."
         catch  {write_debug_probes -no_partial_ltxfile -quiet -force [file join $a_global_vars(output_dir) top] }
         catch {file copy -force [file join $a_global_vars(output_dir) top.ltx] [file join $a_global_vars(output_dir) debug_nets.ltx] }
+        ::tclapp::xilinx::x2rp::log 104 INFO "Full bitstream written successfully!"
+        ::tclapp::xilinx::x2rp::log 105 INFO "Writing partial bits and debug probes information..."
         foreach rp $a_global_vars(reconfig_partitions) {
-            if { [lsearch -exact $a_global_vars(reconfig_partitions) $a_global_vars(shell)] != -1} {
+            if { [string equal $rp $a_global_vars(shell)] } {
+                ::tclapp::xilinx::x2rp::log 106 INFO "Executing Cmd: write_bitstream -force -cell $rp [file join $a_global_vars(output_dir) PRP.bit]"
                 write_bitstream -force -cell $rp [file join $a_global_vars(output_dir) PRP.bit]
+                ::tclapp::xilinx::x2rp::log 107 INFO "Writing debug probes information for cell '$rp'..."
                 catch {write_debug_probes -quiet -force -cell $rp -file [file join $a_global_vars(output_dir) PRP.ltx]}
             } else {
+                ::tclapp::xilinx::x2rp::log 108 INFO "Executing Cmd: write_bitstream -force -cell $rp [file join $a_global_vars(output_dir) URP.bit]"
                 write_bitstream -force -cell $rp [file join $a_global_vars(output_dir) URP.bit]
+                ::tclapp::xilinx::x2rp::log 109 INFO "Writing debug probes information for cell '$rp'..."
                 catch {write_debug_probes -quiet -force -cell $rp -file [file join $a_global_vars(output_dir) URP.ltx]}
             }
         }
 
         if { $a_global_vars(hpr) } {
-            ::tclapp::xilinx::x2rp::log 096 INFO "Starting pr_recombine process..."
+            ::tclapp::xilinx::x2rp::log 110 INFO "Starting pr_recombine process..."
             pr_recombine -cell $a_global_vars(wrapper)
-            ::tclapp::xilinx::x2rp::log 097 INFO "Completed pr_recombine process..."
+            ::tclapp::xilinx::x2rp::log 111 INFO "Completed pr_recombine process..."
 
-            ::tclapp::xilinx::x2rp::log 098 INFO "Executing Cmd: write_bitstream -cell $a_global_vars(wrapper) -force [file join $a_global_vars(output_dir) recombine.bit]"
+            ::tclapp::xilinx::x2rp::log 112 INFO "Executing Cmd: write_bitstream -cell $a_global_vars(wrapper) -force [file join $a_global_vars(output_dir) recombine.bit]"
             write_bitstream -cell $a_global_vars(wrapper) -force [file join $a_global_vars(output_dir) recombine.bit]
-            ::tclapp::xilinx::x2rp::log 099 INFO "Executing Cmd: pr_verify -in_memory -additional $a_global_vars(base_platform)"
+
+            ::tclapp::xilinx::x2rp::log 113 INFO "Executing Cmd: pr_verify -in_memory -additional $a_global_vars(base_platform)"
             pr_verify -in_memory -additional $a_global_vars(base_platform)
         }
     
