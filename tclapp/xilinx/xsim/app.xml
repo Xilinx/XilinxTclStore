@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>helper to fetch boost header include path from RDI_DATADIR</revision_history>
+      <revision_history>pass compile order param arg while extracting c files</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

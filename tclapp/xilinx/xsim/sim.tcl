@@ -1183,7 +1183,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set sc_filename "${top}_xsc.prj"
       set sc_file [file normalize [file join $a_sim_vars(s_launch_dir) $sc_filename]]
       set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
-      set sc_files [xcs_get_c_files $sc_filter]
+      set sc_files [xcs_get_c_files $sc_filter $a_sim_vars(b_int_csim_compile_order)]
       if { [llength $sc_files] > 0 } {
         set fh_sc 0
         if {[catch {open $sc_file w} fh_sc]} {
@@ -1289,7 +1289,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set cpp_filename "${top}_cpp.prj"
       set cpp_file [file normalize [file join $a_sim_vars(s_launch_dir) $cpp_filename]]
       set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
-      set cpp_files [xcs_get_c_files $cpp_filter]
+      set cpp_files [xcs_get_c_files $cpp_filter $a_sim_vars(b_int_csim_compile_order)]
       if { [llength $cpp_files] > 0 } {
         set fh_cpp 0
         if {[catch {open $cpp_file w} fh_cpp]} {
@@ -1362,7 +1362,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
       set c_filename "${top}_c.prj"
       set c_file [file normalize [file join $a_sim_vars(s_launch_dir) $c_filename]]
       set c_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C\")"
-      set c_files [xcs_get_c_files $c_filter]
+      set c_files [xcs_get_c_files $c_filter $a_sim_vars(b_int_csim_compile_order)]
       if { [llength $c_files] > 0 } {
         set fh_c 0
         if {[catch {open $c_file w} fh_c]} {
