@@ -2934,6 +2934,22 @@ proc xcs_write_shell_step_fn { fh } {
   puts $fh "\}"
 }
 
+proc xcs_write_pipe_exit { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  puts $fh "set -Euo pipefail"
+}
+
+proc xcs_write_exit_code { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  puts $fh "_EXIT_STAT_=\$?\nif \[ \$_EXIT_STAT_ -ne 0 \]; then exit \$_EXIT_STAT_; fi\n"
+}
+
 proc xcs_get_platform { fs_obj } {
   # Summary:
   # Argument Usage:

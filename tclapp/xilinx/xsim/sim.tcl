@@ -945,7 +945,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
     xcs_write_script_header $fh_scr "compile" "xsim"
-    xcs_write_shell_step_fn $fh_scr
+    xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
@@ -978,7 +978,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     puts $fh_scr "echo \"$cmd\""
     if {$::tcl_platform(platform) == "unix"} {
       set full_cmd "vivado $vivado_cmd_str"
-      puts $fh_scr "ExecStep $full_cmd\n"
+      puts $fh_scr "$full_cmd"
+      xcs_write_exit_code $fh_scr
     } else {
       puts $fh_scr "call vivado $vivado_cmd_str"
     }
@@ -1088,7 +1089,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
       set full_cmd "xvlog $xvlog_cmd_str 2>&1 | tee $log_cmd_str"
-      puts $fh_scr "ExecStep $full_cmd\n"
+      puts $fh_scr "$full_cmd"
+      xcs_write_exit_code $fh_scr
     } else {
       set log_cmd_str " -log xvlog.log"
       puts $fh_scr "call xvlog $s_dbg_sw $xvlog_cmd_str$log_cmd_str"
@@ -1166,7 +1168,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
       set full_cmd "xvhdl $xvhdl_cmd_str 2>&1 | tee -a $log_cmd_str"
-      puts $fh_scr "ExecStep $full_cmd\n"
+      puts $fh_scr "$full_cmd"
+      xcs_write_exit_code $fh_scr
     } else {
       set log_cmd_str " -log xvhdl.log"
       puts $fh_scr "call xvhdl $s_dbg_sw $xvhdl_cmd_str$log_cmd_str"
@@ -1274,7 +1277,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         if {$::tcl_platform(platform) == "unix"} {
           set log_cmd_str $log_filename
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
-          puts $fh_scr "ExecStep $full_cmd\n"
+          puts $fh_scr "$full_cmd"
+          xcs_write_exit_code $fh_scr
         } else {
           puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
           puts $fh_scr "call type xsc.log >> $log_filename"
@@ -1347,7 +1351,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         if {$::tcl_platform(platform) == "unix"} {
           set log_cmd_str $log_filename
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
-          puts $fh_scr "ExecStep $full_cmd\n"
+          puts $fh_scr "$full_cmd"
+          xcs_write_exit_code $fh_scr
         } else {
           puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
           puts $fh_scr "call type xsc.log >> $log_filename"
@@ -1420,7 +1425,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         if {$::tcl_platform(platform) == "unix"} {
           set log_cmd_str $log_filename
           set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
-          puts $fh_scr "ExecStep $full_cmd\n"
+          puts $fh_scr "$full_cmd"
+          xcs_write_exit_code $fh_scr
         } else {
           puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
           puts $fh_scr "call type xsc.log >> $log_filename"
@@ -1486,7 +1492,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
       puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
     }
 
-    xcs_write_shell_step_fn $fh_scr
+    xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
@@ -1497,12 +1503,14 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
         set args [usf_xsim_get_xsc_elab_cmdline_args]
         puts $fh_scr "echo \"xsc $args\""
-        puts $fh_scr "ExecStep xsc $args\n"
+        puts $fh_scr "xsc $args"
+        xcs_write_exit_code $fh_scr
       }
     }
     set args [usf_xsim_get_xelab_cmdline_args]
     puts $fh_scr "echo \"xelab $args\""
-    puts $fh_scr "ExecStep xelab $args"
+    puts $fh_scr "xelab $args"
+    xcs_write_exit_code $fh_scr
   } else {
     set log_filename "elaborate_xsc.log"
     puts $fh_scr "@echo off"
@@ -1640,7 +1648,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
     xcs_write_script_header $fh_scr "simulate" "xsim"
-    xcs_write_shell_step_fn $fh_scr
+    xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
@@ -1733,7 +1741,8 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
 
     set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
     puts $fh_scr "echo \"xsim $cmd_args\""
-    puts $fh_scr "ExecStep xsim $cmd_args"
+    puts $fh_scr "xsim $cmd_args"
+    xcs_write_exit_code $fh_scr
   } else {
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr "simulate" "xsim"
@@ -1965,7 +1974,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
 
-  if { $a_sim_vars(b_int_systemc_mode) } {
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     variable l_systemc_incl_dirs
     set l_incl_dir [list]
     set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")" 
