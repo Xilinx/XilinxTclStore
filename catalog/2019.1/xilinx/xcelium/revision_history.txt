@@ -1,3 +1,4 @@
+8.8 return exit status for the command
 8.7 helper to fetch boost header include path from RDI_DATADIR
 8.6 vars to reference protected and ext library paths
 8.5 helper to construct vlnv name from ip definition
