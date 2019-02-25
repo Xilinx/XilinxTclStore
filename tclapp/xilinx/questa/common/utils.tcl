@@ -2939,7 +2939,7 @@ proc xcs_write_pipe_exit { fh } {
   # Argument Usage:
   # Return Value:
 
-  puts $fh "set -Euo pipefail"
+  puts $fh "set -Eeuo pipefail"
 }
 
 proc xcs_write_exit_code { fh } {
@@ -2947,7 +2947,8 @@ proc xcs_write_exit_code { fh } {
   # Argument Usage:
   # Return Value:
 
-  puts $fh "_EXIT_STAT_=\$?\nif \[ \$_EXIT_STAT_ -ne 0 \]; then exit \$_EXIT_STAT_; fi\n"
+  #puts $fh "_EXIT_STAT_=\$?\nif \[ \$_EXIT_STAT_ -ne 0 \]; then exit \$_EXIT_STAT_; fi\n"
+  puts $fh ""
 }
 
 proc xcs_get_platform { fs_obj } {
@@ -3176,7 +3177,7 @@ proc xcs_glbl_dependency_for_xpm {} {
   return 0
 }
 
-proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_xport_src_files b_absolute_path { ref_dir "true" } } {
+proc xcs_get_c_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_files_dir b_xport_src_files b_absolute_path { ref_dir "true" } } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -3242,7 +3243,9 @@ proc xcs_get_c_incl_dirs { simulator launch_dir c_filter s_ip_user_files_dir b_x
   }
 
   # add boost header references 
-  set boost_dir "\$xv_boost_lib_path/boost"
+  if { "xsim" == $simulator } {
+    set boost_dir "\$xv_boost_lib_path/boost"
+  }
   lappend incl_dirs "$boost_dir"
 
   return $incl_dirs

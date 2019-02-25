@@ -130,6 +130,9 @@ proc usf_questa_setup_simulation { args } {
   # initialize Questa simulator variables
   usf_questa_init_simulation_vars
 
+  # initialize boost library reference
+  set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
+
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
@@ -1366,29 +1369,26 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       }
     }
 
-    if {$::tcl_platform(platform) == "unix"} {
-      if { {} != $tcl_pre_hook } {
-        puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
-      }
+    if { {} != $tcl_pre_hook } {
+      puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     }
 
-    xcs_write_shell_step_fn $fh_scr
+    xcs_write_pipe_exit $fh_scr
 
-    if {$::tcl_platform(platform) == "unix"} {
-      # add tcl pre hook
-      if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
-        if { ![file exists $tcl_pre_hook] } {
-          [catch {send_msg_id USF-Questa-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
-        }
-        set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
-        xcs_delete_backup_log $tcl_wrapper_file $dir
-        xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
-        set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
-        set cmd "vivado $vivado_cmd_str"
-        puts $fh_scr "echo \"$cmd\""
-        set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
-        puts $fh_scr "ExecStep $full_cmd"
+    # add tcl pre hook
+    if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
+      if { ![file exists $tcl_pre_hook] } {
+        [catch {send_msg_id USF-Questa-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
       }
+      set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+      xcs_delete_backup_log $tcl_wrapper_file $dir
+      xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+      set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+      set cmd "vivado $vivado_cmd_str"
+      puts $fh_scr "echo \"$cmd\""
+      set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+      puts $fh_scr "$full_cmd"
+      xcs_write_exit_code $fh_scr
     }
 
     if { ({elaborate} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
@@ -1396,17 +1396,21 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       set args [usf_questa_get_sccom_cmd_args]
       if { [llength $args] > 0 } {
         set sccom_cmd_str [join $args " "]
-        puts $fh_scr "ExecStep \$bin_path/sccom $sccom_cmd_str 2>&1 | tee $log_filename"
+        puts $fh_scr "\$bin_path/sccom $sccom_cmd_str 2>&1 | tee $log_filename"
+        xcs_write_exit_code $fh_scr
       }
     }
  
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      puts $fh_scr "ExecStep source $do_filename 2>&1 | tee -a $log_filename"
+      puts $fh_scr "source $do_filename 2>&1 | tee -a $log_filename"
+      xcs_write_exit_code $fh_scr
     } else {
       if { {} != $tool_path } {
-        puts $fh_scr "ExecStep \$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        puts $fh_scr "\$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        xcs_write_exit_code $fh_scr
       } else {
-        puts $fh_scr "ExecStep vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        puts $fh_scr "vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        xcs_write_exit_code $fh_scr
       }
     }
   } else {

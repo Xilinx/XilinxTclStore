@@ -71,6 +71,9 @@ proc usf_init_vars {} {
   set a_sim_vars(s_tool_bin_path)    {}
 
   set a_sim_vars(sp_tcl_obj)         {}
+
+  set a_sim_vars(s_boost_dir)        {}
+
   set a_sim_vars(b_extract_ip_sim_files) 0
 
   # fileset compile order
@@ -599,13 +602,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
       # fetch systemc include files (.h)
       set l_incl_dir [list]
-      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $sc_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $sc_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
 
       # dependency on cpp source headers
       # fetch cpp include files (.h)
-      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $cpp_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $cpp_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
 
@@ -644,7 +647,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
       # fetch systemc include files (.h)
       set l_incl_dir [list]
-      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $cpp_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $cpp_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
 
@@ -686,7 +689,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
       # fetch systemc include files (.h)
       set l_incl_dir [list]
-      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $c_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $c_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
 

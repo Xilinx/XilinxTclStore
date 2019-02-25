@@ -1223,7 +1223,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         set prefix_ref_dir false
         set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")"
         set l_incl_dirs [list]
-        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
           lappend l_incl_dirs "$dir"
         }
        
@@ -1330,7 +1330,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         set prefix_ref_dir false
         set l_incl_dirs [list]
         set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")"
-        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
           lappend l_incl_dirs "$dir"
         }
        
@@ -1404,7 +1404,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         set prefix_ref_dir false
         set l_incl_dirs [list]
         set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")" 
-        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+        foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
           lappend l_incl_dirs "$dir"
         }
        
@@ -1979,7 +1979,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     set l_incl_dir [list]
     set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")" 
     set prefix_ref_dir false
-    foreach incl_dir [xcs_get_c_incl_dirs "xsim" $a_sim_vars(s_launch_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+    foreach incl_dir [xcs_get_c_incl_dirs "xsim" $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
       if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
         lappend unique_sysc_incl_dirs $incl_dir
         lappend args_list "--include \"$incl_dir\""

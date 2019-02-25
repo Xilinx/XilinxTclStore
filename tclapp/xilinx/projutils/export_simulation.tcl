@@ -235,6 +235,8 @@ proc xps_init_vars {} {
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(b_use_static_lib)    0
 
+  set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
+
   # wrapper file for executing user tcl (not supported currently in export_sim)
   set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
 
@@ -1111,13 +1113,13 @@ proc xps_get_files { simulator launch_dir } {
       send_msg_id exportsim-Tcl-024 INFO "Finding SystemC sources..."
       # fetch systemc include files (.h)
       set l_incl_dir [list]
-      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $sc_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $sc_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
 
       # dependency on cpp source headers
       # fetch cpp include files (.h)
-      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $cpp_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $cpp_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
 
@@ -1172,7 +1174,7 @@ proc xps_get_files { simulator launch_dir } {
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
       # fetch systemc include files (.h)
       set l_incl_dir [list]
-      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $cpp_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $cpp_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
       
@@ -1219,7 +1221,7 @@ proc xps_get_files { simulator launch_dir } {
       #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
       # fetch systemc include files (.h)
       set l_incl_dir [list]
-      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $c_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $c_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
       
@@ -4615,7 +4617,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
     set l_incl_dir [list]
     set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")"
     set prefix_ref_dir false
-    foreach incl_dir [xcs_get_c_incl_dirs "xsim" $launch_dir $filter $a_sim_vars(s_ip_user_files_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+    foreach incl_dir [xcs_get_c_incl_dirs "xsim" $launch_dir $a_sim_vars(s_boost_dir) $filter $a_sim_vars(s_ip_user_files_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
       if { [lsearch -exact $unique_sysc_incl_dirs $incl_dir] == -1 } {
         lappend unique_sysc_incl_dirs $incl_dir
         lappend args "--include \"$incl_dir\""
@@ -5058,6 +5060,7 @@ proc xps_write_main { simulator fh_unix launch_dir } {
 
     switch -regexp -- $simulator {
       "xsim" {
+        puts $fh_unix "xv_boost_lib_path=$a_sim_vars(s_boost_dir)"
         set arg_list [list]
         xps_append_config_opts arg_list "xsim" "xvlog"
         if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
@@ -5080,7 +5083,7 @@ proc xps_write_main { simulator fh_unix launch_dir } {
           set prefix_ref_dir false
           set filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")"
           set l_incl_dirs [list]
-          foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $filter $a_sim_vars(s_ip_user_files_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+          foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $filter $a_sim_vars(s_ip_user_files_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
             lappend l_incl_dirs "$dir"
           }
 
