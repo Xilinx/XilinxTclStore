@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>return exit status for the command</revision_history>
+      <revision_history>exit simulation step or sub-compilation step on error</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

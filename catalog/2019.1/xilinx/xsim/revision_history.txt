@@ -1,3 +1,4 @@
+2.290 exit simulation step or sub-compilation step on error
 2.289 return exit status for the command
 2.288 pass compile order param arg while extracting c files
 2.287 helper to fetch boost header include path from RDI_DATADIR
