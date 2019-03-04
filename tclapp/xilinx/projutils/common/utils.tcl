@@ -4064,7 +4064,7 @@ proc xcs_get_boost_library_path {} {
       }
     }
   } else {
-    send_msg_id SIM-utils-059 WARNING "RDI_DATADIR environment variable is not set\n"
+    send_msg_id SIM-utils-059 WARNING "Failed to get the boost library path (RDI_DATADIR environment variable is not set).\n"
   }
   return $boost_incl_dir
 }
