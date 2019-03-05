@@ -5,7 +5,7 @@
       <revision_history> Updated write_spyglass_script.tcl. No library is created for blk_mem_gen. 'synth_fileset' variable is removed. Automatically creates the blk_mem_gen_vxxx,sgdc file(s) and includes them for the cdc_verify_struct goal run. </revision_history>
       <name>spyglass</name>
       <pkg_require>Vivado 2015.1</pkg_require>
-      <company>Synopsys</company>
+      <company>synopsys</company>
       <company_display>Synopsys, Inc.</company_display>
       <summary>This is an Synopsys app to generate the project file of the design to run it in SpyGlass. The App takes user inputs for the design-top name and the SpyGlass project file name: eg-: write_spyglass_proc foo run_spy.prj, where foo is the design-top and run_spy.prj is the SpyGlass Project file name. To run SpyGlass, ensure that the required software and the licenses are available. Invoke SpyGlass using the command: spyglass -project design-top.prj. Follow the steps outlined in the SpyGlass user guide.</summary>
       <display>Synopsys SpyGlass for Lint and CDC</display>
