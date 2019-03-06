@@ -146,6 +146,9 @@ proc export_simulation {args} {
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
 
+  # initialize boost library reference
+  set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
+
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
@@ -234,8 +237,6 @@ proc xps_init_vars {} {
   set a_sim_vars(default_lib)         "xil_defaultlib"
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(b_use_static_lib)    0
-
-  set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
 
   # wrapper file for executing user tcl (not supported currently in export_sim)
   set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
