@@ -87,8 +87,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>db3aaf99d1d90890738fb33f48186082f2049b94</commit_id>
-      <revision>3.389</revision>
+      <commit_id>45cc2e4fc82ce22a564830009bf87b876e8eae32</commit_id>
+      <revision>3.390</revision>
     </app>
     <app>
       <name>protoip</name>
