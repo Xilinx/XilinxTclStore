@@ -1,3 +1,4 @@
+6.7 process library type information for all precompiled shared libraries
 6.6 updated warning msg for boost library
 6.5 exit simulation step or sub-compilation step on error
 6.4 return exit status for the command
