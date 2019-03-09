@@ -174,7 +174,7 @@ proc usf_questa_setup_simulation { args } {
   }
 
   # extract simulation model library info
-  xcs_fetch_lib_info "questa" $a_sim_vars(s_clibs_dir)
+  xcs_fetch_lib_info "questa" $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
@@ -1518,7 +1518,6 @@ proc usf_questa_get_sccom_cmd_args {} {
         set lib_name [file root $sc_lib]
         set lib_name [string trimleft $lib_name {lib}]
         set lib_dir "$lib_path"
-        
         # is C/CPP library?
         if { ([xcs_is_c_library $lib_name]) || ([xcs_is_cpp_library $lib_name]) } {
           lappend args "-L$lib_dir"

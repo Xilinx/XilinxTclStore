@@ -1938,6 +1938,7 @@ proc xcs_get_netlist_file { design_in_memory s_launch_dir extn s_sim_top s_simul
     set netlist_extn $extn
     # contain SV construct?
     set design_prop "XLNX_REAL_CELL_SV_PINS"
+    set design_prop "XLNX_INTEGER_CELL_SV_PINS"
     if { "1" == [get_property -quiet $design_prop $design_in_memory] } {
       set netlist_extn ".sv"
     }
@@ -3507,12 +3508,13 @@ proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo
   return $src_file
 }
 
-proc xcs_fetch_lib_info { simulator clibs_dir } {
+proc xcs_fetch_lib_info { simulator clibs_dir b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_cache_lib_info
+  variable a_sim_cache_lib_type_info
 
   if { ![file exists $clibs_dir] } {
     return
@@ -3526,9 +3528,11 @@ proc xcs_fetch_lib_info { simulator clibs_dir } {
     set lib_data [split [read $fh] "\n"]
     close $fh
 
-    set library {}
-    set type    {}
-    set ldlibs  {}
+    set library     {}
+    set type        {}
+    set ldlibs_sysc {}
+    set ldlibs_cpp  {}
+    set ldlibs_c    {}
 
     foreach line $lib_data {
       set line [string trim $line]
@@ -3541,12 +3545,61 @@ proc xcs_fetch_lib_info { simulator clibs_dir } {
         set library $value
       } elseif { "Type" == $tag } {
         set type $value
-      } elseif { "Link" == $tag } {
-        set ldlibs $value
+      } elseif { "Link_SYSTEMC" == $tag } {
+        set ldlibs_sysc $value
+      } elseif { "Link_CPP" == $tag } {
+        set ldlibs_cpp $value
+      } elseif { "Link_C" == $tag } {
+        set ldlibs_c $value
+      }
+
+      # add to library type database
+      if { {} != $library } {
+        set a_sim_cache_lib_type_info($library) $type
       }
     }
-    set array_value "$type#$ldlibs"
+    # SystemC#xtlm#noc_v1_0_0,common_cpp_v1_0#xyz_v1_0
+    set array_value "$type#$ldlibs_sysc#$ldlibs_cpp#$ldlibs_c"
+
+    # add the linked libraries to library type database
+    xcs_add_library_type_to_database $array_value
+
     set a_sim_cache_lib_info($library) $array_value
+  }
+
+  # print library type information
+  if { $b_int_sm_lib_ref_debug } {
+    xcs_print_shared_lib_type_info
+  }
+}
+
+proc xcs_add_library_type_to_database { value } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_cache_lib_type_info
+
+  # SystemC#xtlm#noc_v1_0_0,common_cpp_v1_0#xyz_v1_0
+  set values        [split $value "#"]
+  set sysc_libs_str [lindex $values 1]
+  set cpp_libs_str  [lindex $values 2]
+  set c_libs_str    [lindex $values 3]
+
+  set sysc_libs [split $sysc_libs_str {,}]
+  foreach library $sysc_libs {
+    if { "empty" == $library } { break }
+    set a_sim_cache_lib_type_info($library) "SystemC"
+  }
+  set cpp_libs [split $cpp_libs_str {,}]
+  foreach library $cpp_libs {
+    if { "empty" == $library } { break }
+    set a_sim_cache_lib_type_info($library) "CPP"
+  }
+  set c_libs [split $c_libs_str {,}]
+  foreach library $c_libs {
+    if { "empty" == $library } { break }
+    set a_sim_cache_lib_type_info($library) "C"
   }
 }
 
@@ -3664,22 +3717,72 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
         if { [file exists $dat_file] } {
           # any dependent library info fetched from .cxl.lib_info.dat?
           if { [info exists a_sim_cache_lib_info($library)] } {
-            # "SystemC#common_cpp_v1_0,proto_v1_0"
+            # "SystemC#xtlm#common_cpp_v1_0,proto_v1_0#xyz_v1_0"
             set values [split $a_sim_cache_lib_info($library) {#}]
-
+            set values_len [llength $values]
             # make sure we have some data to process
-            if { [llength $values] > 1 } {
-              set tag  [lindex $values 0]
-              set libs [split [lindex $values 1] {,}]
+            if { $values_len > 1 } {
+              set tag [lindex $values 0]
+
+              # get the systemC linked libraries
               if { ("SystemC" == $tag) || ("C" == $tag) || ("CPP" == $tag)} {
+
+                # process systemC linked libraries (xtlm)
+                # "SystemC#xtlm#common_cpp_v1_0,proto_v1_0#xyz_v1_0"
+                set libs [split [lindex $values 1] {,}]
                 if { [llength $libs] > 0 } {
                   foreach lib $libs {
+                    if { "empty" == $lib } { continue }
                     if { [lsearch -exact $uniq_linked_libs $lib] == -1 } {
                       # is linked library already part of search collection?
                       if { [lsearch -exact $lib_coln $lib] != -1 } {
                         continue;
                       }
+  
+                      lappend linked_libs $lib
+                      lappend uniq_linked_libs $lib
+                      if { $b_int_sm_lib_ref_debug } {
+                        puts "    + Added linked library:$lib"
+                      }
+                      #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
+                    }
+                  }
+                }
 
+                # process cpp linked libraries (common_cpp_v1_0,proto_v1_0)
+                # "SystemC#xtlm#common_cpp_v1_0,proto_v1_0#xyz_v1_0"
+                set libs [split [lindex $values 2] {,}]
+                if { [llength $libs] > 0 } {
+                  foreach lib $libs {
+                    if { "empty" == $lib } { continue }
+                    if { [lsearch -exact $uniq_linked_libs $lib] == -1 } {
+                      # is linked library already part of search collection?
+                      if { [lsearch -exact $lib_coln $lib] != -1 } {
+                        continue;
+                      }
+  
+                      lappend linked_libs $lib
+                      lappend uniq_linked_libs $lib
+                      if { $b_int_sm_lib_ref_debug } {
+                        puts "    + Added linked library:$lib"
+                      }
+                      #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
+                    }
+                  }
+                }
+
+                # process C linked libraries (xyz_v1_0)
+                # "SystemC#xtlm#common_cpp_v1_0,proto_v1_0#xyz_v1_0"
+                set libs [split [lindex $values 3] {,}]
+                if { [llength $libs] > 0 } {
+                  foreach lib $libs {
+                    if { "empty" == $lib } { continue }
+                    if { [lsearch -exact $uniq_linked_libs $lib] == -1 } {
+                      # is linked library already part of search collection?
+                      if { [lsearch -exact $lib_coln $lib] != -1 } {
+                        continue;
+                      }
+  
                       lappend linked_libs $lib
                       lappend uniq_linked_libs $lib
                       if { $b_int_sm_lib_ref_debug } {
@@ -3742,42 +3845,14 @@ proc xcs_is_sc_library { library } {
   # Argument Usage:
   # Return Value:
   
-  variable a_sim_cache_lib_info
+  variable a_sim_cache_lib_type_info
   if { {} == $library } {
     return 0
   }
 
-  if { [info exists a_sim_cache_lib_info($library)] } {
-    # "SystemC#common_cpp_v1_0,proto_v1_0"
-    set values [split $a_sim_cache_lib_info($library) {#}]
-    if { [llength $values] > 1 } {
-      set lang_type  [lindex $values 0]
-      if { ([string compare -nocase "SystemC" $lang_type] == 0) } {
-        return 1
-      }
-    }
-  }
-  return 0
-}
-
-proc xcs_is_c_library { library } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  variable a_sim_cache_lib_info
-  if { {} == $library } {
-    return 0
-  }
-
-  if { [info exists a_sim_cache_lib_info($library)] } {
-    # "C#common_cpp_v1_0,proto_v1_0"
-    set values [split $a_sim_cache_lib_info($library) {#}]
-    if { [llength $values] > 1 } {
-      set lang_type  [lindex $values 0]
-      if { ([string compare -nocase "C" $lang_type] == 0) } {
-        return 1
-      }
+  if { [info exists a_sim_cache_lib_type_info($library)] } {
+    if { "SystemC" == $a_sim_cache_lib_type_info($library) } {
+      return 1
     }
   }
   return 0
@@ -3788,19 +3863,32 @@ proc xcs_is_cpp_library { library } {
   # Argument Usage:
   # Return Value:
   
-  variable a_sim_cache_lib_info
+  variable a_sim_cache_lib_type_info
   if { {} == $library } {
     return 0
   }
 
-  if { [info exists a_sim_cache_lib_info($library)] } {
-    # "CPP#common_cpp_v1_0,proto_v1_0"
-    set values [split $a_sim_cache_lib_info($library) {#}]
-    if { [llength $values] > 1 } {
-      set lang_type  [lindex $values 0]
-      if { ([string compare -nocase "CPP" $lang_type] == 0) } {
-        return 1
-      }
+  if { [info exists a_sim_cache_lib_type_info($library)] } {
+    if { "CPP" == $a_sim_cache_lib_type_info($library) } {
+      return 1
+    }
+  }
+  return 0
+}
+
+proc xcs_is_c_library { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_cache_lib_type_info
+  if { {} == $library } {
+    return 0
+  }
+
+  if { [info exists a_sim_cache_lib_type_info($library)] } {
+    if { "C" == $a_sim_cache_lib_type_info($library) } {
+      return 1
     }
   }
   return 0
@@ -3898,6 +3986,29 @@ proc xcs_print_shared_lib_info { } {
     puts [format $fmt $lib $sep $dir]
   }
   puts "-----------------------------------------------------------------------------------------------------------"
+}
+
+proc xcs_print_shared_lib_type_info { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_cache_lib_type_info
+  set fmt {%-50s%-2s%-10s}
+  set sep ":"
+  set libs [list]
+  set types [list]
+  foreach {library type} [array get a_sim_cache_lib_type_info] {
+    lappend libs $library
+    lappend types $type
+  }
+  puts "--------------------------------------------------------------------"
+  puts " LIBRARY                                            TYPE"
+  puts "--------------------------------------------------------------------"
+  foreach lib $libs type $types {
+    puts [format $fmt $lib $sep $type]
+    puts "--------------------------------------------------------------------"
+  }
 }
 
 proc xcs_get_simmodel_dir { simulator type } {
