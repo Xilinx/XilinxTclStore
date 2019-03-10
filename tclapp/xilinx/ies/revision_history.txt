@@ -1,3 +1,4 @@
+4.25 revert sv file type determination fix
 4.24 process library type information for all precompiled shared libraries
 4.23 updated warning msg for boost library
 4.22 exit simulation step or sub-compilation step on error

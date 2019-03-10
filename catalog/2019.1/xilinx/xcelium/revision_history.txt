@@ -1,3 +1,4 @@
+9.2 revert sv file type determination fix
 9.1 process library type information for all precompiled shared libraries
 9.0 updated warning msg for boost library
 8.9 exit simulation step or sub-compilation step on error
