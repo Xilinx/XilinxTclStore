@@ -1,3 +1,4 @@
+2.151 reference IP shared libraries if found from design
 2.150 revert sv file type determination fix
 2.149 process library type information for all precompiled shared libraries
 2.148 updated warning msg for boost library
