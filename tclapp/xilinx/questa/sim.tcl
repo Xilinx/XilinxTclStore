@@ -1324,10 +1324,17 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             set lib_dir "$lib_path"
             lappend shared_ip_libs $lib_dir
           }
-  
-          foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
-            set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
-            lappend shared_ip_libs $lib_dir
+ 
+          set ip_objs [get_ips -all -quiet]
+          foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] { 
+            foreach ip_obj $ip_objs {
+              set ipdef [get_property -quiet IPDEF $ip_obj]
+              set ip_name [lindex [split $ipdef ":"] 2]
+              if { [string first $ip_name $shared_ip_lib] != -1} {
+                set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
+                lappend shared_ip_libs $lib_dir
+              }
+            }
           }
           if { [llength $shared_ip_libs] > 0 } {
             set shared_ip_libs_env_path [join $shared_ip_libs ":"]
@@ -1528,11 +1535,18 @@ proc usf_questa_get_sccom_cmd_args {} {
       }
   
       lappend args "-lib $a_sim_vars(default_top_library)"
+      set ip_objs [get_ips -all -quiet]
       foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
-        #set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
-        #lappend args "-L$lib_dir"
-        #lappend args "-l${shared_ip_lib}"
-        lappend args "-lib ${shared_ip_lib}"
+        foreach ip_obj $ip_objs {
+          set ipdef [get_property -quiet IPDEF $ip_obj]
+          set ip_name [lindex [split $ipdef ":"] 2]
+          if { [string first $ip_name $shared_ip_lib] != -1} {
+            # TODO: need to determine the type of IP library and then reference the library
+            #       accordingly, similar to sim-models (xcs_is_c_library/xcs_is_cpp_library)
+            #       Pass -lib for now.
+            lappend args "-lib ${shared_ip_lib}"
+          }
+        }
       }
       lappend args "-work $a_sim_vars(default_top_library)"
     }

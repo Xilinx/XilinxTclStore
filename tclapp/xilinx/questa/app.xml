@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>revert sv file type determination fix</revision_history>
+      <revision_history>reference IP shared libraries if found from design</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
