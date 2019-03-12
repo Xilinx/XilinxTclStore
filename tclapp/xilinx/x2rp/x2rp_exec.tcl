@@ -1151,6 +1151,7 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
     set pr_flow [get_property PR_FLOW [current_project]]
 
     # reset impl step directives to defaults for raptor.
+    set a_global_vars(top) ""
     set a_global_vars(opt_directive) "Default"
     set a_global_vars(place_directive) "Default"
     set a_global_vars(post_place_phys_opt_directive) "Default"
@@ -1417,14 +1418,18 @@ proc ::tclapp::xilinx::x2rp::raptor {args} {
         open_checkpoint $a_global_vars(base_platform)
         ::tclapp::xilinx::x2rp::log 092 INFO "Executing Cmd: write_bitstream -cell $a_global_vars(wrapper) [file join $a_global_vars(output_dir) "level_0_reset.bit"]"
         write_bitstream -force -cell $a_global_vars(wrapper) [file join $a_global_vars(output_dir) "level_0_reset.bit"]
-        catch {close_project}
+        if {!$a_global_vars(hpr)} {
+            catch {close_project}
+        }
     } else {
         ::tclapp::xilinx::x2rp::log 094 INFO "Skipping level_0 reset bit file generation."
     }
 
     if { $a_global_vars(hpr) } {
         ::tclapp::xilinx::x2rp::log 018 INFO "Generating routed dcp with PRP and URP marked as reconfigurable cells."
-        open_checkpoint $a_global_vars(base_platform)
+        if {$a_global_vars(skip_level_0_reset)} {
+            open_checkpoint $a_global_vars(base_platform)
+        }
         ::tclapp::xilinx::x2rp::log 019 INFO "Starting pr_subdivide process..."
 
         set result 0

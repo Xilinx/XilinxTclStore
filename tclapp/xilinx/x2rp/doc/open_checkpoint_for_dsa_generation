@@ -5,7 +5,7 @@ Description:
 
 Arguments:
 
-    <routed_dcp> - (Required) Routed dcp for which DSA generation is required.
+    -routed_dcp - (Required) Routed dcp for which DSA generation is required.
 
     -exclude_constrs - (Optional) List of constraint file to be excluded from generation of DSA.
 

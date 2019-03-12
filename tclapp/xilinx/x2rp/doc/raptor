@@ -5,15 +5,15 @@ Description:
 
 Arguments:
 
-    <top> - (Required) Design top name.
+    -top - (Required) Design top name.
 
-    <prp_inst> - (Required) Provider reconfigurable partition instance path.
+    -prp_inst - (Required) Provider reconfigurable partition instance path.
 
-    <level_0> - (Required) Level 0 dcp file, contains base logic design and isolation interfaces.
+    -level_0 - (Required) Level 0 dcp file, contains base logic design and isolation interfaces.
 
-    <constrset> - (Required) Constraints set to be used during design implementation.
+    -constrset - (Required) Constraints set to be used during design implementation.
     
-    <output_dir> - (Required) Directory to save the results.
+    -output_dir - (Required) Directory to save the results.
 
     -skip_level_0_reset - (Optional) Skip generation of level 0 reset bit file.
     
