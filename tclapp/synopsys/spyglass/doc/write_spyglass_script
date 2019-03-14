@@ -1,0 +1,14 @@
+
+  Description: Write script to interface with Synopsys Spyglass
+
+     A design in Vivado automatically picks up library files (verilog/ .libs) 
+     based on the FPGA Architecture settings. 
+     When the designer wants to analyse the design in an external tool,
+     it is very difficult to know all the library files that should go with it.
+     This script solves that problem by generating the SpyGlass configuration
+     file from the Vivado setup for the design.
+     Use the Configuration file (<design-top>.prj) to invoke SpyGlass and 
+     perform design analysis for Lint/ CDC issues.
+  
+  Example:
+::synopsys::spyglass::write_spyglass_script <design-top> <design-top>.prj
