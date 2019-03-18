@@ -1,3 +1,4 @@
+2.152 top level attribute change to integer for sv port type
 2.151 reference IP shared libraries if found from design
 2.150 revert sv file type determination fix
 2.149 process library type information for all precompiled shared libraries
