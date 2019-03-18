@@ -1,0 +1,2 @@
+1.6  Change app name from atrenta to synopsys 
+1.5  Updated write_spyglass_script.tcl. No library is created for blk_mem_gen. 'synth_fileset' variable is removed. Automatically creates the blk_mem_gen_vxxx,sgdc file(s) and includes them for the cdc_verify_struct goal run. 
