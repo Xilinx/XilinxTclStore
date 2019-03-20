@@ -123,9 +123,16 @@ proc simulate { args } {
     return
   }
 
-  # launch xsim
-  send_msg_id USF-XSim-008 INFO "Loading simulator feature"
-  load_feature simulator
+  # is standalone mode?
+  set standalone_mode [get_property -quiet "xelab.standalone" $fs_obj]
+
+  if { $standalone_mode } {
+    # no op
+  } else {
+    # launch xsim
+    send_msg_id USF-XSim-008 INFO "Loading simulator feature"
+    load_feature simulator
+  }
 
   set cwd [pwd]
   cd $dir
@@ -160,27 +167,32 @@ proc simulate { args } {
       }
     }
   }
-  if {[catch {eval "xsim $cmd_args"} err_msg]} {
-    puts $err_msg
-    set step "simulate"
-    [catch {send_msg_id USF-XSim-062 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"}]
-    cd $cwd
-    # IMPORTANT - *** DONOT MODIFY THIS ***
-    error "_SIM_STEP_RUN_EXEC_ERROR_"
-    # IMPORTANT - *** DONOT MODIFY THIS ***
-    return 1
+
+  if { $standalone_mode } {
+    # no op
   } else {
-    cd $cwd
-    send_msg_id USF-XSim-096 INFO "XSim completed. Design snapshot '$snapshot' loaded."
-    set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
-    if { {} != $rt } {
-      send_msg_id USF-XSim-097 INFO "XSim simulation ran for $rt"
-    }
-  
-    # close for batch flow
-    if { $a_sim_vars(b_batch) } {
-      send_msg_id USF-XSim-009 INFO "Closing simulation..."
-      close_sim
+    if {[catch {eval "xsim $cmd_args"} err_msg]} {
+      puts $err_msg
+      set step "simulate"
+      [catch {send_msg_id USF-XSim-062 ERROR "'$step' step failed with errors. Please check the Tcl console or log files for more information.\n"}]
+      cd $cwd
+      # IMPORTANT - *** DONOT MODIFY THIS ***
+      error "_SIM_STEP_RUN_EXEC_ERROR_"
+      # IMPORTANT - *** DONOT MODIFY THIS ***
+      return 1
+    } else {
+      cd $cwd
+      send_msg_id USF-XSim-096 INFO "XSim completed. Design snapshot '$snapshot' loaded."
+      set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
+      if { {} != $rt } {
+        send_msg_id USF-XSim-097 INFO "XSim simulation ran for $rt"
+      }
+    
+      # close for batch flow
+      if { $a_sim_vars(b_batch) } {
+        send_msg_id USF-XSim-009 INFO "Closing simulation..."
+        close_sim
+      }
     }
   }
 }
@@ -1644,6 +1656,9 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     set s_dbg_sw {-dbg}
   }
 
+  # standalone mode
+  set standalone_mode [get_property -quiet "xelab.standalone" $fs_obj]
+
   set b_batch 1
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
@@ -1739,9 +1754,14 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
       }
     }
 
-    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
-    puts $fh_scr "echo \"xsim $cmd_args\""
-    puts $fh_scr "xsim $cmd_args"
+    if { $standalone_mode } {
+      puts $fh_scr "echo \"./axsim.sh\""
+      puts $fh_scr "./axsim.sh"
+    } else {
+      set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
+      puts $fh_scr "echo \"xsim $cmd_args\""
+      puts $fh_scr "xsim $cmd_args"
+    }
     xcs_write_exit_code $fh_scr
   } else {
     puts $fh_scr "@echo off"
@@ -1751,10 +1771,16 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
       puts $fh_scr "set xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "set xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\"\n"
     }
-    set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
-    set b_call_script_exit [get_property -quiet "XSIM.CALL_SCRIPT_EXIT" $fs_obj]
-    puts $fh_scr "echo \"xsim $cmd_args\""
-    puts $fh_scr "call xsim $s_dbg_sw $cmd_args"
+
+    if { $standalone_mode } {
+      puts $fh_scr "echo \"./axsim.bat\""
+      puts $fh_scr "call ./axsim.bat"
+    } else {
+      set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
+      set b_call_script_exit [get_property -quiet "XSIM.CALL_SCRIPT_EXIT" $fs_obj]
+      puts $fh_scr "echo \"xsim $cmd_args\""
+      puts $fh_scr "call xsim $s_dbg_sw $cmd_args"
+    }
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
     puts $fh_scr ":END"
@@ -1778,10 +1804,14 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
     # scripts only
   } else {
-    set step "simulate"
-    send_msg_id USF-XSim-061 INFO "Executing '[string toupper $step]' step in '$dir'"
-    send_msg_id USF-XSim-098 INFO   "*** Running xsim\n"
-    send_msg_id USF-XSim-099 STATUS "   with args \"$cmd_args\"\n"
+    if { $standalone_mode } {
+      send_msg_id USF-XSim-104 INFO "Skipping simulation step (not applicable in standalone mode)"
+    } else {
+      set step "simulate"
+      send_msg_id USF-XSim-061 INFO "Executing '[string toupper $step]' step in '$dir'"
+      send_msg_id USF-XSim-098 INFO   "*** Running xsim\n"
+      send_msg_id USF-XSim-099 STATUS "   with args \"$cmd_args\"\n"
+    }
   }
 
   return $cmd_args
@@ -1833,9 +1863,18 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "--incr"
   }
 
-  # --debug
-  set value [get_property "XSIM.ELABORATE.DEBUG_LEVEL" $fs_obj]
-  lappend args_list "--debug $value"
+  set standalone_mode [get_property -quiet "xelab.standalone" $fs_obj]
+  if { $standalone_mode } { lappend args_list "--standalone" }
+
+  if { $standalone_mode } {
+    send_msg_id USF-XSim-105 INFO "Debug level is not supported for standalone mode, setting it to 'off'\n"
+    lappend args_list "--debug off"
+    lappend args_list "--xdci"
+  } else {
+    # --debug
+    set value [get_property "XSIM.ELABORATE.DEBUG_LEVEL" $fs_obj]
+    lappend args_list "--debug $value"
+  }
 
   # --rangecheck
   set value [get_property "XSIM.ELABORATE.RANGECHECK" $fs_obj]

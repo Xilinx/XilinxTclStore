@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>top level attribute change to integer for sv port type</revision_history>
+      <revision_history>support for calling xsim in standalone mode</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
