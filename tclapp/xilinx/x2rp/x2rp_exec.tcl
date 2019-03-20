@@ -208,11 +208,11 @@ proc ::tclapp::xilinx::x2rp::validate_args_for_raptor {} {
     set a_global_vars(exclude_constrs) $xdc_norm
 
     if { [string equal $a_global_vars(shell) ""] } {
-        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-shell'."
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-prp_inst'. Provide a valid PRP instance path."
     }
 
     if { [string equal $a_global_vars(constrset) ""] } {
-        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-constrset'."
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-constrset'. Provide a valid constraints set name."
     }
 
     if { [llength $a_global_vars(constrs_files)] == 0 } {
@@ -224,7 +224,7 @@ proc ::tclapp::xilinx::x2rp::validate_args_for_raptor {} {
     }
 
     if { [string equal $a_global_vars(top) ""] } {
-        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-top'."
+        ::tclapp::xilinx::x2rp::log 004 ERROR "Missing value for option '-top'. Provide a valid top for the design."
     }
 
     if { !$a_global_vars(base_platform_provided) } {

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fixed issue with help section, options and optiomized open_checkpoint calls.</revision_history>
+      <revision_history>Fix to error out if the mandatory option &apos;-prp_inst&apos; is not specified for command xilinx::x2rp::raptor.</revision_history>
       <name>x2rp</name>
       <pkg_require>Vivado 2017.1</pkg_require>
       <author>Xilinx, Inc</author>
