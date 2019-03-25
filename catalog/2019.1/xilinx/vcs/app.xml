@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>top level attribute change to integer for sv port type</revision_history>
+      <revision_history>do not reference glbl for pure vhdl design containing xpm_cdc</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

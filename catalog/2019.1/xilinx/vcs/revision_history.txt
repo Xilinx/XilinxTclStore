@@ -1,3 +1,4 @@
+7.0 do not reference glbl for pure vhdl design containing xpm_cdc
 6.9 top level attribute change to integer for sv port type
 6.8 revert sv file type determination fix
 6.7 process library type information for all precompiled shared libraries
