@@ -828,8 +828,14 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
 
   if { $b_add_glbl } {
-    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-    lappend opts "${top_lib}.glbl"
+    set b_is_pure_vhdl [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)]
+    set b_xpm_cdc      [xcs_glbl_dependency_for_xpm]
+    if { $b_is_pure_vhdl && $b_xpm_cdc && ({behav_sim} == $a_sim_vars(s_simulation_flow)) } {
+      # no op - donot pass glbl (VCS reports Error-[VH-DANGLEVL-NA] VL top in pure VHDL flow)
+    } else { 
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+      lappend opts "${top_lib}.glbl"
+    }
   }
 }
 
