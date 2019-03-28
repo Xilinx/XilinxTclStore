@@ -1,3 +1,18 @@
+7.0 do not reference glbl for pure vhdl design containing xpm_cdc
+6.9 top level attribute change to integer for sv port type
+6.8 revert sv file type determination fix
+6.7 process library type information for all precompiled shared libraries
+6.6 updated warning msg for boost library
+6.5 exit simulation step or sub-compilation step on error
+6.4 return exit status for the command
+6.3 helper to fetch boost header include path from RDI_DATADIR
+6.2 vars to reference protected and ext library paths
+6.1 helper to construct vlnv name from ip definition
+6.0 resolve simulation model library path with xv_cxl_lib_path variable
+5.9 find systemc library for Questa from internal path
+5.8 use compile order for cosim using internal switch
+5.7 disable gt quad
+5.6 support for static memory data file
 5.4 fetch systemc sources for the BD if it is a top level BD with no parent composite
 5.3 fetch systemc sources from the parent composite file for a BD if selected sim model is tlm
 5.2 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1

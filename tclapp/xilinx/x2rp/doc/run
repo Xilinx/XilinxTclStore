@@ -5,11 +5,11 @@ Description:
 
 Arguments:
 
-    <pr_config> - (Required) Partial configuration for the implementation run.
+    -pr_config - (Required) Partial configuration for the implementation run.
 
-    <output_dir> - (Required) Directory to save the results.
+    -output_dir - (Required) Directory to save the results.
 
-    <constrset> - (Required) Constraints set to be use with the pr configuration provided in option '-pr_config'.
+    -constrset - (Required) Constraints set to be use with the pr configuration provided in option '-pr_config'.
     
     -exclude_constrs - (Optional) List of constraint files to be excluded from generation of bit files.
 

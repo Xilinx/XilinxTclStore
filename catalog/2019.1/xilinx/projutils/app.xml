@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix get_dashboard_gadgets command to remove -of_objects support</revision_history>
+      <revision_history>top level attribute change to integer for sv port type</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

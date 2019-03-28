@@ -1,3 +1,16 @@
+2.236 top level attribute change to integer for sv port type
+2.235 revert sv file type determination fix
+2.234 process library type information for all precompiled shared libraries
+2.233 updated warning msg for boost library
+2.232 exit simulation step or sub-compilation step on error
+2.231 return exit status for the command
+2.230 helper to fetch boost header include path from RDI_DATADIR
+2.229 vars to reference protected and ext library paths
+2.228 helper to construct vlnv name from ip definition
+2.227 resolve simulation model library path with xv_cxl_lib_path variable
+2.226 find systemc library for Questa from internal path
+2.225 use compile order for cosim using internal switch
+2.224 support for static memory data file
 2.223 fetch systemc sources for the BD if it is a top level BD with no parent composite
 2.222 fetch systemc sources from the parent composite file for a BD if selected sim model is tlm
 2.221 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1

@@ -60,11 +60,13 @@ proc register_options { simulator } {
     {{simulate.tcl.post}             {string}      {}                                                   {Specify post-simulate step TCL hook}}
     {{simulate.runtime}              {string}      {1000ns}                                             {Specify simulation run time}}
     {{simulate.log_all_signals}      {bool}        {0}                                                  {Log all signals}}
+    {{simulate.no_quit}              {bool}        {0}                                                  {Do not quit simulation}}
     {{simulate.custom_tcl}           {string}      {}                                                   {Specify name of the custom TCL file}}
     {{simulate.wdb}                  {string}      {}                                                   {Specify waveform database file}}
     {{simulate.saif_scope}           {string}      {}                                                   {Specify design hierarchy instance name for which power estimation is desired}}
     {{simulate.saif}                 {string}      {}                                                   {SAIF filename}}
     {{simulate.saif_all_signals}     {bool}        {0}                                                  {Get all object signals for the design under test instance for SAIF file generation}}
+    {{simulate.add_positional}       {bool}        {0}                                                  {Add positional parameter to XSIM for passing command line arguments ($* for Linux, %* for Windows)}}
     {{simulate.xsim.more_options}    {string}      {}                                                   {More XSIM simulation options}}
   }
   # create options

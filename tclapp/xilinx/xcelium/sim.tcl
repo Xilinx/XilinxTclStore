@@ -226,6 +226,8 @@ proc usf_xcelium_setup_args { args } {
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
+  # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
+  # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -238,19 +240,21 @@ proc usf_xcelium_setup_args { args } {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-simset"              { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_simset) [lindex $args $i] }
-      "-mode"                { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_mode) [lindex $args $i] }
-      "-type"                { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_type) [lindex $args $i] }
-      "-scripts_only"        { set ::tclapp::xilinx::xcelium::a_sim_vars(b_scripts_only) 1 }
-      "-of_objects"          { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_comp_file) [lindex $args $i]}
-      "-absolute_path"       { set ::tclapp::xilinx::xcelium::a_sim_vars(b_absolute_path) 1 }
-      "-lib_map_path"        { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_lib_map_path) [lindex $args $i] }
-      "-install_path"        { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_install_path) [lindex $args $i] }
-      "-batch"               { set ::tclapp::xilinx::xcelium::a_sim_vars(b_batch) 1 }
-      "-run_dir"             { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_launch_dir) [lindex $args $i] }
-      "-int_os_type"         { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_os_type) [lindex $args $i] }
-      "-int_debug_mode"      { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_debug_mode) [lindex $args $i] }
-      "-int_compile_glbl"    { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_compile_glbl) 1 }
+      "-simset"                 { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_simset) [lindex $args $i]          }
+      "-mode"                   { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_mode) [lindex $args $i]            }
+      "-type"                   { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_type) [lindex $args $i]            }
+      "-scripts_only"           { set ::tclapp::xilinx::xcelium::a_sim_vars(b_scripts_only) 1                           }
+      "-of_objects"             { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_comp_file) [lindex $args $i]       }
+      "-absolute_path"          { set ::tclapp::xilinx::xcelium::a_sim_vars(b_absolute_path) 1                          }
+      "-lib_map_path"           { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
+      "-install_path"           { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_install_path) [lindex $args $i]    }
+      "-batch"                  { set ::tclapp::xilinx::xcelium::a_sim_vars(b_batch) 1                                  }
+      "-run_dir"                { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_launch_dir) [lindex $args $i]      }
+      "-int_os_type"            { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_os_type) [lindex $args $i]     }
+      "-int_debug_mode"         { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_compile_glbl"       { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_compile_glbl) 1                       }
+      "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
+      "-int_csim_compile_order" { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_csim_compile_order) 1                 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -921,8 +925,8 @@ proc usf_xcelium_write_simulate_script {} {
   if { [xcs_find_ip "gt_quad_base"] } {
     variable a_xcelium_sim_vars
     set clibs_dir $a_xcelium_sim_vars(s_compiled_lib_dir)
-    lappend arg_list "-sv_root \"$clibs_dir/secureip\""
-    lappend arg_list "-sv_lib gtye5_quad.so"
+    #lappend arg_list "-sv_root \"$clibs_dir/secureip\""
+    #lappend arg_list "-sv_lib gtye5_quad.so"
   }
   set cmd_str [join $arg_list " "]
 
