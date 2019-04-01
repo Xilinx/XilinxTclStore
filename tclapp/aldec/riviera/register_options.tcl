@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.14
+package require ::tclapp::aldec::common::helpers 1.15
 
 namespace eval ::tclapp::aldec::riviera {
 
@@ -57,8 +57,8 @@ proc register_options { simulator } {
     {{elaborate.access}            {bool}   {0}                                     {Enable access to objects optimized by default}}
     {{elaborate.unifast}           {bool}   {0}                                     {Enable fast simulation models}}
 
-    {{simulate.custom_do}          {string} {}                                      {Specify name of the custom DO file}}
-    {{simulate.custom_udo}         {string} {}                                      {Specify name of the custom user DO file}}
+    {{simulate.custom_do}          {string} {}                                      {Specify a custom macro that will be launched from the simulation macro}}
+    {{simulate.custom_udo}         {string} {}                                      {Specify a user macro that will replace the simulation macro}}
     {{simulate.tcl.post}           {string} {}                                      {Specify post-simulate step TCL hook}}
     {{simulate.runtime}            {string} {1000ns}                                {Specify simulation run time}}
     {{simulate.log_all_signals}    {bool}   {0}                                     {Log all signals in simulation database}}
