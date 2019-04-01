@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.14
+package require ::tclapp::aldec::common::helpers 1.15
 
-package provide ::tclapp::aldec::common::sim 1.14
+package provide ::tclapp::aldec::common::sim 1.15
 
 namespace eval ::tclapp::aldec::common {
 
@@ -48,11 +48,16 @@ proc compile { args } {
 
   send_msg_id USF-${simulatorName}-82 INFO "${simulatorName}::Compile design"
   usf_aldec_write_compile_script
+
   if { !$onlyGenerateScripts } {
     set proc_name [lindex [split [info level 0] " "] 0]
     set step [lindex [split $proc_name {:}] end]
     ::tclapp::aldec::common::helpers::usf_launch_script $step
   }
+
+  	if { [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] == 1 && [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+		createLibraryCfg
+	}
 }
 
 proc elaborate { args } {
@@ -106,6 +111,24 @@ proc simulate { args } {
 
 namespace eval ::tclapp::aldec::common::sim {
 
+proc createLibraryCfg { } {
+	set dir $::tclapp::aldec::common::helpers::properties(launch_directory)
+	set projectName $::tclapp::aldec::common::helpers::properties(project_name)
+	set libraryCfgPath [::tclapp::aldec::common::helpers::usf_file_normalize [ file join $dir $projectName "library.cfg" ] ]
+
+	catch { file mkdir [file dirname $libraryCfgPath] }
+
+	set fileStream 0
+	if { [ catch {open $libraryCfgPath w} fileStream ] } {
+		send_msg_id USF-[usf_aldec_getSimulatorName]-90 ERROR "Failed to open file to write ($libraryCfgPath)\n"
+		return
+	}
+
+	puts $fileStream "\$include = \"\$VSIMSALIBRARYCFG\""
+	puts $fileStream "\$include = \"./../\""
+	close $fileStream
+}
+
 proc usf_aldec_getSimulatorName {} {
   # Summary:
   # Argument Usage:
@@ -140,7 +163,12 @@ proc usf_aldec_setup_simulation { args } {
   # fetch the compile order for the specified object
   ::tclapp::aldec::common::helpers::usf_xport_data_files
 
+  set launchDirectory $::tclapp::aldec::common::helpers::properties(launch_directory)
+  ::tclapp::aldec::common::helpers::findSystemVerilogPackageLibraries $launchDirectory
 
+  ::tclapp::aldec::common::helpers::findAllDesignFiles
+  ::tclapp::aldec::common::helpers::findCompiledLibraries 
+  
   # fetch design files
   set global_files_str {}
   set ::tclapp::aldec::common::helpers::properties(designFiles) \
@@ -149,6 +177,9 @@ proc usf_aldec_setup_simulation { args } {
   # create setup file
   usf_aldec_write_setup_files
 
+	::tclapp::aldec::common::helpers::findCompileOrderFilesUniq
+	::tclapp::aldec::common::helpers::findPrecompiledLibrary
+	
   return 0
 }
 
@@ -277,56 +308,105 @@ proc usf_write_simulate_script {} {
   usf_aldec_write_driver_shell_script $do_filename "simulate"
 }
 
-proc usf_aldec_mapLibraryCfg { fh } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
+proc mapLibraryCfg { _variable { _simulation 0 } } {
+	set usePrecompiledIp $::tclapp::aldec::common::helpers::properties(b_use_static_lib)
+	if { $usePrecompiledIp != 1 } {
+		return
+	}
 
-  set librariesLocation ""
-  
-  set product [get_property target_simulator [current_project]]
+	set librariesLocation [ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ]
+	if { $librariesLocation == "" } {
+		return
+	}
 
-  switch -- $product {
-    Riviera { set librariesLocation [get_property COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR [current_project]] }
-    ActiveHDL { set librariesLocation [get_property COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR [current_project]] }
-  }
+	set libraryCfgFile [ file join $librariesLocation library.cfg ]
+	if { ![ file isfile $libraryCfgFile ] } {
+		return
+	}
 
-  if { $librariesLocation == "" || ![file isfile [file join $librariesLocation library.cfg]] } {
-    set librariesLocation $::tclapp::aldec::common::helpers::properties(s_lib_map_path)
-  }
+	set topLibrary [ ::tclapp::aldec::common::helpers::usf_get_top_library ]
+	set libraryCfg [ open $libraryCfgFile r ]
+	set xpmLibrary [ ::tclapp::aldec::common::helpers::getXpmLibraries ]
 
-  if { $librariesLocation == "" } {
-    return
-  }
+	set librariesPattern [ list ]
+	if { $_simulation == 0 } {
+		set simulationFlow $::tclapp::aldec::common::helpers::properties(s_simulation_flow)
+		set designFiles $::tclapp::aldec::common::helpers::properties(designFiles)
+		set fs_obj [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]
 
-  set libraryCfgPath [file join $librariesLocation library.cfg]
-  if { ![file isfile $libraryCfgPath] } {
-    return
-  }
+		set netlistMode [ get_property "NL.MODE" $fs_obj ]
+		set targetLang  [get_property "TARGET_LANGUAGE" [current_project]]
 
-  set libraryCfg [open $libraryCfgPath r]
-  
-  while { ![eof $libraryCfg] } {
-    gets $libraryCfg line
-    if { [regexp {\s*([^\s]+)\s*=\s*\"?([^\s\"]+).*} $line tmp mapName mapPath] } {
+		if { ({post_synth_sim} == $simulationFlow) || ({post_impl_sim} == $simulationFlow) } {
+			if { [ ::tclapp::aldec::common::helpers::usf_contains_verilog $designFiles ] || ({Verilog} == $targetLang) } {
+				if { {timesim} == $netlistMode } {
+					lappend librariesPattern "simprims_ver"
+				} else {
+					lappend librariesPattern "unisims_ver"
+				}
+			}
+		}
 
-      if { [file pathtype $mapPath] != "absolute" } {
-        set mapPath [file join $librariesLocation $mapPath]      
-      }
+		set compileUnifast [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName ELABORATE.UNIFAST ] $fs_obj ]
+		if { ([ ::tclapp::aldec::common::helpers::usf_contains_vhdl $designFiles ]) && ({behav_sim} == $simulationFlow) } {
+			if { $compileUnifast && [ get_param "simulation.addUnifastLibraryForVhdl" ] } {
+				lappend librariesPattern "unifast"
+			}
+		}
 
-      set mapPath [::tclapp::aldec::common::helpers::usf_file_normalize $mapPath]
+		if { ([::tclapp::aldec::common::helpers::usf_contains_verilog $designFiles]) && ({behav_sim} == $simulationFlow) } {
+			if { $compileUnifast } {
+				lappend librariesPattern "unifast_ver"
+			}
 
-      if { ![file isfile $mapPath] } {
-        continue
-      }
+			lappend librariesPattern "unisims_ver"
+			lappend librariesPattern "unimacro_ver"
+		}
 
-      puts $fh "vmap $mapName \{$mapPath\}"
-    }
-  }
+		lappend librariesPattern "secureip"
+		lappend librariesPattern "unisim"
+	}
 
-  close $libraryCfg
+	lappend librariesPattern "xilinx_vip"
 
-  puts $fh ""
+	if { [ llength $xpmLibrary ] > 0 } {
+		lappend librariesPattern "xpm"
+	}
+	
+	while { ! [eof $libraryCfg ] } {
+		gets $libraryCfg line
+		if { [ regexp {\s*([^\s]+)\s*=\s*\"?([^\s\"]+).*} $line tmp mapName mapPath ] } {
+
+			if { [ file pathtype $mapPath ] != "absolute" } {
+				set mapPath [ file join $librariesLocation $mapPath ]
+			}
+
+			set mapPath [ ::tclapp::aldec::common::helpers::usf_file_normalize $mapPath ]
+
+			if { ![ file isfile $mapPath ] } {
+				continue
+			}
+
+			if { $_simulation == 1 && [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] == 1 && $topLibrary != $mapName } {
+				continue
+			}	
+
+			foreach library $librariesPattern {
+				if { $mapName == $library } {
+					puts $_variable "vmap $mapName \{$mapPath\}"
+					continue
+				}
+			}
+
+			if { [ ::tclapp::aldec::common::helpers::isDesignLibrary $mapName ] == 1 } {
+				puts $_variable "vmap $mapName \{$mapPath\}"
+			}
+		}
+	}
+
+	close $libraryCfg
+
+	puts $_variable ""
 }
 
 proc usf_aldec_create_do_file_for_compilation { do_file } {
@@ -363,67 +443,94 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 
   puts $fh "vlib work\n"
 
-  usf_aldec_mapLibraryCfg $fh
+  mapLibraryCfg $fh
 
-  set design_libs [usf_aldec_get_design_libs $::tclapp::aldec::common::helpers::properties(designFiles)]
+  set design_libs [::tclapp::aldec::common::helpers::getDesignLibraries $::tclapp::aldec::common::helpers::properties(designFiles)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
   # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
 
-  set libraryPrefix [::tclapp::aldec::common::helpers::usf_aldec_getLibraryPrefix]
+	set libraryPrefix [ ::tclapp::aldec::common::helpers::usf_aldec_getLibraryPrefix ]
+	set defaultLibraryMapped false
+	set defaultLibraryName [ get_property "DEFAULT_LIB" [ current_project ] ]
+	set usePrecompiledIp $::tclapp::aldec::common::helpers::properties(b_use_static_lib)
 
-  set defaultLibraryMapped false
-  set defaultLibraryName [get_property "DEFAULT_LIB" [current_project]]
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} { continue; }
-    puts $fh "vlib ${libraryPrefix}$lib"
-    if { [get_property INCREMENTAL $fs_obj] == 0 } {
-      puts $fh "vdel -lib $lib -all"
-    }
-    if { $defaultLibraryName == $lib } {
-      set defaultLibraryMapped true
-    }
-  }
-  if { !$defaultLibraryMapped } {
-    puts $fh "vlib ${libraryPrefix}$defaultLibraryName"
-    if { [get_property INCREMENTAL $fs_obj] == 0 } {
-      puts $fh "vdel -lib $defaultLibraryName -all"
-    }
-  }
+	foreach lib $design_libs {
+		if { [ string length $lib ] == 0 } {
+			continue;
+		}
 
-  puts $fh ""
+		if { $usePrecompiledIp == 1 && [ ::tclapp::aldec::common::helpers::checkLibraryWasCompiled $lib ] == 1 } {
+			continue
+		}
 
-  if { $use_absolute_paths } {
-    set dir $::tclapp::aldec::common::helpers::properties(launch_directory)
-    puts $fh "null \[set origin_dir \"$dir\"\]"
-  } else {
-    puts $fh "null \[set origin_dir \".\"\]"
-  }
+		puts $fh "vlib ${libraryPrefix}$lib"
 
-  set vlog_arg_list [list]
-  ::tclapp::aldec::common::helpers::usf_aldec_appendCompilationCoverageOptions vlog_arg_list vlog
-  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.DEBUG] $fs_obj] } {
-    lappend vlog_arg_list "-dbg"
-  }
-  if { [get_property INCREMENTAL $fs_obj] == 1 } {
-    lappend vlog_arg_list "-incr"
-  }
-  set more_vlog_options [string trim [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.VLOG.MORE_OPTIONS] $fs_obj]]
-  if { {} != $more_vlog_options } {
-    set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
-  }
+		if { [ get_property INCREMENTAL $fs_obj ] == 0 } {
+			puts $fh "vdel -lib $lib -all"
+		}
 
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} { continue; }
-    lappend vlog_arg_list "-l"
-    lappend vlog_arg_list "$lib"
-  }
+		if { $defaultLibraryName == $lib } {
+			set defaultLibraryMapped true
+		}
+	}
 
-  if { [::tclapp::aldec::common::helpers::is_vip_ip_required] } {
-    lappend vlog_arg_list "-l"
-    lappend vlog_arg_list "xilinx_vip"
-  }
+	if { !$defaultLibraryMapped } {
+		puts $fh "vlib ${libraryPrefix}$defaultLibraryName"
+		
+		if { [ get_property INCREMENTAL $fs_obj ] == 0 } {
+			puts $fh "vdel -lib $defaultLibraryName -all"
+		}
+	}
+
+	puts $fh ""
+
+	if { $use_absolute_paths } {
+		set dir $::tclapp::aldec::common::helpers::properties(launch_directory)
+		puts $fh "null \[set origin_dir \"$dir\"\]"
+	} else {
+		puts $fh "null \[set origin_dir \".\"\]"
+	}
+
+	set vlog_arg_list [ list ]
+	::tclapp::aldec::common::helpers::usf_aldec_appendCompilationCoverageOptions vlog_arg_list vlog
+
+	if { [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.DEBUG ] $fs_obj ] } {
+		lappend vlog_arg_list "-dbg"
+	}
+
+	if { [ get_property INCREMENTAL $fs_obj ] == 1 } {
+		lappend vlog_arg_list "-incr"
+	}
+
+	if { [ llength [ ::tclapp::aldec::common::helpers::getXpmLibraries ] ] > 0 } {
+		lappend vlog_arg_list "-l xpm"
+	}
+
+	set more_vlog_options [ string trim [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.VLOG.MORE_OPTIONS ] $fs_obj ] ]
+	if { {} != $more_vlog_options } {
+		set vlog_arg_list [ linsert $vlog_arg_list end "$more_vlog_options" ]
+	}
+
+	set xilinxVipWasAdded 0
+	foreach lib $design_libs {
+		if { [ string length $lib ] == 0 } {
+			continue;
+		}
+
+		lappend vlog_arg_list "-l"
+		lappend vlog_arg_list "$lib"
+
+		if { $lib == "xilinx_vip" } {
+			set xilinxVipWasAdded 1
+		}
+	}
+
+	if { $xilinxVipWasAdded == 0 && [ get_param "project.usePreCompiledXilinxVIPLibForSim" ] && [ ::tclapp::aldec::common::helpers::is_vip_ip_required ] } {
+		lappend vlog_arg_list "-l"
+		lappend vlog_arg_list "xilinx_vip"
+	}
 
   set vlog_cmd_str [join $vlog_arg_list " "]
   puts $fh "null \[set vlog_opts \{$vlog_cmd_str\}\]"
@@ -453,28 +560,36 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   set prev_file_type {}
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
-  foreach file $::tclapp::aldec::common::helpers::properties(designFiles) {
-    set fargs       [split $file {|}]
-    set type        [lindex $fargs 0]
-    set file_type   [lindex $fargs 1]
-    set lib         [lindex $fargs 2]
-    set cmd_str     [lindex $fargs 3]
-    set src_file    [lindex $fargs 4]
-    set b_static_ip [lindex $fargs 5]
+	foreach file $::tclapp::aldec::common::helpers::properties(designFiles) {
+		set fargs [ split $file {|} ]
+		set type [ lindex $fargs 0 ]
+		set file_type [ lindex $fargs 1 ]
+		set lib [ lindex $fargs 2 ]
+		set cmd_str [ lindex $fargs 3 ]
+		set src_file [ lindex $fargs 4 ]
+		set b_static_ip [ lindex $fargs 5 ]
 
-    if { $b_group_files } {
-      if { ( $file_type != $prev_file_type ) || ( $lib != $prev_lib ) } {
-        set prev_file_type $file_type
-        set prev_lib $lib
-        puts $fh ""
-        puts $fh "$cmd_str \\"
-      }
-      puts $fh "\t\"$src_file\" \\"
+		if { $usePrecompiledIp == 1 && [ ::tclapp::aldec::common::helpers::checkLibraryWasCompiled $lib ] == 1 } {
+			continue
+		}
 
-    } else {
-      puts $fh "$cmd_str \"$src_file\""
-    }
-  }
+		if { ![ regexp "\".*\"" $src_file ] } {
+			set src_file "\"$src_file\""
+		}
+		
+		if { $b_group_files } {
+			if { ( $file_type != $prev_file_type ) || ( $lib != $prev_lib ) } {
+				set prev_file_type $file_type
+				set prev_lib $lib
+				puts $fh ""
+				puts $fh "$cmd_str \\"
+			}
+			puts $fh "\t$src_file \\"
+			
+		} else {
+			puts $fh "$cmd_str $src_file"
+		}
+	}
 
   if { $b_group_files } {
     # break multi-line command
@@ -556,21 +671,26 @@ proc usf_aldec_get_elaboration_cmdline {} {
     set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
   }
 
-  if { [::tclapp::aldec::common::helpers::is_vip_ip_required] } {
-    lappend arg_list "-L" "xilinx_vip"
-  }
-
   # add secureip
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
-  # add design libraries
-  set design_libs [usf_aldec_get_design_libs $design_files]
-  foreach lib $design_libs {
-    if {[string length $lib] == 0} { continue; }
-    lappend arg_list "-L"
-    lappend arg_list "$lib"
-  }
+	# add design libraries
+	set design_libs [ ::tclapp::aldec::common::helpers::getDesignLibraries $design_files ]
+	set xilinxVipWasAdded 0
+	foreach lib $design_libs {
+		if {[string length $lib] == 0} { continue; }
+		lappend arg_list "-L"
+		lappend arg_list "$lib"
 
+		if { $lib == "xilinx_vip" } {
+			set xilinxVipWasAdded 1
+		}
+	}
+
+    if { $xilinxVipWasAdded == 0 && [ get_param "project.usePreCompiledXilinxVIPLibForSim" ] && [ ::tclapp::aldec::common::helpers::is_vip_ip_required ] } {
+		lappend arg_list "-L" "xilinx_vip"
+	}
+  
   set d_libs [join $arg_list " "]  
   set arg_list [list $t_opts]
   lappend arg_list "$d_libs"
@@ -579,61 +699,63 @@ proc usf_aldec_get_elaboration_cmdline {} {
 }
 
 proc usf_aldec_get_simulation_cmdline {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
+	set top $::tclapp::aldec::common::helpers::properties(s_sim_top)
+	set flow $::tclapp::aldec::common::helpers::properties(s_simulation_flow)
+	set fs_obj [ get_filesets $::tclapp::aldec::common::helpers::properties(simset) ]
 
-  set top $::tclapp::aldec::common::helpers::properties(s_sim_top)
-  set flow $::tclapp::aldec::common::helpers::properties(s_simulation_flow)
-  set fs_obj [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]
+	set target_lang [ get_property "TARGET_LANGUAGE" [ current_project ] ]
+	set netlist_mode [ get_property "NL.MODE" $fs_obj ]
 
-  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
-  set netlist_mode [get_property "NL.MODE" $fs_obj]
+	set tool "asim"
+	set argumentsList [ list "$tool" ]
 
-  set tool "asim"
-  set arg_list [list "$tool"]
+	::tclapp::aldec::common::helpers::usf_aldec_appendSimulationCoverageOptions argumentsList
 
-  ::tclapp::aldec::common::helpers::usf_aldec_appendSimulationCoverageOptions arg_list
+	if { [ get_property target_simulator [ current_project ] ] == "ActiveHDL" } {
+		lappend argumentsList "-asdb"
+		
+		if { [ ::tclapp::aldec::common::helpers::isBatchMode ] == 1 } {
+			lappend argumentsList [usf_aldec_getDefaultDatasetName]
+		}
+	}
 
-  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
-    lappend arg_list "-asdb"
-  }
+	lappend argumentsList [ usf_aldec_get_elaboration_cmdline ]
 
-  lappend arg_list [usf_aldec_get_elaboration_cmdline]
-  
-  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.VERILOG_ACCELERATION] $fs_obj] } {
-    lappend arg_list "-O5"
-  } else {
-    lappend arg_list "-O2"
-  }
-  
-  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.DEBUG] $fs_obj] } {
-    lappend arg_list "-dbg"
-  }  
+	if { [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.VERILOG_ACCELERATION ] $fs_obj ] } {
+		lappend argumentsList "-O5"
+	} else {
+		lappend argumentsList "-O2"
+	}
 
-  set more_sim_options [string trim [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.ASIM.MORE_OPTIONS] $fs_obj]]
-  if { {} != $more_sim_options } {
-    set arg_list [linsert $arg_list end "$more_sim_options"]
-  }
+	if { [ llength [ ::tclapp::aldec::common::helpers::getXpmLibraries ] ] > 0 } {
+		lappend argumentsList "-L xpm"
+	}
 
-  # design contains ax-bfm ip? insert bfm library
-  if { [::tclapp::aldec::common::helpers::usf_is_axi_bfm_ip] } {
-    set simulator_lib [::tclapp::aldec::common::helpers::usf_get_simulator_lib_for_bfm]
-    if { {} != $simulator_lib } {
-      set arg_list [linsert $arg_list end "-pli \"$simulator_lib\""]
-    }
-  }
+	if { [get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.DEBUG ] $fs_obj ] } {
+		lappend argumentsList "-dbg"
+	}
 
-  set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
-  lappend arg_list "${top_lib}.${top}"
+	set more_sim_options [ string trim [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.ASIM.MORE_OPTIONS ] $fs_obj ] ]
+	if { {} != $more_sim_options } {
+		set argumentsList [ linsert $argumentsList end "$more_sim_options" ]
+	}
 
-  set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
-  if { [::tclapp::aldec::common::helpers::usf_contains_verilog $design_files] } {
-    lappend arg_list "${top_lib}.glbl"
-  }
+	if { [ ::tclapp::aldec::common::helpers::usf_is_axi_bfm_ip ] } {
+	set simulator_lib [ ::tclapp::aldec::common::helpers::usf_get_simulator_lib_for_bfm ]
+		if { {} != $simulator_lib } {
+			set argumentsList [ linsert $argumentsList end "-pli \"$simulator_lib\"" ]
+		}
+	}
 
-  set cmd_str [join $arg_list " "]
-  return $cmd_str
+	set top_lib [ ::tclapp::aldec::common::helpers::usf_get_top_library ]
+	lappend argumentsList "${top_lib}.${top}"
+
+	set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
+	if { [ ::tclapp::aldec::common::helpers::usf_contains_verilog $design_files ] } {
+		lappend argumentsList "${top_lib}.glbl"
+	}
+
+	return [ join $argumentsList " " ]
 }
 
 proc getExistingLibraryMappingsNames { } {
@@ -661,41 +783,66 @@ proc getExistingLibraryMappingsNames { } {
 }
 
 proc usf_aldec_writeSimulationPrerequisites { out } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  set designName [current_project]
-  set designLibraryName $designName
-  set targetDirectory $::tclapp::aldec::common::helpers::properties(launch_directory)
-  
-  puts $out "transcript on"
-  puts $out "quiet on"
-  puts $out "createdesign \{$designName\} \{$targetDirectory\}"
-  puts $out "opendesign \{${targetDirectory}/${designName}/${designName}.adf\}"
-  puts $out "set SIM_WORKING_FOLDER \$dsn/.."
 
-  set existingMappings [getExistingLibraryMappingsNames]
+	set designName [current_project]
+	set designLibraryName $designName
+	set targetDirectory $::tclapp::aldec::common::helpers::properties(launch_directory)
+	set usePrecompiledIp $::tclapp::aldec::common::helpers::properties(b_use_static_lib)
 
-  puts $out "set worklib $designLibraryName"
+	puts $out "transcript on"
 
-  foreach mappedLibraryName $existingMappings {
-    if { [string compare -nocase $mappedLibraryName $designLibraryName] != 0 } {
-      puts $out "vmap -del $mappedLibraryName"
-    }
-  }
+	if { [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+		puts $out "quiet on"
+		puts $out "createdesign \{$designName\} \{$targetDirectory\}"
+		puts $out "opendesign \{${targetDirectory}/${designName}/${designName}.adf\}"
+		puts $out "set SIM_WORKING_FOLDER \$dsn/.."
+	}
 
-  usf_aldec_mapLibraryCfg $out
+	set existingMappings [ getExistingLibraryMappingsNames ]
 
-  set libraryPrefix [::tclapp::aldec::common::helpers::usf_aldec_getLibraryPrefix]
-  set librariesNames [usf_aldec_get_design_libs $::tclapp::aldec::common::helpers::properties(designFiles)]
+	if { [ get_property target_simulator [ current_project ] ] == "ActiveHDL" } {
+		set designLibraryName [ split $designLibraryName ]
+		set designLibraryName [ join $designLibraryName _ ]
+	}
 
-  foreach libraryName $librariesNames {
-    if { [string length $libraryName] == 0} { continue; }
-    puts $out "vmap $libraryName \{${targetDirectory}/${libraryPrefix}$libraryName\}"
-  }
+	if { [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+		puts $out "set worklib $designLibraryName"
+	}
 
-  puts $out "quiet off"
+	foreach mappedLibraryName $existingMappings {
+		if { [ string compare -nocase $mappedLibraryName $designLibraryName ] != 0 } {
+			puts $out "vmap -del $mappedLibraryName"
+		}
+	}
+
+	
+	if { [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] != 1 || [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+		mapLibraryCfg $out 1
+
+		set libraryPrefix [ ::tclapp::aldec::common::helpers::usf_aldec_getLibraryPrefix ]
+		set librariesNames [ ::tclapp::aldec::common::helpers::getDesignLibraries $::tclapp::aldec::common::helpers::properties(designFiles) ]
+		set topLibrary [ ::tclapp::aldec::common::helpers::usf_get_top_library ]
+
+		foreach libraryName $librariesNames {
+			if { [ string length $libraryName ] == 0 } {
+				continue;
+			}
+
+			if { $usePrecompiledIp == 1 && [ ::tclapp::aldec::common::helpers::checkLibraryWasCompiled $libraryName ] == 1 } {
+				continue
+			}
+
+			if { [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] == 1 && $topLibrary != $libraryName } {
+				continue
+			}
+
+			puts $out "vmap $libraryName \{${targetDirectory}/${libraryPrefix}$libraryName\}"
+		}
+	}
+	
+	if { [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+		puts $out "quiet off"
+	}
 }
 
 proc usf_aldec_getDefaultDatasetName {} {
@@ -867,29 +1014,29 @@ proc usf_aldec_write_header { fh filename } {
   puts $fh "######################################################################"
 }
 
-proc usf_aldec_writeWindowsExecutableCmdLine { out batch_sw do_filename log_filename } {
-  if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
-    if { $batch_sw != "" } {
-      puts $out "call \"%bin_path%/VSimSA\" -l \"$log_filename\" -do \"do -tcl $do_filename\""
-    } else {
-      puts $out "call \"%bin_path%/avhdl\" -do \"do -tcl \{$do_filename\}\""
-      puts $out "set error=%errorlevel%"
-    
-      # copy log file
-      set designName [current_project]
-      set targetDirectory $::tclapp::aldec::common::helpers::properties(launch_directory)
-      set logFile [file nativename "${targetDirectory}/${designName}/log/console.log"]
-      puts $out "copy /Y \"$logFile\" \"$log_filename\""  
-  
-      puts $out "set errorlevel=%error%"
-    }
-  } else {
-    if { $batch_sw != "" } {
-      puts $out "call \"%bin_path%/../runvsimsa\" -l \"$log_filename\" -do \"do \{$do_filename\}\""
-    } else {
-      puts $out "call \"%bin_path%/../rungui\" -l \"$log_filename\" -do \"do \{$do_filename\}\""
-    }
-  }
+proc usf_aldec_writeWindowsExecutableCmdLine { _out _batch _doFile _logFile } {
+	if { [ get_property target_simulator [ current_project ] ] == "ActiveHDL" } {
+		if { $_batch != "" } {
+			puts $_out "call \"%bin_path%/VSimSA\" -l \"$_logFile\" -do \"do -tcl $_doFile\""	
+		} else {
+			puts $_out "call \"%bin_path%/avhdl\" -do \"do -tcl \{$_doFile\}\""
+			puts $_out "set error=%errorlevel%"
+
+			set designName [ current_project ]
+			set targetDirectory $::tclapp::aldec::common::helpers::properties(launch_directory)
+			set logFile [ file nativename "${targetDirectory}/${designName}/log/console.log" ]
+			puts $_out "copy /Y \"$logFile\" \"$_logFile\""
+
+			puts $_out "set errorlevel=%error%"
+		}
+	} else {
+
+		if { $_batch != "" } {
+			puts $_out "call \"%bin_path%/../runvsimsa\" -l \"$_logFile\" -do \"do \{$_doFile\}\""
+		} else {
+			puts $_out "call \"%bin_path%/../rungui\" -l \"$_logFile\" -do \"do \{$_doFile\}\""
+		}
+	}
 }
 
 proc usf_aldec_write_driver_shell_script { do_filename step } {
@@ -939,27 +1086,6 @@ proc usf_aldec_write_driver_shell_script { do_filename step } {
     puts $scriptFileHandle "exit %errorlevel%"
   }
   close $scriptFileHandle
-}
-
-proc usf_aldec_get_design_libs { files } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set libs [list]
-  foreach file $files {
-    set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set library   [lindex $fargs 2]
-    if { {} == $library } {
-      continue;
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-  return $libs
 }
 
 proc usf_aldec_add_quit_on_error { fh step } {
