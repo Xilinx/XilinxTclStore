@@ -148,14 +148,19 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
   set architecture [::tclapp::xilinx::ultrafast::getArchitecture]
   switch $architecture {
     artix7 -
+    spartan7 -
     kintex7 -
     virtex7 -
     zynq {
     }
+    zynquplus -
+    zynquplusRFSOC -
     kintexu -
-    kintexum -
+    kintexuplus -
     virtexu -
-    virtexum {
+    virtexuplus -
+    virtexuplus58g -
+    virtexuplusHBM {
     }
     default {
       puts " -E- architecture $architecture is not supported."
