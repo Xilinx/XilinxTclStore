@@ -3397,6 +3397,9 @@ proc xcs_get_c_files { c_filter {b_csim_compile_order 0} } {
               # this is top level BD for this SystemC/CPP/C file, so add it
               lappend c_files $file_obj
             }
+          } else {
+            # this is top level BD for this SystemC/CPP/C file, so add it
+            lappend c_files $file_obj
           }
         }
       } else {

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1</revision_history>
+      <revision_history>Renamed -help- TCL proc in write_project_tcl generated script to remove conflict with vivado help</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

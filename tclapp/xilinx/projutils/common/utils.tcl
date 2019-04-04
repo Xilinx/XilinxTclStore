@@ -3397,6 +3397,9 @@ proc xcs_get_c_files { c_filter {b_csim_compile_order 0} } {
               # this is top level BD for this SystemC/CPP/C file, so add it
               lappend c_files $file_obj
             }
+          } else {
+            # this is top level BD for this SystemC/CPP/C file, so add it
+            lappend c_files $file_obj
           }
         }
       } else {
@@ -3678,12 +3681,15 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
       set lib_dir_path_found ""
       foreach lib_dir [glob -nocomplain -directory $path *] {
         if { ![file isdirectory $lib_dir] } { continue; }
+<<<<<<< HEAD
+=======
 
         # make sure we deal with the right shared library path (library=xtlm, path=/tmp/foo/bar/xtlm)
         set lib_leaf_dir_name [file tail $lib_dir]
         if { $library != $lib_leaf_dir_name } {
           continue
         }
+>>>>>>> origin/2019.1-dev
         set sh_file_path "$lib_dir/$shared_libname"
         if { $b_is_systemc_library } {
           if { {questa} == $simulator } {

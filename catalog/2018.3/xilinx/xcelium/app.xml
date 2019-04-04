@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1</revision_history>
+      <revision_history>fetch systemc sources for the BD if it is a top level BD with no parent composite</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
