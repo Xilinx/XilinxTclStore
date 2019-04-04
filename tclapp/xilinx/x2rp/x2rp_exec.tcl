@@ -1,4 +1,4 @@
-package require Vivado 1.2017.1
+package require Vivado 1.2019.1
 
 namespace eval ::tclapp::xilinx::x2rp {
     namespace export run
@@ -100,11 +100,11 @@ proc ::tclapp::xilinx::x2rp::reset_global_vars {} {
 
     # directives - for base platform generation
     set a_global_vars(bp_enable_post_place_phys_opt) 0
-    set a_global_vars(bp_opt_directive) ""
-    set a_global_vars(bp_place_directive) "AltSpreadLogic_medium -fanout_opt"
-    set a_global_vars(bp_post_place_phys_opt_directive) "AggressiveExplore"
-    set a_global_vars(bp_route_directive) "Explore -tns_cleanup"
-    set a_global_vars(bp_post_route_phys_opt_directive) "AggressiveExplore"
+    set a_global_vars(bp_opt_directive) "Default"
+    set a_global_vars(bp_place_directive) "Default"
+    set a_global_vars(bp_post_place_phys_opt_directive) "Default"
+    set a_global_vars(bp_route_directive) "Default"
+    set a_global_vars(bp_post_route_phys_opt_directive) "Default"
 
     # pre/post scripts for base and rl platforms
     set a_global_vars(base_scripts) ""
@@ -496,11 +496,11 @@ proc ::tclapp::xilinx::x2rp::run {args} {
     # [-route_directive <arg> = Explore -tns_cleanup]: Directive for route design step.
     # [-post_route_phys_opt_directive <arg> = AggressiveExplore]: Directive for post route phys opt design step. 
     # [-bp_enable_post_place_phys_opt]: Enable post place physical optimization for base platform generation (Default: 0).
-    # [-bp_opt_directive <arg>]: Directive for opt design step for base platform generation.
-    # [-bp_place_directive <arg> = Explore -fanout_opt]: Directive for place design step for base platform generation.
-    # [-bp_post_place_phys_opt_directive <arg> = AggressiveExplore]: Directive for post place phys opt design step for base platform generation.
-    # [-bp_route_directive <arg> = Explore -tns_cleanup]: Directive for route design step for base platform generation.
-    # [-bp_post_route_phys_opt_directive <arg> = AggressiveExplore]: Directive for post route phys opt design step for base platform generation.    
+    # [-bp_opt_directive <arg> = Default]: Directive for opt design step for base platform generation.
+    # [-bp_place_directive <arg> = Default]: Directive for place design step for base platform generation.
+    # [-bp_post_place_phys_opt_directive <arg> = Default]: Directive for post place phys opt design step for base platform generation.
+    # [-bp_route_directive <arg> = Default]: Directive for route design step for base platform generation.
+    # [-bp_post_route_phys_opt_directive <arg> = Default]: Directive for post route phys opt design step for base platform generation.    
     # [-base_scripts <arg>]: Directory which has pre/post tcl scripts for base platform generation.
     # [-rl_scripts <arg>]: Directory which has pre/post tcl scripts used after rl platform generation.
     # [-open_design_for_dsa_gen]: Opens routed design checkpoint in current project context for DSA generation. (Default: 0)
