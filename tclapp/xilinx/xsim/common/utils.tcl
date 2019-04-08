@@ -3245,7 +3245,10 @@ proc xcs_get_c_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fil
 
   # add boost header references 
   if { "xsim" == $simulator } {
-    set boost_dir "\$xv_boost_lib_path/boost"
+    set boost_dir "%xv_boost_lib_path%/boost"
+    if {$::tcl_platform(platform) == "unix"} {
+      set boost_dir "\$xv_boost_lib_path/boost"
+    }
   }
   lappend incl_dirs "$boost_dir"
 
