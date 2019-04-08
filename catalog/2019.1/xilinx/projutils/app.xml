@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>top level attribute change to integer for sv port type</revision_history>
+      <revision_history>fixed xv_boost_lib_path variable for windows for finding include directory</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

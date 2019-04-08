@@ -1,3 +1,4 @@
+3.394 fixed xv_boost_lib_path variable for windows for finding include directory
 3.393 top level attribute change to integer for sv port type
 3.392 revert sv file type determination fix
 3.391 process library type information for all precompiled shared libraries
