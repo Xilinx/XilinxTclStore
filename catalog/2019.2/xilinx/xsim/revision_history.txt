@@ -1,3 +1,26 @@
+2.295 support for calling xsim in standalone mode
+2.294 top level attribute change to integer for sv port type
+2.293 revert sv file type determination fix
+2.292 process library type information for all precompiled shared libraries
+2.291 updated warning msg for boost library
+2.290 exit simulation step or sub-compilation step on error
+2.289 return exit status for the command
+2.288 pass compile order param arg while extracting c files
+2.287 helper to fetch boost header include path from RDI_DATADIR
+2.286 reference boost headers
+2.285 set system design flag for xv vars
+2.284 vars to reference protected and ext library paths
+2.283 helper to construct vlnv name from ip definition
+2.282 pass sc_lib for windows to reference libdpi
+2.281 fixed xsc switch and extension for windows
+2.280 enable xv_cxl_lib_path var for setting install path
+2.279 do not exit on success for xsc step
+2.278 resolve simulation model library path with xv_cxl_lib_path variable
+2.277 call script exit in scripts_only mode
+2.276 redirect stderr to xsc_err.log and type to compile.log
+2.275 find systemc library for Questa from internal path
+2.274 control script exit with call_script_exit value
+2.273 do not pass -log switch to xsc
 2.272 use compile order for cosim using internal switch
 2.271 reference unisims_ver for VHDL based designs instantiating verilog primitives
 2.270 support for static memory data file
