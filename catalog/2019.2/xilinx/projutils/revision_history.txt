@@ -1,3 +1,16 @@
+3.393 top level attribute change to integer for sv port type
+3.392 revert sv file type determination fix
+3.391 process library type information for all precompiled shared libraries
+3.390 initialize boost library reference path
+3.389 updated warning msg for boost library
+3.388 exit simulation step or sub-compilation step on error
+3.387 return exit status for the command
+3.386 helper to fetch boost header include path from RDI_DATADIR
+3.385 vars to reference protected and ext library paths
+3.384 skip processing loop after current ip
+3.383 helper to construct vlnv name from ip definition
+3.382 resolve simulation model library path with xv_cxl_lib_path variable
+3.381 find systemc library for Questa from internal path
 3.380 Fix get_dashboard_gadgets command to remove -of_objects support
 3.379 use compile order for cosim using internal switch
 3.378 support for static memory data file
