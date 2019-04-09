@@ -5,6 +5,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2019.04.02 - Added support for updated format for report_control_sets
 ## 2019.02.13 - Added support for Vivado patches
 ## 2019.01.10 - Added support for US+ -1LV/-2LV
 ## 2018.11.16 - Added support for spartan7, zynquplusRFSOC, virtexuplus58g
@@ -328,7 +329,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2019.02.13}
+  variable version {2019.04.02}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -1791,7 +1792,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
       addMetric {utilization.ctrlsets.uniq}  {Unique Control Sets}
 
-      extractMetricFromTable report {utilization.ctrlsets.uniq}    -search {{Summary} {Summary}} -row {{Number of unique control sets}} -column {Count} -default {n/a}
+      extractMetricFromTable report {utilization.ctrlsets.uniq}    -search {{Summary} {Summary}} -row {{Number of unique control sets} {Total control sets}} -column {Count} -default {n/a}
 
       if {![regexp {[0-9]+} $guidelines(utilization.ctrlsets.uniq)]} {
         # If no number is defined inside $guidelines(utilization.ctrlsets.uniq) it means that
