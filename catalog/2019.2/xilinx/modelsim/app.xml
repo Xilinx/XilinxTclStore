@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>use compile order for cosim using internal switch</revision_history>
+      <revision_history>top level attribute change to integer for sv port type</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
