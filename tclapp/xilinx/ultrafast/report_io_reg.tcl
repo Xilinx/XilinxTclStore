@@ -1,5 +1,6 @@
 
 ########################################################################################
+## 04/12/2019 - Added support for KU+, VU+, RFSOC, HBM, 58G
 ## 01/23/2015 - Added support for Native mode for UltraScale
 ## 01/22/2015 - Added support for UltraScale
 ## 06/05/2014 - Fixed final message as the list of input/output ports were inverted
@@ -148,14 +149,19 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
   set architecture [::tclapp::xilinx::ultrafast::getArchitecture]
   switch $architecture {
     artix7 -
+    spartan7 -
     kintex7 -
     virtex7 -
     zynq {
     }
+    zynquplus -
+    zynquplusRFSOC -
     kintexu -
-    kintexum -
+    kintexuplus -
     virtexu -
-    virtexum {
+    virtexuplus -
+    virtexuplus58g -
+    virtexuplusHBM {
     }
     default {
       puts " -E- architecture $architecture is not supported."
@@ -199,6 +205,7 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
       set ologic_used {}
       switch $architecture {
         artix7 -
+        spartan7 -
         kintex7 -
         virtex7 -
         zynq {
@@ -207,10 +214,14 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
           set ilogic_used [get_cells -quiet -of [get_sites -quiet "ILOGIC_$coord"]]
           set ologic_used [get_cells -quiet -of [get_sites -quiet "OLOGIC_$coord"]]
         }
+        zynquplus -
+        zynquplusRFSOC -
         kintexu -
-        kintexum -
+        kintexuplus -
         virtexu -
-        virtexum {
+        virtexuplus -
+        virtexuplus58g -
+        virtexuplusHBM {
           # Support for both Component/Native modes
           set idelay_used [get_cells -quiet -of [concat [get_bels -quiet "BITSLICE_RX_TX_$coord/IDELAY"] \
                                                         [get_bels -quiet "BITSLICE_RX_TX_$coord/RX_BITSLICE"] \
