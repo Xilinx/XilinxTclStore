@@ -1,3 +1,4 @@
+2.154 force compile glbl when param set to true
 2.153 fixed xv_boost_lib_path variable for windows for finding include directory
 2.152 top level attribute change to integer for sv port type
 2.151 reference IP shared libraries if found from design

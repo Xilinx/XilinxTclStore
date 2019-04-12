@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed xv_boost_lib_path variable for windows for finding include directory</revision_history>
+      <revision_history>force compile glbl when param set to true</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
