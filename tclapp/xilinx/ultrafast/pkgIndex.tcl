@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::ultrafast 1.7 [list source [file join $dir checklist_pkg.tcl]]
+package ifneeded ::tclapp::xilinx::ultrafast 1.8 [list source [file join $dir checklist_pkg.tcl]]

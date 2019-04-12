@@ -1,5 +1,6 @@
 
 ########################################################################################
+## 04/12/2019 - Added support for KU+, VU+, RFSOC, HBM, 58G
 ## 01/23/2015 - Added support for Native mode for UltraScale
 ## 01/22/2015 - Added support for UltraScale
 ## 06/05/2014 - Fixed final message as the list of input/output ports were inverted
