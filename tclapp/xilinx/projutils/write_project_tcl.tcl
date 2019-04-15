@@ -38,6 +38,7 @@ proc write_project_tcl {args} {
   # [-force]: Overwrite existing tcl script file
   # [-all_properties]: Write all properties (default & non-default) for the project object(s)
   # [-no_copy_sources]: Do not import sources even if they were local in the original project
+  # [-no_ip_version]: Flag to not include the IP version as part of the IP VLNV in create_bd_cell commands.
   # [-absolute_path]: Make all file paths absolute wrt the original project directory
   # [-dump_project_info]: Write object values
   # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
@@ -81,6 +82,7 @@ proc write_project_tcl {args} {
       "-force"                { set a_global_vars(b_arg_force) 1 }
       "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
       "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
+      "-no_ip_version"        { set a_global_vars(b_arg_no_ip_version) 1 }
       "-absolute_path"        { set a_global_vars(b_absolute_path) 1 }
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
@@ -218,6 +220,7 @@ proc reset_global_vars {} {
   set a_global_vars(s_target_proj_dir)    ""
   set a_global_vars(b_arg_force)          0
   set a_global_vars(b_arg_no_copy_srcs)   0
+  set a_global_vars(b_arg_no_ip_version)  0
   set a_global_vars(b_absolute_path)      0
   set a_global_vars(b_internal)           0
   set a_global_vars(b_arg_all_props)      0
@@ -604,7 +607,11 @@ proc write_bd_as_proc { bd_file } {
     incr temp_offset
   } 
   set temp_bd_file [file join $temp_dir "temp_$temp_offset.tcl"]
-  write_bd_tcl -no_project_wrapper -make_local -include_layout $temp_bd_file
+  if { $a_global_vars(b_arg_no_ip_version) } {
+    write_bd_tcl -no_project_wrapper -no_ip_version -make_local -include_layout $temp_bd_file
+  } else {
+    write_bd_tcl -no_project_wrapper -make_local -include_layout $temp_bd_file
+  }
   
   # Set non default properties for the BD
   wr_bd_properties $bd_file
