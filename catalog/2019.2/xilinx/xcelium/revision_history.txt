@@ -1,3 +1,4 @@
+9.5 force compile glbl when param set to true
 9.4 fixed xv_boost_lib_path variable for windows for finding include directory
 9.3 top level attribute change to integer for sv port type
 9.2 revert sv file type determination fix
