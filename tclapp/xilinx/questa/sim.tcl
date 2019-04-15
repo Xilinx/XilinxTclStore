@@ -161,7 +161,7 @@ proc usf_questa_setup_simulation { args } {
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
     if { {} != $a_sim_vars(s_clibs_dir) } {
-      set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir)]
+      set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
       foreach lib $libraries {
         if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
@@ -487,7 +487,7 @@ proc usf_questa_create_wave_do_file { file } {
   usf_questa_write_header $fh $file
   puts $fh "if \{ \[catch \{\[add wave *\]\}\] \} \{\}"
 
-  if { ([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) } {
+  if { ([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) || $a_sim_vars(b_force_compile_glbl) } {
     puts $fh "add wave /glbl/GSR"
   }
   close $fh
@@ -702,7 +702,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   # compile glbl file
   if { {behav_sim} == $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]]
-    if { [xcs_compile_glbl_file "questa" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+    if { [xcs_compile_glbl_file "questa" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
       xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
       set file_str "-work $top_lib \"${glbl_file}\""
@@ -711,7 +711,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   } else {
     # for post* compile glbl if design contain verilog and netlist is vhdl
     if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
-          ($a_sim_vars(b_int_compile_glbl))) } {
+          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
       if { ({timing} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) } {
         # This is not supported, netlist will be verilog always
       } else {
@@ -907,7 +907,7 @@ proc usf_questa_get_elaboration_cmdline {} {
     set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
   }
 
-  if { $a_sim_vars(b_int_compile_glbl) } {
+  if { $a_sim_vars(b_int_compile_glbl) || $a_sim_vars(b_force_compile_glbl) } {
     if { ([lsearch -exact $arg_list "unisims_ver"] == -1) } {
       set arg_list [linsert $arg_list end "-L" "unisims_ver"]
     }
@@ -1095,6 +1095,13 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     }
   }
 
+  # force compile glbl
+  if { !$b_add_glbl } {
+    if { $a_sim_vars(b_force_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+  
   if { $b_add_glbl } {
     set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"

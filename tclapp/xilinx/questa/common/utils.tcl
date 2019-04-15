@@ -1377,7 +1377,7 @@ proc xcs_uniquify_cmd_str { cmd_strs } {
   return [dict keys $cmd_dict]
 }
 
-proc xcs_get_compiled_libraries { clibs_dir } {
+proc xcs_get_compiled_libraries { clibs_dir {b_int_sm_lib_ref_debug 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1395,6 +1395,8 @@ proc xcs_get_compiled_libraries { clibs_dir } {
   set lib_data [split [read $fh] "\n"]
   close $fh
 
+  set failed_ips [list]
+  set lib_dirs [list]
   foreach line $lib_data {
     set line [string trim $line]
     if { [string length $line] == 0 } { continue; }
@@ -1403,8 +1405,32 @@ proc xcs_get_compiled_libraries { clibs_dir } {
     set tokens [split $line {,}]
     set library [lindex $tokens 0]
     if { [lsearch -exact $l_libs $library] == -1 } {
-      lappend l_libs $library
+      set vhd_stat [lindex [split [lindex $tokens 1] {=}] 1]
+      set ver_stat [lindex [split [lindex $tokens 2] {=}] 1]
+      if { ("pass" == $vhd_stat) && ("pass" == $ver_stat) } {
+        lappend l_libs $library
+      } else {
+        if { ("fail" == $vhd_stat) || ("fail" == $ver_stat) } {
+          if { $b_int_sm_lib_ref_debug } {
+            lappend failed_ips $library
+            lappend lib_dirs "$clibs_dir/$library"
+          }
+        }
+      }
     }
+  }
+
+  if { $b_int_sm_lib_ref_debug } {
+    set fmt {%-50s%-2s%-100s}
+    set sep ":"
+    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+    puts "Pre-Compiled libraries that failed to compile:-"
+    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+    foreach ip $failed_ips lib_dir $lib_dirs {
+      puts [format $fmt $ip $sep $lib_dir]
+      puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+    }
+    puts ""
   }
   return $l_libs
 }
@@ -4009,12 +4035,15 @@ proc xcs_print_shared_lib_type_info { } {
     lappend types $type
   }
   puts "--------------------------------------------------------------------"
+  puts "Shared libraries:-"
+  puts "--------------------------------------------------------------------"
   puts " LIBRARY                                            TYPE"
   puts "--------------------------------------------------------------------"
   foreach lib $libs type $types {
     puts [format $fmt $lib $sep $type]
     puts "--------------------------------------------------------------------"
   }
+  puts ""
 }
 
 proc xcs_get_simmodel_dir { simulator type } {

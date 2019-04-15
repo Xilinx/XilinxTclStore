@@ -254,12 +254,18 @@ proc usf_xsim_setup_simulation { args } {
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     usf_set_compiled_lib_dir
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
-    set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir)]
+    set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
     # filter local ip definitions
     foreach lib $libraries {
       if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+        # The pre-compiled library is found from local repo as well, so we will use and compile this
+        # local repo version during compilation. Do not add to valid list of pre-compiled libraries
+        # collection (l_compiled_libraries).
         continue
       } else {
+        # List of final pre-compiled libraries after filtering the ones that either failed to compile or
+        # not found in the local repo. All other libraries found in the design if not in this list will
+        # be compiled locally.
         lappend l_compiled_libraries $lib
       }
     }

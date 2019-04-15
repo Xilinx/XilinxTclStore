@@ -49,6 +49,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_int_systemc_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
+  set a_sim_vars(b_force_compile_glbl) [get_param project.forceCompileGlblForSimulation]
   set a_sim_vars(b_int_sm_lib_ref_debug) 0
   set a_sim_vars(b_int_csim_compile_order) 0
 

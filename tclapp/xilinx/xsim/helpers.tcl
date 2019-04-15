@@ -1287,12 +1287,13 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     
     set b_process_file 1
     if { $a_sim_vars(b_use_static_lib) } {
-      # use pre-compiled lib
+      # library found from valid pre-compiled libraries list, so use this pre-compiled version
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
+        # do not process file and mark this as static
         set b_process_file 0
         set b_is_static 1
       } else {
-        # add this library to have the new library linkage in mapping file
+        # library to be compiled locally, add this to the local library linkage collection for mapping purposes
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
           lappend l_local_design_libraries $library
         }
