@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>force compile glbl when param set to true</revision_history>
+      <revision_history>Enhance write_project_tcl command to generate tcls with version-less IPs.</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
