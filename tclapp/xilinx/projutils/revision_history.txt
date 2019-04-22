@@ -1,3 +1,4 @@
+3.396 Enhance write_project_tcl command to generate tcls with version-less IPs.
 3.395 force compile glbl when param set to true
 3.394 fixed xv_boost_lib_path variable for windows for finding include directory
 3.393 top level attribute change to integer for sv port type
