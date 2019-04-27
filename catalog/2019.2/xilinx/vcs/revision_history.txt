@@ -1,4 +1,4 @@
-7.2 force compile glbl when param set to true
+7.2 fixed boost include dir path
 7.1 fixed xv_boost_lib_path variable for windows for finding include directory
 7.0 do not reference glbl for pure vhdl design containing xpm_cdc
 6.9 top level attribute change to integer for sv port type

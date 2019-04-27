@@ -1,3 +1,4 @@
+2.239 fixed boost include dir path
 2.238 force compile glbl when param set to true
 2.237 fixed xv_boost_lib_path variable for windows for finding include directory
 2.236 top level attribute change to integer for sv port type
