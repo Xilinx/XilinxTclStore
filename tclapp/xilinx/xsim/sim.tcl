@@ -1231,6 +1231,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
         set xsc_arg_list [list]
         lappend xsc_arg_list "-c"
+        # revisit this once we switch to higher version (1.66 will support this by default)
+        lappend xsc_arg_list "--gcc_compile_options \"-DBOOST_SYSTEM_NO_DEPRECATED\""
         set more_xsc_options [string trim [get_property "XSIM.COMPILE.XSC.MORE_OPTIONS" $fs_obj]]
         if { {} != $more_xsc_options } {
           set xsc_arg_list [linsert $xsc_arg_list end "$more_xsc_options"]
