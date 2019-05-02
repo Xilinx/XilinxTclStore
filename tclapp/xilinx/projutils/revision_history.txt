@@ -1,3 +1,4 @@
+3.398 added file existence check for protoinst sources
 3.397 fixed boost include dir path
 3.396 Enhance write_project_tcl command to generate tcls with version-less IPs.
 3.395 force compile glbl when param set to true
