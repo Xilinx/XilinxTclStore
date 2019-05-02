@@ -3484,6 +3484,10 @@ proc xcs_get_protoinst_files { dynamic_repo_dir } {
   set filter "FILE_TYPE == \"Protocol Instance\""
   set pinst_files [list]
   foreach file [get_files -quiet -all -filter $filter] {
+    if { ![file exists $file] } {
+      send_msg_id SIM-utils-060 WARNING "File does not exist:'$file'\n"
+      continue
+    }
     set file [xcs_get_file_from_repo $file $dynamic_repo_dir b_found_in_repo repo_src_file]
     if { {} != $file } {
       lappend pinst_files $file
