@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed xv_boost_lib_path variable for windows for finding include directory</revision_history>
+      <revision_history>added file existence check for the proroinst sources</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
