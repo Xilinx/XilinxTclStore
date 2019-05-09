@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added file existence check for protoinst sources</revision_history>
+      <revision_history>resolve uvm dir</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
