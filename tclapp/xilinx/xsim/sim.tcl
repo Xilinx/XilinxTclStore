@@ -784,6 +784,14 @@ proc usf_resolve_compiled_library_dir { cxl_prop_dir library } {
     }
   }
 
+  # internal system verilog libraries
+  if { $library == "uvm" } {
+    set dir "$cxl_prop_dir/system_verilog/$library"
+    if { [file exists $dir] } {
+      return $dir
+    }
+  }
+
   # vhdl base libraries
   if { ($library == "unifast" ) ||
        ($library == "unimacro") ||
