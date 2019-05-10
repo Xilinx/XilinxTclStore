@@ -1,3 +1,4 @@
+3.396 added file existence check for the ip object before fetching ip_output_dir value
 3.395 added file existence check for the proroinst sources
 3.394 fixed xv_boost_lib_path variable for windows for finding include directory
 3.393 top level attribute change to integer for sv port type
