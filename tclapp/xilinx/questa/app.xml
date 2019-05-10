@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added file existence check for the proroinst sources</revision_history>
+      <revision_history>added file existence check for the ip object before fetching ip_output_dir value</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
