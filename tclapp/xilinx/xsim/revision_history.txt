@@ -1,3 +1,4 @@
+2.298 added file existence check for the ip object before fetching ip_output_dir value
 2.297 added file existence check for the proroinst sources
 2.296 fixed xv_boost_lib_path variable for windows for finding include directory
 2.295 support for calling xsim in standalone mode
