@@ -273,12 +273,6 @@ proc usf_xsim_setup_simulation { args } {
   
   set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
 
-  # extract simulation model library info
-  set ip_dir "$a_sim_vars(s_clibs_dir)/ip"
-  if { ![file exists $ip_dir] } {
-    set ip_dir $a_sim_vars(s_clibs_dir)
-  }
-  xcs_fetch_lib_info "xsim" $ip_dir $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
@@ -306,6 +300,21 @@ proc usf_xsim_setup_simulation { args } {
   if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
     set a_sim_vars(b_system_sim_design) 1
   }
+
+  # for non-precompile mode set the compiled library for system simulation 
+  if { !$a_sim_vars(b_use_static_lib) } {
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      usf_xsim_set_clibs_for_system_sim
+      set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
+    }
+  }
+
+  # extract simulation model library info
+  set ip_dir "$a_sim_vars(s_clibs_dir)/ip"
+  if { ![file exists $ip_dir] } {
+    set ip_dir $a_sim_vars(s_clibs_dir)
+  }
+  xcs_fetch_lib_info "xsim" $ip_dir $a_sim_vars(b_int_sm_lib_ref_debug)
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
 
@@ -675,6 +684,46 @@ proc usf_xsim_verify_compiled_lib {} {
  # failed to find the compiled library, print msg
  usf_print_compiled_lib_msg
  return 1
+}
+
+proc usf_xsim_set_clibs_for_system_sim {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set filename "xsim.ini"
+  send_msg_id USF-XSim-007 INFO "Finding pre-compiled libraries...\n"
+
+  # 1. is -lib_map_path specified and point to valid location?
+  if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+    set ini_file [file normalize [file join $a_sim_vars(s_lib_map_path) $filename]]
+    if { [file exists $ini_file] } {
+      set a_sim_vars(compiled_library_dir) $a_sim_vars(s_lib_map_path)
+      return 0
+    } else {
+      usf_print_compiled_lib_msg
+      return 1
+    }
+  }
+
+  # 2. if empty property (default), calculate default install location
+  set dir [get_property "COMPXLIB.XSIM_COMPILED_LIBRARY_DIR" [current_project]]
+  if { {} == $dir } {
+    set dir $::env(XILINX_VIVADO)
+    set dir [file normalize [file join $dir "data/xsim"]]
+  }
+  set file [file normalize [file join $dir $filename]]
+  if { [file exists $file] } {
+    set a_sim_vars(compiled_library_dir) $dir
+    return 0
+  }
+
+  # failed to find the compiled library, print msg
+  usf_print_compiled_lib_msg
+  return 1
 }
 
 proc usf_print_compiled_lib_msg {} {
