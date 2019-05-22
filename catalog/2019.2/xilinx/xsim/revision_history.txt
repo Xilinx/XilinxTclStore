@@ -1,3 +1,4 @@
+2.303 find referenced pre-compiled IP libraries from the compiled library
 2.302 set compiled library dir for non-precompile system simulation mode
 2.301 Added comment
 2.300 resolve uvm dir
