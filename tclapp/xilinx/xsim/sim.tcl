@@ -2316,15 +2316,25 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   lappend args_list "-lib $a_sim_vars(default_top_library)"
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
     set ip_objs [get_ips -all -quiet]
-    foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
-      foreach ip_obj $ip_objs {
-        set ipdef [get_property -quiet IPDEF $ip_obj]
-        set ip_name [lindex [split $ipdef ":"] 2]
-        if { [string first $ip_name $shared_ip_lib] != -1} {
-          lappend args_list "-lib $shared_ip_lib"
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
+      puts "Referenced pre-compiled shared libraries"
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
+    }
+    foreach ip_obj $ip_objs {
+      set ipdef [get_property -quiet IPDEF $ip_obj]
+      set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+      if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+        lappend args_list "-lib $vlnv_name"
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
         }
       }
+    }
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
     }
 
     set b_en_code true
