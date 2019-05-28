@@ -48,6 +48,9 @@ proc register_options { simulator } {
     {{compile.load_glbl}             {bool}   {1}        {Load GLBL module}}
     {{compile.xmvhdl.more_options}   {string} {}         {More XMVHDL compilation options}}
     {{compile.xmvlog.more_options}   {string} {}         {More XMVLOG compilation options}}
+    {{compile.xmsc.more_options}     {string} {}         {More XMSC compilation options}}
+    {{compile.g++.more_options}      {string} {}         {More G++ compilation options}}
+    {{compile.gcc.more_options}      {string} {}         {More GCC compilation options}}
     {{elaborate.update}              {bool}   {0}        {Check if unit is up-to-date before writing}}
     {{elaborate.xmelab.more_options} {string} {}         {More XMELAB elaboration options}}
     {{simulate.tcl.post}             {string} {}         {Specify post-simulate step TCL hook}}
