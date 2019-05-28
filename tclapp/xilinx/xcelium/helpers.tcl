@@ -90,6 +90,7 @@ proc usf_init_vars {} {
   variable l_xpm_libraries [list]
 
   variable l_design_c_files          [list]
+  variable l_system_sim_incl_dirs    [list]
   set a_sim_vars(tmp_obj_dir)        ".cxl.obj"
 
   # ip file extension types
@@ -749,6 +750,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   if { $a_sim_vars(b_int_systemc_mode) } {
     # design contain systemc sources?
     set simulator "xcelium"
+    variable l_system_sim_incl_dirs
     set prefix_ref_dir false
     set sc_filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
     set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
@@ -767,6 +769,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       set l_incl_dir [list]
       foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $sc_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "+incdir+\\\"$dir\\\""
+        lappend l_system_sim_incl_dirs $dir
       }
 
       # dependency on cpp source headers
@@ -812,6 +815,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       set l_incl_dir [list]
       foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $cpp_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "+incdir+\\\"$dir\\\""
+        lappend l_system_sim_incl_dirs $dir
       }
 
       # append simulation model libraries
@@ -853,6 +857,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       set l_incl_dir [list]
       foreach dir [xcs_get_c_incl_dirs $simulator $a_sim_vars(s_launch_dir) $a_sim_vars(s_boost_dir) $c_header_filter $a_sim_vars(dynamic_repo_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "+incdir+\\\"$dir\\\""
+        lappend l_system_sim_incl_dirs $dir
       }
 
       # append simulation model libraries
@@ -1378,11 +1383,26 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
     }
     "xmsc" {
       if { $a_sim_vars(b_int_systemc_mode) } {
+        variable l_system_sim_incl_dirs
+        set incl_dirs [list]
+        foreach dir $l_system_sim_incl_dirs {
+          lappend incl_dirs "-I$dir"
+        } 
+        set incl_dir_str [join $incl_dirs " "]
+
         lappend opts "\$${tool}_opts"
         lappend opts "-compiler \$gcc_path/g++"
+
         # TODO: compile objects into tmp dir (./obj)
         #lappend opts "-cFlags \"-fPIC -c -o $a_sim_vars(tmp_obj_dir) -D_GLIBCXX_USE_CXX11_ABI=0\""
-        lappend opts "-cFlags \"-fPIC -c -D_GLIBCXX_USE_CXX11_ABI=0\""
+
+        lappend opts "-cFlags"
+        set gcc_opts "\"-fPIC -c -D_GLIBCXX_USE_CXX11_ABI=0"
+        if { {} != $incl_dir_str } {
+          append gcc_opts " $incl_dir_str"
+        }
+        append gcc_opts "\""
+        lappend opts $gcc_opts
       }
     }
     "g++" {
