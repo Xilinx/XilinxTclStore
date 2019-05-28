@@ -1,3 +1,4 @@
+2.241 add compiler types for xcelium co-simulation support
 2.240 added file existence check for protoinst sources
 2.239 fixed boost include dir path
 2.238 force compile glbl when param set to true

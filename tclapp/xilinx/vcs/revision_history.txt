@@ -1,3 +1,4 @@
+7.4 add compiler types for xcelium co-simulation support
 7.3 added file existence check for protoinst sources
 7.2 fixed boost include dir path
 7.1 fixed xv_boost_lib_path variable for windows for finding include directory

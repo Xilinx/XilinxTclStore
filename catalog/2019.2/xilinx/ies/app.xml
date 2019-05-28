@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added file existence check for protoinst sources</revision_history>
+      <revision_history>add compiler types for xcelium co-simulation support</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
