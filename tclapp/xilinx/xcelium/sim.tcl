@@ -1062,7 +1062,17 @@ proc usf_xcelium_write_simulate_script {} {
   xcs_write_script_header $fh_scr "simulate" "xcelium"
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$tool_path\"\n"
+    puts $fh_scr "bin_path=\"$tool_path\""
+    if { $a_sim_vars(b_int_systemc_mode) } {
+      if { $a_sim_vars(b_contain_systemc_sources) ||
+           $a_sim_vars(b_contain_cpp_sources) ||
+           $a_sim_vars(b_contain_c_sources) } {
+        puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
+        puts $fh_scr "# set library search order"
+        puts $fh_scr "LD_LIBRARY_PATH=.:\$sys_path:\$LD_LIBRARY_PATH"
+      }
+    }
+    puts $fh_scr ""
   }
 
   set do_filename "${top}_simulate.do"

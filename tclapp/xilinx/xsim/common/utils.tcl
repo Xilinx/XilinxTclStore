@@ -2200,13 +2200,13 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
   # Summary:
   # Argument Usage:
   # Return Value:
-
+  
   variable l_target_simulator
   if { [llength $data_files] == 0 } { return }
   set data_files [xcs_remove_duplicate_files $data_files]
-  foreach file $data_files {
-    set extn [file extension $file]
-    set filename [file tail $file]
+  foreach src_file $data_files {
+    set extn [file extension $src_file]
+    set filename [file tail $src_file]
     switch -- $extn {
       {.bd} -
       {.png} -
@@ -2215,12 +2215,15 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
       {.hwh} -
       {.hwdef} -
       {.xml} {
-        if { {} != [xcs_cache_result {xcs_get_top_ip_filename $file}] } {
+        if { {} != [xcs_cache_result {xcs_get_top_ip_filename $src_file}] } {
           if { [regexp {_addr_map.xml} ${filename}] } {
             # keep these files
           } else {
             continue
           }
+        } else {
+          # skip other c files
+          if { {.c}   == $extn } { continue }
         }
       }
     }
@@ -2234,11 +2237,14 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
     set mig_files [list "xsim_run.sh" "ies_run.sh" "xcelium_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
     if { [lsearch $mig_files $filename] != -1 } {continue}
 
-    set target_file "$export_dir/[file tail $file]"
+    # skip system source files
+    if { {.cpp} == $extn } { continue }
+
+    set target_file "$export_dir/[file tail $src_file]"
 
     if { ([get_param project.enableCentralSimRepo]) && ({} != $dynamic_repo_dir) } {
       set mem_init_dir [file normalize "$dynamic_repo_dir/mem_init_files"]
-      set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
+      set data_file [extract_files -force -no_paths -files [list "$src_file"] -base_dir $mem_init_dir]
 
       if {[catch {file copy -force $data_file $export_dir} error_msg] } {
         send_msg_id SIM-utils-042 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
@@ -2246,7 +2252,7 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
         send_msg_id SIM-utils-043 INFO "Exported '$target_file'\n"
       }
     } else {
-      set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $export_dir]
+      set data_file [extract_files -force -no_paths -files [list "$src_file"] -base_dir $export_dir]
       send_msg_id SIM-utils-044 INFO "Exported '$target_file'\n"
     }
   }

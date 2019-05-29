@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add compiler types for xcelium co-simulation support</revision_history>
+      <revision_history>filter systemc sources from exporting into run directory</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
