@@ -1,3 +1,4 @@
+2.305 filter systemc sources from exporting into run directory
 2.304 add compiler types for xcelium co-simulation support
 2.303 find referenced pre-compiled IP libraries from the compiled library
 2.302 set compiled library dir for non-precompile system simulation mode

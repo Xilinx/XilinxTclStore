@@ -1,3 +1,4 @@
+4.32 filter systemc sources from exporting into run directory
 4.31 add compiler types for xcelium co-simulation support
 4.30 added file existence check for protoinst sources
 4.29 fixed boost include dir path

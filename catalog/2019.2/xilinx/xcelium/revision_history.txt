@@ -1,4 +1,4 @@
-10.1 gcc install dir status message
+10.2 filter systemc sources from exporting into run directory
 9.9 add compiler types for xcelium co-simulation support
 9.8 added file existence check for protoinst sources
 9.7 fixed boost include dir path
