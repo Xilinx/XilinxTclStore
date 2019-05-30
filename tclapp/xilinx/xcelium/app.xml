@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set gcc options for xmsc compile step</revision_history>
+      <revision_history>set simulator system and obj files args</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

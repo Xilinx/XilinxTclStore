@@ -941,6 +941,25 @@ proc usf_xcelium_write_elaborate_script {} {
   puts $fh_scr "\n# set design libraries"
   puts $fh_scr "design_libs_elab=\"[join $arg_list " "]\"\n"
 
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_contain_systemc_sources) ||
+         $a_sim_vars(b_contain_cpp_sources) ||
+         $a_sim_vars(b_contain_c_sources) } {
+      puts $fh_scr "# set gcc objects"
+      variable l_design_c_files
+      set objs_arg [list]
+      foreach c_file $l_design_c_files {
+        set file_name [file tail [file root $c_file]]
+        append file_name ".o"
+        lappend objs_arg "$a_sim_vars(tmp_obj_dir)/$file_name"
+      }
+      set objs_arg_str [join $objs_arg " "]
+      puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
+      puts $fh_scr "# link simulator system libraries"
+      puts $fh_scr "sys_libs=\"\$sys_path/libscBootstrap_sh.so \$sys_path/libxmscCoroutines_sh.so \$sys_path/libsystemc_sh.so\"\n"
+    }
+  }
+
   set tool_path_val "\$bin_path/$tool"
   if { {} == $tool_path } {
     set tool_path_val "$tool"
@@ -975,19 +994,12 @@ proc usf_xcelium_write_elaborate_script {} {
          $a_sim_vars(b_contain_c_sources) } {
       # set gcc path
       if { {} != $gcc_path } {
-        variable l_design_c_files
         puts $fh_scr "# generate shared object"
         set link_arg_list [list "\$gcc_path/g++"]
         lappend link_arg_list "-m64 -Wl,-G -shared -o"
         lappend link_arg_list "${top}_sc.so"
-        foreach c_file $l_design_c_files {
-          set file_name [file tail [file root $c_file]]
-          append file_name ".o"
-          lappend link_arg_list "$a_sim_vars(tmp_obj_dir)/$file_name"
-        }
-        lappend link_arg_list "\$sys_path/libscBootstrap_sh.so"
-        lappend link_arg_list "\$sys_path/libxmscCoroutines_sh.so"
-        lappend link_arg_list "\$sys_path/libsystemc_sh.so"
+        lappend link_arg_list "\$gcc_objs"
+        lappend link_arg_list "\$sys_libs"
         set link_args [join $link_arg_list " "]
         puts $fh_scr "$link_args\n"
       }
