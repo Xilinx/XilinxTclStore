@@ -1,4 +1,4 @@
-10.4 set gcc options for xmsc compile step
+10.5 set simulator system and obj files args
 9.9 add compiler types for xcelium co-simulation support
 9.8 added file existence check for protoinst sources
 9.7 fixed boost include dir path
