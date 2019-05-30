@@ -1387,21 +1387,10 @@ proc usf_append_compiler_options { tool src_file file_type opts_arg } {
     }
     "xmsc" {
       if { $a_sim_vars(b_int_systemc_mode) } {
-        variable l_system_sim_incl_dirs
-        set incl_dirs [list]
-        foreach dir $l_system_sim_incl_dirs {
-          lappend incl_dirs "-I$dir"
-        } 
-        set incl_dir_str [join $incl_dirs " "]
-
         lappend opts "\$${tool}_opts"
         lappend opts "-compiler \$gcc_path/g++"
         lappend opts "-cFlags"
-        set gcc_opts "\"-fPIC -c -o $a_sim_vars(tmp_obj_dir)/${file_name}.o -D_GLIBCXX_USE_CXX11_ABI=0"
-        if { {} != $incl_dir_str } {
-          append gcc_opts " $incl_dir_str"
-        }
-        append gcc_opts "\""
+        set gcc_opts "\"-o $a_sim_vars(tmp_obj_dir)/${file_name}.o \$xmsc_gcc_opts\""
         lappend opts $gcc_opts
       }
     }

@@ -585,7 +585,27 @@ proc usf_xcelium_write_compile_script {} {
         set arg_list [linsert $arg_list end "$more_xmsc_options"]
       }
       puts $fh_scr "# set ${tool} command line args"
-      puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+      puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
+
+      # xmsc gcc options
+      set xmsc_gcc_opts [list]
+      lappend xmsc_gcc_opts "-fPIC"
+      lappend xmsc_gcc_opts "-c"
+      lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
+      variable l_system_sim_incl_dirs
+      set incl_dirs [list]
+      set uniq_dirs [list]
+      foreach dir $l_system_sim_incl_dirs {
+        if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+          lappend uniq_dirs $dir
+          lappend incl_dirs "-I$dir"
+        }
+      }
+      set incl_dir_str [join $incl_dirs " "]
+      if { {} != $incl_dir_str } {
+        append xmsc_gcc_opts " $incl_dir_str"
+      }
+      puts $fh_scr "${tool}_gcc_opts=\"$xmsc_gcc_opts\"\n"
     }
     # g++
     if { $a_sim_vars(b_contain_cpp_sources) } {
@@ -1315,6 +1335,8 @@ proc usf_xcelium_create_setup_script {} {
   puts $fh_scr "      rm -rf \$file"
   puts $fh_scr "    fi"
   puts $fh_scr "  done"
+  puts $fh_scr "  rm -rf ./$a_sim_vars(tmp_obj_dir)"
+  puts $fh_scr "  mkdir $a_sim_vars(tmp_obj_dir)"
   puts $fh_scr "\}"
   puts $fh_scr ""
 
