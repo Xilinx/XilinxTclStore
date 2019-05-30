@@ -1,4 +1,4 @@
-10.3 pass object file args to compiler
+10.4 set gcc options for xmsc compile step
 9.9 add compiler types for xcelium co-simulation support
 9.8 added file existence check for protoinst sources
 9.7 fixed boost include dir path
