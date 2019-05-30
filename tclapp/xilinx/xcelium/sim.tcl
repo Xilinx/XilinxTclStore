@@ -656,24 +656,36 @@ proc usf_xcelium_write_compile_script {} {
 
     set compiler [file tail [lindex [split $cmd_str " "] 0]]
 
-    if { $b_group_files } {
-      if { $b_first } {
-        set b_first false
-        usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
-      } else {
-        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-          puts $fh_scr "$src_file \\"
+    if { ("xmsc" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
+      if { "xmsc" == $compiler } {
+        puts $fh_scr ""
+        if { {} != $tool_path } {
+          puts $fh_scr "\$bin_path/$cmd_str \\\n$src_file"
         } else {
+          puts $fh_scr "$cmd_str \\\n$src_file"
+        }
+      } else {
+        if { ("g++" == $compiler) || ("gcc" == $compiler) } {
           puts $fh_scr ""
-          usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
+          if { {} != $gcc_path } {
+            puts $fh_scr "\$gcc_path/$cmd_str \\\n$src_file"
+          } else {
+            puts $fh_scr "$cmd_str \\\n$src_file"
+          }
         }
       }
     } else {
-      if { ("g++" == $compiler) || ("gcc" == $compiler) } {
-        if { {} != $gcc_path } {
-          puts $fh_scr "\$gcc_path/$cmd_str $src_file"
+      if { $b_group_files } {
+        if { $b_first } {
+          set b_first false
+          usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
         } else {
-          puts $fh_scr "$cmd_str $src_file"
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+            puts $fh_scr "$src_file \\"
+          } else {
+            puts $fh_scr ""
+            usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
+          }
         }
       } else {
         if { {} != $tool_path } {
@@ -735,7 +747,7 @@ proc usf_xcelium_write_compile_script {} {
       if { [file exists $obj_dir] } {
         [catch {file delete -force -- $obj_dir} error_msg]
       }
-      #[catch {file mkdir $obj_dir} error_msg]
+      [catch {file mkdir $obj_dir} error_msg]
     }
   }
 }
@@ -951,8 +963,7 @@ proc usf_xcelium_write_elaborate_script {} {
         foreach c_file $l_design_c_files {
           set file_name [file tail [file root $c_file]]
           append file_name ".o"
-          #lappend link_arg_list "./$a_sim_vars(tmp_obj_dir)/$file_name"
-          lappend link_arg_list "./$file_name"
+          lappend link_arg_list "$a_sim_vars(tmp_obj_dir)/$file_name"
         }
         lappend link_arg_list "\$sys_path/libscBootstrap_sh.so"
         lappend link_arg_list "\$sys_path/libxmscCoroutines_sh.so"

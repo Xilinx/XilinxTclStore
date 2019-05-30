@@ -91,7 +91,7 @@ proc usf_init_vars {} {
 
   variable l_design_c_files          [list]
   variable l_system_sim_incl_dirs    [list]
-  set a_sim_vars(tmp_obj_dir)        ".cxl.obj"
+  set a_sim_vars(tmp_obj_dir)        "c.obj"
 
   # ip file extension types
   variable l_valid_ip_extns          [list]
@@ -1355,7 +1355,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   return $incl_dirs
 }
 
-proc usf_append_compiler_options { tool file_type opts_arg } {
+proc usf_append_compiler_options { tool src_file file_type opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1363,6 +1363,10 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
   upvar $opts_arg opts
   variable a_sim_vars
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set src_file [string trim $src_file {\"}]
+  set file_name [file root [file tail $src_file]]
+
   switch $tool {
     "xmvhdl" {
       set vhd_syntax {}
@@ -1392,12 +1396,8 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
 
         lappend opts "\$${tool}_opts"
         lappend opts "-compiler \$gcc_path/g++"
-
-        # TODO: compile objects into tmp dir (./obj)
-        #lappend opts "-cFlags \"-fPIC -c -o $a_sim_vars(tmp_obj_dir) -D_GLIBCXX_USE_CXX11_ABI=0\""
-
         lappend opts "-cFlags"
-        set gcc_opts "\"-fPIC -c -D_GLIBCXX_USE_CXX11_ABI=0"
+        set gcc_opts "\"-fPIC -c -o $a_sim_vars(tmp_obj_dir)/${file_name}.o -D_GLIBCXX_USE_CXX11_ABI=0"
         if { {} != $incl_dir_str } {
           append gcc_opts " $incl_dir_str"
         }
@@ -1408,13 +1408,13 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
     "g++" {
       if { $a_sim_vars(b_int_systemc_mode) } {
         lappend opts "\$gpp_opts"
-        lappend opts "-c"
+        lappend opts "-c -o $a_sim_vars(tmp_obj_dir)/${file_name}.o"
       }
     }
     "gcc" {
       if { $a_sim_vars(b_int_systemc_mode) } {
         lappend opts "\$gcc_opts"
-        lappend opts "-c"
+        lappend opts "-c -o $a_sim_vars(tmp_obj_dir)/${file_name}.o"
       }
     }
   }
@@ -1518,7 +1518,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
-    usf_append_compiler_options $compiler $file_type arg_list
+    usf_append_compiler_options $compiler $file $file_type arg_list
     if { ("xmsc" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
       variable l_design_c_files
       lappend l_design_c_files $file
