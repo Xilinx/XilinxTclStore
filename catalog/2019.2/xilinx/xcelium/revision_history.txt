@@ -1,4 +1,4 @@
-10.2 filter systemc sources from exporting into run directory
+10.3 pass object file args to compiler
 9.9 add compiler types for xcelium co-simulation support
 9.8 added file existence check for protoinst sources
 9.7 fixed boost include dir path
