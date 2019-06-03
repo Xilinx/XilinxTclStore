@@ -1,3 +1,4 @@
+7.6 reference simmodel shared library
 7.5 filter systemc sources from exporting into run directory
 7.4 add compiler types for xcelium co-simulation support
 7.3 added file existence check for protoinst sources

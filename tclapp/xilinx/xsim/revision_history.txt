@@ -1,3 +1,4 @@
+2.306 reference simmodel shared library
 2.305 filter systemc sources from exporting into run directory
 2.304 add compiler types for xcelium co-simulation support
 2.303 find referenced pre-compiled IP libraries from the compiled library

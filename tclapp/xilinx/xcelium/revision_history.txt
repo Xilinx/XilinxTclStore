@@ -1,4 +1,4 @@
-10.5 set simulator system and obj files args
+10.6 reference simmodel shared library
 9.9 add compiler types for xcelium co-simulation support
 9.8 added file existence check for protoinst sources
 9.7 fixed boost include dir path
