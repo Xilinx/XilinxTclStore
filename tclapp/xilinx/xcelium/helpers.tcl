@@ -63,6 +63,8 @@ proc usf_init_vars {} {
   set a_sim_vars(b_contain_c_sources)       0
   set a_sim_vars(b_contain_systemc_headers) 0
 
+  set a_sim_vars(b_system_sim_design) 0
+
   set a_sim_vars(sp_cpt_dir) {}
   set a_sim_vars(sp_ext_dir) {}
 
@@ -83,6 +85,7 @@ proc usf_init_vars {} {
   variable l_design_files            [list]
   variable l_compiled_libraries      [list]
   variable l_local_design_libraries  [list]
+  variable l_systemc_incl_dirs       [list]
   # ip static libraries
   variable l_ip_static_libs          [list]
 

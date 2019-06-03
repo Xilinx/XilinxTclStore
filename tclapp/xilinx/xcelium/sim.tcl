@@ -199,22 +199,27 @@ proc usf_xcelium_setup_simulation { args } {
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
 
+  # fetch design files
+  set global_files_str {}
+  set ::tclapp::xilinx::xcelium::a_sim_vars(l_design_files) \
+     [xcs_uniquify_cmd_str [::tclapp::xilinx::xcelium::usf_get_files_for_compilation global_files_str]]
+
+  # is system design?
+  if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
+    set a_sim_vars(b_system_sim_design) 1
+  }
+
   if { $a_sim_vars(b_int_systemc_mode) } {
     # systemC headers
     set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
 
     # find shared library paths from all IPs
-    if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       if { [xcs_contains_C_files] } {
         xcs_find_shared_lib_paths "xcelium" $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
       }
     }
   }
-
-  # fetch design files
-  set global_files_str {}
-  set ::tclapp::xilinx::xcelium::a_sim_vars(l_design_files) \
-     [xcs_uniquify_cmd_str [::tclapp::xilinx::xcelium::usf_get_files_for_compilation global_files_str]]
 
   # create setup file
   usf_xcelium_write_setup_files
@@ -501,13 +506,19 @@ proc usf_xcelium_write_compile_script {} {
     puts $fh_scr "bin_path=\"$tool_path\""
  
     if { $a_sim_vars(b_int_systemc_mode) } {
-      if { $a_sim_vars(b_contain_systemc_sources) ||
-           $a_sim_vars(b_contain_cpp_sources) ||
-           $a_sim_vars(b_contain_c_sources) } {
+      if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
         if { {} != $gcc_path } {
-          puts $fh_scr "gcc_path=\"$gcc_path\""
+          puts $fh_scr "gcc_path=\"$gcc_path\"\n"
         }
+      }
+      # set system sim library paths
+      if { $::tclapp::xilinx::xcelium::a_sim_vars(b_system_sim_design) } { 
+        puts $fh_scr "# set system shared library paths"
+        puts $fh_scr "xv_cxl_lib_path=\"$::tclapp::xilinx::xcelium::a_sim_vars(s_clibs_dir)\""
+        puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xcelium::a_sim_vars(sp_cpt_dir)\""
+        puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xcelium::a_sim_vars(sp_ext_dir)\""
+        puts $fh_scr "xv_boost_lib_path=\"$::tclapp::xilinx::xcelium::a_sim_vars(s_boost_dir)\""
       }
     }
   }
@@ -570,7 +581,7 @@ proc usf_xcelium_write_compile_script {} {
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
 
   if { $a_sim_vars(b_int_systemc_mode) } {
-    # xmsc
+    # xmsc (systemC)
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "xmsc"
       set arg_list [list "-messages"]
@@ -605,9 +616,48 @@ proc usf_xcelium_write_compile_script {} {
       if { {} != $incl_dir_str } {
         append xmsc_gcc_opts " $incl_dir_str"
       }
+
+      # reference simmodel shared library include directories
+      variable a_shared_library_path_coln
+      set l_sim_model_incl_dirs [list]
+      foreach {key value} [array get a_shared_library_path_coln] {
+        set shared_lib_name $key
+        set lib_path        $value
+        set sim_model_incl_dir "$lib_path/include"
+        if { [file exists $sim_model_incl_dir] } {
+          if { !$a_sim_vars(b_absolute_path) } {
+            # relative path
+            set b_resolved 0
+            set resolved_path [xcs_resolve_sim_model_dir $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved]
+            if { $b_resolved } {
+              set sim_model_incl_dir $resolved_path
+            } else {
+              set sim_model_incl_dir "[xcs_get_relative_file_path $sim_model_incl_dir $a_sim_vars(s_launch_dir)]"
+            }
+          }
+          lappend l_sim_model_incl_dirs $sim_model_incl_dir
+        }
+      }
+      # simset include dir
+      foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
+        if { !$a_sim_vars(b_absolute_path) } {
+          set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+        }
+        lappend l_sim_model_incl_dirs "$incl_dir"
+      }
+
+      if { [llength $l_sim_model_incl_dirs] > 0 } {
+        # save system incl dirs
+        variable l_systemc_incl_dirs
+        set l_systemc_incl_dirs $l_sim_model_incl_dirs
+        # append to gcc options
+        foreach incl_dir $l_sim_model_incl_dirs {
+          append xmsc_gcc_opts " -I$incl_dir"
+        }
+      }
       puts $fh_scr "${tool}_gcc_opts=\"$xmsc_gcc_opts\"\n"
     }
-    # g++
+    # g++ (c++)
     if { $a_sim_vars(b_contain_cpp_sources) } {
       set tool "g++"
       set arg_list [list "-c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
@@ -623,7 +673,7 @@ proc usf_xcelium_write_compile_script {} {
       puts $fh_scr "# set ${tool} command line args"
       puts $fh_scr "gpp_opts=\"[join $arg_list " "]\"\n"
     }
-    # gcc
+    # gcc (c)
     if { $a_sim_vars(b_contain_c_sources) } {
       set tool "gcc"
       set arg_list [list "-c -fPIC -O3"]
@@ -760,9 +810,7 @@ proc usf_xcelium_write_compile_script {} {
 
   # directory for obj's
   if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) ||
-         $a_sim_vars(b_contain_cpp_sources) ||
-         $a_sim_vars(b_contain_c_sources) } {
+    if { $a_sim_vars(b_system_sim_design) } {
       set obj_dir "$a_sim_vars(s_launch_dir)/$a_sim_vars(tmp_obj_dir)"
       if { [file exists $obj_dir] } {
         [catch {file delete -force -- $obj_dir} error_msg]
@@ -804,9 +852,7 @@ proc usf_xcelium_write_elaborate_script {} {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
     if { $a_sim_vars(b_int_systemc_mode) } {
-      if { $a_sim_vars(b_contain_systemc_sources) ||
-           $a_sim_vars(b_contain_cpp_sources) ||
-           $a_sim_vars(b_contain_c_sources) } {
+      if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
         if { {} != $gcc_path } {
           puts $fh_scr "gcc_path=\"$gcc_path\""
@@ -942,9 +988,7 @@ proc usf_xcelium_write_elaborate_script {} {
   puts $fh_scr "design_libs_elab=\"[join $arg_list " "]\"\n"
 
   if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) ||
-         $a_sim_vars(b_contain_cpp_sources) ||
-         $a_sim_vars(b_contain_c_sources) } {
+    if { $a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "# set gcc objects"
       variable l_design_c_files
       set objs_arg [list]
@@ -976,9 +1020,7 @@ proc usf_xcelium_write_elaborate_script {} {
   }
 
   if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) ||
-         $a_sim_vars(b_contain_cpp_sources) ||
-         $a_sim_vars(b_contain_c_sources) } {
+    if { $a_sim_vars(b_system_sim_design) } {
       lappend arg_list "-loadsc ${top}_sc"
     }
   }
@@ -989,9 +1031,7 @@ proc usf_xcelium_write_elaborate_script {} {
   usf_add_glbl_top_instance arg_list $top_level_inst_names
 
   if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) ||
-         $a_sim_vars(b_contain_cpp_sources) ||
-         $a_sim_vars(b_contain_c_sources) } {
+    if { $a_sim_vars(b_system_sim_design) } {
       # set gcc path
       if { {} != $gcc_path } {
         puts $fh_scr "# generate shared object"
@@ -1107,9 +1147,7 @@ proc usf_xcelium_write_simulate_script {} {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
     if { $a_sim_vars(b_int_systemc_mode) } {
-      if { $a_sim_vars(b_contain_systemc_sources) ||
-           $a_sim_vars(b_contain_cpp_sources) ||
-           $a_sim_vars(b_contain_c_sources) } {
+      if { $a_sim_vars(b_system_sim_design) } {
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
         puts $fh_scr "# set library search order"
         puts $fh_scr "LD_LIBRARY_PATH=.:\$sys_path:\$LD_LIBRARY_PATH"
