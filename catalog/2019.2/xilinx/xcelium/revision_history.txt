@@ -1,4 +1,4 @@
-10.6 reference simmodel shared library
+10.7 pass dynamic process option
 9.9 add compiler types for xcelium co-simulation support
 9.8 added file existence check for protoinst sources
 9.7 fixed boost include dir path
