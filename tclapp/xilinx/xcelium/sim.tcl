@@ -603,6 +603,7 @@ proc usf_xcelium_write_compile_script {} {
       lappend xmsc_gcc_opts "-fPIC"
       lappend xmsc_gcc_opts "-c"
       lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
+      lappend xmsc_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
       variable l_system_sim_incl_dirs
       set incl_dirs [list]
       set uniq_dirs [list]
