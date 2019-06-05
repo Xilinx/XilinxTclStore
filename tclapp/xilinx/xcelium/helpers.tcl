@@ -1358,7 +1358,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   return $incl_dirs
 }
 
-proc usf_append_compiler_options { tool src_file file_type opts_arg } {
+proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1391,6 +1391,7 @@ proc usf_append_compiler_options { tool src_file file_type opts_arg } {
     "xmsc" {
       if { $a_sim_vars(b_int_systemc_mode) } {
         lappend opts "\$${tool}_opts"
+        lappend opts "-work $work_lib"
         lappend opts "-compiler \$gcc_path/g++"
         lappend opts "-cFlags"
         set gcc_opts "\"-o $a_sim_vars(tmp_obj_dir)/${file_name}.o \$xmsc_gcc_opts\""
@@ -1510,13 +1511,15 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
-    usf_append_compiler_options $compiler $file $file_type arg_list
+    usf_append_compiler_options $compiler $file $associated_library $file_type arg_list
     if { ("xmsc" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
       variable l_design_c_files
       lappend l_design_c_files $file
     }
     if { ("g++" == $compiler) || ("gcc" == $compiler) } {
       # no work lib required
+    } elseif { ("xmsc" == $compiler) } {
+      set arg_list [linsert $arg_list end "$global_files_str"]
     } else {
       set arg_list [linsert $arg_list end "-work $associated_library" "$global_files_str"]
     }
@@ -1647,7 +1650,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #puts ip_name=$ip_name
 
   set dst_cip_file $full_src_file_path
-  set used_in_values [get_property "USED_IN" $full_src_file_obj]
+  set used_in_values [xcs_find_used_in_values $full_src_file_obj]
   set library [get_property "LIBRARY" $full_src_file_obj]
   set b_file_is_static 0
   # is dynamic?

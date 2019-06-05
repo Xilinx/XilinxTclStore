@@ -1421,7 +1421,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #puts ip_name=$ip_name
 
   set dst_cip_file $full_src_file_path
-  set used_in_values [get_property "USED_IN" $full_src_file_obj]
+  set used_in_values [xcs_find_used_in_values $full_src_file_obj]
   set library [get_property "LIBRARY" $full_src_file_obj]
   set b_file_is_static 0
   # is dynamic?

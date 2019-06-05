@@ -627,6 +627,28 @@ proc xcs_find_file_from_compile_order { ip_name src_file } {
   return $src_file
 }
 
+proc xcs_find_used_in_values { src_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set used_in_values [get_property "USED_IN" $src_file]
+  # if only marked for synthesis but multiple files with exact duplicate file paths found in the design, then
+  # check if one of these files is marked for simulation. If yes, get the correct used_in values to determine
+  # if it's of type static or dynamic
+  if { ([llength $used_in_values] == 1) && ("synthesis" == $used_in_values) } {
+    foreach s_file_obj [get_files -quiet -all $src_file] {
+      set used_in_keys [get_property -quiet "USED_IN" $s_file_obj]
+      # is file marked for simulation?
+      if { [lsearch -exact $used_in_keys "simulation"] } {
+        set used_in_values $used_in_keys
+        break
+      }
+    }
+  }
+  return $used_in_values
+}
+
 proc xcs_find_ipstatic_file_path { file_obj src_ip_file parent_comp_file ipstatic_dir} {
   # Summary:
   # Argument Usage:
