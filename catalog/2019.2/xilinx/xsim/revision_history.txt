@@ -1,3 +1,4 @@
+2.307 helper to find the used_in values of duplicate files if synthesis type
 2.306 reference simmodel shared library
 2.305 filter systemc sources from exporting into run directory
 2.304 add compiler types for xcelium co-simulation support
