@@ -1,4 +1,4 @@
-10.8 helper to find the used_in values of duplicate files if synthesis type
+10.9 check for ips before fetching the ip_output_dir value
 9.9 add compiler types for xcelium co-simulation support
 9.8 added file existence check for protoinst sources
 9.7 fixed boost include dir path
