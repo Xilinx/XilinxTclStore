@@ -876,6 +876,9 @@ proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir b_found_i
 
   set top_ip_file_name {}
   set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+  if { {} == $ip_dir } {
+    return $src_file
+  }
   set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
 
   set top_ip_name [file root [file tail $top_ip_file_name]]
@@ -925,6 +928,9 @@ proc xcs_get_dynamic_sim_file_core_container { src_file dynamic_repo_dir b_found
   } else {
     set top_ip_file_name {}
     set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+    if { {} == $ip_dir } {
+      return $src_file
+    }
   }
   set hdl_dir_file [xcs_get_sub_file_path $file_dir $ip_dir]
   set repo_src_file [file join $dynamic_repo_dir "ip" $core_name $hdl_dir_file $filename]
@@ -1038,11 +1044,16 @@ proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
     set file_obj [lindex [get_files -all [list "$comp_file"]] 0]
   }
 
+  set ip_output_dir {}
   set root_comp_file_type [get_property file_type $file_obj]
   if { ({Block Designs} == $root_comp_file_type) || ({DSP Design Sources} == $root_comp_file_type) } {
     set ip_output_dir [file dirname $comp_file]
   } else {
-    set ip_output_dir [get_property ip_output_dir [get_ips -all $top_ip_name]]
+    set ips [get_ips -quiet -all $top_ip_name]
+    if { {} == $ips } {
+      return $ip_output_dir
+    }
+    set ip_output_dir [get_property ip_output_dir $ips]
   }
   return $ip_output_dir
 }
@@ -3300,7 +3311,7 @@ proc xcs_get_c_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fil
     }
   }
 
-  # add boost header references 
+  # add boost header references for include dir
   if { ("xsim" == $simulator) || ("xcelium" == $simulator) } {
     set boost_dir "%xv_boost_lib_path%"
     if {$::tcl_platform(platform) == "unix"} {
@@ -3559,6 +3570,9 @@ proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo
   if { ({Block Designs} == $parent_comp_file_type) } {
     set top_ip_file_name {}
     set ip_dir [xcs_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+    if { {} == $ip_dir } {
+      return $src_file
+    }
   } else {
     return $src_file
   }
