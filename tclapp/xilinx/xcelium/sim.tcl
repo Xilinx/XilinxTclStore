@@ -985,6 +985,20 @@ proc usf_xcelium_write_elaborate_script {} {
     }
   }
 
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_system_sim_design) } {
+      if { {behav_sim} == $sim_flow } {
+        variable a_shared_library_path_coln
+        foreach {key value} [array get a_shared_library_path_coln] {
+          set shared_lib_name $key
+          set shared_lib_name [file root $shared_lib_name]
+          set shared_lib_name [string trimleft $shared_lib_name "lib"]
+          set arg_list [linsert $arg_list end "-libname" $shared_lib_name]
+        }
+      }
+    }
+  }
+
   puts $fh_scr "\n# set design libraries"
   puts $fh_scr "design_libs_elab=\"[join $arg_list " "]\"\n"
 
@@ -993,10 +1007,14 @@ proc usf_xcelium_write_elaborate_script {} {
       puts $fh_scr "# set gcc objects"
       variable l_design_c_files
       set objs_arg [list]
+      set uniq_objs [list]
       foreach c_file $l_design_c_files {
         set file_name [file tail [file root $c_file]]
         append file_name ".o"
-        lappend objs_arg "$a_sim_vars(tmp_obj_dir)/$file_name"
+        if { [lsearch -exact $uniq_objs $file_name] == -1 } {
+          lappend objs_arg "$a_sim_vars(tmp_obj_dir)/$file_name"
+          lappend uniq_objs $file_name
+        }
       }
       set objs_arg_str [join $objs_arg " "]
       puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
