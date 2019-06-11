@@ -1731,7 +1731,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
-      puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
+      puts $fh_scr "export xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
     }
     
