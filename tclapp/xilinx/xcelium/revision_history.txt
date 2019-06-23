@@ -1,3 +1,4 @@
+11.1 skip protected shared library from elab
 11.0 reference system sim design shared libraries
 9.9 add compiler types for xcelium co-simulation support
 9.8 added file existence check for protoinst sources
