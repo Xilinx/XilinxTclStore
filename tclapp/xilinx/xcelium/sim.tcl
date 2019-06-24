@@ -600,8 +600,11 @@ proc usf_xcelium_write_compile_script {} {
 
       # xmsc gcc options
       set xmsc_gcc_opts [list]
+      lappend xmsc_gcc_opts "-std=c++11"
       lappend xmsc_gcc_opts "-fPIC"
       lappend xmsc_gcc_opts "-c"
+      lappend xmsc_gcc_opts "-Wall"
+      lappend xmsc_gcc_opts "-Wno-deprecated"
       lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
       lappend xmsc_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
       variable l_system_sim_incl_dirs
@@ -847,6 +850,7 @@ proc usf_xcelium_write_elaborate_script {} {
     return 1
   }
  
+  variable a_shared_library_path_coln
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "elaborate" "xcelium"
   if { {} != $tool_path } {
@@ -860,7 +864,20 @@ proc usf_xcelium_write_elaborate_script {} {
         }
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
         puts $fh_scr "# set library search order"
-        puts $fh_scr "LD_LIBRARY_PATH=.:\$sys_path:\$LD_LIBRARY_PATH"
+        set l_sm_lib_paths [list]
+        foreach {library lib_dir} [array get a_shared_library_path_coln] {
+          set sm_lib_dir [file normalize $lib_dir]
+          set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+          lappend l_sm_lib_paths $sm_lib_dir
+        }
+        set ld_path "LD_LIBRARY_PATH=."
+        if { [llength l_sm_lib_paths] > 0 } {
+          foreach sm_lib_path $l_sm_lib_paths {
+            append ld_path ":$sm_lib_path"
+          }
+        }
+        append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
+        puts $fh_scr $ld_path
       }
     }
     puts $fh_scr ""
@@ -1020,7 +1037,7 @@ proc usf_xcelium_write_elaborate_script {} {
       set objs_arg_str [join $objs_arg " "]
       puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
       puts $fh_scr "# link simulator system libraries"
-      puts $fh_scr "sys_libs=\"\$sys_path/libscBootstrap_sh.so \$sys_path/libxmscCoroutines_sh.so \$sys_path/libsystemc_sh.so\"\n"
+      puts $fh_scr "sys_libs=\"\$sys_path/libscBootstrap_sh.so \$sys_path/libxmscCoroutines_sh.so \$sys_path/libsystemc_sh.so \$sys_path/libncscCoSimNC_sh.so \$sys_path/libncsctlm2_sh.so \$sys_path/libxmscCoSimXM_sh.so\"\n"
     }
   }
 
@@ -1059,6 +1076,14 @@ proc usf_xcelium_write_elaborate_script {} {
         lappend link_arg_list "-m64 -Wl,-G -shared -o"
         lappend link_arg_list "${top}_sc.so"
         lappend link_arg_list "\$gcc_objs"
+        set l_sm_lib_paths [list]
+        foreach {library lib_dir} [array get a_shared_library_path_coln] {
+          set sm_lib_dir [file normalize $lib_dir]
+          set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+          set lib_name [string trimleft $library "lib"]
+          set lib_name [string trimright $lib_name ".so"]
+          lappend link_arg_list "-L$sm_lib_dir -l$lib_name"
+        }
         lappend link_arg_list "\$sys_libs"
         set link_args [join $link_arg_list " "]
         puts $fh_scr "$link_args\n"
