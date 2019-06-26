@@ -863,21 +863,7 @@ proc usf_xcelium_write_elaborate_script {} {
           puts $fh_scr "gcc_path=\"$gcc_path\""
         }
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
-        puts $fh_scr "# set library search order"
-        set l_sm_lib_paths [list]
-        foreach {library lib_dir} [array get a_shared_library_path_coln] {
-          set sm_lib_dir [file normalize $lib_dir]
-          set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
-          lappend l_sm_lib_paths $sm_lib_dir
-        }
-        set ld_path "LD_LIBRARY_PATH=."
-        if { [llength l_sm_lib_paths] > 0 } {
-          foreach sm_lib_path $l_sm_lib_paths {
-            append ld_path ":$sm_lib_path"
-          }
-        }
-        append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
-        puts $fh_scr $ld_path
+        usf_xcelium_write_library_search_order $fh_scr 
       }
     }
     puts $fh_scr ""
@@ -1037,7 +1023,17 @@ proc usf_xcelium_write_elaborate_script {} {
       set objs_arg_str [join $objs_arg " "]
       puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
       puts $fh_scr "# link simulator system libraries"
-      puts $fh_scr "sys_libs=\"\$sys_path/libscBootstrap_sh.so \$sys_path/libxmscCoroutines_sh.so \$sys_path/libsystemc_sh.so \$sys_path/libncscCoSimNC_sh.so \$sys_path/libncsctlm2_sh.so \$sys_path/libxmscCoSimXM_sh.so\"\n"
+
+      set sys_libs [list]
+      lappend sys_libs "\$sys_path/libscBootstrap_sh.so"
+      lappend sys_libs "\$sys_path/libxmscCoroutines_sh.so"
+      lappend sys_libs "\$sys_path/libsystemc_sh.so"
+      lappend sys_libs "\$sys_path/libxmscCoSimXM_sh.so"
+      lappend sys_libs "\$sys_path/libxmsctlm2_sh.so"
+      lappend sys_libs "\$sys_path/libscBootstrap_sh.so"
+      set sys_libs_str [join $sys_libs " "]
+
+      puts $fh_scr "sys_libs=\"$sys_libs_str\"\n"
     }
   }
 
@@ -1194,8 +1190,7 @@ proc usf_xcelium_write_simulate_script {} {
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
-        puts $fh_scr "# set library search order"
-        puts $fh_scr "LD_LIBRARY_PATH=.:\$sys_path:\$LD_LIBRARY_PATH"
+        usf_xcelium_write_library_search_order $fh_scr 
       }
     }
     puts $fh_scr ""
@@ -1480,5 +1475,28 @@ proc usf_xcelium_create_setup_script {} {
   close $fh_scr
 
   xcs_make_file_executable $scr_file
+}
+
+proc usf_xcelium_write_library_search_order { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_shared_library_path_coln
+  puts $fh_scr "# set library search order"
+  set l_sm_lib_paths [list]
+  foreach {library lib_dir} [array get a_shared_library_path_coln] {
+    set sm_lib_dir [file normalize $lib_dir]
+    set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+    lappend l_sm_lib_paths $sm_lib_dir
+  }
+  set ld_path "LD_LIBRARY_PATH=."
+  if { [llength l_sm_lib_paths] > 0 } {
+    foreach sm_lib_path $l_sm_lib_paths {
+      append ld_path ":$sm_lib_path"
+    }
+  }
+  append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
+  puts $fh_scr $ld_path
 }
 }
