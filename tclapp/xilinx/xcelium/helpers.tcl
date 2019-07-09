@@ -473,11 +473,8 @@ proc usf_set_simulator_path { simulator } {
     set install_path [string trimright $install_path {/}]
     set bin_path $install_path
     set tool_path [file join $install_path $tool_name]
-    # Couldn't find it at install path, so try inserting /bin.
-    # This is a bit roundabout with new variables so we don't change the
-    # originals. If this doesn't work, we want the error messages to report
-    # based on the originals.
     set tool_bin_path {}
+    # not found? append /bin
     if { ![file exists $tool_path] } {
       set tool_bin_path [file join $install_path "bin" $tool_name]
       if { [file exists $tool_bin_path] } {
@@ -486,7 +483,8 @@ proc usf_set_simulator_path { simulator } {
       }
     }
     if { [file exists $tool_path] && ![file isdirectory $tool_path] } {
-      send_msg_id USF-Xcelium-044 INFO "Using simulator executables from '$tool_path'\n"
+      set bin_path $tool_path
+      send_msg_id USF-Xcelium-044 INFO "Using simulator executables from '$bin_path'\n"
     } else {
       send_msg_id USF-Xcelium-045 ERROR "Path to custom '$tool_name' executable program does not exist:$tool_path'\n"
     }
@@ -495,7 +493,16 @@ proc usf_set_simulator_path { simulator } {
   set a_sim_vars(s_tool_bin_path) $bin_path
   set xm_root {} 
   [catch {set xm_root [exec xmroot]} error]
-  set a_sim_vars(s_sys_link_path) "$xm_root/tools/systemc/lib/64bit/gnu"
+  if { {} == $xm_root } {
+    set xm_root [join [lrange [split $bin_path "/"] 0 end-3] "/"]
+  }
+  set sys_link "$xm_root/tools/systemc/lib/64bit/gnu"
+  if { ![file exists $sys_link] } { 
+    send_msg_id USF-Xcelium-046 ERROR "Failed to find the Xcelium installtion path! Please check if the simulator is installed correctly and PATH is set.\n"
+  }
+    
+  set a_sim_vars(s_sys_link_path) "$sys_link"
+  send_msg_id USF-Xcelium-047 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
 }
 
 proc usf_get_files_for_compilation { global_files_str_arg } {

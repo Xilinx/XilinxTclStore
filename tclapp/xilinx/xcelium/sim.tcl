@@ -900,11 +900,6 @@ proc usf_xcelium_write_elaborate_script {} {
     set arg_list [linsert $arg_list end "-update"]
   }
 
-  set more_elab_options [string trim [get_property "XCELIUM.ELABORATE.XMELAB.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_elab_options } {
-    set arg_list [linsert $arg_list end "$more_elab_options"]
-  }
-
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
   set design_libs [usf_xcelium_get_design_libs $::tclapp::xilinx::xcelium::a_sim_vars(l_design_files)]
@@ -1050,6 +1045,12 @@ proc usf_xcelium_write_elaborate_script {} {
     if { [llength $vhdl_generics] > 0 } {
       ::tclapp::xilinx::xcelium::usf_append_generics $vhdl_generics arg_list
     }
+  }
+
+  # more options
+  set more_elab_options [string trim [get_property "XCELIUM.ELABORATE.XMELAB.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_elab_options } {
+    set arg_list [linsert $arg_list end "$more_elab_options"]
   }
 
   if { $a_sim_vars(b_int_systemc_mode) } {
