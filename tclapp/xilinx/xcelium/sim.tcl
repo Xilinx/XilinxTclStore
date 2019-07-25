@@ -379,7 +379,7 @@ proc usf_xcelium_write_setup_files {} {
   if { [xcs_find_ip "gt_quad_base"] } {
     puts $fh "DEFINE simprims_ver xcelium_lib/simprims_ver"
     set simprim_dir "$dir/xcelium_lib/simprims_ver"
-    if { ![file exists $dir] } {
+    if { ![file exists $simprim_dir] } {
       [catch {file mkdir $simprim_dir} error_msg]
     }
   }
