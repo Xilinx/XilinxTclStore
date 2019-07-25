@@ -376,6 +376,13 @@ proc usf_xcelium_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
+  if { [xcs_find_ip "gt_quad_base"] } {
+    puts $fh "DEFINE simprims_ver xcelium_lib/simprims_ver"
+    set simprim_dir "$dir/xcelium_lib/simprims_ver"
+    if { ![file exists $dir] } {
+      [catch {file mkdir $simprim_dir} error_msg]
+    }
+  }
   set libs [list]
   set design_libs [usf_xcelium_get_design_libs $::tclapp::xilinx::xcelium::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
@@ -1233,11 +1240,14 @@ proc usf_xcelium_write_simulate_script {} {
   if { {} == $tool_path } {
     set tool_path_val "$tool"
   }
-  set arg_list [list "${tool_path_val}" "\$${tool}_opts" "${top_lib}.$top" "-input" "$do_filename"]
+  set arg_list [list "${tool_path_val}" "\$${tool}_opts"]
   if { [xcs_find_ip "gt_quad_base"] } {
-    #lappend arg_list "-sv_root \"$a_sim_vars(s_clibs_dir)/secureip\""
-    #lappend arg_list "-sv_lib gtye5_quad.so"
+    lappend arg_list "-sv_root \"$a_sim_vars(s_clibs_dir)/secureip\""
+    lappend arg_list "-sv_lib gtye5_quad.so"
   }
+  lappend arg_list "${top_lib}.$top"
+  lappend arg_list "-input"
+  lappend arg_list "$do_filename"
   set cmd_str [join $arg_list " "]
 
   puts $fh_scr "# run simulation"
