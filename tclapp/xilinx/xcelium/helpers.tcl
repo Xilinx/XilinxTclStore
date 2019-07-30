@@ -439,12 +439,11 @@ proc usf_set_simulator_path { simulator } {
   set bin_path  {}
   set tool_name {} 
   set path_sep  {:}
-  set tool_extn {}
   set install_path $a_sim_vars(s_install_path)
   send_msg_id USF-Xcelium-041 INFO "Finding simulator installation...\n"
   switch -regexp -- $simulator {
     {xcelium} {
-      set tool_name "xmsim";append tool_name ${tool_extn}
+      set tool_name "xmsim"
       if { {} == $install_path } {
         set install_path [get_param "simulator.xceliumInstallPath"]
       }
@@ -483,7 +482,7 @@ proc usf_set_simulator_path { simulator } {
       }
     }
     if { [file exists $tool_path] && ![file isdirectory $tool_path] } {
-      set bin_path $tool_path
+      set bin_path $install_path
       send_msg_id USF-Xcelium-044 INFO "Using simulator executables from '$bin_path'\n"
     } else {
       send_msg_id USF-Xcelium-045 ERROR "Path to custom '$tool_name' executable program does not exist:$tool_path'\n"
