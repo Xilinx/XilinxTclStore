@@ -497,7 +497,7 @@ proc usf_set_simulator_path { simulator } {
   }
   set sys_link "$xm_root/tools/systemc/lib/64bit/gnu"
   if { ![file exists $sys_link] } { 
-    send_msg_id USF-Xcelium-046 ERROR "Failed to find the Xcelium installtion path! Please check if the simulator is installed correctly and PATH is set.\n"
+    send_msg_id USF-Xcelium-046 ERROR "Failed to find the Xcelium installation path! Please check if the simulator is installed correctly and PATH is set.\n"
   }
     
   set a_sim_vars(s_sys_link_path) "$sys_link"
