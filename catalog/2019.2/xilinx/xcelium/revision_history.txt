@@ -1,3 +1,4 @@
+11.9 pass -noedg if param set to skip systemC design analysis
 11.8 fixed typo from install path check message
 11.7 fixed install path setting
 11.6 pass -sv_root and -sv_lib for referencing gtye5_quad shared library
