@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export xv_cpt_lib_path for simulation model to determine path to protected library</revision_history>
+      <revision_history>fixed axsim invocation with args if standalone mode is set</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
