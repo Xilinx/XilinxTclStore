@@ -1723,6 +1723,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
 
   # standalone mode
   set standalone_mode [get_property -quiet "xelab.standalone" $fs_obj]
+  set snapshot_dir "$::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)"
 
   set b_batch 1
   if {$::tcl_platform(platform) == "unix"} {
@@ -1820,8 +1821,8 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     }
 
     if { $standalone_mode } {
-      puts $fh_scr "echo \"./axsim.sh\""
-      puts $fh_scr "./axsim.sh"
+      puts $fh_scr "echo \"./xsim.dir/${snapshot_dir}/axsim \$*\""
+      puts $fh_scr "./xsim.dir/${snapshot_dir}/axsim \$*"
     } else {
       set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
       puts $fh_scr "echo \"xsim $cmd_args\""
@@ -1838,8 +1839,8 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     }
 
     if { $standalone_mode } {
-      puts $fh_scr "echo \"./axsim.bat\""
-      puts $fh_scr "call ./axsim.bat"
+      puts $fh_scr "echo \"./xsim.dir/${snapshot_dir}/axsim \$*\""
+      puts $fh_scr "call ./xsim.dir/${snapshot_dir}/axsim %*"
     } else {
       set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
       set b_call_script_exit [get_property -quiet "XSIM.CALL_SCRIPT_EXIT" $fs_obj]
