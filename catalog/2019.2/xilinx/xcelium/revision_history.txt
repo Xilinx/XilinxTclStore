@@ -1,3 +1,4 @@
+11.10 pass -noedg if param set to skip systemC design analysis for xmsc compiler
 11.9 pass -noedg if param set to skip systemC design analysis
 11.8 fixed typo from install path check message
 11.7 fixed install path setting
