@@ -773,6 +773,7 @@ proc usf_init_vars {} {
 	set properties(sp_cpt_dir) {}
 	set properties(sp_ext_dir) {}
 	set properties(b_int_csim_compile_order) 0 
+    set properties(b_int_sm_lib_ref_debug)    0
 	set properties(b_contain_systemc_sources) 0
 	set properties(b_contain_cpp_sources)     0
 	set properties(b_contain_c_sources)       0
@@ -5033,7 +5034,7 @@ proc usf_get_c_files { c_filter {b_csim_compile_order 0} } {
         }
         set file_extn [file extension $comp_file]
         if { (".xci" == $file_extn) } {
-          xcs_add_c_files_from_xci $comp_file $c_filter c_files
+          usf_add_c_files_from_xci $comp_file $c_filter c_files
         } elseif { (".bd" == $file_extn) } {
           set bd_file_name [file tail $comp_file]
           set bd_obj [get_files -quiet -all $bd_file_name]
@@ -5043,7 +5044,7 @@ proc usf_get_c_files { c_filter {b_csim_compile_order 0} } {
               if { "" != $comp_file } {
                 set file_extn [file extension $comp_file]
                 if { (".xci" == $file_extn) } {
-                  xcs_add_c_files_from_xci $comp_file $c_filter c_files
+                  usf_add_c_files_from_xci $comp_file $c_filter c_files
                 }
               }
             } else {
@@ -5430,6 +5431,29 @@ proc getSystemCLibrary {} {
 
 #	return $properties(associatedLibrary)
 	return lib_$properties(project_name)
+}
+
+proc usf_add_c_files_from_xci { comp_file c_filter c_files_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $c_files_arg c_files
+
+  set ip_name [file root [file tail $comp_file]]
+  set ip [get_ips -quiet -all $ip_name]
+  if { "" != $ip } {
+    set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
+    if { "tlm" == $selected_sim_model } {
+      foreach ip_file_obj [get_files -quiet -all -filter $c_filter -of_objects $ip] {
+        set used_in_values [get_property "USED_IN" $ip_file_obj]
+        if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
+          continue;
+        }
+        set c_files [concat $c_files $ip_file_obj]
+      }
+    }
+  }
 }
 
 }

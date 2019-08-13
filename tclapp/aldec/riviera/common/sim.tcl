@@ -219,6 +219,8 @@ proc usf_setup_args { args } {
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
+  # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -247,6 +249,7 @@ proc usf_setup_args { args } {
       "-int_debug_mode" { incr i;set ::tclapp::aldec::common::helpers::properties(s_int_debug_mode) [lindex $args $i] }
 	  "-int_systemc_mode"		{ set ::tclapp::aldec::common::helpers::properties(b_int_systemc_mode) 1	}
 	  "-int_sm_lib_dir"         { incr i;set ::tclapp::aldec::common::helpers::properties(custom_sm_lib_dir) [lindex $args $i] }
+      "-int_sm_lib_ref_debug"   { set ::tclapp::aldec::common::helpers::properties(b_int_sm_lib_ref_debug) 1                   }
 	  "-int_csim_compile_order" { set ::tclapp::aldec::common::helpers::properties(b_int_csim_compile_order) 1                 }
       default {
         # is incorrect switch specified?
