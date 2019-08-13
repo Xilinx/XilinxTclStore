@@ -598,6 +598,11 @@ proc usf_xcelium_write_compile_script {} {
       } else {
         set arg_list [linsert $arg_list 0 "-64bit"]
       }
+      set b_no_sysc_analysis false
+      [catch {set b_no_sysc_analysis [get_param simulator.donotCollectSystemCInfoForXcelium]} err]
+      if { $b_no_sysc_analysis } {
+        set arg_list [linsert $arg_list 1 "-noedg"]
+      }
       set more_xmsc_options [string trim [get_property "XCELIUM.COMPILE.XMSC.MORE_OPTIONS" $fs_obj]]
       if { {} != $more_xmsc_options } {
         set arg_list [linsert $arg_list end "$more_xmsc_options"]
@@ -612,11 +617,6 @@ proc usf_xcelium_write_compile_script {} {
       lappend xmsc_gcc_opts "-c"
       lappend xmsc_gcc_opts "-Wall"
       lappend xmsc_gcc_opts "-Wno-deprecated"
-      set b_no_sysc_analysis false
-      [catch {set b_no_sysc_analysis [get_param simulator.donotCollectSystemCInfoForXcelium]} err]
-      if { $b_no_sysc_analysis } {
-        lappend xmsc_gcc_opts "-noedg"
-      }
       lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
       lappend xmsc_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
       variable l_system_sim_incl_dirs
