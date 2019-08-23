@@ -24,6 +24,7 @@
      Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
      Use -show_resources to report the detailed number of used and available resources in the summary table
      Use -show_not_found to report metrics that have not been extracted (hidden by default)
+     Use -show_all_paths to report all the paths analyzed in the LUT/Net budgeting. Default it to only report paths with budgeting violation
      Use -post_ooc_synth to only run the LUT/Net path budgeting after post OOC synthesis
      Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
      Use -max_paths to set the max number of paths per clock group for LUT/Net budgeting. Default is 100
@@ -42,3 +43,4 @@
      ::xilinx::designutils::report_failfast -file failfast.rpt -slr SLR0
      ::xilinx::designutils::report_failfast -file failfast.rpt -by_slr
      ::xilinx::designutils::report_failfast -file failfast.rpt -regions X0Y0:X0Y4,X0Y4:X5Y4,X5Y0 -top
+     ::xilinx::designutils::report_failfast -file failfast.rpt -post_ooc_synth -show_all_paths
