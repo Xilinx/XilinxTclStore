@@ -5,7 +5,13 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
-## 2019.04.02 - Added support for updated format for report_control_sets
+## 2019.08.23 - Added the LUT/Net Adjusted Slack (LUT/Net budgeting)
+##            - Fixed issue with paths starting and ending on the same cell
+## 2019.08.06 - Adjusted Net/Delay values for -1LV/-2LV (US+)
+## 2019.07.30 - Improved runtime for -by_slr by running report_utilization
+##              only once (Vivado 2019.1 and above)
+##            - Added support for updated format for report_control_sets
+##            - Misc enhancements
 ## 2019.02.13 - Added support for Vivado patches
 ## 2019.01.10 - Added support for US+ -1LV/-2LV
 ## 2018.11.16 - Added support for spartan7, zynquplusRFSOC, virtexuplus58g
@@ -184,6 +190,7 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-ignore_pr]: Disable auto-detection of Partial Reconfigurable designs
   # [-show_resources]: Show Used/Available resources count in the summary table
   # [-show_not_found]: Show metrics that could not be extracted
+  # [-show_all_paths]: Show all paths analyzed by LUT/Net budgeting
   # [-csv]: Add CSV to the output report
   # [-transpose]: Transpose the CSV file
   # [-no_header]: Suppress the files header
@@ -329,20 +336,22 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2019.04.02}
+  variable version {2019.08.23}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
   variable output {}
   variable metrics
+  variable reports
   variable guidelines
   variable data
   array set params [list failed 0 format {table} max_paths 100 show_resources 0 transpose 0 verbose 0 debug 0 debug_level 1 vivado_version [version -short] ]
+#   catch { unset reports }
   array set reports [list]
-  catch {unset metrics}
+  catch { unset metrics }
   array set metrics [list]
-  catch {unset data}
-  catch {unset guidelines}
+  catch { unset data }
+  catch { unset guidelines }
 } ]
 
 proc ::tclapp::xilinx::designutils::report_failfast::lshift {inputlist} {
@@ -365,14 +374,17 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
   variable SUITE_INTEGRATION
   variable version
+  variable reports
   variable metrics
   variable params
   variable guidelines
   variable output
   variable data
-  catch {unset guidelines}
-  catch {unset metrics}
+  catch { unset guidelines }
+  catch { unset metrics }
   array set metrics [list]
+#   catch { unset reports }
+#   array set reports [list]
   set params(failed) 0
   set params(verbose) 0
   set params(debug) 0
@@ -390,7 +402,6 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set filename {}
   set filemode {w}
   set detailedReportsPrefix {}
-#   set detailedReportsDir {.}
   set detailedReportsDir [file normalize .] ; # Current directory
   set userConfigFilename {}
   set time [clock seconds]
@@ -409,17 +420,29 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set leafCells [list]
   set slrs {}
   set slrPblock {}
+  # extractUtilizationFromSLRTable: 2019.1 and above, set variable to 1 to leverage the
+  # table "SLR CLB Logic and Dedicated Block Utilization" from report_utilization when
+  # reporting the utilization per SLR
+  # $extractUtilizationFromSLRTable should only be set to 1 when -by_slr has been specified
+  set extractUtilizationFromSLRTable 0
+  set reportUtilizationFile {}
+  set reportControlSetsFile {}
   set reportBySLR 0
+# dpefour
+set reportBySLRNew 0
   # List of clock regions (-region)
   set regions {}
   # Pblock created for the clock regions (-region)
   set regionPblock {}
   set skipChecks [list]
+  # Default: remove the cached reports
+  set resetReports 1
   set hideUnextractedMetrics 1
   # Report mode
   set reportMode {default}
   # Timing paths to be considered for LUT/Net budgeting
   set timingPathsBudgeting [list]
+  set showAllBudgetingPaths 0
   # Override LUT budgeting
   set lutBudgeting 0
   # Override Net budgeting
@@ -432,26 +455,32 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set error 0
   set help 0
   set show_long_help 0
+
 #   if {[llength $args] == 0} {
 #     set help 1
 #   }
   while {[llength $args]} {
     set name [lshift args]
     switch -regexp -- $name {
+      {^-file$} -
       {^-f(i(le?)?)?$} {
         set filename [lshift args]
         # The detailed reports should be saved inside the same directory as the output report
         set detailedReportsDir [file dirname [file normalize $filename]]
       }
+      {^-append$} -
       {^-ap(p(e(nd?)?)?)?$} {
         set filemode {a}
       }
+      {^-detailed_reports$} -
       {^-de(t(a(i(l(e(d(_(r(e(p(o(r(ts?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
         set detailedReportsPrefix [lshift args]
       }
+      {^-config_file$} -
       {^-co(n(f(i(g(_(f(i(le?)?)?)?)?)?)?)?)?$} {
         set userConfigFilename [lshift args]
       }
+      {^-export_config$} -
       {^-ex(p(o(r(t(_(c(o(n(f(ig?)?)?)?)?)?)?)?)?)?)?$} {
         set file [lshift args]
         if {$file == {}} {
@@ -469,41 +498,54 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         puts " -I- Exported configuration to [file normalize $file]"
         return -code ok
       }
+      {^-ignore_pr$} -
       {^-ig(n(o(r(e(_(pr?)?)?)?)?)?)?$} {
         # Do not try to auto detect PR designs
         set prDetect 0
       }
+      {^-no_methodology_checks$} -
       {^-no_m(e(t(h(o(d(o(l(o(g(y(_(c(h(e(c(ks?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
         lappend skipChecks {methodology_check}
       }
+      {^-no_path_budgeting$} -
       {^-no_pa(t(h(_(b(u(d(g(e(t(i(ng?)?)?)?)?)?)?)?)?)?)?)?$} {
         lappend skipChecks {path_budgeting}
       }
+      {^-no_fanout$} -
       {^-no_fa(n(o(ut?)?)?)?$} {
         lappend skipChecks {average_fanout}
       }
+      {^-no_dont_touch$} -
       {^-no_do(n(t(_(t(o(u(ch?)?)?)?)?)?)?)?$} {
         lappend skipChecks {dont_touch}
       }
+      {^-no_hfn$} -
+      {^-no_fd_hfn$} -
       {^-no_h(fn?)?$} -
       {^-no_fd(_(h(fn?)?)?)?$} {
         lappend skipChecks {non_fd_hfn}
       }
+      {^-no_control_sets$} -
       {^-no_co(n(t(r(o(l(_(s(e(ts?)?)?)?)?)?)?)?)?)?$} {
         lappend skipChecks {control_sets}
       }
+      {^-no_utilization$} -
       {^-no_u(t(i(l(i(z(a(t(i(on?)?)?)?)?)?)?)?)?)?$} {
         # Hidden command line option
         lappend skipChecks {utilization}
       }
+      {^-post_ooc_synth$} -
+      {^-path_budgeting_only$} -
       {^-po(s(t(_(o(o(c(_(s(y(n(th?)?)?)?)?)?)?)?)?)?)?)?$} -
       {^-pa(t(h(_(b(u(d(g(e(t(i(n(g(_(o(n(ly?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
         set skipChecks [concat $skipChecks {utilization dont_touch control_sets non_fd_hfn average_fanout methodology_check}]
       }
+      {^-cell$} -
       {^-ce(ll?)?$} {
         set prCell [lshift args]
         set optionCell 1
       }
+      {^-exclude_cell$} -
       {^-ex(c(l(u(d(e(_(c(e(ll?)?)?)?)?)?)?)?)?)?$} {
         set excludeCell [lshift args]
       }
@@ -513,14 +555,39 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^-by_slr$} {
         set reportBySLR 1
       }
+{^-by_slr_new$} {
+  set reportBySLR 1
+  set reportBySLRNew 1
+}
+{^--keep_reports$} -
+{^--keep_r(e(p(o(r(ts?)?)?)?)?)?$} -
+{^--keep-reports$} -
+{^--keep-r(e(p(o(r(ts?)?)?)?)?)?$} {
+  set resetReports 0
+}
+{^--use_slr_table$} -
+{^--use_s(l(r(_(t(a(b(le?)?)?)?)?)?)?)?$} -
+{^--use_util_slr_table$} -
+{^--use_u(t(i(l(_(s(l(r(_(t(a(b(le?)?)?)?)?)?)?)?)?)?)?)?)?$} {
+# dpefour
+  if {[package vcompare $params(vivado_version) 2019.1.0] >= 0} {
+    # Only for Vivado 2019.1 and above
+    set extractUtilizationFromSLRTable 1
+  } else {
+    puts " -W- option --use_util_slr_table is not compatible with Vivado $params(vivado_version) (2019.1 and above)"
+    set extractUtilizationFromSLRTable 0
+  }
+}
       {^-slrs?$} {
         set slrs [lshift args]
         set optionSlr 1
       }
+      {^-pblock$} -
       {^-pb(l(o(ck?)?)?)?$} {
         set prPblock [lshift args]
         set optionPblock 1
       }
+      {^-regions$} -
       {^-r(e(g(i(o(ns?)?)?)?)?)?$} {
         set patterns [lshift args]
         set L [list]
@@ -536,12 +603,19 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         }
         set optionRegion 1
       }
+      {^-show_not_found$} -
       {^-show_n(o(t(_(f(o(u(nd?)?)?)?)?)?)?)?$} {
         set hideUnextractedMetrics 0
       }
+      {^-show_resources$} -
       {^-show_r(e(s(o(u(r(c(es?)?)?)?)?)?)?)?$} {
         set params(show_resources) 1
       }
+      {^-show_all_paths$} -
+      {^-show_a(l(l(_(p(a(t(hs?)?)?)?)?)?)?)?$} {
+        set showAllBudgetingPaths 1
+      }
+      {^-max_paths$} -
       {^-ma(x(_(p(a(t(hs?)?)?)?)?)?)?$} {
         set params(max_paths) [lshift args]
       }
@@ -549,15 +623,27 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^-csv$} {
         set params(format) {csv}
       }
+      {^-transpose$} -
       {^-tr(a(n(s(p(o(se?)?)?)?)?)?)?$} {
         set params(transpose) 1
       }
+      {^-no_header$} -
       {^-no_h(e(a(d(er?)?)?)?)?$} {
         set showFileHeader 0
       }
+      {^--ru$} -
+      {^--report_utilization$} {
+        set reportUtilizationFile [lshift args]
+      }
+      {^--rcs$} -
+      {^--report_control_sets$} {
+        set reportControlSetsFile [lshift args]
+      }
+      {^-verbose$} -
       {^-v(e(r(b(o(se?)?)?)?)?)?$} {
         set params(verbose) 1
       }
+      {^-debug$} -
       {^-d(e(b(ug?)?)?)?$} {
         set params(debug) 1
       }
@@ -596,9 +682,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       {^--v(i(v(a(d(o(-(v(e(r(s(i(on?)?)?)?)?)?)?)?)?)?)?)?)?$} {
         set params(vivado_version) [lshift args]
       }
+      {^-help$} -
       {^-h(e(lp?)?)?$} {
         set help 1
       }
+      {^-longhelp$} -
       {^-lo(n(g(h(e(lp?)?)?)?)?)?$} {
 #         set help 1
         set show_long_help 1
@@ -639,6 +727,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
               [-max_paths <num>]
               [-show_resources]
               [-show_not_found]
+              [-show_all_paths]
               [-csv][-transpose]
               [-no_header]
               [-verbose|-v]
@@ -669,6 +758,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
     Use -show_resources to report the detailed number of used and available resources in the summary table
     Use -show_not_found to report metrics that have not been extracted (hidden by default)
+    Use -show_all_paths to report all the paths analyzed in the LUT/Net budgeting. Default it to only report paths with budgeting violation
     Use -post_ooc_synth to only run the LUT/Net path budgeting
     Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
     Use -max_paths to define the max number of paths per clock group for LUT/Net budgeting. Default is 100
@@ -687,6 +777,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
      ::xilinx::designutils::report_failfast -file failfast.rpt -slr SLR0
      ::xilinx::designutils::report_failfast -file failfast.rpt -by_slr
      ::xilinx::designutils::report_failfast -file failfast.rpt -regions X0Y0:X0Y4,X0Y4:X5Y4,X5Y0 -top
+     ::xilinx::designutils::report_failfast -file failfast.rpt -post_ooc_synth -show_all_paths
 } $version ]
     # HELP -->
 
@@ -794,11 +885,51 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     error " -E- some error(s) happened. Cannot continue"
   }
 
+# dpefour
+  if {$reportBySLRNew} {
+    # Remove -by_slr from original command line
+    set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr}]
+# dpefour
+set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
+    set res 0
+    set failures 0
+    # Remove the cached reports
+    catch { unset reports }
+    array set reports [list]
+    # Iterate through the SLRs
+    foreach slr [get_slrs -quiet] {
+      # Calling the command with the original (but modified) command line
+      # Adding -append to make sure that all SLR data are being saved into the file
+      if {[catch {
+# dpefour
+#         set res [tclapp::xilinx::designutils::report_failfast -append -slr $slr {*}$cmd]
+        if {[package vcompare $params(vivado_version) 2019.1.0] >= 0} {
+          # 2019.1 and above: the utilization by SLR is extracted from "SLR CLB Logic and Dedicated Block Utilization".
+          set res [tclapp::xilinx::designutils::report_failfast --keep_reports --use_util_slr_table -append -slr $slr {*}$cmd]
+        } else {
+          set res [tclapp::xilinx::designutils::report_failfast -append -slr $slr {*}$cmd]
+        }
+#         set res [tclapp::xilinx::designutils::report_failfast -append -slr $slr {*}$cmd]
+        if {[regexp {^[0-9]+$} $res]} {
+          set failures [expr $failures + $res]
+        }
+      } errorstring]} {
+        puts " -E- $errorstring"
+      }
+    }
+    # All the SLR(s) have been processed. Exit
+    return $failures
+  }
+
   if {$reportBySLR} {
     # Remove -by_slr from original command line
     set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr}]
     set res 0
     set failures 0
+    # Remove the potentially saved reports
+    catch { unset reports }
+    array set reports [list]
+    # Iterate through the SLRs
     foreach slr [get_slrs -quiet] {
       # Calling the command with the original (but modified) command line
       # Adding -append to make sure that all SLR data are being saved into the file
@@ -947,6 +1078,41 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     mark_objects -quiet -color orange $leafCells
   }
 
+  if {$extractUtilizationFromSLRTable} {
+    # 2019.1 and above: when the utilization by SLR is extracted from "SLR CLB Logic and Dedicated Block Utilization"
+    # then do not clear the reports since the same report is used for each SLR (runtime advantage)
+    switch $reportMode {
+      slrAndTop -
+      slrAndCell {
+        puts " -W- --use_util_slr_table is not compatible with -top/-cell. Skipping command line option"
+        set extractUtilizationFromSLRTable 0
+      }
+      slrOnly {
+        # Only valid use case
+        if {$params(verbose)} {
+          puts " -I- utilization metrics extracted from SLR Utilization table"
+        }
+      }
+      default {
+        puts " -W- --use_util_slr_table is only valid with -slr/-by_slr. Skipping command line option"
+        set extractUtilizationFromSLRTable 0
+      }
+    }
+  }
+
+  if {$resetReports} {
+    catch { unset reports }
+    array set reports [list]
+  }
+
+  if {$reportUtilizationFile != {}} {
+    importReport report_utilization $reportUtilizationFile
+  }
+
+  if {$reportControlSetsFile != {}} {
+    importReport report_control_sets $reportControlSetsFile
+  }
+
   # Reset internal data structures
   reset
 
@@ -960,17 +1126,24 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   }
 
   if {$slrs != {}} {
-    # Create SLR-level pblocks
-    foreach SLR $slrs {
-      regexp {X(\d*)Y(\d*)} [lindex [lsort -dictionary [get_clock_regions -of $SLR ]] 0] - Xmin Ymin
-      regexp {X(\d*)Y(\d*)} [lindex [lsort -dictionary [get_clock_regions -of $SLR ]] end] - Xmax Ymax
-      # For safety, delete ghosts pblocks before
-      delete_pblocks -quiet failfast_${SLR}
-      create_pblock -quiet failfast_${SLR}
-      resize_pblock -quiet failfast_${SLR} -add "CLOCKREGION_X${Xmin}Y${Ymin}:CLOCKREGION_X${Xmax}Y${Ymax}"
-      if {$params(debug)} { puts " -D- creating pblock: failfast_${SLR} := CLOCKREGION_X${Xmin}Y${Ymin}:CLOCKREGION_X${Xmax}Y${Ymax}" }
+# dpefour
+    if {$extractUtilizationFromSLRTable} {
+      # 2019.1 and above: the utilization by SLR is extracted from "SLR CLB Logic and Dedicated Block Utilization".
+      # No pblock needs to be created
+      set slrPblock $slrs
+    } else {
+      # Create SLR-level pblocks
+      foreach SLR $slrs {
+        regexp {X(\d*)Y(\d*)} [lindex [lsort -dictionary [get_clock_regions -of $SLR ]] 0] - Xmin Ymin
+        regexp {X(\d*)Y(\d*)} [lindex [lsort -dictionary [get_clock_regions -of $SLR ]] end] - Xmax Ymax
+        # For safety, delete ghosts pblocks before
+        delete_pblocks -quiet failfast_${SLR}
+        create_pblock -quiet failfast_${SLR}
+        resize_pblock -quiet failfast_${SLR} -add "CLOCKREGION_X${Xmin}Y${Ymin}:CLOCKREGION_X${Xmax}Y${Ymax}"
+        if {$params(debug)} { puts " -D- creating pblock: failfast_${SLR} := CLOCKREGION_X${Xmin}Y${Ymin}:CLOCKREGION_X${Xmax}Y${Ymax}" }
+      }
+      set slrPblock [get_pblocks -quiet failfast_*]
     }
-    set slrPblock [get_pblocks -quiet failfast_*]
   }
 
   if {[lsearch $skipChecks {utilization}] != -1} {
@@ -1028,6 +1201,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     return $res
   }
 
+  # Necessary to avoid the long list of cells to be truncated when calling getReport
+  set collectionResultDisplayLimit [get_param tcl.collectionResultDisplayLimit]
+  set_param tcl.collectionResultDisplayLimit  -1
+
   set startTime [clock seconds]
   set output [list]
   set timBudgetPerLUT {}
@@ -1067,9 +1244,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       setMetric {design.part.speed.date}        [get_property -quiet SPEED_LEVEL_ID_DATE $part]
       setMetric {design.ports}                  [llength [get_ports -quiet]]
       setMetric {design.slrs}                   [llength [get_slrs -quiet]]
-#       setMetric {design.nets}                   [llength [get_nets -quiet -hier -top_net_of_hierarchical_group -filter {TYPE == SIGNAL}]]
+#       setMetric {design.nets}                   [llength [get_nets -quiet -hier -top_net_of_hierarchical_group -segments -filter {TYPE == SIGNAL}]]
 
       set luts [filter -quiet $leafCells {REF_NAME =~ LUT*}]
+      # Versal: filter out the LUTCY* cells
+      set luts [filter -quiet $luts {REF_NAME !~ LUTCY*}]
       set hlutnm [filter -quiet $luts {SOFT_HLUTNM != "" || HLUTNM != ""}]
       setMetric {design.cells.hlutnm} [llength $hlutnm]
       # Calculate the percent of HLUTNM over the total number of LUT
@@ -1238,25 +1417,16 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         pblockAndCell -
         pblockOnly {
           set rptUtilOpts [list -pblock $prPblock -evaluate_pblock]
-          if {$params(debug)} {
-            puts " -D- utilization report run with '-pblock $prPblock -evaluate_pblock'"
-          }
         }
         regionAndTop -
         regionAndCell -
         regionOnly {
           set rptUtilOpts [list -pblock $regionPblock -evaluate_pblock]
-          if {$params(debug)} {
-            puts " -D- utilization report run with '-pblock $regionPblock -evaluate_pblock'"
-          }
         }
         slrAndTop -
         slrAndCell -
         slrOnly {
           set rptUtilOpts [list -pblock $slrPblock -evaluate_pblock]
-          if {$params(debug)} {
-            puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'"
-          }
         }
         default {
         }
@@ -1270,44 +1440,64 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       set stepStartTime [clock seconds]
       switch $reportMode {
         pblockAndTop {
-#           set report [report_utilization -quiet -return_string]
-          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
+          if {$params(debug)} { if {$rptUtilOpts != {}} { puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'" } }
+          set report [getReport report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
         }
         pblockAndCell {
-#           set report [report_utilization -quiet -cells $prCell -return_string]
-          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
+          if {$params(debug)} { if {$rptUtilOpts != {}} { puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'" } }
+          set report [getReport report_utilization -quiet {*}$rptUtilOpts -cells $leafCells -return_string]
         }
         pblockOnly {
-          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
+          if {$params(debug)} { if {$rptUtilOpts != {}} { puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'" } }
+          set report [getReport report_utilization -quiet {*}$rptUtilOpts -cells $leafCells -return_string]
         }
         regionAndTop {
-#           set report [report_utilization -quiet -return_string]
-          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
+          if {$params(debug)} { if {$rptUtilOpts != {}} { puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'" } }
+          set report [getReport report_utilization -quiet {*}$rptUtilOpts -cells $leafCells -return_string]
         }
         regionAndCell {
-#           set report [report_utilization -quiet -cells $prCell -return_string]
-          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
+          if {$params(debug)} { if {$rptUtilOpts != {}} { puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'" } }
+          set report [getReport report_utilization -quiet {*}$rptUtilOpts -cells $leafCells -return_string]
         }
         regionOnly {
-          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
+          if {$params(debug)} { if {$rptUtilOpts != {}} { puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'" } }
+          set report [getReport report_utilization -quiet {*}$rptUtilOpts -cells $leafCells -return_string]
         }
         slrAndTop {
-#           set report [report_utilization -quiet -return_string]
-          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
+          if {$params(debug)} { if {$rptUtilOpts != {}} { puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'" } }
+          set report [getReport report_utilization -quiet {*}$rptUtilOpts -cells $leafCells -return_string]
         }
         slrAndCell {
-#           set report [report_utilization -quiet -cells $prCell -return_string]
-          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
+          if {$params(debug)} { if {$rptUtilOpts != {}} { puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'" } }
+          set report [getReport report_utilization -quiet {*}$rptUtilOpts -cells $leafCells -return_string]
         }
         slrOnly {
-          set report [report_utilization {*}$rptUtilOpts -quiet -cells $leafCells -return_string]
+          if {$extractUtilizationFromSLRTable} {
+            # 2019.1 and above: when the utilization by SLR is extracted from "SLR CLB Logic and Dedicated Block Utilization".
+            # In this mode, the utilization report should not be done for a specific SLR but for the entire device
+            # since the same report is used for extracting the utilization metrics for each SLR
+            set report [getReport report_utilization -quiet -return_string]
+          } else {
+            if {$params(debug)} { if {$rptUtilOpts != {}} { puts " -D- utilization report run with '-pblock $slrPblock -evaluate_pblock'" } }
+            set report [getReport report_utilization -quiet {*}$rptUtilOpts -cells $leafCells -return_string]
+          }
         }
         default {
-#           set report [report_utilization -quiet -return_string]
-          set report [report_utilization -quiet -cells $leafCells -return_string]
+          set report [getReport report_utilization -quiet -cells $leafCells -return_string]
         }
       }
 
+      # +-------------------------+------+-------+-----------+-------+
+      # |        Site Type        | Used | Fixed | Available | Util% |
+      # +-------------------------+------+-------+-----------+-------+
+      # | Registers               |  631 |     0 |   1799680 |  0.04 |
+      # |   Register as Flip Flop |  631 |     0 |   1799680 |  0.04 |
+      # |   Register as Latch     |    0 |     0 |   1799680 |  0.00 |
+      # | CLB LUTs*               |  582 |     0 |    899840 |  0.06 |
+      # |   LUT as Logic          |  582 |     0 |    899840 |  0.06 |
+      # |   LUT as Memory         |    0 |     0 |    449920 |  0.00 |
+      # | LOOKAHEAD8              |    0 |     0 |    112480 |  0.00 |
+      # +-------------------------+------+-------+-----------+-------+
       # +----------------------------+--------+-------+-----------+-------+
       # |          Site Type         |  Used  | Fixed | Available | Util% |
       # +----------------------------+--------+-------+-----------+-------+
@@ -1429,29 +1619,29 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 #       addMetric {utilization.ctrlsets.uniq}  {Unique Control Sets}
 #       addMetric {utilization.ctrlsets.lost}  {Registers Lost due to Control Sets}
 
-      extractMetricFromTable report {utilization.clb.lut}          -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.lut.pct}      -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.lut}          -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lut.pct}      -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.ff}           -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CLB Registers} {Slice Registers}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.ff.pct}       -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CLB Registers} {Slice Registers}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.ff}           -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.ff.pct}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.ld}           -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{Register as Latch}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.ld.pct}       -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{Register as Latch}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.ld}           -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{Register as Latch}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.ld.pct}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{Register as Latch}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.carry8}       -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CARRY8}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.carry8.pct}   -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CARRY8}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.carry8}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CARRY8}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.carry8.pct}   -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CARRY8}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.f7mux}        -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{F7 Muxes}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f7mux.pct}    -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{F7 Muxes}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.f7mux}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F7 Muxes}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f7mux.pct}    -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F7 Muxes}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.f8mux}        -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{F8 Muxes}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f8mux.pct}    -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{F8 Muxes}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.f8mux}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F8 Muxes}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f8mux.pct}    -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F8 Muxes}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.f9mux}        -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{F9 Muxes}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f9mux.pct}    -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{F9 Muxes}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.f9mux}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F9 Muxes}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f9mux.pct}    -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F9 Muxes}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.lutmem}       -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{LUT as Memory}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.lutmem.pct}   -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{LUT as Memory}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.lutmem}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LUT as Memory}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lutmem.pct}   -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LUT as Memory}} -column {Util%} -trim float -default {n/a}
 
       # +-------------------+------+-------+-----------+-------+
       # |     Site Type     | Used | Fixed | Available | Util% |
@@ -1615,14 +1805,14 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         }
       }
 
-      extractMetricFromTable report {utilization.clb.lut.avail}    -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.ff.avail}     -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CLB Registers} {Slice Registers}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.ld.avail}     -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{Register as Latch}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.carry8.avail} -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CARRY8}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f7mux.avail}  -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{F7 Muxes}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f8mux.avail}  -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{F8 Muxes}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f9mux.avail}  -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{F9 Muxes}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.lutmem.avail} -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{LUT as Memory}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lut.avail}    -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.ff.avail}     -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.ld.avail}     -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{Register as Latch}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.carry8.avail} -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CARRY8}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f7mux.avail}  -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F7 Muxes}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f8mux.avail}  -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F8 Muxes}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f9mux.avail}  -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F9 Muxes}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lutmem.avail} -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LUT as Memory}} -column {Available} -default {n/a}
       extractMetricFromTable report {utilization.ram.tile.avail}   -search {{(BLOCKRAM|Memory)\s*$} {(BLOCKRAM|Memory)\s*$}} -row {{Block RAM Tile}} -column {Available} -default {n/a}
       extractMetricFromTable report {utilization.uram.tile.avail}  -search {{(BLOCKRAM|Memory)\s*$} {(BLOCKRAM|Memory)\s*$}} -row {{URAM}} -column {Available} -default {n/a}
       extractMetricFromTable report {utilization.dsp.avail}        -search {{(ARITHMETIC|DSP)\s*$}  {(ARITHMETIC|DSP)\s*$}}  -row {{DSPs}} -column {Available} -default {n/a}
@@ -1696,7 +1886,125 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
           }
 
+      }
+
+      if {$extractUtilizationFromSLRTable && ([package vcompare $params(vivado_version) 2019.1.0] >= 0)} {
+        # 2019.1 and above: the utilization by SLR is extracted from "SLR CLB Logic and Dedicated Block Utilization".
+        # To reduce the overall impact on the structure of the script, the utilization metrics have already been extracted
+        # from the above Tcl code, but from the wrong table inside the utilization report. This section of code extract the
+        # correct metrics for the selected SLR
+
+        # +----------------------------+--------+--------+--------+--------+--------+--------+
+        # |          Site Type         |  SLR0  |  SLR1  |  SLR2  | SLR0 % | SLR1 % | SLR2 % |
+        # +----------------------------+--------+--------+--------+--------+--------+--------+
+        # | CLB                        |  48707 |  28059 |  48813 |  98.88 |  56.96 |  99.09 |
+        # |   CLBL                     |  24314 |  13822 |  24378 |  98.84 |  56.19 |  99.10 |
+        # |   CLBM                     |  24393 |  14237 |  24435 |  98.92 |  57.73 |  99.09 |
+        # | CLB LUTs                   | 307516 | 102021 | 306638 |  78.03 |  25.89 |  77.81 |
+        # |   LUT as Logic             | 290312 |  95985 | 289513 |  73.67 |  24.36 |  73.47 |
+        # |     using O5 output only   |   4277 |   1326 |   4302 |   1.09 |   0.34 |   1.09 |
+        # |     using O6 output only   | 226496 |  70821 | 225876 |  57.47 |  17.97 |  57.32 |
+        # |     using O5 and O6        |  59539 |  23838 |  59335 |  15.11 |   6.05 |  15.06 |
+        # |   LUT as Memory            |  17204 |   6036 |  17125 |   8.72 |   3.06 |   8.68 |
+        # |     LUT as Distributed RAM |  12474 |   4380 |  12394 |   6.32 |   2.22 |   6.28 |
+        # |       using O5 output only |      0 |      0 |      0 |   0.00 |   0.00 |   0.00 |
+        # |       using O6 output only |  10362 |   1400 |  10282 |   5.25 |   0.71 |   5.21 |
+        # |       using O5 and O6      |   2112 |   2980 |   2112 |   1.07 |   1.51 |   1.07 |
+        # |     LUT as Shift Register  |   4730 |   1656 |   4731 |   2.40 |   0.84 |   2.40 |
+        # |       using O5 output only |      0 |      0 |      0 |   0.00 |   0.00 |   0.00 |
+        # |       using O6 output only |   2227 |    264 |   2232 |   1.13 |   0.13 |   1.13 |
+        # |       using O5 and O6      |   2503 |   1392 |   2499 |   1.27 |   0.71 |   1.27 |
+        # | CLB Registers              | 260292 | 173618 | 258852 |  33.03 |  22.03 |  32.84 |
+        # | CARRY8                     |   7240 |   1557 |   7240 |  14.70 |   3.16 |  14.70 |
+        # | F7 Muxes                   |  12221 |   2542 |  12216 |   6.20 |   1.29 |   6.20 |
+        # | F8 Muxes                   |   3144 |    663 |   3142 |   3.19 |   0.67 |   3.19 |
+        # | F9 Muxes                   |      0 |      0 |      0 |   0.00 |   0.00 |   0.00 |
+        # | Block RAM Tile             |    453 |     69 |  452.5 |  62.92 |   9.58 |  62.85 |
+        # |   RAMB36/FIFO              |    302 |     68 |    302 |  41.94 |   9.44 |  41.94 |
+        # |     RAMB36E2 only          |    302 |     68 |    302 |  41.94 |   9.44 |  41.94 |
+        # |   RAMB18                   |    302 |      2 |    301 |  20.97 |   0.14 |  20.90 |
+        # |     RAMB18E2 only          |    302 |      2 |    301 |  20.97 |   0.14 |  20.90 |
+        # | URAM                       |     32 |      0 |     32 |  10.00 |   0.00 |  10.00 |
+        # | DSPs                       |    323 |      1 |    323 |  14.17 |   0.04 |  14.17 |
+        # | PLL                        |      0 |      0 |      0 |   0.00 |   0.00 |   0.00 |
+        # | MMCM                       |      0 |      0 |      0 |   0.00 |   0.00 |   0.00 |
+        # | Unique Control Sets        |   7635 |   3925 |   7577 |   7.75 |   3.98 |   7.69 |
+        # +----------------------------+--------+--------+--------+--------+--------+--------+
+
+        extractMetricFromTable report {utilization.clb.lut}          -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB LUTs} {Slice LUTs}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.lut.pct}      -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB LUTs} {Slice LUTs}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.clb.ff}           -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.ff.pct}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.clb.ld}           -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Register as Latch}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.ld.pct}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Register as Latch}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.clb.carry8}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CARRY8}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.carry8.pct}   -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CARRY8}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.clb.f7mux}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F7 Muxes}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.f7mux.pct}    -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F7 Muxes}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.clb.f8mux}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F8 Muxes}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.f8mux.pct}    -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F8 Muxes}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.clb.f9mux}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F9 Muxes}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.f9mux.pct}    -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F9 Muxes}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.clb.lutmem}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{LUT as Memory}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.lutmem.pct}   -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{LUT as Memory}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.ram.tile}         -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Block RAM Tile}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.ram.tile.pct}     -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Block RAM Tile}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.uram.tile}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{URAM}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.uram.tile.pct}    -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{URAM}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.dsp}              -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{DSPs}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.dsp.pct}          -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{DSPs}} -column "$slrs %" -trim float -default {n/a}
+
+        # BUFG* stats are not inside the "SLR CLB Logic and Dedicated Block Utilization" table, therefore
+        # they should not be reported
+        array unset guidelines utilization.clk.all
+
+        # Calculate the guidelines for the max number of control sets if it is not provided
+        if {![regexp {[0-9]+} $guidelines(utilization.ctrlsets.uniq)]} {
+          # If no number is defined inside $guidelines(utilization.ctrlsets.uniq) it means that
+          # the number of control sets should be calculated based on the number of available
+          # FD resources inside the SLR. Since report_utilization has not been scoped and has been
+          # run from the top, the available resources are for the entire device. Need to divide by the
+          # number of SLRs.
+          # The metric $guidelines(utilization.ctrlsets.uniq) is calculated here since the metric
+          # utilization.clb.ff.avail is reset afterward
+          # Formula: 7.5% * (#FD / 8) / #SLRs
+          append guidelines(utilization.ctrlsets.uniq) [format {%.0f} [expr [getMetric utilization.clb.ff.avail] / 8.0 * 7.5 / 100.0 / [llength [get_slrs -quiet]]]]
+          if {$params(debug)} { puts " -D- available registers for control sets calculation: [getMetric utilization.clb.ff.avail]" }
+          if {$params(verbose)} { puts " -W- setting guideline for control sets to '$guidelines(utilization.ctrlsets.uniq)'" }
         }
+
+        if {$params(debug)} { puts " -D- calculating available resources for $slrPblock" }
+        foreach var [list \
+          {utilization.clb.lut}    \
+          {utilization.clb.ff}     \
+          {utilization.clb.carry8} \
+          {utilization.clb.f7mux}  \
+          {utilization.clb.f8mux}  \
+          {utilization.clb.f9mux}  \
+          {utilization.clb.lutmem} \
+          {utilization.ram.tile}   \
+          {utilization.uram.tile}  \
+          {utilization.dsp}        \
+          ] {
+            # Clear the metrics related to the available resources
+            # Re-calculate the available resources by dividing the number extracted from the main table by the number of SLRs.
+            # This means that the estimation assumes that each SLR has the same number of available resources.
+            if {[catch {setMetric ${var}.avail [format {%.0f} [expr [getMetric ${var}.avail] / [llength [get_slrs -quiet]]]]} errorstring]} {
+              setMetric ${var}.avail {n/a}
+            }
+        }
+
+      }
 
       # Calculate the average utilization between the big blocks (RAM/URAM/DSP)
       if {[catch {
@@ -1738,7 +2046,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       # If the LUT utilization is below 50%, then do not report the LUT Combining metris
       if {[catch {
         if {[getMetric {utilization.clb.lut.pct}] < 50.0} {
-          if {$params(verbose)} { puts " -I- removing LUT Combining metric (design.cells.hlutnm.pct) due to low LUT utilization ([getMetric {utilization.clb.lut.pct}]%)" }
+          if {$params(verbose)} { puts " -I- removing LUT Combining metric (design.cells.hlutnm.pct) due to low LUT utilization ([getMetric {utilization.clb.lut.pct}]% < 50%)" }
           array unset guidelines design.cells.hlutnm.pct
         }
       }]} {
@@ -1754,39 +2062,67 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
     ##
     ########################################################################################
 
-    if {1 && [llength [array names guidelines utilization.*]] && ([lsearch $skipChecks {control_sets}] == -1)} {
+    if {1 && $extractUtilizationFromSLRTable && [llength [array names guidelines utilization.*]] && ([lsearch $skipChecks {control_sets}] == -1)} {
+      switch $reportMode {
+        pblockAndTop -
+        pblockAndCell -
+        pblockOnly -
+        regionAndTop -
+        regionAndCell -
+        regionOnly -
+        slrAndTop -
+        slrAndCell {
+          # Should never come here. In any of those modes, $extractUtilizationFromSLRTable = 0
+        }
+        slrOnly {
+          # Retreive the previous report_utilization. Extract the number of control sets
+          # from the table "SLR CLB Logic and Dedicated Block Utilization"
+          set report [getReport report_utilization]
+          set stepStartTime [clock seconds]
+          addMetric {utilization.ctrlsets.uniq}    {Unique Control Sets}
+          extractMetricFromTable report {utilization.ctrlsets.uniq}    -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Unique Control Sets}} -column $slrs -trim float -default {n/a}
+          set stepStopTime [clock seconds]
+          puts " -I- control set metrics completed in [expr $stepStopTime - $stepStartTime] seconds"
+        }
+        default {
+        }
+      }
+
+    }
+
+    if {1 && !$extractUtilizationFromSLRTable && [llength [array names guidelines utilization.*]] && ([lsearch $skipChecks {control_sets}] == -1)} {
       set stepStartTime [clock seconds]
       # Get report
       switch $reportMode {
         pblockAndTop {
-          set report [report_control_sets -quiet -return_string]
+          set report [getReport report_control_sets -quiet -return_string]
         }
         pblockAndCell {
-          set report [report_control_sets -quiet -cell $leafCells -return_string]
+          set report [getReport report_control_sets -quiet -cell $leafCells -return_string]
         }
         pblockOnly {
-          set report [report_control_sets -quiet -cell $leafCells -return_string]
+          set report [getReport report_control_sets -quiet -cell $leafCells -return_string]
         }
         regionAndTop {
-          set report [report_control_sets -quiet -return_string]
+          set report [getReport report_control_sets -quiet -return_string]
         }
         regionAndCell {
-          set report [report_control_sets -quiet -cell $leafCells -return_string]
+          set report [getReport report_control_sets -quiet -cell $leafCells -return_string]
         }
         regionOnly {
-          set report [report_control_sets -quiet -cell $leafCells -return_string]
+          set report [getReport report_control_sets -quiet -cell $leafCells -return_string]
         }
         slrAndTop {
-          set report [report_control_sets -quiet -return_string]
+          set report [getReport report_control_sets -quiet -return_string]
         }
         slrAndCell {
-          set report [report_control_sets -quiet -cell $leafCells -return_string]
+          set report [getReport report_control_sets -quiet -cell $leafCells -return_string]
         }
         slrOnly {
-          set report [report_control_sets -quiet -cell $leafCells -return_string]
+          set report [getReport report_control_sets -quiet -cell $leafCells -return_string]
         }
         default {
-          set report [report_control_sets -quiet -return_string]
+          set report [getReport report_control_sets -quiet -return_string]
         }
       }
 
@@ -1981,7 +2317,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       set limit $guidelines(design.nets.nonfdhfn.limit)
       addMetric {design.nets.nonfdhfn}   "Non-FD high fanout nets > [expr $limit / 1000]k loads"
 
-      set nets [get_nets -quiet -top_net_of_hierarchical_group -filter "(FLAT_PIN_COUNT >= $limit) && (TYPE == SIGNAL)" \
+      set nets [get_nets -quiet -top_net_of_hierarchical_group -segments -filter "(FLAT_PIN_COUNT >= $limit) && (TYPE == SIGNAL)" \
                  -of [get_pins -quiet -of $leafCells] ]
       set drivers [get_pins -quiet -of $nets -filter {IS_LEAF && (REF_NAME !~ FD*) && (DIRECTION == OUT)}]
       setMetric {design.nets.nonfdhfn}  [llength $drivers]
@@ -2082,6 +2418,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
             default {
               set timBudgetPerLUT 0.575
               set timBudgetPerNet 0.403
+              puts " -W- speedgrade $speedgrade is not matching any expected value. Using default speedgrade values (LUT=$timBudgetPerLUT / Net=$timBudgetPerNet)."
             }
           }
         }
@@ -2105,6 +2442,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
             default {
               set timBudgetPerLUT 0.490
               set timBudgetPerNet 0.342
+              puts " -W- speedgrade $speedgrade is not matching any expected value. Using default speedgrade values (LUT=$timBudgetPerLUT / Net=$timBudgetPerNet)."
             }
           }
         }
@@ -2117,8 +2455,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
           switch -regexp -- $speedgrade {
             "-1.*LV.*" {
               # US+ -1LV == US -1
-              set timBudgetPerLUT 0.490
-              set timBudgetPerNet 0.342
+              # Note: adjusted values from US -1 to match latest recommendations
+              set timBudgetPerLUT 0.449
+              set timBudgetPerNet 0.302
             }
             "-1.*" {
               set timBudgetPerLUT 0.350
@@ -2126,8 +2465,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
             }
             "-2.*LV.*" {
               # US+ -2LV == US -2
-              set timBudgetPerLUT 0.425
-              set timBudgetPerNet 0.298
+              # Note: adjusted values from US -2 to match latest recommendations
+              set timBudgetPerLUT 0.391
+              set timBudgetPerNet 0.263
             }
             "-2.*" {
               set timBudgetPerLUT 0.300
@@ -2140,11 +2480,12 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
             default {
               set timBudgetPerLUT 0.350
               set timBudgetPerNet 0.239
+              puts " -W- speedgrade $speedgrade is not matching any expected value. Using default speedgrade values (LUT=$timBudgetPerLUT / Net=$timBudgetPerNet)."
             }
           }
         }
         default {
-          puts " -E- architecture $architecture is not supported."
+          puts " -E- architecture $architecture is not supported for LUT/Net budgeting."
           incr error
         }
       }
@@ -2175,8 +2516,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
       set dbgtbl [::tclapp::xilinx::designutils::prettyTable create [format {Budgeting Summary (lut=%sns/net=%sns)} $timBudgetPerLUT $timBudgetPerNet] ]
       $tbl indent 1
       $dbgtbl indent 1
-      $tbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Levels} {Net Budget} {Lut Budget} {Path} {Info} ]
-      $dbgtbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Levels} {Net Budget} {Lut Budget} {Path} {Info} ]
+      $tbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
+      $dbgtbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
 
       if {$timingPathsBudgeting != {}} {
         # For debug EOU, timnig paths can e passed from the command line
@@ -2251,11 +2592,19 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         set addrow 0
         if {$skew == {}} { set skew 0.0 }
         if {$uncertainty == {}} { set uncertainty 0.0 }
+
         # Number of LUT* in the datapath
         set levels [llength [filter [get_cells -quiet -of $path] {REF_NAME =~ LUT*}]]
+        if {$params(debug) && ($params(debug_level) >= 2)} {
+          puts " -D- level calculation based on LUTs/Nets: $levels"
+        }
+
         if {![regexp {^FD} $spref] && ![regexp {^LD} $spref]} {
           # If the startpoint is not an FD* or a LD*, then account for it by increasing the number of levels
           incr levels
+          if {$params(debug) && ($params(debug_level) >= 2)} {
+            puts " -D- level increase: startpoint not a FD or LD"
+          }
         }
 #         if {!([regexp {^FD} $epref] && ([get_property -quiet REF_PIN_NAME $ep] == {D}))} {
 #           # If the endpoint is not an FD*/D, then account for it by increasing the number of levels
@@ -2265,6 +2614,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         if {[regexp {^[LF]D} $epref]} {
           if {[get_property -quiet REF_PIN_NAME $ep] != {D}} {
             # If the endpoint is not an FD*/D, then account for it by increasing the number of levels
+            if {$params(debug) && ($params(debug_level) >= 2)} {
+              puts " -D- level increase: endpoint pin not D"
+            }
             incr levels
           } else {
             set dnet [get_nets -quiet -of $ep]
@@ -2275,13 +2627,22 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
               # then increase the number of levels since there is no shape to force the endpoint
               # and its driver to be placed into the same slice
               if {[get_property -quiet FLAT_PIN_COUNT $dnet] > 2 || ![regexp {LUT*} [get_property -quiet REF_NAME [get_pins -quiet -leaf -filter {DIRECTION==OUT} -of $dnet]]]} {
+                if {$params(debug) && ($params(debug_level) >= 2)} {
+                  puts " -D- level increase: fanout before endpoint"
+                }
                 incr levels
               }
             }
           }
         } else {
           # If the endpoint is not a register/latch, then increase the number of levels
+          if {$params(debug) && ($params(debug_level) >= 2)} {
+            puts " -D- level increase: endpoint not a FD or LD"
+          }
           incr levels
+        }
+        if {$params(debug) && ($params(debug_level) >= 2)} {
+          puts " -D- level calculation after startpoint/endpoint adjustment: $levels"
         }
 
         # Calculate the maximum number of LUTs based on path requirement, skew and uncertainty
@@ -2289,9 +2650,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         # round() : round to the nearest (e.g 1.8 => 2)
         set lut_budget [expr int(($requirement + $skew - $uncertainty) / double($timBudgetPerLUT)) ]
 #         set lut_budget [expr round(($requirement + $skew - $uncertainty) / double($timBudgetPerLUT)) ]
+        set lut_adjSlack [expr $slack + $datapath_delay - ($levels * $timBudgetPerLUT)]
         # Calculate the maximum number of Nets based on path requirement, skew, uncertainty and logic cell delay
         set net_budget [expr int(($requirement + $skew - $uncertainty - $cell_delay) / double($timBudgetPerNet)) ]
 #         set net_budget [expr round(($requirement + $skew - $uncertainty - $cell_delay) / double($timBudgetPerNet)) ]
+        set net_adjSlack [expr $slack + $net_delay - ($levels * $timBudgetPerNet)]
         # Calculate the maximum datapath based on path requirement, skew and uncertainty
         set datapath_budget [format {%.3f} [expr double($lut_budget) * double($timBudgetPerLUT)] ]
 #         if {$datapath_budget > [expr $requirement + $skew - $uncertainty]} {}
@@ -2299,7 +2662,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         # Debug table for LUT/Net budgeting
         set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay $logic_levels $levels]
 
-        if {$levels > $net_budget} {
+        # Adding condition "$net_adjSlack < 0" in the test below
+        if {$levels > $net_budget && $net_adjSlack < 0} {
           # Save the path inside the detailed report file
           if {$FHNet != {}} {
             puts $FHNet [report_timing -quiet -of $path -return_string]
@@ -2326,7 +2690,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 #             puts " -I- $path"
 #             puts " -I- net_budget=$net_budget / levels=$levels / slack=$slack / requirement=$requirement / skew=$skew / uncertainty=$uncertainty / dp_budget=$datapath_budget / datapath_delay=$datapath_delay / cell_delay=$cell_delay"
         }
-        if {$levels > $lut_budget} {
+        # Adding condition "$lut_adjSlack < 0" in the test below
+        if {$levels > $lut_budget && $lut_adjSlack < 0} {
           # Save the path inside the detailed report file
           if {$FHLut != {}} {
             puts $FHLut [report_timing -quiet -of $path -return_string]
@@ -2353,6 +2718,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 #             puts " -I- $path"
 #             puts " -I- lut_budget=$lut_budget / levels=$levels / slack=$slack / requirement=$requirement / skew=$skew / uncertainty=$uncertainty / dp_budget=$datapath_budget / datapath_delay=$datapath_delay"
         }
+        lappend row [format %.3f $net_adjSlack]
+        lappend row [format %.3f $lut_adjSlack]
         # Debug table for LUT/Net budgeting
         lappend row [get_property -quiet REF_NAME [get_cells -quiet -of $path]]
         lappend row $path
@@ -2371,6 +2738,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
         puts " -D- Number of processed paths: [llength $spaths]"
         puts " -D- Number of paths that fail the LUT budgeting but pass the Net budgeting: $numFailedLutPassNet"
         puts " -D- Number of paths that fail the Net budgeting but pass the LUT budgeting: $numFailedNetPassLut"
+      }
+      if {$showAllBudgetingPaths} {
+        # Show all paths analyzed for the LUT/Net budgeting. Replace the table with debug table
+        set tbl $dbgtbl
       }
       setMetric {design.device.maxlvls.lut}  $numFailedLut
       setMetric {design.device.maxlvls.net}  $numFailedNet
@@ -2735,6 +3106,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 
   # Destroy table
   catch {$tblcsv destroy}
+
+  # Restore tcl.collectionResultDisplayLimit
+  set_param tcl.collectionResultDisplayLimit $collectionResultDisplayLimit
 
   return $params(failed)
 }
@@ -3137,6 +3511,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::reset { {force 0} } {
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
+  variable reports
   variable metrics
   variable params
   variable guidelines
@@ -3146,7 +3521,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::reset { {force 0} } {
   }
   catch { unset metrics }
   catch { unset guidelines }
-  array set reports [list]
+#   catch { unset reports }
+#   array set reports [list]
   array set metrics [list]
   return -code ok
 }
@@ -3202,6 +3578,57 @@ proc ::tclapp::xilinx::designutils::report_failfast::setMetric {name value} {
   set metrics(${name}:def) 2
   set metrics(${name}:val) $value
   return -code ok
+}
+
+proc ::tclapp::xilinx::designutils::report_failfast::getReport {name args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  variable reports
+  variable params
+  if {[info exists reports($name)]} {
+    if {$params(verbose)} { puts " -I- Found report '$name'" }
+    return $reports($name)
+  }
+  set res {}
+  set startTime [clock seconds]
+  # Debug: remove -quiet
+#   set args [lsearch -all -inline -not -exact $args {-quiet}]
+  if {$params(debug)} { puts [format " -D- running '$name' with: %s ..." [string range $args 0 199]] }
+  if {[catch {set res [$name {*}$args]} errorstring]} {
+    if {$params(verbose)} { puts " -E- $errorstring" }
+  }
+  set stopTime [clock seconds]
+  if {$params(verbose)} { puts " -I- report '$name' completed in [expr $stopTime - $startTime] seconds" }
+  set reports($name) $res
+  return $res
+}
+
+proc ::tclapp::xilinx::designutils::report_failfast::importReport {name filename} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  variable reports
+  variable params
+  if {![file exists $filename]} {
+    puts " -E- File '$filename' does not exist"
+    return -code ok
+  }
+  if {[info exists reports($name)]} {
+    if {$params(verbose)} { puts " -I- Found report '$name'. Overridding existing report with new one" }
+  }
+  if {$params(verbose)} {
+    puts " -I- Importing report '[file normalize $filename]'"
+  }
+  set FH [open $filename {r}]
+  set report [read $FH]
+  close $FH
+  set reports($name) $report
+  return $report
 }
 
 # Supports a single pattern
@@ -3291,8 +3718,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::extractMetricFromPattern2 {
 }
 
 # Supports a list of patterns
-#       extractMetricFromTable report {utilization.clb.lut}      -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CLB LUTs} {SLICE LUTs}} -column {Used} -default {n/a}
-#       extractMetricFromTable report {utilization.clb.lut.pct}  -search {{(Slice|CLB) Logic\s*$} {(Slice|CLB) Logic\s*$}} -row {{CLB LUTs} {SLICE LUTs}} -column {Util%} -trim float -default {n/a}
+#       extractMetricFromTable report {utilization.clb.lut}      -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {SLICE LUTs}} -column {Used} -default {n/a}
+#       extractMetricFromTable report {utilization.clb.lut.pct}  -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {SLICE LUTs}} -column {Util%} -trim float -default {n/a}
 proc ::tclapp::xilinx::designutils::report_failfast::extractMetricFromTable {&report name args} {
   # Summary :
   # Argument Usage:
