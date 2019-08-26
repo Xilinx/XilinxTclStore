@@ -4564,7 +4564,7 @@ proc is_vip_ip_required {} {
   return false 
 }
 
-proc usf_fetch_lib_info { simulator clibs_dir } {
+proc usf_fetch_lib_info { simulator clibs_dir b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4624,6 +4624,11 @@ proc usf_fetch_lib_info { simulator clibs_dir } {
 
     set a_sim_cache_lib_info($library) $array_value
   }
+  
+  # print library type information
+  if { $b_int_sm_lib_ref_debug } {
+    usf_print_shared_lib_type_info
+  }
 }
 
 proc usf_add_library_type_to_database { value } {
@@ -4668,22 +4673,22 @@ proc usf_contains_C_files {} {
   return false
 }
 
-proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_dir_arg sp_ext_dir_arg } {
+proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
-  
+
   upvar $sp_cpt_dir_arg sp_cpt_dir
   upvar $sp_ext_dir_arg sp_ext_dir
  
   # any library referenced in IP?
-  set lib_coln [usf_get_sc_libs]
+  set lib_coln [usf_get_sc_libs $b_int_sm_lib_ref_debug]
   if { [llength $lib_coln] == 0 } {
     return
   }
 
   # target directory paths to search for
-  set target_paths [usf_get_target_sm_paths $simulator $clibs_dir $custom_sm_lib_dir sp_cpt_dir sp_ext_dir]
+  set target_paths [usf_get_target_sm_paths $simulator $clibs_dir $custom_sm_lib_dir $b_int_sm_lib_ref_debug sp_cpt_dir sp_ext_dir]
 
   # additional linked libraries
   set linked_libs           [list]
@@ -4703,22 +4708,26 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_di
   # search for this shared library from the known paths. Also find the linked libraries that were referenced in
   # the dat file for a given library that was packaged in IP.
   foreach library $lib_coln {
-  
     # target shared library name to search for
     set shared_libname "lib${library}.${extn}"
 
     # is systemc library?
     set b_is_systemc_library [usf_is_sc_library $library]
 
+    if { $b_int_sm_lib_ref_debug } {
+      puts "Finding shared library '$shared_libname'..."
+    }
     # iterate over target paths to search for this library name
     foreach path $target_paths {
-	
       #set path [file normalize $path]
       set path [regsub -all {[\[\]]} $path {/}]
 
       # is this shared library already processed from a given path? 
       if { [lsearch -exact $processed_shared_libs $shared_libname] != -1 } { continue; }
 
+      if { $b_int_sm_lib_ref_debug } {
+        puts " + Library search path:$path"
+      }
       set lib_dir_path_found ""
       foreach lib_dir [glob -nocomplain -directory $path *] {
         if { ![file isdirectory $lib_dir] } { continue; }
@@ -4734,31 +4743,33 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_di
             set gcc_version [get_param "simulator.${simulator}.gcc.version"]
             if {$::tcl_platform(platform) == "unix"} {
               set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
+              if { $b_int_sm_lib_ref_debug } {
+                puts "  + shared lib path:$sh_file_path"
+              }
             }
           }
         }
-		
         if { [file exists $sh_file_path] } {
           if { ![info exists a_shared_library_path_coln($shared_libname)] } {
             set a_shared_library_path_coln($shared_libname) $lib_dir
             set lib_path_dir [file dirname $lib_dir]
             set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            if { $b_int_sm_lib_ref_debug } {
+              puts "  + Added '$shared_libname:$lib_dir' to collection" 
+            }
             lappend processed_shared_libs $shared_libname
             set lib_dir_path_found $lib_dir
             break;
           }
         }
       }
-	  
+
       if { $lib_dir_path_found != "" } {
         # get any dependent libraries if any from this shared library dir
         set dat_file "$lib_dir_path_found/.cxl.lib_info.dat"
-		
         if { [file exists $dat_file] } {
           # any dependent library info fetched from .cxl.lib_info.dat?
-		  
           if { [info exists a_sim_cache_lib_info($library)] } {
-		  
             # "SystemC#xtlm#common_cpp_v1_0,proto_v1_0#xyz_v1_0"
             set values [split $a_sim_cache_lib_info($library) {#}]
             set values_len [llength $values]
@@ -4783,6 +4794,9 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_di
   
                       lappend linked_libs $lib
                       lappend uniq_linked_libs $lib
+                      if { $b_int_sm_lib_ref_debug } {
+                        puts "    + Added linked library:$lib"
+                      }
                       #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
                     }
                   }
@@ -4802,6 +4816,9 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_di
   
                       lappend linked_libs $lib
                       lappend uniq_linked_libs $lib
+                      if { $b_int_sm_lib_ref_debug } {
+                        puts "    + Added linked library:$lib"
+                      }
                       #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
                     }
                   }
@@ -4821,6 +4838,9 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_di
   
                       lappend linked_libs $lib
                       lappend uniq_linked_libs $lib
+                      if { $b_int_sm_lib_ref_debug } {
+                        puts "    + Added linked library:$lib"
+                      }
                       #send_msg_id SIM-utils-001 STATUS "Added '$lib' for processing\n"
                     }
                   }
@@ -4828,16 +4848,25 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_di
               }
             }
           }
+        } else {
+          if { $b_int_sm_lib_ref_debug } {
+            puts "    + error: file does not exist '$dat_file'"
+          }
         }
       }
     }
   }
 
+  if { $b_int_sm_lib_ref_debug } {
+    puts "Processing linked libraries..."
+  }
   # find shared library paths for the linked libraries
   foreach library $linked_libs {
     # target shared library name to search for
     set shared_libname "lib${library}.${extn}"
-
+    if { $b_int_sm_lib_ref_debug } {
+      puts " + Finding linked shared library:$shared_libname"
+    }
     # iterate over target paths to search for this library name
     foreach path $target_paths {
       #set path [file normalize $path]
@@ -4849,14 +4878,22 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_di
             set a_shared_library_path_coln($shared_libname) $lib_dir
             set lib_path_dir [file dirname $lib_dir]
             set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            if { $b_int_sm_lib_ref_debug } {
+              puts "  + Added '$shared_libname:$lib_dir' to collection" 
+            }
           }
         }
       }
     }
   }
+
+  # print extracted shared library information
+  if { $b_int_sm_lib_ref_debug } {
+    usf_print_shared_lib_info
+  }
 }
 
-proc usf_get_sc_libs { } {
+proc usf_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4872,11 +4909,7 @@ proc usf_get_sc_libs { } {
   set v_sysc_libs         [list]
 
   foreach ip_obj [get_ips -quiet -all] {
-  
     if { ([lsearch -exact [list_property -quiet $ip_obj] {SYSTEMC_LIBRARIES}] != -1) && ([lsearch -exact [list_property -quiet $ip_obj] {SELECTED_SIM_MODEL}] != -1) } {
-	
-		
-	
       set ip_name           [get_property -quiet name               $ip_obj]
       set ip_def            [get_property -quiet ipdef              $ip_obj]
       set allowed_sim_types [get_property -quiet allowed_sim_types  $ip_obj]
@@ -4891,6 +4924,9 @@ proc usf_get_sc_libs { } {
 	  lappend v_sysc_libs $sysc_libs
 	 
       if { [string equal -nocase $tlm_type "tlm"] == 1 } { 
+        if { $b_int_sm_lib_ref_debug } {
+          #puts " +$ip_name:$ip_def:$tlm_type:$sysc_libs"
+        }
         foreach lib [get_property -quiet $prop_name $ip_obj] {
           if { [lsearch -exact $uniq_ref_libs $lib] == -1 } {
             lappend uniq_ref_libs $lib
@@ -4902,11 +4938,26 @@ proc usf_get_sc_libs { } {
   }
   set fmt {%-50s%-2s%-30s%-2s%-20s%-2s%-10s%-2s%-20s}
   set sep ":"
-
+  if { $b_int_sm_lib_ref_debug } {
+    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+    puts " IP                                                 IPDEF                           Allowed Types         Selected    SystemC Libraries"
+    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+    foreach name $v_ip_names def $v_ip_defs sim_type $v_allowed_sim_types tlm_type $v_tlm_types sys_lib $v_sysc_libs {
+      puts [format $fmt $name $sep $def $sep $sim_type $sep $tlm_type $sep $sys_lib]
+      puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+    }
+    puts "\nLibraries referenced from IP's"
+    puts "------------------------------"
+    foreach sc_lib $ref_libs {
+      puts " + $sc_lib" 
+    }
+    puts "------------------------------"
+  }
+  
   return $ref_libs
 }
 
-proc usf_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_dir_arg sp_ext_dir_arg } {
+proc usf_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4918,7 +4969,7 @@ proc usf_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_dir_
 
   set sm_cpt_dir [usf_get_simmodel_dir $simulator "cpt"]
   set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
-  
+
   # default protected dir
   set tp "$cpt_dir/$sm_cpt_dir"
   if { ([file exists $tp]) && ([file isdirectory $tp]) } {
@@ -4963,6 +5014,16 @@ proc usf_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir sp_cpt_dir_
 
   # add compiled library directory
   lappend target_paths "$clibs_dir"
+
+  if { $b_int_sm_lib_ref_debug } {
+    puts "-----------------------------------------------------------------------------------------------------------"
+    puts "Target paths to search"
+    puts "-----------------------------------------------------------------------------------------------------------"
+    foreach target_path $target_paths {
+      puts "Path: $target_path"
+    }
+    puts "-----------------------------------------------------------------------------------------------------------"
+  }
 
   return $target_paths
 }
@@ -5454,6 +5515,55 @@ proc usf_add_c_files_from_xci { comp_file c_filter c_files_arg } {
       }
     }
   }
+}
+
+proc usf_print_shared_lib_type_info { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_cache_lib_type_info
+  set fmt {%-50s%-2s%-10s}
+  set sep ":"
+  set libs [list]
+  set types [list]
+  foreach {library type} [array get a_sim_cache_lib_type_info] {
+    lappend libs $library
+    lappend types $type
+  }
+  puts "--------------------------------------------------------------------"
+  puts "Shared libraries:-"
+  puts "--------------------------------------------------------------------"
+  puts " LIBRARY                                            TYPE"
+  puts "--------------------------------------------------------------------"
+  foreach lib $libs type $types {
+    puts [format $fmt $lib $sep $type]
+    puts "--------------------------------------------------------------------"
+  }
+  puts ""
+}
+
+proc usf_print_shared_lib_info { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_shared_library_path_coln
+  set fmt {%-25s%-2s%-80s}
+  set sep ":"
+  set libs [list]
+  set dirs [list]
+  foreach {library lib_dir} [array get a_shared_library_path_coln] {
+    lappend libs $library
+    lappend dirs $lib_dir
+  }
+  puts "-----------------------------------------------------------------------------------------------------------"
+  puts "Extracted shared library path information"
+  puts "-----------------------------------------------------------------------------------------------------------"
+  foreach lib $libs dir $dirs {
+    puts [format $fmt $lib $sep $dir]
+  }
+  puts "-----------------------------------------------------------------------------------------------------------"
 }
 
 }
