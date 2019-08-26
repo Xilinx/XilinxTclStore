@@ -1267,8 +1267,12 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
       }
     }
   } else { ; # File object is not defined. Check if this is an XPM file...
-    if { ($b_xpm) && ([string length $xpm_library] != 0)} {
-      set associated_library $xpm_library
+    if { $b_xpm } {
+      if { [string length $xpm_library] != 0 } {
+        set associated_library $xpm_library
+      } else {
+        set associated_library "xpm"
+      }
     }
   }
 

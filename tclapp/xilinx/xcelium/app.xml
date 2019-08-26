@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass -noedg if param set to skip systemC design analysis for xmsc compiler</revision_history>
+      <revision_history>compile xpm sv sources into xpm library for non-precompile mode</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

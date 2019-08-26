@@ -1116,8 +1116,12 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
       set associated_library [get_property "LIBRARY" $file_obj]
     }
   } else { ; # File object is not defined. Check if this is an XPM file...
-    if { ($b_xpm) && ([string length $xpm_library] != 0)} {
-      set associated_library $xpm_library
+    if { $b_xpm } {
+      if { [string length $xpm_library] != 0 } {
+        set associated_library $xpm_library
+      } else {
+        set associated_library "xpm"
+      }
     }
   }
 

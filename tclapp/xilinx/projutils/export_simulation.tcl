@@ -1565,8 +1565,12 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
   set associated_library $a_sim_vars(default_lib);
   set srcs_dir [file normalize "$launch_dir/srcs"]
   if { $b_skip_file_obj_access } {
-    if { ($b_xpm) && ([string length $xpm_library] != 0)} {
-      set associated_library $xpm_library
+    if { $b_xpm } {
+      if { [string length $xpm_library] != 0 } {
+        set associated_library $xpm_library
+      } else {
+        set associated_library "xpm"
+      }
     }
   } else {
     set file_obj {}
