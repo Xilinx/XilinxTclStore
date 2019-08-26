@@ -1,3 +1,4 @@
+1.45 Various improvements (report_failfast)
 1.44 Added support for updated report_control_sets format (report_failfast)
 1.43 Added support for Vivado patches (report_failfast)
 1.42 Added support for US+ -1LV/-2LV (report_failfast)
