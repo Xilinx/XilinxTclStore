@@ -1,3 +1,4 @@
+3.404 compile xpm sv sources into xpm library for non-precompile mode
 3.403 check for ips before fetching the ip_output_dir value
 3.402 helper to find the used_in values of duplicate files if synthesis type
 3.401 reference simmodel shared library

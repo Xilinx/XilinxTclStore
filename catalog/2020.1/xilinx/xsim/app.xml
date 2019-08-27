@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed axsim invocation with args if standalone mode is set</revision_history>
+      <revision_history>compile xpm sv sources into xpm library for non-precompile mode</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
