@@ -1116,8 +1116,12 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
       set associated_library [get_property "LIBRARY" $file_obj]
     }
   } else { ; # File object is not defined. Check if this is an XPM file...
-    if { ($b_xpm) && ([string length $xpm_library] != 0)} {
-      set associated_library $xpm_library
+    if { $b_xpm } {
+      if { [string length $xpm_library] != 0 } {
+        set associated_library $xpm_library
+      } else {
+        set associated_library "xpm"
+      }
     }
   }
 
@@ -1242,7 +1246,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   #puts ip_name=$ip_name
 
   set dst_cip_file $full_src_file_path
-  set used_in_values [get_property "USED_IN" $full_src_file_obj]
+  set used_in_values [xcs_find_used_in_values $full_src_file_obj]
   set library [get_property "LIBRARY" $full_src_file_obj]
   set b_file_is_static 0
   # is dynamic?
@@ -1287,12 +1291,13 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     
     set b_process_file 1
     if { $a_sim_vars(b_use_static_lib) } {
-      # use pre-compiled lib
+      # library found from valid pre-compiled libraries list, so use this pre-compiled version
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
+        # do not process file and mark this as static
         set b_process_file 0
         set b_is_static 1
       } else {
-        # add this library to have the new library linkage in mapping file
+        # library to be compiled locally, add this to the local library linkage collection for mapping purposes
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
           lappend l_local_design_libraries $library
         }

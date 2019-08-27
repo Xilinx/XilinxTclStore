@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added file existence check for the ip object before fetching ip_output_dir value</revision_history>
+      <revision_history>compile xpm sv sources into xpm library for non-precompile mode</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

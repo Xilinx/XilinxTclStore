@@ -1,3 +1,13 @@
+2.162 compile xpm sv sources into xpm library for non-precompile mode
+2.161 check for ips before fetching the ip_output_dir value
+2.160 helper to find the used_in values of duplicate files if synthesis type
+2.159 reference simmodel shared library
+2.158 filter systemc sources from exporting into run directory
+2.157 add compiler types for xcelium co-simulation support
+2.156 added file existence check for protoinst sources
+2.155 fixed boost include dir path
+2.154 force compile glbl when param set to true
+2.153 fixed xv_boost_lib_path variable for windows for finding include directory
 2.152 top level attribute change to integer for sv port type
 2.151 reference IP shared libraries if found from design
 2.150 revert sv file type determination fix

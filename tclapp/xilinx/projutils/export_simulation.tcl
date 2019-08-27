@@ -1388,7 +1388,7 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
   #puts ip_name=$ip_name
 
   set dst_cip_file $full_src_file_path
-  set used_in_values [get_property "USED_IN" $full_src_file_obj]
+  set used_in_values [xcs_find_used_in_values $full_src_file_obj]
   set library [get_property "LIBRARY" $full_src_file_obj]
   set b_file_is_static 0
   # is dynamic?
@@ -1565,8 +1565,12 @@ proc xps_get_cmdstr { simulator launch_dir file file_type b_xpm compiler l_other
   set associated_library $a_sim_vars(default_lib);
   set srcs_dir [file normalize "$launch_dir/srcs"]
   if { $b_skip_file_obj_access } {
-    if { ($b_xpm) && ([string length $xpm_library] != 0)} {
-      set associated_library $xpm_library
+    if { $b_xpm } {
+      if { [string length $xpm_library] != 0 } {
+        set associated_library $xpm_library
+      } else {
+        set associated_library "xpm"
+      }
     }
   } else {
     set file_obj {}

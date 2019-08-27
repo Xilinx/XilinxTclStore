@@ -78,6 +78,10 @@ Arguments:
   the original project into the new project. If the design contains BD sources then
   -use_bd_files switch must also be provided.
 
+  -no_ip_version - (Optional) Flag to not include the IP version as part of the
+  IP VLNV in create_bd_cell commands. NOTE - this may have implications if there 
+  are major IP version changes.
+
   -absolute_path - (Optional) Make all file paths absolute in the generated script.
   This allows running the script from any location in that filesystem. By default the 
   file paths will be relative to the origin_dir variable.

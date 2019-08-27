@@ -158,7 +158,7 @@ proc usf_ies_setup_simulation { args } {
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
     if { {} != $clibs_dir } {
-      set libraries [xcs_get_compiled_libraries $clibs_dir]
+      set libraries [xcs_get_compiled_libraries $clibs_dir $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
       foreach lib $libraries {
         if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {

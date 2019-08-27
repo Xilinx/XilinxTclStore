@@ -627,6 +627,28 @@ proc xcs_find_file_from_compile_order { ip_name src_file } {
   return $src_file
 }
 
+proc xcs_find_used_in_values { src_file } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set used_in_values [get_property "USED_IN" $src_file]
+  # if only marked for synthesis but multiple files with exact duplicate file paths found in the design, then
+  # check if one of these files is marked for simulation. If yes, get the correct used_in values to determine
+  # if it's of type static or dynamic
+  if { ([llength $used_in_values] == 1) && ("synthesis" == $used_in_values) } {
+    foreach s_file_obj [get_files -quiet -all $src_file] {
+      set used_in_keys [get_property -quiet "USED_IN" $s_file_obj]
+      # is file marked for simulation?
+      if { [lsearch -exact $used_in_keys "simulation"] } {
+        set used_in_values $used_in_keys
+        break
+      }
+    }
+  }
+  return $used_in_values
+}
+
 proc xcs_find_ipstatic_file_path { file_obj src_ip_file parent_comp_file ipstatic_dir} {
   # Summary:
   # Argument Usage:
@@ -1388,7 +1410,7 @@ proc xcs_uniquify_cmd_str { cmd_strs } {
   return [dict keys $cmd_dict]
 }
 
-proc xcs_get_compiled_libraries { clibs_dir } {
+proc xcs_get_compiled_libraries { clibs_dir {b_int_sm_lib_ref_debug 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1406,6 +1428,8 @@ proc xcs_get_compiled_libraries { clibs_dir } {
   set lib_data [split [read $fh] "\n"]
   close $fh
 
+  set failed_ips [list]
+  set lib_dirs [list]
   foreach line $lib_data {
     set line [string trim $line]
     if { [string length $line] == 0 } { continue; }
@@ -1414,8 +1438,32 @@ proc xcs_get_compiled_libraries { clibs_dir } {
     set tokens [split $line {,}]
     set library [lindex $tokens 0]
     if { [lsearch -exact $l_libs $library] == -1 } {
-      lappend l_libs $library
+      set vhd_stat [lindex [split [lindex $tokens 1] {=}] 1]
+      set ver_stat [lindex [split [lindex $tokens 2] {=}] 1]
+      if { ("pass" == $vhd_stat) && ("pass" == $ver_stat) } {
+        lappend l_libs $library
+      } else {
+        if { ("fail" == $vhd_stat) || ("fail" == $ver_stat) } {
+          if { $b_int_sm_lib_ref_debug } {
+            lappend failed_ips $library
+            lappend lib_dirs "$clibs_dir/$library"
+          }
+        }
+      }
     }
+  }
+
+  if { $b_int_sm_lib_ref_debug } {
+    set fmt {%-50s%-2s%-100s}
+    set sep ":"
+    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+    puts "Pre-Compiled libraries that failed to compile:-"
+    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+    foreach ip $failed_ips lib_dir $lib_dirs {
+      puts [format $fmt $ip $sep $lib_dir]
+      puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+    }
+    puts ""
   }
   return $l_libs
 }
@@ -2185,13 +2233,13 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
   # Summary:
   # Argument Usage:
   # Return Value:
-
+  
   variable l_target_simulator
   if { [llength $data_files] == 0 } { return }
   set data_files [xcs_remove_duplicate_files $data_files]
-  foreach file $data_files {
-    set extn [file extension $file]
-    set filename [file tail $file]
+  foreach src_file $data_files {
+    set extn [file extension $src_file]
+    set filename [file tail $src_file]
     switch -- $extn {
       {.bd} -
       {.png} -
@@ -2200,12 +2248,15 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
       {.hwh} -
       {.hwdef} -
       {.xml} {
-        if { {} != [xcs_cache_result {xcs_get_top_ip_filename $file}] } {
+        if { {} != [xcs_cache_result {xcs_get_top_ip_filename $src_file}] } {
           if { [regexp {_addr_map.xml} ${filename}] } {
             # keep these files
           } else {
             continue
           }
+        } else {
+          # skip other c files
+          if { {.c}   == $extn } { continue }
         }
       }
     }
@@ -2219,11 +2270,14 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
     set mig_files [list "xsim_run.sh" "ies_run.sh" "xcelium_run.sh" "vcs_run.sh" "readme.txt" "xsim_files.prj" "xsim_options.tcl" "sim.do"]
     if { [lsearch $mig_files $filename] != -1 } {continue}
 
-    set target_file "$export_dir/[file tail $file]"
+    # skip system source files
+    if { {.cpp} == $extn } { continue }
+
+    set target_file "$export_dir/[file tail $src_file]"
 
     if { ([get_param project.enableCentralSimRepo]) && ({} != $dynamic_repo_dir) } {
       set mem_init_dir [file normalize "$dynamic_repo_dir/mem_init_files"]
-      set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $mem_init_dir]
+      set data_file [extract_files -force -no_paths -files [list "$src_file"] -base_dir $mem_init_dir]
 
       if {[catch {file copy -force $data_file $export_dir} error_msg] } {
         send_msg_id SIM-utils-042 WARNING "Failed to copy file '$data_file' to '$export_dir' : $error_msg\n"
@@ -2231,7 +2285,7 @@ proc xcs_export_data_files { export_dir dynamic_repo_dir data_files } {
         send_msg_id SIM-utils-043 INFO "Exported '$target_file'\n"
       }
     } else {
-      set data_file [extract_files -force -no_paths -files [list "$file"] -base_dir $export_dir]
+      set data_file [extract_files -force -no_paths -files [list "$src_file"] -base_dir $export_dir]
       send_msg_id SIM-utils-044 INFO "Exported '$target_file'\n"
     }
   }
@@ -2495,6 +2549,9 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
         "SystemVerilog"                {set compiler "xmvlog"}
+        "SystemC"                      {set compiler "xmsc"}
+        "CPP"                          {set compiler "g++"}
+        "C"                            {set compiler "gcc"}
       }
     }
     "vcs" {
@@ -3255,10 +3312,10 @@ proc xcs_get_c_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fil
   }
 
   # add boost header references for include dir
-  if { "xsim" == $simulator } {
-    set boost_dir "%xv_boost_lib_path%/boost"
+  if { ("xsim" == $simulator) || ("xcelium" == $simulator) } {
+    set boost_dir "%xv_boost_lib_path%"
     if {$::tcl_platform(platform) == "unix"} {
-      set boost_dir "\$xv_boost_lib_path/boost"
+      set boost_dir "\$xv_boost_lib_path"
     }
   }
   lappend incl_dirs "$boost_dir"
@@ -3470,7 +3527,7 @@ proc xcs_get_protoinst_files { dynamic_repo_dir } {
   set pinst_files [list]
   foreach file [get_files -quiet -all -filter $filter] {
     if { ![file exists $file] } {
-      send_msg_id SIM-utils-060 WARNING "File does not exist:$file\n"
+      send_msg_id SIM-utils-060 WARNING "File does not exist:'$file'\n"
       continue
     }
     set file [xcs_get_file_from_repo $file $dynamic_repo_dir b_found_in_repo repo_src_file]
@@ -4027,12 +4084,15 @@ proc xcs_print_shared_lib_type_info { } {
     lappend types $type
   }
   puts "--------------------------------------------------------------------"
+  puts "Shared libraries:-"
+  puts "--------------------------------------------------------------------"
   puts " LIBRARY                                            TYPE"
   puts "--------------------------------------------------------------------"
   foreach lib $libs type $types {
     puts [format $fmt $lib $sep $type]
     puts "--------------------------------------------------------------------"
   }
+  puts ""
 }
 
 proc xcs_get_simmodel_dir { simulator type } {

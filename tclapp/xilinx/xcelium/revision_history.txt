@@ -1,5 +1,20 @@
-9.6 added file existence check for the ip object before fetching ip_output_dir value
-9.5 added file existence check for the proroinst sources and force compile glbl when param set to true
+11.11 compile xpm sv sources into xpm library for non-precompile mode
+11.10 pass -noedg if param set to skip systemC design analysis for xmsc compiler
+11.9 pass -noedg if param set to skip systemC design analysis
+11.8 fixed typo from install path check message
+11.7 fixed install path setting
+11.6 pass -sv_root and -sv_lib for referencing gtye5_quad shared library
+11.5 reference gty shared library
+11.4 set install path if xmroot not set
+11.3 set LD_LIBRARY_PATH for simulate step
+11.2 reference precompiled shared libraries
+11.1 skip protected shared library from elab
+11.0 reference system sim design shared libraries
+9.9 add compiler types for xcelium co-simulation support
+9.8 added file existence check for protoinst sources
+9.7 fixed boost include dir path
+9.6 updated test
+9.5 force compile glbl when param set to true
 9.4 fixed xv_boost_lib_path variable for windows for finding include directory
 9.3 top level attribute change to integer for sv port type
 9.2 revert sv file type determination fix

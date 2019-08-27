@@ -254,12 +254,18 @@ proc usf_xsim_setup_simulation { args } {
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     usf_set_compiled_lib_dir
     set l_local_ip_libs [xcs_get_libs_from_local_repo]
-    set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir)]
+    set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
     # filter local ip definitions
     foreach lib $libraries {
       if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+        # The pre-compiled library is found from local repo as well, so we will use and compile this
+        # local repo version during compilation. Do not add to valid list of pre-compiled libraries
+        # collection (l_compiled_libraries).
         continue
       } else {
+        # List of final pre-compiled libraries after filtering the ones that either failed to compile or
+        # not found in the local repo. All other libraries found in the design if not in this list will
+        # be compiled locally.
         lappend l_compiled_libraries $lib
       }
     }
@@ -267,12 +273,6 @@ proc usf_xsim_setup_simulation { args } {
   
   set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
 
-  # extract simulation model library info
-  set ip_dir "$a_sim_vars(s_clibs_dir)/ip"
-  if { ![file exists $ip_dir] } {
-    set ip_dir $a_sim_vars(s_clibs_dir)
-  }
-  xcs_fetch_lib_info "xsim" $ip_dir $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
@@ -300,6 +300,21 @@ proc usf_xsim_setup_simulation { args } {
   if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
     set a_sim_vars(b_system_sim_design) 1
   }
+
+  # for non-precompile mode set the compiled library for system simulation 
+  if { !$a_sim_vars(b_use_static_lib) } {
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      usf_xsim_set_clibs_for_system_sim
+      set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
+    }
+  }
+
+  # extract simulation model library info
+  set ip_dir "$a_sim_vars(s_clibs_dir)/ip"
+  if { ![file exists $ip_dir] } {
+    set ip_dir $a_sim_vars(s_clibs_dir)
+  }
+  xcs_fetch_lib_info "xsim" $ip_dir $a_sim_vars(b_int_sm_lib_ref_debug)
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
 
@@ -671,6 +686,46 @@ proc usf_xsim_verify_compiled_lib {} {
  return 1
 }
 
+proc usf_xsim_set_clibs_for_system_sim {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set filename "xsim.ini"
+  send_msg_id USF-XSim-007 INFO "Finding pre-compiled libraries...\n"
+
+  # 1. is -lib_map_path specified and point to valid location?
+  if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
+    set ini_file [file normalize [file join $a_sim_vars(s_lib_map_path) $filename]]
+    if { [file exists $ini_file] } {
+      set a_sim_vars(compiled_library_dir) $a_sim_vars(s_lib_map_path)
+      return 0
+    } else {
+      usf_print_compiled_lib_msg
+      return 1
+    }
+  }
+
+  # 2. if empty property (default), calculate default install location
+  set dir [get_property "COMPXLIB.XSIM_COMPILED_LIBRARY_DIR" [current_project]]
+  if { {} == $dir } {
+    set dir $::env(XILINX_VIVADO)
+    set dir [file normalize [file join $dir "data/xsim"]]
+  }
+  set file [file normalize [file join $dir $filename]]
+  if { [file exists $file] } {
+    set a_sim_vars(compiled_library_dir) $dir
+    return 0
+  }
+
+  # failed to find the compiled library, print msg
+  usf_print_compiled_lib_msg
+  return 1
+}
+
 proc usf_print_compiled_lib_msg {} {
   # Summary:
   # Argument Usage:
@@ -773,6 +828,14 @@ proc usf_resolve_compiled_library_dir { cxl_prop_dir library } {
        ($library == "vl_2008"           ) } {
 
     set dir "$cxl_prop_dir/vhdl/$library"
+    if { [file exists $dir] } {
+      return $dir
+    }
+  }
+
+  # internal system verilog libraries
+  if { $library == "uvm" } {
+    set dir "$cxl_prop_dir/system_verilog/$library"
     if { [file exists $dir] } {
       return $dir
     }
@@ -1225,7 +1288,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
         set xsc_arg_list [list]
         lappend xsc_arg_list "-c"
-        # TODO: revisit this once we switch to higher version (1.66 will support this by default)
+        # revisit this once we switch to higher version (1.66 will support this by default)
         lappend xsc_arg_list "--gcc_compile_options \"-DBOOST_SYSTEM_NO_DEPRECATED\""
         set more_xsc_options [string trim [get_property "XSIM.COMPILE.XSC.MORE_OPTIONS" $fs_obj]]
         if { {} != $more_xsc_options } {
@@ -1660,6 +1723,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
 
   # standalone mode
   set standalone_mode [get_property -quiet "xelab.standalone" $fs_obj]
+  set snapshot_dir "$::tclapp::xilinx::xsim::a_xsim_vars(s_snapshot)"
 
   set b_batch 1
   if {$::tcl_platform(platform) == "unix"} {
@@ -1668,7 +1732,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
-      puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
+      puts $fh_scr "export xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
     }
     
@@ -1757,8 +1821,8 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     }
 
     if { $standalone_mode } {
-      puts $fh_scr "echo \"./axsim.sh\""
-      puts $fh_scr "./axsim.sh"
+      puts $fh_scr "echo \"./xsim.dir/${snapshot_dir}/axsim \$*\""
+      puts $fh_scr "./xsim.dir/${snapshot_dir}/axsim \$*"
     } else {
       set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
       puts $fh_scr "echo \"xsim $cmd_args\""
@@ -1775,8 +1839,8 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     }
 
     if { $standalone_mode } {
-      puts $fh_scr "echo \"./axsim.bat\""
-      puts $fh_scr "call ./axsim.bat"
+      puts $fh_scr "echo \"./xsim.dir/${snapshot_dir}/axsim \$*\""
+      puts $fh_scr "call ./xsim.dir/${snapshot_dir}/axsim %*"
     } else {
       set cmd_args [usf_xsim_get_xsim_cmdline_args $cmd_file $wcfg_files $b_add_view $wdf_file $b_add_wdb $b_batch]
       set b_call_script_exit [get_property -quiet "XSIM.CALL_SCRIPT_EXIT" $fs_obj]
@@ -2253,15 +2317,25 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   lappend args_list "-lib $a_sim_vars(default_top_library)"
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
     set ip_objs [get_ips -all -quiet]
-    foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
-      foreach ip_obj $ip_objs {
-        set ipdef [get_property -quiet IPDEF $ip_obj]
-        set ip_name [lindex [split $ipdef ":"] 2]
-        if { [string first $ip_name $shared_ip_lib] != -1} {
-          lappend args_list "-lib $shared_ip_lib"
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
+      puts "Referenced pre-compiled shared libraries"
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
+    }
+    foreach ip_obj $ip_objs {
+      set ipdef [get_property -quiet IPDEF $ip_obj]
+      set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+      if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+        lappend args_list "-lib $vlnv_name"
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
         }
       }
+    }
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
     }
 
     set b_en_code true
@@ -2898,3 +2972,4 @@ proc usf_append_sm_lib_path { sm_lib_paths_arg install_path sm_lib_dir match_str
   return false
 }
 }
+#

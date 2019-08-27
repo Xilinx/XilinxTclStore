@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.15
+package require ::tclapp::aldec::common::helpers 1.16
 
-package provide ::tclapp::aldec::common::sim 1.15
+package provide ::tclapp::aldec::common::sim 1.16
 
 namespace eval ::tclapp::aldec::common {
 
@@ -168,7 +168,28 @@ proc usf_aldec_setup_simulation { args } {
 
   ::tclapp::aldec::common::helpers::findAllDesignFiles
   ::tclapp::aldec::common::helpers::findCompiledLibraries 
+<<<<<<< HEAD
   
+=======
+
+	# extract simulation model library info
+	::tclapp::aldec::common::helpers::usf_fetch_lib_info \
+		[ get_property target_simulator [ current_project ] ] \
+		[ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ]
+
+	# find shared library paths from all IPs
+	if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] } {
+		if { [::tclapp::aldec::common::helpers::usf_contains_C_files] } {
+			::tclapp::aldec::common::helpers::usf_find_shared_lib_paths \
+				[ get_property target_simulator [ current_project ] ] \
+				[ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ] \
+				$::tclapp::aldec::common::helpers::properties(custom_sm_lib_dir) \
+				::tclapp::aldec::common::helpers::properties(sp_cpt_dir) \
+				::tclapp::aldec::common::helpers::properties(sp_ext_dir)
+		}
+	}
+	
+>>>>>>> origin/2019.2-dev
   # fetch design files
   set global_files_str {}
   set ::tclapp::aldec::common::helpers::properties(designFiles) \
@@ -201,6 +222,9 @@ proc usf_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
+  # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -227,6 +251,10 @@ proc usf_setup_args { args } {
       "-run_dir"        { incr i;set ::tclapp::aldec::common::helpers::properties(launch_directory) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::aldec::common::helpers::properties(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::aldec::common::helpers::properties(s_int_debug_mode) [lindex $args $i] }
+	  "-int_systemc_mode"		{ set ::tclapp::aldec::common::helpers::properties(b_int_systemc_mode) 1	}
+	  "-int_sm_lib_dir"         { incr i;set ::tclapp::aldec::common::helpers::properties(custom_sm_lib_dir) [lindex $args $i] }
+      "-int_sm_lib_ref_debug"   { set ::tclapp::aldec::common::helpers::properties(b_int_sm_lib_ref_debug) 1                   }
+	  "-int_csim_compile_order" { set ::tclapp::aldec::common::helpers::properties(b_int_csim_compile_order) 1                 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -559,7 +587,12 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   set prev_lib  {}
   set prev_file_type {}
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
+<<<<<<< HEAD
 
+=======
+  set useAddsc 0
+	
+>>>>>>> origin/2019.2-dev
 	foreach file $::tclapp::aldec::common::helpers::properties(designFiles) {
 		set fargs [ split $file {|} ]
 		set type [ lindex $fargs 0 ]
@@ -589,6 +622,17 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 		} else {
 			puts $fh "$cmd_str $src_file"
 		}
+<<<<<<< HEAD
+=======
+
+		if { $file_type == "SystemC" } {
+			set useAddsc 1
+		}
+	}
+
+	if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] && $useAddsc == 1 } {
+		puts $fh "\naddsc [ ::tclapp::aldec::common::helpers::getSystemCLibrary ]"
+>>>>>>> origin/2019.2-dev
 	}
 
   if { $b_group_files } {
@@ -1065,7 +1109,44 @@ proc usf_aldec_write_driver_shell_script { do_filename step } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $scriptFileHandle "#!/bin/sh -f"
     puts $scriptFileHandle "bin_path=\"$::tclapp::aldec::common::helpers::properties(s_tool_bin_path)\""
-    ::tclapp::aldec::common::helpers::usf_write_shell_step_fn $scriptFileHandle
+   
+    if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] } {
+      if { $::tclapp::aldec::common::helpers::properties(b_contain_systemc_sources) } {
+        if { ({elaborate} == $step) || ({simulate} == $step) || ({compile} == $step)} {
+          set shared_ip_libs [list]
+
+     #     variable a_shared_library_path_coln
+          foreach {key value} [array get ::tclapp::aldec::common::helpers::a_shared_library_path_coln] {
+            set sc_lib   $key
+            set lib_path $value
+            set lib_dir "$lib_path"
+			
+            lappend shared_ip_libs $lib_dir
+          }
+ 
+		  set libraryLocation [ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ]
+ 
+          set ip_objs [get_ips -all -quiet]
+          foreach shared_ip_lib [::tclapp::aldec::common::helpers::usf_get_shared_ip_libraries $libraryLocation] { 
+            foreach ip_obj $ip_objs {
+              set ipdef [get_property -quiet IPDEF $ip_obj]
+              set ip_name [lindex [split $ipdef ":"] 2]
+              if { [string first $ip_name $shared_ip_lib] != -1} {
+                set lib_dir "$libraryLocation/$shared_ip_lib"
+                lappend shared_ip_libs $lib_dir
+              }
+            }
+          }
+		  
+          if { [llength $shared_ip_libs] > 0 } {
+            set shared_ip_libs_env_path [join $shared_ip_libs ":"]
+            puts $scriptFileHandle "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+          }
+        }
+      }
+    }
+
+   ::tclapp::aldec::common::helpers::usf_write_shell_step_fn $scriptFileHandle
     if { $batch_sw != "" } {
       puts $scriptFileHandle "ExecStep \$bin_path/../runvsimsa -l $log_filename -do \"do \{$do_filename\}\""
     } else {

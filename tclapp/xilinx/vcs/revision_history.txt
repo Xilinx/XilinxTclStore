@@ -1,5 +1,11 @@
-7.3 added file existence check for the ip object before fetching ip_output_dir value
-7.2 added file existence check for the proroinst sources and force compile glbl when param set to true
+7.9 compile xpm sv sources into xpm library for non-precompile mode
+7.8 check for ips before fetching the ip_output_dir value
+7.7 helper to find the used_in values of duplicate files if synthesis type
+7.6 reference simmodel shared library
+7.5 filter systemc sources from exporting into run directory
+7.4 add compiler types for xcelium co-simulation support
+7.3 added file existence check for protoinst sources
+7.2 fixed boost include dir path
 7.1 fixed xv_boost_lib_path variable for windows for finding include directory
 7.0 do not reference glbl for pure vhdl design containing xpm_cdc
 6.9 top level attribute change to integer for sv port type
