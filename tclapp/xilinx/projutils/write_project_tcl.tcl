@@ -1323,6 +1323,23 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
       set prop_entry "[string tolower $prop]$delim$abs_proj_file_path"
     }  
 
+    # handle the board_part_repo_paths property    
+    if {[string equal -nocase $prop "board_part_repo_paths"]} {
+     set board_repo_paths [list]  
+     set board_repo_paths [get_property $prop $current_obj]
+     if { [llength $board_repo_paths] > 0 } {
+          set board_paths [list]
+          foreach path $board_repo_paths {
+            if { $a_global_vars(b_absolute_path) || [need_abs_path $path] } {
+              lappend board_paths $path
+            } else {
+              lappend board_paths "\[file normalize \"\$origin_dir/[get_relative_file_path_for_source $path [get_script_execution_dir]]\"\]"
+            }
+          }
+          set prop_entry "[string tolower $prop]$delim[join $board_paths " "]"
+      }
+    }
+
     # re-align include dir path wrt origin dir
     if { [string equal -nocase $prop "include_dirs"] } {
       if { [llength $abs_proj_file_path] > 0 } {
