@@ -1545,7 +1545,6 @@ proc is_deprecated_property { property } {
   if { [string equal $property "board"] ||
        [string equal $property "verilog_dir"] ||
        [string equal $property "compxlib.compiled_library_dir"] ||
-       [string equal $property "dsa.build_flow"] ||
        [string equal $property "runtime"] ||
        [string equal $property "unit_under_test"] ||
        [string equal $property "xelab.snapshot"] ||
@@ -1580,7 +1579,11 @@ proc is_deprecated_property { property } {
        [string equal $property "modelsim.simulate.uut"] ||
        [string equal $property "questa.simulate.uut"] ||
        [string equal $property "ies.simulate.uut"] ||
-       [string equal $property "vcs.simulate.uut"] } {
+       [string equal $property "vcs.simulate.uut"] ||
+       [string equal $property "platform.xocc_link_xp_switches_default"] ||
+       [string equal $property "platform.xocc_compile_xp_switches_default"] ||
+       [string equal $property "dsa"] ||
+       [regexp {dsa\..*} $property ] } {
      return true
   }
   return false
