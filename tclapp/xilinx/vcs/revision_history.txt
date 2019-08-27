@@ -1,5 +1,5 @@
 7.3 added file existence check for the ip object before fetching ip_output_dir value
-7.2 added file existence check for the proroinst sources
+7.2 added file existence check for the proroinst sources and force compile glbl when param set to true
 7.1 fixed xv_boost_lib_path variable for windows for finding include directory
 7.0 do not reference glbl for pure vhdl design containing xpm_cdc
 6.9 top level attribute change to integer for sv port type

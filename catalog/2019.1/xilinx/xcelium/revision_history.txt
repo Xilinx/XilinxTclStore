@@ -1,5 +1,5 @@
 9.6 added file existence check for the ip object before fetching ip_output_dir value
-9.5 added file existence check for the proroinst sources
+9.5 added file existence check for the proroinst sources and force compile glbl when param set to true
 9.4 fixed xv_boost_lib_path variable for windows for finding include directory
 9.3 top level attribute change to integer for sv port type
 9.2 revert sv file type determination fix

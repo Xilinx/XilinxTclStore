@@ -1,5 +1,5 @@
 2.155 added file existence check for the ip object before fetching ip_output_dir value
-2.154 added file existence check for the proroinst sources
+2.154 added file existence check for the proroinst sources and force compile glbl when param set to true
 2.153 fixed xv_boost_lib_path variable for windows for finding include directory
 2.152 top level attribute change to integer for sv port type
 2.151 reference IP shared libraries if found from design
