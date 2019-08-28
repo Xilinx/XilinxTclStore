@@ -1,4 +1,5 @@
-3.405 Code change to handle board_part_repo_paths in write_project tcl
+3.406 Code change to handle board_part_repo_paths in write_project tcl
+3.405 write_project_tcl publish to exclude dsa.* properties.
 3.404 compile xpm sv sources into xpm library for non-precompile mode
 3.403 check for ips before fetching the ip_output_dir value
 3.402 helper to find the used_in values of duplicate files if synthesis type
