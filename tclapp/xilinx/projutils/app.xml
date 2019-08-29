@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>write_project_tcl publish to exclude dsa.* properties.</revision_history>
+      <revision_history>Code change to handle board_part_repo_paths in write_project tcl.</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
