@@ -111,8 +111,8 @@
     <app>
       <name>riviera</name>
       <company>aldec</company>
-      <commit_id>1f0bea8039c194bd5846a211ccde7a098ee9c8f1</commit_id>
-      <revision>1.17</revision>
+      <commit_id>0f4fa3a5c7368b82088e76bdac1864f88c4e6372</commit_id>
+      <revision>1.18</revision>
     </app>
     <app>
       <name>spyglass</name>
