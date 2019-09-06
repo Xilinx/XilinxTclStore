@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.16
+package require ::tclapp::aldec::common::helpers 1.18
 
-package provide ::tclapp::aldec::common::sim 1.16
+package provide ::tclapp::aldec::common::sim 1.18
 
 namespace eval ::tclapp::aldec::common {
 
@@ -168,28 +168,26 @@ proc usf_aldec_setup_simulation { args } {
 
   ::tclapp::aldec::common::helpers::findAllDesignFiles
   ::tclapp::aldec::common::helpers::findCompiledLibraries 
-<<<<<<< HEAD
-  
-=======
 
 	# extract simulation model library info
 	::tclapp::aldec::common::helpers::usf_fetch_lib_info \
 		[ get_property target_simulator [ current_project ] ] \
-		[ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ]
+		[ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ] \
+		$::tclapp::aldec::common::helpers::properties(b_int_sm_lib_ref_debug)
 
 	# find shared library paths from all IPs
 	if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] } {
 		if { [::tclapp::aldec::common::helpers::usf_contains_C_files] } {
 			::tclapp::aldec::common::helpers::usf_find_shared_lib_paths \
-				[ get_property target_simulator [ current_project ] ] \
+				[ string tolower [ get_property target_simulator [ current_project ] ] ]\
 				[ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ] \
 				$::tclapp::aldec::common::helpers::properties(custom_sm_lib_dir) \
+				$::tclapp::aldec::common::helpers::properties(b_int_sm_lib_ref_debug) \
 				::tclapp::aldec::common::helpers::properties(sp_cpt_dir) \
 				::tclapp::aldec::common::helpers::properties(sp_ext_dir)
 		}
 	}
 	
->>>>>>> origin/2019.2-dev
   # fetch design files
   set global_files_str {}
   set ::tclapp::aldec::common::helpers::properties(designFiles) \
@@ -587,12 +585,8 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   set prev_lib  {}
   set prev_file_type {}
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
-<<<<<<< HEAD
-
-=======
   set useAddsc 0
 	
->>>>>>> origin/2019.2-dev
 	foreach file $::tclapp::aldec::common::helpers::properties(designFiles) {
 		set fargs [ split $file {|} ]
 		set type [ lindex $fargs 0 ]
@@ -622,8 +616,6 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 		} else {
 			puts $fh "$cmd_str $src_file"
 		}
-<<<<<<< HEAD
-=======
 
 		if { $file_type == "SystemC" } {
 			set useAddsc 1
@@ -632,7 +624,6 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 
 	if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] && $useAddsc == 1 } {
 		puts $fh "\naddsc [ ::tclapp::aldec::common::helpers::getSystemCLibrary ]"
->>>>>>> origin/2019.2-dev
 	}
 
   if { $b_group_files } {

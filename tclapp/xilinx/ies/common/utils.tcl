@@ -3743,7 +3743,7 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
     set b_is_systemc_library [xcs_is_sc_library $library]
 
     if { $b_int_sm_lib_ref_debug } {
-      puts "Finding shared library '$shared_libname'..."
+      puts "\nFinding shared library '$shared_libname'..."
     }
     # iterate over target paths to search for this library name
     foreach path $target_paths {
@@ -3772,11 +3772,20 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
             if {$::tcl_platform(platform) == "unix"} {
               set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
               if { $b_int_sm_lib_ref_debug } {
-                puts "  + shared lib path:$sh_file_path"
+                puts "  + Shared lib path:$sh_file_path"
               }
             }
           }
         }
+
+        if { $b_int_sm_lib_ref_debug } {
+          if { [file exists $sh_file_path] } {
+            puts "  -----------------------------------------------------------------------------------------------------------"
+            puts "  + Library found -> $sh_file_path"
+            puts "  -----------------------------------------------------------------------------------------------------------"
+          }
+        }
+
         if { [file exists $sh_file_path] } {
           if { ![info exists a_shared_library_path_coln($shared_libname)] } {
             set a_shared_library_path_coln($shared_libname) $lib_dir
@@ -3817,6 +3826,9 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
                     if { [lsearch -exact $uniq_linked_libs $lib] == -1 } {
                       # is linked library already part of search collection?
                       if { [lsearch -exact $lib_coln $lib] != -1 } {
+                        if { $b_int_sm_lib_ref_debug } {
+                          puts "    + Skip linked library (already in collection):$lib"
+                        }
                         continue;
                       }
   
@@ -3839,6 +3851,9 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
                     if { [lsearch -exact $uniq_linked_libs $lib] == -1 } {
                       # is linked library already part of search collection?
                       if { [lsearch -exact $lib_coln $lib] != -1 } {
+                        if { $b_int_sm_lib_ref_debug } {
+                          puts "    + Skip linked library (already in collection):$lib"
+                        }
                         continue;
                       }
   
@@ -3861,6 +3876,9 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
                     if { [lsearch -exact $uniq_linked_libs $lib] == -1 } {
                       # is linked library already part of search collection?
                       if { [lsearch -exact $lib_coln $lib] != -1 } {
+                        if { $b_int_sm_lib_ref_debug } {
+                          puts "    + Skip linked library (already in collection):$lib"
+                        }
                         continue;
                       }
   
@@ -3886,10 +3904,13 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
   }
 
   if { $b_int_sm_lib_ref_debug } {
-    puts "Processing linked libraries..."
+    puts "\nProcessing linked libraries..."
   }
   # find shared library paths for the linked libraries
   foreach library $linked_libs {
+    # is systemc library?
+    set b_is_systemc_library [xcs_is_sc_library $library]
+
     # target shared library name to search for
     set shared_libname "lib${library}.${extn}"
     if { $b_int_sm_lib_ref_debug } {
@@ -3901,12 +3922,22 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
       set path [regsub -all {[\[\]]} $path {/}]
       foreach lib_dir [glob -nocomplain -directory $path *] {
         set sh_file_path "$lib_dir/$shared_libname"
+        if { $b_is_systemc_library } {
+          if { {questa} == $simulator } {
+            set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+            if {$::tcl_platform(platform) == "unix"} {
+              set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
+            }
+          }
+        }
+
         if { [file exists $sh_file_path] } {
           if { ![info exists a_shared_library_path_coln($shared_libname)] } {
             set a_shared_library_path_coln($shared_libname) $lib_dir
             set lib_path_dir [file dirname $lib_dir]
             set a_shared_library_mapping_path_coln($library) $lib_path_dir
             if { $b_int_sm_lib_ref_debug } {
+              puts "  + Library found -> $sh_file_path"
               puts "  + Added '$shared_libname:$lib_dir' to collection" 
             }
           }

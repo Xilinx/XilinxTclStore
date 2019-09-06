@@ -1,3 +1,4 @@
+2.312 fix for referencing linked shared library paths for Questa
 2.311 compile xpm sv sources into xpm library for non-precompile mode
 2.310 fixed axsim invocation with args if standalone mode is set
 2.309 export xv_cpt_lib_path for simulation model to determine path to protected library

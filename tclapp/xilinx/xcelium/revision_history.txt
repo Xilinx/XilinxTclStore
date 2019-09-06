@@ -1,3 +1,4 @@
+11.12 fix for referencing linked shared library paths for Questa
 11.11 compile xpm sv sources into xpm library for non-precompile mode
 11.10 pass -noedg if param set to skip systemC design analysis for xmsc compiler
 11.9 pass -noedg if param set to skip systemC design analysis

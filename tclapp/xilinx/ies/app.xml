@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>compile xpm sv sources into xpm library for non-precompile mode</revision_history>
+      <revision_history>fix for referencing linked shared library paths for Questa</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
