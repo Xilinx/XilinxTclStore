@@ -1,3 +1,4 @@
+1.18 Update s_data_files_filter
 1.16 Update SystemC
 1.15 Change behavior adding libraries to Active-HDL project
 1.14 If the xilinx_vip library is in the use, it is included automatically in the compilation and simulation scripts.
