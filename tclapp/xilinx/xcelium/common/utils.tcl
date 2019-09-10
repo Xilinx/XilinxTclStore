@@ -4294,3 +4294,17 @@ proc xcs_get_boost_library_path {} {
   }
   return $boost_incl_dir
 }
+
+proc xcs_get_pre_compiled_shared_objects { clibs_dir vlnv } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set obj_file_paths [list]
+  set obj_dir "$clibs_dir/$vlnv"
+  foreach obj_file [glob -nocomplain -directory $obj_dir *.o] {
+    lappend obj_file_paths $obj_file
+  }
+  
+  return $obj_file_paths
+}

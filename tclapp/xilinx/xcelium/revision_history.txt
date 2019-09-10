@@ -1,3 +1,4 @@
+11.13 added helper proc to find out object files for IPs referenced in the design
 11.12 fix for referencing linked shared library paths for Questa
 11.11 compile xpm sv sources into xpm library for non-precompile mode
 11.10 pass -noedg if param set to skip systemC design analysis for xmsc compiler

@@ -1,3 +1,4 @@
+3.408 added helper proc to find out object files for IPs referenced in the design
 3.407 fix for referencing linked shared library paths for Questa
 3.406 Code change to handle board_part_repo_paths in write_project tcl
 3.405 write_project_tcl publish to exclude dsa.* properties.

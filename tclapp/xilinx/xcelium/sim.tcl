@@ -1003,6 +1003,7 @@ proc usf_xcelium_write_elaborate_script {} {
           set shared_lib_name $key
           set shared_lib_name [file root $shared_lib_name]
           set shared_lib_name [string trimleft $shared_lib_name "lib"]
+          if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           set arg_list [linsert $arg_list end "-libname" $shared_lib_name]
         }
@@ -1093,6 +1094,35 @@ proc usf_xcelium_write_elaborate_script {} {
           set lib_name [string trimright $lib_name ".so"]
           lappend link_arg_list "-L$sm_lib_dir -l$lib_name"
         }
+
+        # link IP design libraries
+        set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+        set ip_objs [get_ips -all -quiet]
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          puts "------------------------------------------------------------------------------------------------------------------------------------"
+          puts "Referenced pre-compiled shared libraries"
+          puts "------------------------------------------------------------------------------------------------------------------------------------"
+        }
+        foreach ip_obj $ip_objs {
+          set ipdef [get_property -quiet IPDEF $ip_obj]
+          set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+          if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
+            }
+            foreach obj_file_name [xcs_get_pre_compiled_shared_objects $a_sim_vars(s_clibs_dir) $vlnv_name] {
+              if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+                puts " + linking $vlnv_name -> '$obj_file_name'"
+              }
+              lappend link_arg_list "$obj_file_name"
+            }
+          }
+        }
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          puts "------------------------------------------------------------------------------------------------------------------------------------"
+        }
+
+
         lappend link_arg_list "\$sys_libs"
         set link_args [join $link_arg_list " "]
         puts $fh_scr "$link_args\n"

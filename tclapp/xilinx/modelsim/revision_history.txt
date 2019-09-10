@@ -1,3 +1,4 @@
+2.248 added helper proc to find out object files for IPs referenced in the design
 2.247 fix for referencing linked shared library paths for Questa
 2.246 compile xpm sv sources into xpm library for non-precompile mode
 2.245 check for ips before fetching the ip_output_dir value
