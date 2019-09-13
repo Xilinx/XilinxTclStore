@@ -1278,7 +1278,7 @@ proc usf_xcelium_write_simulate_script {} {
   set arg_list [list "${tool_path_val}" "\$${tool}_opts"]
   if { [xcs_find_ip "gt_quad_base"] } {
     lappend arg_list "-sv_root \"$a_sim_vars(s_clibs_dir)/secureip\""
-    lappend arg_list "-sv_lib gtye5_quad.so"
+    lappend arg_list "-sv_lib libgtye5_quad.so"
   }
   lappend arg_list "${top_lib}.$top"
   lappend arg_list "-input"
