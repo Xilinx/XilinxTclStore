@@ -1,3 +1,5 @@
+8.1 added helper proc to find out object files for IPs referenced in the design
+8.0 fix for referencing linked shared library paths for Questa
 7.9 compile xpm sv sources into xpm library for non-precompile mode
 7.8 check for ips before fetching the ip_output_dir value
 7.7 helper to find the used_in values of duplicate files if synthesis type
