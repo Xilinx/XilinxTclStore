@@ -1,3 +1,4 @@
+2.166 export protected library path for simulate step
 2.165 fixed used_in values check for simulation tag
 2.164 added helper proc to find out object files for IPs referenced in the design
 2.163 fix for referencing linked shared library paths for Questa

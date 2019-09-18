@@ -1,3 +1,4 @@
+11.16 export protected library path for simulate step
 11.15 fixed used_in values check for simulation tag
 11.14 link gtye5_quad library
 11.13 added helper proc to find out object files for IPs referenced in the design
