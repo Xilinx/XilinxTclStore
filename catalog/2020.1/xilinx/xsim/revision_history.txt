@@ -1,3 +1,4 @@
+2.314 fixed used_in values check for simulation tag
 2.313 added helper proc to find out object files for IPs referenced in the design
 2.312 fix for referencing linked shared library paths for Questa
 2.311 compile xpm sv sources into xpm library for non-precompile mode
