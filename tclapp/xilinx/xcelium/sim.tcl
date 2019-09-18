@@ -1529,6 +1529,7 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
   # Return Value:
 
   variable a_shared_library_path_coln
+  variable a_sim_vars
   puts $fh_scr "# set library search order"
   set l_sm_lib_paths [list]
   foreach {library lib_dir} [array get a_shared_library_path_coln] {
@@ -1544,5 +1545,9 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
   }
   append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
   puts $fh_scr $ld_path
+
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+  }
 }
 }
