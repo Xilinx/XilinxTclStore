@@ -737,10 +737,14 @@ proc usf_vcs_write_elaborate_script {} {
     variable a_vcs_sim_vars
     set clibs_dir $a_vcs_sim_vars(s_compiled_lib_dir)
     append clibs_dir "/secureip"
-    set obj_files [glob -nocomplain -directory $clibs_dir *.o]
-    if { [llength $obj_files] > 0 } {
-      set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
-      #lappend arg_list $gcc_cmd
+    set comp_name "gtye5_quad"
+    set quad_lib "$clibs_dir/lib${comp_name}.so"
+    if { [file exists $quad_lib] } {
+      #set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
+      set gcc_cmd "-L$clibs_dir -l${comp_name}"
+      lappend arg_list $gcc_cmd
+    } else {
+      send_msg_id USF-VCS-070 "CRITICAL WARNING" "Shared library does not exist! '$quad_lib'\n"
     }
   }
 
@@ -866,6 +870,14 @@ proc usf_vcs_write_simulate_script {} {
     puts $fh_scr "bin_path=\"$tool_path\"\n"
   }
 
+  if { [xcs_find_ip "gt_quad_base"] } {
+    set secureip_dir "$::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir)/secureip"
+    if { [file exists $secureip_dir] } {
+      puts $fh_scr "# set library search order"
+      puts $fh_scr "LD_LIBRARY_PATH=$secureip_dir:\$LD_LIBRARY_PATH"
+    }
+  }
+  
   set do_filename "${top}_simulate.do"
   ::tclapp::xilinx::vcs::usf_create_do_file "vcs" $do_filename
   set tool "${top}_simv"

@@ -640,7 +640,7 @@ proc xcs_find_used_in_values { src_file } {
     foreach s_file_obj [get_files -quiet -all $src_file] {
       set used_in_keys [get_property -quiet "USED_IN" $s_file_obj]
       # is file marked for simulation?
-      if { [lsearch -exact $used_in_keys "simulation"] } {
+      if { [lsearch -exact $used_in_keys "simulation"] != -1 } {
         set used_in_values $used_in_keys
         break
       }
