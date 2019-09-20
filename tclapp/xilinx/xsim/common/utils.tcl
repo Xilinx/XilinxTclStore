@@ -639,8 +639,9 @@ proc xcs_find_used_in_values { src_file } {
   if { ([llength $used_in_values] == 1) && ("synthesis" == $used_in_values) } {
     foreach s_file_obj [get_files -quiet -all $src_file] {
       set used_in_keys [get_property -quiet "USED_IN" $s_file_obj]
-      # is file marked for simulation?
-      if { [lsearch -exact $used_in_keys "simulation"] } {
+      # is file marked for simulation? (returns index >= 0 if 'simulation' tag found in used_in_keys)
+      # e.g used_in_keys = 'synthesis simulation ipstatic'
+      if { [lsearch -exact $used_in_keys "simulation"] != -1 } {
         set used_in_values $used_in_keys
         break
       }

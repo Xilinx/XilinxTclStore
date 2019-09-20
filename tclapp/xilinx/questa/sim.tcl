@@ -207,6 +207,11 @@ proc usf_questa_setup_simulation { args } {
   set ::tclapp::xilinx::questa::a_sim_vars(l_design_files) \
      [xcs_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
 
+  # is system design?
+  if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
+    set a_sim_vars(b_system_sim_design) 1
+  }
+
   # create library directory
   usf_questa_create_lib_dir
 
@@ -1388,6 +1393,13 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     }
 
     xcs_write_pipe_exit $fh_scr
+
+    if { ({elaborate} == $step) || ({simulate} == $step) } {
+      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+        puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+        puts $fh_scr ""
+      }
+    }
 
     # add tcl pre hook
     if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
