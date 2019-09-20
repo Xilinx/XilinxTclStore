@@ -153,8 +153,8 @@
     <app>
       <name>xcelium</name>
       <company>xilinx</company>
-      <commit_id>424c03a10d0ce844df8eb58c9424b397c6bd7730</commit_id>
-      <revision>11.16</revision>
+      <commit_id>7f95027ec979c137c20b297ee17c8f8c08510835</commit_id>
+      <revision>11.17</revision>
     </app>
     <app>
       <name>xsim</name>
