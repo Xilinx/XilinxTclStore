@@ -3715,8 +3715,20 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
     return
   }
 
+  # store library existence information (used for reporting critical warning, if shared library not found)
+  # set it to false and mark it true once found from the available search paths
+  variable a_ip_lib_ref_coln
+  foreach sc_lib $lib_coln {
+    if { ![info exists a_ip_lib_ref_coln($sc_lib)] } {
+      set a_ip_lib_ref_coln($sc_lib) false
+    }
+  }
+
   # target directory paths to search for
   set target_paths [xcs_get_target_sm_paths $simulator $clibs_dir $custom_sm_lib_dir $b_int_sm_lib_ref_debug sp_cpt_dir sp_ext_dir]
+
+  # construct target paths string
+  set target_paths_str [join $target_paths "\n"]
 
   # additional linked libraries
   set linked_libs           [list]
@@ -3791,6 +3803,10 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
             set a_shared_library_path_coln($shared_libname) $lib_dir
             set lib_path_dir [file dirname $lib_dir]
             set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            # mark library found from path
+            if { [info exists a_ip_lib_ref_coln($library)] } {
+              set a_ip_lib_ref_coln($library) true
+            }
             if { $b_int_sm_lib_ref_debug } {
               puts "  + Added '$shared_libname:$lib_dir' to collection" 
             }
@@ -3936,6 +3952,10 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
             set a_shared_library_path_coln($shared_libname) $lib_dir
             set lib_path_dir [file dirname $lib_dir]
             set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            # mark library found from path
+            if { [info exists a_ip_lib_ref_coln($library)] } {
+              set a_ip_lib_ref_coln($library) true
+            }
             if { $b_int_sm_lib_ref_debug } {
               puts "  + Library found -> $sh_file_path"
               puts "  + Added '$shared_libname:$lib_dir' to collection" 
@@ -3945,6 +3965,20 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
       }
     }
   }
+
+  # print critical warning for missing libraries
+  foreach {key value} [array get a_ip_lib_ref_coln] {
+    set ip_lib_name  $key
+    set ip_lib_found $value
+    if { {false} == $ip_lib_found } {
+      send_msg_id USF-Xcelium-008 "CRITICAL WARNING" "Failed to find the pre-compiled library for '$ip_lib_name' IP from the following search paths:-\n"
+      foreach tp $target_paths {
+        send_msg_id USF-Xcelium-008 STATUS "  '$tp'"
+      }
+      send_msg_id USF-Xcelium-008 STATUS "Please verify if this is a valid IP name ('$ip_lib_name') or was compiled successfully and the shared library for this IP exist in the search paths."
+    }
+  }
+
 
   # print extracted shared library information
   if { $b_int_sm_lib_ref_debug } {
