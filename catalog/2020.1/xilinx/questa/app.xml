@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export protected library path for simulate step</revision_history>
+      <revision_history>print critical warning for missing pre-compiled simulation model IP</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
