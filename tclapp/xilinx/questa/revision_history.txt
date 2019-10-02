@@ -1,3 +1,4 @@
+2.169 do not call quit -force for compile and elaborate steps in scripts_only mode when simulator.quitOnSimulationComplete is false
 2.168 declare variable for storing referenced shared library in ipdef
 2.167 print critical warning for missing pre-compiled simulation model IP
 2.166 export protected library path for simulate step

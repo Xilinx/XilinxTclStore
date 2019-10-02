@@ -1,3 +1,4 @@
+2.252 do not call quit -force for compile and elaborate steps in scripts_only mode when simulator.quitOnSimulationComplete is false
 2.251 declare variable for storing referenced shared library in ipdef
 2.250 print critical warning for missing pre-compiled simulation model IP
 2.249 fixed used_in values check for simulation tag
