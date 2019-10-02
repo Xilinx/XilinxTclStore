@@ -4461,7 +4461,7 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   switch -regexp -- $simulator {
     "modelsim" {
       xps_append_config_opts args $simulator "vsim"
-      lappend args "-voptargs=\"+acc\"" "-t 1ps"
+      lappend args "-voptargs=\"+acc\""
     }
     "riviera" -
     "activehdl" {
@@ -4544,8 +4544,6 @@ proc xps_get_simulation_cmdline_questa {} {
   lappend args "vsim"
 
   xps_append_config_opts args "questa" "vsim"
-
-  lappend args "-t 1ps"
 
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
 
