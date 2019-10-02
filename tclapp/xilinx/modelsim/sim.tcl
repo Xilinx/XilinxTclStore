@@ -488,6 +488,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set b_absolute_path $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path)
   set tool_path $::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
   set DS "\\\\"
   if {$::tcl_platform(platform) == "unix"} {
     set DS "/"
@@ -712,7 +713,14 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] && $b_is_unix } {
     # no op
   } else {
-    puts $fh "\nquit -force"
+    # *** windows only ***
+    # for scripts only mode, do not quit if param is set to false (default param is true)
+    if { ![get_param "simulator.quitOnSimulationComplete"] && $b_scripts_only } {
+      # for debugging purposes, do not quit from vsim shell
+    } else {
+      puts $fh "\nquit -force"
+    }
+    # *** windows only ***
   }
 
   # Intentional: add a blank line at the very end in do file to avoid vsim error detecting '\' at EOF
@@ -764,7 +772,14 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] && $b_is_unix } {
     # no op
   } else {
-    puts $fh "\nquit -force"
+    # *** windows only ***
+    # for scripts only mode, do not quit if param is set to false (default param is true)
+    if { ![get_param "simulator.quitOnSimulationComplete"] && $b_scripts_only } {
+      # for debugging purposes, do not quit from vsim shell
+    } else {
+      puts $fh "\nquit -force"
+    }
+    # *** windows only ***
   }
 
   close $fh
