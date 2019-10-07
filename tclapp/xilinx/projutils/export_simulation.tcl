@@ -1947,7 +1947,7 @@ proc xps_get_compiled_libraries { simulator l_local_ip_libs_arg } {
   return $compiled_libraries
 }
 
-proc xps_check_script { dir filename } {
+proc xps_check_script { simulator dir filename } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1963,18 +1963,15 @@ proc xps_check_script { dir filename } {
       send_msg_id exportsim-Tcl-033 ERROR "failed to delete file ($file): $error_msg\n"
       return 1
     }
-    # cleanup other files
-    set files [glob -nocomplain -directory $dir *]
-    foreach file_path $files {
-      if { {srcs} == [file tail $file_path] } { continue }
-      if { {modelsim.ini} == [file tail $file_path] } { continue }
-      if { {cds.lib} == [file tail $file_path] } { continue }
-      if { {synopsys_sim.setup} == [file tail $file_path] } { continue }
-      if { {xsim.ini} == [file tail $file_path] } { continue }
-      if {[catch {file delete -force $file_path} error_msg] } {
-        send_msg_id exportsim-Tcl-010 ERROR "failed to delete file ($file_path): $error_msg\n"
-        return 1
-      }
+    # cleanup generated data
+    set file_list [list]
+    set file_dir_list [list]
+    xps_get_files_to_remove $simulator file_list file_dir_list
+    # delete files
+    set files_to_delete [concat $file_list $file_dir_list]
+    foreach file_name $files_to_delete {
+      set file_path "$dir/$file_name"
+      [catch {file delete -force $file_path} error_msg]
     }
   }
   return 0
@@ -1989,7 +1986,7 @@ proc xps_write_script { simulator dir filename } {
   variable l_compile_order_files
   variable l_compile_order_files_uniq
 
-  if { [xps_check_script $dir $filename] } {
+  if { [xps_check_script $simulator $dir $filename] } {
     return 1
   }
 
@@ -4869,43 +4866,7 @@ proc xps_write_reset { simulator fh_unix } {
   set file_list [list]
   set file_dir_list [list]
   set files [list]
-  switch -regexp -- $simulator {
-    "xsim" {
-      set file_list [list "xelab.pb" "xsim.jou" "xvhdl.log" "xvlog.log" "compile.log" "elaborate.log" "simulate.log" \
-                           "xelab.log" "xsim.log" "run.log" "xvhdl.pb" "xvlog.pb" "$a_sim_vars(s_top).wdb"]
-      set file_dir_list [list "xsim.dir"]
-    }
-    "modelsim" {
-      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
-      set file_dir_list [list "modelsim_lib"]
-    }
-    "questa" {
-      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
-      set file_dir_list [list "questa_lib"]
-    }
-    "riviera" {
-      set file_list [list "compile.log" "elaboration.log" "simulate.log" "dataset.asdb"]
-      set file_dir_list [list "work" "riviera"]
-    }
-    "activehdl" {
-      set file_list [list "compile.log" "elaboration.log" "simulate.log" "dataset.asdb"]
-      set file_dir_list [list "work" "activehdl"]
-    }
-    "ies" { 
-      set file_list [list "ncsim.key" "irun.key" "irun.log" "waves.shm" "irun.history" ".simvision"]
-      set file_dir_list [list "INCA_libs"]
-    }
-    "xcelium" { 
-      set file_list [list "xmsim.key" "xrun.key" "xrun.log" "waves.shm" "xrun.history" ".simvision"]
-      set file_dir_list [list "xcelium.d" "xcelium"]
-    }
-    "vcs" {
-      set file_list [list "ucli.key" "${top}_simv" \
-                          "vlogan.log" "vhdlan.log" "compile.log" "elaborate.log" "simulate.log" \
-                          ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock" "scirocco_command.log"]
-      set file_dir_list [list "64" "AN.DB" "csrc" "${top}_simv.daidir"]
-    }
-  }
+  xps_get_files_to_remove $simulator file_list file_dir_list
   set files [join $file_list " "]
   set files_dir [join $file_dir_list " "]
 
@@ -5757,6 +5718,54 @@ proc xps_print_message_for_unsupported_simulator_fileset { fs_obj simulator } {
     set extn [string tolower [file extension $ip_file]]
     if { ({.xci} == $extn) } {
       xps_print_message_for_unsupported_simulator_ip $ip_file $simulator
+    }
+  }
+}
+
+proc xps_get_files_to_remove { simulator file_list_arg file_dir_list_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  upvar $file_list_arg file_list
+  upvar $file_dir_list_arg file_dir_list
+  switch -regexp -- $simulator {
+    "xsim" {
+      set file_list [list "xelab.pb" "xsim.jou" "xvhdl.log" "xvlog.log" "compile.log" "elaborate.log" "simulate.log" \
+                           "xelab.log" "xsim.log" "run.log" "xvhdl.pb" "xvlog.pb" "$a_sim_vars(s_top).wdb"]
+      set file_dir_list [list "xsim.dir"]
+    }
+    "modelsim" {
+      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
+      set file_dir_list [list "modelsim_lib"]
+    }
+    "questa" {
+      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
+      set file_dir_list [list "questa_lib"]
+    }
+    "riviera" {
+      set file_list [list "compile.log" "elaboration.log" "simulate.log" "dataset.asdb"]
+      set file_dir_list [list "work" "riviera"]
+    }
+    "activehdl" {
+      set file_list [list "compile.log" "elaboration.log" "simulate.log" "dataset.asdb"]
+      set file_dir_list [list "work" "activehdl"]
+    }
+    "ies" { 
+      set file_list [list "ncsim.key" "irun.key" "irun.log" "waves.shm" "irun.history" ".simvision"]
+      set file_dir_list [list "INCA_libs"]
+    }
+    "xcelium" { 
+      set file_list [list "xmsim.key" "xrun.key" "xrun.log" "waves.shm" "xrun.history" ".simvision"]
+      set file_dir_list [list "xcelium.d" "xcelium"]
+    }
+    "vcs" {
+      set file_list [list "ucli.key" "$a_sim_vars(s_top)_simv" \
+                          "vlogan.log" "vhdlan.log" "compile.log" "elaborate.log" "simulate.log" \
+                          ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock" "scirocco_command.log"]
+      set file_dir_list [list "64" "AN.DB" "csrc" "$a_sim_vars(s_top)_simv.daidir"]
     }
   }
 }
