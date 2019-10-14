@@ -57,6 +57,12 @@ proc export_simulation {args} {
 
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
+
+    # special processing for lib_map_path switch
+    if { [xps_process_lib_map_path $option] } {
+      continue
+    }
+
     switch -regexp -- $option {
       "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
       "-lib_map_path"             { incr i;set l_lib_map_path                    [lindex $args $i];set a_sim_vars(b_lib_map_path_specified)              1 }
@@ -1880,10 +1886,17 @@ proc xps_get_lib_map_path { simulator {b_ignore_default_for_xsim 0} } {
 
   variable a_sim_vars
   variable l_lib_map_path
+
+  # convert to string for truncating extra braces, if any
+  set lmp_str [join $l_lib_map_path { }]
+  set lmp_str [string trim $lmp_str "\{\} "]
+
+  # convert back to list of paths
+  set lmp_paths [split $lmp_str { }]
   
   set lmp_value {}
   if { $a_sim_vars(b_lib_map_path_specified) } {
-    foreach lmp $l_lib_map_path {
+    foreach lmp $lmp_paths {
       set lmp [string trim $lmp "\}\{ "]
       if { {} == $lmp } { continue }
       if { [regexp {=} $lmp] } {
@@ -5769,4 +5782,47 @@ proc xps_get_files_to_remove { simulator file_list_arg file_dir_list_arg } {
     }
   }
 }
+
+proc xps_process_lib_map_path { option } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_vars
+  variable l_lib_map_path
+
+  # trim braces, leading or trailing spaces, if any for processing -lib_map_path switch
+  set opt_arg_val $option
+  set opt_arg_val [string trim $opt_arg_val "\{\} "]
+  # is -lib_map_path?
+  if { [regexp {^\-lib_map_path} $opt_arg_val] } {
+    set l_option [split $opt_arg_val { }]
+    #************************************************************************************
+    # process, if contains switch name and value together as a single option entity, e.g
+    #
+    #  "-lib_map_path [list {modelsim=/tmp/msim_lib} {ies=/tmp/ies_lib}])"
+    #  "-lib_map_path /tmp/mlib"
+    #************************************************************************************
+    if { [llength $l_option] > 1 } {
+      # get the -lib_map_path value part
+      set opt_val [join [lrange $l_option 1 end]]
+
+      # trim brackets, if any
+      set opt_val [string trim $opt_val "\]\[ "]
+
+      # trim "list" word, braces and space, if any
+      set opt_val [string trimleft $opt_val {list}]
+      set opt_val [string trim $opt_val "\{\} "]
+ 
+      # wrap in single curly braces and set the value 
+      set l_lib_map_path "\{$opt_val\}"
+      set a_sim_vars(b_lib_map_path_specified) 1
+
+      # option processed
+      return true 
+    }
+  }
+  return false
+}
+
 }
