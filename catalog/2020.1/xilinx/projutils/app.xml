@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>delete simulation run results only when rerunning export_simulation</revision_history>
+      <revision_history>fixed lib_map_path arg to process the values for extracting the mapping paths</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
