@@ -1538,6 +1538,13 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     lappend l_sm_lib_paths $sm_lib_dir
   }
   set ld_path "LD_LIBRARY_PATH=."
+  # for aie
+  if { [xcs_find_ip "ai_engine"] } {
+    set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/xcelium"]
+    set sm_ext_dir [xcs_get_simmodel_dir "xcelium" "ext"]
+    set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
+    append ld_path ":$cardano_api_path"
+  }
   if { [llength l_sm_lib_paths] > 0 } {
     foreach sm_lib_path $l_sm_lib_paths {
       append ld_path ":$sm_lib_path"
