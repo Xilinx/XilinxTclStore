@@ -1,3 +1,4 @@
+11.19 bind cardano api library for aie
 11.18 print critical warning for missing pre-compiled simulation model IP
 11.17 changed error to warning while checking for GNU tools for xcelium
 11.16 export protected library path for simulate step
