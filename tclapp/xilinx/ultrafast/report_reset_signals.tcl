@@ -1,11 +1,16 @@
 
 ########################################################################################
+## 10/14/2019 - Added support for -no_tied to suppress detailed tables for
+##              tied_power and tied_ground
+##            - Improved data handling to support large tables without reaching
+##              Tcl memory limit
+##            - Updated tied_power and tied_ground tables
 ## 02/02/2015 - Added support for latest property pins (IS_SET/...)
-## 01/13/2015 - Fixed typo in command line option for -setreset 
+## 01/13/2015 - Fixed typo in command line option for -setreset
 ##            - Fixed bug where the Common Primary Clock was not properly retreived
 ##              from the clock interaction report
-## 02/04/2014 - Renamed file and various additional updates for Tcl App Store 
-## 02/03/2014 - Updated the namespace and definition of the command line arguments 
+## 02/04/2014 - Renamed file and various additional updates for Tcl App Store
+## 02/03/2014 - Updated the namespace and definition of the command line arguments
 ##              for the Tcl App Store
 ## 09/16/2013 - Added meta-comment 'Categories' to all procs
 ## 09/13/2013 - Replaced property name LIB_CELL with REF_NAME
@@ -37,6 +42,7 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals { args } {
   # [-set]: Analyze set control pins
   # [-preset]: Analyze preset control pins
   # [-setreset]: Analyze setreset control pins
+  # [-no_tied]: Skip the detailed tables for the tied_power/tied_ground checks
   # [-verbose]: Verbose mode
   # [-file <arg>]: Report file name
   # [-append]: Append to file
@@ -52,8 +58,8 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals { args } {
 }
 
 # Trick to silence the linter
-eval [list namespace eval ::tclapp::xilinx::ultrafast::report_reset_signals { 
-  variable version {02/02/2015}
+eval [list namespace eval ::tclapp::xilinx::ultrafast::report_reset_signals {
+  variable version {10/14/2019}
 } ]
 
 ## ---------------------------------------------------------------------
@@ -119,6 +125,7 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
   set debug 0
   set ctrlSignalType 0
   set returnString 0
+  set skipTied 0
   set help 0
   while {[llength $args]} {
     set name [[namespace parent]::lshift args]
@@ -146,6 +153,10 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
       -all -
       {^-a(ll?)?$} {
            set ctrlSignalType [expr $ctrlSignalType | 64]
+      }
+      -no_tied -
+      {^-no_t(i(ed?)?)?$} {
+           set skipTied 1
       }
       -file -
       {^-f(i(le?)?)?$} {
@@ -195,9 +206,10 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
   if {$help} {
     puts [format {
   Usage: report_reset_signals
-              [-all|-reset|-set|-preset|-clear|-setreset]          
+              [-all|-reset|-set|-preset|-clear|-setreset]
                                      - Control pins to analyze
                                        Default: reset
+              [-no_tied]             - Skip the detailed tables for the tied_power/tied_ground checks
               [-file]                - Report file name
               [-append]              - Append to file
               [-verbose]             - Verbose mode
@@ -206,7 +218,7 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
 
   Description: Reports Information about Reset/Clear/Preset/SetPreset Pins
 
-     This command reports detailed infromation about the control signals.
+     This command reports detailed information about the control signals.
 
      This command must be run on a synthesized or implemented design.
 
@@ -217,7 +229,7 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
     # HELP -->
     return {}
   }
-  
+
   switch $ctrlSignalType {
     0 -
     2 {
@@ -249,7 +261,12 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
       incr error
     }
   }
-  
+
+  if {$verbose && ($filename == {})} {
+    puts " -E- options -verboss must be specified with -file."
+    incr error
+  }
+
   if {$error} {
     error " -E- some error(s) happened. Cannot continue"
   }
@@ -309,7 +326,12 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
       $tables(clockInteraction) addrow [list $fromClock $toClock $commonPrimaryClock $interClockConstraints]
     }
   }
-  
+
+  set FH {}
+  if {$verbose && $filename != {}} {
+    set FH [open $filename $mode]
+    puts $FH [::tclapp::xilinx::ultrafast::generate_file_header {report_reset_signals}]
+  }
 
   set startTime [clock seconds]
   catch {unset cache}
@@ -385,7 +407,8 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
       set cache(ctrlDriverLibCell:$ctrlNet) [get_property -quiet REF_NAME [get_cells -quiet -of [get_pins -quiet -of $ctrlNet -leaf -filter {DIRECTION == OUT}]]]
       set cache(ctrlDriverFanout:$ctrlNet) [expr [get_property -quiet FLAT_PIN_COUNT $ctrlNet] -1]
       set cache(ctrlNetType:$ctrlNet) [string tolower [get_property -quiet TYPE $ctrlNet]]
-      set cache(ctrlStartPins:$ctrlNet) [all_fanin -quiet -flat -startpoints_only $ctrlNet]
+#       set cache(ctrlStartPins:$ctrlNet) [all_fanin -quiet -flat -startpoints_only $ctrlNet]
+      set cache(ctrlStartPins:$ctrlNet) [filter -quiet [all_fanin -quiet -flat -startpoints_only $ctrlNet] {DIRECTION == OUT}]
       set cache(ctrlStartClocks:$ctrlNet) [get_clocks -quiet -of $cache(ctrlStartPins:$ctrlNet)]
       set cache(ctrlStartCells:$ctrlNet) [get_cells -quiet -of_object $cache(ctrlStartPins:$ctrlNet)]
       set cache(ctrlSourceStartPins:$ctrlNet) [all_fanin -quiet -flat -startpoints_only $cache(ctrlStartPins:$ctrlNet)]
@@ -396,7 +419,7 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
       set cache(destStartPin:$ctrlNet) [all_fanin -quiet -flat -startpoints_only $cache(destClkPin:$ctrlNet)]
       set cache(destClocks:$ctrlNet) [get_clocks -quiet -of $cache(destClkPin:$ctrlNet)]
     }
-    
+
     # Restore data from cache
     set ctrlDriverLibCell $cache(ctrlDriverLibCell:$ctrlNet)
     set ctrlDriverFanout $cache(ctrlDriverFanout:$ctrlNet)
@@ -409,15 +432,19 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
     set destClkNet $cache(destClkNet:$ctrlNet)
     set destStartPin $cache(destStartPin:$ctrlNet)
     set destClocks $cache(destClocks:$ctrlNet)
-   
+
     if {[regexp -nocase {POWER} $ctrlNetType]} {
       # Control net tied to POWER
-      $tables(tiedPower) addrow [list $cellType $ctrlPin $ctrlNet $ctrlDriverFanout $ctrlDriverLibCell $ctrlStartPins {tied to power net}]
+      if {!$skipTied} {
+        $tables(tiedPower) addrow [list $cellType $ctrlPin $ctrlNet $ctrlDriverFanout $ctrlDriverLibCell $ctrlStartPins {tied to power net}]
+      }
       incr count(tiedPower)
       continue
     } elseif {[regexp -nocase {GROUND} $ctrlNetType]} {
       # Control net tied to GROUND
-      $tables(tiedGround) addrow [list $cellType $ctrlPin $ctrlNet $ctrlDriverFanout $ctrlDriverLibCell $ctrlStartPins {tied to ground net}]
+      if {!$skipTied} {
+        $tables(tiedGround) addrow [list $cellType $ctrlPin $ctrlNet $ctrlDriverFanout $ctrlDriverLibCell $ctrlStartPins {tied to ground net}]
+      }
       incr count(tiedGround)
       continue
     }
@@ -439,11 +466,11 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
           incr count(asynchronous)
         }
         1 {
-          $tables(synchronous) separator 
+          $tables(synchronous) separator
           incr count(synchronous)
         }
         2 {
-          $tables(missingClock) separator 
+          $tables(missingClock) separator
           incr count(missingClock)
         }
       }
@@ -484,10 +511,10 @@ proc ::tclapp::xilinx::ultrafast::report_reset_signals::report_reset_signals { a
           $tables(asynchronous) separator
         }
         1 {
-          $tables(synchronous) separator 
+          $tables(synchronous) separator
         }
         2 {
-          $tables(missingClock) separator 
+          $tables(missingClock) separator
         }
       }
       continue
@@ -605,6 +632,9 @@ Table of Contents
     }
     lappend output "\n0. report summary"
     lappend output "-----------------"
+    # In verbose mode, save the content to the file to avoid Tcl failures due to large lists
+    puts $FH [join $output \n]
+    set output [list]
   } else {
     lappend output "Summary"
     lappend output "-------"
@@ -623,11 +653,13 @@ Table of Contents
     lappend output " There are $count(multiDrivers) $ctrlNameLC pins that have multiple drivers (multiple_drivers)"
   }
   if {$verbose} {
-    lappend output "\n1. clock interaction summary"
-    lappend output "----------------------------"
-    set output [concat $output [split [$tables(clockInteraction) print] \n] ]
-    lappend output "\n2. $ctrlNameLC nets summary"
-    lappend output "---------------------"
+    puts $FH [join $output \n]
+    set output [list]
+    puts $FH "\n1. clock interaction summary"
+    puts $FH "----------------------------"
+    puts $FH [$tables(clockInteraction) print]
+    puts $FH "\n2. $ctrlNameLC nets summary"
+    puts $FH "---------------------"
     set num 0
     foreach net [lsort -unique -dictionary $ctrlNets] {
 #       if {[regexp -nocase {(POWER|GROUND)} [string tolower [get_property -quiet TYPE $net]] ]} {}
@@ -644,41 +676,53 @@ Table of Contents
     # Sort the table based on the 1st column (Driver Ref) and then 3rd column (Net Name)
     $tables(summaryControlNets) sort {-increasing -dictionary -index 2} {-increasing -dictionary -index 0}
 
-    set output [concat $output [split [$tables(summaryControlNets) print] \n] ]
-    lappend output "\n3. checking asynchronous"
-    lappend output "------------------------"
-    if {$count(asynchronous)} { set output [concat $output [split [$tables(asynchronous) print] \n] ] }
-    lappend output "\n4. checking synchronous"
-    lappend output "-----------------------"
-    if {$count(synchronous)} { set output [concat $output [split [$tables(synchronous) print] \n] ] }
-    lappend output "\n5. checking port_driven"
-    lappend output "-----------------------"
-    if {$count(portDriven)} { set output [concat $output [split [$tables(portDriven) print] \n] ] }
-    lappend output "\n6. checking tied_power"
-    lappend output "----------------------"
-    if {$count(tiedPower)} { set output [concat $output [split [$tables(tiedPower) print] \n] ] }
-    lappend output "\n7. checking combinational_driver"
-    lappend output "--------------------------------"
-    if {$count(combDriver)} { set output [concat $output [split [$tables(combDriver) print] \n] ] }
-    lappend output "\n8. checking missing_clock"
-    lappend output "-------------------------"
-    if {$count(missingClock)} { set output [concat $output [split [$tables(missingClock) print] \n] ] }
-    lappend output "\n9. checking unconnected"
-    lappend output "-----------------------"
-    if {$count(unconnected)} { set output [concat $output [split [$tables(unconnected) print] \n] ] }
-    lappend output "\n10. checking tied_ground"
-    lappend output "------------------------"
-    if {$count(tiedGround)} { set output [concat $output [split [$tables(tiedGround) print] \n] ] }
+    $tables(summaryControlNets) export $FH
+    puts $FH "\n3. checking asynchronous"
+    puts $FH "------------------------"
+    if {$count(asynchronous)} { $tables(asynchronous) export $FH }
+    puts $FH "\n4. checking synchronous"
+    puts $FH "-----------------------"
+    if {$count(synchronous)} { $tables(synchronous) export $FH }
+    puts $FH "\n5. checking port_driven"
+    puts $FH "-----------------------"
+    if {$count(portDriven)} { $tables(portDriven) export $FH }
+    puts $FH "\n6. checking tied_power"
+    puts $FH "----------------------"
+    if {$count(tiedPower)} {
+      if {!$skipTied} {
+        $tables(tiedPower) export $FH
+      } else {
+        puts $FH "  No detailed table (-no_tied)"
+      }
+    }
+    puts $FH "\n7. checking combinational_driver"
+    puts $FH "--------------------------------"
+    if {$count(combDriver)} { $tables(combDriver) export $FH }
+    puts $FH "\n8. checking missing_clock"
+    puts $FH "-------------------------"
+    if {$count(missingClock)} { $tables(missingClock) export $FH }
+    puts $FH "\n9. checking unconnected"
+    puts $FH "-----------------------"
+    if {$count(unconnected)} { $tables(unconnected) export $FH }
+    puts $FH "\n10. checking tied_ground"
+    puts $FH "------------------------"
+    if {$count(tiedGround)} {
+      if {!$skipTied} {
+        $tables(tiedGround) export $FH
+      } else {
+        puts $FH "  No detailed table (-no_tied)"
+      }
+    }
     if {$debug} {
-      lappend output "\n11. checking different_clock_domains"
-      lappend output "------------------------------------"
-      if {$count(diffClkDomain)} { set output [concat $output [split [$tables(diffClkDomain) print] \n] ] }
-      lappend output "\n12. checking same_clock_domain"
-      lappend output "------------------------------"
-      if {$count(sameClkDomain)} { set output [concat $output [split [$tables(sameClkDomain) print] \n] ] }
-      lappend output "\n13. checking multiple_drivers"
-      lappend output "-----------------------------"
-      if {$count(multiDrivers)} { set output [concat $output [split [$tables(multiDrivers) print] \n] ] }
+      puts $FH "\n11. checking different_clock_domains"
+      puts $FH "------------------------------------"
+      if {$count(diffClkDomain)} { $tables(diffClkDomain) export $FH }
+      puts $FH "\n12. checking same_clock_domain"
+      puts $FH "------------------------------"
+      if {$count(sameClkDomain)} { $tables(sameClkDomain) export $FH }
+      puts $FH "\n13. checking multiple_drivers"
+      puts $FH "-----------------------------"
+      if {$count(multiDrivers)} { $tables(multiDrivers) export $FH }
     }
   }
 
@@ -689,9 +733,15 @@ Table of Contents
 
   puts "\n Total runtime: $runtime"
 
-  if {$filename != {}} {
+  if {!$verbose && ($filename != {})} {
+    # In non-verbose mode, the file is created here
     set FH [open $filename $mode]
     puts $FH [::tclapp::xilinx::ultrafast::generate_file_header {report_reset_signals}]
+    puts $FH [join $output \n]
+    puts $FH "\n Total runtime: $runtime"
+    close $FH
+    puts "\n Report file [file normalize $filename] has been generated\n"
+  } elseif {$verbose} {
     puts $FH [join $output \n]
     puts $FH "\n Total runtime: $runtime"
     close $FH
