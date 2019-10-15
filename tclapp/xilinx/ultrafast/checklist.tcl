@@ -1,6 +1,8 @@
 
 ########################################################################################
-## 02/03/2014 - Updated the namespace and definition of the command line arguments 
+## 10/14/2019 - Table object: added the 'export' method to be able to directly export
+##              the table to a stream
+## 02/03/2014 - Updated the namespace and definition of the command line arguments
 ##              for the Tcl App Store
 ## 09/17/2013 - Minor update to the progressBar proc to hide it in GUI/Batch modes
 ## 09/10/2013 - Table object: added the 'sort' method to be able to sort the table content
@@ -46,7 +48,7 @@ proc ::tclapp::xilinx::ultrafast::progressBar {cur tot} {
   #if {$cur % ($tot/300)} { return }
   # set to total width of progress bar
   set total 76
-  
+
   # Do not show the progress bar in GUI and Batch modes
   if {$rdi::mode != {tcl}} { return }
 
@@ -57,7 +59,7 @@ proc ::tclapp::xilinx::ultrafast::progressBar {cur tot} {
   set str "[string range $str 0 $half]$val[string range $str [expr {$half+[string length $val]-1}] end]"
   puts -nonewline stderr $str
 }
- 
+
 proc ::tclapp::xilinx::ultrafast::getArchitecture {} {
   # Summary :
   # Argument Usage:
@@ -80,7 +82,7 @@ proc ::tclapp::xilinx::ultrafast::generate_file_header {cmd} {
     set version {?}
   } else {
   }
-  
+
   set header [format {######################################################
 ##
 ## %s (%s)
@@ -154,8 +156,8 @@ proc ::tclapp::xilinx::ultrafast::lflatten {inputlist} {
 ###########################################################################
 
 # Trick to silence the linter
-eval [list namespace eval ::tclapp::xilinx::ultrafast::Parse { 
-  set n 0 
+eval [list namespace eval ::tclapp::xilinx::ultrafast::Parse {
+  set n 0
 } ]
 
 
@@ -298,8 +300,8 @@ proc ::tclapp::xilinx::ultrafast::Parse::report_clock_interaction {report} {
 # namespace eval ::tclapp::xilinx::ultrafast::Table { set n 0 }
 
 # Trick to silence the linter
-eval [list namespace eval ::tclapp::xilinx::ultrafast::Table { 
-  set n 0 
+eval [list namespace eval ::tclapp::xilinx::ultrafast::Table {
+  set n 0
 } ]
 
 proc ::tclapp::xilinx::ultrafast::Table::Create { {title {}} } { #-- constructor
@@ -348,6 +350,10 @@ proc ::tclapp::xilinx::ultrafast::Table::do {self method args} { #-- Dispatcher 
       }
       print {
         eval ::tclapp::xilinx::ultrafast::Table::print $self
+      }
+      export {
+        eval ::tclapp::xilinx::ultrafast::Table::export $self [lindex $args 0]
+        return 0
       }
       length {
         return $numrows
@@ -430,9 +436,9 @@ proc ::tclapp::xilinx::ultrafast::Table::print {self} {
   # Generate the table rows
   set first 1
   foreach row [concat [list $header] $table] {
-      if {$row eq {%%SEPARATOR%%}} { 
+      if {$row eq {%%SEPARATOR%%}} {
         append res $head\n
-        continue 
+        continue
       }
       append res " [string repeat " " [expr $indent * 4]]|"
       foreach item $row max $maxs {append res [format " %-${max}s |" $item]}
@@ -446,3 +452,63 @@ proc ::tclapp::xilinx::ultrafast::Table::print {self} {
   set res
 }
 
+proc ::tclapp::xilinx::ultrafast::Table::export {self FH} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+
+   upvar #0 ${self}::tbl table
+   upvar #0 ${self}::header header
+   upvar #0 ${self}::indent indent
+   upvar #0 ${self}::title title
+   set maxs {}
+   foreach item $header {
+       lappend maxs [string length $item]
+   }
+   set numCols [llength $header]
+   foreach row $table {
+       if {$row eq {%%SEPARATOR%%}} { continue }
+       for {set j 0} {$j<$numCols} {incr j} {
+            set item [lindex $row $j]
+            set max [lindex $maxs $j]
+            if {[string length $item]>$max} {
+               lset maxs $j [string length $item]
+           }
+       }
+   }
+  set head " [string repeat " " [expr $indent * 4]]+"
+  foreach max $maxs {append head -[string repeat - $max]-+}
+
+  # Generate the title
+  if {$title ne {}} {
+    # The upper separator should something like +----...----+
+    append res " [string repeat " " [expr $indent * 4]]+[string repeat - [expr [string length [string trim $head]] -2]]+\n"
+    # Suports multi-lines title
+    foreach line [split $title \n] {
+      append res " [string repeat " " [expr $indent * 4]]| "
+      append res [format "%-[expr [string length [string trim $head]] -4]s" $line]
+      append res " |\n"
+    }
+  }
+
+  # Generate the table header
+  append res $head
+  puts $FH $res
+  # Generate the table rows
+  set first 1
+  foreach row [concat [list $header] $table] {
+      if {$row eq {%%SEPARATOR%%}} {
+        puts $FH $head
+        continue
+      }
+      puts -nonewline $FH " [string repeat " " [expr $indent * 4]]|"
+      foreach item $row max $maxs { puts -nonewline $FH [format " %-${max}s |" $item] }
+      puts $FH ""
+      if {$first} {
+        puts $FH $head
+        set first 0
+      }
+  }
+  puts -nonewline $FH $head
+  return -code ok
+}
