@@ -716,6 +716,11 @@ proc usf_vcs_write_elaborate_script {} {
       lappend arg_list "-liblist"
       lappend arg_list "xil_defaultlib"
     }
+    # bind hybrid unisims ver components that were compiled into 'unisim' library for versal
+    if { "versal" == [rdi::get_family -arch] } {
+      lappend arg_list "-liblist"
+      lappend arg_list "unisim"
+    }
   }
 
   set more_elab_options [string trim [get_property "VCS.ELABORATE.VCS.MORE_OPTIONS" $fs_obj]]
