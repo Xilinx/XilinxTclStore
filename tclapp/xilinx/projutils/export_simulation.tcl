@@ -2473,11 +2473,8 @@ proc xps_set_initial_cmd { simulator fh cmd_str srcs_dir src_file file_type lib 
        # 
       } else {
         puts $fh "$cmd_str ${opts_str} \\"
-        if { $a_sim_vars(b_xport_src_files) } {
-          puts $fh "srcs/$src_file \\"
-        } else {
-          puts $fh "$src_file \\"
-        }
+        set s_file [string trim $src_file {\"}]
+        puts $fh "\"$src_file\" \\"
       }
     }
     "modelsim" -
@@ -3850,7 +3847,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
       if { {} != $ip_file } {
         set proj_src_filename [file tail $proj_src_file]
         set ip_name [file rootname [file tail $ip_file]]
-        set proj_src_filename "ip/$ip_name/$proj_src_filename"
+        set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
         set source_file "srcs/$proj_src_filename"
       } else {
         set source_file "srcs/[file tail $proj_src_file]"
