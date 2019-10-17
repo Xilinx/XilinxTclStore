@@ -1,3 +1,4 @@
+3.414 fixed source file export path for export source files option
 3.413 fixed lib_map_path arg to process the values for extracting the mapping paths
 3.412 delete simulation run results only when rerunning export_simulation
 3.411 do not set time precision for vsim
