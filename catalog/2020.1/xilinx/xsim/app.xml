@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>declare variable for storing referenced shared library in ipdef</revision_history>
+      <revision_history>added info message for locked or custom IPs in the project</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
