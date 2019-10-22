@@ -1817,7 +1817,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
   variable l_valid_ip_extns
   variable l_compiled_libraries
 
-  set l_local_ip_libs [xcs_get_libs_from_local_repo]
+  set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib)]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   foreach simulator $l_target_simulator {
     # initialize and fetch compiled libraries for precompile flow

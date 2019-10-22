@@ -1507,7 +1507,7 @@ proc xcs_get_path_from_data {path_from_data} {
   return [file normalize [file join $data_dir $path_from_data]]
 }
 
-proc xcs_get_libs_from_local_repo {} {
+proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1522,34 +1522,61 @@ proc xcs_get_libs_from_local_repo {} {
     set install_dir [join [lrange $install_comps $index end] "/"]
   }
 
+  variable a_sim_lib_info
+  array unset a_sim_lib_info
+
+  set b_libs_referenced_from_locked_ips 0
+  set b_libs_referenced_from_local_repo 0
+
+  set lib_info [list]
   set lib_dict [dict create]
   foreach ip_obj [get_ips -all -quiet] {
     if { {} == $ip_obj } { continue }
-    # is ip in locked state? compile files from this ip locally
     set b_is_locked 0
     set b_is_locked [get_property -quiet is_locked $ip_obj]
+
+    # is IP locked? fetch the referenced libraries from this IP
     if { $b_is_locked } {
       foreach file_obj [get_files -quiet -all -of_objects $ip_obj -filter {USED_IN=~"*ipstatic*"}] {
         set lib [get_property library $file_obj]
         if { {xil_defaultlib} == $lib } { continue }
+        # add local library to collection
         dict append lib_dict $lib
+        if { ![info exists a_sim_lib_info($lib)] } {
+          set a_sim_lib_info($ip_obj#$lib) "LOCKED_IP"
+        }
+        if { !$b_libs_referenced_from_locked_ips } {
+          set b_libs_referenced_from_locked_ips 1
+        }
       }
     } else {
-      # is this ip from local repo? compile files from this ip locally
+      #
+      # IP is not locked. Is this referenced from local repository?
+      #   1. get the IPDEF value of this IP and then the IP def object
+      #   2. get the first repository path value from this IP def obj, if any, else continue
+      #   3. is tail-end (leaf) dir name is "ip_repo"? if not, continue
+      #   4. split the repository path value and search for "IP_HEAD"
+      #      - if not found, use this repo path as is
+      #      - else get the sub-path starting from "IP_HEAD" till end
+      #   5. if install repo dir does not match with the local repo path, then
+      #      get the IP object libraries from this local repo 
+
+      # 1. **********************************************************************
       set ip_def_obj [get_ipdefs -quiet -all [get_property -quiet ipdef $ip_obj]]
       if { {} == $ip_def_obj } { continue }
-      
-      # fetch the first repo path currently and get the IP_HEAD sub_dir
+
+      # 2. **********************************************************************
       set local_repo [lindex [get_property -quiet repository $ip_def_obj] 0]
       if { {} == $local_repo } { continue }
       set local_repo [string map {\\ /} $local_repo]
 
-      # continue if local ip repo sub_dir not found
+      # 3. **********************************************************************
       set ip_repo_sub_dir [file tail $local_repo]
       if { {ip_repo} != $ip_repo_sub_dir } {
         continue
       }
 
+      # 4. **********************************************************************
       set local_comps [split $local_repo {/}]
       set index [lsearch -exact $local_comps "IP_HEAD"]
       if { $index == -1 } {
@@ -1557,14 +1584,50 @@ proc xcs_get_libs_from_local_repo {} {
       } else {
         set local_dir [join [lrange $local_comps $index end] "/"]
       }
-  
-      # if install ip_head sub-dir doesnot match with local ip repo path, filter libraries for this ip to be processed locally
+ 
+      # 5. **********************************************************************
       if { [string equal -nocase $install_dir $local_dir] != 1 } {
         foreach file_obj [get_files -quiet -all -of_objects $ip_obj -filter {USED_IN=~"*ipstatic*"}] {
           set lib [get_property library $file_obj]
           if { {xil_defaultlib} == $lib } { continue }
+          # add local library to collection
           dict append lib_dict $lib
+          if { ![info exists a_sim_lib_info($lib)] } {
+            set a_sim_lib_info($ip_obj#$lib) "CUSTOM_IP"
+          }
+          if { !$b_libs_referenced_from_local_repo } {
+            set b_libs_referenced_from_local_repo 1
+          }
         }
+      }
+    }
+  }
+
+  if { ($b_libs_referenced_from_locked_ips || $b_libs_referenced_from_local_repo) && $b_pre_compile } {
+    send_msg_id SIM-utils-020 INFO "The project contains locked or custom IPs. The pre-compiled version of these IPs will not be referenced and the sources from these IP libraries will be compiled locally.\n"
+
+    if { $b_int_sm_lib_ref_debug } {
+      if { [array size a_sim_lib_info] > 0 } {
+        package require struct::matrix
+        struct::matrix mt;
+        mt add columns 3;
+        set lines [list]
+        puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+        puts "Pre-compiled library reference information for locked or custom IPs:-"
+        puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+        lappend lines "IP LIBRARY TYPE"
+        lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
+        foreach {key value} [array get a_sim_lib_info] {
+          set ip_info [split $key {#}]
+          set ip_name [lindex $ip_info 0]
+          set ip_lib  [lindex $ip_info 1]
+          set type    $value
+          lappend lines "$ip_name $ip_lib $type"
+          lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
+        }
+        foreach line $lines {mt add row $line}
+        puts [mt format 2string]
+        mt destroy
       }
     }
   }
