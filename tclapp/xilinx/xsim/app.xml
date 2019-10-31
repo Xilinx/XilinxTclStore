@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>revert set LIBRARY_PATH for referencing crti.o for ubuntu</revision_history>
+      <revision_history>set LIBRARY_PATH for referencing crti.o for ubuntu</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
