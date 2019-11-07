@@ -1,3 +1,4 @@
+3.416 added comment for the used_in flags usage for determining static files
 3.415 added info message for locked or custom IPs in the project
 3.414 fixed source file export path for export source files option
 3.413 fixed lib_map_path arg to process the values for extracting the mapping paths

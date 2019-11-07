@@ -1,3 +1,4 @@
+11.21 added comment for the used_in flags usage for determining static files
 11.20 added info message for locked or custom IPs in the project
 11.19 bind cardano api library for aie
 11.18 print critical warning for missing pre-compiled simulation model IP
