@@ -1,3 +1,4 @@
+3.418 fixed procedure names by adding hbs prefix
 3.417 Utility to generate sources for the hierarchical access simulation
 3.416 added comment for the used_in flags usage for determining static files
 3.415 added info message for locked or custom IPs in the project
