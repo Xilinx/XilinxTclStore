@@ -17,35 +17,33 @@ proc hbs_init_vars {} {
   
   variable a_hbs_vars
 
+  set a_hbs_vars(bypass_module)               {}  
   set a_hbs_vars(bypass_file)                 {}  
   set a_hbs_vars(bypass_signal_driver_file)   {}  
   set a_hbs_vars(pseudo_top_testbench)        {}  
   set a_hbs_vars(user_design_testbench)       {}
-  set a_hbs_vars(port_attribute)              {}
-  set a_hbs_vars(module_attribute)            {}
   set a_hbs_vars(log)                         {}  
+ 
+  set a_hbs_vars(port_attribute)              "hier_bypass_ports"
+  set a_hbs_vars(module_attribute)            "hier_bypass_mod"
 
-  set a_hbs_vars(b_bypass_file)               0
+  set a_hbs_vars(b_bypass_module)               0
   set a_hbs_vars(b_bypass_signal_driver_file) 0
   set a_hbs_vars(b_pseudo_top_testbench)      0
   set a_hbs_vars(b_user_design_testbench)     0
-  set a_hbs_vars(b_port_attribute)            0
-  set a_hbs_vars(b_module_attribute)          0
   set a_hbs_vars(b_log)                       0
 
 }
 
 proc generate_hier_access {args} {
   # Summary:
-  # Generate simulation sources for hierarchical bypass simulation
+  # Generate sources for hierarchical access simulation
   # Argument Usage: 
   #
-  # [-file <arg>]: Name of the hierarchical access output file
-  # [-driver <arg>]: Name of the hierarchical access signal driver output file
-  # [-pseudo_top <arg>]: Name of the top-level pseudo testbench module name
-  # [-testbench <arg>]: Name of the user design testbench module name
-  # [-port_attribute <arg>]: Name of the port attribute to search in the simulation source hierarchy
-  # [-module_attribute <arg>]: Name of the module attribute to search in the simulation source hierarchy
+  # [-bypass <arg>]: Hierarchical access module name
+  # [-driver <arg>]: Signal driver template output file name
+  # [-pseudo_top <arg>]: Top-level pseudo testbench module name
+  # [-testbench <arg>]: User design testbench module name
   # [-log <arg>]: Simulator log containing hierarchical path information (for non-Vivado users)
 
   # Return Value:
@@ -59,13 +57,11 @@ proc generate_hier_access {args} {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch $option {
-      "-file"              { incr i; set a_hbs_vars(bypass_file)               [lindex $args $i]; set a_hbs_vars(b_bypass_file)               1 }
-      "-driver"            { incr i; set a_hbs_vars(bypass_signal_driver_file) [lindex $args $i]; set a_hbs_vars(b_bypass_signal_driver_file) 1 }
-      "-pseudo_top"        { incr i; set a_hbs_vars(pseudo_top_testbench)      [lindex $args $i]; set a_hbs_vars(b_pseudo_top_testbench)      1 }
-      "-testbench"         { incr i; set a_hbs_vars(user_design_testbench)     [lindex $args $i]; set a_hbs_vars(b_user_design_testbench)     1 }
-      "-port_attribute"    { incr i; set a_hbs_vars(port_attribute)            [lindex $args $i]; set a_hbs_vars(b_port_attribute)            1 }
-      "-module_attribute"  { incr i; set a_hbs_vars(module_attribute)          [lindex $args $i]; set a_hbs_vars(b_module_attribute)          1 }
-      "-log"               { incr i; set a_hbs_vars(log)                       [lindex $args $i]; set a_hbs_vars(b_log)                       1 }
+      "-bypass"     { incr i; set a_hbs_vars(bypass_module)             [lindex $args $i]; set a_hbs_vars(b_bypass_module)             1 }
+      "-driver"     { incr i; set a_hbs_vars(bypass_signal_driver_file) [lindex $args $i]; set a_hbs_vars(b_bypass_signal_driver_file) 1 }
+      "-pseudo_top" { incr i; set a_hbs_vars(pseudo_top_testbench)      [lindex $args $i]; set a_hbs_vars(b_pseudo_top_testbench)      1 }
+      "-testbench"  { incr i; set a_hbs_vars(user_design_testbench)     [lindex $args $i]; set a_hbs_vars(b_user_design_testbench)     1 }
+      "-log"        { incr i; set a_hbs_vars(log)                       [lindex $args $i]; set a_hbs_vars(b_log)                       1 }
       default {
         if { [regexp {^-} $option] } {
           hbs_print_msg_id "ERROR" "1" "Unknown option '$option', please type 'generate_hier_access -help' for usage info." 
@@ -78,13 +74,13 @@ proc generate_hier_access {args} {
   # command line error
   #
  
-  if { (!$a_hbs_vars(b_bypass_file)) || ({} == $a_hbs_vars(bypass_file)) } {
+  if { (!$a_hbs_vars(b_bypass_module)) || ({} == $a_hbs_vars(bypass_module)) } {
     hbs_print_msg_id "ERROR" "2" "Output bypass file not specified! Please specify the file name using the -file switch."
     return
   }
 
   if { (!$a_hbs_vars(b_bypass_signal_driver_file)) || ({} == $a_hbs_vars(bypass_signal_driver_file)) } {
-    hbs_print_msg_id "ERROR" "3" "Output bypass signal driver file not specified! Please specify the file name using the -signal_bypass_file switch."
+    hbs_print_msg_id "ERROR" "3" "Output bypass signal driver file not specified! Please specify the file name using the -driver switch."
     return
   }
 
@@ -94,16 +90,6 @@ proc generate_hier_access {args} {
 
   if { (!$a_hbs_vars(b_user_design_testbench)) || ({} == $a_hbs_vars(user_design_testbench)) } {
     hbs_print_msg_id "ERROR" "4" "Testbench name not specified! Please specify the testbench name using the -user_design_testbench switch."
-    return
-  }
-
-  if { (!$a_hbs_vars(b_port_attribute)) || ({} == $a_hbs_vars(port_attribute)) } {
-    hbs_print_msg_id "ERROR" "5" "Attribute not specified! Please specify the name of the port attribute to search for in the design hierarchy using the -port_attribute switch."
-    return
-  }
-
-  if { (!$a_hbs_vars(b_module_attribute)) || ({} == $a_hbs_vars(module_attribute)) } {
-    hbs_print_msg_id "ERROR" "6" "Attribute not specified! Please specify the name of the module attribute to search for in the design hierarchy using the -module_attribute switch."
     return
   }
 
@@ -125,26 +111,24 @@ proc hbs_generate_bypass {} {
 
   variable a_hbs_vars
 
-  set user_tb      $a_hbs_vars(user_design_testbench)
-
   # create bypass file
-  set file $a_hbs_vars(bypass_file)
+  set a_hbs_vars(bypass_file) "$a_hbs_vars(bypass_module).sv"
   set fh 0
-  if { [file exists $file] } {
-    if { [catch {file delete -force $file} error_msg] } {
-      hbs_print_msg_id "ERROR" "8" "Failed to delete file ($file)"
+  if { [file exists $a_hbs_vars(bypass_file)] } {
+    if { [catch {file delete -force $a_hbs_vars(bypass_file)} error_msg] } {
+      hbs_print_msg_id "ERROR" "8" "Failed to delete file ($a_hbs_vars(bypass_file))"
       return 1
     }
   }
-  if { [catch {open $file w} fh] } {
-    hbs_print_msg_id "ERROR" "9" "Failed to open file to write ($file)"
+  if { [catch {open $a_hbs_vars(bypass_file) w} fh] } {
+    hbs_print_msg_id "ERROR" "9" "Failed to open file to write ($a_hbs_vars(bypass_file))"
     return 1
   } 
 
   #
   # write top-level pseudo module instantiating test bench
   #
-  hbs_write_header $fh $file
+  hbs_write_header $fh
 
   #
   # write pseudo testbench (top-level testbench in the design for simulating gtm signals)
@@ -169,11 +153,10 @@ proc hbs_generate_bypass {} {
   # write module declaration
   #
   puts $fh "`timescale 1ns/1ps"
-  puts $fh "/*"
-  puts $fh " * Hieraarchical bypass module attribute (DONOT MODIFY)"
-  puts $fh "*/"
+  puts $fh "/* Hierarchical access module attribute"
+  puts $fh " * --------- DONOT MODIFY -------------*/"
   puts $fh "(* $a_hbs_vars(module_attribute) *)"
-  puts -nonewline $fh "module dut_bypass( "
+  puts -nonewline $fh "module $a_hbs_vars(bypass_module)( "
 
   if { $a_hbs_vars(b_log) } {
     hbs_print_msg_id "STATUS" 10 "Extracting port information..."
@@ -231,6 +214,7 @@ proc hbs_generate_bypass {} {
     struct::matrix mt;
     mt add columns 2;
   }
+  set user_tb $a_hbs_vars(user_design_testbench)
   set print_lines_v [list]
   set port_index 1
   foreach line $log_data {
@@ -240,9 +224,14 @@ proc hbs_generate_bypass {} {
     #
     # tb.dut_i.gtmWiz_00.gtm_i#in:integer:in1:in_var1 in:integer:in2:in_var2 out:integer:out1:out_var1 out:integer:out2:out_var2
     # 
-    set line_v    [split $line {#}]
-    set hier_path [lindex $line_v 0]
-    set path_spec [lindex $line_v 1]
+    set line_v      [split $line {#}]
+    set hier_path   [lindex $line_v 0]
+    set hier_path_v [split $hier_path {.}]
+    #
+    # dut_i.gtmWiz_00.gtm_i#in:integer:in1:in_var1 in:integer:in2:in_var2 out:integer:out1:out_var1 out:integer:out2:out_var2
+    # 
+    set hier_path   [join [lrange $hier_path_v 1 end] {.}]
+    set path_spec   [lindex $line_v 1]
     set path_spec_v [split $path_spec { }]
     if { $port_index > 1 } {
       lappend print_lines_v "\" \" \" \""
@@ -261,9 +250,9 @@ proc hbs_generate_bypass {} {
       if { "out" == $port_dir } { set port_dir_type "output" }
       set port_col "$port_dir_type $port_type ${port_name}__${port_index};"
       if { "in" == $port_dir } {
-        set cmnt_col "// => '$a_hbs_vars(pseudo_top_testbench).tb_i.${hier_path}.${port_var}'"
+        set cmnt_col "// => '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
       } elseif { "out" == $port_dir } {
-        set cmnt_col "// <= '$a_hbs_vars(pseudo_top_testbench).tb_i.${hier_path}.${port_var}'"
+        set cmnt_col "// <= '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
       }
       if { $a_hbs_vars(b_log) } {
         lappend print_lines_v "  $port_col    $cmnt_col"
@@ -304,9 +293,14 @@ proc hbs_generate_bypass {} {
     #
     # tb.dut_i.gtmWiz_00.gtm_i#in:integer:in1:in_var1 in:integer:in2:in_var2 out:integer:out1:out_var1 out:integer:out2:out_var2
     # 
-    set line_v    [split $line {#}]
-    set hier_path [lindex $line_v 0]
-    set path_spec [lindex $line_v 1]
+    set line_v      [split $line {#}]
+    set hier_path   [lindex $line_v 0]
+    set hier_path_v [split $hier_path {.}]
+    #
+    # dut_i.gtmWiz_00.gtm_i#in:integer:in1:in_var1 in:integer:in2:in_var2 out:integer:out1:out_var1 out:integer:out2:out_var2
+    # 
+    set hier_path   [join [lrange $hier_path_v 1 end] {.}]
+    set path_spec   [lindex $line_v 1]
     set path_spec_v [split $path_spec { }]
     puts $fh ""
 
@@ -324,7 +318,7 @@ proc hbs_generate_bypass {} {
       set port_id ${port_name}__${port_index}  
       if { "in" == $port_dir } {
         puts $fh "  always @ (${port_id}) begin"
-        puts $fh "    $a_hbs_vars(pseudo_top_testbench).tb_i.${hier_path}.${port_var} = ${port_id};"
+        puts $fh "    $a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var} = ${port_id};"
         puts $fh "  end"
       }
     }
@@ -342,8 +336,8 @@ proc hbs_generate_bypass {} {
 
       set port_id ${port_name}__${port_index}  
       if { "out" == $port_dir } {
-        puts $fh "  always @ ($a_hbs_vars(pseudo_top_testbench).tb_i.${hier_path}.${port_var}) begin"
-        puts $fh "    ${port_id} = $a_hbs_vars(pseudo_top_testbench).tb_i.${hier_path}.${port_var};"
+        puts $fh "  always @ ($a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}) begin"
+        puts $fh "    ${port_id} = $a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var};"
         puts $fh "  end"
       }
     }
@@ -365,14 +359,16 @@ proc hbs_generate_bypass {} {
   }
 }
 
-proc hbs_write_header { fh file } {
+proc hbs_write_header { fh } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  variable a_hbs_vars
+  
   puts $fh "//-------------------------------------------------------------------------------------------------------"
   puts $fh "// Copyright (C) 2020 Xilinx, Inc. All rights reserved."
-  puts $fh "// Filename: $file"
+  puts $fh "// Filename: $a_hbs_vars(bypass_file)"
   puts $fh "// Purpose : This is an auto generated bypass module that defines the ports and hierarchical paths for"
   puts $fh "//           propagating the signal values from the top-level testbench to the unisim compoenents. The"
   puts $fh "//           module defines the 'hier_bypass_mod' attribute for identifyng this module to make sure the"
@@ -406,7 +402,7 @@ proc hbs_write_pseudo_top_testbench {} {
   puts $fh "// Purpose : This is an auto generated top level testbench that instantiates the underlying testbench"
   puts $fh "//           or a DUT in the current simulation source hierarchy. The purpose of this testbench source"
   puts $fh "//           is to setup a mixed-language design configuration for calculating the hierarchical path to"
-  puts $fh "//           the unisim library compoenents for the purpose of propagating the signal values via the" 
+  puts $fh "//           the unisim library components for the purpose of propagating the signal values via the" 
   puts $fh "//           bypass module*. Please verify the design source hierarchy to make sure that this bypass"
   puts $fh "//           module is instantiated correctly."
   puts $fh "//"
@@ -515,7 +511,7 @@ proc hbs_write_bypass_driver_file { input_ports_arg output_ports_arg instance_po
   puts $fh "    wait;"
   puts $fh "  end process;"
   puts $fh ""
-  puts $fh "  HIER_BYPASS : entity work.dut_bypass port map ( $instance_ports_str );"
+  puts $fh "  HIER_BYPASS : entity work.$a_hbs_vars(bypass_module) port map( $instance_ports_str );"
   puts $fh ""
   puts $fh "-- ****************************** COPY END *********************************************"
   puts $fh ""
