@@ -68,7 +68,7 @@ proc generate_hier_access {args} {
       "-log"               { incr i; set a_hbs_vars(log)                       [lindex $args $i]; set a_hbs_vars(b_log)                       1 }
       default {
         if { [regexp {^-} $option] } {
-          print_msg_id "ERROR" "1" "Unknown option '$option', please type 'generate_hier_access -help' for usage info." 
+          hbs_print_msg_id "ERROR" "1" "Unknown option '$option', please type 'generate_hier_access -help' for usage info." 
         }
       }
     }
@@ -79,12 +79,12 @@ proc generate_hier_access {args} {
   #
  
   if { (!$a_hbs_vars(b_bypass_file)) || ({} == $a_hbs_vars(bypass_file)) } {
-    print_msg_id "ERROR" "2" "Output bypass file not specified! Please specify the file name using the -file switch."
+    hbs_print_msg_id "ERROR" "2" "Output bypass file not specified! Please specify the file name using the -file switch."
     return
   }
 
   if { (!$a_hbs_vars(b_bypass_signal_driver_file)) || ({} == $a_hbs_vars(bypass_signal_driver_file)) } {
-    print_msg_id "ERROR" "3" "Output bypass signal driver file not specified! Please specify the file name using the -signal_bypass_file switch."
+    hbs_print_msg_id "ERROR" "3" "Output bypass signal driver file not specified! Please specify the file name using the -signal_bypass_file switch."
     return
   }
 
@@ -93,32 +93,32 @@ proc generate_hier_access {args} {
   }
 
   if { (!$a_hbs_vars(b_user_design_testbench)) || ({} == $a_hbs_vars(user_design_testbench)) } {
-    print_msg_id "ERROR" "4" "Testbench name not specified! Please specify the testbench name using the -user_design_testbench switch."
+    hbs_print_msg_id "ERROR" "4" "Testbench name not specified! Please specify the testbench name using the -user_design_testbench switch."
     return
   }
 
   if { (!$a_hbs_vars(b_port_attribute)) || ({} == $a_hbs_vars(port_attribute)) } {
-    print_msg_id "ERROR" "5" "Attribute not specified! Please specify the name of the port attribute to search for in the design hierarchy using the -port_attribute switch."
+    hbs_print_msg_id "ERROR" "5" "Attribute not specified! Please specify the name of the port attribute to search for in the design hierarchy using the -port_attribute switch."
     return
   }
 
   if { (!$a_hbs_vars(b_module_attribute)) || ({} == $a_hbs_vars(module_attribute)) } {
-    print_msg_id "ERROR" "6" "Attribute not specified! Please specify the name of the module attribute to search for in the design hierarchy using the -module_attribute switch."
+    hbs_print_msg_id "ERROR" "6" "Attribute not specified! Please specify the name of the module attribute to search for in the design hierarchy using the -module_attribute switch."
     return
   }
 
   #
   # file existence checks
   #
-  generate_bypass
+  hbs_generate_bypass
 
   if { $a_hbs_vars(b_log) } {
-    print_msg_id "STATUS" 7 "Done"
+    hbs_print_msg_id "STATUS" 7 "Done"
   }
   return 
 }
 
-proc generate_bypass {} {
+proc hbs_generate_bypass {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -132,30 +132,30 @@ proc generate_bypass {} {
   set fh 0
   if { [file exists $file] } {
     if { [catch {file delete -force $file} error_msg] } {
-      print_msg_id "ERROR" "8" "Failed to delete file ($file)"
+      hbs_print_msg_id "ERROR" "8" "Failed to delete file ($file)"
       return 1
     }
   }
   if { [catch {open $file w} fh] } {
-    print_msg_id "ERROR" "9" "Failed to open file to write ($file)"
+    hbs_print_msg_id "ERROR" "9" "Failed to open file to write ($file)"
     return 1
   } 
 
   #
   # write top-level pseudo module instantiating test bench
   #
-  write_header $fh $file
+  hbs_write_header $fh $file
 
   #
   # write pseudo testbench (top-level testbench in the design for simulating gtm signals)
   #
-  if { [write_pseudo_top_testbench] } {
+  if { [hbs_write_pseudo_top_testbench] } {
     return 1
   }
 
   set log_data {}
   if { $a_hbs_vars(b_log) } {
-    set log_data [extract_hier_paths_from_simulator_log]
+    set log_data [hbs_extract_hier_paths_from_simulator_log]
   } else {
     set log_data [rdi::get_design_hier_path $a_hbs_vars(port_attribute)] 
   }
@@ -176,7 +176,7 @@ proc generate_bypass {} {
   puts -nonewline $fh "module dut_bypass( "
 
   if { $a_hbs_vars(b_log) } {
-    print_msg_id "STATUS" 10 "Extracting port information..."
+    hbs_print_msg_id "STATUS" 10 "Extracting port information..."
   }
   set port_index 1
   foreach line $log_data {
@@ -288,7 +288,7 @@ proc generate_bypass {} {
   #
   # write DUT bypass driver template code (to be inserted into test bench by the user for driving the input)
   #
-  if { [write_bypass_driver_file input_port_list output_port_list instance_port_list] } {
+  if { [hbs_write_bypass_driver_file input_port_list output_port_list instance_port_list] } {
     return 1
   }
 
@@ -361,11 +361,11 @@ proc generate_bypass {} {
   close $fh
 
   if { $a_hbs_vars(b_log) } {
-    print_msg_id "STATUS" 11 "Generated module for setting up bypass hierarchy: $a_hbs_vars(bypass_file)"
+    hbs_print_msg_id "STATUS" 11 "Generated module for setting up bypass hierarchy: $a_hbs_vars(bypass_file)"
   }
 }
 
-proc write_header { fh file } {
+proc hbs_write_header { fh file } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -380,7 +380,7 @@ proc write_header { fh file } {
   puts $fh "//-------------------------------------------------------------------------------------------------------"
 }
 
-proc write_pseudo_top_testbench {} {
+proc hbs_write_pseudo_top_testbench {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -393,11 +393,11 @@ proc write_pseudo_top_testbench {} {
   set fh 0
   set file_name "${top}.sv"
   if { [catch {file delete -force $file_name} error_msg] } {
-    print_msg_id "ERROR" "12" "Failed to delete file ($file_name)"
+    hbs_print_msg_id "ERROR" "12" "Failed to delete file ($file_name)"
     return 1
   }
   if { [catch {open $file_name w} fh] } {
-    print_msg_id "ERROR" "13" "Failed to open file to write ($file_name)"
+    hbs_print_msg_id "ERROR" "13" "Failed to open file to write ($file_name)"
     return 1
   } 
   puts $fh "//-------------------------------------------------------------------------------------------------------"
@@ -421,13 +421,13 @@ proc write_pseudo_top_testbench {} {
   puts $fh "endmodule\n"
   close $fh
   if { $a_hbs_vars(b_log) } {
-    print_msg_id "STATUS" 14 "Generated top-level testbench source for instantiating design testbench '$a_hbs_vars(user_design_testbench)': ${file_name}"
+    hbs_print_msg_id "STATUS" 14 "Generated top-level testbench source for instantiating design testbench '$a_hbs_vars(user_design_testbench)': ${file_name}"
   }
 
   return 0
 }
 
-proc write_bypass_driver_file { input_ports_arg output_ports_arg instance_ports_arg } {
+proc hbs_write_bypass_driver_file { input_ports_arg output_ports_arg instance_ports_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -440,11 +440,11 @@ proc write_bypass_driver_file { input_ports_arg output_ports_arg instance_ports_
   set fh 0
   set driver_file $a_hbs_vars(bypass_signal_driver_file)
   if { [catch {file delete -force $driver_file} error_msg] } {
-    print_msg_id "ERROR" "15" "Failed to delete file ($driver_file)"
+    hbs_print_msg_id "ERROR" "15" "Failed to delete file ($driver_file)"
     return 1
   }
   if { [catch {open $driver_file w} fh] } {
-    print_msg_id "ERROR" "16" "Failed to open file to write ($driver_file)"
+    hbs_print_msg_id "ERROR" "16" "Failed to open file to write ($driver_file)"
     return 1
   }
 
@@ -523,12 +523,12 @@ proc write_bypass_driver_file { input_ports_arg output_ports_arg instance_ports_
   close $fh
 
   if { $a_hbs_vars(b_log) } {
-    print_msg_id "STATUS" 17 "Generated signal driver template for instantiating bypass module: ${driver_file}"
+    hbs_print_msg_id "STATUS" 17 "Generated signal driver template for instantiating bypass module: ${driver_file}"
   }
   return 0
 }
 
-proc extract_hier_paths_from_simulator_log {} {
+proc hbs_extract_hier_paths_from_simulator_log {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -540,7 +540,7 @@ proc extract_hier_paths_from_simulator_log {} {
   set log_file "$a_hbs_vars(log)"
   set fh_log 0
   if { [catch {open $log_file r} fh_log] } {
-    print_msg_id "ERROR" 18 "Failed to open file to read ($log_file)"
+    hbs_print_msg_id "ERROR" 18 "Failed to open file to read ($log_file)"
     return 1
   }
   set raw_data [split [read $fh_log] "\n"]
@@ -565,7 +565,7 @@ proc extract_hier_paths_from_simulator_log {} {
   return $log_data
 }
 
-proc print_msg_id { type id str } {
+proc hbs_print_msg_id { type id str } {
   # Summary:
   # Argument Usage:
   # Return Value:
