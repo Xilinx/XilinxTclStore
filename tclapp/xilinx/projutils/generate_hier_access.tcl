@@ -152,7 +152,7 @@ proc hbs_generate_bypass {} {
   #
   # write module declaration
   #
-  puts $fh "`timescale 1ns/1ps"
+  puts $fh "`timescale 1ps/1ps"
   puts $fh "/* Hierarchical access module attribute"
   puts $fh " * --------- DONOT MODIFY -------------*/"
   puts $fh "(* $a_hbs_vars(module_attribute) *)"
@@ -408,7 +408,7 @@ proc hbs_write_pseudo_top_testbench {} {
   puts $fh "//"
   puts $fh "//           *bypass module is a system verilog module that defines the ports and signal propagation" 
   puts $fh "//---------------------------------------------------------------------------------------------------- --"
-  puts $fh "`timescale 1ns/1ps"
+  puts $fh "`timescale 1ps/1ps"
   puts $fh "module ${top}();"
   puts $fh "  /*"
   puts $fh "   * User design testbench instantiation or a DUT"
@@ -443,6 +443,29 @@ proc hbs_write_bypass_driver_file { input_ports_arg output_ports_arg instance_po
     hbs_print_msg_id "ERROR" "16" "Failed to open file to write ($driver_file)"
     return 1
   }
+
+  # get driver file type
+  set extn [string tolower [file extension $driver_file]]
+  if { ({.vhd} == $extn) } { 
+    hbs_generate_vhdl_driver $fh $driver_file $input_ports $output_ports $instance_ports
+  } elseif { ({.v} == $extn) } { 
+    hbs_generate_verilog_driver $fh $driver_file $input_ports $output_ports $instance_ports
+  } elseif { ({.sv} == $extn) } { 
+    hbs_generate_sv_driver $fh $driver_file $input_ports $output_ports $instance_ports
+  }
+  if { $a_hbs_vars(b_log) } {
+    hbs_print_msg_id "STATUS" 17 "Generated signal driver template for instantiating bypass module: ${driver_file}"
+  }
+  close $fh
+  return 0
+}
+
+proc hbs_generate_vhdl_driver { fh driver_file input_ports output_ports instance_ports } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_hbs_vars
 
   puts $fh "-- ------------------------------------------------------------------------------------------------------"
   puts $fh "-- Copyright (C) 2020 Xilinx, Inc. All rights reserved."
@@ -516,12 +539,104 @@ proc hbs_write_bypass_driver_file { input_ports_arg output_ports_arg instance_po
   puts $fh "-- ****************************** COPY END *********************************************"
   puts $fh ""
   puts $fh "end architecture a_${entity};"
-  close $fh
+}
 
-  if { $a_hbs_vars(b_log) } {
-    hbs_print_msg_id "STATUS" 17 "Generated signal driver template for instantiating bypass module: ${driver_file}"
+proc hbs_generate_verilog_driver { fh driver_file input_ports output_ports instance_ports } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_hbs_vars
+
+  set module [file root [file tail ${driver_file}]]
+  set instance_ports_str [join $instance_ports {, }]
+  set all_ports [concat $input_ports $output_ports]
+  set port_len [llength $all_ports]
+
+  puts $fh "/*------------------------------------------------------------------------------------------------------"
+  puts $fh "  Copyright (C) 2020 Xilinx, Inc. All rights reserved."
+  puts $fh "  Filename: ${driver_file}"
+  puts $fh "  Purpose : This is an auto generated signal driver template code for setting up the input waveform and" 
+  puts $fh "            for instantiating the bypass module in order to propagate the values from the testbench to"
+  puts $fh "            the lower-level unisim components. Please use this code as a reference for setting up the"
+  puts $fh "            input and source hierarchy."  
+  puts $fh " -------------------------------------------------------------------------------------------------------*/"
+  puts $fh "`timescale 1ps/1ps"
+  puts $fh "module $module\( $instance_ports_str \);"
+  foreach in_port $input_ports {
+    puts $fh "  input integer $in_port;"
   }
-  return 0
+  foreach out_port $output_ports {
+    puts $fh "  output integer $out_port;"
+  }
+  puts $fh ""
+  puts $fh "$module ${module}_i \("
+  set index 0
+  foreach in_port $input_ports {
+    puts -nonewline $fh " .${in_port} \(${in_port}_\)"
+    incr index
+    if { $index < $port_len } {
+      puts $fh ","
+    }
+  }
+  foreach out_port $output_ports {
+    puts -nonewline $fh " .${out_port} \(${out_port}_\)"
+    incr index
+    if { $index < $port_len } {
+      puts $fh ","
+    }
+  }
+  puts $fh "\n);"
+  puts $fh "endmodule"
+}
+
+proc hbs_generate_sv_driver { fh driver_file input_ports output_ports instance_ports } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_hbs_vars
+
+  set module [file root [file tail ${driver_file}]]
+  set instance_ports_str [join $instance_ports {, }]
+  set all_ports [concat $input_ports $output_ports]
+  set port_len [llength $all_ports]
+
+  puts $fh "/*------------------------------------------------------------------------------------------------------"
+  puts $fh "  Copyright (C) 2020 Xilinx, Inc. All rights reserved."
+  puts $fh "  Filename: ${driver_file}"
+  puts $fh "  Purpose : This is an auto generated signal driver template code for setting up the input waveform and" 
+  puts $fh "            for instantiating the bypass module in order to propagate the values from the testbench to"
+  puts $fh "            the lower-level unisim components. Please use this code as a reference for setting up the"
+  puts $fh "            input and source hierarchy."  
+  puts $fh " -------------------------------------------------------------------------------------------------------*/"
+  puts $fh "`timescale 1ps/1ps"
+  puts $fh "module $module\( $instance_ports_str \);"
+  foreach in_port $input_ports {
+    puts $fh "  input integer $in_port;"
+  }
+  foreach out_port $output_ports {
+    puts $fh "  output integer $out_port;"
+  }
+  puts $fh ""
+  puts $fh "$module ${module}_i \("
+  set index 0
+  foreach in_port $input_ports {
+    puts -nonewline $fh " .${in_port} \(${in_port}_\)"
+    incr index
+    if { $index < $port_len } {
+      puts $fh ","
+    }
+  }
+  foreach out_port $output_ports {
+    puts -nonewline $fh " .${out_port} \(${out_port}_\)"
+    incr index
+    if { $index < $port_len } {
+      puts $fh ","
+    }
+  }
+  puts $fh "\n);"
+  puts $fh "endmodule"
 }
 
 proc hbs_extract_hier_paths_from_simulator_log {} {
