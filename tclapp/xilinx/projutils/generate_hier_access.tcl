@@ -149,6 +149,9 @@ proc hbs_generate_bypass {} {
   set output_port_list [list]
   set instance_port_list [list]
 
+  set input_sig_port_list [list]
+  set output_sig_port_list [list]
+
   #
   # write module declaration
   #
@@ -189,8 +192,14 @@ proc hbs_generate_bypass {} {
       set sig_port "${port_name}__${port_index}" 
       set sig_port_driver "${port_name}_${port_index}" 
 
-      if { "in"  == $port_dir } { lappend input_port_list ${sig_port_driver} }
-      if { "out" == $port_dir } { lappend output_port_list ${sig_port_driver} }
+      if { "in"  == $port_dir } {
+        lappend input_port_list ${sig_port_driver}
+        lappend input_sig_port_list ${sig_port}
+      }
+      if { "out" == $port_dir } {
+        lappend output_port_list ${sig_port_driver}
+        lappend output_sig_port_list ${sig_port}
+      }
 
       lappend instance_port_list $sig_port_driver
 
@@ -277,7 +286,7 @@ proc hbs_generate_bypass {} {
   #
   # write DUT bypass driver template code (to be inserted into test bench by the user for driving the input)
   #
-  if { [hbs_write_bypass_driver_file input_port_list output_port_list instance_port_list] } {
+  if { [hbs_write_bypass_driver_file input_sig_port_list output_sig_port_list input_port_list output_port_list instance_port_list] } {
     return 1
   }
 
@@ -423,11 +432,13 @@ proc hbs_write_pseudo_top_testbench {} {
   return 0
 }
 
-proc hbs_write_bypass_driver_file { input_ports_arg output_ports_arg instance_ports_arg } {
+proc hbs_write_bypass_driver_file { input_sig_ports_arg output_sig_ports_arg input_ports_arg output_ports_arg instance_ports_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  upvar $input_sig_ports_arg input_sig_ports
+  upvar $output_sig_ports_arg output_sig_ports
   upvar $input_ports_arg input_ports
   upvar $output_ports_arg output_ports
   upvar $instance_ports_arg instance_ports
@@ -451,7 +462,7 @@ proc hbs_write_bypass_driver_file { input_ports_arg output_ports_arg instance_po
   } elseif { ({.v} == $extn) } { 
     hbs_generate_verilog_driver $fh $driver_file $input_ports $output_ports $instance_ports
   } elseif { ({.sv} == $extn) } { 
-    hbs_generate_sv_driver $fh $driver_file $input_ports $output_ports $instance_ports
+    hbs_generate_sv_driver $fh $driver_file $input_sig_ports $output_sig_ports $input_ports $output_ports $instance_ports
   }
   if { $a_hbs_vars(b_log) } {
     hbs_print_msg_id "STATUS" 17 "Generated signal driver template for instantiating bypass module: ${driver_file}"
@@ -590,7 +601,7 @@ proc hbs_generate_verilog_driver { fh driver_file input_ports output_ports insta
   puts $fh "endmodule"
 }
 
-proc hbs_generate_sv_driver { fh driver_file input_ports output_ports instance_ports } {
+proc hbs_generate_sv_driver { fh driver_file input_sig_ports output_sig_ports input_ports output_ports instance_ports } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -619,17 +630,23 @@ proc hbs_generate_sv_driver { fh driver_file input_ports output_ports instance_p
     puts $fh "  output integer $out_port;"
   }
   puts $fh ""
-  puts $fh "$module ${module}_i \("
+ 
+  set bmod $a_hbs_vars(bypass_module)
+  puts $fh "$bmod ${bmod}_i \("
   set index 0
-  foreach in_port $input_ports {
-    puts -nonewline $fh " .${in_port} \(${in_port}_\)"
+  foreach in_port $input_sig_ports {
+    set actual_port ${in_port}
+    set formal_port [regsub -all {__} $actual_port {_}]
+    puts -nonewline $fh " .${actual_port} \(${formal_port}\)"
     incr index
     if { $index < $port_len } {
       puts $fh ","
     }
   }
-  foreach out_port $output_ports {
-    puts -nonewline $fh " .${out_port} \(${out_port}_\)"
+  foreach out_port $output_sig_ports {
+    set actual_port ${out_port}
+    set formal_port [regsub -all {__} $actual_port {_}]
+    puts -nonewline $fh " .${actual_port} \(${formal_port}\)"
     incr index
     if { $index < $port_len } {
       puts $fh ","
