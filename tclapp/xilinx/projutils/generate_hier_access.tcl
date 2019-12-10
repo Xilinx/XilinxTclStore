@@ -459,10 +459,8 @@ proc hbs_write_bypass_driver_file { input_sig_ports_arg output_sig_ports_arg inp
   set extn [string tolower [file extension $driver_file]]
   if { ({.vhd} == $extn) } { 
     hbs_generate_vhdl_driver $fh $driver_file $input_ports $output_ports $instance_ports
-  } elseif { ({.v} == $extn) } { 
-    hbs_generate_verilog_driver $fh $driver_file $input_ports $output_ports $instance_ports
-  } elseif { ({.sv} == $extn) } { 
-    hbs_generate_sv_driver $fh $driver_file $input_sig_ports $output_sig_ports $input_ports $output_ports $instance_ports
+  } elseif { ({.v} == $extn) || ({.sv} == $extn) } { 
+    hbs_generate_verilog_driver $fh $extn $driver_file $input_sig_ports $output_sig_ports $input_ports $output_ports $instance_ports
   }
   if { $a_hbs_vars(b_log) } {
     hbs_print_msg_id "STATUS" 17 "Generated signal driver template for instantiating bypass module: ${driver_file}"
@@ -552,7 +550,7 @@ proc hbs_generate_vhdl_driver { fh driver_file input_ports output_ports instance
   puts $fh "end architecture a_${entity};"
 }
 
-proc hbs_generate_verilog_driver { fh driver_file input_ports output_ports instance_ports } {
+proc hbs_generate_verilog_driver { fh extn driver_file input_sig_ports output_sig_ports input_ports output_ports instance_ports } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -573,71 +571,53 @@ proc hbs_generate_verilog_driver { fh driver_file input_ports output_ports insta
   puts $fh "            input and source hierarchy."  
   puts $fh " -------------------------------------------------------------------------------------------------------*/"
   puts $fh "`timescale 1ps/1ps"
+  puts $fh ""
+  puts $fh "/*******************************************************************************************"
+  puts $fh " INSERT FOLLOWING CODE IN YOUR TESTBENCH SOURCE FILE TO DEFINE PSEUDO RANDOM NUMBER VARIABLE"
+  puts $fh " ******************************* COPY START ************************************************/"
+  puts $fh "`define rand_hbs_var \$urandom%4;"
+  puts $fh "/****************************** COPY END ***************************************************/"
+  puts $fh ""
   puts $fh "module $module\( $instance_ports_str \);"
   foreach in_port $input_ports {
-    puts $fh "  input integer $in_port;"
+    put $fh "  input wire $in_port;"
   }
   foreach out_port $output_ports {
-    puts $fh "  output integer $out_port;"
+    put $fh "  output wire $out_port;"
+  }
+  set in_port_decl [join $input_ports {, }]
+  set out_port_decl [join $output_ports {, }]
+  puts $fh ""
+  puts $fh "/************************************************************************************"
+  puts $fh " INSERT FOLLOWING CODE IN YOUR TESTBENCH SOURCE FILE TO INSTANTIATE THE BYPASS MODULE"
+  puts $fh " ******************************* COPY START *****************************************/"
+  puts $fh "  integer ${in_port_decl};"
+  if { {.sv} == $extn } {
+    puts $fh "  integer ${out_port_decl};"
+  } else {
+    puts $fh "  wire[31:0] ${out_port_decl};"
   }
   puts $fh ""
-  puts $fh "$module ${module}_i \("
-  set index 0
-  foreach in_port $input_ports {
-    puts -nonewline $fh " .${in_port} \(${in_port}_\)"
-    incr index
-    if { $index < $port_len } {
-      puts $fh ","
-    }
-  }
-  foreach out_port $output_ports {
-    puts -nonewline $fh " .${out_port} \(${out_port}_\)"
-    incr index
-    if { $index < $port_len } {
-      puts $fh ","
-    }
-  }
-  puts $fh "\n);"
-  puts $fh "endmodule"
-}
-
-proc hbs_generate_sv_driver { fh driver_file input_sig_ports output_sig_ports input_ports output_ports instance_ports } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_hbs_vars
-
-  set module [file root [file tail ${driver_file}]]
-  set instance_ports_str [join $instance_ports {, }]
-  set all_ports [concat $input_ports $output_ports]
-  set port_len [llength $all_ports]
-
-  puts $fh "/*------------------------------------------------------------------------------------------------------"
-  puts $fh "  Copyright (C) 2020 Xilinx, Inc. All rights reserved."
-  puts $fh "  Filename: ${driver_file}"
-  puts $fh "  Purpose : This is an auto generated signal driver template code for setting up the input waveform and" 
-  puts $fh "            for instantiating the bypass module in order to propagate the values from the testbench to"
-  puts $fh "            the lower-level unisim components. Please use this code as a reference for setting up the"
-  puts $fh "            input and source hierarchy."  
-  puts $fh " -------------------------------------------------------------------------------------------------------*/"
-  puts $fh "`timescale 1ps/1ps"
-  puts $fh "module $module\( $instance_ports_str \);"
-  foreach in_port $input_ports {
-    puts $fh "  input integer $in_port;"
-  }
-  foreach out_port $output_ports {
-    puts $fh "  output integer $out_port;"
-  }
+  puts $fh "  integer n;"
   puts $fh ""
- 
+  puts $fh "  initial begin"
+  puts $fh "    for (n=1;n<=100;n=n+1) begin"
+  foreach in_port $input_ports {
+    puts $fh "      $in_port = `rand_hbs_var;"
+  }
+  puts $fh "      #20;"
+  puts $fh "      \$display(\"PAM4 signal: %0d%0d%0d%0d\", ${in_port_decl});"
+  puts $fh "    end"
+  puts $fh "  end"
+  puts $fh "" 
+
   set bmod $a_hbs_vars(bypass_module)
-  puts $fh "$bmod ${bmod}_i \("
+  puts $fh "  $bmod ${bmod}_i \("
   set index 0
   foreach in_port $input_sig_ports {
     set actual_port ${in_port}
     set formal_port [regsub -all {__} $actual_port {_}]
-    puts -nonewline $fh " .${actual_port} \(${formal_port}\)"
+    puts -nonewline $fh "   .${actual_port} \(${formal_port}\)"
     incr index
     if { $index < $port_len } {
       puts $fh ","
@@ -646,13 +626,14 @@ proc hbs_generate_sv_driver { fh driver_file input_sig_ports output_sig_ports in
   foreach out_port $output_sig_ports {
     set actual_port ${out_port}
     set formal_port [regsub -all {__} $actual_port {_}]
-    puts -nonewline $fh " .${actual_port} \(${formal_port}\)"
+    puts -nonewline $fh "   .${actual_port} \(${formal_port}\)"
     incr index
     if { $index < $port_len } {
       puts $fh ","
     }
   }
-  puts $fh "\n);"
+  puts $fh "\n  );"
+  puts $fh "/******************************* COPY END ********************************************/"
   puts $fh "endmodule"
 }
 
