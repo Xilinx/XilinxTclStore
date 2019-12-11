@@ -166,6 +166,7 @@ proc hbs_generate_bypass {} {
   }
   set port_index 1
   foreach line $log_data {
+    if { ![is_valid_hier_path $line] } { continue }
     set port_count 1
     if { $port_index > 1 } {
       puts -nonewline $fh ","
@@ -227,6 +228,7 @@ proc hbs_generate_bypass {} {
   set print_lines_v [list]
   set port_index 1
   foreach line $log_data {
+    if { ![is_valid_hier_path $line] } { continue }
     set port_count 1
     set line [string trim $line]
     if { [string length $line] == 0 } { continue }
@@ -296,6 +298,7 @@ proc hbs_generate_bypass {} {
 
   set port_index 1
   foreach line $log_data {
+    if { ![is_valid_hier_path $line] } { continue }
     set port_count 1
     set line [string trim $line]
     if { [string length $line] == 0 } { continue }
@@ -578,13 +581,14 @@ proc hbs_generate_verilog_driver { fh extn driver_file input_sig_ports output_si
   puts $fh "`define rand_hbs_var \$urandom%4;"
   puts $fh "/****************************** COPY END ***************************************************/"
   puts $fh ""
-  puts $fh "module $module\( $instance_ports_str \);"
-  foreach in_port $input_ports {
-    put $fh "  input wire $in_port;"
-  }
-  foreach out_port $output_ports {
-    put $fh "  output wire $out_port;"
-  }
+  #puts $fh "module $module\( $instance_ports_str \);"
+  #foreach in_port $input_ports {
+  #  put $fh "  input wire $in_port;"
+  #}
+  #foreach out_port $output_ports {
+  #  put $fh "  output wire $out_port;"
+  #}
+  puts $fh "module $module\(\);"
   set in_port_decl [join $input_ports {, }]
   set out_port_decl [join $output_ports {, }]
   puts $fh ""
@@ -685,6 +689,27 @@ proc hbs_print_msg_id { type id str } {
   } else {
     catch {send_msg_id generate_hier_access-Tcl-${id} $type $str}
   }
+}
+
+proc is_valid_hier_path { line } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  #
+  # valid  :- tb.mod_i.ent_i#in:integer:in1:in out:integer:out1:out
+  # invalid:- gtm_dual#in:integer:CH0_GTMRXN:CH0_GTMRXN_integer out:integer:CH0_GTMTXN:CH0_GTMTXN_integer
+  #
+  set spec [string trim $line]
+  if { [string length $spec] == 0 } {
+    return false
+  }
+  set hier_path   [lindex [split $spec {#}] 0]
+  set hier_inst_v [split $hier_path {.}]
+  if { [llength $hier_inst_v] > 1 } {
+    return true
+  }
+  return false
 }
 
 }
