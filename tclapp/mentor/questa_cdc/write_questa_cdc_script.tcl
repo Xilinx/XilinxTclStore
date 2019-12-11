@@ -83,7 +83,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   set top_module ""
   set use_existing_xdc 0
   set no_sdc 0
-  set run_questa_cdc ""
+  set run_questa_cdc "cdc run"
   set add_button 0
   set remove_button 0
   set usage_msg "Usage    : write_questa_cdc_script <top_module> \[-output_directory <out_dir>\] \[-use_existing_xdc|-no_sdc\] \[-run <report_clock|cdc_run>\] \[-add_button\] \[-remove_button\]"
@@ -408,30 +408,70 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
 
   set num_files 0
+
+
+
+
   #Get filelist for each IP
   for {set i 0} {$i <= $num_ip} {incr i} {
     if {$i < $num_ip} {
-      set ip [lindex $ips $i]
-      set ip_name [get_property NAME $ip]
-      set ip_ref [get_property IPDEF $ip]
-      puts "INFO: Collecting files for IP $ip_ref ($ip_name)"
-      set files [get_files -compile_order sources -used_in synthesis -of_objects $ip]
+      set ip_container [get_property IP_CORE_CONTAINER $ip]
+#support for CDC-25506 - "write_questa_cdc_script" needs to be enhanced to automatically extract source code for compressed Xilinx IP Containers (.xcix files).
+      if {[regexp {xcix} $ip_container all value] && [file exists $ip_container]}  {
+              set is_xcix "1"
+              set ip_name [get_property NAME $ip]
+              set xcix_ip_name [get_property NAME $ip]
+              set ip_ref [get_property IPDEF $ip]
+              set extracted_files [extract_files -base_dir $userOD/ip [get_files $ip_name.xcix]]
+	      set wrong_files [get_files -compile_order sources -used_in synthesis -of_objects $ip]
+              set files ""
+              foreach wrong_file $wrong_files {
+			set hdl_file [file tail $wrong_file]
+			foreach extract_file $extracted_files { 
+				if {[regexp $hdl_file $extract_file]}  {
+                                        if {[regexp {vho} $extract_file all value]  || [regexp {veo} $extract_file all value]}	{ 
+					} else {						 
+					      lappend files $extract_file
+                                        }
+				}
+			}
+	      }
+      } else  { 
+	      set is_xcix "0"
+	      set ip [lindex $ips $i]
+	      set ip_name [get_property NAME $ip]
+	      set ip_ref [get_property IPDEF $ip]
+	      puts "INFO: Collecting files for IP $ip_ref ($ip_name)"
+	      set files [get_files -compile_order sources -used_in synthesis -of_objects $ip]
+              # Keep a list of all the include files, this is added to handle an issue in the 'wavegen' Xilinx example in which clog2b.vh wasn't added into compilation file
+              set all_include_files [get_files -filter {USED_IN_SYNTHESIS && FILE_TYPE =="Verilog Header"}]
+              foreach include_file $all_include_files {
+                  if { [lsearch -exact $files $include_file] == "-1" } {
+                      lappend files $include_file
+                  }
+             }
+       }
     } else {
+      set is_xcix "0"
       set ip $top_module
       set ip_name $top_module
       set ip_ref  $top_module
-      set files [get_files -norecurse -compile_order sources -used_in synthesis]
+      set files ""
+      set files_tmp [get_files -norecurse -compile_order sources -used_in synthesis]
+      foreach ftmp $files_tmp {
+            if {[file exists $ftmp]}  {
+                   lappend files $ftmp
+            }
+      }
+      # Keep a list of all the include files, this is added to handle an issue in the 'wavegen' Xilinx example in which clog2b.vh wasn't added into compilation file
+      set all_include_files [get_files -filter {USED_IN_SYNTHESIS && FILE_TYPE =="Verilog Header"}]
+      foreach include_file $all_include_files {
+        if { [lsearch -exact $files $include_file] == "-1" && [file exists $include_file] } {
+          lappend files $include_file
+        }
+      }
       puts "INFO: Collecting files for Top level"
     }
-
-    # Keep a list of all the include files, this is added to handle an issue in the 'wavegen' Xilinx example in which clog2b.vh wasn't added into compilation file
-    set all_include_files [get_files -filter {USED_IN_SYNTHESIS && FILE_TYPE =="Verilog Header"}]
-    foreach include_file $all_include_files {
-      if { [lsearch -exact $files $include_file] == "-1" } {
-        lappend files $include_file
-      }
-    }
-
     puts "DEBUG: Files for (IP: $ip) are: $files"
 
     set lib_file_order []
@@ -445,19 +485,28 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     foreach f $files {
       #set f1 [lindex [get_files -of [get_filesets $synth_fileset] $f] 0]
       incr num_files
-      if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
-        set fn [get_property NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-        set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-        set fs [get_property FILESET_NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-        set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+      if {$is_xcix == "1"} {
+            set fn $f
+            set lib $xcix_ip_name
+            if ([regexp {vhd} $f all value]) {
+                     set ft "VHDL"
+	    } else   {
+                     set ft "SystemVerilog"
+            }
       } else {
-        set fn [get_property NAME [lindex [get_files -all $f] 0]]
-        set ft [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
-        set fs [get_property FILESET_NAME [lindex [get_files -all $f] 0]]
-        set lib [get_property LIBRARY [lindex [get_files -all $f] 0]]
+            if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
+                  set fn [get_property NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+                  set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+                  set fs [get_property FILESET_NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+                  set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+            } else {
+                 set fn [get_property NAME [lindex [get_files -all $f] 0]]
+                 set ft [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
+                 set fs [get_property FILESET_NAME [lindex [get_files -all $f] 0]]
+                 set lib [get_property LIBRARY [lindex [get_files -all $f] 0]]
+            }
       }
-
-      puts "\nINFO: File= $fn Library= $lib File_type= $ft Fileset= $fs"
+      puts "\nINFO: File= $fn Library= $lib File_type= $ft"
       ## Create a new compile unit if library or language changes between the previous and current files
       if {$prev_lib == ""} {
         set num_lib 0
@@ -543,8 +592,8 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
     ## Check that the header files of a specific IP really exists in all the libraries' lists for this IP
     foreach f $files {
-      set ft [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
-      set fn [get_property NAME [lindex [get_files -all $f] 0]]
+#      set ft [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
+#      set fn [get_property NAME [lindex [get_files -all $f] 0]]
       if {[string match $ft "Verilog Header"]} {
         foreach lib $lib_file_order {
           set lang $lib_file_lang($lib)
@@ -589,16 +638,26 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
         }
         ## Print files to compile script
         set debug_num [llength lib_file_array($lib)]
-        puts "DEBUG: Found $debug_num of files in library= $lib, IP= $ip_ref IPINST= $ip_name" 
+        puts "DEBUG: Found $debug_num of files in library= $lib, IP= $ip_ref IPINST= $ip_name"
+
         if {[string match $lang "VHDL"]} {
-          set line "vcom $vhdl_std -work $lib_no_num \\"
+          set line "vcom -allowProtectedBeforeBody $vhdl_std -work $lib_no_num \\"
           lappend compile_lines $line
+      
           foreach f [split $lib_file_array($lib)] {
-            if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
-              set f_type [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-            } else {
-              set f_type [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
-            }
+                  if {$is_xcix == "1"} {
+                      if ([regexp {vhd} $f all value]) {
+                          set f_type "VHDL"
+	              } else   {
+                          set f_type "SystemVerilog"
+                      }
+                  } else {
+                      if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
+                          set f_type [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+                      } else {
+                           set f_type [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
+                      }
+                  }
             if {[string match $f_type "VHDL"]} {
               if {![regexp {^blk_mem_gen_v\d+_\d+$} $lib] || ([regexp {^blk_mem_gen_v\d+_\d+$} $lib] && [regexp {/blk_mem_gen_v\d+_\d+\.v} $f]) } {
                 set line "  $f \\"
@@ -775,7 +834,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   if { $run_questa_cdc == "report_clock" } { 
     puts $qcdc_tcl_fh "cdc run -d $top_module $lib_args -report_clock"
   } else {
-    puts $qcdc_tcl_fh "cdc run -d $top_module $lib_args -formal -formal_effort high"
+    puts $qcdc_tcl_fh "cdc run -d $top_module $lib_args"
     puts $qcdc_tcl_fh "cdc generate report ${top_module}_detailed.rpt"
   }
   puts $qcdc_tcl_fh "exit 0"
@@ -801,7 +860,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     exec /bin/sh -c "cd $userOD; sh qcdc_run.sh"
     puts "INFO : Questa CDC run is finished"
     puts "INFO : Invoking Questa CDC UI for debugging."
-#    exec /bin/sh -c "cd $userOD; qverify -l qverify_ui.log CDC_RESULTS/cdc.db" &
+    exec /bin/sh -c "cd $userOD; qverify -l qverify_ui.log CDC_RESULTS/cdc.db" &
   }
   return $rc
 }
