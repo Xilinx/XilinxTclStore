@@ -1,0 +1,23 @@
+1.22 Updated vivado package requirement and set base platforms directives to Default.
+1.21 Fix to error out if the mandatory option '-prp_inst' is not specified for command xilinx::x2rp::raptor.
+1.20 Fixed issue with help section, options and optiomized open_checkpoint calls.
+1.19 Changes in write bitstream step.
+1.18 Fix for issue can't read 'levels_to_suppress': no such variable
+1.17 Fix for CRs - {1022456, 1022371, 1022370, 1022368, 1022366, 1022364, 1022333, 1022224, 1022222}.
+1.16 Added support for DCP based PR flow project for raptor.
+1.15 Minor bug fix - unbalanced open paranthesis.
+1.14 Merged raptor and hpr procs to raptor and enabled hpr flow with -hpr option on raptor.
+1.13 Minor bug fixes for raptor and hpr support
+1.12 Added support for raptor and hpr.
+1.11 Added timing checks for base platform generation and generate_rl_only option.
+1.10 Added timing checks, directive options for base platform generations and pre/post scripts support for base and rl platform generation.
+1.9 DSA properties inheritence stopped, as design is opened in current project context for DSA generation, option updated from -generate_dsa to -open_design_for_dsa_gen.
+1.8 Fix for MRL-22 (open routed dcp in current project context for DSA generation)
+1.7 Fix for MRL-54.
+1.6 Fix for MRL - 48, 49 and 52.
+1.5 Fix for MRL-45 to add shim support and directive list flattening issue.
+1.4 Fix for MRL-47 and directive related fixes.
+1.3 Fix for MRL - 39, 40, 41, 42.
+1.2 Fix for MRL-39 and MRL-42. '-shell' to recognize shell instance. generate_rl_platform now takes only shell as reconfig_partitions. '-exclude_constrs' mandatory.
+1.1 Partial and full bitstream generation.
+1.0 Initial Release v1.0
