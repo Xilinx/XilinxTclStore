@@ -17,24 +17,21 @@ proc hbs_init_vars {} {
   
   variable a_hbs_vars
 
-  set a_hbs_vars(bypass_module)               {}  
-  set a_hbs_vars(bypass_file)                 {}  
-  set a_hbs_vars(driver_module)               {}  
-  set a_hbs_vars(pseudo_top_testbench)        {}  
-  set a_hbs_vars(user_design_testbench)       {}
-  set a_hbs_vars(hbs_dir)                     {}
-  set a_hbs_vars(log)                         {}  
- 
-  set a_hbs_vars(port_attribute)              "hier_bypass_ports"
-  set a_hbs_vars(module_attribute)            "hier_bypass_mod"
-
-  set a_hbs_vars(b_bypass_module)             0
-  set a_hbs_vars(b_driver_module)             0
-  set a_hbs_vars(b_pseudo_top_testbench)      0
-  set a_hbs_vars(b_user_design_testbench)     0
-  set a_hbs_vars(b_hbs_dir)                   0 
-  set a_hbs_vars(b_log)                       0
-
+  set a_hbs_vars(bypass_module)           {}  
+  set a_hbs_vars(bypass_file)             {}  
+  set a_hbs_vars(driver_module)           {}  
+  set a_hbs_vars(pseudo_top_testbench)    {}  
+  set a_hbs_vars(user_design_testbench)   {}
+  set a_hbs_vars(hbs_dir)                 {}
+  set a_hbs_vars(log)                     {}  
+  set a_hbs_vars(port_attribute)          "hier_bypass_ports"
+  set a_hbs_vars(module_attribute)        "hier_bypass_mod"
+  set a_hbs_vars(b_bypass_module)         0
+  set a_hbs_vars(b_driver_module)         0
+  set a_hbs_vars(b_pseudo_top_testbench)  0
+  set a_hbs_vars(b_user_design_testbench) 0
+  set a_hbs_vars(b_hbs_dir)               0 
+  set a_hbs_vars(b_log)                   0
 }
 
 proc generate_hier_access {args} {
@@ -46,8 +43,8 @@ proc generate_hier_access {args} {
   # [-driver <arg>]: Signal driver template module name
   # [-pseudo_top <arg>]: Top-level pseudo testbench module name
   # [-testbench <arg>]: User design testbench module name
-  # [-directory <arg>]: Output directory where the sources will be generated
-  # [-log <arg>]: Simulator log containing hierarchical path information (for non-Vivado users)
+  # [-directory <arg>]: Output directory for the generated sources
+  # [-log <arg>]: Simulator log containing hierarchical path information (for standalone flow)
 
   # Return Value:
   # None
@@ -60,12 +57,12 @@ proc generate_hier_access {args} {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch $option {
-      "-bypass"     { incr i; set a_hbs_vars(bypass_module)             [lindex $args $i]; set a_hbs_vars(b_bypass_module)             1 }
-      "-driver"     { incr i; set a_hbs_vars(driver_module)             [lindex $args $i]; set a_hbs_vars(b_driver_module)             1 }
-      "-pseudo_top" { incr i; set a_hbs_vars(pseudo_top_testbench)      [lindex $args $i]; set a_hbs_vars(b_pseudo_top_testbench)      1 }
-      "-testbench"  { incr i; set a_hbs_vars(user_design_testbench)     [lindex $args $i]; set a_hbs_vars(b_user_design_testbench)     1 }
-      "-directory"  { incr i; set a_hbs_vars(hbs_dir)                   [lindex $args $i]; set a_hbs_vars(b_hbs_dir)                   1 }
-      "-log"        { incr i; set a_hbs_vars(log)                       [lindex $args $i]; set a_hbs_vars(b_log)                       1 }
+      "-bypass"     { incr i; set a_hbs_vars(bypass_module)         [lindex $args $i]; set a_hbs_vars(b_bypass_module)         1 }
+      "-driver"     { incr i; set a_hbs_vars(driver_module)         [lindex $args $i]; set a_hbs_vars(b_driver_module)         1 }
+      "-pseudo_top" { incr i; set a_hbs_vars(pseudo_top_testbench)  [lindex $args $i]; set a_hbs_vars(b_pseudo_top_testbench)  1 }
+      "-testbench"  { incr i; set a_hbs_vars(user_design_testbench) [lindex $args $i]; set a_hbs_vars(b_user_design_testbench) 1 }
+      "-directory"  { incr i; set a_hbs_vars(hbs_dir)               [lindex $args $i]; set a_hbs_vars(b_hbs_dir)               1 }
+      "-log"        { incr i; set a_hbs_vars(log)                   [lindex $args $i]; set a_hbs_vars(b_log)                   1 }
       default {
         if { [regexp {^-} $option] } {
           hbs_print_msg_id "ERROR" "1" "Unknown option '$option', please type 'generate_hier_access -help' for usage info." 
@@ -77,7 +74,6 @@ proc generate_hier_access {args} {
   #
   # command line error
   #
- 
   if { (!$a_hbs_vars(b_bypass_module)) || ({} == $a_hbs_vars(bypass_module)) } {
     hbs_print_msg_id "ERROR" "2" "Output bypass file not specified! Please specify the file name using the -file switch."
     return
@@ -149,11 +145,10 @@ proc hbs_generate_bypass {} {
   }
 
   # port list for the driver signal code
-  set input_port_list [list]
-  set output_port_list [list]
-  set instance_port_list [list]
-
-  set input_sig_port_list [list]
+  set input_port_list      [list]
+  set output_port_list     [list]
+  set instance_port_list   [list]
+  set input_sig_port_list  [list]
   set output_sig_port_list [list]
 
   #
@@ -205,9 +200,7 @@ proc hbs_generate_bypass {} {
         lappend output_port_list ${sig_port_driver}
         lappend output_sig_port_list ${sig_port}
       }
-
       lappend instance_port_list $sig_port_driver
-
       if { $port_count != 1 } {
         puts -nonewline $fh ", "
       }
@@ -217,7 +210,6 @@ proc hbs_generate_bypass {} {
     incr port_index
   }
   puts $fh " );"
-
   #
   # write input/output ports declaration
   #
@@ -274,7 +266,6 @@ proc hbs_generate_bypass {} {
       } else {
         lappend print_lines_v "\"  $port_col\" \"    $cmnt_col\""
       }
-      #puts $fh "  $port_dir_type $port_type ${port_name}__${port_index};   // connected to ${hier_path}.${port_name}"
     }
     incr port_index
   }
@@ -288,18 +279,15 @@ proc hbs_generate_bypass {} {
     puts $fh [mt format 2string]
     mt destroy
   }
-
   #
   # write DUT bypass driver template code (to be inserted into test bench by the user for driving the input)
   #
   if { [hbs_write_bypass_driver_file input_sig_port_list output_sig_port_list input_port_list output_port_list instance_port_list] } {
     return 1
   }
-
   # 
   # write always block with port assigment
   #
-
   set port_index 1
   foreach line $log_data {
     if { ![is_valid_hier_path $line] } { continue }
@@ -364,7 +352,6 @@ proc hbs_generate_bypass {} {
   # write module end
   #
   puts $fh "endmodule"
-  
   #
   # close bypass file
   #
@@ -381,10 +368,11 @@ proc hbs_write_header { fh } {
   # Return Value:
 
   variable a_hbs_vars
+  set filename [file tail $a_hbs_vars(bypass_file)]
   
   puts $fh "//-------------------------------------------------------------------------------------------------------"
   puts $fh "// Copyright (C) 2020 Xilinx, Inc. All rights reserved."
-  puts $fh "// Filename: $a_hbs_vars(bypass_file)"
+  puts $fh "// Filename: ${filename}"
   puts $fh "// Purpose : This is an auto generated bypass module that defines the ports and hierarchical paths for"
   puts $fh "//           propagating the signal values from the top-level testbench to the unisim compoenents. The"
   puts $fh "//           module defines the 'hier_bypass_mod' attribute for identifyng this module to make sure the"
@@ -435,7 +423,6 @@ proc hbs_write_pseudo_top_testbench {} {
   if { $a_hbs_vars(b_log) } {
     hbs_print_msg_id "STATUS" 14 "Generated top-level testbench source for instantiating design testbench '$a_hbs_vars(user_design_testbench)': ${file_name}"
   }
-
   return 0
 }
 
@@ -488,76 +475,71 @@ proc hbs_generate_vhdl_driver { fh driver_file input_ports output_ports instance
   # Return Value:
 
   variable a_hbs_vars
-
+  set filename [file tail ${driver_file}]
   puts $fh "-- ------------------------------------------------------------------------------------------------------"
   puts $fh "-- Copyright (C) 2020 Xilinx, Inc. All rights reserved."
-  puts $fh "-- Filename: ${driver_file}"
+  puts $fh "-- Filename: ${filename}"
   puts $fh "-- Purpose : This is an auto generated signal driver template code for setting up the input waveform and" 
   puts $fh "--           for instantiating the bypass module in order to propagate the values from the testbench to"
   puts $fh "--           the lower-level unisim components. Please use this code as a reference for setting up the"
   puts $fh "--           input and source hierarchy."  
   puts $fh "-- ------------------------------------------------------------------------------------------------------"
+  puts $fh "-- ***********************************************************************************"
+  puts $fh "-- INSERT FOLLOWING CODE IN YOUR TESTBENCH SOURCE FILE TO REFERENCE IEEE MATH PACKAGES"
+  puts $fh "-- ****************************** COPY START *****************************************"
+  puts $fh "library ieee;"
+  puts $fh "use ieee.math_real.uniform;"
+  puts $fh "use ieee.math_real.floor;"
+  puts $fh "-- ****************************** COPY END *********************************************"
   puts $fh ""
   set entity [file root [file tail ${driver_file}]]
   puts $fh "entity $entity is"
   puts $fh "end entity;"
   puts $fh ""
 
-  #set uniq_in_ports [list]
-  #foreach in_port $input_port_list {
-  #  if { [lsearch -exact $uniq_in_ports $in_port] == -1 } {
-  #    lappend uniq_in_ports $in_port
-  #  }
-  #}
-  #set in_port_str [join $uniq_in_ports {, }]
-
-  #set uniq_out_ports [list]
-  #foreach out_port $output_port_list {
-  #  if { [lsearch -exact $uniq_out_ports $out_port] == -1 } {
-  #    lappend uniq_out_ports $out_port
-  #  }
-  #}
-  #set out_port_str [join $uniq_out_ports {, }]
-
-  set instance_ports_str [join $instance_ports {, }]
-
   puts $fh "architecture a_${entity} of $entity is"
+  puts $fh "-- *************************************************************************************"
+  puts $fh "-- INSERT FOLLOWING CODE IN YOUR TESTBENCH SOURCE FILE TO DEFINE RANDOM SIGNAL GENERATOR"
+  puts $fh "-- ****************************** COPY START *******************************************"
+  puts $fh "  shared variable seed_1 : positive := 1;"
+  puts $fh "  shared variable seed_2 : positive := 1;"
+  puts $fh "  function rand_hbs return INTEGER is"
+  puts $fh "    variable x: REAL;"
+  puts $fh "    begin"
+  puts $fh "      uniform(seed_1, seed_2, x);"
+  puts $fh "      return integer(floor(x * 4.0));"
+  puts $fh "  end function;"
+  puts $fh "-- ****************************** COPY END *********************************************"
+  puts $fh ""
   foreach in_port $input_ports {
     puts $fh "  signal $in_port : integer;"
   }
   foreach out_port $output_ports {
     puts $fh "  signal $out_port : integer;"
   }
-  puts $fh "begin\n"
+  puts $fh "begin"
   puts $fh "-- ************************************************************************************"
   puts $fh "-- INSERT FOLLOWING CODE IN YOUR TESTBENCH SOURCE FILE TO INSTANTIATE THE BYPASS MODULE"
   puts $fh "-- ****************************** COPY START ******************************************"
   puts $fh "  DRIVE_INPUT: process"
   puts $fh "  begin"
+  puts $fh "    for n in 1 to 100 loop"
   foreach in_port $input_ports {
-    puts $fh "    $in_port <= 1 after 0 ns, 3 after 10 ns, 2 after 20 ns, 0 after 30 ns;"
+    puts $fh "      $in_port <= rand_hbs;"
   }
-  puts $fh "    wait for 40ns;"
+  puts $fh "      wait for 20ns;"
+  set sig_port_v [list]
   foreach in_port $input_ports {
-    puts $fh "    $in_port <= 3 after 0 ns, 0 after 10 ns, 1 after 20 ns, 2 after 30 ns;"
+    lappend sig_port_v "& integer'image($in_port)"
   }
-  puts $fh "    wait for 40ns;"
-  foreach in_port $input_ports {
-    puts $fh "    $in_port <= 3 after 0 ns, 1 after 10 ns, 0 after 20 ns, 2 after 30 ns;"
-  }
-  puts $fh "    wait for 40ns;"
-  foreach in_port $input_ports {
-    puts $fh "    $in_port <= 2 after 0 ns, 3 after 10 ns, 1 after 20 ns, 0 after 30 ns;"
-  }
-  puts $fh "    wait for 40ns;"
-  foreach in_port $input_ports {
-    puts $fh "    $in_port <= 0 after 0 ns, 1 after 10 ns, 2 after 20 ns, 3 after 30 ns;"
-  }
-  puts $fh "    wait;"
+  set sig_port_str [join $sig_port_v { }]
+  puts $fh "      report \"HBS_SIGNAL: \" ${sig_port_str};"
+  puts $fh "   end loop;"
+  puts $fh "   wait;"
   puts $fh "  end process;"
   puts $fh ""
+  set instance_ports_str [join $instance_ports {, }]
   puts $fh "  HIER_BYPASS : entity work.$a_hbs_vars(bypass_module) port map( $instance_ports_str );"
-  puts $fh ""
   puts $fh "-- ****************************** COPY END *********************************************"
   puts $fh ""
   puts $fh "end architecture a_${entity};"
@@ -570,14 +552,12 @@ proc hbs_generate_verilog_driver { fh extn driver_file input_sig_ports output_si
 
   variable a_hbs_vars
 
-  set module [file root [file tail ${driver_file}]]
-  set instance_ports_str [join $instance_ports {, }]
-  set all_ports [concat $input_ports $output_ports]
-  set port_len [llength $all_ports]
+  set filename [file tail ${driver_file}]
+  set module [file root ${filename}]
 
   puts $fh "/*------------------------------------------------------------------------------------------------------"
   puts $fh "  Copyright (C) 2020 Xilinx, Inc. All rights reserved."
-  puts $fh "  Filename: ${driver_file}"
+  puts $fh "  Filename: ${filename}"
   puts $fh "  Purpose : This is an auto generated signal driver template code for setting up the input waveform and" 
   puts $fh "            for instantiating the bypass module in order to propagate the values from the testbench to"
   puts $fh "            the lower-level unisim components. Please use this code as a reference for setting up the"
@@ -591,13 +571,6 @@ proc hbs_generate_verilog_driver { fh extn driver_file input_sig_ports output_si
   puts $fh "`define rand_hbs_var \$urandom%4;"
   puts $fh "/****************************** COPY END ***************************************************/"
   puts $fh ""
-  #puts $fh "module $module\( $instance_ports_str \);"
-  #foreach in_port $input_ports {
-  #  put $fh "  input wire $in_port;"
-  #}
-  #foreach out_port $output_ports {
-  #  put $fh "  output wire $out_port;"
-  #}
   puts $fh "module $module\(\);"
   set in_port_decl [join $input_ports {, }]
   set out_port_decl [join $output_ports {, }]
@@ -620,11 +593,13 @@ proc hbs_generate_verilog_driver { fh extn driver_file input_sig_ports output_si
     puts $fh "      $in_port = `rand_hbs_var;"
   }
   puts $fh "      #20;"
-  puts $fh "      \$display(\"PAM4 signal: %0d%0d%0d%0d\", ${in_port_decl});"
+  puts $fh "      \$display(\"HBS_SIGNAL: %0d%0d%0d%0d\", ${in_port_decl});"
   puts $fh "    end"
   puts $fh "  end"
   puts $fh "" 
 
+  set all_ports [concat $input_ports $output_ports]
+  set port_len [llength $all_ports]
   set bmod $a_hbs_vars(bypass_module)
   puts $fh "  $bmod ${bmod}_i \("
   set index 0
@@ -721,7 +696,6 @@ proc is_valid_hier_path { line } {
   }
   return false
 }
-
 }
 
 if { [catch {package require Vivado}] } {
