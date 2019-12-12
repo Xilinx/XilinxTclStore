@@ -1,3 +1,4 @@
+3.424 option for output directory for the generated sources
 3.423 fixed port specification for module
 3.422 fixed stimulus with urandom call
 3.421 fixed formal and actual port list for bypass module
