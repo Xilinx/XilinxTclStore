@@ -19,18 +19,20 @@ proc hbs_init_vars {} {
 
   set a_hbs_vars(bypass_module)               {}  
   set a_hbs_vars(bypass_file)                 {}  
-  set a_hbs_vars(bypass_signal_driver_file)   {}  
+  set a_hbs_vars(driver_module)               {}  
   set a_hbs_vars(pseudo_top_testbench)        {}  
   set a_hbs_vars(user_design_testbench)       {}
+  set a_hbs_vars(hbs_dir)                     {}
   set a_hbs_vars(log)                         {}  
  
   set a_hbs_vars(port_attribute)              "hier_bypass_ports"
   set a_hbs_vars(module_attribute)            "hier_bypass_mod"
 
-  set a_hbs_vars(b_bypass_module)               0
-  set a_hbs_vars(b_bypass_signal_driver_file) 0
+  set a_hbs_vars(b_bypass_module)             0
+  set a_hbs_vars(b_driver_module)             0
   set a_hbs_vars(b_pseudo_top_testbench)      0
   set a_hbs_vars(b_user_design_testbench)     0
+  set a_hbs_vars(b_hbs_dir)                   0 
   set a_hbs_vars(b_log)                       0
 
 }
@@ -41,9 +43,10 @@ proc generate_hier_access {args} {
   # Argument Usage: 
   #
   # [-bypass <arg>]: Hierarchical access module name
-  # [-driver <arg>]: Signal driver template output file name
+  # [-driver <arg>]: Signal driver template module name
   # [-pseudo_top <arg>]: Top-level pseudo testbench module name
   # [-testbench <arg>]: User design testbench module name
+  # [-directory <arg>]: Output directory where the sources will be generated
   # [-log <arg>]: Simulator log containing hierarchical path information (for non-Vivado users)
 
   # Return Value:
@@ -58,9 +61,10 @@ proc generate_hier_access {args} {
     set option [string trim [lindex $args $i]]
     switch $option {
       "-bypass"     { incr i; set a_hbs_vars(bypass_module)             [lindex $args $i]; set a_hbs_vars(b_bypass_module)             1 }
-      "-driver"     { incr i; set a_hbs_vars(bypass_signal_driver_file) [lindex $args $i]; set a_hbs_vars(b_bypass_signal_driver_file) 1 }
+      "-driver"     { incr i; set a_hbs_vars(driver_module)             [lindex $args $i]; set a_hbs_vars(b_driver_module)             1 }
       "-pseudo_top" { incr i; set a_hbs_vars(pseudo_top_testbench)      [lindex $args $i]; set a_hbs_vars(b_pseudo_top_testbench)      1 }
       "-testbench"  { incr i; set a_hbs_vars(user_design_testbench)     [lindex $args $i]; set a_hbs_vars(b_user_design_testbench)     1 }
+      "-directory"  { incr i; set a_hbs_vars(hbs_dir)                   [lindex $args $i]; set a_hbs_vars(b_hbs_dir)                   1 }
       "-log"        { incr i; set a_hbs_vars(log)                       [lindex $args $i]; set a_hbs_vars(b_log)                       1 }
       default {
         if { [regexp {^-} $option] } {
@@ -79,7 +83,7 @@ proc generate_hier_access {args} {
     return
   }
 
-  if { (!$a_hbs_vars(b_bypass_signal_driver_file)) || ({} == $a_hbs_vars(bypass_signal_driver_file)) } {
+  if { (!$a_hbs_vars(b_driver_module)) || ({} == $a_hbs_vars(driver_module)) } {
     hbs_print_msg_id "ERROR" "3" "Output bypass signal driver file not specified! Please specify the file name using the -driver switch."
     return
   }
@@ -112,7 +116,7 @@ proc hbs_generate_bypass {} {
   variable a_hbs_vars
 
   # create bypass file
-  set a_hbs_vars(bypass_file) "$a_hbs_vars(bypass_module).sv"
+  set a_hbs_vars(bypass_file) "$a_hbs_vars(hbs_dir)/$a_hbs_vars(bypass_module).sv"
   set fh 0
   if { [file exists $a_hbs_vars(bypass_file)] } {
     if { [catch {file delete -force $a_hbs_vars(bypass_file)} error_msg] } {
@@ -395,11 +399,11 @@ proc hbs_write_pseudo_top_testbench {} {
 
   variable a_hbs_vars
 
-  set top        $a_hbs_vars(pseudo_top_testbench)
-  set tb         $a_hbs_vars(user_design_testbench)
+  set top $a_hbs_vars(pseudo_top_testbench)
+  set tb  $a_hbs_vars(user_design_testbench)
 
   set fh 0
-  set file_name "${top}.sv"
+  set file_name "$a_hbs_vars(hbs_dir)/${top}.sv"
   if { [catch {file delete -force $file_name} error_msg] } {
     hbs_print_msg_id "ERROR" "12" "Failed to delete file ($file_name)"
     return 1
@@ -448,7 +452,13 @@ proc hbs_write_bypass_driver_file { input_sig_ports_arg output_sig_ports_arg inp
 
   variable a_hbs_vars
   set fh 0
-  set driver_file $a_hbs_vars(bypass_signal_driver_file)
+ 
+  # get file extesion of the top file in simset 
+  set co_file_list [get_files -compile_order sources -used_in simulation -of_objects [current_fileset -simset]]
+  set top_file [lindex $co_file_list end]
+  set extn [file extension $top_file]
+
+  set driver_file "$a_hbs_vars(hbs_dir)/$a_hbs_vars(driver_module)$extn"
   if { [catch {file delete -force $driver_file} error_msg] } {
     hbs_print_msg_id "ERROR" "15" "Failed to delete file ($driver_file)"
     return 1
@@ -713,6 +723,7 @@ proc is_valid_hier_path { line } {
 }
 
 }
+
 if { [catch {package require Vivado}] } {
   namespace import ::tclapp::xilinx::projutils::generate_hier_access
 }
