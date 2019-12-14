@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed stimlus for vhdl driver</revision_history>
+      <revision_history>fixed stimlus format for verilog driver</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

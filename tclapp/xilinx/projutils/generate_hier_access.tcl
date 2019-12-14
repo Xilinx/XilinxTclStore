@@ -593,7 +593,7 @@ proc hbs_generate_verilog_driver { fh extn driver_file input_sig_ports output_si
     puts $fh "      $in_port = `rand_hbs_var;"
   }
   puts $fh "      #20;"
-  puts $fh "      \$display(\"HBS_SIGNAL: %0d%0d%0d%0d\", ${in_port_decl});"
+  puts $fh "      \$display(\"HBS_SIGNAL: %0d%0d\", ${in_port_decl}, ${out_port_decl});"
   puts $fh "    end"
   puts $fh "  end"
   puts $fh "" 
