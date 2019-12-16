@@ -444,6 +444,9 @@ proc hbs_write_bypass_driver_file { input_sig_ports_arg output_sig_ports_arg inp
   set co_file_list [get_files -compile_order sources -used_in simulation -of_objects [current_fileset -simset]]
   set top_file [lindex $co_file_list end]
   set extn [file extension $top_file]
+  if { {.v} == $extn } {
+    set extn ".sv"
+  }
 
   set driver_file "$a_hbs_vars(hbs_dir)/$a_hbs_vars(driver_module)$extn"
   if { [catch {file delete -force $driver_file} error_msg] } {
