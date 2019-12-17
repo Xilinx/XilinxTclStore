@@ -1,3 +1,4 @@
+11.22 wrap probe in catch block
 11.21 added comment for the used_in flags usage for determining static files
 11.20 added info message for locked or custom IPs in the project
 11.19 bind cardano api library for aie
