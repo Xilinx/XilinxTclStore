@@ -321,7 +321,7 @@ proc usf_create_do_file { simulator do_filename } {
     if { [get_property "IES.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
       set depth "all"
     }
-    set db "probe -create -shm -all -variables -depth $depth"
+    set db "catch \{probe -create -shm -all -variables -depth $depth\} msg"
     if { $a_sim_vars(b_batch) || $b_scripts_only } {
       puts $fh_do $db
     } else {
