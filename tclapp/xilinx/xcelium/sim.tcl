@@ -1544,8 +1544,8 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     set sm_ext_dir [xcs_get_simmodel_dir "xcelium" "ext"]
     set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
     append ld_path ":$cardano_api_path"
-    set cardano_lib_path "\$CARDANO_ROOT/lib/lnx64.o"
-    append ld_path ":$cardano_lib_path"
+    #set cardano_lib_path "\$CARDANO_ROOT/lib/lnx64.o"
+    #append ld_path ":$cardano_lib_path"
   }
   if { [llength l_sm_lib_paths] > 0 } {
     foreach sm_lib_path $l_sm_lib_paths {
