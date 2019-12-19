@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set driver file extention to system verilog for log flow</revision_history>
+      <revision_history>check if the returned hierarchical path belongs to current top hierarchy</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

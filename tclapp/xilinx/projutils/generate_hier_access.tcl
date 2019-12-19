@@ -142,6 +142,9 @@ proc hbs_generate_bypass {} {
     set log_data [hbs_extract_hier_paths_from_simulator_log]
   } else {
     set log_data [rdi::get_design_hier_path $a_hbs_vars(port_attribute)] 
+    #foreach hier_path $log_data {
+    #  puts "HIER_PATH:$hier_path"
+    #}
   }
 
   # port list for the driver signal code
@@ -697,9 +700,12 @@ proc is_valid_hier_path { line } {
   if { [string length $spec] == 0 } {
     return false
   }
-  set hier_path   [lindex [split $spec {#}] 0]
-  set hier_inst_v [split $hier_path {.}]
-  if { [llength $hier_inst_v] > 1 } {
+  set hier_path      [lindex [split $spec {#}] 0]
+  set hier_inst_v    [split $hier_path {.}]
+  set hier_top_value [lindex $hier_inst_v 0]
+  set top            [get_property top [current_fileset -simset]]
+  if { ([llength $hier_inst_v] > 1) && ($top == $hier_top_value) } {
+    #puts "VALID_HIER_PATH:$hier_path"
     return true
   }
   return false
