@@ -1,3 +1,4 @@
+2.172 return ip name from xcs_find_ip
 2.171 added comment for the used_in flags usage for determining static files
 2.170 added info message for locked or custom IPs in the project
 2.169 do not call quit -force for compile and elaborate steps in scripts_only mode when simulator.quitOnSimulationComplete is false
