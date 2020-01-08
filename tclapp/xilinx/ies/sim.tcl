@@ -927,7 +927,8 @@ proc usf_ies_write_simulate_script {} {
     set tool_path_val "$tool"
   }
   set arg_list [list "${tool_path_val}" "\$${tool}_opts" "${top_lib}.$top" "-input" "$do_filename"]
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     variable a_ies_sim_vars
     set clibs_dir $a_ies_sim_vars(s_compiled_lib_dir)
     #lappend arg_list "-sv_root \"$clibs_dir/secureip\""

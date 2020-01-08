@@ -1756,7 +1756,8 @@ proc xcs_is_embedded_flow {} {
   }
 
   # check if gt_quad_base present
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     return 1
   }
   return 0
@@ -3448,15 +3449,16 @@ proc xcs_find_ip { name } {
   # Summary:
   # Argument Usage:
   # Return Value:
- 
+
+  set ip_obj {}
   foreach ip_obj [get_ips -all -quiet] {
     set ipdef [get_property -quiet IPDEF $ip_obj]
     set ip_name [lindex [split $ipdef ":"] 2]
     if { [string first $name $ip_name] != -1} {
-      return true
+      return $ip_obj
     }
   }
-  return false
+  return $ip_obj
 }
 
 proc xcs_get_shared_ip_libraries { clibs_dir } {

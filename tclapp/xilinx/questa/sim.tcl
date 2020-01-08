@@ -1016,7 +1016,8 @@ proc usf_questa_get_simulation_cmdline {} {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
 
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     set gt_lib "gtye5_quad"
     set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $dir]"
     set clibs_dir [string map {\\ /} $clibs_dir]

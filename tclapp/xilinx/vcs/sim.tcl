@@ -738,12 +738,19 @@ proc usf_vcs_write_elaborate_script {} {
   }
   set arg_list [list "${tool_path_val}" "\$${tool}_opts"]
 
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     variable a_vcs_sim_vars
     set clibs_dir $a_vcs_sim_vars(s_compiled_lib_dir)
     append clibs_dir "/secureip"
     set comp_name "gtye5_quad"
-    set quad_lib "$clibs_dir/lib${comp_name}.so"
+    # is this configured for gtyp?
+    set config_type [get_property -quiet CONFIG.GT_TYPE $ip_obj]
+    if { [string equal -nocase $config_type "GTYP"] == 1 } {
+      set comp_name "gtyp_quad"
+    }
+    set shared_library "lib${comp_name}.so"
+    set quad_lib "$clibs_dir/${shared_library}"
     if { [file exists $quad_lib] } {
       #set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
       set gcc_cmd "-L$clibs_dir -l${comp_name}"
@@ -875,7 +882,8 @@ proc usf_vcs_write_simulate_script {} {
     puts $fh_scr "bin_path=\"$tool_path\"\n"
   }
 
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     set secureip_dir "$::tclapp::xilinx::vcs::a_vcs_sim_vars(s_compiled_lib_dir)/secureip"
     if { [file exists $secureip_dir] } {
       puts $fh_scr "# set library search order"

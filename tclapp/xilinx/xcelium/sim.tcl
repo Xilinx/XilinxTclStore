@@ -376,7 +376,8 @@ proc usf_xcelium_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     puts $fh "DEFINE simprims_ver xcelium_lib/simprims_ver"
     set simprim_dir "$dir/xcelium_lib/simprims_ver"
     if { ![file exists $simprim_dir] } {
@@ -1276,7 +1277,8 @@ proc usf_xcelium_write_simulate_script {} {
     set tool_path_val "$tool"
   }
   set arg_list [list "${tool_path_val}" "\$${tool}_opts"]
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     lappend arg_list "-sv_root \"$a_sim_vars(s_clibs_dir)/secureip\""
     lappend arg_list "-sv_lib libgtye5_quad.so"
   }
@@ -1539,7 +1541,8 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
   }
   set ld_path "LD_LIBRARY_PATH=."
   # for aie
-  if { [xcs_find_ip "ai_engine"] } {
+  set ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $ip_obj } {
     set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/xcelium"]
     set sm_ext_dir [xcs_get_simmodel_dir "xcelium" "ext"]
     set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"

@@ -1999,7 +1999,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
      if { {sdfmax} == $delay } { lappend args_list "--maxdelay" }
   }
 
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     set gt_lib         "gtye5_quad"
     set shared_lib_dir "verilog/secureip"
     if { ([string length $a_sim_vars(s_clibs_dir)] == 0) || (![file exists $a_sim_vars(s_clibs_dir)]) } {
