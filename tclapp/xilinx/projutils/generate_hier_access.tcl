@@ -87,7 +87,7 @@ proc generate_hier_access {args} {
     return
   }
 
-  if { (!$a_hbs_vars(b_pseudo_top_testbench)) || ({} == $a_hbs_vars(pseudo_top_testbench)) } {
+  if { ($a_hbs_vars(b_pseudo_top_testbench)) && ({} == $a_hbs_vars(pseudo_top_testbench)) } {
     set a_hbs_vars(pseudo_top_testbench) "pseudo_top_testbench"
   }
 
@@ -272,9 +272,17 @@ proc hbs_generate_bypass {} {
       if { "out" == $port_dir } { set port_dir_type "output" }
       set port_col "$port_dir_type $port_type ${port_name}__${port_index};"
       if { "in" == $port_dir } {
-        set cmnt_col "// => '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
+        if { {} == $a_hbs_vars(pseudo_top_testbench) } {
+          set cmnt_col "// => '\$root.${user_tb}.${hier_path}.${port_var}'"
+        } else {
+          set cmnt_col "// => '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
+        }
       } elseif { "out" == $port_dir } {
-        set cmnt_col "// <= '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
+        if { {} == $a_hbs_vars(pseudo_top_testbench) } {
+          set cmnt_col "// <= '\$root.${user_tb}.${hier_path}.${port_var}'"
+        } else {
+          set cmnt_col "// <= '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
+        }
       }
       if { $a_hbs_vars(b_log) } {
         lappend print_lines_v "  $port_col    $cmnt_col"
@@ -337,7 +345,11 @@ proc hbs_generate_bypass {} {
       set port_id ${port_name}__${port_index}  
       if { "in" == $port_dir } {
         puts $fh "  always @ (${port_id}) begin"
-        puts $fh "    $a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var} = ${port_id};"
+        if { {} == $a_hbs_vars(pseudo_top_testbench) } {
+          puts $fh "    \$root.${user_tb}.${hier_path}.${port_var} = ${port_id};"
+        } else {
+          puts $fh "    $a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var} = ${port_id};"
+        }
         puts $fh "  end"
       }
     }
@@ -355,9 +367,15 @@ proc hbs_generate_bypass {} {
 
       set port_id ${port_name}__${port_index}  
       if { "out" == $port_dir } {
-        puts $fh "  always @ ($a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}) begin"
-        puts $fh "    ${port_id} = $a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var};"
-        puts $fh "  end"
+        if { {} == $a_hbs_vars(pseudo_top_testbench) } {
+          puts $fh "  always @ (\$root.${user_tb}.${hier_path}.${port_var}) begin"
+          puts $fh "    ${port_id} = \$root.${user_tb}.${hier_path}.${port_var};"
+          puts $fh "  end"
+        } else {
+          puts $fh "  always @ ($a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}) begin"
+          puts $fh "    ${port_id} = $a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var};"
+          puts $fh "  end"
+        }
       }
     }
     incr port_index
@@ -410,6 +428,10 @@ proc hbs_write_pseudo_top_testbench {} {
   variable a_hbs_vars
 
   set top $a_hbs_vars(pseudo_top_testbench)
+  if { {} == $top } {
+    return 0
+  }
+
   set tb  $a_hbs_vars(user_design_testbench)
 
   set fh 0

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>return ip name from xcs_find_ip</revision_history>
+      <revision_history>start hierarchy path from user testbench if pseudo testbench is empty</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
