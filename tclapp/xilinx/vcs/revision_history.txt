@@ -1,3 +1,4 @@
+8.9 support for VCS systemC compilation
 8.8 return ip name from xcs_find_ip
 8.7 added comment for the used_in flags usage for determining static files
 8.6 added info message for locked or custom IPs in the project

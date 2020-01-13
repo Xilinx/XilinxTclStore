@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>return ip name from xcs_find_ip</revision_history>
+      <revision_history>support for VCS systemC compilation</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

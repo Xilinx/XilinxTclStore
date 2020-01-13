@@ -1,3 +1,4 @@
+4.46 support for VCS systemC compilation
 4.45 return ip name from xcs_find_ip
 4.44 wrap probe in catch block
 4.43 added comment for the used_in flags usage for determining static files
