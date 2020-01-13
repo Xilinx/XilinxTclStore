@@ -2627,7 +2627,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
         "SystemVerilog"                {set compiler "vlogan"}
-        "SystemC"                      {set compiler "g++"}
+        "SystemC"                      {set compiler "syscan"}
         "CPP"                          {set compiler "g++"}
         "C"                            {set compiler "gcc"}
       }

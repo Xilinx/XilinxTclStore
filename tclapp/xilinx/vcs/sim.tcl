@@ -109,6 +109,9 @@ proc usf_vcs_setup_simulation { args } {
   variable a_sim_vars
 
   ::tclapp::xilinx::vcs::usf_set_simulator_path "vcs"
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    send_msg_id USF-VCS-44 INFO "Using GNU compiler executables from '$a_sim_vars(s_gcc_bin_path)'\n"
+  }
 
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
@@ -168,6 +171,11 @@ proc usf_vcs_setup_simulation { args } {
     }
   }
 
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    # extract simulation model library info
+    xcs_fetch_lib_info "vcs" $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
+  }
+
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
@@ -188,6 +196,25 @@ proc usf_vcs_setup_simulation { args } {
   set global_files_str {}
   set ::tclapp::xilinx::vcs::a_sim_vars(l_design_files) \
      [xcs_uniquify_cmd_str [::tclapp::xilinx::vcs::usf_get_files_for_compilation global_files_str]]
+
+  # is system design?
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
+      set a_sim_vars(b_system_sim_design) 1
+    }
+  }
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    # systemC headers
+    set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
+
+    # find shared library paths from all IPs
+    if { $a_sim_vars(b_system_sim_design) } {
+      if { [xcs_contains_C_files] } {
+        xcs_find_shared_lib_paths "vcs" $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
+      }
+    }
+  }
 
   # create setup file
   usf_vcs_write_setup_files
@@ -221,6 +248,8 @@ proc usf_vcs_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
@@ -248,6 +277,8 @@ proc usf_vcs_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_systemc_mode"       { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_gcc_bin_path"       { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
       "-int_compile_glbl"       { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
       "-int_csim_compile_order" { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_csim_compile_order) 1                 }
@@ -456,6 +487,23 @@ proc usf_vcs_write_compile_script {} {
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
+
+    if { $a_sim_vars(b_int_systemc_mode) } {
+      if { $a_sim_vars(b_system_sim_design) } {
+        # set gcc path
+        if { {} != $gcc_path } {
+          puts $fh_scr "gcc_path=\"$gcc_path\"\n"
+        }
+      }
+      # set system sim library paths
+      if { $::tclapp::xilinx::vcs::a_sim_vars(b_system_sim_design) } {
+        puts $fh_scr "# set system shared library paths"
+        puts $fh_scr "xv_cxl_lib_path=\"$::tclapp::xilinx::vcs::a_sim_vars(s_clibs_dir)\""
+        puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::vcs::a_sim_vars(sp_cpt_dir)\""
+        puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::vcs::a_sim_vars(sp_ext_dir)\""
+        puts $fh_scr "xv_boost_lib_path=\"$::tclapp::xilinx::vcs::a_sim_vars(s_boost_dir)\""
+      }
+    }
   }
 
   # write tcl pre hook
@@ -498,6 +546,120 @@ proc usf_vcs_write_compile_script {} {
 
   puts $fh_scr "\n# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    # syscan (systemC)
+    if { $a_sim_vars(b_contain_systemc_sources) } {
+      set tool "syscan"
+      set arg_list [list "-messages"]
+      set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
+      if { [get_property 32bit $fs_obj] } {
+        set arg_list [linsert $arg_list 0 "-32bit"]
+      } else {
+        set arg_list [linsert $arg_list 0 "-64bit"]
+      }
+      set more_syscan_options [string trim [get_property "VCS.COMPILE.SYSCAN.MORE_OPTIONS" $fs_obj]]
+      if { {} != $more_syscan_options } {
+        set arg_list [linsert $arg_list end "$more_syscan_options"]
+      }
+      puts $fh_scr "# set ${tool} command line args"
+      puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
+
+      # syscan gcc options
+      set syscan_gcc_opts [list]
+      lappend syscan_gcc_opts "-std=c++11"
+      lappend syscan_gcc_opts "-fPIC"
+      lappend syscan_gcc_opts "-c"
+      lappend syscan_gcc_opts "-Wall"
+      lappend syscan_gcc_opts "-Wno-deprecated"
+      lappend syscan_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
+      variable l_system_sim_incl_dirs
+      set incl_dirs [list]
+      set uniq_dirs [list]
+      foreach dir $l_system_sim_incl_dirs {
+        if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+          lappend uniq_dirs $dir
+          lappend incl_dirs "-I$dir"
+        }
+      }
+      set incl_dir_str [join $incl_dirs " "]
+      if { {} != $incl_dir_str } {
+        append syscan_gcc_opts " $incl_dir_str"
+      }
+
+      # reference simmodel shared library include directories
+      variable a_shared_library_path_coln
+      set l_sim_model_incl_dirs [list]
+      foreach {key value} [array get a_shared_library_path_coln] {
+        set shared_lib_name $key
+        set lib_path        $value
+        set sim_model_incl_dir "$lib_path/include"
+        if { [file exists $sim_model_incl_dir] } {
+          if { !$a_sim_vars(b_absolute_path) } {
+            # relative path
+            set b_resolved 0
+            set resolved_path [xcs_resolve_sim_model_dir $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved]
+            if { $b_resolved } {
+              set sim_model_incl_dir $resolved_path
+            } else {
+              set sim_model_incl_dir "[xcs_get_relative_file_path $sim_model_incl_dir $a_sim_vars(s_launch_dir)]"
+            }
+          }
+          lappend l_sim_model_incl_dirs $sim_model_incl_dir
+        }
+      }
+      # simset include dir
+      foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
+        if { !$a_sim_vars(b_absolute_path) } {
+          set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+        }
+        lappend l_sim_model_incl_dirs "$incl_dir"
+      }
+
+      if { [llength $l_sim_model_incl_dirs] > 0 } {
+        # save system incl dirs
+        variable l_systemc_incl_dirs
+        set l_systemc_incl_dirs $l_sim_model_incl_dirs
+        # append to gcc options
+        foreach incl_dir $l_sim_model_incl_dirs {
+          append syscan_gcc_opts " -I$incl_dir"
+        }
+      }
+      puts $fh_scr "${tool}_gcc_opts=\"$syscan_gcc_opts\"\n"
+    }
+    # g++ (c++)
+    if { $a_sim_vars(b_contain_cpp_sources) } {
+      set tool "g++"
+      set arg_list [list "-c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
+      if { [get_property 32bit $fs_obj] } {
+        set arg_list [linsert $arg_list 0 "-m32"]
+      } else {
+        set arg_list [linsert $arg_list 0 "-m64"]
+      }
+      set more_gplus_options [string trim [get_property "VCS.COMPILE.G++.MORE_OPTIONS" $fs_obj]]
+      if { {} != $more_gplus_options } {
+        set arg_list [linsert $arg_list end "$more_gplus_options"]
+      }
+      puts $fh_scr "# set ${tool} command line args"
+      puts $fh_scr "gpp_opts=\"[join $arg_list " "]\"\n"
+    }
+    # gcc (c)
+    if { $a_sim_vars(b_contain_c_sources) } {
+      set tool "gcc"
+      set arg_list [list "-c -fPIC -O3"]
+      if { [get_property 32bit $fs_obj] } {
+        set arg_list [linsert $arg_list 0 "-m32"]
+      } else {
+        set arg_list [linsert $arg_list 0 "-m64"]
+      }
+      set more_gcc_options [string trim [get_property "VCS.COMPILE.GCC.MORE_OPTIONS" $fs_obj]]
+      if { {} != $more_gcc_options } {
+        set arg_list [linsert $arg_list end "$more_gcc_options"]
+      }
+      puts $fh_scr "# set ${tool} command line args"
+      puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+    }
+  }
 
   # add tcl pre hook
   if { {} != $tcl_pre_hook } {
@@ -629,6 +791,17 @@ proc usf_vcs_write_compile_script {} {
     }
   }
   close $fh_scr
+
+  # directory for obj's
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_system_sim_design) } {
+      set obj_dir "$a_sim_vars(s_launch_dir)/$a_sim_vars(tmp_obj_dir)"
+      if { [file exists $obj_dir] } {
+        [catch {file delete -force -- $obj_dir} error_msg]
+      }
+      [catch {file mkdir $obj_dir} error_msg]
+    }
+  }
 }
 
 proc usf_vcs_write_elaborate_script {} {
@@ -659,6 +832,17 @@ proc usf_vcs_write_elaborate_script {} {
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
+    if { $a_sim_vars(b_int_systemc_mode) } {
+      if { $a_sim_vars(b_system_sim_design) } {
+        # set gcc path
+        if { {} != $gcc_path } {
+          puts $fh_scr "gcc_path=\"$gcc_path\""
+        }
+        puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
+        usf_vcs_write_library_search_order $fh_scr
+      }
+      puts $fh_scr ""
+    }
   }
   set tool "vcs"
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
@@ -1154,5 +1338,43 @@ proc usf_vcs_create_setup_script {} {
   close $fh_scr
 
   xcs_make_file_executable $scr_file
+}
+
+proc usf_vcs_write_library_search_order { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_shared_library_path_coln
+  variable a_sim_vars
+  puts $fh_scr "# set library search order"
+  set l_sm_lib_paths [list]
+  foreach {library lib_dir} [array get a_shared_library_path_coln] {
+    set sm_lib_dir [file normalize $lib_dir]
+    set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+    lappend l_sm_lib_paths $sm_lib_dir
+  }
+  set ld_path "LD_LIBRARY_PATH=."
+  # for aie
+  set ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $ip_obj } {
+    set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
+    set sm_ext_dir [xcs_get_simmodel_dir "vcs" "ext"]
+    set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
+    append ld_path ":$cardano_api_path"
+    #set cardano_lib_path "\$CARDANO_ROOT/lib/lnx64.o"
+    #append ld_path ":$cardano_lib_path"
+  }
+  if { [llength l_sm_lib_paths] > 0 } {
+    foreach sm_lib_path $l_sm_lib_paths {
+      append ld_path ":$sm_lib_path"
+    }
+  }
+  append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
+  puts $fh_scr $ld_path
+
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+  }
 }
 }

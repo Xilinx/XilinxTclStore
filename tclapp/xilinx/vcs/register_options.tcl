@@ -44,6 +44,9 @@ proc register_options { simulator } {
     {{compile.load_glbl}            {bool}   {1}       {Load GLBL module}}
     {{compile.vhdlan.more_options}  {string} {}        {More VHDLAN compilation options}}
     {{compile.vlogan.more_options}  {string} {}        {More VLOGAN compilation options}}
+    {{compile.syscan.more_options}  {string} {}        {More SYSCAN compilation options}}
+    {{compile.g++.more_options}     {string} {}        {More G++ compilation options}}
+    {{compile.gcc.more_options}     {string} {}        {More GCC compilation options}}
     {{elaborate.debug_pp}           {bool}   {1}       {Enable post-process debug access}}
     {{elaborate.vcs.more_options}   {string} {}        {More VCS elaboration options}}
     {{simulate.tcl.post}            {string} {}        {Specify post-simulate step TCL hook}}
