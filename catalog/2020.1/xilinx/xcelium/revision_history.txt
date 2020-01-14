@@ -1,3 +1,4 @@
+11.26 process unique shared libraries for linking during elaboration
 11.25 support for VCS systemC compilation
 11.24 return ip name from xcs_find_ip
 11.23 fixed paths to cardano api
