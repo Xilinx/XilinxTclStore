@@ -314,7 +314,7 @@ proc usf_xsim_setup_simulation { args } {
   # for non-precompile mode set the compiled library for system simulation 
   if { !$a_sim_vars(b_use_static_lib) } {
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-      usf_xsim_set_clibs_for_system_sim
+      usf_xsim_set_clibs_for_non_precompile_flow
       set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
     }
   }
@@ -696,7 +696,7 @@ proc usf_xsim_verify_compiled_lib {} {
  return 1
 }
 
-proc usf_xsim_set_clibs_for_system_sim {} {
+proc usf_xsim_set_clibs_for_non_precompile_flow {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2003,6 +2003,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { {} != $ip_obj } {
     set gt_lib         "gtye5_quad"
     set shared_lib_dir "verilog/secureip"
+
+    # make sure we have the clibs for non-precompile flow
+    if { ([string length $a_sim_vars(s_clibs_dir)] == 0) && (!$a_sim_vars(b_use_static_lib)) } {
+      usf_xsim_set_clibs_for_non_precompile_flow
+      set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
+    }
+
     if { ([string length $a_sim_vars(s_clibs_dir)] == 0) || (![file exists $a_sim_vars(s_clibs_dir)]) } {
       send_msg_id USF-XSim-010 WARNING "Compiled library directory path does not exist! '$a_sim_vars(s_clibs_dir)'\n"
     } else {
