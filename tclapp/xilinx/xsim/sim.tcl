@@ -2348,15 +2348,23 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
       puts "Referenced pre-compiled shared libraries"
       puts "------------------------------------------------------------------------------------------------------------------------------------"
     }
+    set uniq_shared_libs    [list]
+    set shared_libs_to_link [list]
     foreach ip_obj $ip_objs {
       set ipdef [get_property -quiet IPDEF $ip_obj]
       set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
       if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
-        lappend args_list "-lib $vlnv_name"
-        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-          puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
+        if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+          lappend shared_libs_to_link $vlnv_name
+          lappend uniq_shared_libs $vlnv_name
+          if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+            puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
+          }
         }
       }
+    }
+    foreach vlnv_name $shared_libs_to_link {
+      lappend args_list "-lib $vlnv_name"
     }
     if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
       puts "------------------------------------------------------------------------------------------------------------------------------------"

@@ -1104,20 +1104,28 @@ proc usf_xcelium_write_elaborate_script {} {
           puts "Referenced pre-compiled shared libraries"
           puts "------------------------------------------------------------------------------------------------------------------------------------"
         }
+        set uniq_shared_libs        [list]
+        set shared_lib_objs_to_link [list]
         foreach ip_obj $ip_objs {
           set ipdef [get_property -quiet IPDEF $ip_obj]
           set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
           if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
-            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-              puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
-            }
-            foreach obj_file_name [xcs_get_pre_compiled_shared_objects $a_sim_vars(s_clibs_dir) $vlnv_name] {
+            if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+              lappend uniq_shared_libs $vlnv_name
               if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-                puts " + linking $vlnv_name -> '$obj_file_name'"
+                puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
               }
-              lappend link_arg_list "$obj_file_name"
+              foreach obj_file_name [xcs_get_pre_compiled_shared_objects $a_sim_vars(s_clibs_dir) $vlnv_name] {
+                if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+                  puts " + linking $vlnv_name -> '$obj_file_name'"
+                }
+                lappend shared_lib_objs_to_link "$obj_file_name"
+              }
             }
           }
+        }
+        foreach shared_lib_obj $shared_lib_objs_to_link {
+          lappend link_arg_list "$shared_lib_obj"
         }
         if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
           puts "------------------------------------------------------------------------------------------------------------------------------------"
