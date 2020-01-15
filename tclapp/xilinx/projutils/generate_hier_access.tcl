@@ -180,7 +180,7 @@ proc hbs_generate_bypass {} {
   }
   set port_index 1
   foreach line $log_data {
-    if { ![is_valid_hier_path $line] } { continue }
+    if { ![hbs_is_valid_hier_path $line] } { continue }
     set port_count 1
     if { $port_index > 1 } {
       puts -nonewline $fh ","
@@ -239,7 +239,7 @@ proc hbs_generate_bypass {} {
   set print_lines_v [list]
   set port_index 1
   foreach line $log_data {
-    if { ![is_valid_hier_path $line] } { continue }
+    if { ![hbs_is_valid_hier_path $line] } { continue }
     set port_count 1
     set line [string trim $line]
     if { [string length $line] == 0 } { continue }
@@ -273,13 +273,13 @@ proc hbs_generate_bypass {} {
       set port_col "$port_dir_type $port_type ${port_name}__${port_index};"
       if { "in" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          set cmnt_col "// => '\$root.${user_tb}.${hier_path}.${port_var}'"
+          set cmnt_col "// => '\$root.${user_tb}.${hier_path} .${port_var}'"
         } else {
           set cmnt_col "// => '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
         }
       } elseif { "out" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          set cmnt_col "// <= '\$root.${user_tb}.${hier_path}.${port_var}'"
+          set cmnt_col "// <= '\$root.${user_tb}.${hier_path} .${port_var}'"
         } else {
           set cmnt_col "// <= '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
         }
@@ -313,7 +313,7 @@ proc hbs_generate_bypass {} {
   #
   set port_index 1
   foreach line $log_data {
-    if { ![is_valid_hier_path $line] } { continue }
+    if { ![hbs_is_valid_hier_path $line] } { continue }
     set port_count 1
     set line [string trim $line]
     if { [string length $line] == 0 } { continue }
@@ -346,7 +346,7 @@ proc hbs_generate_bypass {} {
       if { "in" == $port_dir } {
         puts $fh "  always @ (${port_id}) begin"
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          puts $fh "    \$root.${user_tb}.${hier_path}.${port_var} = ${port_id};"
+          puts $fh "    \$root.${user_tb}.${hier_path} .${port_var} = ${port_id};"
         } else {
           puts $fh "    $a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var} = ${port_id};"
         }
@@ -368,8 +368,8 @@ proc hbs_generate_bypass {} {
       set port_id ${port_name}__${port_index}  
       if { "out" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          puts $fh "  always @ (\$root.${user_tb}.${hier_path}.${port_var}) begin"
-          puts $fh "    ${port_id} = \$root.${user_tb}.${hier_path}.${port_var};"
+          puts $fh "  always @ (\$root.${user_tb}.${hier_path} .${port_var}) begin"
+          puts $fh "    ${port_id} = \$root.${user_tb}.${hier_path} .${port_var};"
           puts $fh "  end"
         } else {
           puts $fh "  always @ ($a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}) begin"
@@ -750,7 +750,7 @@ proc hbs_print_msg_id { type id str } {
   }
 }
 
-proc is_valid_hier_path { line } {
+proc hbs_is_valid_hier_path { line } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -772,6 +772,45 @@ proc is_valid_hier_path { line } {
     return true
   }
   return false
+}
+
+proc hbs_resolve_hier_path { path } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # 
+  # Replace all \. with " ."
+  #
+  # Example:-
+  #   input -> I1.\g_MODEM_GTM_PRI[0].u_modem_gtm_pri\.\g_gt.u_modem_gtm_ch0\
+  #   output > I1.\g_MODEM_GTM_PRI[0].u_modem_gtm_pri .\g_gt.u_modem_gtm_ch0
+  #
+
+  set out_path {}
+  #
+  # 1. remove trailing back-slash (\) -> I1.\g_MODEM_GTM_PRI[0].u_modem_gtm_pri\.\g_gt.u_modem_gtm_ch0
+  #
+  set in_path [string trim $path {\\}]
+  #puts "VAL_1:$in_path"
+  #
+  # 2. temporarily replace dot with # -> I1#\g_MODEM_GTM_PRI[0]#u_modem_gtm_pri\#\g_gt+u_modem_gtm_ch0
+  #
+  regsub -all {\.} $in_path {#} in_path
+  #puts "VAL_2:$in_path"
+  #
+  # 3. replace \# with space dot " ." -> I1#\g_MODEM_GTM_PRI[0]#u_modem_gtm_pri .\g_gt+u_modem_gtm_ch0
+  #
+  regsub -all {\\#} $in_path { .} in_path
+  #puts "VAL_3:$in_path"
+  #
+  # 4. replace # back to dot .        -> I1.\g_MODEM_GTM_PRI[0].u_modem_gtm_pri .\g_gt.u_modem_gtm_ch0
+  #
+  regsub -all {#} $in_path {.} in_path
+  #puts "VAL_4:$in_path"
+
+  set out_path $in_path
+  return $out_path
 }
 }
 
