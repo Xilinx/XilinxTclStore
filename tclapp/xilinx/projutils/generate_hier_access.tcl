@@ -204,7 +204,7 @@ proc hbs_generate_bypass {} {
       set port_name [lindex $port_spec 2]
       set port_var  [lindex $port_spec 3]
      
-      set sig_port "${port_name}__${port_index}" 
+      set sig_port "${port_name}_xil_${port_index}" 
       set sig_port_driver "${port_name}_${port_index}" 
 
       if { "in"  == $port_dir } {
@@ -270,7 +270,7 @@ proc hbs_generate_bypass {} {
     
       set port_dir_type "input"
       if { "out" == $port_dir } { set port_dir_type "output" }
-      set port_col "$port_dir_type $port_type ${port_name}__${port_index};"
+      set port_col "$port_dir_type $port_type ${port_name}_xil_${port_index};"
       if { "in" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
           set cmnt_col "// => '\$root.${user_tb}.${hier_path} .${port_var}'"
@@ -342,7 +342,7 @@ proc hbs_generate_bypass {} {
       set port_name [lindex $port_spec 2]
       set port_var  [lindex $port_spec 3]
 
-      set port_id ${port_name}__${port_index}  
+      set port_id ${port_name}_xil_${port_index}  
       if { "in" == $port_dir } {
         puts $fh "  always @ (${port_id}) begin"
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
@@ -365,7 +365,7 @@ proc hbs_generate_bypass {} {
       set port_name [lindex $port_spec 2]
       set port_var  [lindex $port_spec 3]
 
-      set port_id ${port_name}__${port_index}  
+      set port_id ${port_name}_xil_${port_index}  
       if { "out" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
           puts $fh "  always @ (\$root.${user_tb}.${hier_path} .${port_var}) begin"
@@ -679,7 +679,7 @@ proc hbs_generate_verilog_driver { fh extn driver_file input_sig_ports output_si
   set index 0
   foreach in_port $input_sig_ports {
     set actual_port ${in_port}
-    set formal_port [regsub -all {__} $actual_port {_}]
+    set formal_port [regsub -all {_xil_} $actual_port {_}]
     puts -nonewline $fh "   .${actual_port} \(${formal_port}\)"
     incr index
     if { $index < $port_len } {
@@ -688,7 +688,7 @@ proc hbs_generate_verilog_driver { fh extn driver_file input_sig_ports output_si
   }
   foreach out_port $output_sig_ports {
     set actual_port ${out_port}
-    set formal_port [regsub -all {__} $actual_port {_}]
+    set formal_port [regsub -all {_xil_} $actual_port {_}]
     puts -nonewline $fh "   .${actual_port} \(${formal_port}\)"
     incr index
     if { $index < $port_len } {
