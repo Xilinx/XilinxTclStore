@@ -1,3 +1,4 @@
+3.434 helper to resolve hierarchical paths for escape characters
 3.433 support for VCS systemC compilation
 3.432 start hierarchy path from user testbench if pseudo testbench is empty
 3.431 return ip name from xcs_find_ip
