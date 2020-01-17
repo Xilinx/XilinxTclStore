@@ -1020,6 +1020,14 @@ proc usf_vcs_write_elaborate_script {} {
   }
   set arg_list [list "${tool_path_val}" "\$${tool}_opts"]
 
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_system_sim_design) } {
+      lappend arg_list "-sysc"
+      lappend arg_list "-L\$PWD"
+      lappend arg_list "-l${top}_sc"
+    }
+  }
+
   set ip_obj [xcs_find_ip "gt_quad_base"]
   if { {} != $ip_obj } {
     variable a_vcs_sim_vars
@@ -1068,7 +1076,7 @@ proc usf_vcs_write_elaborate_script {} {
         puts $fh_scr "# generate shared object"
         set link_arg_list [list "\$gcc_path/g++"]
         lappend link_arg_list "-m64 -Wl,-G -shared -o"
-        lappend link_arg_list "${top}_sc.so"
+        lappend link_arg_list "lib${top}_sc.so"
         lappend link_arg_list "\$gcc_objs"
         set l_sm_lib_paths [list]
         foreach {library lib_dir} [array get a_shared_library_path_coln] {
