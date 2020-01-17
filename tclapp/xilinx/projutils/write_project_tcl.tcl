@@ -181,6 +181,7 @@ variable a_global_vars
 variable l_script_data [list]
 variable l_local_files [list]
 variable l_remote_files [list]
+variable l_bc_filesets  [list]
 variable b_project_board_set 0
 
 # set file types to filter
@@ -242,6 +243,7 @@ proc reset_global_vars {} {
   set l_script_data                       [list]
   set l_local_files                       [list]
   set l_remote_files                      [list]
+  set l_bc_filests                        [list]
 }
 
 proc write_project_tcl_script {} {
@@ -262,6 +264,7 @@ proc write_project_tcl_script {} {
   variable l_open_bds [list]
   variable l_added_bds
   variable a_os
+  variable l_bc_filesets
 
   set l_script_data [list]
   set l_local_files [list]
@@ -347,7 +350,14 @@ proc write_project_tcl_script {} {
   wr_prflow $proj_dir $proj_name
   if { !$a_global_vars(b_arg_use_bd_files) } {
     wr_bd
+    wr_bd_bc_specific
   }
+
+  # write BC filesets 
+  if { [llength $l_bc_filesets] > 0 } {
+    write_specified_fileset $proj_dir $proj_name $l_bc_filesets 0
+  }
+
   wr_runs $proj_dir $proj_name
   wr_proj_info $proj_name
 
@@ -733,7 +743,7 @@ proc wr_bd {} {
   }
 
   # Get all BD files in the design
-  set bd_files [get_files -norecurse *.bd]
+  set bd_files [get_files -norecurse *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
   lappend l_script_data "\n# Adding sources referenced in BDs, if not already added"
 
 
@@ -761,6 +771,28 @@ proc wr_bd {} {
   }
 }
 
+proc wr_bd_bc_specific {} {
+  # Summary: write generate_target for the top level BD that contains Block Containers 
+  # Return Value: None
+
+  variable l_bc_filesets
+  variable l_script_data
+
+  set bd_files [get_files -norecurse *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
+  set bc_filesets_size [llength $l_bc_filesets]
+
+  foreach bd_file $bd_files {
+    set refs [ get_files -quiet -references -of_objects [ get_files $bd_file ] ]
+    # If BD has references and project has BC filesets, then 
+    # we are assuming it as it is top level BD with BCs
+    # TODO - Need to check whether this assumption works for all cases
+    if { [llength $refs] != 0 && $bc_filesets_size != 0} { 
+      set filename [file tail $bd_file]
+      lappend l_script_data "generate_target all \[get_files $filename\]\n"
+    }
+  }
+}
+
 proc wr_filesets { proj_dir proj_name } {
   # Summary: write fileset object properties 
   # This helper command is used to script help.
@@ -774,11 +806,11 @@ proc wr_filesets { proj_dir proj_name } {
   # write fileset data
   foreach {fs_data} $a_fileset_types {
     set filesets [get_filesets -filter FILESET_TYPE==[lindex $fs_data 0]]
-    write_specified_fileset $proj_dir $proj_name $filesets
+    write_specified_fileset $proj_dir $proj_name $filesets 1
   }
 }
 
-proc write_specified_fileset { proj_dir proj_name filesets } {
+proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
   # Summary: write fileset properties and sources 
   # This helper command is used to script help.
   # Argument Usage: 
@@ -790,6 +822,7 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
   variable a_global_vars
   variable l_script_data
   variable a_fileset_types
+  variable l_bc_filesets
 
   # write filesets
   set type "file"
@@ -798,6 +831,13 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
     # Is this a IP block fileset for a proxy IP that is owned by another composite file?
     # If so, we don't want to write it out as an independent file. The parent will take care of it.
     if { [is_proxy_ip_fileset $tcl_obj] } {
+      continue
+    }
+
+    # Is this a Block Container managed block fileset?
+    # If so, we don't need to create block fileset, it will be auto created
+    if { $ignore_bc == 1 && [is_bc_managed_fileset $tcl_obj] } {
+      lappend l_bc_filesets $tcl_obj
       continue
     }
 
@@ -2420,6 +2460,26 @@ proc is_ip_fileset { fileset } {
   return false
 }
 
+proc is_bc_managed_fileset { fileset } {
+  # Summary: Determine if the fileset is managed by Block Container
+  # Argument Usage:
+  # fileset: fileset name
+  # Return Value:
+  # true (1) if the fileset contains a BD that is managed by Block Container, false (0) otherwise
+
+  # make sure fileset is block fileset type
+  if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
+    return false
+  }
+
+  set bc_managed_fs_filter "IS_BLOCK_CONTAINER_MANAGED == 1"
+  if {[llength [get_files -norecurse -quiet -of_objects [get_filesets $fileset] -filter $bc_managed_fs_filter]] == 1} {
+    return true
+  }
+
+  return false
+}
+
 proc is_proxy_ip_fileset { fileset } {
   # Summary: Determine if the fileset is an OOC run for a proxy IP that has a parent composite
   # Argument Usage:
@@ -2599,7 +2659,7 @@ proc wr_pdefs { proj_dir proj_name } {
   # None
 
   # write pDef i.e. create partition def
-  set partitionDefs [get_partition_def]
+  set partitionDefs [get_partition_defs -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
   
   foreach partitionDef $partitionDefs {
     write_specified_partition_definition $proj_dir $proj_name $partitionDef
@@ -2642,8 +2702,14 @@ proc wr_reconfigModules { proj_dir proj_name } {
   # Return Value:
   # None
 
+  # Ignore Block Container managed PartionDefs/RMs
+  set partitionDefs [get_partition_defs -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
+  if { [llength $partitionDefs] == 0 } {
+    return
+  }
+
   # write  reconfigurations modules
-  set reconfigModules [get_reconfig_modules]
+  set reconfigModules [get_reconfig_modules -of_objects $partitionDefs]
   variable a_global_vars
 
   # associate a bd with rm to be used with write_specified_reconfig_module

@@ -3450,7 +3450,7 @@ proc xcs_find_ip { name } {
   # Argument Usage:
   # Return Value:
 
-  set ip_obj {}
+  set null_ip_obj {}
   foreach ip_obj [get_ips -all -quiet] {
     set ipdef [get_property -quiet IPDEF $ip_obj]
     set ip_name [lindex [split $ipdef ":"] 2]
@@ -3458,7 +3458,7 @@ proc xcs_find_ip { name } {
       return $ip_obj
     }
   }
-  return $ip_obj
+  return $null_ip_obj
 }
 
 proc xcs_get_shared_ip_libraries { clibs_dir } {

@@ -41,10 +41,12 @@ proc usf_init_vars {} {
   set a_sim_vars(b_absolute_path)    0
   set a_sim_vars(s_install_path)     {}
   set a_sim_vars(s_lib_map_path)     {}
+  set a_sim_vars(s_clibs_dir)        {}
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
   set a_sim_vars(b_int_systemc_mode) 0
+  set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
   set a_sim_vars(b_force_compile_glbl) [get_param project.forceCompileGlblForSimulation]
   set a_sim_vars(b_int_sm_lib_ref_debug)   0
@@ -54,6 +56,17 @@ proc usf_init_vars {} {
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
+  set a_sim_vars(b_contain_systemc_sources) 0
+  set a_sim_vars(b_contain_cpp_sources)     0
+  set a_sim_vars(b_contain_c_sources)       0
+  set a_sim_vars(b_contain_systemc_headers) 0
+
+  set a_sim_vars(b_system_sim_design) 0
+  set a_sim_vars(s_sys_link_path) {}
+
+  set a_sim_vars(sp_cpt_dir) {}
+  set a_sim_vars(sp_ext_dir) {}
+
   # initialize ip repository dir
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
   set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
@@ -62,6 +75,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_gcc_bin_path)     {}
 
   set a_sim_vars(sp_tcl_obj)         {}
+  set a_sim_vars(s_boost_dir)        {}
   set a_sim_vars(b_extract_ip_sim_files) 0
 
   # fileset compile order
@@ -467,11 +481,8 @@ proc usf_set_simulator_path { simulator } {
     set install_path [string trimright $install_path {/}]
     set bin_path $install_path
     set tool_path [file join $install_path $tool_name]
-    # Couldn't find it at install path, so try inserting /bin.
-    # This is a bit roundabout with new variables so we don't change the
-    # originals. If this doesn't work, we want the error messages to report
-    # based on the originals.
     set tool_bin_path {}
+    # not found? append /bin
     if { ![file exists $tool_path] } {
       set tool_bin_path [file join $install_path "bin" $tool_name]
       if { [file exists $tool_bin_path] } {
@@ -485,8 +496,19 @@ proc usf_set_simulator_path { simulator } {
       send_msg_id USF-VCS-044 ERROR "Path to custom '$tool_name' executable program does not exist:$tool_path'\n"
     }
   }
- 
+
   set a_sim_vars(s_tool_bin_path) $bin_path
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    # TODO: set vcs system library
+    set sys_link "/tools/installs/synopsys/vg_gnu/2019.06/amd64/gcc-6.2.0"
+    if { ![file exists $sys_link] } {
+      send_msg_id USF-VCS-046 WARNING "The VCS GNU executables could not be located. Please check if the simulator is installed correctly.\n"
+    }
+    
+    set a_sim_vars(s_sys_link_path) "$sys_link"
+    send_msg_id USF-VCS-047 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
+  }
 }
 
 proc usf_get_files_for_compilation { global_files_str_arg } {
@@ -550,6 +572,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
   }
 
+  set l_C_incl_dirs_opts     [list]
+  set l_dummy_incl_dirs_opts [list]
+
   # if xilinx_vip not referenced, compile it locally
   if { ([lsearch -exact $l_compiled_libraries "xilinx_vip"] == -1) } {
     variable a_sim_sv_pkg_libs
@@ -568,6 +593,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   }
 
   if { $a_sim_vars(b_int_systemc_mode) } {
+    set fs_obj [get_filesets $a_sim_vars(s_simset)]
     set b_en_code true
     if { $b_en_code } {
       if { [xcs_contains_C_files] } {
@@ -1346,7 +1372,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   return $incl_dirs
 }
 
-proc usf_append_compiler_options { tool file_type opts_arg } {
+proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1354,6 +1380,10 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
   upvar $opts_arg opts
   variable a_sim_vars
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set src_file [string trim $src_file {\"}]
+  set file_name [file root [file tail $src_file]]
+
   switch $tool {
     "vhdlan" {
       lappend opts "\$${tool}_opts"
@@ -1373,11 +1403,10 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
     "syscan" {
       if { $a_sim_vars(b_int_systemc_mode) } {
         lappend opts "\$${tool}_opts"
-        lappend opts "-work $work_lib"
-        lappend opts "-compiler \$gcc_path/g++"
-        lappend opts "-cFlags"
-        set gcc_opts "\"-o $a_sim_vars(tmp_obj_dir)/${file_name}.o \$xmsc_gcc_opts\""
-        lappend opts $gcc_opts
+        #lappend opts "-cc \$gcc_path/g++"
+        lappend opts "-cflags"
+        lappend opts "\"-O3 -std=c++11 -fPIC -Wall -Wno-deprecated -DSC_INCLUDE_DYNAMIC_PROCESSES \$syscan_gcc_opts\""
+        lappend opts "-Mdir=$a_sim_vars(tmp_obj_dir)"
       }
     }
     "g++" {
@@ -1497,7 +1526,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
-    usf_append_compiler_options $compiler $file_type arg_list
+    usf_append_compiler_options $compiler $file $associated_library $file_type arg_list
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { ("syscan" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
         variable l_design_c_files

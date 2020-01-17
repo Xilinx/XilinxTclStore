@@ -131,6 +131,9 @@ proc usf_vcs_setup_simulation { args } {
   # initialize VCS simulator variables
   usf_vcs_init_simulation_vars
 
+  # initialize boost library reference
+  set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
+
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
@@ -146,7 +149,7 @@ proc usf_vcs_setup_simulation { args } {
   # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # find/copy synopsys_sim.setup file into run dir
-  set clibs_dir [usf_vcs_verify_compiled_lib]
+  set a_sim_vars(s_clibs_dir) [usf_vcs_verify_compiled_lib]
 
   variable l_compiled_libraries
   variable l_xpm_libraries
@@ -158,8 +161,8 @@ proc usf_vcs_setup_simulation { args } {
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
-    if { {} != $clibs_dir } {
-      set libraries [xcs_get_compiled_libraries $clibs_dir $a_sim_vars(b_int_sm_lib_ref_debug)]
+    if { {} != $a_sim_vars(s_clibs_dir) } {
+      set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
       foreach lib $libraries {
         if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
@@ -279,6 +282,7 @@ proc usf_vcs_setup_args { args } {
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
       "-int_systemc_mode"       { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_systemc_mode) 1                       }
       "-int_gcc_bin_path"       { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
+      "-int_sm_lib_dir"         { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
       "-int_compile_glbl"       { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
       "-int_csim_compile_order" { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_csim_compile_order) 1                 }
@@ -435,7 +439,7 @@ proc usf_vcs_write_setup_files {} {
 
 }
 
-proc usf_vcs_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg log_arg } {
+proc usf_vcs_set_initial_cmd { fh_scr cmd_str compiler src_file file_type lib prev_file_type_arg prev_lib_arg log_arg } {
   # Summary: Print compiler command line and store previous file type and library information
   # Argument Usage:
   # Return Value:
@@ -446,11 +450,20 @@ proc usf_vcs_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_t
   upvar $log_arg log
 
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
+  set gcc_path  $::tclapp::xilinx::vcs::a_sim_vars(s_gcc_bin_path)
 
-  if { {} != $tool_path } {
-    puts $fh_scr "\$bin_path/$cmd_str \\"
+  if { ("g++" == $compiler) || ("gcc" == $compiler) } {
+    if { {} != $gcc_path } {
+      puts $fh_scr "\$gcc_path/$cmd_str \\"
+    } else {
+      puts $fh_scr "$cmd_str \\"
+    }
   } else {
-    puts $fh_scr "$cmd_str \\"
+    if { {} != $tool_path } {
+      puts $fh_scr "\$bin_path/$cmd_str \\"
+    } else {
+      puts $fh_scr "$cmd_str \\"
+    }
   }
   puts $fh_scr "$src_file \\"
 
@@ -474,6 +487,7 @@ proc usf_vcs_write_compile_script {} {
   set dir $::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir)
   set fs_obj [get_filesets $::tclapp::xilinx::vcs::a_sim_vars(s_simset)]
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
+  set gcc_path $::tclapp::xilinx::vcs::a_sim_vars(s_gcc_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set scr_filename "compile";append scr_filename [xcs_get_script_extn "vcs"]
   set scr_file [file normalize [file join $dir $scr_filename]]
@@ -551,12 +565,12 @@ proc usf_vcs_write_compile_script {} {
     # syscan (systemC)
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "syscan"
-      set arg_list [list "-messages"]
-      set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
+      set arg_list [list "-V"]
+      set arg_list [linsert $arg_list end [list "-l" "${tool}.log"]]
       if { [get_property 32bit $fs_obj] } {
-        set arg_list [linsert $arg_list 0 "-32bit"]
+        set arg_list [linsert $arg_list 0 ""]
       } else {
-        set arg_list [linsert $arg_list 0 "-64bit"]
+        set arg_list [linsert $arg_list 0 "-full64"]
       }
       set more_syscan_options [string trim [get_property "VCS.COMPILE.SYSCAN.MORE_OPTIONS" $fs_obj]]
       if { {} != $more_syscan_options } {
@@ -567,12 +581,12 @@ proc usf_vcs_write_compile_script {} {
 
       # syscan gcc options
       set syscan_gcc_opts [list]
-      lappend syscan_gcc_opts "-std=c++11"
-      lappend syscan_gcc_opts "-fPIC"
-      lappend syscan_gcc_opts "-c"
-      lappend syscan_gcc_opts "-Wall"
-      lappend syscan_gcc_opts "-Wno-deprecated"
-      lappend syscan_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
+      #lappend syscan_gcc_opts "-std=c++11"
+      #lappend syscan_gcc_opts "-fPIC"
+      #lappend syscan_gcc_opts "-c"
+      #lappend syscan_gcc_opts "-Wall"
+      #lappend syscan_gcc_opts "-Wno-deprecated"
+      #lappend syscan_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
       variable l_system_sim_incl_dirs
       set incl_dirs [list]
       set uniq_dirs [list]
@@ -687,6 +701,8 @@ proc usf_vcs_write_compile_script {} {
   set b_redirect false
   set b_appended false
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
+  set b_add_redirect true
+  set b_add_once true
 
   foreach file $::tclapp::xilinx::vcs::a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
@@ -699,47 +715,82 @@ proc usf_vcs_write_compile_script {} {
 
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
-    # vlogan expects double back slash
-    if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
-      set src_file [string trim $src_file "\""]
-      regsub -all { } $src_file {\\\\ } src_file
-    }
+    set compiler [file tail [lindex [split $cmd_str " "] 0]]
 
-    set b_redirect false
-    set b_appended false
+    if { ("syscan" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
 
-    if { $b_group_files } {
-      if { $b_first } {
-        set b_first false
-        usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
-      } else {
-        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
-          puts $fh_scr "$src_file \\"
-          set b_redirect true
+      if { $b_group_files } {
+        if { (!$b_redirect) || (!$b_appended) } {
+          if { $b_add_once } {
+            puts $fh_scr "$redirect_cmd_str $log"
+            set b_add_redirect false
+            set b_add_once false
+          }
+        }
+      }
+
+      if { "syscan" == $compiler } {
+        puts $fh_scr ""
+        if { {} != $tool_path } {
+          puts $fh_scr "\$bin_path/$cmd_str \\\n$src_file"
         } else {
-          puts $fh_scr "$redirect_cmd_str $log\n"
-          usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
-          set b_appended true
+          puts $fh_scr "$cmd_str \\\n$src_file"
+        }
+      } else {
+        if { ("g++" == $compiler) || ("gcc" == $compiler) } {
+          puts $fh_scr ""
+          if { {} != $gcc_path } {
+            puts $fh_scr "\$gcc_path/$cmd_str \\\n$src_file"
+          } else {
+            puts $fh_scr "$cmd_str \\\n$src_file"
+          }
         }
       }
     } else {
-      if { [regexp -nocase {vhdl} $file_type] } {
-        set log "vhdlan.log"
-      } elseif { [regexp -nocase {verilog} $file_type] } {
-        set log "vlogan.log"
+      # vlogan expects double back slash
+      if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
+        set src_file [string trim $src_file "\""]
+        regsub -all { } $src_file {\\\\ } src_file
       }
-      set redirect_cmd_str "2>&1 | tee -a $log"
-      if { {} != $tool_path } {
-        puts $fh_scr "\$bin_path/$cmd_str $src_file $redirect_cmd_str"
+  
+      set b_redirect false
+      set b_appended false
+  
+      if { $b_group_files } {
+        if { $b_first } {
+          set b_first false
+          usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
+        } else {
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
+            puts $fh_scr "$src_file \\"
+            set b_redirect true
+          } else {
+            puts $fh_scr "$redirect_cmd_str $log\n"
+            usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
+            set b_appended true
+          }
+        }
       } else {
-        puts $fh_scr "$cmd_str $src_file $redirect_cmd_str"
+        if { [regexp -nocase {vhdl} $file_type] } {
+          set log "vhdlan.log"
+        } elseif { [regexp -nocase {verilog} $file_type] } {
+          set log "vlogan.log"
+        }
+        set redirect_cmd_str "2>&1 | tee -a $log"
+        if { {} != $tool_path } {
+          puts $fh_scr "\$bin_path/$cmd_str $src_file $redirect_cmd_str"
+        } else {
+          puts $fh_scr "$cmd_str $src_file $redirect_cmd_str"
+        }
       }
     }
   }
 
-  if { $b_group_files } {
-    if { (!$b_redirect) || (!$b_appended) } {
-      puts $fh_scr "$redirect_cmd_str $log\n"
+  if { $b_add_redirect } {
+    if { $b_group_files } {
+      if { (!$b_redirect) || (!$b_appended) } {
+        puts $fh_scr "$redirect_cmd_str $log\n"
+      }
     }
   }
 
@@ -818,8 +869,11 @@ proc usf_vcs_write_elaborate_script {} {
   set sim_flow $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow)
   set type $::tclapp::xilinx::vcs::a_sim_vars(s_type)
   set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
+  set gcc_path  $::tclapp::xilinx::vcs::a_sim_vars(s_gcc_bin_path)
+
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set netlist_mode [get_property "NL.MODE" $fs_obj]
+
   set scr_filename "elaborate";append scr_filename [xcs_get_script_extn "vcs"]
   set scr_file [file normalize [file join $dir $scr_filename]]
   set fh_scr 0
@@ -848,7 +902,12 @@ proc usf_vcs_write_elaborate_script {} {
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list]
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
-    lappend arg_list {-debug_pp}
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      lappend arg_list {-debug_acc+pp+dmptf}
+      lappend arg_list {-debug_region+cell+encrypt}
+    } else {
+      lappend arg_list {-debug_pp}
+    }
   }
   set arg_list [linsert $arg_list end "-t" "ps" "-licqueue"]
 
@@ -907,6 +966,45 @@ proc usf_vcs_write_elaborate_script {} {
     }
   }
 
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_system_sim_design) } {
+      if { {behav_sim} == $sim_flow } {
+        variable a_shared_library_path_coln
+        foreach {key value} [array get a_shared_library_path_coln] {
+          set shared_lib_name $key
+          set shared_lib_name [file root $shared_lib_name]
+          set shared_lib_name [string trimleft $shared_lib_name "lib"]
+
+          set sm_lib_dir [file normalize $value]
+          set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+
+          if { [regexp "^protobuf" $shared_lib_name] } { continue; }
+          if { [regexp "^noc_v" $shared_lib_name] } { continue; }
+          set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
+        }
+      }
+    }
+  }
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_system_sim_design) } {
+      puts $fh_scr "# set gcc objects"
+      variable l_design_c_files
+      set objs_arg [list]
+      set uniq_objs [list]
+      foreach c_file $l_design_c_files {
+        set file_name [file tail [file root $c_file]]
+        append file_name ".o"
+        if { [lsearch -exact $uniq_objs $file_name] == -1 } {
+          lappend objs_arg "$a_sim_vars(tmp_obj_dir)/sysc/$file_name"
+          lappend uniq_objs $file_name
+        }
+      }
+      set objs_arg_str [join $objs_arg " "]
+      puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
+    }
+  }
+
   set more_elab_options [string trim [get_property "VCS.ELABORATE.VCS.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_elab_options } {
     set arg_list [linsert $arg_list end "$more_elab_options"]
@@ -925,8 +1023,8 @@ proc usf_vcs_write_elaborate_script {} {
   set ip_obj [xcs_find_ip "gt_quad_base"]
   if { {} != $ip_obj } {
     variable a_vcs_sim_vars
-    set clibs_dir $a_vcs_sim_vars(s_compiled_lib_dir)
-    append clibs_dir "/secureip"
+    set clib_dir $a_sim_vars(s_clibs_dir)
+    append clib_dir "/secureip"
     set comp_name "gtye5_quad"
     # is this configured for gtyp?
     set config_type [get_property -quiet CONFIG.GT_TYPE $ip_obj]
@@ -934,10 +1032,10 @@ proc usf_vcs_write_elaborate_script {} {
       set comp_name "gtyp_quad"
     }
     set shared_library "lib${comp_name}.so"
-    set quad_lib "$clibs_dir/${shared_library}"
+    set quad_lib "$clib_dir/${shared_library}"
     if { [file exists $quad_lib] } {
       #set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
-      set gcc_cmd "-L$clibs_dir -l${comp_name}"
+      set gcc_cmd "-L$clib_dir -l${comp_name}"
       lappend arg_list $gcc_cmd
     } else {
       send_msg_id USF-VCS-070 "CRITICAL WARNING" "Shared library does not exist! '$quad_lib'\n"
@@ -953,9 +1051,74 @@ proc usf_vcs_write_elaborate_script {} {
     }
   }
 
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_system_sim_design) } {
+      #lappend arg_list "-loadsc ${top}_sc"
+    }
+  }
+
   lappend arg_list "${top_lib}.$top"
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_system_sim_design) } {
+    # set gcc path
+    if { {} != $gcc_path } {
+        puts $fh_scr "# generate shared object"
+        set link_arg_list [list "\$gcc_path/g++"]
+        lappend link_arg_list "-m64 -Wl,-G -shared -o"
+        lappend link_arg_list "${top}_sc.so"
+        lappend link_arg_list "\$gcc_objs"
+        set l_sm_lib_paths [list]
+        foreach {library lib_dir} [array get a_shared_library_path_coln] {
+          set sm_lib_dir [file normalize $lib_dir]
+          set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+          set lib_name [string trimleft $library "lib"]
+          set lib_name [string trimright $lib_name ".so"]
+          lappend link_arg_list "-L$sm_lib_dir -l$lib_name"
+        }
+
+        # link IP design libraries
+        set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+        set ip_objs [get_ips -all -quiet]
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          puts "------------------------------------------------------------------------------------------------------------------------------------"
+          puts "Referenced pre-compiled shared libraries"
+          puts "------------------------------------------------------------------------------------------------------------------------------------"
+        }
+        set uniq_shared_libs        [list]
+        set shared_lib_objs_to_link [list]
+        foreach ip_obj $ip_objs {
+          set ipdef [get_property -quiet IPDEF $ip_obj]
+          set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+          if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+            if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+              lappend uniq_shared_libs $vlnv_name
+              if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+                puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
+              }
+              foreach obj_file_name [xcs_get_pre_compiled_shared_objects $a_sim_vars(s_clibs_dir) $vlnv_name] {
+                if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+                  puts " + linking $vlnv_name -> '$obj_file_name'"
+                }
+                lappend shared_lib_objs_to_link "$obj_file_name"
+              }
+            }
+          }
+        }
+        foreach shared_lib_obj $shared_lib_objs_to_link {
+          lappend link_arg_list "$shared_lib_obj"
+        }
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          puts "------------------------------------------------------------------------------------------------------------------------------------"
+        }
+        #lappend link_arg_list "\$sys_libs"
+        set link_args [join $link_arg_list " "]
+        puts $fh_scr "$link_args\n"
+      }
+    }
+  }
 
   lappend arg_list "-o"
   lappend arg_list "${top}_simv"
@@ -1064,6 +1227,12 @@ proc usf_vcs_write_simulate_script {} {
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
+    if { $a_sim_vars(b_int_systemc_mode) } {
+      if { $a_sim_vars(b_system_sim_design) } {
+        puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
+        usf_vcs_write_library_search_order $fh_scr
+      }
+    }
   }
 
   set ip_obj [xcs_find_ip "gt_quad_base"]
