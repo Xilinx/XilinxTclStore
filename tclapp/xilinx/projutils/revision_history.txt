@@ -1,3 +1,4 @@
+3.438 fixed default values for switches
 3.437 fixed port spec for display
 3.436 fixed ip object return value
 3.435 fixed port name specification
