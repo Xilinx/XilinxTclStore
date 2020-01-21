@@ -32,6 +32,8 @@ proc export_simulation {args} {
   # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation. This switch requires -ip_user_files_dir and -ipstatic_source_dir switches as well for generating scripts using pre-compiled IP library.
   # [-absolute_path]: Make all file paths absolute
   # [-export_source_files]: Copy IP/BD design files to output directory
+  # [-extract_hier_path]: Extract hierarchical path of the design during simulation
+  # [-generate_hier_access]: Generate hierarchical access sources
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
 
@@ -79,6 +81,8 @@ proc export_simulation {args} {
       "-absolute_path"            { set a_sim_vars(b_absolute_path)                                                                                      1 }
       "-use_ip_compiled_libs"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
       "-export_source_files"      { set a_sim_vars(b_xport_src_files)                                                                                    1 }
+      "-extract_hier_path"        { set a_sim_vars(b_extract_hier_path)                                                                                  1 }
+      "-generate_hier_access"     { set a_sim_vars(b_generate_hier_access)                                                                               1 }
       "-force"                    { set a_sim_vars(b_overwrite)                                                                                          1 }
       default {
         if { [regexp {^-} $option] } {
@@ -218,6 +222,8 @@ proc xps_init_vars {} {
   set a_sim_vars(b_absolute_path)     0             
   set a_sim_vars(b_single_step)       0             
   set a_sim_vars(b_xport_src_files)   0             
+  set a_sim_vars(b_extract_hier_path) 0             
+  set a_sim_vars(b_generate_hier_access) 0             
   set a_sim_vars(b_overwrite)         0
   set a_sim_vars(b_of_objects_specified)        0
   set a_sim_vars(s_ip_user_files_dir) ""
@@ -1875,6 +1881,10 @@ proc xps_write_sim_script { run_dir data_files filename } {
     if { [xps_write_filelist_info $simulator $dir] } {
       return 1
     }
+
+    if { $a_sim_vars(b_generate_hier_access) } {
+     xps_generate_hier_access $simulator $dir
+    } 
   }
   return 0
 }
@@ -2474,7 +2484,7 @@ proc xps_set_initial_cmd { simulator fh cmd_str srcs_dir src_file file_type lib 
       } else {
         puts $fh "$cmd_str ${opts_str} \\"
         set s_file [string trim $src_file {\"}]
-        puts $fh "\"$src_file\" \\"
+        puts $fh "\"$s_file\" \\"
       }
     }
     "modelsim" -
@@ -4735,6 +4745,9 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
   set cmd_file "cmd.tcl"
   xps_write_xsim_tcl_cmd_file $dir $cmd_file
 
+  if { $a_sim_vars(b_extract_hier_path) } {
+    lappend args "-testplusarg GEN_BYPASS"
+  }
   lappend args "-tclbatch"
   lappend args "$cmd_file"
 
@@ -5820,6 +5833,15 @@ proc xps_process_lib_map_path { option } {
     }
   }
   return false
+}
+
+proc xps_generate_hier_access { simulator dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_vars
+
 }
 
 }

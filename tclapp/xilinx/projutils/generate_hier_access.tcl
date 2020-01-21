@@ -17,12 +17,12 @@ proc hbs_init_vars {} {
   
   variable a_hbs_vars
 
-  set a_hbs_vars(bypass_module)           {}  
+  set a_hbs_vars(bypass_module)           {xil_dut_bypass}  
   set a_hbs_vars(bypass_file)             {}  
-  set a_hbs_vars(driver_module)           {}  
+  set a_hbs_vars(driver_module)           {xil_bypass_driver}  
   set a_hbs_vars(pseudo_top_testbench)    {}  
   set a_hbs_vars(user_design_testbench)   {}
-  set a_hbs_vars(hbs_dir)                 {}
+  set a_hbs_vars(hbs_dir)                 [pwd]
   set a_hbs_vars(log)                     {}  
   set a_hbs_vars(port_attribute)          "hier_bypass_ports"
   set a_hbs_vars(module_attribute)        "hier_bypass_mod"
@@ -42,12 +42,12 @@ proc generate_hier_access {args} {
   # Generate sources for hierarchical access simulation
   # Argument Usage: 
   #
-  # [-bypass <arg>]: Hierarchical access module name
-  # [-driver <arg>]: Signal driver template module name
+  # [-bypass <arg> = xil_dut_bypass]: Hierarchical access module name
+  # [-driver <arg> = xil_bypass_driver]: Signal driver template module name
+  # [-directory <arg> = current working directory]: Output directory for the generated sources
   # [-pseudo_top <arg>]: Top-level pseudo testbench module name
-  # [-testbench <arg>]: User design testbench module name
-  # [-directory <arg>]: Output directory for the generated sources
-  # [-log <arg>]: Simulator log containing hierarchical path information (for standalone flow)
+  # [-testbench <arg>]: User design testbench module name (must be specified if using the -log switch)
+  # [-log <arg>]: Simulator log containing hierarchical path information (required for the non-Vivado standalone flow only)
 
   # Return Value:
   # None
@@ -62,9 +62,9 @@ proc generate_hier_access {args} {
     switch $option {
       "-bypass"     { incr i; set a_hbs_vars(bypass_module)         [lindex $args $i]; set a_hbs_vars(b_bypass_module)         1 }
       "-driver"     { incr i; set a_hbs_vars(driver_module)         [lindex $args $i]; set a_hbs_vars(b_driver_module)         1 }
+      "-directory"  { incr i; set a_hbs_vars(hbs_dir)               [lindex $args $i]; set a_hbs_vars(b_hbs_dir)               1 }
       "-pseudo_top" { incr i; set a_hbs_vars(pseudo_top_testbench)  [lindex $args $i]; set a_hbs_vars(b_pseudo_top_testbench)  1 }
       "-testbench"  { incr i; set a_hbs_vars(user_design_testbench) [lindex $args $i]; set a_hbs_vars(b_user_design_testbench) 1 }
-      "-directory"  { incr i; set a_hbs_vars(hbs_dir)               [lindex $args $i]; set a_hbs_vars(b_hbs_dir)               1 }
       "-log"        { incr i; set a_hbs_vars(log)                   [lindex $args $i]; set a_hbs_vars(b_log)                   1 }
       default {
         if { [regexp {^-} $option] } {
@@ -77,23 +77,13 @@ proc generate_hier_access {args} {
   #
   # command line error
   #
-  if { (!$a_hbs_vars(b_bypass_module)) || ({} == $a_hbs_vars(bypass_module)) } {
-    hbs_print_msg_id "ERROR" "2" "Output bypass file not specified! Please specify the file name using the -file switch."
+  # testbench name is a must for -log mode
+  if { $a_hbs_vars(b_log) && (!$a_hbs_vars(b_user_design_testbench)) } {
+    hbs_print_msg_id "ERROR" "2" "User design testbench name not specified, please pass the simulation top name using the '-testbench switch."
     return
   }
-
-  if { (!$a_hbs_vars(b_driver_module)) || ({} == $a_hbs_vars(driver_module)) } {
-    hbs_print_msg_id "ERROR" "3" "Output bypass signal driver file not specified! Please specify the file name using the -driver switch."
-    return
-  }
-
   if { ($a_hbs_vars(b_pseudo_top_testbench)) && ({} == $a_hbs_vars(pseudo_top_testbench)) } {
     set a_hbs_vars(pseudo_top_testbench) "pseudo_top_testbench"
-  }
-
-  if { (!$a_hbs_vars(b_user_design_testbench)) || ({} == $a_hbs_vars(user_design_testbench)) } {
-    hbs_print_msg_id "ERROR" "4" "Testbench name not specified! Please specify the testbench name using the -user_design_testbench switch."
-    return
   }
 
   if { !$a_hbs_vars(b_log) } {
@@ -153,9 +143,17 @@ proc hbs_generate_bypass {} {
     set log_data [hbs_extract_hier_paths_from_simulator_log]
   } else {
     set log_data [rdi::get_design_hier_path $a_hbs_vars(port_attribute)] 
-    #foreach hier_path $log_data {
-    #  puts "HIER_PATH:$hier_path"
-    #}
+    foreach hier_path $log_data {
+      puts "HIER_PATH:$hier_path"
+    }
+  }
+
+  #
+  # Set the testbench top for Vivado flow
+  #
+  set user_tb_top $a_hbs_vars(user_design_testbench)
+  if { !$a_hbs_vars(b_user_design_testbench) } {
+    set user_tb_top [get_property top [current_fileset -simset]]
   }
 
   # port list for the driver signal code
@@ -180,7 +178,7 @@ proc hbs_generate_bypass {} {
   }
   set port_index 1
   foreach line $log_data {
-    if { ![hbs_is_valid_hier_path $line] } { continue }
+    if { ![hbs_is_valid_hier_path $user_tb_top $line] } { continue }
     set port_count 1
     if { $port_index > 1 } {
       puts -nonewline $fh ","
@@ -235,11 +233,11 @@ proc hbs_generate_bypass {} {
     struct::matrix mt;
     mt add columns 2;
   }
-  set user_tb $a_hbs_vars(user_design_testbench)
+ 
   set print_lines_v [list]
   set port_index 1
   foreach line $log_data {
-    if { ![hbs_is_valid_hier_path $line] } { continue }
+    if { ![hbs_is_valid_hier_path $user_tb_top $line] } { continue }
     set port_count 1
     set line [string trim $line]
     if { [string length $line] == 0 } { continue }
@@ -273,15 +271,15 @@ proc hbs_generate_bypass {} {
       set port_col "$port_dir_type $port_type ${port_name}_xil_${port_index};"
       if { "in" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          set cmnt_col "// => '\$root.${user_tb}.${hier_path} .${port_var}'"
+          set cmnt_col "// => '\$root.${user_tb_top}.${hier_path} .${port_var}'"
         } else {
-          set cmnt_col "// => '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
+          set cmnt_col "// => '$a_hbs_vars(pseudo_top_testbench).${user_tb_top}_i.${hier_path}.${port_var}'"
         }
       } elseif { "out" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          set cmnt_col "// <= '\$root.${user_tb}.${hier_path} .${port_var}'"
+          set cmnt_col "// <= '\$root.${user_tb_top}.${hier_path} .${port_var}'"
         } else {
-          set cmnt_col "// <= '$a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}'"
+          set cmnt_col "// <= '$a_hbs_vars(pseudo_top_testbench).${user_tb_top}_i.${hier_path}.${port_var}'"
         }
       }
       if { $a_hbs_vars(b_log) } {
@@ -313,7 +311,7 @@ proc hbs_generate_bypass {} {
   #
   set port_index 1
   foreach line $log_data {
-    if { ![hbs_is_valid_hier_path $line] } { continue }
+    if { ![hbs_is_valid_hier_path ${user_tb_top} $line] } { continue }
     set port_count 1
     set line [string trim $line]
     if { [string length $line] == 0 } { continue }
@@ -346,9 +344,9 @@ proc hbs_generate_bypass {} {
       if { "in" == $port_dir } {
         puts $fh "  always @ (${port_id}) begin"
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          puts $fh "    \$root.${user_tb}.${hier_path} .${port_var} = ${port_id};"
+          puts $fh "    \$root.${user_tb_top}.${hier_path} .${port_var} = ${port_id};"
         } else {
-          puts $fh "    $a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var} = ${port_id};"
+          puts $fh "    $a_hbs_vars(pseudo_top_testbench).${user_tb_top}_i.${hier_path}.${port_var} = ${port_id};"
         }
         puts $fh "  end"
       }
@@ -368,12 +366,12 @@ proc hbs_generate_bypass {} {
       set port_id ${port_name}_xil_${port_index}  
       if { "out" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          puts $fh "  always @ (\$root.${user_tb}.${hier_path} .${port_var}) begin"
-          puts $fh "    ${port_id} = \$root.${user_tb}.${hier_path} .${port_var};"
+          puts $fh "  always @ (\$root.${user_tb_top}.${hier_path} .${port_var}) begin"
+          puts $fh "    ${port_id} = \$root.${user_tb_top}.${hier_path} .${port_var};"
           puts $fh "  end"
         } else {
-          puts $fh "  always @ ($a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var}) begin"
-          puts $fh "    ${port_id} = $a_hbs_vars(pseudo_top_testbench).${user_tb}_i.${hier_path}.${port_var};"
+          puts $fh "  always @ ($a_hbs_vars(pseudo_top_testbench).${user_tb_top}_i.${hier_path}.${port_var}) begin"
+          puts $fh "    ${port_id} = $a_hbs_vars(pseudo_top_testbench).${user_tb_top}_i.${hier_path}.${port_var};"
           puts $fh "  end"
         }
       }
@@ -750,7 +748,7 @@ proc hbs_print_msg_id { type id str } {
   }
 }
 
-proc hbs_is_valid_hier_path { line } {
+proc hbs_is_valid_hier_path { top line } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -766,7 +764,6 @@ proc hbs_is_valid_hier_path { line } {
   set hier_path      [lindex [split $spec {#}] 0]
   set hier_inst_v    [split $hier_path {.}]
   set hier_top_value [lindex $hier_inst_v 0]
-  set top            [get_property top [current_fileset -simset]]
   if { ([llength $hier_inst_v] > 1) && ($top == $hier_top_value) } {
     #puts "VALID_HIER_PATH:$hier_path"
     return true
