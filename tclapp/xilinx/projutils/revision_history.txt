@@ -1,3 +1,4 @@
+3.440 trim trailing slash from hier path for escape type
 3.439 fixed port specification for paths with escape names
 3.438 fixed default values for switches
 3.437 fixed port spec for display
