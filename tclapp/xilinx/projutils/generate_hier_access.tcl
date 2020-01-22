@@ -143,9 +143,9 @@ proc hbs_generate_bypass {} {
     }
   } else {
     set log_data [rdi::get_design_hier_path $a_hbs_vars(port_attribute)] 
-    foreach hier_path $log_data {
-      puts "HIER_PATH:$hier_path"
-    }
+    #foreach hier_path $log_data {
+    #  puts "HIER_PATH:$hier_path"
+    #}
   }
 
   #
@@ -276,7 +276,8 @@ proc hbs_generate_bypass {} {
       if { "in" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
           if { [string index $hier_path end] == "\\" } {
-            set cmnt_col "// => '\$root.${user_tb_top}.${hier_path} .${port_var}'"
+            set hier_path_t [string trimright $hier_path {\\}]
+            set cmnt_col "// => '\$root.${user_tb_top}.${hier_path_t} .${port_var}'"
           } else {
             set cmnt_col "// => '\$root.${user_tb_top}.${hier_path}.${port_var}'"
           }
@@ -286,7 +287,8 @@ proc hbs_generate_bypass {} {
       } elseif { "out" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
           if { [string index $hier_path end] == "\\" } {
-            set cmnt_col "// <= '\$root.${user_tb_top}.${hier_path} .${port_var}'"
+            set hier_path_t [string trimright $hier_path {\\}]
+            set cmnt_col "// <= '\$root.${user_tb_top}.${hier_path_t} .${port_var}'"
           } else {
             set cmnt_col "// <= '\$root.${user_tb_top}.${hier_path}.${port_var}'"
           }
@@ -357,7 +359,8 @@ proc hbs_generate_bypass {} {
         puts $fh "  always @ (${port_id}) begin"
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
           if { [string index $hier_path end] == "\\" } {
-            puts $fh "    \$root.${user_tb_top}.${hier_path} .${port_var} = ${port_id};"
+            set hier_path_t [string trimright $hier_path {\\}]
+            puts $fh "    \$root.${user_tb_top}.${hier_path_t} .${port_var} = ${port_id};"
           } else {
             puts $fh "    \$root.${user_tb_top}.${hier_path}.${port_var} = ${port_id};"
           }
@@ -383,8 +386,9 @@ proc hbs_generate_bypass {} {
       if { "out" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
           if { [string index $hier_path end] == "\\" } {
-            puts $fh "  always @ (\$root.${user_tb_top}.${hier_path} .${port_var}) begin"
-            puts $fh "    ${port_id} = \$root.${user_tb_top}.${hier_path} .${port_var};"
+            set hier_path_t [string trimright $hier_path {\\}]
+            puts $fh "  always @ (\$root.${user_tb_top}.${hier_path_t} .${port_var}) begin"
+            puts $fh "    ${port_id} = \$root.${user_tb_top}.${hier_path_t} .${port_var};"
           } else {
             puts $fh "  always @ (\$root.${user_tb_top}.${hier_path}.${port_var}) begin"
             puts $fh "    ${port_id} = \$root.${user_tb_top}.${hier_path}.${port_var};"
