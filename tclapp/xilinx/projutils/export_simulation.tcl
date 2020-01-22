@@ -32,8 +32,7 @@ proc export_simulation {args} {
   # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation. This switch requires -ip_user_files_dir and -ipstatic_source_dir switches as well for generating scripts using pre-compiled IP library.
   # [-absolute_path]: Make all file paths absolute
   # [-export_source_files]: Copy IP/BD design files to output directory
-  # [-extract_hier_path]: Extract hierarchical path of the design during simulation
-  # [-generate_hier_access]: Generate hierarchical access sources
+  # [-generate_hier_access]: Extract path for hierarchical access simulation
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
 
@@ -81,7 +80,6 @@ proc export_simulation {args} {
       "-absolute_path"            { set a_sim_vars(b_absolute_path)                                                                                      1 }
       "-use_ip_compiled_libs"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
       "-export_source_files"      { set a_sim_vars(b_xport_src_files)                                                                                    1 }
-      "-extract_hier_path"        { set a_sim_vars(b_extract_hier_path)                                                                                  1 }
       "-generate_hier_access"     { set a_sim_vars(b_generate_hier_access)                                                                               1 }
       "-force"                    { set a_sim_vars(b_overwrite)                                                                                          1 }
       default {
@@ -222,7 +220,6 @@ proc xps_init_vars {} {
   set a_sim_vars(b_absolute_path)     0             
   set a_sim_vars(b_single_step)       0             
   set a_sim_vars(b_xport_src_files)   0             
-  set a_sim_vars(b_extract_hier_path) 0             
   set a_sim_vars(b_generate_hier_access) 0             
   set a_sim_vars(b_overwrite)         0
   set a_sim_vars(b_of_objects_specified)        0
@@ -249,6 +246,8 @@ proc xps_init_vars {} {
   set a_sim_vars(default_lib)         "xil_defaultlib"
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(b_use_static_lib)    0
+ 
+  set a_sim_vars(s_bypass_script_filename) "gen_hier_access_info"
 
   # wrapper file for executing user tcl (not supported currently in export_sim)
   set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
@@ -2438,7 +2437,11 @@ proc xps_write_run_steps { simulator fh_unix } {
         puts $fh_unix "  elaborate"
       }
     }
-    puts $fh_unix "  simulate"
+    if { $a_sim_vars(b_generate_hier_access) } {
+      puts $fh_unix "  simulate \$1"
+    } else {
+      puts $fh_unix "  simulate"
+    }
   }
   puts $fh_unix "\}\n"
 }
@@ -3371,6 +3374,9 @@ proc xps_print_usage { fh_unix } {
   puts $fh_unix "\[-help\] -- Print help information for this script\\n\\n\\"
   puts $fh_unix "\[-lib_map_path\ <path>] -- Compiled simulation library directory path. The simulation library is compiled\\n\\"
   puts $fh_unix "using the compile_simlib tcl command. Please see 'compile_simlib -help' for more information.\\n\\n\\"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_unix "\[-gen_bypass\] -- Generate hierarchical path information from the design\\n\\n\\"
+  }
   puts $fh_unix "\[-reset_run\] -- Recreate simulator setup files and library mappings for a clean run. The generated files\\n\\"
   puts $fh_unix "from the previous run will be removed. If you don't want to remove the simulator generated files, use the\\n\\"
   puts $fh_unix "-noclean_files switch.\\n\\n\\"
@@ -4745,9 +4751,6 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
   set cmd_file "cmd.tcl"
   xps_write_xsim_tcl_cmd_file $dir $cmd_file
 
-  if { $a_sim_vars(b_extract_hier_path) } {
-    lappend args "-testplusarg GEN_BYPASS"
-  }
   lappend args "-tclbatch"
   lappend args "$cmd_file"
 
@@ -4778,7 +4781,23 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
   lappend args "-log"
   lappend args "$log_file"
 
-  puts $fh_unix "  [join $args " "]"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+    puts $fh_unix "    #"
+    puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+    puts $fh_unix "    #"
+    set bypass_args $args
+    lappend bypass_args "-testplusarg GEN_BYPASS"
+    puts $fh_unix "    [join $bypass_args " "]"
+    puts $fh_unix "  else"
+    puts $fh_unix "    #"
+    puts $fh_unix "    # launch hierarchical access simulation"
+    puts $fh_unix "    #"
+    puts $fh_unix "    [join $args " "]"
+    puts $fh_unix "  fi"
+  } else {
+    puts $fh_unix "  [join $args " "]"
+  }
 }
 
 proc xps_get_obj_key {} {
@@ -5204,7 +5223,11 @@ proc xps_write_check_args { fh_unix } {
   
   puts $fh_unix "# Check command line arguments"
   puts $fh_unix "check_args()\n\{"
-  puts $fh_unix "  if \[\[ (\$1 == 1 ) && (\$2 != \"-lib_map_path\" && \$2 != \"-noclean_files\" && \$2 != \"-reset_run\" && \$2 != \"-help\" && \$2 != \"-h\") \]\]; then"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_unix "  if \[\[ (\$1 == 1 ) && (\$2 != \"-lib_map_path\" && \$2 != \"-gen_bypass\" && \$2 != \"-noclean_files\" && \$2 != \"-reset_run\" && \$2 != \"-help\" && \$2 != \"-h\") \]\]; then"
+  } else {
+    puts $fh_unix "  if \[\[ (\$1 == 1 ) && (\$2 != \"-lib_map_path\" && \$2 != \"-noclean_files\" && \$2 != \"-reset_run\" && \$2 != \"-help\" && \$2 != \"-h\") \]\]; then"
+  }
   puts $fh_unix "    echo -e \"ERROR: Unknown option specified '\$2' (type \\\"./$a_sim_vars(s_script_filename).sh -help\\\" for more information)\\n\""
   puts $fh_unix "    exit 1"
   puts $fh_unix "  fi"
@@ -5841,6 +5864,51 @@ proc xps_generate_hier_access { simulator dir } {
   # Return Value:
  
   variable a_sim_vars
+
+  set version_txt [split [version] "\n"]
+  set version     [lindex $version_txt 0]
+  set swbuild     [lindex $version_txt 1]
+  set copyright   [lindex $version_txt 3]
+  set product     [lindex [split $version " "] 0]
+  set version_id  [join [lrange $version 1 end] " "]
+  set extn ".txt"
+  set script_filename $a_sim_vars(s_bypass_script_filename)$extn
+
+  set fh 0
+  set script_file "$dir/$script_filename"
+  if {[catch {open $script_file w} fh]} {
+    send_msg_id exportsim-Tcl-030 ERROR "failed to open file to write ($script_file)\n"
+    return 1
+  }
+
+  puts $fh "********************************************************************************************************************"
+  puts $fh "# $product (TM) $version_id\n#"
+  puts $fh "# Filename    : $script_filename"
+  puts $fh "# Simulator   : [xcs_get_simulator_pretty_name $simulator]"
+  puts $fh "# Description : Help text file for instructions on how to generate and instantiate the bypass module in the design."
+  puts $fh ""
+  puts $fh "# Generated by $product on $a_sim_vars(curr_time)"
+  puts $fh "# $swbuild\n#"
+  puts $fh "# $copyright \n#"
+  puts $fh "********************************************************************************************************************"
+  puts $fh "Please read the following instructions on how to generate and instantiate the bypass file in the design:-\n"
+  puts $fh "Step 1: Execute wget in unix shell to fetch the bypass generation utility script from GitHub"
+  puts $fh "wget https://raw.githubusercontent.com/Xilinx/XilinxTclStore/2020.1-dev/tclapp/xilinx/projutils/generate_hier_access.tcl"
+  puts $fh ""
+  puts $fh "Step 2: Start Tcl interpreter"
+  puts $fh "/usr/bin/tclsh"
+  puts $fh ""
+  puts $fh "Step 3: Source and execute the 'generate_hier_access.tcl' file in Tcl shell"
+  puts $fh "% source generate_hier_access.tcl"
+  puts $fh "% generate_hier_access -testbench $a_sim_vars(s_top) -log simulate.log"
+  puts $fh ""
+  puts $fh "Step 4: Verify bypass (xil_dut_bypass.sv) and driver (xil_bypass_driver.v) files generated in the current directory."
+  puts $fh ""
+  puts $fh "Step 5: Update design testbench to instantiate the bypass module"
+  puts $fh ""
+  puts $fh "Step 6: Execute $a_sim_vars(s_script_filename).sh to run hier-access simulation"
+
+  close $fh
 
 }
 

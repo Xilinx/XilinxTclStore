@@ -46,7 +46,7 @@ proc generate_hier_access {args} {
   # [-driver <arg> = xil_bypass_driver]: Signal driver template module name
   # [-directory <arg> = current working directory]: Output directory for the generated sources
   # [-pseudo_top <arg>]: Top-level pseudo testbench module name
-  # [-testbench <arg>]: User design testbench module name (must be specified if using the -log switch)
+  # [-testbench <arg>]: User design testbench module name
   # [-log <arg>]: Simulator log containing hierarchical path information (required for the non-Vivado standalone flow only)
 
   # Return Value:
@@ -78,10 +78,6 @@ proc generate_hier_access {args} {
   # command line error
   #
   # testbench name is a must for -log mode
-  if { $a_hbs_vars(b_log) && (!$a_hbs_vars(b_user_design_testbench)) } {
-    hbs_print_msg_id "ERROR" "2" "User design testbench name not specified, please pass the simulation top name using the '-testbench switch."
-    return
-  }
   if { ($a_hbs_vars(b_pseudo_top_testbench)) && ({} == $a_hbs_vars(pseudo_top_testbench)) } {
     set a_hbs_vars(pseudo_top_testbench) "pseudo_top_testbench"
   }
@@ -141,6 +137,10 @@ proc hbs_generate_bypass {} {
   set log_data {}
   if { $a_hbs_vars(b_log) } {
     set log_data [hbs_extract_hier_paths_from_simulator_log]
+    if { {} == $a_hbs_vars(b_user_design_testbench) } {
+      hbs_print_msg_id "ERROR" "2" "Failed to find the simulation design top from the hierarchical paths in the specified log file! Please specify the top with the '-testbench' switch and retry this operation."
+      return 1
+    }
   } else {
     set log_data [rdi::get_design_hier_path $a_hbs_vars(port_attribute)] 
     foreach hier_path $log_data {
@@ -152,7 +152,7 @@ proc hbs_generate_bypass {} {
   # Set the testbench top for Vivado flow
   #
   set user_tb_top $a_hbs_vars(user_design_testbench)
-  if { !$a_hbs_vars(b_user_design_testbench) } {
+  if { {} == $a_hbs_vars(b_user_design_testbench) } {
     set user_tb_top [get_property top [current_fileset -simset]]
   }
 
@@ -254,7 +254,11 @@ proc hbs_generate_bypass {} {
     set path_spec   [lindex $line_v 1]
     set path_spec_v [split $path_spec { }]
     if { $port_index > 1 } {
-      lappend print_lines_v "\" \" \" \""
+      if { $a_hbs_vars(b_log) } {
+        # not required
+      } else {
+        lappend print_lines_v "\" \" \" \""
+      }
     }
     foreach spec $path_spec_v {
       #
@@ -271,13 +275,21 @@ proc hbs_generate_bypass {} {
       set port_col "$port_dir_type $port_type ${port_name}_xil_${port_index};"
       if { "in" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          set cmnt_col "// => '\$root.${user_tb_top}.${hier_path} .${port_var}'"
+          if { [string index $hier_path end] == "\\" } {
+            set cmnt_col "// => '\$root.${user_tb_top}.${hier_path} .${port_var}'"
+          } else {
+            set cmnt_col "// => '\$root.${user_tb_top}.${hier_path}.${port_var}'"
+          }
         } else {
           set cmnt_col "// => '$a_hbs_vars(pseudo_top_testbench).${user_tb_top}_i.${hier_path}.${port_var}'"
         }
       } elseif { "out" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          set cmnt_col "// <= '\$root.${user_tb_top}.${hier_path} .${port_var}'"
+          if { [string index $hier_path end] == "\\" } {
+            set cmnt_col "// <= '\$root.${user_tb_top}.${hier_path} .${port_var}'"
+          } else {
+            set cmnt_col "// <= '\$root.${user_tb_top}.${hier_path}.${port_var}'"
+          }
         } else {
           set cmnt_col "// <= '$a_hbs_vars(pseudo_top_testbench).${user_tb_top}_i.${hier_path}.${port_var}'"
         }
@@ -344,7 +356,11 @@ proc hbs_generate_bypass {} {
       if { "in" == $port_dir } {
         puts $fh "  always @ (${port_id}) begin"
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          puts $fh "    \$root.${user_tb_top}.${hier_path} .${port_var} = ${port_id};"
+          if { [string index $hier_path end] == "\\" } {
+            puts $fh "    \$root.${user_tb_top}.${hier_path} .${port_var} = ${port_id};"
+          } else {
+            puts $fh "    \$root.${user_tb_top}.${hier_path}.${port_var} = ${port_id};"
+          }
         } else {
           puts $fh "    $a_hbs_vars(pseudo_top_testbench).${user_tb_top}_i.${hier_path}.${port_var} = ${port_id};"
         }
@@ -366,8 +382,13 @@ proc hbs_generate_bypass {} {
       set port_id ${port_name}_xil_${port_index}  
       if { "out" == $port_dir } {
         if { {} == $a_hbs_vars(pseudo_top_testbench) } {
-          puts $fh "  always @ (\$root.${user_tb_top}.${hier_path} .${port_var}) begin"
-          puts $fh "    ${port_id} = \$root.${user_tb_top}.${hier_path} .${port_var};"
+          if { [string index $hier_path end] == "\\" } {
+            puts $fh "  always @ (\$root.${user_tb_top}.${hier_path} .${port_var}) begin"
+            puts $fh "    ${port_id} = \$root.${user_tb_top}.${hier_path} .${port_var};"
+          } else {
+            puts $fh "  always @ (\$root.${user_tb_top}.${hier_path}.${port_var}) begin"
+            puts $fh "    ${port_id} = \$root.${user_tb_top}.${hier_path}.${port_var};"
+          }
           puts $fh "  end"
         } else {
           puts $fh "  always @ ($a_hbs_vars(pseudo_top_testbench).${user_tb_top}_i.${hier_path}.${port_var}) begin"
@@ -727,6 +748,8 @@ proc hbs_extract_hier_paths_from_simulator_log {} {
     set line_str [split $line { }]
     set tmp_str  [lindex $line_str 0]
     set hier_path [lindex [split $tmp_str {:}] 1]
+    # set the testbench top name
+    set a_hbs_vars(user_design_testbench) [lindex [split $hier_path {.}] 0]
     set port_spec_v [lrange $line_str 1 end]
     set port_spec_str [string trim [join $port_spec_v " "]]
     set value "$hier_path#$port_spec_str" 
