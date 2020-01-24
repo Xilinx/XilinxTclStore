@@ -81,6 +81,14 @@ proc generate_hier_access {args} {
   if { ($a_hbs_vars(b_pseudo_top_testbench)) && ({} == $a_hbs_vars(pseudo_top_testbench)) } {
     set a_hbs_vars(pseudo_top_testbench) "pseudo_top_testbench"
   }
+  
+  # log exists?
+  if { $a_hbs_vars(b_log) } {
+    if { ![file exists $a_hbs_vars(log)] } {
+      hbs_print_msg_id "ERROR" "2" "File does not exist! '$a_hbs_vars(log)'" 
+      return
+    }
+  }
 
   if { !$a_hbs_vars(b_log) } {
     set version_info [split [version] "\n"]
@@ -742,7 +750,8 @@ proc hbs_extract_hier_paths_from_simulator_log {} {
   foreach line $raw_data {
     set line [string trim $line]
     if { [string length $line] == 0 } { continue }
-    if { [regexp {^xilinx_hier_bypass_ports} $line] } {
+    if { [regexp {xilinx_hier_bypass_ports} $line] } {
+      set line [string trim [string trimleft $line {#}]]
       lappend tmp_data $line
     }
   }

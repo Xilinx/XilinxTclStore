@@ -445,6 +445,8 @@ proc usf_vcs_set_initial_cmd { fh_scr cmd_str compiler src_file file_type lib pr
   # Return Value:
   # None
 
+  variable a_sim_vars
+
   upvar $prev_file_type_arg prev_file_type
   upvar $prev_lib_arg  prev_lib
   upvar $log_arg log
@@ -460,9 +462,17 @@ proc usf_vcs_set_initial_cmd { fh_scr cmd_str compiler src_file file_type lib pr
     }
   } else {
     if { {} != $tool_path } {
-      puts $fh_scr "\$bin_path/$cmd_str \\"
+      if { $a_sim_vars(b_system_sim_design) } {
+        puts $fh_scr "\$bin_path/$cmd_str -sysc \\"
+      } else {
+        puts $fh_scr "\$bin_path/$cmd_str \\"
+      }
     } else {
-      puts $fh_scr "$cmd_str \\"
+      if { $a_sim_vars(b_system_sim_design) } {
+        puts $fh_scr "$cmd_str -sysc \\"
+      } else {
+        puts $fh_scr "$cmd_str \\"
+      }
     }
   }
   puts $fh_scr "$src_file \\"
