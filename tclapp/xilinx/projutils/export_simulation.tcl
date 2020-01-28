@@ -2228,10 +2228,29 @@ proc xps_write_single_step_for_ies_xcelium { simulator fh_unix launch_dir srcs_d
     }
   }
 
-  set cmd_str [join $arg_list " \\\n       "]
-
-  puts $fh_unix "  ${tool_name} \$${tool_name}_opts \\"
-  puts $fh_unix "       $cmd_str"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+    puts $fh_unix "    #"
+    puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+    puts $fh_unix "    #"
+    set bypass_args $arg_list
+    lappend bypass_args "+GEN_BYPASS"
+    set cmd_str [join $bypass_args " \\\n       "]
+    puts $fh_unix "    ${tool_name} \$${tool_name}_opts \\"
+    puts $fh_unix "       $cmd_str"
+    puts $fh_unix "  else"
+    puts $fh_unix "    #"
+    puts $fh_unix "    # launch hierarchical access simulation"
+    puts $fh_unix "    #"
+    set cmd_str [join $arg_list " \\\n       "]
+    puts $fh_unix "    ${tool_name} \$${tool_name}_opts \\"
+    puts $fh_unix "       $cmd_str"
+    puts $fh_unix "  fi"
+  } else {
+    set cmd_str [join $arg_list " \\\n       "]
+    puts $fh_unix "  ${tool_name} \$${tool_name}_opts \\"
+    puts $fh_unix "       $cmd_str"
+  }
 
   set fh_run 0
   set file [file normalize "$launch_dir/$filename"]
@@ -2961,8 +2980,24 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
       if { !$a_sim_vars(b_32bit) } {
         set s_64bit {-64}
       }
-      set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
-      puts $fh_unix "  $cmd_str"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+        puts $fh_unix "    #"
+        set cmd_str "vsim $s_64bit -c +GEN_BYPASS -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  else"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # launch hierarchical access simulation"
+        puts $fh_unix "    #"
+        set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  fi"
+      } else {
+        set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        puts $fh_unix "  $cmd_str"
+      }
       xps_write_do_file_for_simulate $simulator $dir
     }
     "ies" -

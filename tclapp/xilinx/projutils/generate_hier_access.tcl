@@ -251,12 +251,14 @@ proc hbs_generate_bypass {} {
     if { [string length $line] == 0 } { continue }
     #
     # tb.dut_i.gtmWiz_00.gtm_i#in:integer:in1:in_var1 in:integer:in2:in_var2 out:integer:out1:out_var1 out:integer:out2:out_var2
+    # top.I1.\g_MODEM_GTM_PRI[0].u_modem_gtm_pri#.\g_gt.u_modem_gtm_ch0  in:integer:CH0_GTMRXN:CH0_GTMRXN_integer out:integer:CH1_GTMTXP:CH1_GTMTXP_integer
     # 
     set line_v      [split $line {#}]
     set hier_path   [lindex $line_v 0]
     set hier_path_v [split $hier_path {.}]
     #
     # dut_i.gtmWiz_00.gtm_i#in:integer:in1:in_var1 in:integer:in2:in_var2 out:integer:out1:out_var1 out:integer:out2:out_var2
+    # top.I1.\g_MODEM_GTM_PRI[0].u_modem_gtm_pri#.\g_gt.u_modem_gtm_ch0  in:integer:CH0_GTMRXN:CH0_GTMRXN_integer out:integer:CH1_GTMTXP:CH1_GTMTXP_integer
     # 
     set hier_path   [join [lrange $hier_path_v 1 end] {.}]
     set path_spec   [lindex $line_v 1]
@@ -747,6 +749,14 @@ proc hbs_extract_hier_paths_from_simulator_log {} {
     return 1
   }
   set raw_data [split [read $fh_log] "\n"]
+
+  #
+  # use-cases:-
+  #
+  # xilinx_hier_bypass_ports:top.I1.I2.I3 XIL_PORT_SPEC:in:integer:CH0_GTMRXN:CH0_GTMRXN_integer out:integer:CH1_GTMTXP:CH1_GTMTXP_integer
+  # xilinx_hier_bypass_ports:top.I1.g_MODEM_GTM_PRI[0].u_modem_gtm_pri XIL_PORT_SPEC:in:integer:CH0_GTMRXN:CH0_GTMRXN_integer out:integer:CH1_GTMTXP:CH1_GTMTXP_integer
+  # xilinx_hier_bypass_ports:top.I1.\g_MODEM_GTM_PRI[0].\u_modem_gtm_pri  XIL_PORT_SPEC:in:integer:CH0_GTMRXN:CH0_GTMRXN_integer out:integer:CH1_GTMTXP:CH1_GTMTXP_integer
+  #
   foreach line $raw_data {
     set line [string trim $line]
     if { [string length $line] == 0 } { continue }
@@ -758,13 +768,12 @@ proc hbs_extract_hier_paths_from_simulator_log {} {
   close $fh_log
 
   foreach line $tmp_data {
-    set line_str [split $line { }]
-    set tmp_str  [lindex $line_str 0]
-    set hier_path [lindex [split $tmp_str {:}] 1]
+    set index [string first {XIL_PORT_SPEC} $line]
+    set line_str [string range $line 0 $index-1]
+    set hier_path [lindex [split $line_str {:}] 1]
     # set the testbench top name
     set a_hbs_vars(user_design_testbench) [lindex [split $hier_path {.}] 0]
-    set port_spec_v [lrange $line_str 1 end]
-    set port_spec_str [string trim [join $port_spec_v " "]]
+    set port_spec_str [string range $line $index+14 end]
     set value "$hier_path#$port_spec_str" 
     lappend log_data $value
   }
