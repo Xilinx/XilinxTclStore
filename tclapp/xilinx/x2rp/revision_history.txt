@@ -1,4 +1,4 @@
-1.22 Updated vivado package requirement and set base platforms directives to Default.
+1.22 Block container changes
 1.21 Fix to error out if the mandatory option '-prp_inst' is not specified for command xilinx::x2rp::raptor.
 1.20 Fixed issue with help section, options and optiomized open_checkpoint calls.
 1.19 Changes in write bitstream step.
