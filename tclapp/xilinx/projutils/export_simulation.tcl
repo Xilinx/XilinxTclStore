@@ -2962,8 +2962,24 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
     }
     "riviera" -
     "activehdl" {
-      set cmd_str "runvsimsa -l simulate.log -do \"do \{$a_sim_vars(do_filename)\}\""
-      puts $fh_unix "  $cmd_str"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+        puts $fh_unix "    #"
+        set cmd_str "runvsimsa -l simulate.log +GEN_BYPASS -do \"do \{$a_sim_vars(do_filename)\}\""
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  else"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # launch hierarchical access simulation"
+        puts $fh_unix "    #"
+        set cmd_str "runvsimsa -l simulate.log -do \"do \{$a_sim_vars(do_filename)\}\""
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  fi"
+      } else {
+        set cmd_str "runvsimsa -l simulate.log -do \"do \{$a_sim_vars(do_filename)\}\""
+        puts $fh_unix "  $cmd_str"
+      }
       xps_write_do_file_for_simulate $simulator $dir
     }
     "modelsim" {

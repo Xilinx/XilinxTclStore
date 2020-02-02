@@ -360,6 +360,9 @@ proc usf_xcelium_write_setup_files {} {
   variable l_local_design_libraries
   set top $::tclapp::xilinx::xcelium::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xcelium::a_sim_vars(s_launch_dir)
+  set sim_flow $::tclapp::xilinx::xcelium::a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $::tclapp::xilinx::xcelium::a_sim_vars(s_simset)]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   #
   # cds.lib
@@ -377,7 +380,15 @@ proc usf_xcelium_write_setup_files {} {
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
   set ip_obj [xcs_find_ip "gt_quad_base"]
-  if { {} != $ip_obj } {
+
+  set b_add_dummy_binding 0
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { {funcsim} == $netlist_mode } {
+      set b_add_dummy_binding 1
+    }
+  }
+
+  if { ({} != $ip_obj) || $b_add_dummy_binding } {
     puts $fh "DEFINE simprims_ver xcelium_lib/simprims_ver"
     set simprim_dir "$dir/xcelium_lib/simprims_ver"
     if { ![file exists $simprim_dir] } {

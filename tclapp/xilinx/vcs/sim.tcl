@@ -943,7 +943,7 @@ proc usf_vcs_write_elaborate_script {} {
   }
 
   #
-  # user design and xpm libraries will be resolved by setup file
+  # user design and xpm libraries will be resolved by setup file (post* simulation)
   #
   if { ({post-synthesis} == $mode) || ({post-implementation} == $mode) } {
     if { {Verilog} == $target_lang } {
@@ -959,7 +959,12 @@ proc usf_vcs_write_elaborate_script {} {
       lappend arg_list "xil_defaultlib"
     } elseif { {VHDL} == $target_lang } {
       if { {functional} == $type } {
-        # not required
+        # TODO: bind following 3 for hybrid only
+        if { "virtexuplus58g" == [rdi::get_family -arch] } {
+          lappend arg_list "-liblist unisim"
+          lappend arg_list "-liblist unisims_ver"
+          lappend arg_list "-liblist secureip"
+        }
       } elseif { {timing} == $type } {
         lappend arg_list "-liblist"
         lappend arg_list "simprims_ver"
