@@ -2967,7 +2967,7 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
         puts $fh_unix "    #"
         puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
         puts $fh_unix "    #"
-        set cmd_str "runvsimsa -l simulate.log +GEN_BYPASS -do \"do \{$a_sim_vars(do_filename)\}\""
+        set cmd_str "runvsimsa -l simulate.log -do \"do \{simulate_hbs.do\}\""
         puts $fh_unix "    $cmd_str"
         puts $fh_unix "  else"
         puts $fh_unix "    #"
@@ -2987,8 +2987,24 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
       if { !$a_sim_vars(b_32bit) } {
         set s_64bit {-64}
       }
-      set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
-      puts $fh_unix "  $cmd_str"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+        puts $fh_unix "    #"
+        set cmd_str "vsim $s_64bit -c -do \"do \{simulate_hbs.do\}\" -l simulate.log"
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  else"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # launch hierarchical access simulation"
+        puts $fh_unix "    #"
+        set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  fi"
+      } else {
+        set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        puts $fh_unix "  $cmd_str"
+      }
       xps_write_do_file_for_simulate $simulator $dir
     }
     "questa" {
@@ -3001,7 +3017,7 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
         puts $fh_unix "    #"
         puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
         puts $fh_unix "    #"
-        set cmd_str "vsim $s_64bit -c +GEN_BYPASS -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        set cmd_str "vsim $s_64bit -c -do \"do \{simulate_hbs.do\}\" -l simulate.log"
         puts $fh_unix "    $cmd_str"
         puts $fh_unix "  else"
         puts $fh_unix "    #"
@@ -4424,6 +4440,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
   close $fh
 }
 
+# for modelsim, questa, riviera, active_hdl
 proc xps_write_do_file_for_simulate { simulator dir } {
   # Summary:
   # Argument Usage:
@@ -4434,21 +4451,38 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   set filename $a_sim_vars(do_filename)
   set do_file [file normalize "$dir/$filename"]
   set fh 0
+  set do_file_hbs [file normalize "$dir/simulate_hbs.do"]
+  set fh_hbs 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id exportsim-Tcl-059 ERROR "Failed to open file to write ($do_file)\n"
     return 1
+  }
+  if { $a_sim_vars(b_generate_hier_access) } {
+    if {[catch {open $do_file_hbs w} fh_hbs]} {
+      send_msg_id exportsim-Tcl-059 ERROR "Failed to open file to write ($do_file_hbs)\n"
+      return 1
+    }
   }
   set wave_do_filename "wave.do"
   set wave_do_file [file normalize "$dir/$wave_do_filename"]
   xps_create_wave_do_file $wave_do_file
   set cmd_str {}
+  set cmd_str_hbs {}
   switch $simulator {
     "modelsim" -
     "riviera" -
     "activehdl" { 
       set cmd_str [xps_get_simulation_cmdline_modelsim $simulator]
+      if { $a_sim_vars(b_generate_hier_access) } {
+        set cmd_str_hbs [xps_get_simulation_cmdline_modelsim $simulator "true"]
+      }
     }
-    "questa"   { set cmd_str [xps_get_simulation_cmdline_questa] }
+    "questa" {
+      set cmd_str [xps_get_simulation_cmdline_questa]
+      if { $a_sim_vars(b_generate_hier_access) } {
+        set cmd_str_hbs [xps_get_simulation_cmdline_questa "true"]
+      }
+    }
   }
 
   switch $simulator {
@@ -4456,11 +4490,19 @@ proc xps_write_do_file_for_simulate { simulator dir } {
     "questa" {
       puts $fh "onbreak {quit -f}"
       puts $fh "onerror {quit -f}\n"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_hbs "onbreak {quit -f}"
+        puts $fh_hbs "onerror {quit -f}\n"
+      }
     }
     "riviera" -
     "activehdl" {
       puts $fh "onbreak {quit -force}"
       puts $fh "onerror {quit -force}\n"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_hbs "onbreak {quit -force}"
+        puts $fh_hbs "onerror {quit -force}\n"
+      }
     }
   }
 
@@ -4468,23 +4510,41 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   puts $fh "\ndo \{$wave_do_filename\}"
   puts $fh "\nview wave"
   puts $fh "view structure"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs "$cmd_str_hbs"
+    puts $fh_hbs "\ndo \{$wave_do_filename\}"
+    puts $fh_hbs "\nview wave"
+    puts $fh_hbs "view structure"
+  }
   switch $simulator {
     "modelsim" -
     "questa" {
       puts $fh "view signals"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_hbs "view signals"
+      }
     }
   }
   puts $fh ""
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs ""
+  }
   set top $a_sim_vars(s_top)
   set udo_filename $top;append udo_filename ".udo"
   set udo_file [file normalize "$dir/$udo_filename"]
   xps_create_udo_file $udo_file
   puts $fh "do \{$top.udo\}"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs "do \{$top.udo\}"
+  }
   set runtime "run -all"
   if { $a_sim_vars(b_runtime_specified) } {
     set runtime "run $a_sim_vars(s_runtime)"
   }
   puts $fh "\n$runtime"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs "\n$runtime"
+  }
   set tcl_src_files [list]
   set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
   xcs_find_files tcl_src_files $a_sim_vars(sp_tcl_obj) $filter $dir $a_sim_vars(b_absolute_path) $a_sim_vars(fs_obj)
@@ -4495,11 +4555,27 @@ proc xps_write_do_file_for_simulate { simulator dir } {
     }
     puts $fh ""
   }
+  if { $a_sim_vars(b_generate_hier_access) } {
+    if {[llength $tcl_src_files] > 0} {
+      puts $fh_hbs ""
+      foreach file $tcl_src_files {
+        puts $fh_hbs "source \{$file\}"
+      }
+      puts $fh_hbs ""
+    }
+  }
   if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
     puts $fh "\nendsim"
+    if { $a_sim_vars(b_generate_hier_access) } {
+      puts $fh_hbs "\nendsim"
+    }
   }
   puts $fh "\nquit -force"
   close $fh
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs "\nquit -force"
+    close $fh_hbs
+  }
 }
 
 proc xps_create_wave_do_file { file } {
@@ -4523,7 +4599,7 @@ proc xps_create_wave_do_file { file } {
   close $fh
 }
 
-proc xps_get_simulation_cmdline_modelsim { simulator } {
+proc xps_get_simulation_cmdline_modelsim { simulator {b_hier_access "false"} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4536,11 +4612,17 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
     "modelsim" {
       xps_append_config_opts args $simulator "vsim"
       lappend args "-voptargs=\"+acc\""
+      if { $b_hier_access } {
+        lappend args "+GEN_BYPASS"
+      }
     }
     "riviera" -
     "activehdl" {
       xps_append_config_opts args $simulator "asim"
       lappend args "-t 1ps +access +r +m+$a_sim_vars(s_top)"
+      if { $b_hier_access } {
+        lappend args "+GEN_BYPASS"
+      }
     }
   }
   if { [llength $l_generics] > 0 } {
@@ -4606,7 +4688,7 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   return [join $args " "]
 }
 
-proc xps_get_simulation_cmdline_questa {} {
+proc xps_get_simulation_cmdline_questa { {b_hier_access "false"}} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4618,6 +4700,10 @@ proc xps_get_simulation_cmdline_questa {} {
   lappend args "vsim"
 
   xps_append_config_opts args "questa" "vsim"
+
+  if { $b_hier_access } {
+    lappend args "+GEN_BYPASS"
+  }
 
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
 
