@@ -1,3 +1,4 @@
+9.3 bind unisims simprims for hybrid post sim
 9.2 pass sysc option for systemC design
 9.1 bind design shared library for elaboration
 9.0 fixed ip object return value

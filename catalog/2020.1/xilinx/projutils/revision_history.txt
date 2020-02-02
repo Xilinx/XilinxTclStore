@@ -1,3 +1,4 @@
+3.443 support for riviera hierarchical bypass
 3.442 fixed hier path for log switch
 3.441 add check for log file existence
 3.440 trim trailing slash from hier path for escape type

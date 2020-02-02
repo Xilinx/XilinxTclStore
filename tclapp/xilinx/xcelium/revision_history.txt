@@ -1,3 +1,4 @@
+11.28 bind dummy mapping for simprims_ver post sim
 11.27 fixed ip object return value
 11.26 process unique shared libraries for linking during elaboration
 11.25 support for VCS systemC compilation
