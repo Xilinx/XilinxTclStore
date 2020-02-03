@@ -3046,9 +3046,27 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
       puts $fh_unix "  $cmd_str"
     }
     "vcs" {
-      set arg_list [list "./$a_sim_vars(s_top)_simv" "\$vcs_sim_opts" "-do" "$a_sim_vars(do_filename)"]
-      set cmd_str [join $arg_list " "]
-      puts $fh_unix "  $cmd_str"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+        puts $fh_unix "    #"
+        set arg_list [list "./$a_sim_vars(s_top)_simv" "\$vcs_sim_opts" "+GEN_BYPASS" "-do" "$a_sim_vars(do_filename)"]
+        set cmd_str [join $arg_list " "]
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  else"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # launch hierarchical access simulation"
+        puts $fh_unix "    #"
+        set arg_list [list "./$a_sim_vars(s_top)_simv" "\$vcs_sim_opts" "-do" "$a_sim_vars(do_filename)"]
+        set cmd_str [join $arg_list " "]
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  fi"
+      } else {
+        set arg_list [list "./$a_sim_vars(s_top)_simv" "\$vcs_sim_opts" "-do" "$a_sim_vars(do_filename)"]
+        set cmd_str [join $arg_list " "]
+        puts $fh_unix "  $cmd_str"
+      }
     }
   }
   puts $fh_unix "\}\n"
@@ -6037,7 +6055,7 @@ proc xps_generate_hier_access { simulator dir } {
   puts $fh ""
   puts $fh "Step 3: Source and execute the 'generate_hier_access.tcl' file in Tcl shell"
   puts $fh "% source generate_hier_access.tcl"
-  puts $fh "% generate_hier_access -testbench $a_sim_vars(s_top) -log simulate.log"
+  puts $fh "% generate_hier_access -log simulate.log"
   puts $fh ""
   puts $fh "Step 4: Verify bypass (xil_dut_bypass.sv) and driver (xil_bypass_driver.v) files generated in the current directory."
   puts $fh ""
