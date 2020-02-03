@@ -1,3 +1,4 @@
+3.445 support for hierarchical bypass for vcs
 3.444 support for hierarchical bypass for modelsim, questa, riviera, activehdl
 3.443 support for riviera hierarchical bypass
 3.442 fixed hier path for log switch
