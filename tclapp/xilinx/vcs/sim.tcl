@@ -546,6 +546,11 @@ proc usf_vcs_write_compile_script {} {
     # donot pass os type
   } else {
     set arg_list [linsert $arg_list 0 "-full64"]
+    if { $a_sim_vars(b_int_systemc_mode) } {
+      if { $a_sim_vars(b_system_sim_design) } {
+        lappend arg_list "-sysc"
+      }
+    }
   }
 
   set more_vhdlan_options [string trim [get_property "VCS.COMPILE.VHDLAN.MORE_OPTIONS" $fs_obj]]
@@ -561,6 +566,11 @@ proc usf_vcs_write_compile_script {} {
     # donot pass os type
   } else {
     set arg_list [linsert $arg_list 0 "-full64"]
+    if { $a_sim_vars(b_int_systemc_mode) } {
+      if { $a_sim_vars(b_system_sim_design) } {
+        lappend arg_list "-sysc"
+      }
+    }
   }
 
   set more_vlogan_options [string trim [get_property "VCS.COMPILE.VLOGAN.MORE_OPTIONS" $fs_obj]]
@@ -575,7 +585,8 @@ proc usf_vcs_write_compile_script {} {
     # syscan (systemC)
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "syscan"
-      set arg_list [list "-V"]
+      set arg_list [list "-sysc=231"]
+      lappend arg_list "-V"
       set arg_list [linsert $arg_list end [list "-l" "${tool}.log"]]
       if { [get_property 32bit $fs_obj] } {
         set arg_list [linsert $arg_list 0 ""]
@@ -591,6 +602,14 @@ proc usf_vcs_write_compile_script {} {
 
       # syscan gcc options
       set syscan_gcc_opts [list]
+      set system_includes    "-I. "
+      #append system_includes "-I\$\{PWD\}/c.obj/sysc/include "
+      append system_includes "-I\$\{VCS_HOME\}/include/systemc231 "
+      #append system_includes "-I\$\{VCS_HOME\}/lib "
+      append system_includes "-I\$\{VCS_HOME\}/include "
+      append system_includes "-I\$\{VCS_HOME\}/include/cosim/bf "
+      append system_includes "-DVCSSYSTEMC=1 "
+      append syscan_gcc_opts $system_includes
       #lappend syscan_gcc_opts "-std=c++11"
       #lappend syscan_gcc_opts "-fPIC"
       #lappend syscan_gcc_opts "-c"
@@ -911,6 +930,11 @@ proc usf_vcs_write_elaborate_script {} {
   set tool "vcs"
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list]
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_system_sim_design) } {
+      lappend arg_list "-sysc=231"
+    }
+  }
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       lappend arg_list {-debug_acc+pp+dmptf}
@@ -995,7 +1019,11 @@ proc usf_vcs_write_elaborate_script {} {
 
           if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
-          set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
+          if { [xcs_is_sc_library $shared_lib_name] } {
+            set arg_list [linsert $arg_list end "-Mdir=$sm_lib_dir"]
+          } else { 
+            set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
+          }
         }
       }
     }
@@ -1003,7 +1031,7 @@ proc usf_vcs_write_elaborate_script {} {
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      puts $fh_scr "# set gcc objects"
+      #puts $fh_scr "# set gcc objects"
       variable l_design_c_files
       set objs_arg [list]
       set uniq_objs [list]
@@ -1016,7 +1044,7 @@ proc usf_vcs_write_elaborate_script {} {
         }
       }
       set objs_arg_str [join $objs_arg " "]
-      puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
+      #puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
     }
   }
 
@@ -1037,9 +1065,9 @@ proc usf_vcs_write_elaborate_script {} {
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      lappend arg_list "-sysc"
-      lappend arg_list "-L\$PWD"
-      lappend arg_list "-l${top}_sc"
+      #lappend arg_list "-sysc"
+      #lappend arg_list "-L\$PWD"
+      #lappend arg_list "-l${top}_sc"
     }
   }
 
@@ -1088,6 +1116,7 @@ proc usf_vcs_write_elaborate_script {} {
     if { $a_sim_vars(b_system_sim_design) } {
     # set gcc path
     if { {} != $gcc_path } {
+        # TODO: some of this code may need to go to vcs_opts
         puts $fh_scr "# generate shared object"
         set link_arg_list [list "\$gcc_path/g++"]
         lappend link_arg_list "-m64 -Wl,-G -shared -o"
@@ -1138,7 +1167,7 @@ proc usf_vcs_write_elaborate_script {} {
         }
         #lappend link_arg_list "\$sys_libs"
         set link_args [join $link_arg_list " "]
-        puts $fh_scr "$link_args\n"
+        #puts $fh_scr "$link_args\n"
       }
     }
   }
