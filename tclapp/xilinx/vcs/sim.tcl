@@ -1020,7 +1020,8 @@ proc usf_vcs_write_elaborate_script {} {
           if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [xcs_is_sc_library $shared_lib_name] } {
-            set arg_list [linsert $arg_list end "-Mdir=$sm_lib_dir"]
+            set arg_list [linsert $arg_list end "-Mlib=$sm_lib_dir"]
+            set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
           } else { 
             set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
           }
@@ -1117,7 +1118,7 @@ proc usf_vcs_write_elaborate_script {} {
     # set gcc path
     if { {} != $gcc_path } {
         # TODO: some of this code may need to go to vcs_opts
-        puts $fh_scr "# generate shared object"
+        #puts $fh_scr "# generate shared object"
         set link_arg_list [list "\$gcc_path/g++"]
         lappend link_arg_list "-m64 -Wl,-G -shared -o"
         lappend link_arg_list "lib${top}_sc.so"
@@ -1502,8 +1503,8 @@ proc usf_vcs_create_setup_script {} {
   puts $fh_scr "reset_run()"
   puts $fh_scr "\{"
   set file_list [list "64" "ucli.key" "AN.DB" "csrc" "${top}_simv" "${top}_simv.daidir" "inter.vpd" \
-                      "vlogan.log" "vhdlan.log" "compile.log" "elaborate.log" "simulate.log" \
-                      ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock" "scirocco_command.log"] 
+                      "vlogan.log" "vhdlan.log" "syscan.log" "compile.log" "elaborate.log" "simulate.log" \
+                      "c.obj" ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock" "scirocco_command.log"] 
   set files [join $file_list " "]
   puts $fh_scr "  files_to_remove=($files)"
   puts $fh_scr "  for (( i=0; i<\$\{#files_to_remove\[*\]\}; i++ )); do"
@@ -1512,6 +1513,12 @@ proc usf_vcs_create_setup_script {} {
   puts $fh_scr "      rm -rf \$file"
   puts $fh_scr "    fi"
   puts $fh_scr "  done"
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    puts $fh_scr "  if \[\[ -e $a_sim_vars(tmp_obj_dir) \]\]; then"
+    puts $fh_scr "    rm -rf $a_sim_vars(tmp_obj_dir)"
+    puts $fh_scr "  fi"
+    puts $fh_scr "  mkdir $a_sim_vars(tmp_obj_dir)"
+  }
   puts $fh_scr "\}"
   puts $fh_scr ""
 
