@@ -463,13 +463,21 @@ proc usf_vcs_set_initial_cmd { fh_scr cmd_str compiler src_file file_type lib pr
   } else {
     if { {} != $tool_path } {
       if { $a_sim_vars(b_system_sim_design) } {
-        puts $fh_scr "\$bin_path/$cmd_str -sysc \\"
+        if { [regexp -nocase {vhdl} $file_type] } {
+          puts $fh_scr "\$bin_path/$cmd_str \\"
+        } else {
+          puts $fh_scr "\$bin_path/$cmd_str -sysc \\"
+        }
       } else {
         puts $fh_scr "\$bin_path/$cmd_str \\"
       }
     } else {
       if { $a_sim_vars(b_system_sim_design) } {
-        puts $fh_scr "$cmd_str -sysc \\"
+        if { [regexp -nocase {vhdl} $file_type] } {
+          puts $fh_scr "$cmd_str \\"
+        } else {
+          puts $fh_scr "$cmd_str -sysc \\"
+        }
       } else {
         puts $fh_scr "$cmd_str \\"
       }
@@ -546,11 +554,11 @@ proc usf_vcs_write_compile_script {} {
     # donot pass os type
   } else {
     set arg_list [linsert $arg_list 0 "-full64"]
-    if { $a_sim_vars(b_int_systemc_mode) } {
-      if { $a_sim_vars(b_system_sim_design) } {
-        lappend arg_list "-sysc"
-      }
-    }
+    #if { $a_sim_vars(b_int_systemc_mode) } {
+    #  if { $a_sim_vars(b_system_sim_design) } {
+    #    lappend arg_list ""
+    #  }
+    #}
   }
 
   set more_vhdlan_options [string trim [get_property "VCS.COMPILE.VHDLAN.MORE_OPTIONS" $fs_obj]]
