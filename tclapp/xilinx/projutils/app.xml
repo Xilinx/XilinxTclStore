@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for hierarchical bypass for vcs</revision_history>
+      <revision_history>Handling extra files added to BC Managed RM filesets and checking generation state of BD</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
