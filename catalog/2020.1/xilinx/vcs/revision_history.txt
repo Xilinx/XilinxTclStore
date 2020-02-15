@@ -1,3 +1,4 @@
+9.7 bind protected libraries for elaborate
 9.6 donot pass -sysc for vhdl sources
 9.5 store systemc intermediate objects in run directory
 9.4 bind systemC libraries for elaboration
