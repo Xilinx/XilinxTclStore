@@ -1017,6 +1017,23 @@ proc usf_vcs_write_elaborate_script {} {
     if { $a_sim_vars(b_system_sim_design) } {
       if { {behav_sim} == $sim_flow } {
         variable a_shared_library_path_coln
+        # bind protected libraries
+        set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
+        set sm_cpt_dir [xcs_get_simmodel_dir "vcs" "cpt"]
+        foreach {key value} [array get a_shared_library_path_coln] {
+          set name [file tail $value]
+          set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
+          if { [regexp "^noc_v" $name] } {
+            set arg_list [linsert $arg_list end "$lib_dir/lib${name}.so"]
+            set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
+          }
+          if { [regexp "^aie_cluster" $name] } {
+            set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
+            set arg_list [linsert $arg_list end "$lib_dir/lib${name}.so"]
+            set arg_list [linsert $arg_list end "$lib_dir/lib${name}.vcs.so"]
+          }
+        }
+
         foreach {key value} [array get a_shared_library_path_coln] {
           set shared_lib_name $key
           set shared_lib_name [file root $shared_lib_name]
@@ -1034,6 +1051,7 @@ proc usf_vcs_write_elaborate_script {} {
             set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
           }
         }
+        set arg_list [linsert $arg_list end "-lstdc++fs"]
       }
     }
   }
