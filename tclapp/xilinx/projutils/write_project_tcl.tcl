@@ -354,10 +354,11 @@ proc write_project_tcl_script {} {
     wr_bd_bc_specific
   }
 
-  # write BC filesets 
+  # write BC and RM filesets to handle extra files(ELF, XDC) added
   if { [llength $l_bc_filesets] > 0 } {
     write_specified_fileset $proj_dir $proj_name $l_bc_filesets 0
   }
+  wr_bc_managed_rm_files $proj_dir $proj_name
 
   wr_prConf $proj_dir $proj_name 
   wr_runs $proj_dir $proj_name
@@ -788,7 +789,9 @@ proc wr_bd_bc_specific {} {
     # If BD has references and project has BC filesets, then 
     # we are assuming it as it is top level BD with BCs
     # TODO - Need to check whether this assumption works for all cases
-    set is_generated [get_property IS_GENERATED [get_files $bd_file] ]
+    set delivered_targets [lsearch [get_property delivered_targets [get_files $bd_file] ] Synthesis]
+    set stale_targets [lsearch [get_property stale_targets [get_files $bd_file] ] Synthesis]
+    set is_generated [expr {$delivered_targets != -1 && $stale_targets == -1}]
     if { [llength $refs] != 0 && $is_generated == 1 && $bc_filesets_size != 0} { 
       set filename [file tail $bd_file]
       lappend l_script_data "generate_target all \[get_files $filename\]\n"
@@ -847,7 +850,7 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
     set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
 
     # is this a IP block fileset? if yes, do not create block fileset, but create for a pure HDL based fileset (no IP's)
-    if { [is_ip_fileset $tcl_obj] } {
+    if { [is_ip_fileset $tcl_obj] || [is_bc_managed_fileset $tcl_obj] } {
       # do not create block fileset
     } elseif { [string equal $tcl_obj "utils_1"] } {
       # do not create utils fileset
@@ -1768,15 +1771,11 @@ proc write_files { proj_dir proj_name tcl_obj type } {
             lappend l_script_data " $ifile\\"
           }
           lappend l_script_data "\]"
-          if { [is_bc_managed_fileset $tcl_obj] } {
-            lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
+          # is this a IP block fileset? if yes, import files into current source fileset
+          if { [is_ip_fileset $tcl_obj] } {
+            lappend l_script_data "set imported_files \[import_files -fileset [current_fileset -srcset] \$files\]"
           } else {
-            # is this a IP block fileset? if yes, import files into current source fileset
-            if { [is_ip_fileset $tcl_obj] } {
-              lappend l_script_data "set imported_files \[import_files -fileset [current_fileset -srcset] \$files\]"
-            } else {
-              lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
-            }
+            lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
           }
        } else {
          lappend l_script_data "# Add local files from the original project (-no_copy_sources specified)"
@@ -1785,15 +1784,11 @@ proc write_files { proj_dir proj_name tcl_obj type } {
             lappend l_script_data " $ifile\\"
           }
           lappend l_script_data "\]"
-          if { [is_bc_managed_fileset $tcl_obj] } {
-            lappend l_script_data "set added_files \[add_files -fileset $tcl_obj \$files\]"
+          # is this a IP block fileset? if yes, add files into current source fileset
+          if { [is_ip_fileset $tcl_obj] } {
+            lappend l_script_data "set added_files \[add_files -fileset [current_fileset -srcset] \$files\]"
           } else {
-            # is this a IP block fileset? if yes, add files into current source fileset
-            if { [is_ip_fileset $tcl_obj] } {
-              lappend l_script_data "set added_files \[add_files -fileset [current_fileset -srcset] \$files\]"
-            } else {
-              lappend l_script_data "set added_files \[add_files -fileset $tcl_obj \$files\]"
-            }
+            lappend l_script_data "set added_files \[add_files -fileset $tcl_obj \$files\]"
           }
        }
       lappend l_script_data ""
@@ -2452,6 +2447,10 @@ proc is_ip_fileset { fileset } {
     return false
   }
 
+  if { [is_bc_managed_fileset $fileset] } {
+    return false
+  }
+
   if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
     return false
   }
@@ -2642,6 +2641,27 @@ proc write_specified_dashboard { proj_dir proj_name } {
     }
   }
 
+}
+
+proc wr_bc_managed_rm_files { proj_dir proj_name } {
+  # Summary: write bc managed reconfig module files
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # proj_name: project name
+  # Return Value:
+  
+  if { [get_property pr_flow [current_project]] == 0 } {
+    return
+  }
+
+  set partitionDefs [get_partition_defs -filter "IS_BLOCK_CONTAINER_MANAGED == 1"]
+  if { [llength $partitionDefs] == 0 } {
+    return
+  }
+  set reconfigModules [get_reconfig_modules -of_objects $partitionDefs]
+  foreach rm $reconfigModules {
+    write_reconfigmodule_files $proj_dir $proj_name $rm
+  }
 }
 
 proc wr_prflow { proj_dir proj_name } {
@@ -2865,7 +2885,9 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   set l_remote_file_list [list]
 
   # return if empty fileset
-  if {[llength [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]]] == 0 } {
+  set bc_managed_fs_filter "IS_BLOCK_CONTAINER_MANAGED == 0"
+  set files [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule] -filter $bc_managed_fs_filter]
+  if {[llength $files] == 0 } {
     lappend l_script_data "# Empty (no sources present)\n"
     return
   }
@@ -2877,7 +2899,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   set add_file_coln [list]
   set bd_list [list]
  
-  foreach file [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]] {
+  foreach file $files { 
     if { [file extension $file ] ==".bd" && !$a_global_vars(b_arg_use_bd_files)} {
       lappend bd_list $file
       continue
