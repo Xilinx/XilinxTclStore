@@ -1,3 +1,4 @@
+4.48 fixed utils msg
 4.47 fixed ip object return value
 4.46 support for VCS systemC compilation
 4.45 return ip name from xcs_find_ip
