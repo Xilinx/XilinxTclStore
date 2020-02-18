@@ -4037,11 +4037,11 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
     set ip_lib_name  $key
     set ip_lib_found $value
     if { {false} == $ip_lib_found } {
-      send_msg_id USF-Xcelium-008 "CRITICAL WARNING" "Failed to find the pre-compiled library for '$ip_lib_name' IP from the following search paths:-\n"
+      send_msg_id SIM-utils-061 "CRITICAL WARNING" "Failed to find the pre-compiled library for '$ip_lib_name' IP from the following search paths:-\n"
       foreach tp $target_paths {
-        send_msg_id USF-Xcelium-008 STATUS "  '$tp'"
+        send_msg_id SIM-utils-062 STATUS "  '$tp'"
       }
-      send_msg_id USF-Xcelium-008 STATUS "Please verify if this is a valid IP name ('$ip_lib_name') or was compiled successfully and the shared library for this IP exist in the search paths."
+      send_msg_id SIM-utils-063 STATUS "Please verify if this is a valid IP name ('$ip_lib_name') or was compiled successfully and the shared library for this IP exist in the search paths."
     }
   }
 
