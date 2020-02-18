@@ -1,3 +1,4 @@
+9.10 add checks for simulator executable file type
 9.9 halt scripts only flow if param set
 9.8 fixed utils msg
 9.7 bind protected libraries for elaborate

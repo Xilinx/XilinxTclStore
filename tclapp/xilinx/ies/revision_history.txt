@@ -1,3 +1,4 @@
+4.50 add checks for simulator executable file type
 4.49 halt scripts only flow if param set
 4.48 fixed utils msg
 4.47 fixed ip object return value

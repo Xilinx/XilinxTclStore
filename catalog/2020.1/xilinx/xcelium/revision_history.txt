@@ -1,3 +1,4 @@
+11.31 add checks for simulator executable file type
 11.30 fixed utils msg
 11.29 halt scripts only flow if param set
 11.28 bind dummy mapping for simprims_ver post sim
