@@ -847,7 +847,10 @@ proc xcs_get_bin_path { tool_name path_sep } {
   set bin_path {}
   foreach path [split $path_value $path_sep] {
     set exe_file [file normalize [file join $path $tool_name]]
-    if { [file exists $exe_file] } {
+    #
+    # make sure it exists and is of file-type and is not a directory
+    #
+    if { [file exists $exe_file] && [file isfile $exe_file] && ![file isdirectory $exe_file] } {
       set bin_path $path
       break
     }
