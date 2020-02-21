@@ -1029,10 +1029,12 @@ proc usf_vcs_write_elaborate_script {} {
             set arg_list [linsert $arg_list end "$lib_dir/lib${name}.so"]
             set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
           }
-          if { [regexp "^aie_cluster" $name] } {
-            set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
-            set arg_list [linsert $arg_list end "$lib_dir/lib${name}.so"]
-            set arg_list [linsert $arg_list end "$lib_dir/lib${name}.vcs.so"]
+          if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
+            # set arg_list [linsert $arg_list end "-L$cpt_dir/../lib/lnx64.o"]
+            # set arg_list [linsert $arg_list end "-lsystemc"]
+            set lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+            set arg_list [linsert $arg_list end "-L$lib_dir"]
+            set arg_list [linsert $arg_list end "-laie_cluster_v1_0_0"]
           }
         }
 
@@ -1046,6 +1048,11 @@ proc usf_vcs_write_elaborate_script {} {
 
           if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
+          if { [regexp "^aie_xtlm_" $shared_lib_name] } {
+            set aie_lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+            set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
+            set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
+          }
           if { [xcs_is_sc_library $shared_lib_name] } {
             set arg_list [linsert $arg_list end "-Mlib=$sm_lib_dir"]
             set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
@@ -1615,7 +1622,13 @@ proc usf_vcs_write_library_search_order { fh_scr } {
   set ip_obj [xcs_find_ip "ai_engine"]
   if { {} != $ip_obj } {
     set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
+    #append ld_path ":$sm_dir/../lib/lnx64.o"
     set sm_ext_dir [xcs_get_simmodel_dir "vcs" "ext"]
+    set sm_cpt_dir [xcs_get_simmodel_dir "vcs" "cpt"]
+    set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
+    set tp "$cpt_dir/$sm_cpt_dir"
+    append ld_path ":$tp/aie_cluster_v1_0_0"
+
     set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
     append ld_path ":$cardano_api_path"
     #set cardano_lib_path "\$CARDANO_ROOT/lib/lnx64.o"
