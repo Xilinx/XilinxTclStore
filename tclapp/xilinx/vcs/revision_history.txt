@@ -1,3 +1,4 @@
+9.12 pass -debug_acc+pp+dmptf
 9.11 bind aie cluster library
 9.10 add checks for simulator executable file type
 9.9 halt scripts only flow if param set
