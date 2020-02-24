@@ -946,12 +946,11 @@ proc usf_vcs_write_elaborate_script {} {
     }
   }
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
-    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-      lappend arg_list {-debug_acc+pp+dmptf}
-      lappend arg_list {-debug_region+cell+encrypt}
-    } else {
-      lappend arg_list {-debug_pp}
-    }
+    lappend arg_list {-debug_acc+pp+dmptf}
+    # view source code and debug the celldefines, library files and encrypted source code (user-controllable, if reqd)
+    #lappend arg_list {-debug_region+cell+encrypt}
+    # deprecated
+    #lappend arg_list {-debug_pp}
   }
   set arg_list [linsert $arg_list end "-t" "ps" "-licqueue"]
 
