@@ -1055,6 +1055,14 @@ proc usf_vcs_write_elaborate_script {} {
             set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
           }
         }
+        #
+        # TODO: find out conditions under which rdi_hip_config will be binded
+        #  - use-case 1: when switching from rtl->tlm for a HIP noc design
+        #
+        set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
+        set xil_lib_path [file normalize "$sm_dir/../lib/lnx64.o"]
+        set arg_list [linsert $arg_list end "-L$xil_lib_path -lrdi_hip_config"]
+        #  
         set arg_list [linsert $arg_list end "-lstdc++fs"]
       }
     }
