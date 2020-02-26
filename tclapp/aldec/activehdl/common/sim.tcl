@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.15
+package require ::tclapp::aldec::common::helpers 1.18
 
-package provide ::tclapp::aldec::common::sim 1.15
+package provide ::tclapp::aldec::common::sim 1.18
 
 namespace eval ::tclapp::aldec::common {
 
@@ -168,7 +168,26 @@ proc usf_aldec_setup_simulation { args } {
 
   ::tclapp::aldec::common::helpers::findAllDesignFiles
   ::tclapp::aldec::common::helpers::findCompiledLibraries 
-  
+
+	# extract simulation model library info
+	::tclapp::aldec::common::helpers::usf_fetch_lib_info \
+		[ get_property target_simulator [ current_project ] ] \
+		[ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ] \
+		$::tclapp::aldec::common::helpers::properties(b_int_sm_lib_ref_debug)
+
+	# find shared library paths from all IPs
+	if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] } {
+		if { [::tclapp::aldec::common::helpers::usf_contains_C_files] } {
+			::tclapp::aldec::common::helpers::usf_find_shared_lib_paths \
+				[ string tolower [ get_property target_simulator [ current_project ] ] ]\
+				[ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ] \
+				$::tclapp::aldec::common::helpers::properties(custom_sm_lib_dir) \
+				$::tclapp::aldec::common::helpers::properties(b_int_sm_lib_ref_debug) \
+				::tclapp::aldec::common::helpers::properties(sp_cpt_dir) \
+				::tclapp::aldec::common::helpers::properties(sp_ext_dir)
+		}
+	}
+	
   # fetch design files
   set global_files_str {}
   set ::tclapp::aldec::common::helpers::properties(designFiles) \
@@ -201,6 +220,9 @@ proc usf_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
+  # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -227,6 +249,10 @@ proc usf_setup_args { args } {
       "-run_dir"        { incr i;set ::tclapp::aldec::common::helpers::properties(launch_directory) [lindex $args $i] }
       "-int_os_type"    { incr i;set ::tclapp::aldec::common::helpers::properties(s_int_os_type) [lindex $args $i] }
       "-int_debug_mode" { incr i;set ::tclapp::aldec::common::helpers::properties(s_int_debug_mode) [lindex $args $i] }
+	  "-int_systemc_mode"		{ set ::tclapp::aldec::common::helpers::properties(b_int_systemc_mode) 1	}
+	  "-int_sm_lib_dir"         { incr i;set ::tclapp::aldec::common::helpers::properties(custom_sm_lib_dir) [lindex $args $i] }
+      "-int_sm_lib_ref_debug"   { set ::tclapp::aldec::common::helpers::properties(b_int_sm_lib_ref_debug) 1                   }
+	  "-int_csim_compile_order" { set ::tclapp::aldec::common::helpers::properties(b_int_csim_compile_order) 1                 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -272,7 +298,7 @@ proc usf_aldec_write_compile_script {} {
   set dir $::tclapp::aldec::common::helpers::properties(launch_directory)
   set do_file [::tclapp::aldec::common::helpers::usf_file_normalize [file join $dir $do_filename]]
 
-  send_msg_id USF-[usf_aldec_getSimulatorName]-87 INFO "Creating automatic 'do' files...\n"
+  send_msg_id USF-[usf_aldec_getSimulatorName]-87 INFO "Creating automatic compilation macro...\n"
 
   usf_aldec_create_do_file_for_compilation $do_file
 
@@ -301,6 +327,9 @@ proc usf_write_simulate_script {} {
     append do_filename "_simulate.do"
     set dir $::tclapp::aldec::common::helpers::properties(launch_directory)
     set do_file [::tclapp::aldec::common::helpers::usf_file_normalize [file join $dir $do_filename]]
+	
+	send_msg_id USF-[usf_aldec_getSimulatorName]-97 INFO "Creating automatic simulation macro...\n"
+	
     usf_aldec_create_do_file_for_simulation $do_file
   }
 
@@ -391,14 +420,16 @@ proc mapLibraryCfg { _variable { _simulation 0 } } {
 				continue
 			}	
 
+			set isAdded 0
 			foreach library $librariesPattern {
 				if { $mapName == $library } {
 					puts $_variable "vmap $mapName \{$mapPath\}"
-					continue
+					set isAdded 1
+					break
 				}
 			}
 
-			if { [ ::tclapp::aldec::common::helpers::isDesignLibrary $mapName ] == 1 } {
+			if { !$isAdded && [ ::tclapp::aldec::common::helpers::isDesignLibrary $mapName ] == 1 } {
 				puts $_variable "vmap $mapName \{$mapPath\}"
 			}
 		}
@@ -504,7 +535,7 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 		lappend vlog_arg_list "-incr"
 	}
 
-	if { [ llength [ ::tclapp::aldec::common::helpers::getXpmLibraries ] ] > 0 } {
+	if { [ llength [ ::tclapp::aldec::common::helpers::getXpmLibraries ] ] > 0 && [lsearch -exact $design_libs "xpm"] == -1 } {
 		lappend vlog_arg_list "-l xpm"
 	}
 
@@ -559,7 +590,8 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   set prev_lib  {}
   set prev_file_type {}
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
-
+  set useAddsc 0
+	
 	foreach file $::tclapp::aldec::common::helpers::properties(designFiles) {
 		set fargs [ split $file {|} ]
 		set type [ lindex $fargs 0 ]
@@ -589,6 +621,14 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 		} else {
 			puts $fh "$cmd_str $src_file"
 		}
+
+		if { $file_type == "SystemC" } {
+			set useAddsc 1
+		}
+	}
+
+	if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] && $useAddsc == 1 } {
+		puts $fh "\naddsc [ ::tclapp::aldec::common::helpers::getSystemCLibrary ]"
 	}
 
   if { $b_group_files } {
@@ -598,7 +638,7 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 
   # compile glbl file
   set b_load_glbl [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]]
-  if { [::tclapp::aldec::common::helpers::usf_compile_glbl_file $target_simulator $b_load_glbl $::tclapp::aldec::common::helpers::properties(designFiles)] } {
+  if { $b_load_glbl } {
     ::tclapp::aldec::common::helpers::usf_copy_glbl_file
     set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
     set file_str "-work $top_lib \"[usf_aldec_getGlblPath]\""
@@ -727,7 +767,8 @@ proc usf_aldec_get_simulation_cmdline {} {
 		lappend argumentsList "-O2"
 	}
 
-	if { [ llength [ ::tclapp::aldec::common::helpers::getXpmLibraries ] ] > 0 } {
+	set design_libs [::tclapp::aldec::common::helpers::getDesignLibraries $::tclapp::aldec::common::helpers::properties(designFiles)]
+	if { [ llength [ ::tclapp::aldec::common::helpers::getXpmLibraries ] ] > 0 && [lsearch -exact $design_libs "xpm"] == -1 } {
 		lappend argumentsList "-L xpm"
 	}
 
@@ -750,9 +791,13 @@ proc usf_aldec_get_simulation_cmdline {} {
 	set top_lib [ ::tclapp::aldec::common::helpers::usf_get_top_library ]
 	lappend argumentsList "${top_lib}.${top}"
 
-	set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
-	if { [ ::tclapp::aldec::common::helpers::usf_contains_verilog $design_files ] } {
-		lappend argumentsList "${top_lib}.glbl"
+	#set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
+	if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] $fs_obj ] } {	
+		if { [ ::tclapp::aldec::common::helpers::isGlblByUser ] == 1 } {
+			lappend argumentsList "unisims_ver.glbl"
+		} else {
+			lappend argumentsList "${top_lib}.glbl"
+		}
 	}
 
 	return [ join $argumentsList " " ]
@@ -789,7 +834,12 @@ proc usf_aldec_writeSimulationPrerequisites { out } {
 	set targetDirectory $::tclapp::aldec::common::helpers::properties(launch_directory)
 	set usePrecompiledIp $::tclapp::aldec::common::helpers::properties(b_use_static_lib)
 
-	puts $out "transcript on"
+	set batch_mode_enabled $::tclapp::aldec::common::helpers::properties(batch_mode_enabled)
+	set only_generate_scripts $::tclapp::aldec::common::helpers::properties(only_generate_scripts)
+	set noQuitOnError [get_param "simulator.activehdlNoQuitOnError"]
+	if { $noQuitOnError && !$batch_mode_enabled && !$only_generate_scripts } {
+		puts $out "transcript on"
+	}
 
 	if { [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
 		puts $out "quiet on"
@@ -881,6 +931,8 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   # Argument Usage:
   # Return Value:
 
+  send_msg_id USF-[usf_aldec_getSimulatorName]-98 INFO "$do_file\n"
+  
   set top $::tclapp::aldec::common::helpers::properties(s_sim_top)
   set fs_obj [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]
   set fh 0
@@ -915,11 +967,16 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
       puts $fh "log /glbl/GSR"
     }
   }
-  
-  set uut [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.UUT] $fs_obj]
-  if { {} == $uut } {
-    set uut "/$top/uut"
-  }
+
+	set uut {}
+	[ catch { set uut [ get_property -quiet [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.UUT ] $fs_obj ] } msg ]
+	set saif_scope [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.SAIF_SCOPE ] $fs_obj ]
+	if { {} != $saif_scope } {
+		set uut $saif_scope
+    }
+    if { {} == $uut } {
+		set uut "/$top/uut"
+    }
  
   # generate saif file for power estimation
   set saif [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.SAIF] $fs_obj]
@@ -960,7 +1017,9 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
     if { {.saif} != $extn } {
       append saif ".saif"
     }
-    if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+
+	set batch_mode_enabled $::tclapp::aldec::common::helpers::properties(batch_mode_enabled)
+    if { [get_property target_simulator [current_project]] == "ActiveHDL" && !$batch_mode_enabled } {
       puts $fh "asdbdump -flush"
     }
 
@@ -1004,12 +1063,16 @@ proc usf_aldec_write_header { fh filename } {
   set timestamp   [clock format [clock seconds]]
   set mode_type   $::tclapp::aldec::common::helpers::properties(mode)
   set name        [file tail $filename]
+  set simulatorName [::tclapp::aldec::common::helpers::usf_aldec_getSimulatorName]
+  set simulatorVersion [::tclapp::aldec::common::helpers::getSimulatorVersion]
+  
   puts $fh "######################################################################"
   puts $fh "#"
   puts $fh "# File name : $name"
   puts $fh "# Created on: $timestamp"
   puts $fh "#"
-  puts $fh "# Auto generated by $product for '$mode_type' simulation"
+  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.18"
+  puts $fh "# in $version for $simulatorName $simulatorVersion simulator."
   puts $fh "#"
   puts $fh "######################################################################"
 }
@@ -1065,7 +1128,44 @@ proc usf_aldec_write_driver_shell_script { do_filename step } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $scriptFileHandle "#!/bin/sh -f"
     puts $scriptFileHandle "bin_path=\"$::tclapp::aldec::common::helpers::properties(s_tool_bin_path)\""
-    ::tclapp::aldec::common::helpers::usf_write_shell_step_fn $scriptFileHandle
+   
+    if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] } {
+      if { $::tclapp::aldec::common::helpers::properties(b_contain_systemc_sources) } {
+        if { ({elaborate} == $step) || ({simulate} == $step) || ({compile} == $step)} {
+          set shared_ip_libs [list]
+
+     #     variable a_shared_library_path_coln
+          foreach {key value} [array get ::tclapp::aldec::common::helpers::a_shared_library_path_coln] {
+            set sc_lib   $key
+            set lib_path $value
+            set lib_dir "$lib_path"
+			
+            lappend shared_ip_libs $lib_dir
+          }
+ 
+		  set libraryLocation [ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ]
+ 
+          set ip_objs [get_ips -all -quiet]
+          foreach shared_ip_lib [::tclapp::aldec::common::helpers::usf_get_shared_ip_libraries $libraryLocation] { 
+            foreach ip_obj $ip_objs {
+              set ipdef [get_property -quiet IPDEF $ip_obj]
+              set ip_name [lindex [split $ipdef ":"] 2]
+              if { [string first $ip_name $shared_ip_lib] != -1} {
+                set lib_dir "$libraryLocation/$shared_ip_lib"
+                lappend shared_ip_libs $lib_dir
+              }
+            }
+          }
+		  
+          if { [llength $shared_ip_libs] > 0 } {
+            set shared_ip_libs_env_path [join $shared_ip_libs ":"]
+            puts $scriptFileHandle "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+          }
+        }
+      }
+    }
+
+   ::tclapp::aldec::common::helpers::usf_write_shell_step_fn $scriptFileHandle
     if { $batch_sw != "" } {
       puts $scriptFileHandle "ExecStep \$bin_path/../runvsimsa -l $log_filename -do \"do \{$do_filename\}\""
     } else {
