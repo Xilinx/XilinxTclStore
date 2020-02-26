@@ -980,16 +980,16 @@ proc usf_vcs_write_elaborate_script {} {
   #
   if { ({post-synthesis} == $mode) || ({post-implementation} == $mode) } {
     if { {Verilog} == $target_lang } {
-      lappend arg_list "-liblist"
       if { {functional} == $type } {
-        lappend arg_list "unisims_ver"
+        if { "virtexuplus58g" == [rdi::get_family -arch] } {
+          lappend arg_list "-liblist unisim"
+        }
+        lappend arg_list "-liblist unisims_ver"
       } elseif { {timing} == $type } {
-        lappend arg_list "simprims_ver"
+        lappend arg_list "-liblist simprims_ver"
       }
-      lappend arg_list "-liblist"
-      lappend arg_list "secureip"
-      lappend arg_list "-liblist"
-      lappend arg_list "xil_defaultlib"
+      lappend arg_list "-liblist secureip"
+      lappend arg_list "-liblist xil_defaultlib"
     } elseif { {VHDL} == $target_lang } {
       if { {functional} == $type } {
         # TODO: bind following 3 for hybrid only
@@ -999,18 +999,14 @@ proc usf_vcs_write_elaborate_script {} {
           lappend arg_list "-liblist secureip"
         }
       } elseif { {timing} == $type } {
-        lappend arg_list "-liblist"
-        lappend arg_list "simprims_ver"
-        lappend arg_list "-liblist"
-        lappend arg_list "secureip"
+        lappend arg_list "-liblist simprims_ver"
+        lappend arg_list "-liblist secureip"
       }
-      lappend arg_list "-liblist"
-      lappend arg_list "xil_defaultlib"
+      lappend arg_list "-liblist xil_defaultlib"
     }
     # bind hybrid unisims ver components that were compiled into 'unisim' library for versal
     if { "versal" == [rdi::get_family -arch] } {
-      lappend arg_list "-liblist"
-      lappend arg_list "unisim"
+      lappend arg_list "-liblist unisim"
     }
   }
 
@@ -1045,7 +1041,7 @@ proc usf_vcs_write_elaborate_script {} {
           set sm_lib_dir [file normalize $value]
           set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
 
-          if { [regexp "^protobuf" $shared_lib_name] } { continue; }
+          #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
             set aie_lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
@@ -1616,12 +1612,14 @@ proc usf_vcs_write_library_search_order { fh_scr } {
     set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
     lappend l_sm_lib_paths $sm_lib_dir
   }
+
+  set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
+  lappend l_sm_lib_paths [file normalize "$sm_dir/../lib/lnx64.o"]
+
   set ld_path "LD_LIBRARY_PATH=."
   # for aie
   set ip_obj [xcs_find_ip "ai_engine"]
   if { {} != $ip_obj } {
-    set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
-    #append ld_path ":$sm_dir/../lib/lnx64.o"
     set sm_ext_dir [xcs_get_simmodel_dir "vcs" "ext"]
     set sm_cpt_dir [xcs_get_simmodel_dir "vcs" "cpt"]
     set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
