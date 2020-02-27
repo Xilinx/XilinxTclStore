@@ -1,3 +1,4 @@
+3.449 bind IP systemc objects for VCS
 3.448 add checks for simulator executable file type
 3.447 fixed utils msg
 3.446 Handling extra files added to BC Managed RM filesets and checking generation state of BD

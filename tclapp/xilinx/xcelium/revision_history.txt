@@ -1,3 +1,4 @@
+11.33 bind IP systemc objects for VCS
 11.32 pass -work xil_defaultlib for xmelab
 11.31 add checks for simulator executable file type
 11.30 fixed utils msg
