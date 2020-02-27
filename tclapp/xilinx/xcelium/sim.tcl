@@ -1082,6 +1082,9 @@ proc usf_xcelium_write_elaborate_script {} {
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
+      # workaround for xmelab performance issue
+      lappend arg_list "-work xil_defaultlib"
+      #
       lappend arg_list "-loadsc ${top}_sc"
     }
   }

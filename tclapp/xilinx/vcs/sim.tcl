@@ -1063,6 +1063,7 @@ proc usf_vcs_write_elaborate_script {} {
         set xil_lib_path [file normalize "$sm_dir/../lib/lnx64.o"]
         set arg_list [linsert $arg_list end "-L$xil_lib_path -lrdi_hip_config"]
         #  
+        set arg_list [linsert $arg_list end "-Mdir=c.obj"]
         set arg_list [linsert $arg_list end "-lstdc++fs"]
       }
     }
