@@ -1,3 +1,4 @@
+9.17 print error if failed to find the dat files for simulation models
 9.16 bind IP systemc objects for VCS
 9.15 bind design obj with -Mdir
 9.14 bind config hip library

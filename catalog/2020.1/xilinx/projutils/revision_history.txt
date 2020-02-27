@@ -1,3 +1,4 @@
+3.450 print error if failed to find the dat files for simulation models
 3.449 bind IP systemc objects for VCS
 3.448 add checks for simulator executable file type
 3.447 fixed utils msg

@@ -1,3 +1,4 @@
+2.179 print error if failed to find the dat files for simulation models
 2.178 bind IP systemc objects for VCS
 2.177 add checks for simulator executable file type
 2.176 halt scripts only flow if param set
