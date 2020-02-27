@@ -4398,14 +4398,21 @@ proc xcs_get_boost_library_path {} {
   return $boost_incl_dir
 }
 
-proc xcs_get_pre_compiled_shared_objects { clibs_dir vlnv } {
+proc xcs_get_pre_compiled_shared_objects { simulator clibs_dir vlnv } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set obj_file_paths [list]
   set obj_dir "$clibs_dir/$vlnv"
+  if { "vcs" == $simulator } {
+    append obj_dir "/sysc"
+  }
   foreach obj_file [glob -nocomplain -directory $obj_dir *.o] {
+    if { "vcs" == $simulator } {
+      set file_name [file root [file tail $obj_file]]
+      if { "_stublist" == $file_name } { continue }
+    }
     lappend obj_file_paths $obj_file
   }
   

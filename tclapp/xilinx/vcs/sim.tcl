@@ -1055,6 +1055,42 @@ proc usf_vcs_write_elaborate_script {} {
             set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
           }
         }
+
+        # link IP design libraries
+        set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+        set ip_objs [get_ips -all -quiet]
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          puts "------------------------------------------------------------------------------------------------------------------------------------"
+          puts "Referenced pre-compiled shared libraries"
+          puts "------------------------------------------------------------------------------------------------------------------------------------"
+        }
+        set uniq_shared_libs        [list]
+        set shared_lib_objs_to_link [list]
+        foreach ip_obj $ip_objs {
+          set ipdef [get_property -quiet IPDEF $ip_obj]
+          set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+          if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+            if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+              lappend uniq_shared_libs $vlnv_name
+              if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+                puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
+              }
+              foreach obj_file_name [xcs_get_pre_compiled_shared_objects "vcs" $a_sim_vars(s_clibs_dir) $vlnv_name] {
+                if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+                  puts " + linking $vlnv_name -> '$obj_file_name'"
+                }
+                lappend shared_lib_objs_to_link "$obj_file_name"
+              }
+            }
+          }
+        }
+        foreach shared_lib_obj $shared_lib_objs_to_link {
+          set arg_list [linsert $arg_list end "$shared_lib_obj"]
+        }
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          puts "------------------------------------------------------------------------------------------------------------------------------------"
+        }
+
         #
         # TODO: find out conditions under which rdi_hip_config will be binded
         #  - use-case 1: when switching from rtl->tlm for a HIP noc design
@@ -1152,65 +1188,65 @@ proc usf_vcs_write_elaborate_script {} {
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
 
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_system_sim_design) } {
-    # set gcc path
-    if { {} != $gcc_path } {
-        # TODO: some of this code may need to go to vcs_opts
-        #puts $fh_scr "# generate shared object"
-        set link_arg_list [list "\$gcc_path/g++"]
-        lappend link_arg_list "-m64 -Wl,-G -shared -o"
-        lappend link_arg_list "lib${top}_sc.so"
-        lappend link_arg_list "\$gcc_objs"
-        set l_sm_lib_paths [list]
-        foreach {library lib_dir} [array get a_shared_library_path_coln] {
-          set sm_lib_dir [file normalize $lib_dir]
-          set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
-          set lib_name [string trimleft $library "lib"]
-          set lib_name [string trimright $lib_name ".so"]
-          lappend link_arg_list "-L$sm_lib_dir -l$lib_name"
-        }
-
-        # link IP design libraries
-        set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
-        set ip_objs [get_ips -all -quiet]
-        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-          puts "------------------------------------------------------------------------------------------------------------------------------------"
-          puts "Referenced pre-compiled shared libraries"
-          puts "------------------------------------------------------------------------------------------------------------------------------------"
-        }
-        set uniq_shared_libs        [list]
-        set shared_lib_objs_to_link [list]
-        foreach ip_obj $ip_objs {
-          set ipdef [get_property -quiet IPDEF $ip_obj]
-          set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
-          if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
-            if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
-              lappend uniq_shared_libs $vlnv_name
-              if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-                puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
-              }
-              foreach obj_file_name [xcs_get_pre_compiled_shared_objects $a_sim_vars(s_clibs_dir) $vlnv_name] {
-                if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-                  puts " + linking $vlnv_name -> '$obj_file_name'"
-                }
-                lappend shared_lib_objs_to_link "$obj_file_name"
-              }
-            }
-          }
-        }
-        foreach shared_lib_obj $shared_lib_objs_to_link {
-          lappend link_arg_list "$shared_lib_obj"
-        }
-        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-          puts "------------------------------------------------------------------------------------------------------------------------------------"
-        }
-        #lappend link_arg_list "\$sys_libs"
-        set link_args [join $link_arg_list " "]
-        #puts $fh_scr "$link_args\n"
-      }
-    }
-  }
+#  if { $a_sim_vars(b_int_systemc_mode) } {
+#    if { $a_sim_vars(b_system_sim_design) } {
+#    # set gcc path
+#    if { {} != $gcc_path } {
+#        # TODO: some of this code may need to go to vcs_opts
+#        #puts $fh_scr "# generate shared object"
+#        set link_arg_list [list "\$gcc_path/g++"]
+#        lappend link_arg_list "-m64 -Wl,-G -shared -o"
+#        lappend link_arg_list "lib${top}_sc.so"
+#        lappend link_arg_list "\$gcc_objs"
+#        set l_sm_lib_paths [list]
+#        foreach {library lib_dir} [array get a_shared_library_path_coln] {
+#          set sm_lib_dir [file normalize $lib_dir]
+#          set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+#          set lib_name [string trimleft $library "lib"]
+#          set lib_name [string trimright $lib_name ".so"]
+#          lappend link_arg_list "-L$sm_lib_dir -l$lib_name"
+#        }
+#
+#        # link IP design libraries
+#        set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+#        set ip_objs [get_ips -all -quiet]
+#        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+#          puts "------------------------------------------------------------------------------------------------------------------------------------"
+#          puts "Referenced pre-compiled shared libraries"
+#          puts "------------------------------------------------------------------------------------------------------------------------------------"
+#        }
+#        set uniq_shared_libs        [list]
+#        set shared_lib_objs_to_link [list]
+#        foreach ip_obj $ip_objs {
+#          set ipdef [get_property -quiet IPDEF $ip_obj]
+#          set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+#          if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+#            if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+#              lappend uniq_shared_libs $vlnv_name
+#              if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+#                puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
+#              }
+#              foreach obj_file_name [xcs_get_pre_compiled_shared_objects "vcs" $a_sim_vars(s_clibs_dir) $vlnv_name] {
+#                if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+#                  puts " + linking $vlnv_name -> '$obj_file_name'"
+#                }
+#                lappend shared_lib_objs_to_link "$obj_file_name"
+#              }
+#            }
+#          }
+#        }
+#        foreach shared_lib_obj $shared_lib_objs_to_link {
+#          lappend link_arg_list "$shared_lib_obj"
+#        }
+#        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+#          puts "------------------------------------------------------------------------------------------------------------------------------------"
+#        }
+#        #lappend link_arg_list "\$sys_libs"
+#        #set link_args [join $link_arg_list " "]
+#        #puts $fh_scr "$link_args\n"
+#      }
+#    }
+#  }
 
   lappend arg_list "-o"
   lappend arg_list "${top}_simv"

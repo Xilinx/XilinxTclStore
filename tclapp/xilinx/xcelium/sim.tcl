@@ -1131,7 +1131,7 @@ proc usf_xcelium_write_elaborate_script {} {
               if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
                 puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
               }
-              foreach obj_file_name [xcs_get_pre_compiled_shared_objects $a_sim_vars(s_clibs_dir) $vlnv_name] {
+              foreach obj_file_name [xcs_get_pre_compiled_shared_objects "xcelium" $a_sim_vars(s_clibs_dir) $vlnv_name] {
                 if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
                   puts " + linking $vlnv_name -> '$obj_file_name'"
                 }
