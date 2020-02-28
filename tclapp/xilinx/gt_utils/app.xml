@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>print error if failed to find the dat files for simulation models</revision_history>
+      <name>gt_utils</name>
+      <pkg_require>Vivado 2020.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>Generates GT reference clock summary.</summary>
+      <display>GT Utils</display>
+    </app>
+  </apps>
+</catalog>
