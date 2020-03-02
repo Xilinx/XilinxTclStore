@@ -2353,12 +2353,22 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
     foreach ip_obj $ip_objs {
       set ipdef [get_property -quiet IPDEF $ip_obj]
       set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+      set ssm_type [get_property -quiet selected_sim_model $ip_obj]
       if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
         if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
-          lappend shared_libs_to_link $vlnv_name
-          lappend uniq_shared_libs $vlnv_name
           if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-            puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
+            puts " IP - $ip_obj ($vlnv_name) - SELECTED_SIM_MODEL=$ssm_type"
+          }
+          if { ("tlm" == $ssm_type) || ("tlm_dpi" == $ssm_type) } {
+            lappend shared_libs_to_link $vlnv_name
+            lappend uniq_shared_libs $vlnv_name
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              puts "      (BIND)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
+            }
+          } else {
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              puts "      (SKIP)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
+            }
           }
         }
       }
