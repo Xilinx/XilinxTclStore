@@ -1021,8 +1021,9 @@ proc usf_questa_get_simulation_cmdline {} {
   set ip_obj [xcs_find_ip "gt_quad_base"]
   if { {} != $ip_obj } {
     set gt_lib "gtye5_quad"
-    set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $dir]"
-    set clibs_dir [string map {\\ /} $clibs_dir]
+    # 1054737
+    # set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $dir]"
+    set clibs_dir [string map {\\ /} $a_sim_vars(s_clibs_dir)]
     # default install location
     set shared_lib_dir "${clibs_dir}/secureip"
     lappend arg_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
