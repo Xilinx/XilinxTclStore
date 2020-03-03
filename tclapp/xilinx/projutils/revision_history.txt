@@ -1,3 +1,4 @@
+3.452 support for configuration data object sources
 3.451 filter libraries that does not generate .cxl.lib_info.dat file
 3.450 print error if failed to find the dat files for simulation models
 3.449 bind IP systemc objects for VCS

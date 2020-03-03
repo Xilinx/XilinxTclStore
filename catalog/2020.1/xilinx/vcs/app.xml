@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>filter libraries that does not generate .cxl.lib_info.dat file</revision_history>
+      <revision_history>support for configuration data object sources</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
