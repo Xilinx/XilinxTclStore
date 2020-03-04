@@ -2985,7 +2985,11 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
     "modelsim" {
       set s_64bit {}
       if { !$a_sim_vars(b_32bit) } {
-        set s_64bit {-64}
+        if {$::tcl_platform(platform) == "windows"} {
+          # -64 not supported
+        } else {
+          set s_64bit {-64}
+        }
       }
       if { $a_sim_vars(b_generate_hier_access) } {
         puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
@@ -3010,7 +3014,11 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
     "questa" {
       set s_64bit {}
       if { !$a_sim_vars(b_32bit) } {
-        set s_64bit {-64}
+        if {$::tcl_platform(platform) == "windows"} {
+          # -64 not supported
+        } else {
+          set s_64bit {-64}
+        }
       }
       if { $a_sim_vars(b_generate_hier_access) } {
         puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
@@ -3175,6 +3183,10 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
   switch $tool {
     "vcom" {
       set s_64bit {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+        set s_64bit {}
+      }
       if { $a_sim_vars(b_32bit) } {
         set s_64bit {-32}
       }
@@ -3193,6 +3205,10 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
     }
     "vlog" {
       set s_64bit {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+        set s_64bit {}
+      }
       if { $a_sim_vars(b_32bit) } {
         set s_64bit {-32}
       }
@@ -4377,7 +4393,11 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       set arg_list [list "+acc" "-l" "elaborate.log"]
       if { !$a_sim_vars(b_32bit) } {
-        set arg_list [linsert $arg_list 0 "-64"]
+        if {$::tcl_platform(platform) == "windows"} {
+          # -64 not supported
+        } else {
+          set arg_list [linsert $arg_list 0 "-64"]
+        }
       }
       if { [llength $l_generics] > 0 } {
         xps_append_generics $l_generics arg_list

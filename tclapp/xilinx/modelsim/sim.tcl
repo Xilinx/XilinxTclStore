@@ -809,7 +809,11 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     if { [get_property 32bit $fs_obj] } {
       lappend arg_list {-32}
     } else {
-      lappend arg_list {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+      } else {
+        lappend arg_list {-64}
+      }
     }
   }
 
@@ -1379,6 +1383,10 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
       # donot pass os type
     } else {
       set s_64bit {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+        set s_64bit {}
+      }
     }
   }
 

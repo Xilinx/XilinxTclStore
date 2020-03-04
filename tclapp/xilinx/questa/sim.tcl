@@ -840,7 +840,11 @@ proc usf_questa_get_elaboration_cmdline {} {
     if { [get_property 32bit $fs_obj] } {
       lappend arg_list {-32}
     } else {
-      lappend arg_list {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+      } else {
+        lappend arg_list {-64}
+      }
     }
   }
 
@@ -1329,6 +1333,10 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       # donot pass os type
     } else {
       set s_64bit {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+        set s_64bit {}
+      }
     }
   }
 
@@ -1544,7 +1552,11 @@ proc usf_questa_get_sccom_cmd_args {} {
         if { [get_property 32bit $fs_obj] } {
           lappend args {-32}
         } else {
-          lappend args {-64}
+          if {$::tcl_platform(platform) == "windows"} {
+            # -64 not supported
+          } else {
+            lappend args {-64}
+          }
         }
       }
       lappend args "-link"

@@ -1065,6 +1065,10 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
 
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
   set s_64bit {-64}
+  if {$::tcl_platform(platform) == "windows"} {
+    # -64 not supported
+    set s_64bit {}
+  }
   if { [get_property 32bit $fs_obj] } {
     set s_64bit {-32}
   }

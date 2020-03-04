@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fetch IP xml sources from ip_output_dir</revision_history>
+      <revision_history>donot pass -64bit for windows</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
