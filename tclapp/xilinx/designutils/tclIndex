@@ -51,3 +51,4 @@ set auto_index(::tclapp::xilinx::designutils::write_ip_integrator_testbench) [li
 set auto_index(::tclapp::xilinx::designutils::write_loc_constraints) [list source [file join $dir write_loc_constraints.tcl]]
 set auto_index(::tclapp::xilinx::designutils::write_slr_pblock_xdc) [list source [file join $dir write_slr_pblock_xdc.tcl]]
 set auto_index(::tclapp::xilinx::designutils::write_template) [list source [file join $dir write_template.tcl]]
+set auto_index(::tclapp::xilinx::designutils::report_gtye5_refclk_summary) [list source [file join $dir report_gtye5_refclk_summary.tcl]]

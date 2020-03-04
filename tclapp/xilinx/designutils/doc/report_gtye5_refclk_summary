@@ -1,0 +1,15 @@
+
+
+  Description: 
+
+     Generates GT reference clock summary of block design.
+
+     This command must be run on a gt_quad_base IP based IPI block design.
+
+     If Quad reference clock frequencies are same in the generated summary file, user could optimize the reference clock inputs by shorting them.
+
+  Example:
+  
+    The following example generates GT reference clock summary of gt_quad base IP based , IPI block design:
+     xilinx::designutils::report_gtye5_refclk_summary
+
