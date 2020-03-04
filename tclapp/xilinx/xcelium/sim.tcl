@@ -197,7 +197,7 @@ proc usf_xcelium_setup_simulation { args } {
   }
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # fetch design files
   set global_files_str {}
@@ -1567,12 +1567,21 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
   # for aie
   set ip_obj [xcs_find_ip "ai_engine"]
   if { {} != $ip_obj } {
-    set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/xcelium"]
     set sm_ext_dir [xcs_get_simmodel_dir "xcelium" "ext"]
-    set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
+    set sm_cpt_dir [xcs_get_simmodel_dir "xcelium" "cpt"]
+    set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/xcelium"]
+    set tp "$cpt_dir/$sm_cpt_dir"
+    append ld_path ":$tp/aie_cluster_v1_0_0"
+    set xilinx_vitis {}
+    set cardano_api_path {}
+    if { [info exists ::env(XILINX_VITIS)] } {
+      set xilinx_vitis $::env(XILINX_VITIS)
+      set cardano_api_path "$xilinx_vitis/cardano/lib/xcelium64.o"
+    } else {
+      set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
+      send_msg_id USF-Xcelium-019 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
+    }
     append ld_path ":$cardano_api_path"
-    #set cardano_lib_path "\$CARDANO_ROOT/lib/lnx64.o"
-    #append ld_path ":$cardano_lib_path"
   }
   if { [llength l_sm_lib_paths] > 0 } {
     foreach sm_lib_path $l_sm_lib_paths {

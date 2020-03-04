@@ -161,7 +161,7 @@ proc export_simulation {args} {
   xcs_get_xpm_libraries
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs "[pwd]"
+  xcs_find_sv_pkg_libs "[pwd]" false
 
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {

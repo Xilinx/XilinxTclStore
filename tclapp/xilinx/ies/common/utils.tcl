@@ -2847,18 +2847,36 @@ proc xcs_design_contain_sv_ip { } {
   return false
 }
 
-proc xcs_find_sv_pkg_libs { run_dir } {
+proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_sv_pkg_libs
 
+  if { $b_int_sm_lib_ref_debug } {
+    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
+    puts "Finding IP XML files:-"
+    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
+  }
   set tmp_dir "$run_dir/_tmp_ip_comp_"
   set ip_comps [list]
   foreach ip [get_ips -all -quiet] {
     set ip_file [get_property ip_file $ip]
+    # default ip xml file location
     set ip_filename [file rootname $ip_file];append ip_filename ".xml"
+    # find from ip_output_dir
+    set ip_dir [get_property ip_output_dir -quiet $ip]
+    if { ({} != $ip_dir) && [file exists $ip_dir] } {
+      set ipfile [file root [file tail $ip_file]];append ipfile ".xml"
+      set ipfile "$ip_dir/$ipfile"
+      if { [file exists $ipfile] } {
+        set ip_filename $ipfile
+      } else {
+        send_msg_id SIM-utils-065 WARNING "Failed to find the IP component XML file for '$ip' from IP_OUTPUT_DIR property! (file does not exist:'$ipfile')\n"
+      }
+    }
+    
     if { ![file exists $ip_filename] } {
       # extract files
       set ip_file_obj [get_files -all -quiet $ip_filename]
@@ -2869,8 +2887,15 @@ proc xcs_find_sv_pkg_libs { run_dir } {
         send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
         continue;
       }
+    } else {
+      if { $b_int_sm_lib_ref_debug } {
+        puts "$ip_filename"
+      }
     }
     lappend ip_comps $ip_filename
+  }
+  if { $b_int_sm_lib_ref_debug } {
+    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
   }
 
   foreach ip_xml $ip_comps {

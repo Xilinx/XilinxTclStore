@@ -193,7 +193,7 @@ proc usf_vcs_setup_simulation { args } {
   }
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # fetch design files
   set global_files_str {}
@@ -1670,11 +1670,16 @@ proc usf_vcs_write_library_search_order { fh_scr } {
     set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
     set tp "$cpt_dir/$sm_cpt_dir"
     append ld_path ":$tp/aie_cluster_v1_0_0"
-
-    set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
+    set xilinx_vitis {}
+    set cardano_api_path {}
+    if { [info exists ::env(XILINX_VITIS)] } {
+      set xilinx_vitis $::env(XILINX_VITIS)
+      set cardano_api_path "$xilinx_vitis/cardano/lib/vcs64.o"
+    } else {
+      set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
+      send_msg_id USF-VCS-019 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
+    }
     append ld_path ":$cardano_api_path"
-    #set cardano_lib_path "\$CARDANO_ROOT/lib/lnx64.o"
-    #append ld_path ":$cardano_lib_path"
   }
   if { [llength l_sm_lib_paths] > 0 } {
     foreach sm_lib_path $l_sm_lib_paths {
