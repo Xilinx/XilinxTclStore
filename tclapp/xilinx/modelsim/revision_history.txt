@@ -1,3 +1,4 @@
+2.266 donot pass -64bit for windows
 2.265 fetch IP xml sources from ip_output_dir
 2.264 support for configuration data object sources
 2.263 filter libraries that does not generate .cxl.lib_info.dat file
