@@ -158,6 +158,10 @@ explicitly set to an IO Standard</summary>
           <summary>Generate a fail/pass report</summary>
         </proc>
         <proc>
+          <name>report_gtye5_refclk_summary</name>
+          <summary>Generates GT reference clock summary</summary>
+        </proc>
+        <proc>
           <name>report_hier_util</name>
           <summary>Report the cell utilization below hierarchical instances</summary>
         </proc>
