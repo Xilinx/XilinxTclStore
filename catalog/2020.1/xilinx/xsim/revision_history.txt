@@ -1,3 +1,4 @@
+2.334 fetch IP xml sources from ip_output_dir
 2.333 support for configuration data object sources
 2.332 bind IP shared libraries for tlm selected sim model
 2.331 filter libraries that does not generate .cxl.lib_info.dat file
