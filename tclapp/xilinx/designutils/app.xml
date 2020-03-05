@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Various improvements (report_failfast)</revision_history>
+      <revision_history>Added new proc report_gtye5_refclk_summary.tcl</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -159,7 +159,7 @@ explicitly set to an IO Standard</summary>
         </proc>
         <proc>
           <name>report_gtye5_refclk_summary</name>
-          <summary>Generates GT reference clock summary</summary>
+          <summary>Generates reference clock summary of gt_quad base IP based, IPI block design</summary>
         </proc>
         <proc>
           <name>report_hier_util</name>

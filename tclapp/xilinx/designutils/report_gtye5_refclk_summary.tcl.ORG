@@ -31,35 +31,38 @@ eval [list namespace eval ::tclapp::xilinx::designutils {
 proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {args} {
   # Summary: 
   # Generates reference clock summary of gt_quad base IP based, IPI block design
-
-  # Argument Usage:
-  # [-usage]: Display help message
-
-  # Return Value:
-  # GT Reference clock summary file
-    
-  # Categories: Xilinxtclstore, designutils
-
-   return [::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_refclk_summary {*}$args]
-
   # Command to generate the summary is
   #                    xilinx::designutils::report_gtye5_refclk_summary
 
-  # No Arguments needed for the script, the only requirement is the quad base IP based block design should be opened before running it.
-  # GT reference clock summary file wll be generated with the name <bd_name>_gtye5_refclk_summary.txt
 
-  #   return 0
+  # Argument Usage:
+  # Return Value:
+
+
+  # No Arguments needed, the only requirement for the script is the block design should be opened and it should be gt_quad based bd design
+  # file wll be generated with the name <bd_name>_gtye5_refclk_summary.txt
+
+
+  # Categories: Xilinxtclstore, designutils
+  #-------------------------------------------------------
+
+   ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::generate_report_gtye5_refclk_summary
+
+   return 0
 }
 
 
+#namespace eval ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {
+#  namespace export report_gtye5_refclk_summary
+#} 
 
 eval [list namespace eval ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {
-  namespace export report_gtye5_refclk_summary
+  namespace export generate_report_gtye5_refclk_summary
 } ]
 
 #namespace eval ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {
 
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_refclk_summary {args} {
+proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::generate_report_gtye5_refclk_summary {args} {
 
   # Summary: 
   # Generates reference clock summary of gt_quad base IP based, IPI block design
@@ -68,35 +71,18 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_re
 
 
   # Argument Usage:
-  # [-help]: Display help message
-  # [-usage]: Display help message
   # Return Value:
 
 
-  # No Arguments needed, the only requirement of the script is the quad base IP based block design should be opened before running it.
-  # GT reference clock summary file wll be generated with the name <bd_name>_gtye5_refclk_summary.txt
+  # No Arguments needed, the only requirement for the script is the block design should be opened and it should be gt_quad based bd design
+  # file wll be generated with the name <bd_name>_gtye5_refclk_summary.txt
 
 
   # Categories: Xilinxtclstore, designutils
-   
-    
   #-------------------------------------------------------
   # Process command line arguments
   #-------------------------------------------------------
   set error 0
-  # Get the current architecture
-  set architecture [::tclapp::xilinx::designutils::getArchitecture]
-  switch $architecture {
-    versal {
-      set error 0       
-    }
-    default {
-      puts " -E- architecture $architecture is not supported."
-      incr error
-      return ""
-    }
-
-  }   
   set show_help 0
   set method [lshift args]
   switch -regexp -- $method {
