@@ -4657,7 +4657,7 @@ proc xps_get_simulation_cmdline_modelsim { simulator {b_hier_access "false"} } {
     "riviera" -
     "activehdl" {
       xps_append_config_opts args $simulator "asim"
-      lappend args "-t 1ps +access +r +m+$a_sim_vars(s_top)"
+      lappend args "+access +r +m+$a_sim_vars(s_top)"
       if { $b_hier_access } {
         lappend args "+GEN_BYPASS"
       }
