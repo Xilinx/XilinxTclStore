@@ -337,9 +337,9 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
     set done [add_files -norecurse $file_name]
     set done [import_files -force $file_name]
     set done [file delete -force $pathk\/GTREFCLK_SUMMARY -quiet] 
-    puts " \n\n**************************************************************************" 
-    puts "INFO: \[GT_UTILS 1-1\] GTYE5_refclk_summary text file written out $file_name"
-    puts "**************************************************************************\n" 
+    puts " \n\n**************************************************************************************************************" 
+    puts "INFO: \[GT_UTILS 1-1\] GTYE5_refclk_summary text file written out $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt"
+    puts "*****************************************************************************************************************\n" 
 }
 return ""
 
