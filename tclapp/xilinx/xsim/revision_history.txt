@@ -1,3 +1,4 @@
+2.335 find sv verilog static sources from IP repo root level core
 2.334 fetch IP xml sources from ip_output_dir
 2.333 support for configuration data object sources
 2.332 bind IP shared libraries for tlm selected sim model

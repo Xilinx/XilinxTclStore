@@ -1,3 +1,4 @@
+2.267 find sv verilog static sources from IP repo root level core
 2.266 donot pass -64bit for windows
 2.265 fetch IP xml sources from ip_output_dir
 2.264 support for configuration data object sources

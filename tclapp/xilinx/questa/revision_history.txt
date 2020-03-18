@@ -1,3 +1,4 @@
+2.185 find sv verilog static sources from IP repo root level core
 2.184 donot pass -64bit for windows
 2.183 fetch IP xml sources from ip_output_dir
 2.182 set path to gtye5_quad shared library in absolute format

@@ -1,3 +1,4 @@
+11.38 find sv verilog static sources from IP repo root level core
 11.37 fetch IP xml sources from ip_output_dir
 11.36 support for configuration data object sources
 11.35 filter libraries that does not generate .cxl.lib_info.dat file
