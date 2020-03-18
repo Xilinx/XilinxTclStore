@@ -216,6 +216,15 @@ proc usf_vcs_setup_simulation { args } {
       if { [xcs_contains_C_files] } {
         xcs_find_shared_lib_paths "vcs" $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
       }
+
+      # cache all systemC stub files
+      variable a_sim_cache_sysc_stub_files
+      foreach file_obj [get_files -quiet -all "*_stub.sv"] {
+        set name [get_property -quiet name $file_obj]
+        set file_name [file root [file tail $name]]
+        set module_name [string trimright $file_name "_stub"]
+        set a_sim_cache_sysc_stub_files($module_name) $file_obj
+      }
     }
   }
 
@@ -770,10 +779,17 @@ proc usf_vcs_write_compile_script {} {
 
       if { "syscan" == $compiler } {
         puts $fh_scr ""
+        variable a_sim_cache_sysc_stub_files
+        set sysc_src_file [string trim $src_file {\"}]
+        set module_name [file root [file tail $sysc_src_file]]
+        if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
+          append sysc_src_file ":$module_name"
+        }
+        set sysc_src_file "\"$sysc_src_file\""
         if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/$cmd_str \\\n$src_file"
+          puts $fh_scr "\$bin_path/$cmd_str \\\n$sysc_src_file"
         } else {
-          puts $fh_scr "$cmd_str \\\n$src_file"
+          puts $fh_scr "$cmd_str \\\n$sysc_src_file"
         }
       } else {
         if { ("g++" == $compiler) || ("gcc" == $compiler) } {

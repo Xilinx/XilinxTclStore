@@ -169,6 +169,8 @@ proc usf_init_vars {} {
   variable a_ip_lib_ref_coln
   array unset a_ip_lib_ref_coln
 
+  variable a_sim_cache_sysc_stub_files
+  array unset a_sim_cache_sysc_stub_files
 }
 
 proc usf_create_options { simulator opts } {

@@ -2898,6 +2898,10 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
     puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
   }
 
+  if { $b_int_sm_lib_ref_debug } {
+    puts "System Verilog static sources compiled into IP library:-"
+  }
+
   foreach ip_xml $ip_comps {
     set ip_comp [ipx::open_core -set_current false $ip_xml]
     set vlnv    [get_property vlnv $ip_comp]
@@ -2906,7 +2910,24 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
       if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
         set sub_lib_cores [get_property component_subcores $file_group]
         if { [llength $sub_lib_cores] == 0 } {
-          continue
+          # No sub-cores (find system verilog static sources that are compiled into IP library)
+          foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
+            set file_entry [split $static_file { }]
+            lassign $file_entry file_key comp_ref file_group_name file_path
+            set ip_file [lindex $file_entry 3]
+            set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
+            if { {systemVerilogSource} == $file_type } {
+              set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+              if { ({} != $library) && ({xil_defaultlib} != $library) } {
+                if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+                  if { $b_int_sm_lib_ref_debug } {
+                    puts " + $library"
+                  }
+                  lappend a_sim_sv_pkg_libs $library
+                }
+              }
+            }
+          }
         }
         # reverse the order of sub-cores
         set ordered_sub_cores [list]
@@ -2915,7 +2936,7 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
         }
         #puts "$vlnv=$ordered_sub_cores"
         foreach sub_vlnv $ordered_sub_cores {
-          xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
+          xcs_extract_sub_core_sv_pkg_libs $sub_vlnv $b_int_sm_lib_ref_debug
         }
         foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
           set file_entry [split $static_file { }]
@@ -2926,6 +2947,9 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
             set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
             if { ({} != $library) && ({xil_defaultlib} != $library) } {
               if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+                if { $b_int_sm_lib_ref_debug } {
+                  puts " + $library"
+                }
                 lappend a_sim_sv_pkg_libs $library
               }
             }
@@ -2934,6 +2958,9 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
       }
     }
     ipx::unload_core $ip_comp
+  }
+  if { $b_int_sm_lib_ref_debug } {
+    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
   }
 
   # delete tmp dir
@@ -3037,7 +3064,7 @@ proc xcs_get_systemc_include_dir {} {
   return $incl_dir
 }
 
-proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
+proc xcs_extract_sub_core_sv_pkg_libs { vlnv b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -3060,7 +3087,7 @@ proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
       }
       #puts " +$vlnv=$ordered_sub_cores"
       foreach sub_vlnv $ordered_sub_cores {
-        xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
+        xcs_extract_sub_core_sv_pkg_libs $sub_vlnv $b_int_sm_lib_ref_debug
       }
       foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
         set file_entry [split $static_file { }]
@@ -3071,6 +3098,9 @@ proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
           set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
           if { ({} != $library) && ({xil_defaultlib} != $library) } {
             if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+              if { $b_int_sm_lib_ref_debug } {
+                puts " + $library"
+              }
               lappend a_sim_sv_pkg_libs $library
             }
           }

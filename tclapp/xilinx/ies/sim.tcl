@@ -327,6 +327,9 @@ proc usf_ies_write_setup_files {} {
   variable l_local_design_libraries
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+  set sim_flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   #
   # cds.lib
@@ -343,6 +346,21 @@ proc usf_ies_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
+
+  set b_add_dummy_binding 0
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { {funcsim} == $netlist_mode } {
+      set b_add_dummy_binding 1
+    }
+  }
+
+  if { $b_add_dummy_binding } {
+    puts $fh "DEFINE simprims_ver ies_lib/simprims_ver"
+    set simprim_dir "$dir/ies_lib/simprims_ver"
+    if { ![file exists $simprim_dir] } {
+      [catch {file mkdir $simprim_dir} error_msg]
+    }
+  }
   set libs [list]
   set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
