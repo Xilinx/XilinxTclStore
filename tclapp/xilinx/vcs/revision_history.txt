@@ -1,3 +1,4 @@
+9.22 replace protected simmodel path set by param
 9.21 find sv verilog static sources from IP repo root level core
 9.20 fetch IP xml sources from ip_output_dir
 9.19 support for configuration data object sources

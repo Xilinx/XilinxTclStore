@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>find sv verilog static sources from IP repo root level core</revision_history>
+      <revision_history>replace protected simmodel path set by param</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
