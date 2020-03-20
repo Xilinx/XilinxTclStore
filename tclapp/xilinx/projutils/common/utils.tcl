@@ -4181,6 +4181,20 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
 
   set sm_cpt_dir [xcs_get_simmodel_dir $simulator "cpt"]
   set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+  # is custom protected sim-model path specified?
+  set param "simulator.customSimModelRootDir"
+  set custom_cpt_dir ""
+  [catch {set custom_cpt_dir [get_param $param]} err]
+  if { {} != $custom_cpt_dir } {
+    if { [file exists $custom_cpt_dir] } {
+      set custom_dir "$custom_cpt_dir/data"
+      if { [file exists $custom_dir] } {
+        set cpt_dir $custom_dir
+      }
+    } else {
+      send_msg_id SIM-utils-066 WARNING "The path specified with the '$param' does not exist! Using libraries from default install location.\n"
+    }
+  }
 
   # default protected dir
   set tp "$cpt_dir/$sm_cpt_dir"
