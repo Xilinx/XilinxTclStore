@@ -155,7 +155,7 @@ proc usf_modelsim_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set l_local_ip_libs [xcs_get_libs_from_local_repo]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
     if { {} != $clibs_dir } {
       set libraries [xcs_get_compiled_libraries $clibs_dir $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
@@ -183,7 +183,7 @@ proc usf_modelsim_setup_simulation { args } {
   }
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # fetch design files
   set global_files_str {}
@@ -222,6 +222,7 @@ proc usf_modelsim_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
@@ -250,6 +251,7 @@ proc usf_modelsim_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_halt_script"        { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_halt_script) 1                        }
       "-int_compile_glbl"       { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
       "-int_csim_compile_order" { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_csim_compile_order) 1                 }
@@ -488,6 +490,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set b_absolute_path $::tclapp::xilinx::modelsim::a_sim_vars(b_absolute_path)
   set tool_path $::tclapp::xilinx::modelsim::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+  set b_scripts_only $::tclapp::xilinx::modelsim::a_sim_vars(b_scripts_only)
   set DS "\\\\"
   if {$::tcl_platform(platform) == "unix"} {
     set DS "/"
@@ -712,7 +715,14 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] && $b_is_unix } {
     # no op
   } else {
-    puts $fh "\nquit -force"
+    # *** windows only ***
+    # for scripts only mode, do not quit if param is set to false (default param is true)
+    if { ![get_param "simulator.quitOnSimulationComplete"] && $b_scripts_only } {
+      # for debugging purposes, do not quit from vsim shell
+    } else {
+      puts $fh "\nquit -force"
+    }
+    # *** windows only ***
   }
 
   # Intentional: add a blank line at the very end in do file to avoid vsim error detecting '\' at EOF
@@ -764,7 +774,14 @@ proc usf_modelsim_create_do_file_for_elaboration { do_file } {
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] && $b_is_unix } {
     # no op
   } else {
-    puts $fh "\nquit -force"
+    # *** windows only ***
+    # for scripts only mode, do not quit if param is set to false (default param is true)
+    if { ![get_param "simulator.quitOnSimulationComplete"] && $b_scripts_only } {
+      # for debugging purposes, do not quit from vsim shell
+    } else {
+      puts $fh "\nquit -force"
+    }
+    # *** windows only ***
   }
 
   close $fh
@@ -792,7 +809,11 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     if { [get_property 32bit $fs_obj] } {
       lappend arg_list {-32}
     } else {
-      lappend arg_list {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+      } else {
+        lappend arg_list {-64}
+      }
     }
   }
 
@@ -1362,6 +1383,10 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
       # donot pass os type
     } else {
       set s_64bit {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+        set s_64bit {}
+      }
     }
   }
 

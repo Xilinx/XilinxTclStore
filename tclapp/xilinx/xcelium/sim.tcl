@@ -164,7 +164,7 @@ proc usf_xcelium_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set l_local_ip_libs [xcs_get_libs_from_local_repo]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
     if { {} != $a_sim_vars(s_clibs_dir) } {
       set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
@@ -197,7 +197,7 @@ proc usf_xcelium_setup_simulation { args } {
   }
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # fetch design files
   set global_files_str {}
@@ -253,6 +253,7 @@ proc usf_xcelium_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
@@ -282,6 +283,7 @@ proc usf_xcelium_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_halt_script"        { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_halt_script) 1                        }
       "-int_systemc_mode"       { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_systemc_mode) 1                       }
       "-int_gcc_bin_path"       { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
       "-int_sm_lib_dir"         { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
@@ -360,6 +362,9 @@ proc usf_xcelium_write_setup_files {} {
   variable l_local_design_libraries
   set top $::tclapp::xilinx::xcelium::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::xcelium::a_sim_vars(s_launch_dir)
+  set sim_flow $::tclapp::xilinx::xcelium::a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $::tclapp::xilinx::xcelium::a_sim_vars(s_simset)]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   #
   # cds.lib
@@ -376,7 +381,16 @@ proc usf_xcelium_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+
+  set b_add_dummy_binding 0
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { {funcsim} == $netlist_mode } {
+      set b_add_dummy_binding 1
+    }
+  }
+
+  if { ({} != $ip_obj) || $b_add_dummy_binding } {
     puts $fh "DEFINE simprims_ver xcelium_lib/simprims_ver"
     set simprim_dir "$dir/xcelium_lib/simprims_ver"
     if { ![file exists $simprim_dir] } {
@@ -1068,6 +1082,9 @@ proc usf_xcelium_write_elaborate_script {} {
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
+      # workaround for xmelab performance issue
+      lappend arg_list "-work xil_defaultlib"
+      #
       lappend arg_list "-loadsc ${top}_sc"
     }
   }
@@ -1103,20 +1120,28 @@ proc usf_xcelium_write_elaborate_script {} {
           puts "Referenced pre-compiled shared libraries"
           puts "------------------------------------------------------------------------------------------------------------------------------------"
         }
+        set uniq_shared_libs        [list]
+        set shared_lib_objs_to_link [list]
         foreach ip_obj $ip_objs {
           set ipdef [get_property -quiet IPDEF $ip_obj]
           set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
           if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
-            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-              puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
-            }
-            foreach obj_file_name [xcs_get_pre_compiled_shared_objects $a_sim_vars(s_clibs_dir) $vlnv_name] {
+            if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+              lappend uniq_shared_libs $vlnv_name
               if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-                puts " + linking $vlnv_name -> '$obj_file_name'"
+                puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
               }
-              lappend link_arg_list "$obj_file_name"
+              foreach obj_file_name [xcs_get_pre_compiled_shared_objects "xcelium" $a_sim_vars(s_clibs_dir) $vlnv_name] {
+                if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+                  puts " + linking $vlnv_name -> '$obj_file_name'"
+                }
+                lappend shared_lib_objs_to_link "$obj_file_name"
+              }
             }
           }
+        }
+        foreach shared_lib_obj $shared_lib_objs_to_link {
+          lappend link_arg_list "$shared_lib_obj"
         }
         if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
           puts "------------------------------------------------------------------------------------------------------------------------------------"
@@ -1276,9 +1301,10 @@ proc usf_xcelium_write_simulate_script {} {
     set tool_path_val "$tool"
   }
   set arg_list [list "${tool_path_val}" "\$${tool}_opts"]
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     lappend arg_list "-sv_root \"$a_sim_vars(s_clibs_dir)/secureip\""
-    lappend arg_list "-sv_lib gtye5_quad.so"
+    lappend arg_list "-sv_lib libgtye5_quad.so"
   }
   lappend arg_list "${top_lib}.$top"
   lappend arg_list "-input"
@@ -1538,6 +1564,25 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     lappend l_sm_lib_paths $sm_lib_dir
   }
   set ld_path "LD_LIBRARY_PATH=."
+  # for aie
+  set ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $ip_obj } {
+    set sm_ext_dir [xcs_get_simmodel_dir "xcelium" "ext"]
+    set sm_cpt_dir [xcs_get_simmodel_dir "xcelium" "cpt"]
+    set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/xcelium"]
+    set tp "$cpt_dir/$sm_cpt_dir"
+    append ld_path ":$tp/aie_cluster_v1_0_0"
+    set xilinx_vitis {}
+    set cardano_api_path {}
+    if { [info exists ::env(XILINX_VITIS)] } {
+      set xilinx_vitis $::env(XILINX_VITIS)
+      set cardano_api_path "$xilinx_vitis/cardano/lib/xcelium64.o"
+    } else {
+      set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
+      send_msg_id USF-Xcelium-019 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
+    }
+    append ld_path ":$cardano_api_path"
+  }
   if { [llength l_sm_lib_paths] > 0 } {
     foreach sm_lib_path $l_sm_lib_paths {
       append ld_path ":$sm_lib_path"
@@ -1548,6 +1593,19 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+    # for aie
+    set ip_obj [xcs_find_ip "ai_engine"]
+    if { {} != $ip_obj } {
+      if { [info exists ::env(XILINX_VITIS)] } {
+        set xilinx_vitis $::env(XILINX_VITIS)
+        set cardano "$xilinx_vitis/cardano"
+        set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
+        #puts $fh_scr "export CARDANO_ROOT=\"$cardano\""
+        puts $fh_scr "source $chess_script"
+      } else {
+        send_msg_id USF-Xcelium-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
+      }
+    }
   }
 }
 }

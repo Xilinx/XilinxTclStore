@@ -138,6 +138,16 @@ proc simulate { args } {
   cd $dir
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     if {$::tcl_platform(platform) == "unix"} {
+      if { [file exists $a_sim_vars(ubuntu_lib_dir)] } {
+        set cmd "set ::env(LIBRARY_PATH) \"$a_sim_vars(ubuntu_lib_dir):$::env(LIBRARY_PATH)"
+        if {[catch {eval $cmd} err_msg]} {
+          puts $err_msg
+          [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LIBRARY_PATH env!"}]
+        } else {
+          #[catch {send_msg_id USF-XSim-103 STATUS "LIBRARY_PATH=$::env(LIBRARY_PATH)"}]
+        }
+      }
+
       # default Vivado install path
       set vivado_install_path $::env(XILINX_VIVADO)
       if { [info exists ::env(VIVADO_LOC)] } {
@@ -253,7 +263,7 @@ proc usf_xsim_setup_simulation { args } {
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
     usf_set_compiled_lib_dir
-    set l_local_ip_libs [xcs_get_libs_from_local_repo]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
     set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
     # filter local ip definitions
     foreach lib $libraries {
@@ -288,7 +298,7 @@ proc usf_xsim_setup_simulation { args } {
   }
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # fetch design files
   variable l_local_design_libraries 
@@ -304,7 +314,7 @@ proc usf_xsim_setup_simulation { args } {
   # for non-precompile mode set the compiled library for system simulation 
   if { !$a_sim_vars(b_use_static_lib) } {
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-      usf_xsim_set_clibs_for_system_sim
+      usf_xsim_set_clibs_for_non_precompile_flow
       set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
     }
   }
@@ -686,7 +696,7 @@ proc usf_xsim_verify_compiled_lib {} {
  return 1
 }
 
-proc usf_xsim_set_clibs_for_system_sim {} {
+proc usf_xsim_set_clibs_for_non_precompile_flow {} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1571,6 +1581,9 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
 
     xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
+      if { [file exists $::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir)] } {
+        puts $fh_scr "\nexport LIBRARY_PATH=$::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir):\$LIBRARY_PATH"
+      }
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
@@ -1766,6 +1779,9 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
         variable a_shared_library_path_coln
+        if { [file exists $::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir)] } {
+          puts $fh_scr "\nexport LIBRARY_PATH=$::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir):\$LIBRARY_PATH"
+        }
 
         # default Vivado install path
         set vivado_install_path $::env(XILINX_VIVADO)
@@ -1983,9 +1999,17 @@ proc usf_xsim_get_xelab_cmdline_args {} {
      if { {sdfmax} == $delay } { lappend args_list "--maxdelay" }
   }
 
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     set gt_lib         "gtye5_quad"
     set shared_lib_dir "verilog/secureip"
+
+    # make sure we have the clibs for non-precompile flow
+    if { ([string length $a_sim_vars(s_clibs_dir)] == 0) && (!$a_sim_vars(b_use_static_lib)) } {
+      usf_xsim_set_clibs_for_non_precompile_flow
+      set a_sim_vars(s_clibs_dir) $a_sim_vars(compiled_library_dir)
+    }
+
     if { ([string length $a_sim_vars(s_clibs_dir)] == 0) || (![file exists $a_sim_vars(s_clibs_dir)]) } {
       send_msg_id USF-XSim-010 WARNING "Compiled library directory path does not exist! '$a_sim_vars(s_clibs_dir)'\n"
     } else {
@@ -2324,15 +2348,33 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
       puts "Referenced pre-compiled shared libraries"
       puts "------------------------------------------------------------------------------------------------------------------------------------"
     }
+    set uniq_shared_libs    [list]
+    set shared_libs_to_link [list]
     foreach ip_obj $ip_objs {
       set ipdef [get_property -quiet IPDEF $ip_obj]
       set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+      set ssm_type [get_property -quiet selected_sim_model $ip_obj]
       if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
-        lappend args_list "-lib $vlnv_name"
-        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-          puts "(shared object) '$a_sim_vars(s_clibs_dir)/$vlnv_name'"
+        if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+          if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+            puts " IP - $ip_obj ($vlnv_name) - SELECTED_SIM_MODEL=$ssm_type"
+          }
+          if { ("tlm" == $ssm_type) || ("tlm_dpi" == $ssm_type) } {
+            lappend shared_libs_to_link $vlnv_name
+            lappend uniq_shared_libs $vlnv_name
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              puts "      (BIND)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
+            }
+          } else {
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              puts "      (SKIP)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
+            }
+          }
         }
       }
+    }
+    foreach vlnv_name $shared_libs_to_link {
+      lappend args_list "-lib $vlnv_name"
     }
     if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
       puts "------------------------------------------------------------------------------------------------------------------------------------"

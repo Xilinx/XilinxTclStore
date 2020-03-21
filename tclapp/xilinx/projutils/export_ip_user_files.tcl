@@ -1481,6 +1481,12 @@ proc xif_get_lib_map_path_cmd_str {} {
   
   set lmp_len [llength $l_lib_map_path]
   if { $lmp_len > 0 } {
+    # is single path specified? return switch name with path value
+    if { $lmp_len == 1 } {
+      append lmp_args_str "-lib_map_path $l_lib_map_path"
+      return $lmp_args_str
+    }
+    # construct args list for multiple-paths
     append lmp_args_str "-lib_map_path \[list \{"
     set n 0
     foreach lmp $l_lib_map_path {

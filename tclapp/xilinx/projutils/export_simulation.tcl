@@ -32,6 +32,7 @@ proc export_simulation {args} {
   # [-use_ip_compiled_libs]: Reference pre-compiled IP static library during compilation. This switch requires -ip_user_files_dir and -ipstatic_source_dir switches as well for generating scripts using pre-compiled IP library.
   # [-absolute_path]: Make all file paths absolute
   # [-export_source_files]: Copy IP/BD design files to output directory
+  # [-generate_hier_access]: Extract path for hierarchical access simulation
   # [-32bit]: Perform 32bit compilation
   # [-force]: Overwrite previous files
 
@@ -57,6 +58,12 @@ proc export_simulation {args} {
 
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
+
+    # special processing for lib_map_path switch
+    if { [xps_process_lib_map_path $option] } {
+      continue
+    }
+
     switch -regexp -- $option {
       "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
       "-lib_map_path"             { incr i;set l_lib_map_path                    [lindex $args $i];set a_sim_vars(b_lib_map_path_specified)              1 }
@@ -73,6 +80,7 @@ proc export_simulation {args} {
       "-absolute_path"            { set a_sim_vars(b_absolute_path)                                                                                      1 }
       "-use_ip_compiled_libs"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
       "-export_source_files"      { set a_sim_vars(b_xport_src_files)                                                                                    1 }
+      "-generate_hier_access"     { set a_sim_vars(b_generate_hier_access)                                                                               1 }
       "-force"                    { set a_sim_vars(b_overwrite)                                                                                          1 }
       default {
         if { [regexp {^-} $option] } {
@@ -153,7 +161,7 @@ proc export_simulation {args} {
   xcs_get_xpm_libraries
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs "[pwd]"
+  xcs_find_sv_pkg_libs "[pwd]" false
 
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
@@ -212,6 +220,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_absolute_path)     0             
   set a_sim_vars(b_single_step)       0             
   set a_sim_vars(b_xport_src_files)   0             
+  set a_sim_vars(b_generate_hier_access) 0             
   set a_sim_vars(b_overwrite)         0
   set a_sim_vars(b_of_objects_specified)        0
   set a_sim_vars(s_ip_user_files_dir) ""
@@ -237,6 +246,8 @@ proc xps_init_vars {} {
   set a_sim_vars(default_lib)         "xil_defaultlib"
   set a_sim_vars(do_filename)         "simulate.do"
   set a_sim_vars(b_use_static_lib)    0
+ 
+  set a_sim_vars(s_bypass_script_filename) "gen_hier_access_info"
 
   # wrapper file for executing user tcl (not supported currently in export_sim)
   set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
@@ -268,7 +279,7 @@ proc xps_init_vars {} {
   set l_valid_ip_extns                [list ".xci" ".bd" ".slx"]
 
   variable s_data_files_filter
-  set s_data_files_filter             "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"STATIC MEMORY FILE\" || FILE_TYPE == \"Memory Initialization Files\" ||  FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\""
+  set s_data_files_filter             "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"STATIC MEMORY FILE\" || FILE_TYPE == \"Memory Initialization Files\" ||  FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\" || FILE_TYPE == \"Configuration Data Object\""
 
   variable s_embedded_files_filter
   set s_embedded_files_filter         "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ELF\""
@@ -1811,7 +1822,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
   variable l_valid_ip_extns
   variable l_compiled_libraries
 
-  set l_local_ip_libs [xcs_get_libs_from_local_repo]
+  set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib)]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   foreach simulator $l_target_simulator {
     # initialize and fetch compiled libraries for precompile flow
@@ -1869,6 +1880,10 @@ proc xps_write_sim_script { run_dir data_files filename } {
     if { [xps_write_filelist_info $simulator $dir] } {
       return 1
     }
+
+    if { $a_sim_vars(b_generate_hier_access) } {
+     xps_generate_hier_access $simulator $dir
+    } 
   }
   return 0
 }
@@ -1880,10 +1895,17 @@ proc xps_get_lib_map_path { simulator {b_ignore_default_for_xsim 0} } {
 
   variable a_sim_vars
   variable l_lib_map_path
+
+  # convert to string for truncating extra braces, if any
+  set lmp_str [join $l_lib_map_path { }]
+  set lmp_str [string trim $lmp_str "\{\} "]
+
+  # convert back to list of paths
+  set lmp_paths [split $lmp_str { }]
   
   set lmp_value {}
   if { $a_sim_vars(b_lib_map_path_specified) } {
-    foreach lmp $l_lib_map_path {
+    foreach lmp $lmp_paths {
       set lmp [string trim $lmp "\}\{ "]
       if { {} == $lmp } { continue }
       if { [regexp {=} $lmp] } {
@@ -1947,7 +1969,7 @@ proc xps_get_compiled_libraries { simulator l_local_ip_libs_arg } {
   return $compiled_libraries
 }
 
-proc xps_check_script { dir filename } {
+proc xps_check_script { simulator dir filename } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1963,18 +1985,15 @@ proc xps_check_script { dir filename } {
       send_msg_id exportsim-Tcl-033 ERROR "failed to delete file ($file): $error_msg\n"
       return 1
     }
-    # cleanup other files
-    set files [glob -nocomplain -directory $dir *]
-    foreach file_path $files {
-      if { {srcs} == [file tail $file_path] } { continue }
-      if { {modelsim.ini} == [file tail $file_path] } { continue }
-      if { {cds.lib} == [file tail $file_path] } { continue }
-      if { {synopsys_sim.setup} == [file tail $file_path] } { continue }
-      if { {xsim.ini} == [file tail $file_path] } { continue }
-      if {[catch {file delete -force $file_path} error_msg] } {
-        send_msg_id exportsim-Tcl-010 ERROR "failed to delete file ($file_path): $error_msg\n"
-        return 1
-      }
+    # cleanup generated data
+    set file_list [list]
+    set file_dir_list [list]
+    xps_get_files_to_remove $simulator file_list file_dir_list
+    # delete files
+    set files_to_delete [concat $file_list $file_dir_list]
+    foreach file_name $files_to_delete {
+      set file_path "$dir/$file_name"
+      [catch {file delete -force $file_path} error_msg]
     }
   }
   return 0
@@ -1989,7 +2008,7 @@ proc xps_write_script { simulator dir filename } {
   variable l_compile_order_files
   variable l_compile_order_files_uniq
 
-  if { [xps_check_script $dir $filename] } {
+  if { [xps_check_script $simulator $dir $filename] } {
     return 1
   }
 
@@ -2209,10 +2228,29 @@ proc xps_write_single_step_for_ies_xcelium { simulator fh_unix launch_dir srcs_d
     }
   }
 
-  set cmd_str [join $arg_list " \\\n       "]
-
-  puts $fh_unix "  ${tool_name} \$${tool_name}_opts \\"
-  puts $fh_unix "       $cmd_str"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+    puts $fh_unix "    #"
+    puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+    puts $fh_unix "    #"
+    set bypass_args $arg_list
+    lappend bypass_args "+GEN_BYPASS"
+    set cmd_str [join $bypass_args " \\\n       "]
+    puts $fh_unix "    ${tool_name} \$${tool_name}_opts \\"
+    puts $fh_unix "       $cmd_str"
+    puts $fh_unix "  else"
+    puts $fh_unix "    #"
+    puts $fh_unix "    # launch hierarchical access simulation"
+    puts $fh_unix "    #"
+    set cmd_str [join $arg_list " \\\n       "]
+    puts $fh_unix "    ${tool_name} \$${tool_name}_opts \\"
+    puts $fh_unix "       $cmd_str"
+    puts $fh_unix "  fi"
+  } else {
+    set cmd_str [join $arg_list " \\\n       "]
+    puts $fh_unix "  ${tool_name} \$${tool_name}_opts \\"
+    puts $fh_unix "       $cmd_str"
+  }
 
   set fh_run 0
   set file [file normalize "$launch_dir/$filename"]
@@ -2418,7 +2456,11 @@ proc xps_write_run_steps { simulator fh_unix } {
         puts $fh_unix "  elaborate"
       }
     }
-    puts $fh_unix "  simulate"
+    if { $a_sim_vars(b_generate_hier_access) } {
+      puts $fh_unix "  simulate \$1"
+    } else {
+      puts $fh_unix "  simulate"
+    }
   }
   puts $fh_unix "\}\n"
 }
@@ -2463,11 +2505,8 @@ proc xps_set_initial_cmd { simulator fh cmd_str srcs_dir src_file file_type lib 
        # 
       } else {
         puts $fh "$cmd_str ${opts_str} \\"
-        if { $a_sim_vars(b_xport_src_files) } {
-          puts $fh "srcs/$src_file \\"
-        } else {
-          puts $fh "$src_file \\"
-        }
+        set s_file [string trim $src_file {\"}]
+        puts $fh "\"$s_file\" \\"
       }
     }
     "modelsim" -
@@ -2923,26 +2962,82 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
     }
     "riviera" -
     "activehdl" {
-      set cmd_str "runvsimsa -l simulate.log -do \"do \{$a_sim_vars(do_filename)\}\""
-      puts $fh_unix "  $cmd_str"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+        puts $fh_unix "    #"
+        set cmd_str "runvsimsa -l simulate.log -do \"do \{simulate_hbs.do\}\""
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  else"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # launch hierarchical access simulation"
+        puts $fh_unix "    #"
+        set cmd_str "runvsimsa -l simulate.log -do \"do \{$a_sim_vars(do_filename)\}\""
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  fi"
+      } else {
+        set cmd_str "runvsimsa -l simulate.log -do \"do \{$a_sim_vars(do_filename)\}\""
+        puts $fh_unix "  $cmd_str"
+      }
       xps_write_do_file_for_simulate $simulator $dir
     }
     "modelsim" {
       set s_64bit {}
       if { !$a_sim_vars(b_32bit) } {
-        set s_64bit {-64}
+        if {$::tcl_platform(platform) == "windows"} {
+          # -64 not supported
+        } else {
+          set s_64bit {-64}
+        }
       }
-      set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
-      puts $fh_unix "  $cmd_str"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+        puts $fh_unix "    #"
+        set cmd_str "vsim $s_64bit -c -do \"do \{simulate_hbs.do\}\" -l simulate.log"
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  else"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # launch hierarchical access simulation"
+        puts $fh_unix "    #"
+        set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  fi"
+      } else {
+        set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        puts $fh_unix "  $cmd_str"
+      }
       xps_write_do_file_for_simulate $simulator $dir
     }
     "questa" {
       set s_64bit {}
       if { !$a_sim_vars(b_32bit) } {
-        set s_64bit {-64}
+        if {$::tcl_platform(platform) == "windows"} {
+          # -64 not supported
+        } else {
+          set s_64bit {-64}
+        }
       }
-      set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
-      puts $fh_unix "  $cmd_str"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+        puts $fh_unix "    #"
+        set cmd_str "vsim $s_64bit -c -do \"do \{simulate_hbs.do\}\" -l simulate.log"
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  else"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # launch hierarchical access simulation"
+        puts $fh_unix "    #"
+        set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  fi"
+      } else {
+        set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+        puts $fh_unix "  $cmd_str"
+      }
       xps_write_do_file_for_simulate $simulator $dir
     }
     "ies" -
@@ -2959,9 +3054,27 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
       puts $fh_unix "  $cmd_str"
     }
     "vcs" {
-      set arg_list [list "./$a_sim_vars(s_top)_simv" "\$vcs_sim_opts" "-do" "$a_sim_vars(do_filename)"]
-      set cmd_str [join $arg_list " "]
-      puts $fh_unix "  $cmd_str"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+        puts $fh_unix "    #"
+        set arg_list [list "./$a_sim_vars(s_top)_simv" "\$vcs_sim_opts" "+GEN_BYPASS" "-do" "$a_sim_vars(do_filename)"]
+        set cmd_str [join $arg_list " "]
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  else"
+        puts $fh_unix "    #"
+        puts $fh_unix "    # launch hierarchical access simulation"
+        puts $fh_unix "    #"
+        set arg_list [list "./$a_sim_vars(s_top)_simv" "\$vcs_sim_opts" "-do" "$a_sim_vars(do_filename)"]
+        set cmd_str [join $arg_list " "]
+        puts $fh_unix "    $cmd_str"
+        puts $fh_unix "  fi"
+      } else {
+        set arg_list [list "./$a_sim_vars(s_top)_simv" "\$vcs_sim_opts" "-do" "$a_sim_vars(do_filename)"]
+        set cmd_str [join $arg_list " "]
+        puts $fh_unix "  $cmd_str"
+      }
     }
   }
   puts $fh_unix "\}\n"
@@ -3070,6 +3183,10 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
   switch $tool {
     "vcom" {
       set s_64bit {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+        set s_64bit {}
+      }
       if { $a_sim_vars(b_32bit) } {
         set s_64bit {-32}
       }
@@ -3088,6 +3205,10 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
     }
     "vlog" {
       set s_64bit {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+        set s_64bit {}
+      }
       if { $a_sim_vars(b_32bit) } {
         set s_64bit {-32}
       }
@@ -3354,6 +3475,9 @@ proc xps_print_usage { fh_unix } {
   puts $fh_unix "\[-help\] -- Print help information for this script\\n\\n\\"
   puts $fh_unix "\[-lib_map_path\ <path>] -- Compiled simulation library directory path. The simulation library is compiled\\n\\"
   puts $fh_unix "using the compile_simlib tcl command. Please see 'compile_simlib -help' for more information.\\n\\n\\"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_unix "\[-gen_bypass\] -- Generate hierarchical path information from the design\\n\\n\\"
+  }
   puts $fh_unix "\[-reset_run\] -- Recreate simulator setup files and library mappings for a clean run. The generated files\\n\\"
   puts $fh_unix "from the previous run will be removed. If you don't want to remove the simulator generated files, use the\\n\\"
   puts $fh_unix "-noclean_files switch.\\n\\n\\"
@@ -3840,7 +3964,7 @@ proc xps_write_prj { launch_dir file ft srcs_dir } {
       if { {} != $ip_file } {
         set proj_src_filename [file tail $proj_src_file]
         set ip_name [file rootname [file tail $ip_file]]
-        set proj_src_filename "ip/$ip_name/$proj_src_filename"
+        set proj_src_filename "ip/$ip_name/$lib/$proj_src_filename"
         set source_file "srcs/$proj_src_filename"
       } else {
         set source_file "srcs/[file tail $proj_src_file]"
@@ -4269,7 +4393,11 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       set arg_list [list "+acc" "-l" "elaborate.log"]
       if { !$a_sim_vars(b_32bit) } {
-        set arg_list [linsert $arg_list 0 "-64"]
+        if {$::tcl_platform(platform) == "windows"} {
+          # -64 not supported
+        } else {
+          set arg_list [linsert $arg_list 0 "-64"]
+        }
       }
       if { [llength $l_generics] > 0 } {
         xps_append_generics $l_generics arg_list
@@ -4350,6 +4478,7 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
   close $fh
 }
 
+# for modelsim, questa, riviera, active_hdl
 proc xps_write_do_file_for_simulate { simulator dir } {
   # Summary:
   # Argument Usage:
@@ -4360,21 +4489,38 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   set filename $a_sim_vars(do_filename)
   set do_file [file normalize "$dir/$filename"]
   set fh 0
+  set do_file_hbs [file normalize "$dir/simulate_hbs.do"]
+  set fh_hbs 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id exportsim-Tcl-059 ERROR "Failed to open file to write ($do_file)\n"
     return 1
+  }
+  if { $a_sim_vars(b_generate_hier_access) } {
+    if {[catch {open $do_file_hbs w} fh_hbs]} {
+      send_msg_id exportsim-Tcl-059 ERROR "Failed to open file to write ($do_file_hbs)\n"
+      return 1
+    }
   }
   set wave_do_filename "wave.do"
   set wave_do_file [file normalize "$dir/$wave_do_filename"]
   xps_create_wave_do_file $wave_do_file
   set cmd_str {}
+  set cmd_str_hbs {}
   switch $simulator {
     "modelsim" -
     "riviera" -
     "activehdl" { 
       set cmd_str [xps_get_simulation_cmdline_modelsim $simulator]
+      if { $a_sim_vars(b_generate_hier_access) } {
+        set cmd_str_hbs [xps_get_simulation_cmdline_modelsim $simulator "true"]
+      }
     }
-    "questa"   { set cmd_str [xps_get_simulation_cmdline_questa] }
+    "questa" {
+      set cmd_str [xps_get_simulation_cmdline_questa]
+      if { $a_sim_vars(b_generate_hier_access) } {
+        set cmd_str_hbs [xps_get_simulation_cmdline_questa "true"]
+      }
+    }
   }
 
   switch $simulator {
@@ -4382,11 +4528,19 @@ proc xps_write_do_file_for_simulate { simulator dir } {
     "questa" {
       puts $fh "onbreak {quit -f}"
       puts $fh "onerror {quit -f}\n"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_hbs "onbreak {quit -f}"
+        puts $fh_hbs "onerror {quit -f}\n"
+      }
     }
     "riviera" -
     "activehdl" {
       puts $fh "onbreak {quit -force}"
       puts $fh "onerror {quit -force}\n"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_hbs "onbreak {quit -force}"
+        puts $fh_hbs "onerror {quit -force}\n"
+      }
     }
   }
 
@@ -4394,23 +4548,41 @@ proc xps_write_do_file_for_simulate { simulator dir } {
   puts $fh "\ndo \{$wave_do_filename\}"
   puts $fh "\nview wave"
   puts $fh "view structure"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs "$cmd_str_hbs"
+    puts $fh_hbs "\ndo \{$wave_do_filename\}"
+    puts $fh_hbs "\nview wave"
+    puts $fh_hbs "view structure"
+  }
   switch $simulator {
     "modelsim" -
     "questa" {
       puts $fh "view signals"
+      if { $a_sim_vars(b_generate_hier_access) } {
+        puts $fh_hbs "view signals"
+      }
     }
   }
   puts $fh ""
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs ""
+  }
   set top $a_sim_vars(s_top)
   set udo_filename $top;append udo_filename ".udo"
   set udo_file [file normalize "$dir/$udo_filename"]
   xps_create_udo_file $udo_file
   puts $fh "do \{$top.udo\}"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs "do \{$top.udo\}"
+  }
   set runtime "run -all"
   if { $a_sim_vars(b_runtime_specified) } {
     set runtime "run $a_sim_vars(s_runtime)"
   }
   puts $fh "\n$runtime"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs "\n$runtime"
+  }
   set tcl_src_files [list]
   set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
   xcs_find_files tcl_src_files $a_sim_vars(sp_tcl_obj) $filter $dir $a_sim_vars(b_absolute_path) $a_sim_vars(fs_obj)
@@ -4421,11 +4593,27 @@ proc xps_write_do_file_for_simulate { simulator dir } {
     }
     puts $fh ""
   }
+  if { $a_sim_vars(b_generate_hier_access) } {
+    if {[llength $tcl_src_files] > 0} {
+      puts $fh_hbs ""
+      foreach file $tcl_src_files {
+        puts $fh_hbs "source \{$file\}"
+      }
+      puts $fh_hbs ""
+    }
+  }
   if { ({riviera} == $simulator) || ({activehdl} == $simulator) } {
     puts $fh "\nendsim"
+    if { $a_sim_vars(b_generate_hier_access) } {
+      puts $fh_hbs "\nendsim"
+    }
   }
   puts $fh "\nquit -force"
   close $fh
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_hbs "\nquit -force"
+    close $fh_hbs
+  }
 }
 
 proc xps_create_wave_do_file { file } {
@@ -4449,7 +4637,7 @@ proc xps_create_wave_do_file { file } {
   close $fh
 }
 
-proc xps_get_simulation_cmdline_modelsim { simulator } {
+proc xps_get_simulation_cmdline_modelsim { simulator {b_hier_access "false"} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4461,12 +4649,18 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   switch -regexp -- $simulator {
     "modelsim" {
       xps_append_config_opts args $simulator "vsim"
-      lappend args "-voptargs=\"+acc\"" "-t 1ps"
+      lappend args "-voptargs=\"+acc\""
+      if { $b_hier_access } {
+        lappend args "+GEN_BYPASS"
+      }
     }
     "riviera" -
     "activehdl" {
       xps_append_config_opts args $simulator "asim"
-      lappend args "-t 1ps +access +r +m+$a_sim_vars(s_top)"
+      lappend args "+access +r +m+$a_sim_vars(s_top)"
+      if { $b_hier_access } {
+        lappend args "+GEN_BYPASS"
+      }
     }
   }
   if { [llength $l_generics] > 0 } {
@@ -4532,7 +4726,7 @@ proc xps_get_simulation_cmdline_modelsim { simulator } {
   return [join $args " "]
 }
 
-proc xps_get_simulation_cmdline_questa {} {
+proc xps_get_simulation_cmdline_questa { {b_hier_access "false"}} {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4545,7 +4739,9 @@ proc xps_get_simulation_cmdline_questa {} {
 
   xps_append_config_opts args "questa" "vsim"
 
-  lappend args "-t 1ps"
+  if { $b_hier_access } {
+    lappend args "+GEN_BYPASS"
+  }
 
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
 
@@ -4760,7 +4956,23 @@ proc xps_write_xsim_cmdline { fh_unix dir } {
   lappend args "-log"
   lappend args "$log_file"
 
-  puts $fh_unix "  [join $args " "]"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_unix "  if \[\[ (\$1 == \"-gen_bypass\") \]\]; then"
+    puts $fh_unix "    #"
+    puts $fh_unix "    # extract hierarchical information of the design in simulate.log file"
+    puts $fh_unix "    #"
+    set bypass_args $args
+    lappend bypass_args "-testplusarg GEN_BYPASS"
+    puts $fh_unix "    [join $bypass_args " "]"
+    puts $fh_unix "  else"
+    puts $fh_unix "    #"
+    puts $fh_unix "    # launch hierarchical access simulation"
+    puts $fh_unix "    #"
+    puts $fh_unix "    [join $args " "]"
+    puts $fh_unix "  fi"
+  } else {
+    puts $fh_unix "  [join $args " "]"
+  }
 }
 
 proc xps_get_obj_key {} {
@@ -4871,43 +5083,7 @@ proc xps_write_reset { simulator fh_unix } {
   set file_list [list]
   set file_dir_list [list]
   set files [list]
-  switch -regexp -- $simulator {
-    "xsim" {
-      set file_list [list "xelab.pb" "xsim.jou" "xvhdl.log" "xvlog.log" "compile.log" "elaborate.log" "simulate.log" \
-                           "xelab.log" "xsim.log" "run.log" "xvhdl.pb" "xvlog.pb" "$a_sim_vars(s_top).wdb"]
-      set file_dir_list [list "xsim.dir"]
-    }
-    "modelsim" {
-      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
-      set file_dir_list [list "modelsim_lib"]
-    }
-    "questa" {
-      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
-      set file_dir_list [list "questa_lib"]
-    }
-    "riviera" {
-      set file_list [list "compile.log" "elaboration.log" "simulate.log" "dataset.asdb"]
-      set file_dir_list [list "work" "riviera"]
-    }
-    "activehdl" {
-      set file_list [list "compile.log" "elaboration.log" "simulate.log" "dataset.asdb"]
-      set file_dir_list [list "work" "activehdl"]
-    }
-    "ies" { 
-      set file_list [list "ncsim.key" "irun.key" "irun.log" "waves.shm" "irun.history" ".simvision"]
-      set file_dir_list [list "INCA_libs"]
-    }
-    "xcelium" { 
-      set file_list [list "xmsim.key" "xrun.key" "xrun.log" "waves.shm" "xrun.history" ".simvision"]
-      set file_dir_list [list "xcelium.d" "xcelium"]
-    }
-    "vcs" {
-      set file_list [list "ucli.key" "${top}_simv" \
-                          "vlogan.log" "vhdlan.log" "compile.log" "elaborate.log" "simulate.log" \
-                          ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock" "scirocco_command.log"]
-      set file_dir_list [list "64" "AN.DB" "csrc" "${top}_simv.daidir"]
-    }
-  }
+  xps_get_files_to_remove $simulator file_list file_dir_list
   set files [join $file_list " "]
   set files_dir [join $file_dir_list " "]
 
@@ -5222,7 +5398,11 @@ proc xps_write_check_args { fh_unix } {
   
   puts $fh_unix "# Check command line arguments"
   puts $fh_unix "check_args()\n\{"
-  puts $fh_unix "  if \[\[ (\$1 == 1 ) && (\$2 != \"-lib_map_path\" && \$2 != \"-noclean_files\" && \$2 != \"-reset_run\" && \$2 != \"-help\" && \$2 != \"-h\") \]\]; then"
+  if { $a_sim_vars(b_generate_hier_access) } {
+    puts $fh_unix "  if \[\[ (\$1 == 1 ) && (\$2 != \"-lib_map_path\" && \$2 != \"-gen_bypass\" && \$2 != \"-noclean_files\" && \$2 != \"-reset_run\" && \$2 != \"-help\" && \$2 != \"-h\") \]\]; then"
+  } else {
+    puts $fh_unix "  if \[\[ (\$1 == 1 ) && (\$2 != \"-lib_map_path\" && \$2 != \"-noclean_files\" && \$2 != \"-reset_run\" && \$2 != \"-help\" && \$2 != \"-h\") \]\]; then"
+  }
   puts $fh_unix "    echo -e \"ERROR: Unknown option specified '\$2' (type \\\"./$a_sim_vars(s_script_filename).sh -help\\\" for more information)\\n\""
   puts $fh_unix "    exit 1"
   puts $fh_unix "  fi"
@@ -5762,4 +5942,149 @@ proc xps_print_message_for_unsupported_simulator_fileset { fs_obj simulator } {
     }
   }
 }
+
+proc xps_get_files_to_remove { simulator file_list_arg file_dir_list_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  upvar $file_list_arg file_list
+  upvar $file_dir_list_arg file_dir_list
+  switch -regexp -- $simulator {
+    "xsim" {
+      set file_list [list "xelab.pb" "xsim.jou" "xvhdl.log" "xvlog.log" "compile.log" "elaborate.log" "simulate.log" \
+                           "xelab.log" "xsim.log" "run.log" "xvhdl.pb" "xvlog.pb" "$a_sim_vars(s_top).wdb"]
+      set file_dir_list [list "xsim.dir"]
+    }
+    "modelsim" {
+      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
+      set file_dir_list [list "modelsim_lib"]
+    }
+    "questa" {
+      set file_list [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
+      set file_dir_list [list "questa_lib"]
+    }
+    "riviera" {
+      set file_list [list "compile.log" "elaboration.log" "simulate.log" "dataset.asdb"]
+      set file_dir_list [list "work" "riviera"]
+    }
+    "activehdl" {
+      set file_list [list "compile.log" "elaboration.log" "simulate.log" "dataset.asdb"]
+      set file_dir_list [list "work" "activehdl"]
+    }
+    "ies" { 
+      set file_list [list "ncsim.key" "irun.key" "irun.log" "waves.shm" "irun.history" ".simvision"]
+      set file_dir_list [list "INCA_libs"]
+    }
+    "xcelium" { 
+      set file_list [list "xmsim.key" "xrun.key" "xrun.log" "waves.shm" "xrun.history" ".simvision"]
+      set file_dir_list [list "xcelium.d" "xcelium"]
+    }
+    "vcs" {
+      set file_list [list "ucli.key" "$a_sim_vars(s_top)_simv" \
+                          "vlogan.log" "vhdlan.log" "compile.log" "elaborate.log" "simulate.log" \
+                          ".vlogansetup.env" ".vlogansetup.args" ".vcs_lib_lock" "scirocco_command.log"]
+      set file_dir_list [list "64" "AN.DB" "csrc" "$a_sim_vars(s_top)_simv.daidir"]
+    }
+  }
+}
+
+proc xps_process_lib_map_path { option } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_vars
+  variable l_lib_map_path
+
+  # trim braces, leading or trailing spaces, if any for processing -lib_map_path switch
+  set opt_arg_val $option
+  set opt_arg_val [string trim $opt_arg_val "\{\} "]
+  # is -lib_map_path?
+  if { [regexp {^\-lib_map_path} $opt_arg_val] } {
+    set l_option [split $opt_arg_val { }]
+    #************************************************************************************
+    # process, if contains switch name and value together as a single option entity, e.g
+    #
+    #  "-lib_map_path [list {modelsim=/tmp/msim_lib} {ies=/tmp/ies_lib}])"
+    #  "-lib_map_path /tmp/mlib"
+    #************************************************************************************
+    if { [llength $l_option] > 1 } {
+      # get the -lib_map_path value part
+      set opt_val [join [lrange $l_option 1 end]]
+
+      # trim brackets, if any
+      set opt_val [string trim $opt_val "\]\[ "]
+
+      # trim "list" word, braces and space, if any
+      set opt_val [string trimleft $opt_val {list}]
+      set opt_val [string trim $opt_val "\{\} "]
+ 
+      # wrap in single curly braces and set the value 
+      set l_lib_map_path "\{$opt_val\}"
+      set a_sim_vars(b_lib_map_path_specified) 1
+
+      # option processed
+      return true 
+    }
+  }
+  return false
+}
+
+proc xps_generate_hier_access { simulator dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_vars
+
+  set version_txt [split [version] "\n"]
+  set version     [lindex $version_txt 0]
+  set swbuild     [lindex $version_txt 1]
+  set copyright   [lindex $version_txt 3]
+  set product     [lindex [split $version " "] 0]
+  set version_id  [join [lrange $version 1 end] " "]
+  set extn ".txt"
+  set script_filename $a_sim_vars(s_bypass_script_filename)$extn
+
+  set fh 0
+  set script_file "$dir/$script_filename"
+  if {[catch {open $script_file w} fh]} {
+    send_msg_id exportsim-Tcl-030 ERROR "failed to open file to write ($script_file)\n"
+    return 1
+  }
+
+  puts $fh "********************************************************************************************************************"
+  puts $fh "# $product (TM) $version_id\n#"
+  puts $fh "# Filename    : $script_filename"
+  puts $fh "# Simulator   : [xcs_get_simulator_pretty_name $simulator]"
+  puts $fh "# Description : Help text file for instructions on how to generate and instantiate the bypass module in the design."
+  puts $fh ""
+  puts $fh "# Generated by $product on $a_sim_vars(curr_time)"
+  puts $fh "# $swbuild\n#"
+  puts $fh "# $copyright \n#"
+  puts $fh "********************************************************************************************************************"
+  puts $fh "Please read the following instructions on how to generate and instantiate the bypass file in the design:-\n"
+  puts $fh "Step 1: Execute wget in unix shell to fetch the bypass generation utility script from GitHub"
+  puts $fh "wget https://raw.githubusercontent.com/Xilinx/XilinxTclStore/2020.1-dev/tclapp/xilinx/projutils/generate_hier_access.tcl"
+  puts $fh ""
+  puts $fh "Step 2: Start Tcl interpreter"
+  puts $fh "/usr/bin/tclsh"
+  puts $fh ""
+  puts $fh "Step 3: Source and execute the 'generate_hier_access.tcl' file in Tcl shell"
+  puts $fh "% source generate_hier_access.tcl"
+  puts $fh "% generate_hier_access -log simulate.log"
+  puts $fh ""
+  puts $fh "Step 4: Verify bypass (xil_dut_bypass.sv) and driver (xil_bypass_driver.v) files generated in the current directory."
+  puts $fh ""
+  puts $fh "Step 5: Update design testbench to instantiate the bypass module"
+  puts $fh ""
+  puts $fh "Step 6: Execute $a_sim_vars(s_script_filename).sh to run hier-access simulation"
+
+  close $fh
+
+}
+
 }

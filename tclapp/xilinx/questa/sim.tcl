@@ -159,7 +159,7 @@ proc usf_questa_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set l_local_ip_libs [xcs_get_libs_from_local_repo]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
     if { {} != $a_sim_vars(s_clibs_dir) } {
       set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
@@ -190,7 +190,7 @@ proc usf_questa_setup_simulation { args } {
   }
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # systemC headers
   set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
@@ -245,6 +245,7 @@ proc usf_questa_setup_args { args } {
   # [-int_sm_lib_dir <arg>]: Simulation model library directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -274,6 +275,7 @@ proc usf_questa_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_halt_script"        { set ::tclapp::xilinx::questa::a_sim_vars(b_int_halt_script) 1                        }
       "-int_systemc_mode"       { set ::tclapp::xilinx::questa::a_sim_vars(b_int_systemc_mode) 1                       }
       "-int_sm_lib_dir"         { incr i;set ::tclapp::xilinx::questa::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
       "-int_compile_glbl"       { set ::tclapp::xilinx::questa::a_sim_vars(b_int_compile_glbl) 1                       }
@@ -512,6 +514,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   set b_absolute_path $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path)
   set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+  set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
   set DS "\\\\"
   if {$::tcl_platform(platform) == "unix"} {
     set DS "/"
@@ -736,7 +739,14 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] && $b_is_unix } {
     # no op
   } else {
-    puts $fh "\nquit -force"
+    # *** windows only ***
+    # for scripts only mode, do not quit if param is set to false (default param is true)
+    if { ![get_param "simulator.quitOnSimulationComplete"] && $b_scripts_only } {
+      # for debugging purposes, do not quit from vsim shell
+    } else {
+      puts $fh "\nquit -force"
+    }
+    # *** windows only ***
   }
 
   # Intentional: add a blank line at the very end in do file to avoid vsim error detecting '\' at EOF
@@ -795,7 +805,14 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] && $b_is_unix } {
     # no op
   } else {
-    puts $fh "\nquit -force"
+    # *** windows only ***
+    # for scripts only mode, do not quit if param is set to false (default param is true)
+    if { ![get_param "simulator.quitOnSimulationComplete"] && $b_scripts_only } {
+      # for debugging purposes, do not quit from vsim shell
+    } else {
+      puts $fh "\nquit -force"
+    }
+    # *** windows only ***
   }
 
   close $fh
@@ -823,7 +840,11 @@ proc usf_questa_get_elaboration_cmdline {} {
     if { [get_property 32bit $fs_obj] } {
       lappend arg_list {-32}
     } else {
-      lappend arg_list {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+      } else {
+        lappend arg_list {-64}
+      }
     }
   }
 
@@ -1001,10 +1022,12 @@ proc usf_questa_get_simulation_cmdline {} {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
 
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     set gt_lib "gtye5_quad"
-    set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $dir]"
-    set clibs_dir [string map {\\ /} $clibs_dir]
+    # 1054737
+    # set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $dir]"
+    set clibs_dir [string map {\\ /} $a_sim_vars(s_clibs_dir)]
     # default install location
     set shared_lib_dir "${clibs_dir}/secureip"
     lappend arg_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
@@ -1310,6 +1333,10 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       # donot pass os type
     } else {
       set s_64bit {-64}
+      if {$::tcl_platform(platform) == "windows"} {
+        # -64 not supported
+        set s_64bit {}
+      }
     }
   }
 
@@ -1394,11 +1421,9 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
     xcs_write_pipe_exit $fh_scr
 
-    if { ({elaborate} == $step) || ({simulate} == $step) } {
-      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-        puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
-        puts $fh_scr ""
-      }
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+      puts $fh_scr ""
     }
 
     # add tcl pre hook
@@ -1527,7 +1552,11 @@ proc usf_questa_get_sccom_cmd_args {} {
         if { [get_property 32bit $fs_obj] } {
           lappend args {-32}
         } else {
-          lappend args {-64}
+          if {$::tcl_platform(platform) == "windows"} {
+            # -64 not supported
+          } else {
+            lappend args {-64}
+          }
         }
       }
       lappend args "-link"
