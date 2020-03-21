@@ -1,3 +1,5 @@
+4.40 merged fixes from 2020.1
+4.39 fixed used_in values check for simulation tag
 4.38 added helper proc to find out object files for IPs referenced in the design
 4.37 fix for referencing linked shared library paths for Questa
 4.36 compile xpm sv sources into xpm library for non-precompile mode

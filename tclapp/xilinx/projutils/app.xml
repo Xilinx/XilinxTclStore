@@ -35,6 +35,10 @@
           <summary>Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
         </proc>
         <proc>
+          <name>generate_hier_access</name>
+          <summary/>
+        </proc>
+        <proc>
           <name>setup_ip_static_library</name>
           <summary>Extract IP static files from the project or repository and prepare it for compile_simlib</summary>
         </proc>

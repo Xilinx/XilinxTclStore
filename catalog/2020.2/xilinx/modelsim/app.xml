@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added helper proc to find out object files for IPs referenced in the design</revision_history>
+      <revision_history>merged fixes from 2020.1</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

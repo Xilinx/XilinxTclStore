@@ -1,3 +1,4 @@
+3.410 merged fixes from 2020.1
 3.409 fixed used_in values check for simulation tag
 3.408 added helper proc to find out object files for IPs referenced in the design
 3.407 fix for referencing linked shared library paths for Questa
