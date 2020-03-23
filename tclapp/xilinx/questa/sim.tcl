@@ -1560,6 +1560,13 @@ proc usf_questa_get_sccom_cmd_args {} {
         }
       }
       lappend args "-link"
+
+      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+        set ip_obj [xcs_find_ip "ai_engine"]
+        if { {} != $ip_obj } {
+          lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
+        }
+      }
   
       set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
       if { {} != $more_opts } {
