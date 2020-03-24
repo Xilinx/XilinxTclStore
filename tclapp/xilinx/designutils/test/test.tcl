@@ -31,6 +31,7 @@ source -notrace [file join $test_dir timing_report_to_verilog_0002.tcl]
 source -notrace [file join $test_dir write_loc_constraints_0001.tcl]
 source -notrace [file join $test_dir write_slr_pblock_xdc_0001.tcl]
 source -notrace [file join $test_dir write_ip_integrator_testbench_0001.tcl]
+source -notrace [file join $test_dir report_gtye5_test.tcl]
 
 # Uninstall the app if it was not already installed when starting the script
 if {[lsearch -exact $listInstalledApps $appName] == -1} {
