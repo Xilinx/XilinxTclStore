@@ -4,15 +4,15 @@ package require Vivado 1.2019.1
 
 namespace eval ::tclapp::xilinx::designutils {
   namespace export report_gtye5_refclk_summary
-} 
+}
 
 #######################################################################################################
 ##
 ## Company:        Xilinx, Inc.
-## Created by:     Kartheek Boddireddy 
+## Created by:     Kartheek Boddireddy
 ##
 ## Version:        1.0
-## Description:    This package generates reference clock summary of gt_quad_base IP based, IPI designs 
+## Description:    This package generates reference clock summary of gt_quad_base IP based, IPI designs
 ##
 ## BASIC USAGE:
 ## ============
@@ -29,7 +29,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils {
 } ]
 
 proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {args} {
-  # Summary: 
+  # Summary:
   # Generates reference clock summary of gt_quad base IP based, IPI block design
 
   # Argument Usage:
@@ -37,7 +37,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {args} {
 
   # Return Value:
   # GT Reference clock summary file
-    
+
   # Categories: Xilinxtclstore, designutils
 
    return [::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_refclk_summary {*}$args]
@@ -61,7 +61,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::report_gtye5_refclk_sum
 
 proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_refclk_summary {args} {
 
-  # Summary: 
+  # Summary:
   # Generates reference clock summary of gt_quad base IP based, IPI block design
   # Command to generate the summary is
   #                    xilinx::designutils::report_gtye5_refclk_summary
@@ -78,8 +78,8 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_re
 
 
   # Categories: Xilinxtclstore, designutils
-   
-    
+
+
   #-------------------------------------------------------
   # Process command line arguments
   #-------------------------------------------------------
@@ -88,7 +88,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_re
   set architecture [::tclapp::xilinx::designutils::getArchitecture]
   switch $architecture {
     versal {
-      set error 0       
+      set error 0
     }
     default {
       puts " -E- architecture $architecture is not supported."
@@ -96,7 +96,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_re
       return ""
     }
 
-  }   
+  }
   set show_help 0
   set method [lshift args]
   switch -regexp -- $method {
@@ -116,23 +116,23 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_re
       } ]
     # HELP -->
     return ""
-    
+
   }
 
-       
+
 
 set proj [get_projects]
 set pathk [get_property DIRECTORY [current_project]]
 
 set refClkDict [dict create]
 set bd_dk [current_bd_design]
-set done [file mkdir $pathk\/GTREFCLK_SUMMARY]   
+set done [file mkdir $pathk\/GTREFCLK_SUMMARY]
 set file_name "$pathk\/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt"
 set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt"
    set quad_cell_l ""
    set quadList ""
 
-    
+
     set vlnv_qb [get_latest_vlnv]
     if { $vlnv_qb ne "" } {
      EvalSubstituting {vlnv_qb} {
@@ -167,10 +167,10 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
         foreach quadCell $quadList {
           set txIntfcs [list ]
           set rxIntfcs [list ]
-          
+
           set txIntfcPIDs [list ]
           set rxIntfcPIDs [list ]
-        
+
           set quadIntcs [get_bd_intf_pins -quiet ${quadCell}/* -filter "VLNV=~ xilinx.com:interface:gt_tx_interface_rtl:1.0"]
 
            foreach quadIntfc $quadIntcs {
@@ -182,7 +182,7 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
                 lappend txIntfcPIDs [find_connected_core $quadIntfc]
               }
             }
-          
+
           set quadIntcs [get_bd_intf_pins -quiet ${quadCell}/* -filter "VLNV=~ xilinx.com:interface:gt_rx_interface_rtl:1.0"]
           foreach quadIntfc $quadIntcs {
             set intf_net [get_bd_intf_nets -quiet -of_objects $quadIntfc]
@@ -193,18 +193,18 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
                lappend rxIntfcPIDs [find_connected_core $quadIntfc]
              }
            }
- 
-          set LANE_SEL_DICT "" 
+
+          set LANE_SEL_DICT ""
           set settings_string [evaluate_bd_properties {*}$txIntfcs {*}$rxIntfcs]
-          set LANE_SEL_DICT [dict create] 
-          dict lappend LANE_SEL_DICT [dict get $settings_string RX0_LANE_SEL] RX0   
-          dict lappend LANE_SEL_DICT [dict get $settings_string RX1_LANE_SEL] RX1  
-          dict lappend LANE_SEL_DICT [dict get $settings_string RX2_LANE_SEL] RX2  
-          dict lappend LANE_SEL_DICT [dict get $settings_string RX3_LANE_SEL] RX3  
-          dict lappend LANE_SEL_DICT [dict get $settings_string TX0_LANE_SEL] TX0  
-          dict lappend LANE_SEL_DICT [dict get $settings_string TX1_LANE_SEL] TX1  
-          dict lappend LANE_SEL_DICT [dict get $settings_string TX2_LANE_SEL] TX2  
-          dict lappend LANE_SEL_DICT [dict get $settings_string TX3_LANE_SEL] TX3 
+          set LANE_SEL_DICT [dict create]
+          dict lappend LANE_SEL_DICT [dict get $settings_string RX0_LANE_SEL] RX0
+          dict lappend LANE_SEL_DICT [dict get $settings_string RX1_LANE_SEL] RX1
+          dict lappend LANE_SEL_DICT [dict get $settings_string RX2_LANE_SEL] RX2
+          dict lappend LANE_SEL_DICT [dict get $settings_string RX3_LANE_SEL] RX3
+          dict lappend LANE_SEL_DICT [dict get $settings_string TX0_LANE_SEL] TX0
+          dict lappend LANE_SEL_DICT [dict get $settings_string TX1_LANE_SEL] TX1
+          dict lappend LANE_SEL_DICT [dict get $settings_string TX2_LANE_SEL] TX2
+          dict lappend LANE_SEL_DICT [dict get $settings_string TX3_LANE_SEL] TX3
           set keys_lsk [dict keys $LANE_SEL_DICT]
           set prot_num [llength $keys_lsk]
           set ref_clk_d [get_property CONFIG.REFCLK_STRING [get_bd_cells ${quadCell}]]
@@ -213,45 +213,45 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
           set NO_OF_REFCLK_EXTERNAL_CONNECT              [llength $REFCLK_EXTERNAL_CONNECT_UNIQUE ]
           set temp_cnt 0
           set ref_clk_src ""
-          for {set n 0} {$n < $NO_OF_REFCLK_EXTERNAL_CONNECT } {incr n} {  
+          for {set n 0} {$n < $NO_OF_REFCLK_EXTERNAL_CONNECT } {incr n} {
            set temp_cnt [expr $temp_cnt+1]
-           set temp [lindex $REFCLK_EXTERNAL_CONNECT_UNIQUE $n] 
-           set freq_val [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""} [string map {"PROT0_" ""} [string map {"PROT1_" ""} [string map {"PROT2_" ""} [string map {"PROT3_" ""} [string map {"PROT4_" ""} [string map {"PROT5_" ""} [string map {"PROT6_" ""} [string map {"PROT7_" ""} [string map {"refclk_" ""} [string map {"R0_" ""} [string map {"R1_" ""} [string map {"R2_" ""} [string map {"R3_" ""} [string map {"R4_" ""} [string map {"R5_" ""} $temp ]]]]]]]]]]]]]]]]]]]]]] 
-           if {[string match "*multiple*" $freq_val]} { 
-           set multiple_freq_type [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} $temp ]]]]]]]]]] 
-           set multiple_freq_prot_type [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} [string map {"\_R0" ""} [string map {"\_R1" ""} [string map {"\_R2" ""} [string map {"\_R3" ""} [string map {"\_R4" ""} [string map {"\_R5" ""} $temp ]]]]]]]]]]]]]]]] 
-           set multi_freq_port_name [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} [string map {"\PROT0_" ""} [string map {"\PROT1_" ""} [string map {"\PROT2_" ""} [string map {"\PROT3_" ""} [string map {"\PROT4_" ""} [string map {"\PROT5_" ""} [string map {"\PROT6_" ""} [string map {"\PROT7_" ""} $temp ]]]]]]]]]]]]]]]]]] 
+           set temp [lindex $REFCLK_EXTERNAL_CONNECT_UNIQUE $n]
+           set freq_val [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""} [string map {"PROT0_" ""} [string map {"PROT1_" ""} [string map {"PROT2_" ""} [string map {"PROT3_" ""} [string map {"PROT4_" ""} [string map {"PROT5_" ""} [string map {"PROT6_" ""} [string map {"PROT7_" ""} [string map {"refclk_" ""} [string map {"R0_" ""} [string map {"R1_" ""} [string map {"R2_" ""} [string map {"R3_" ""} [string map {"R4_" ""} [string map {"R5_" ""} $temp ]]]]]]]]]]]]]]]]]]]]]]
+           if {[string match "*multiple*" $freq_val]} {
+           set multiple_freq_type [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} $temp ]]]]]]]]]]
+           set multiple_freq_prot_type [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} [string map {"\_R0" ""} [string map {"\_R1" ""} [string map {"\_R2" ""} [string map {"\_R3" ""} [string map {"\_R4" ""} [string map {"\_R5" ""} $temp ]]]]]]]]]]]]]]]]
+           set multi_freq_port_name [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} [string map {"\PROT0_" ""} [string map {"\PROT1_" ""} [string map {"\PROT2_" ""} [string map {"\PROT3_" ""} [string map {"\PROT4_" ""} [string map {"\PROT5_" ""} [string map {"\PROT6_" ""} [string map {"\PROT7_" ""} $temp ]]]]]]]]]]]]]]]]]]
             set snumk [expr $snumk+1]
             set list_AK0 [list $snumk]
-            set ref_name $quadCell\/GT_REFCLK$n   
+            set ref_name $quadCell\/GT_REFCLK$n
             set ref_clk_src [find_connected_core $ref_name]
             lappend list_AK0 $ref_name
             lappend list_AK0 "multiple"
             set prot_val ""
-              if {[string match "PROT0" $multiple_freq_prot_type]} {  
+              if {[string match "PROT0" $multiple_freq_prot_type]} {
                   set prot_val "PROT0"
-              } elseif {[string match "PROT1" $multiple_freq_prot_type]} {  
+              } elseif {[string match "PROT1" $multiple_freq_prot_type]} {
                   set prot_val "PROT1"
-              } elseif {[string match "PROT2" $multiple_freq_prot_type]} {  
+              } elseif {[string match "PROT2" $multiple_freq_prot_type]} {
                   set prot_val "PROT2"
-              } elseif {[string match "PROT3" $multiple_freq_prot_type]} {  
+              } elseif {[string match "PROT3" $multiple_freq_prot_type]} {
                   set prot_val "PROT3"
-              } elseif {[string match "PROT4" $multiple_freq_prot_type]} {  
+              } elseif {[string match "PROT4" $multiple_freq_prot_type]} {
                   set prot_val "PROT40"
-              } elseif {[string match "PROT5" $multiple_freq_prot_type]} {  
+              } elseif {[string match "PROT5" $multiple_freq_prot_type]} {
                   set prot_val "PROT5"
-              } elseif {[string match "PROT6" $multiple_freq_prot_type]} {  
+              } elseif {[string match "PROT6" $multiple_freq_prot_type]} {
                   set prot_val "PROT6"
-              } else {  
+              } else {
                   set prot_val "PROT7"
-              } 
+              }
               set lkey [dict get $LANE_SEL_DICT $prot_val]
                set lkeya [split $lkey " "]
                set lkeya1 [lindex $lkeya 0]
                set lkeyf "$quadCell\/$lkeya1\_GT_IP_INTERFACE"
                set pCellName [find_connected_core $lkeyf]
               lappend list_AK0 $pCellName
-               
+
            } else {
              set freq_val_with_prot_src [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} $temp ]]]]]]]]
               set freq_val_with_prot_src_space [string map {"\_" " "}  $freq_val_with_prot_src ]
@@ -263,9 +263,9 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
               set prot_src_info ""
               set snumk [expr $snumk+1]
               set list_AK0 [list $snumk]
-              set ref_name $quadCell\/GT_REFCLK$n    
+              set ref_name $quadCell\/GT_REFCLK$n
               set ref_clk_src [find_connected_core $ref_name]
-              lappend list_AK0 $ref_name              
+              lappend list_AK0 $ref_name
               set SRC ""
               set prot_src_info ""
                foreach PROT { PROT0 PROT1 PROT2 PROT3 PROT4 PROT5 PROT6 PROT7 } {
@@ -278,7 +278,7 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
                set prot_src_sp [split $prot_src_info1 " "]
                lappend list_AK0 $freq_val
                set pCellName ""
-               set pCellName1 ""               
+               set pCellName1 ""
                set num_parIP 0
                foreach ikk $prot_src_sp {
                set num_parIP [expr $num_parIP+1]
@@ -300,16 +300,16 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
                  set pCellName [join $pCellName1 ","]
                } else {
                  set pCellName $pCellName1
-               }   
+               }
 
-               }           
+               }
                lappend list_AK0 $pCellName
 
 
            }
           lappend list_AK0 $ref_clk_src
-          $tbl1 addrow $list_AK0  
-   
+          $tbl1 addrow $list_AK0
+
          }
         }
 
@@ -350,10 +350,10 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
         close $outfilek
     set done [add_files -norecurse $file_name]
     set done [import_files -force $file_name]
-    set done [file delete -force $pathk\/GTREFCLK_SUMMARY -quiet] 
-    puts " \n\n**************************************************************************" 
-    puts "INFO: \[GT_UTILS 1-1\] GTYE5_refclk_summary text file written out $file_name"
-    puts "**************************************************************************\n" 
+    set done [file delete -force $pathk\/GTREFCLK_SUMMARY -quiet]
+    puts " \n\n**************************************************************************"
+    puts "INFO: \[GT_UTILS 1-1\] GTYE5_refclk_summary text file written out $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt"
+    puts "**************************************************************************\n"
 }
 return ""
 
@@ -380,10 +380,10 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::lshift {inputli
 
 
 proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::find_connected_pin { connected_to } {
-  # Summary: 
+  # Summary:
   # Gives the connected pin information
 
-  # Argument Usage: 
+  # Argument Usage:
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -410,10 +410,10 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::find_connected_
 
 
 proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::find_connected_core { connected_to } {
-  # Summary: 
+  # Summary:
   # Gives the connected core information
 
-  # Argument Usage: 
+  # Argument Usage:
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -441,10 +441,10 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::find_connected_
 
 
 proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::get_parent {obj} {
-  # Summary: 
+  # Summary:
   # Gives the parent information
 
-  # Argument Usage: 
+  # Argument Usage:
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -459,13 +459,13 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::get_parent {obj
 }
 
 proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::not_empty_int {obj} {
-  # Summary: 
+  # Summary:
   # Gives the information of empty or non empty
 
-  # Argument Usage: 
+  # Argument Usage:
 
   # Return Value:
- 
+
   if { $obj != "" } {
     return 1
   } else {
@@ -474,10 +474,10 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::not_empty_int {
 }
 
 proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_properties { tx0Handle tx1Handle tx2Handle tx3Handle rx0Handle rx1Handle rx2Handle rx3Handle } {
-  # Summary: 
+  # Summary:
   # Evaluates block design properties and create a dict
 
-  # Argument Usage: 
+  # Argument Usage:
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -485,7 +485,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
   # Categories: Xilinxtclstore, projutils
 
 
-       set settings_string [dict create] 
+       set settings_string [dict create]
 
 
         set CHNL_ORDER [dict create]
@@ -498,18 +498,18 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
                 set var2 "TX${txIdx}_PARENTPIN"
                 set ParentPin [subst $$var2]
                 if {$ParentPin == ""} {
-                set TX${txIdx}_PARENT_ID         "undef" 
+                set TX${txIdx}_PARENT_ID         "undef"
                 } else {
-                set TX${txIdx}_PARENT_ID         [get_property CONFIG.PARENT_ID $txHandle] 
+                set TX${txIdx}_PARENT_ID         [get_property CONFIG.PARENT_ID $txHandle]
                 }
-                set TX${txIdx}_CHNL_NUMBER       [get_property CONFIG.CHNL_NUMBER $txHandle] 
-                set TX${txIdx}_MASTERCLK_SRC     [get_property CONFIG.MASTERCLK_SRC $txHandle] 
-                #set TX${txIdx}_ADDN_FILE     [get_property CONFIG.ADDITIONAL_CONFIG_FILE $txHandle] 
-                set TX${txIdx}_GT_DIRECTION  [get_property CONFIG.GT_DIRECTION $txHandle] 
-                set TX${txIdx}_GT_SETTINGS       [get_property CONFIG.TX_SETTINGS $txHandle]  
+                set TX${txIdx}_CHNL_NUMBER       [get_property CONFIG.CHNL_NUMBER $txHandle]
+                set TX${txIdx}_MASTERCLK_SRC     [get_property CONFIG.MASTERCLK_SRC $txHandle]
+                #set TX${txIdx}_ADDN_FILE     [get_property CONFIG.ADDITIONAL_CONFIG_FILE $txHandle]
+                set TX${txIdx}_GT_DIRECTION  [get_property CONFIG.GT_DIRECTION $txHandle]
+                set TX${txIdx}_GT_SETTINGS       [get_property CONFIG.TX_SETTINGS $txHandle]
                 set var "TX${txIdx}_PARENT_ID"
-                set PID [subst $$var] 
-                
+                set PID [subst $$var]
+
                 set var3 "TX${txIdx}_CHNL_NUMBER"
                 set ParentChnlIdx [subst $$var3]
                 if { [get_property CONFIG.PARENT_ID $txHandle] ne "undef" && [get_property CONFIG.CHNL_NUMBER $txHandle] ne "undef" } {
@@ -517,7 +517,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
                 }
             }
         }
-       
+
         foreach rxIdx { 0 1 2 3 } {
             set var "rx${rxIdx}Handle"
             set rxHandle [subst $$var]
@@ -526,18 +526,18 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
                 set var2 "RX${rxIdx}_PARENTPIN"
                 set ParentPin [subst $$var2]
                 if {$ParentPin == ""} {
-                set RX${rxIdx}_PARENT_ID         "undef" 
+                set RX${rxIdx}_PARENT_ID         "undef"
                 } else {
-                set RX${rxIdx}_PARENT_ID         [get_property CONFIG.PARENT_ID $rxHandle] 
+                set RX${rxIdx}_PARENT_ID         [get_property CONFIG.PARENT_ID $rxHandle]
                 }
-                set RX${rxIdx}_CHNL_NUMBER       [get_property CONFIG.CHNL_NUMBER $rxHandle] 
-                set RX${rxIdx}_MASTERCLK_SRC     [get_property CONFIG.MASTERCLK_SRC $rxHandle] 
-                #set RX${rxIdx}_ADDN_FILE     [get_property CONFIG.ADDITIONAL_CONFIG_FILE $rxHandle] 
-                set RX${rxIdx}_GT_DIRECTION  [get_property CONFIG.GT_DIRECTION $rxHandle] 
+                set RX${rxIdx}_CHNL_NUMBER       [get_property CONFIG.CHNL_NUMBER $rxHandle]
+                set RX${rxIdx}_MASTERCLK_SRC     [get_property CONFIG.MASTERCLK_SRC $rxHandle]
+                #set RX${rxIdx}_ADDN_FILE     [get_property CONFIG.ADDITIONAL_CONFIG_FILE $rxHandle]
+                set RX${rxIdx}_GT_DIRECTION  [get_property CONFIG.GT_DIRECTION $rxHandle]
                 set RX${rxIdx}_GT_SETTINGS       [get_property CONFIG.RX_SETTINGS $rxHandle]
                 set var "RX${rxIdx}_PARENT_ID"
-                set PID [subst $$var] 
-                
+                set PID [subst $$var]
+
                 set var3 "RX${rxIdx}_CHNL_NUMBER"
                 set ParentChnlIdx [subst $$var3]
                 if { [get_property CONFIG.PARENT_ID $rxHandle] ne "undef" && [get_property CONFIG.CHNL_NUMBER $rxHandle] ne "undef" } {
@@ -546,56 +546,56 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
             }
         }
         ###set CHANNEL_ORDERING ${CHNL_ORDER} $cell
-        set settings_string [dict merge $settings_string [dict create CHANNEL_ORDERING ${CHNL_ORDER}]] 
+        set settings_string [dict merge $settings_string [dict create CHANNEL_ORDERING ${CHNL_ORDER}]]
     ##################################### setting initial values to default  ############################################################################
        foreach int { TX0 TX1 TX2 TX3 RX0 RX1 RX2 RX3 } {
-         ##set ${int}_LANE_SEL "unconnected" $cell 
-        set settings_string [dict merge $settings_string [dict create ${int}_LANE_SEL "unconnected"]] 
-       }  
+         ##set ${int}_LANE_SEL "unconnected" $cell
+        set settings_string [dict merge $settings_string [dict create ${int}_LANE_SEL "unconnected"]]
+       }
     ###########################################################################################################################################################
     ######################################## Creating a single DICT with parent IDs as keys and lanes as values  ##############################################
-        set IP_DICT [dict create] 
-         if {[string equal -nocase $RX0_PARENT_ID "undef"] == 0}  { 
+        set IP_DICT [dict create]
+         if {[string equal -nocase $RX0_PARENT_ID "undef"] == 0}  {
             dict lappend IP_DICT $RX0_PARENT_ID RX0
          }
-         if {[string equal -nocase $RX1_PARENT_ID "undef"] == 0}  { 
+         if {[string equal -nocase $RX1_PARENT_ID "undef"] == 0}  {
             dict lappend IP_DICT $RX1_PARENT_ID RX1
          }
-         if {[string equal -nocase $RX2_PARENT_ID "undef"] == 0}  { 
+         if {[string equal -nocase $RX2_PARENT_ID "undef"] == 0}  {
             dict lappend IP_DICT $RX2_PARENT_ID RX2
          }
-         if {[string equal -nocase $RX3_PARENT_ID "undef"] == 0}  { 
+         if {[string equal -nocase $RX3_PARENT_ID "undef"] == 0}  {
             dict lappend IP_DICT $RX3_PARENT_ID RX3
          }
-         if {[string equal -nocase $TX0_PARENT_ID "undef"] == 0}  { 
+         if {[string equal -nocase $TX0_PARENT_ID "undef"] == 0}  {
             dict lappend IP_DICT $TX0_PARENT_ID TX0
          }
-         if {[string equal -nocase $TX1_PARENT_ID "undef"] == 0}  { 
+         if {[string equal -nocase $TX1_PARENT_ID "undef"] == 0}  {
             dict lappend IP_DICT $TX1_PARENT_ID TX1
          }
-         if {[string equal -nocase $TX2_PARENT_ID "undef"] == 0}  { 
+         if {[string equal -nocase $TX2_PARENT_ID "undef"] == 0}  {
             dict lappend IP_DICT $TX2_PARENT_ID TX2
          }
-         if {[string equal -nocase $TX3_PARENT_ID "undef"] == 0}  { 
+         if {[string equal -nocase $TX3_PARENT_ID "undef"] == 0}  {
             dict lappend IP_DICT $TX3_PARENT_ID TX3
          }
     ###########################################################################################################################################################
     ###################################### Editing the dict to replace keys from parent_ids to PROT* ##########################################################
-       set NO_OF_IP [dict size $IP_DICT]    
+       set NO_OF_IP [dict size $IP_DICT]
        set ALL_KEYS [dict keys $IP_DICT]
-       set IP_DICT2 [dict create] 
+       set IP_DICT2 [dict create]
        set INITIAL_VALUE " "
        for {set i 0} {$i < $NO_OF_IP} {incr i} {
          set K [lindex $ALL_KEYS $i]
          dict append IP_DICT2 PROT$i [dict get $IP_DICT $K]
-         ##set PROT${i}_ENABLE "true" $cell 
+         ##set PROT${i}_ENABLE "true" $cell
          set settings_string [dict merge  $settings_string [dict create PROT${i}_ENABLE "true"] ]
-         set settings_string [dict merge $settings_string [dict create PROT${i}_TX_MASTERCLK_SRC "None"]] 
-         set settings_string [dict merge $settings_string [dict create PROT${i}_RX_MASTERCLK_SRC "None"]] 
+         set settings_string [dict merge $settings_string [dict create PROT${i}_TX_MASTERCLK_SRC "None"]]
+         set settings_string [dict merge $settings_string [dict create PROT${i}_RX_MASTERCLK_SRC "None"]]
          foreach LR_num { 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15} {
            set settings_string [dict merge $settings_string [dict create PROT${i}_LR${LR_num}_SETTINGS $INITIAL_VALUE] ]
          }
-       }  
+       }
     ###########################################################################################################################################################
     ##################################################################################################################################
     ###    1. Take each PROT , take the first TX(RX) and/or RX(TX) associated with and obtain the various parameters.     ############
@@ -611,10 +611,10 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
               set settings_string [dict merge $settings_string [dict create ${m}_LANE_SEL $int] ]
               if {[string match "*TX*" $m] } {
                set var_name0 "${m}_GT_SETTINGS"
-               set TX_Settings [subst $$var_name0] 
+               set TX_Settings [subst $$var_name0]
                if {$NO_OF_TX == 0} {
                  foreach LR { LR0 LR1 LR2 LR3 LR4 LR5 LR6 LR7 LR8 LR9 LR10 LR11 LR12 LR13 LR14 LR15 } {
-                   if {[dict exists $TX_Settings ${LR}_SETTINGS]}  { 
+                   if {[dict exists $TX_Settings ${LR}_SETTINGS]}  {
                      set TX_${LR}_INT_SETTINGS [dict get $TX_Settings ${LR}_SETTINGS]
                    }
                  }
@@ -622,25 +622,25 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
                }
                set masterclk_src "${m}_MASTERCLK_SRC"
                if { [subst $$masterclk_src] == 1 } {
-                 set settings_string [dict merge $settings_string [dict create ${int}_TX_MASTERCLK_SRC $m]] 
+                 set settings_string [dict merge $settings_string [dict create ${int}_TX_MASTERCLK_SRC $m]]
                }
                #set additional_file "${m}_ADDN_FILE"
                #if { [subst $$additional_file] != "" } {
                #if { [subst $$additional_file] != "no_addn_file_loaded" } {
-               #  set settings_string [dict merge $settings_string [dict create ${int}_ADD_CONFIG_EN "false" ]] 
-               #  set settings_string [dict merge $settings_string [dict create ${int}_ADD_CONFIG_FILE [subst $$additional_file]]] 
+               #  set settings_string [dict merge $settings_string [dict create ${int}_ADD_CONFIG_EN "false" ]]
+               #  set settings_string [dict merge $settings_string [dict create ${int}_ADD_CONFIG_FILE [subst $$additional_file]]]
                #}
                #}
                incr NO_OF_TX
               } elseif {[string match "*RX*" $m] } {
                set var_name0 "${m}_GT_SETTINGS"
-               set RX_Settings [subst $$var_name0] 
+               set RX_Settings [subst $$var_name0]
                if {$NO_OF_RX == 0} {
-                 if {[dict exists $RX_Settings TANDEM_SETTINGS]}  { 
+                 if {[dict exists $RX_Settings TANDEM_SETTINGS]}  {
                    set settings_string [dict merge $settings_string [dict create TANDEM_MODE "true"] ]
                  }
                  foreach LR { LR0 LR1 LR2 LR3 LR4 LR5 LR6 LR7 LR8 LR9 LR10 LR11 LR12 LR13 LR14 LR15 } {
-                   if {[dict exists $RX_Settings ${LR}_SETTINGS]}  { 
+                   if {[dict exists $RX_Settings ${LR}_SETTINGS]}  {
                      set RX_${LR}_INT_SETTINGS [dict get $RX_Settings ${LR}_SETTINGS]
                    }
                  }
@@ -653,8 +653,8 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
                #set additional_file "${m}_ADDN_FILE"
                #if { [subst $$additional_file] != "" } {
                #if { [subst $$additional_file] != "no_addn_file_loaded" } {
-               #  set settings_string [dict merge $settings_string [dict create ${int}_ADD_CONFIG_EN "false" ]] 
-               #  set settings_string [dict merge $settings_string [dict create ${int}_ADD_CONFIG_FILE [subst $$additional_file]]] 
+               #  set settings_string [dict merge $settings_string [dict create ${int}_ADD_CONFIG_EN "false" ]]
+               #  set settings_string [dict merge $settings_string [dict create ${int}_ADD_CONFIG_FILE [subst $$additional_file]]]
                #}
                #}
                incr NO_OF_RX
@@ -663,13 +663,13 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
           }
           if { ($NO_OF_RX > 0) && ($NO_OF_TX == 0) } {
             set settings_string [dict merge $settings_string [dict create ${int}_GT_DIRECTION "SIMPLEX_RX"] ]
-            set settings_string [dict merge $settings_string [dict create ${int}_NO_OF_RX_LANES $NO_OF_RX]] 
+            set settings_string [dict merge $settings_string [dict create ${int}_NO_OF_RX_LANES $NO_OF_RX]]
             set INT_VAR "GT_DIRECTION SIMPLEX_RX"
             foreach LR { LR0 LR1 LR2 LR3 LR4 LR5 LR6 LR7 LR8 LR9 LR10 LR11 LR12 LR13 LR14 LR15 } {
-              if { [dict exists $RX_Settings ${LR}_SETTINGS] }  { 
+              if { [dict exists $RX_Settings ${LR}_SETTINGS] }  {
                  set LR_SET_RX "RX_${LR}_INT_SETTINGS"
                  set LR_SET_TEMP_RX [subst $$LR_SET_RX]
-                 set TEMP_SETTINGS_RX [append INT_VAR " " $LR_SET_TEMP_RX] 
+                 set TEMP_SETTINGS_RX [append INT_VAR " " $LR_SET_TEMP_RX]
                  set settings_string [dict merge $settings_string [dict create ${int}_${LR}_SETTINGS [get_GT_settings $TEMP_SETTINGS_RX]] ]
               }
             }
@@ -678,7 +678,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
             set settings_string [dict merge $settings_string [dict create ${int}_NO_OF_TX_LANES $NO_OF_TX] ]
             set INT_VAR "GT_DIRECTION SIMPLEX_TX"
             foreach LR { LR0 LR1 LR2 LR3 LR4 LR5 LR6 LR7 LR8 LR9 LR10 LR11 LR12 LR13 LR14 LR15 } {
-              if { [dict exists $TX_Settings ${LR}_SETTINGS] }  { 
+              if { [dict exists $TX_Settings ${LR}_SETTINGS] }  {
                  set LR_SET_TX "TX_${LR}_INT_SETTINGS"
                  set LR_SET_TEMP_TX [subst $$LR_SET_TX]
                  set TEMP_SETTINGS_TX [append INT_VAR " " $LR_SET_TEMP_TX]
@@ -690,29 +690,29 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
             set settings_string [dict merge $settings_string [dict create ${int}_NO_OF_LANES $NO_OF_TX] ]
             set INT_VAR "GT_DIRECTION DUPLEX"
             foreach LR { LR0 LR1 LR2 LR3 LR4 LR5 LR6 LR7 LR8 LR9 LR10 LR11 LR12 LR13 LR14 LR15 } {
-              if { [dict exists $RX_Settings ${LR}_SETTINGS] && [dict exists $TX_Settings ${LR}_SETTINGS]}  { 
+              if { [dict exists $RX_Settings ${LR}_SETTINGS] && [dict exists $TX_Settings ${LR}_SETTINGS]}  {
                  set LR_SET_RX "RX_${LR}_INT_SETTINGS"
                  set LR_SET_TX "TX_${LR}_INT_SETTINGS"
                  set LR_SET_TEMP_RX [subst $$LR_SET_RX]
                  set LR_SET_TEMP_TX [subst $$LR_SET_TX]
-                 set TEMP_SETTINGS_DUPLEX [append INT_VAR " " $LR_SET_TEMP_TX " " $LR_SET_TEMP_RX] 
-                 set settings_string [dict merge $settings_string [dict create ${int}_${LR}_SETTINGS [get_GT_settings $TEMP_SETTINGS_DUPLEX]]] 
+                 set TEMP_SETTINGS_DUPLEX [append INT_VAR " " $LR_SET_TEMP_TX " " $LR_SET_TEMP_RX]
+                 set settings_string [dict merge $settings_string [dict create ${int}_${LR}_SETTINGS [get_GT_settings $TEMP_SETTINGS_DUPLEX]]]
               }
             }
           } elseif { ($NO_OF_RX > 0) && ($NO_OF_TX > 0) && ($NO_OF_TX != $NO_OF_RX) } {
-            set settings_string [dict merge $settings_string [dict create ${int}_GT_DIRECTION "ASYMMETRIC"]] 
-            set settings_string [dict merge $settings_string [dict create ${int}_NO_OF_TX_LANES $NO_OF_TX]] 
-            set settings_string [dict merge $settings_string [dict create ${int}_NO_OF_RX_LANES $NO_OF_RX]] 
+            set settings_string [dict merge $settings_string [dict create ${int}_GT_DIRECTION "ASYMMETRIC"]]
+            set settings_string [dict merge $settings_string [dict create ${int}_NO_OF_TX_LANES $NO_OF_TX]]
+            set settings_string [dict merge $settings_string [dict create ${int}_NO_OF_RX_LANES $NO_OF_RX]]
             set INT_VAR "GT_DIRECTION ASYMMETRIC"
             foreach LR { LR0 LR1 LR2 LR3 LR4 LR5 LR6 LR7 LR8 LR9 LR10 LR11 LR12 LR13 LR14 LR15 } {
-              if { [dict exists $RX_Settings ${LR}_SETTINGS] && [dict exists $TX_Settings ${LR}_SETTINGS]}  { 
+              if { [dict exists $RX_Settings ${LR}_SETTINGS] && [dict exists $TX_Settings ${LR}_SETTINGS]}  {
                  set LR_SET_RX "RX_${LR}_INT_SETTINGS"
                  set LR_SET_TX "TX_${LR}_INT_SETTINGS"
                  set LR_SET_TEMP_RX [subst $$LR_SET_RX]
                  set LR_SET_TEMP_TX [subst $$LR_SET_TX]
-                 set TEMP_SETTINGS_DUPLEX [append INT_VAR " " $LR_SET_TEMP_TX " " $LR_SET_TEMP_RX] 
+                 set TEMP_SETTINGS_DUPLEX [append INT_VAR " " $LR_SET_TEMP_TX " " $LR_SET_TEMP_RX]
                  ##set ${int}_${LR}_SETTINGS [get_GT_settings $TEMP_SETTINGS_DUPLEX] $cell
-                 set settings_string [dict merge $settings_string [dict create ${int}_${LR}_SETTINGS [get_GT_settings $TEMP_SETTINGS_DUPLEX]]] 
+                 set settings_string [dict merge $settings_string [dict create ${int}_${LR}_SETTINGS [get_GT_settings $TEMP_SETTINGS_DUPLEX]]]
               }
             }
           }
@@ -723,17 +723,17 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
 }
 
 proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::map_int {lambda larg {cull_empty 0}} {
-  # Summary: 
-  # Maps latest vlnv 
+  # Summary:
+  # Maps latest vlnv
 
-  # Argument Usage: 
+  # Argument Usage:
 
   # Return Value:
   # true (0) if success, false (1) otherwise
 
   # Categories: Xilinxtclstore, projutils
 
-    
+
   set result {}
   foreach i $larg {
     set tmp [apply $lambda $i]
@@ -741,7 +741,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::map_int {lambda
        if {[not_empty_int $tmp]} {
           lappend result $tmp
        }
-    } else { 
+    } else {
       lappend result $tmp
     }
   }
@@ -750,10 +750,10 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::map_int {lambda
 
   proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::get_latest_vlnv {} {
 
-  # Summary: 
+  # Summary:
   # Gives the latest vlnv of quad base IP
 
-  # Argument Usage: 
+  # Argument Usage:
 
   # Return Value:
   # returns latest vlnv of quad base IP
@@ -770,9 +770,9 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::map_int {lambda
         }
       }
     }
-    
+
     set finalVlnv ""
-    
+
     if {[llength $latestVlnvs] eq 0} {
       set finalVlnv [lindex $vlnv 0]
     } elseif {[llength $latestVlnvs] > 1} {
@@ -786,8 +786,8 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::map_int {lambda
   }
 
   proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::EvalSubstituting {parameters procedure {numlevels 1}} {
-  # Summary: 
-  # Used internally to get the quad base instances 
+  # Summary:
+  # Used internally to get the quad base instances
 
   # Argument Usage:
   # Return Value:
