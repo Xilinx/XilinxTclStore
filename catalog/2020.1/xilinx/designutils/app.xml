@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added new proc report_gtye5_refclk_summary.tcl</revision_history>
+      <revision_history>Output file path in the INFO message updated (report_gtye5_refclk_summary)</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
