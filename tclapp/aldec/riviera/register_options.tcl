@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.18
+package require ::tclapp::aldec::common::helpers 1.19
 
 namespace eval ::tclapp::aldec::riviera {
 
@@ -36,7 +36,7 @@ proc register_options { simulator } {
     {{compile.sv_syntax}         {enum}   {2012 2012 {2005 2009 2012}}   {Specify SystemVerilog standard}}
     {{compile.vhdl_relax}   {bool}   {0}                                     {Relax strict VHDL LRM requirements}}
     {{compile.debug}         {bool}   {0}                                     {Generate debugging information}}
-    {{compile.load_glbl}         {bool}   {0}                                     {Load GLBL module}}    
+    {{compile.load_glbl}         {bool}   {1}                                     {Load GLBL module}}    
     {{compile.vlog.more_options}   {string} {}                                      {More Verilog compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VHDL compilation options}}
 
@@ -64,7 +64,7 @@ proc register_options { simulator } {
     {{simulate.log_all_signals}    {bool}   {0}                                     {Log all signals in simulation database}}
     {{simulate.debug}    {bool}   {0}                                     {Enable debugging features}}
     {{simulate.verilog_acceleration}    {bool}   {1}                                     {Enable verilog acceleration}}
-    {{simulate.uut}                {string} {}                                      {Specify hierarchical path of unit under test instance}}
+    {{simulate.saif_scope}         {string} {}                                      {Specifies a design region to be exported to SAIF}}
     {{simulate.saif}               {string} {}                                      {Generate SAIF file for power analysis}}
     {{simulate.asim.more_options}  {string} {}                                      {More simulation options}}
 

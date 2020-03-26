@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.18
+package provide ::tclapp::aldec::common::helpers 1.19
 
 namespace eval ::tclapp::aldec::common {
 
@@ -507,6 +507,12 @@ proc setPreCompiledLibraries2DesignBrowser { _generateLaibraryMode } {
 	set generateLaibraryMode $_generateLaibraryMode
 }
 
+proc setlnlglbl { _glbl } {
+	variable userSetGlbl
+
+	set userSetGlbl $_glbl
+}
+
 proc isGenerateLaibraryMode { } {
 	variable generateLaibraryMode
 
@@ -517,6 +523,16 @@ proc isGenerateLaibraryMode { } {
 		}
 
 		return 1
+	}
+
+	return 0
+}
+
+proc isGlblByUser { } {
+	variable userSetGlbl
+
+	if { [ info exists userSetGlbl ] } {
+		return $userSetGlbl
 	}
 
 	return 0
@@ -740,6 +756,7 @@ proc usf_init_vars {} {
 	variable allDesignFiles
 	variable properties
 	variable generateLaibraryMode
+	variable userSetGlbl
 	
 	array unset a_sim_cache_all_bd_files
 	array unset a_sim_cache_parent_comp_files
@@ -1805,8 +1822,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       lappend include_directories_options "\"+incdir+$dir\""
     }
   }
-  
-  if { ![ isSystemCEnabled ] } {
+
     if { ( [ lsearch -exact $compiledLibraries "xilinx_vip" ] == -1 ) } {
 		if { [ llength $systemVerilogPackageLibraries ] > 0 } {
 			set incl_dir_opts "\\\"+incdir+[getVipIncludeDirs]\\\""
@@ -1829,7 +1845,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 			lappend include_directories_options "\"+incdir+$dir\""
 		}
 	}
-  }
 
 	set l_C_incl_dirs_opts     [list]
 	set ststemCLibraryPaths ""
@@ -1881,18 +1896,44 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       "SimulationSrcs" { set used_in_val "simulation"}
       "BlockSrcs"      { set used_in_val "synthesis" }
     }
+
+	set b_using_xpm_libraries false
     set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
     foreach library $xpm_libraries {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
-        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
+        set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options true]
+		
+		
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
+		  set b_using_xpm_libraries true
         }
       }
     }
+
+	if { $b_using_xpm_libraries } {
+		if { [string equal -nocase [get_property "SIMULATOR_LANGUAGE" [current_project] ] "verilog"] == 1 } {
+			# do not compile vhdl component file if simulator language is verilog
+		} else {
+			set xpm_library [ usf_get_common_xpm_library ]
+			set common_xpm_vhdl_files [ usf_get_common_xpm_vhdl_files ]
+			
+			foreach file $common_xpm_vhdl_files {
+				set file_type "VHDL"
+				set g_files {}
+				set cmd_str [ usf_get_file_cmd_str $file $file_type $g_files other_ver_opts true $xpm_library ]
+
+				if { {} != $cmd_str } {
+					lappend files $cmd_str
+					lappend l_compile_order_files $file
+				}
+			}
+		}
+    }
+
     set b_add_sim_files 1
     # add files from block filesets
     if { {} != $linked_src_set } {
@@ -2409,6 +2450,44 @@ proc usf_make_file_executable { file } {
       send_msg_id USF-[usf_aldec_getSimulatorName]-96 WARNING "Failed to change file permissions to executable ($file): $error_msg\n"
     }
   }
+}
+
+proc getSimulatorVersion {} {
+	variable properties
+	
+	switch -- [ get_property target_simulator [ current_project ] ] {
+		Riviera {
+			set tool_extn {.bat}		
+			if { $::tcl_platform(platform) == "unix" } {
+				set tool_extn {}
+			}
+
+			set vsimsa [file join $properties(s_tool_bin_path) "../runvsimsa$tool_extn"]
+			if { [ file isfile $vsimsa ] } {
+				set in [open "| \"$vsimsa\" -version"]
+				set resultExe [read $in]
+				close $in
+
+				if { $resultExe != "" } {
+					regexp -nocase {(\d+.)+} $resultExe version
+					return [ string trim $version ]
+				}
+			}	
+		}
+		ActiveHDL {
+			set vsimsa [file join $properties(s_tool_bin_path) vsim.exe ]
+			set resultExe ""
+
+			catch { set resultExe [ exec $vsimsa -version ] } 
+
+			if { $resultExe != "" } {
+				regexp -nocase {(\d+.)+} $resultExe version
+				return [ string trim $version ]
+			}
+		}
+	}
+
+	return ""
 }
 
 proc usf_aldec_get_platform {} {
@@ -3539,9 +3618,12 @@ proc getFileCmdStr { file _fileType _xpm _globalFilesStr _includeDirsOptions { _
 		set associatedLibrary $_xvLibrary
 	}
 
-	set ipFile [ usf_get_top_ip_filename $file ]
 	set b_static_ip_file 0
-	set file [ usf_get_ip_file_from_repo $ipFile $file $associatedLibrary $launchDirectory b_static_ip_file ]
+	if { !$_xpm } {
+		set ipFile [ usf_get_top_ip_filename $file ]
+
+		set file [ usf_get_ip_file_from_repo $ipFile $file $associatedLibrary $launchDirectory b_static_ip_file ]
+	}
 
 	if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
 	} else {
@@ -3568,7 +3650,14 @@ proc getFileCmdStr { file _fileType _xpm _globalFilesStr _includeDirsOptions { _
 	return $commandStr
 }
 
-proc usf_get_file_cmd_str { file file_type global_files_str include_directories_options_arg } {
+proc usf_get_file_cmd_str { \
+	file \
+	file_type \
+	global_files_str \
+	include_directories_options_arg \
+	{ _xpm 0 } \
+	{ _xpmLibrary {} } \
+} {
 	variable properties
 	variable allDesignFiles
 
@@ -3606,11 +3695,21 @@ proc usf_get_file_cmd_str { file file_type global_files_str include_directories_
 				}
 			}
 		}
+	} else { ; # File object is not defined. Check if this is an XPM file...
+		if { $_xpm } {
+			if { [string length $_xpmLibrary] != 0 } {
+				set associated_library $_xpmLibrary
+			} else {
+				set associated_library "xpm"
+			}
+		}
 	}
 
 	set b_static_ip_file 0
-	set ip_file [ usf_get_top_ip_filename $file ]
-	set file [usf_get_ip_file_from_repo $ip_file $file $associated_library $properties(launch_directory) b_static_ip_file]
+	if { !$_xpm } {
+		set ip_file [ usf_get_top_ip_filename $file ]
+		set file [usf_get_ip_file_from_repo $ip_file $file $associated_library $properties(launch_directory) b_static_ip_file]
+	}
 
 	set compiler [usf_get_compiler_name $file_type]
 	set arg_list [ list ]
@@ -5572,6 +5671,35 @@ proc usf_print_shared_lib_info { } {
   puts "-----------------------------------------------------------------------------------------------------------"
 }
 
+proc usf_get_common_xpm_library {} {
+	return "xpm"
+}
+
+proc usf_get_common_xpm_vhdl_files {} {
+	set files [list]
+	# is override param dir specified?
+	set ip_dir [ get_param "project.xpm.overrideIPDir" ]
+	
+	if { ({} != $ip_dir) && [file exists $ip_dir] } {
+		set comp_file "$ip_dir/xpm_VCOMP.vhd"
+		if { ![ file exists $comp_file ] } {
+			set file [usf_get_path_from_data "ip/xpm/xpm_VCOMP.vhd"]	
+			set comp_file $file
+
+			send_msg_id SIM-[usf_aldec_getSimulatorName]-99 WARNING "The component file does not exist! '$comp_file'. Using default: '$file'\n"
+		}
+		lappend files $comp_file
+	} else {
+		lappend files [usf_get_path_from_data "ip/xpm/xpm_VCOMP.vhd"]
+	}
+
+	return $files
+}
+
+proc usf_get_path_from_data { path_from_data } {
+  set data_dir [ rdi::get_data_dir -quiet -datafile $path_from_data ]
+  return [ file normalize [ file join $data_dir $path_from_data ] ]
+}
 }
 
 #
