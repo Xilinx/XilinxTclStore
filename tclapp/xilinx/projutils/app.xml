@@ -36,7 +36,7 @@
         </proc>
         <proc>
           <name>generate_hier_access</name>
-          <summary/>
+          <summary>Generate sources for hierarchical access simulation</summary>
         </proc>
         <proc>
           <name>setup_ip_static_library</name>
