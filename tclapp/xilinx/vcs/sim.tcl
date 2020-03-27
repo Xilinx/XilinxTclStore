@@ -784,6 +784,8 @@ proc usf_vcs_write_compile_script {} {
         set module_name [file root [file tail $sysc_src_file]]
         if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
           append sysc_src_file ":$module_name"
+          # switch to speedup data propagation from systemC to RTL with the interface model
+          set cmd_str [regsub {\-cflags} $cmd_str {-sysc=opt_if -cflags}]
         }
         set sysc_src_file "\"$sysc_src_file\""
         if { {} != $tool_path } {
