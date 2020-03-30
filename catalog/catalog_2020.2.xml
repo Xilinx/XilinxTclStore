@@ -141,8 +141,8 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>d7110ff7675135b37f67e4e8789832049a47c8d8</commit_id>
-      <revision>8.4</revision>
+      <commit_id>11b0a2ec2e7dd681a2cb765e1052c51c965e2d3c</commit_id>
+      <revision>8.5</revision>
     </app>
     <app>
       <name>x2rp</name>

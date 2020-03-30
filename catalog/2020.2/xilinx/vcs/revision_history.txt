@@ -1,3 +1,4 @@
+8.5 auto map compiled libraries for netlist simulation
 8.4 pass -sysc=opt_if to speed up data propagation
 8.3 merged fixes from 2020.1
 8.2 fixed used_in values check for simulation tag
