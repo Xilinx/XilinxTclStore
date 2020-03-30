@@ -1,3 +1,4 @@
+9.24 auto map compiled libraries for netlist simulation
 9.23 pass -sysc=opt_if to speed up data propagation
 9.22 replace protected simmodel path set by param
 9.21 find sv verilog static sources from IP repo root level core
