@@ -996,35 +996,47 @@ proc usf_vcs_write_elaborate_script {} {
   #
   # user design and xpm libraries will be resolved by setup file (post* simulation)
   #
-  if { ({post-synthesis} == $mode) || ({post-implementation} == $mode) } {
-    if { {Verilog} == $target_lang } {
-      if { {functional} == $type } {
-        if { "virtexuplus58g" == [rdi::get_family -arch] } {
-          lappend arg_list "-liblist unisim"
-        }
-        lappend arg_list "-liblist unisims_ver"
-      } elseif { {timing} == $type } {
-        lappend arg_list "-liblist simprims_ver"
-      }
-      lappend arg_list "-liblist secureip"
-      lappend arg_list "-liblist xil_defaultlib"
-    } elseif { {VHDL} == $target_lang } {
-      if { {functional} == $type } {
-        # TODO: bind following 3 for hybrid only
-        if { "virtexuplus58g" == [rdi::get_family -arch] } {
-          lappend arg_list "-liblist unisim"
-          lappend arg_list "-liblist unisims_ver"
-          lappend arg_list "-liblist secureip"
-        }
-      } elseif { {timing} == $type } {
+  set b_auto_map_ref_lib false
+  [catch {set b_auto_map_ref_lib [get_param simulator.autoMapVCSLibraryForNetlistSimulation]} err]
+  if { $b_auto_map_ref_lib } {
+    if { ({post-synthesis} == $mode) || ({post-implementation} == $mode) } {
+      if { {timing} == $type } {
+        lappend arg_list "-liblist xil_defaultlib"
         lappend arg_list "-liblist simprims_ver"
         lappend arg_list "-liblist secureip"
       }
-      lappend arg_list "-liblist xil_defaultlib"
     }
-    # bind hybrid unisims ver components that were compiled into 'unisim' library for versal
-    if { "versal" == [rdi::get_family -arch] } {
-      lappend arg_list "-liblist unisim"
+  } else {
+    if { ({post-synthesis} == $mode) || ({post-implementation} == $mode) } {
+      if { {Verilog} == $target_lang } {
+        if { {functional} == $type } {
+          if { "virtexuplus58g" == [rdi::get_family -arch] } {
+            lappend arg_list "-liblist unisim"
+          }
+          lappend arg_list "-liblist unisims_ver"
+        } elseif { {timing} == $type } {
+          lappend arg_list "-liblist simprims_ver"
+        }
+        lappend arg_list "-liblist secureip"
+        lappend arg_list "-liblist xil_defaultlib"
+      } elseif { {VHDL} == $target_lang } {
+        if { {functional} == $type } {
+          # TODO: bind following 3 for hybrid only
+          if { "virtexuplus58g" == [rdi::get_family -arch] } {
+            lappend arg_list "-liblist unisim"
+            lappend arg_list "-liblist unisims_ver"
+            lappend arg_list "-liblist secureip"
+          }
+        } elseif { {timing} == $type } {
+          lappend arg_list "-liblist simprims_ver"
+          lappend arg_list "-liblist secureip"
+        }
+        lappend arg_list "-liblist xil_defaultlib"
+      }
+      # bind hybrid unisims ver components that were compiled into 'unisim' library for versal
+      if { "versal" == [rdi::get_family -arch] } {
+        lappend arg_list "-liblist unisim"
+      }
     }
   }
 
