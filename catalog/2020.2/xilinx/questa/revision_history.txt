@@ -1,3 +1,4 @@
+2.168 bind DPI-C model if param is set
 2.167 pass args for AIE to bind symbol
 2.166 merged fixes from 2020.1
 2.165 fixed used_in values check for simulation tag
