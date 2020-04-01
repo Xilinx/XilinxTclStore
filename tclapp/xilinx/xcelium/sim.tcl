@@ -381,7 +381,14 @@ proc usf_xcelium_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
+
+  set b_bind_dpi_c false
+  [catch {set b_bind_dpi_c [get_param project.bindGTDPICModel]} err]
   set ip_obj [xcs_find_ip "gt_quad_base"]
+  # if bind_dpi is false, then set ip_obj to null (donot trigger code below)
+  if { !$b_bind_dpi_c } {
+    set ip_ob {}
+  }
 
   set b_add_dummy_binding 0
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
@@ -1301,10 +1308,15 @@ proc usf_xcelium_write_simulate_script {} {
     set tool_path_val "$tool"
   }
   set arg_list [list "${tool_path_val}" "\$${tool}_opts"]
+
+  set b_bind_dpi_c false
+  [catch {set b_bind_dpi_c [get_param project.bindGTDPICModel]} err]
   set ip_obj [xcs_find_ip "gt_quad_base"]
   if { {} != $ip_obj } {
-    lappend arg_list "-sv_root \"$a_sim_vars(s_clibs_dir)/secureip\""
-    lappend arg_list "-sv_lib libgtye5_quad.so"
+    if { $b_bind_dpi_c } {
+      lappend arg_list "-sv_root \"$a_sim_vars(s_clibs_dir)/secureip\""
+      lappend arg_list "-sv_lib libgtye5_quad.so"
+    }
   }
   lappend arg_list "${top_lib}.$top"
   lappend arg_list "-input"
