@@ -2360,12 +2360,14 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
             puts " IP - $ip_obj ($vlnv_name) - SELECTED_SIM_MODEL=$ssm_type"
           }
           if { ("tlm" == $ssm_type) } {
+            # bind systemC library
             lappend shared_libs_to_link $vlnv_name
             lappend uniq_shared_libs $vlnv_name
             if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
               puts "      (BIND)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
             }
           } else {
+            # rtl, tlm_dpi (no binding)
             if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
               puts "      (SKIP)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
             }

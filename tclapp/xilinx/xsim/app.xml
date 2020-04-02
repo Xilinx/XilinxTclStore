@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not bind systemC IP library when selected sim-model is tlm-dpi</revision_history>
+      <revision_history>do not bind systemC pre-compiled IP library when selected sim-model is tlm-dpi</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
