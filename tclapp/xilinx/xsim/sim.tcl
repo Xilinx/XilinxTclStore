@@ -2359,7 +2359,7 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
           if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
             puts " IP - $ip_obj ($vlnv_name) - SELECTED_SIM_MODEL=$ssm_type"
           }
-          if { ("tlm" == $ssm_type) || ("tlm_dpi" == $ssm_type) } {
+          if { ("tlm" == $ssm_type) } {
             lappend shared_libs_to_link $vlnv_name
             lappend uniq_shared_libs $vlnv_name
             if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
