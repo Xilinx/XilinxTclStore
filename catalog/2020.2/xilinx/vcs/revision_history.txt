@@ -1,3 +1,4 @@
+8.7 bind DPI-C model if param is set for gtyp
 8.6 bind DPI-C model if param is set
 8.5 auto map compiled libraries for netlist simulation
 8.4 pass -sysc=opt_if to speed up data propagation
