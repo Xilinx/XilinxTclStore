@@ -1193,17 +1193,7 @@ proc usf_vcs_write_elaborate_script {} {
     set shared_library "lib${comp_name}.so"
     set quad_lib "$clib_dir/${shared_library}"
 
-    if { "gtye5_quad" == $comp_name } {
-      if { $b_bind_dpi_c } {
-        if { [file exists $quad_lib] } {
-          #set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
-          set gcc_cmd "-L$clib_dir -l${comp_name}"
-          lappend arg_list $gcc_cmd
-        } else {
-          send_msg_id USF-VCS-070 "CRITICAL WARNING" "Shared library does not exist! '$quad_lib'\n"
-        }
-      }
-    } else {
+    if { $b_bind_dpi_c } {
       if { [file exists $quad_lib] } {
         #set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
         set gcc_cmd "-L$clib_dir -l${comp_name}"
