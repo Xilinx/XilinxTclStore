@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Updated vivado package requirement and set base platforms directives to Default.</revision_history>
+      <name>x2rp</name>
+      <pkg_require>Vivado 2017.1</pkg_require>
+      <author>Xilinx, Inc</author>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc</company_display>
+      <summary>This app helps in creating and managing designs with 2 RPs.</summary>
+      <display>Xilinx 2RP App</display>
+      <procs>
+        <proc>
+          <name>open_checkpoint_for_dsa_generation</name>
+          <summary>Opens routed design checkpoint in the current project context for DSA generation.</summary>
+        </proc>
+        <proc>
+          <name>raptor</name>
+          <summary>Implements the Platform Design using DCP files as sources.</summary>
+        </proc>
+        <proc>
+          <name>run</name>
+          <summary>Implements the 2RP Design.</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
