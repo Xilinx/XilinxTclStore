@@ -384,6 +384,12 @@ proc usf_vcs_write_setup_files {} {
   }
   set libs [list]
 
+  set b_search_ref_lib_mod false
+  [catch {set b_search_ref_lib_mod [get_param "simulator.searchMatchingModuleFromSetupFile"]} err]
+  if { $b_search_ref_lib_mod } {
+    puts $fh "LIBRARY_SCAN=TRUE"
+  }
+
   # unifast
   set b_compile_unifast 0
   set simulator_language [string tolower [get_property simulator_language [current_project]]]
