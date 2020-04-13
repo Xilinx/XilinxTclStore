@@ -1603,6 +1603,11 @@ proc usf_vcs_create_setup_script {} {
 
   set file "synopsys_sim.setup"
   puts $fh_scr "  incl_ref=\"OTHERS=\$lib_map_path/$file\""
+  set b_search_ref_lib_mod false
+  [catch {set b_search_ref_lib_mod [get_param "simulator.searchMatchingModuleFromSetupFile"]} err]
+  if { $b_search_ref_lib_mod } {
+    puts $fh_scr "  echo \"LIBRARY_SCAN=TRUE\" >> \$file"
+  }
   puts $fh_scr "  for (( i=0; i<\$\{#libs\[*\]\}; i++ )); do"
   puts $fh_scr "    lib=\"\$\{libs\[i\]\}\""
   puts $fh_scr "    lib_dir=\"\$dir/\$lib\""

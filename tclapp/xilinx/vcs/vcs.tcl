@@ -9,4 +9,4 @@ namespace eval ::tclapp::xilinx::vcs {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::xilinx::vcs 8.8
+package provide ::tclapp::xilinx::vcs 8.9
