@@ -206,6 +206,66 @@ proc xcs_control_pre_compile_flow { b_static_arg } {
   }
 }
 
+proc xcs_is_pure_verilog { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure verilog?
+  if { $b_ver && (!$b_vhd && !$b_sc && !$b_cpp && !$b_c) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_vhdl { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure VHDL?
+  if { $b_vhd && (!$b_ver && !$b_sc && !$b_cpp && !$b_c) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_systemc { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure systemC?
+  if { $b_sc && (!$b_ver && !$b_vhd && !$cpp && !$b_c) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_cpp { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure cpp?
+  if { $b_cpp && (!$b_ver && !$b_vhd && !$b_sc && !$b_c) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_c { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure c?
+  if { $b_c && (!$b_ver && !$b_vhd && !$b_sc && !$b_cpp) } {
+    return true
+  }
+  return false
+}
+
 proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   # Summary:
   # Argument Usage:

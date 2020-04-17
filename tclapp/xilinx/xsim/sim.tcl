@@ -1008,6 +1008,22 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   }
   set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
 
+  set b_contain_sc_srcs false
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+    set sc_files [xcs_get_c_files $sc_filter $a_sim_vars(b_int_csim_compile_order)]
+    if { [llength $sc_files] > 0 } {
+      set b_contain_sc_srcs true
+    }
+  }
+
+  # set lang type flags
+  set b_is_pure_verilog [xcs_is_pure_verilog $b_contain_verilog_srcs $b_contain_vhdl_srcs $b_contain_sc_srcs $a_sim_vars(b_contain_cpp_sources) $a_sim_vars(b_contain_c_sources)]
+  set b_is_pure_vhdl    [xcs_is_pure_vhdl    $b_contain_verilog_srcs $b_contain_vhdl_srcs $b_contain_sc_srcs $a_sim_vars(b_contain_cpp_sources) $a_sim_vars(b_contain_c_sources)]
+  set b_is_pure_systemc [xcs_is_pure_systemc $b_contain_verilog_srcs $b_contain_vhdl_srcs $b_contain_sc_srcs $a_sim_vars(b_contain_cpp_sources) $a_sim_vars(b_contain_c_sources)]
+  set b_is_pure_cpp     [xcs_is_pure_cpp     $b_contain_verilog_srcs $b_contain_vhdl_srcs $b_contain_sc_srcs $a_sim_vars(b_contain_cpp_sources) $a_sim_vars(b_contain_c_sources)]
+  set b_is_pure_c       [xcs_is_pure_c       $b_contain_verilog_srcs $b_contain_vhdl_srcs $b_contain_sc_srcs $a_sim_vars(b_contain_cpp_sources) $a_sim_vars(b_contain_c_sources)]
+
   # set param to force nosort (default is false)
   set nosort_param [get_param "simulation.donotRecalculateCompileOrderForXSim"] 
   set log_filename "compile.log"
@@ -1252,7 +1268,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
-      set full_cmd "xvhdl $xvhdl_cmd_str 2>&1 | tee -a $log_cmd_str"
+      set append_sw " -a "
+      if { $b_is_pure_vhdl } { set append_sw " " }
+      set full_cmd "xvhdl $xvhdl_cmd_str 2>&1 | tee${append_sw}${log_cmd_str}"
       puts $fh_scr "$full_cmd"
       xcs_write_exit_code $fh_scr
     } else {
@@ -1270,9 +1288,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     if { $a_sim_vars(b_system_sim_design) } {
       set sc_filename "${top}_xsc.prj"
       set sc_file [file normalize [file join $a_sim_vars(s_launch_dir) $sc_filename]]
-      set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
-      set sc_files [xcs_get_c_files $sc_filter $a_sim_vars(b_int_csim_compile_order)]
-      if { [llength $sc_files] > 0 } {
+      if { $b_contain_sc_srcs } {
         set fh_sc 0
         if {[catch {open $sc_file w} fh_sc]} {
           send_msg_id USF-XSim-016 ERROR "Failed to open file to write ($sc_file)\n"
@@ -1363,7 +1379,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         puts $fh_scr "echo \"xsc $xsc_cmd_str\""
         if {$::tcl_platform(platform) == "unix"} {
           set log_cmd_str $log_filename
-          set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
+          set append_sw " -a "
+          if { $b_is_pure_systemc } { set append_sw " " }
+          set full_cmd "xsc $xsc_cmd_str 2>&1 | tee${append_sw}${log_cmd_str}"
           puts $fh_scr "$full_cmd"
           xcs_write_exit_code $fh_scr
         } else {
@@ -1437,7 +1455,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         puts $fh_scr "echo \"xsc $xsc_cmd_str\""
         if {$::tcl_platform(platform) == "unix"} {
           set log_cmd_str $log_filename
-          set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
+          set append_sw " -a "
+          if { $b_is_pure_cpp } { set append_sw " " }
+          set full_cmd "xsc $xsc_cmd_str 2>&1 | tee${append_sw}${log_cmd_str}"
           puts $fh_scr "$full_cmd"
           xcs_write_exit_code $fh_scr
         } else {
@@ -1511,7 +1531,9 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
         puts $fh_scr "echo \"xsc $xsc_cmd_str\""
         if {$::tcl_platform(platform) == "unix"} {
           set log_cmd_str $log_filename
-          set full_cmd "xsc $xsc_cmd_str 2>&1 | tee -a $log_cmd_str"
+          set append_sw " -a "
+          if { $b_is_pure_c } { set append_sw " " }
+          set full_cmd "xsc $xsc_cmd_str 2>&1 | tee${append_sw}${log_cmd_str}"
           puts $fh_scr "$full_cmd"
           xcs_write_exit_code $fh_scr
         } else {
