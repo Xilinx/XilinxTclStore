@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass library_scan if param set for searching the modules for the setup script</revision_history>
+      <revision_history>helpers for determining design language of same type</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
