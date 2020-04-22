@@ -1,3 +1,4 @@
+2.252 donot append compiled log on consecutive execution of compile step
 2.251 helpers for determining design language of same type
 2.250 merged fixes from 2020.1
 2.249 fixed used_in values check for simulation tag
