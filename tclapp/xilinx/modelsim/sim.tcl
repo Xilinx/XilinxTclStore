@@ -627,10 +627,6 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   puts $fh ""
 
-  set log "compile.log"
-  set redirect_cmd_str "2>&1 | tee -a $log"
-  set redirect_cmd_str ""
-
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
@@ -658,7 +654,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
           puts $fh "$src_file \\"
           set b_redirect true
         } else {
-          puts $fh "$redirect_cmd_str"
+          puts $fh ""
           usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
           set b_appended true
         }
@@ -674,7 +670,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   if { $b_group_files } {
     if { (!$b_redirect) || (!$b_appended) } {
-      puts $fh "$redirect_cmd_str"
+      puts $fh ""
     }
   }
 
@@ -1421,7 +1417,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     }
 
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      puts $fh_scr "source $do_filename 2>&1 | tee -a $log_filename"
+      puts $fh_scr "source $do_filename 2>&1 | tee $log_filename"
       xcs_write_exit_code $fh_scr
     } else {
       if { {} != $tool_path } {
