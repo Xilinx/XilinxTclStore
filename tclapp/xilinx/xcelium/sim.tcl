@@ -561,59 +561,25 @@ proc usf_xcelium_write_compile_script {} {
 
   xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
 
-  set tool "xmvhdl"
-  set arg_list [list "-messages"]
+  set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+  set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
 
-  if { [get_property "XCELIUM.COMPILE.RELAX" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-relax"]
+  if { $b_contain_vhdl_srcs } {
+    usf_xcelium_write_vhdl_compile_options $fh_scr
   }
 
-  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
-
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-64bit"]
+  if { $b_contain_verilog_srcs } {
+    usf_xcelium_write_verilog_compile_options $fh_scr
   }
-
-  if { [get_property "INCREMENTAL" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-update"]
-  }
-
-  set more_xmvhdl_options [string trim [get_property "XCELIUM.COMPILE.XMVHDL.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_xmvhdl_options } {
-    set arg_list [linsert $arg_list end "$more_xmvhdl_options"]
-  }
-
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
- 
-  set tool "xmvlog"
-  set arg_list [list "-messages" "-logfile" "${tool}.log" "-append_log"]
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-64bit"]
-  }
-
-  if { [get_property "INCREMENTAL" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-update"]
-  }
-
-  set more_xmvlog_options [string trim [get_property "XCELIUM.COMPILE.XMVLOG.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_xmvlog_options } {
-    set arg_list [linsert $arg_list end "$more_xmvlog_options"]
-  }
-
-  puts $fh_scr "\n# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     # xmsc (systemC)
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "xmsc"
       set arg_list [list "-messages"]
-      set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
+      set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log"]]
+      #lappend arg_list "-append_log"
+
       if { [get_property 32bit $fs_obj] } {
         set arg_list [linsert $arg_list 0 "-32bit"]
       } else {
@@ -1620,4 +1586,73 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     }
   }
 }
+
+proc usf_xcelium_write_vhdl_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "xmvhdl"
+  set arg_list [list "-messages"]
+
+  if { [get_property "XCELIUM.COMPILE.RELAX" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-relax"]
+  }
+
+  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log"]]
+  #lappend arg_list "-append_log"
+  
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+  
+  if { [get_property "INCREMENTAL" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
+  }
+  
+  set more_xmvhdl_options [string trim [get_property "XCELIUM.COMPILE.XMVHDL.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_xmvhdl_options } {
+    set arg_list [linsert $arg_list end "$more_xmvhdl_options"]
+  }
+  
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_xcelium_write_verilog_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "xmvlog"
+  set arg_list [list "-messages" "-logfile" "${tool}.log"]
+  #lappend arg_list "-append_log"
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+  
+  if { [get_property "INCREMENTAL" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
+  }
+  
+  set more_xmvlog_options [string trim [get_property "XCELIUM.COMPILE.XMVLOG.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_xmvlog_options } {
+    set arg_list [linsert $arg_list end "$more_xmvlog_options"]
+  }
+  
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
 }
