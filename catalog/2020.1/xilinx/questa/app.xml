@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>replace protected simmodel path set by param</revision_history>
+      <revision_history>bind vivado shared library path for hw-emu</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
