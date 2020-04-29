@@ -1356,6 +1356,20 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         if { ({elaborate} == $step) || ({simulate} == $step) } {
           set shared_ip_libs [list]
 
+          # get data dir from $XILINX_VIVADO/data/simmodels/questa (will return $XILINX_VIVADO/data)
+          set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
+
+          # design contains AIE? bind protected cluster library
+          # ($XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0/libaie_cluster_v1_0_0.so)
+          set aie_ip_obj [xcs_find_ip "ai_engine"]
+          if { {} != $aie_ip_obj } {
+            # get protected sub-dir (simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected)
+            set cpt_dir [xcs_get_simmodel_dir "questa" "cpt"]
+            set model "aie_cluster_v1_0_0"
+            # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
+            lappend shared_ip_libs "$data_dir/$cpt_dir/$model"
+          }
+
           variable a_shared_library_path_coln
           foreach {key value} [array get a_shared_library_path_coln] {
             set sc_lib   $key
@@ -1375,6 +1389,20 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
               }
             }
           }
+
+          # bind vivado library $XILINX_VIVADO/lib/<os>.o (for AIE)
+          if { {} != $aie_ip_obj } {
+            # path to XILINX_VIVADO
+            set xv_dir [file dirname $data_dir]
+            # set OS sub-dir type
+            set os_dir "lnx64.o"
+            if {$::tcl_platform(platform) == "windows"} {
+              set os_dir "win64.o"
+            }
+            # set library dir '$XILINX_VIVADO/lib/lnx64.o'
+            lappend shared_ip_libs "${xv_dir}/lib/${os_dir}"
+          }
+
           if { [llength $shared_ip_libs] > 0 } {
             set shared_ip_libs_env_path [join $shared_ip_libs ":"]
             puts $fh_scr "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
