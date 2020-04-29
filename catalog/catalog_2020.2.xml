@@ -99,8 +99,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>f1a7e0a75f6db4c4887a26dbfbc5f1d814d56879</commit_id>
-      <revision>2.170</revision>
+      <commit_id>a90abb9d62575c48d222e34dbb53cf5ac0e91cde</commit_id>
+      <revision>2.171</revision>
     </app>
     <app>
       <name>questa_cdc</name>
