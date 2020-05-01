@@ -1,3 +1,4 @@
+2.188 donot bind DPI-C shared library if param is false
 2.187 bind vivado shared library path for hw-emu
 2.186 replace protected simmodel path set by param
 2.185 find sv verilog static sources from IP repo root level core
