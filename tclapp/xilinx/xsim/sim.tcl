@@ -1999,6 +1999,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
      if { {sdfmax} == $delay } { lappend args_list "--maxdelay" }
   }
 
+  set b_bind_dpi_c false
+  [catch {set b_bind_dpi_c [get_param project.bindGTDPICModel]} err]
   set ip_obj [xcs_find_ip "gt_quad_base"]
   if { {} != $ip_obj } {
     set gt_lib         "gtye5_quad"
@@ -2032,7 +2034,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       }
       set shared_lib_dir [string map {\\ /} $shared_lib_dir]
     }
-    lappend args_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
+    if { $b_bind_dpi_c } {
+      lappend args_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
+    }
   }
  
   if { [get_param "project.allowSharedLibraryType"] } {

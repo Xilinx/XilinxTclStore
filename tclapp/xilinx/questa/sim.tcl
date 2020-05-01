@@ -1022,6 +1022,8 @@ proc usf_questa_get_simulation_cmdline {} {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
 
+  set b_bind_dpi_c false
+  [catch {set b_bind_dpi_c [get_param project.bindGTDPICModel]} err]
   set ip_obj [xcs_find_ip "gt_quad_base"]
   if { {} != $ip_obj } {
     set gt_lib "gtye5_quad"
@@ -1030,7 +1032,9 @@ proc usf_questa_get_simulation_cmdline {} {
     set clibs_dir [string map {\\ /} $a_sim_vars(s_clibs_dir)]
     # default install location
     set shared_lib_dir "${clibs_dir}/secureip"
-    lappend arg_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
+    if { $b_bind_dpi_c } {
+      lappend arg_list "-sv_root \"$shared_lib_dir\" -sv_lib $gt_lib"
+    }
   }
 
   if { [get_param "project.allowSharedLibraryType"] } {

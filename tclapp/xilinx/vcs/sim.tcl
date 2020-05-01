@@ -1176,7 +1176,9 @@ proc usf_vcs_write_elaborate_script {} {
       #lappend arg_list "-l${top}_sc"
     }
   }
-
+  
+  set b_bind_dpi_c false
+  [catch {set b_bind_dpi_c [get_param project.bindGTDPICModel]} err]
   set ip_obj [xcs_find_ip "gt_quad_base"]
   if { {} != $ip_obj } {
     variable a_vcs_sim_vars
@@ -1190,12 +1192,15 @@ proc usf_vcs_write_elaborate_script {} {
     }
     set shared_library "lib${comp_name}.so"
     set quad_lib "$clib_dir/${shared_library}"
-    if { [file exists $quad_lib] } {
-      #set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
-      set gcc_cmd "-L$clib_dir -l${comp_name}"
-      lappend arg_list $gcc_cmd
-    } else {
-      send_msg_id USF-VCS-070 "CRITICAL WARNING" "Shared library does not exist! '$quad_lib'\n"
+
+    if { $b_bind_dpi_c } {
+      if { [file exists $quad_lib] } {
+        #set gcc_cmd "-cc g++ -ld g++ -LDFLAGS \"-L/usr/lib -lstdc++\" [join $obj_files " "]"
+        set gcc_cmd "-L$clib_dir -l${comp_name}"
+        lappend arg_list $gcc_cmd
+      } else {
+        send_msg_id USF-VCS-070 "CRITICAL WARNING" "Shared library does not exist! '$quad_lib'\n"
+      }
     }
   }
 
