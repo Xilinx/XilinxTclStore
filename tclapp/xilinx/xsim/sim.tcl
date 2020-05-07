@@ -139,7 +139,10 @@ proc simulate { args } {
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     if {$::tcl_platform(platform) == "unix"} {
       if { [file exists $a_sim_vars(ubuntu_lib_dir)] } {
-        set cmd "set ::env(LIBRARY_PATH) \"$a_sim_vars(ubuntu_lib_dir):$::env(LIBRARY_PATH)"
+        set cmd "set ::env(LIBRARY_PATH) $a_sim_vars(ubuntu_lib_dir)"
+        if { [info exists ::env(LIBRARY_PATH)] } {
+          append cmd ":$::env(LIBRARY_PATH)"
+        }
         if {[catch {eval $cmd} err_msg]} {
           puts $err_msg
           [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LIBRARY_PATH env!"}]
@@ -1601,11 +1604,13 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
       puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
     }
 
-    xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       if { [file exists $::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir)] } {
-        puts $fh_scr "\nexport LIBRARY_PATH=$::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir):\$LIBRARY_PATH"
+        puts $fh_scr "\[ -z \"\$LIBRARY_PATH\" \] && export LIBRARY_PATH=$::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir) || export LIBRARY_PATH=$::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir):\$LIBRARY_PATH"
       }
+    }
+    xcs_write_pipe_exit $fh_scr
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
@@ -1764,6 +1769,11 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
     xcs_write_script_header $fh_scr "simulate" "xsim"
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
+      if { [file exists $::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir)] } {
+        puts $fh_scr "\[ -z \"\$LIBRARY_PATH\" \] && export LIBRARY_PATH=$::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir) || export LIBRARY_PATH=$::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir):\$LIBRARY_PATH"
+      }
+    }
     xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
@@ -1801,9 +1811,6 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
         variable a_shared_library_path_coln
-        if { [file exists $::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir)] } {
-          puts $fh_scr "\nexport LIBRARY_PATH=$::tclapp::xilinx::xsim::a_sim_vars(ubuntu_lib_dir):\$LIBRARY_PATH"
-        }
 
         # default Vivado install path
         set vivado_install_path $::env(XILINX_VIVADO)
