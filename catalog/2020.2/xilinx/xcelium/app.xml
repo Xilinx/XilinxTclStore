@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>donot append compiled log on consecutive execution of compile step</revision_history>
+      <revision_history>support for uvm</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

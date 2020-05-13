@@ -1,3 +1,4 @@
+4.42 support for uvm
 4.41 helpers for determining design language of same type
 4.40 merged fixes from 2020.1
 4.39 fixed used_in values check for simulation tag
