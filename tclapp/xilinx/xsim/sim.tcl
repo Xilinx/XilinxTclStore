@@ -309,6 +309,9 @@ proc usf_xsim_setup_simulation { args } {
   set ::tclapp::xilinx::xsim::a_sim_vars(l_design_files) \
      [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
 
+  # contains system verilog? (for uvm)
+  set a_sim_vars(b_contain_sv_srcs) [xcs_contains_system_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+
   # is system design?
   if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
     set a_sim_vars(b_system_sim_design) 1
@@ -915,6 +918,13 @@ proc usf_xsim_write_setup_file {} {
     return 1
   }
 
+  # add uvm mapping for system verilog
+  if { $a_sim_vars(b_contain_sv_srcs) } {
+    set uvm_lib [xcs_find_uvm_library]
+    if { {} != $uvm_lib } {
+      puts $fh "uvm=$uvm_lib"
+    }
+  }
   set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -1175,6 +1185,10 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
     if { [get_property "XSIM.COMPILE.XVLOG.RELAX" $fs_obj] } {
       lappend xvlog_arg_list "--relax"
+    }
+    # append uvm
+    if { $a_sim_vars(b_contain_sv_srcs) } {
+      lappend xvlog_arg_list "-L uvm"
     }
     # append sv pkg libs
     foreach sv_pkg_lib $a_sim_sv_pkg_libs {
@@ -2211,6 +2225,11 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
+  }
+  
+  # add uvm
+  if { $a_sim_vars(b_contain_sv_srcs) } {
+    lappend args_list "-L uvm"
   }
 
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {

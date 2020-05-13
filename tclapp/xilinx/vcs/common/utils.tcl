@@ -4552,3 +4552,28 @@ proc xcs_get_pre_compiled_shared_objects { simulator clibs_dir vlnv } {
   
   return $obj_file_paths
 }
+
+proc xcs_find_uvm_library { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set uvm_lib_path {}
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+
+  if { [info exists ::env(RDI_DATADIR)] } {
+    foreach data_dir [split $::env(RDI_DATADIR) $sep] {
+      set path "$data_dir/xsim/system_verilog/uvm"
+      if { [file exists $path] } {
+        set uvm_lib_path $path
+        break;
+      }
+    }
+  } else {
+    send_msg_id SIM-utils-067 WARNING "Failed to get the uvm library path (RDI_DATADIR environment variable is not set).\n"
+  }
+  return $uvm_lib_path
+}

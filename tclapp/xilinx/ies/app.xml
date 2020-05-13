@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>helpers for determining design language of same type</revision_history>
+      <revision_history>support for uvm</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

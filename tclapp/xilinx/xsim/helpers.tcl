@@ -58,6 +58,7 @@ proc usf_init_vars {} {
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
+  set a_sim_vars(b_contain_sv_srcs)         0
   set a_sim_vars(b_contain_systemc_sources) 0
   set a_sim_vars(b_contain_cpp_sources)     0
   set a_sim_vars(b_contain_c_sources)       0

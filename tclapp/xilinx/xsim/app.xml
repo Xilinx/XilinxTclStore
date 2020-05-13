@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>append user LIBRARY_PATH only if set for ubuntu</revision_history>
+      <revision_history>support for uvm</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
