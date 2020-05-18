@@ -14,8 +14,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
 namespace eval ::tclapp::xilinx::projutils {
 proc export_simulation {args} {
-  # Summary:
-  # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
+  # Summary: Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
 
   # Argument Usage:
   # [-simulator <arg> = all]: Simulator for which the simulation script will be created (value=all|xsim|modelsim|questa|ies|xcelium|vcs|riviera|activehdl)

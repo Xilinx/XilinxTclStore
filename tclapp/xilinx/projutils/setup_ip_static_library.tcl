@@ -60,8 +60,8 @@ proc isl_init_vars {} {
 }
 
 proc setup_ip_static_library {args} {
-  # Summary:
-  # Extract IP static files from the project or repository and prepare it for compile_simlib
+  # Summary: Extract IP static files from the project or repository and prepare it for compile_simlib
+
   # Argument Usage:
   # [-directory <arg>]: Extract static files in the specified directory
   # [-ip_repo_path <arg>]: Extract static files from the specified IP repository path

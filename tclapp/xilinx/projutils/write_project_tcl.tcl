@@ -28,8 +28,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
 namespace eval ::tclapp::xilinx::projutils {
 proc write_project_tcl {args} {
-  # Summary: 
-  # Export Tcl script for re-creating the current project
+  # Summary: Export Tcl script for re-creating the current project
 
   # Argument Usage: 
   # [-paths_relative_to <arg> = Script output directory path]: Override the reference directory variable for source file relative paths
