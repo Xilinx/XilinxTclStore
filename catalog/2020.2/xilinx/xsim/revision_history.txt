@@ -1,3 +1,4 @@
+2.323 reference pre-compiled library paths with XILINX_VIVADO
 2.322 compile glbl if force_compile_glbl is true
 2.321 support for uvm
 2.320 append user LIBRARY_PATH only if set for ubuntu
