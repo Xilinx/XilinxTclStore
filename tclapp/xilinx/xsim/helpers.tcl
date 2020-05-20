@@ -53,6 +53,11 @@ proc usf_init_vars {} {
   set a_sim_vars(b_int_sm_lib_ref_debug) 0
   set a_sim_vars(b_int_csim_compile_order) 0
   set a_sim_vars(b_int_en_system_sim_code) 0
+  # default is false
+  set a_sim_vars(b_force_compile_glbl) [get_param project.forceCompileGlblForSimulation]
+  if { !$a_sim_vars(b_force_compile_glbl) } {
+    set a_sim_vars(b_force_compile_glbl) [get_property force_compile_glbl [current_fileset -simset]]
+  }
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]

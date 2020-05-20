@@ -1019,6 +1019,11 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   if { $a_sim_vars(b_int_compile_glbl) && (!$b_contain_verilog_srcs) } {
     set b_contain_verilog_srcs true 
   }
+  # force compile glbl
+  if { (!$b_contain_verilog_srcs) && $a_sim_vars(b_force_compile_glbl) } {
+    set b_contain_verilog_srcs true 
+  }
+  
   set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
 
   set b_contain_sc_srcs false
@@ -1151,7 +1156,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     # compile glbl file for behav
     if { {behav_sim} == $::tclapp::xilinx::xsim::a_sim_vars(s_simulation_flow) } {
       set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xsim::a_sim_vars(s_simset)]]
-      if { [xcs_compile_glbl_file "xsim" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+      if { [xcs_compile_glbl_file "xsim" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
         set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set file_str "$top_lib \"${glbl_file}\""
@@ -1160,7 +1165,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     } else {
       # for post* compile glbl if design contain verilog and netlist is vhdl
       if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
-            ($a_sim_vars(b_int_compile_glbl))) } {
+            ($a_sim_vars(b_int_compile_glbl))) || $a_sim_vars(b_force_compile_glbl) } {
         if { ({timing} == $::tclapp::xilinx::xsim::a_sim_vars(s_type)) } {
           # This is not supported, netlist will be verilog always
         } else {
@@ -2286,7 +2291,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-L unimacro_ver"
   }
 
-  if { $a_sim_vars(b_int_compile_glbl) } {
+  if { $a_sim_vars(b_int_compile_glbl) || $a_sim_vars(b_force_compile_glbl) } {
     if { ([lsearch -exact $args_list "unisims_ver"] == -1) } {
       lappend args_list "-L unisims_ver"
     }
@@ -2536,6 +2541,11 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
       # TODO: revisit this for pure vhdl, causing failures 
       #set b_add_glbl 1
     }
+  }
+
+  # force compile glbl
+  if { (!$b_add_glbl) && $a_sim_vars(b_force_compile_glbl) } {
+    set b_add_glbl 1
   }
 
   if { $b_add_glbl } {
