@@ -1,3 +1,4 @@
+2.254 compile glbl if force_compile_glbl is true
 2.253 support for uvm
 2.252 donot append compiled log on consecutive execution of compile step
 2.251 helpers for determining design language of same type

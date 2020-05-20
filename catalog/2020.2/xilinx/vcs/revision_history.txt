@@ -1,3 +1,4 @@
+9.2 compile glbl if force_compile_glbl is true
 9.1 support for uvm
 9.0 helpers for determining design language of same type
 8.9 pass library_scan if param set for searching the modules for the setup script

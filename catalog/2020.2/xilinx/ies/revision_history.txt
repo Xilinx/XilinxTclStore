@@ -1,3 +1,4 @@
+4.43 compile glbl if force_compile_glbl is true
 4.42 support for uvm
 4.41 helpers for determining design language of same type
 4.40 merged fixes from 2020.1

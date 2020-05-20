@@ -1,3 +1,4 @@
+2.173 compile glbl if force_compile_glbl is true
 2.172 support for uvm
 2.171 bind vivado shared library path for hw-emu
 2.170 donot append compiled log on consecutive execution of compile step
