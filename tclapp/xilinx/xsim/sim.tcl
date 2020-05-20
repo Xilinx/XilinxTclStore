@@ -1066,10 +1066,17 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     xcs_write_script_header $fh_scr "compile" "xsim"
     xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
-      puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
-      puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
-      puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
-      puts $fh_scr "xv_boost_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)\"\n"
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_ref_sysc_lib_env) } {
+        puts $fh_scr "\nxv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)]\""
+        puts $fh_scr "xv_cpt_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPCPT" $::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)]\""
+        puts $fh_scr "xv_ext_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPEXT" $::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)]\""
+        puts $fh_scr "xv_boost_lib_path=\"[usf_xsim_resolve_sysc_lib_path "BOOST" $::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)]\"\n"
+      } else {
+        puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
+        puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
+        puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
+        puts $fh_scr "xv_boost_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)\"\n"
+      }
     }
   } else {
     puts $fh_scr "@echo off"
@@ -1630,10 +1637,17 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     }
     xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
-      puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
-      puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
-      puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
-      puts $fh_scr "xv_boost_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)\"\n"
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_ref_sysc_lib_env) } {
+        puts $fh_scr "\nxv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)]\""
+        puts $fh_scr "xv_cpt_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPCPT" $::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)]\""
+        puts $fh_scr "xv_ext_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPEXT" $::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)]\""
+        puts $fh_scr "xv_boost_lib_path=\"[usf_xsim_resolve_sysc_lib_path "BOOST" $::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)]\"\n"
+      } else {
+        puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
+        puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
+        puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
+        puts $fh_scr "xv_boost_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)\"\n"
+      }
     }
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
@@ -1795,9 +1809,15 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     }
     xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
-      puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
-      puts $fh_scr "export xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
-      puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
+      if { $::tclapp::xilinx::xsim::a_sim_vars(b_ref_sysc_lib_env) } {
+        puts $fh_scr "\nxv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)]\""
+        puts $fh_scr "export xv_cpt_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPCPT" $::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)]\""
+        puts $fh_scr "xv_ext_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPEXT" $::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)]\""
+      } else {
+        puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
+        puts $fh_scr "export xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
+        puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
+      }
     }
     
     # TODO: once xsim picks the "so"s path at runtime , we can remove the following code
@@ -1840,7 +1860,11 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
           set custom_vivado_install_path $::env(VIVADO_LOC)
         }
 
-        puts $fh_scr "\nxv_ref_path=\$\{VIVADO_LOC:-\"$vivado_install_path\"\}"
+        if { $::tclapp::xilinx::xsim::a_sim_vars(b_ref_sysc_lib_env) } {
+          puts $fh_scr "\nxv_ref_path=\$\{VIVADO_LOC:-\"\$XILINX_VIVADO\"\}"
+        } else {
+          puts $fh_scr "\nxv_ref_path=\$\{VIVADO_LOC:-\"$vivado_install_path\"\}"
+        }
   
         # get the install path
         set install_path $vivado_install_path
@@ -3090,6 +3114,43 @@ proc usf_append_sm_lib_path { sm_lib_paths_arg install_path sm_lib_dir match_str
     return true
   }
   return false
+}
+
+proc usf_xsim_resolve_sysc_lib_path { type lib_path } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set resolved_path $lib_path
+
+  # forward slash
+  set lib_path   [string map {\\ /} $lib_path]
+  set sub_dirs   [split $lib_path {/}]
+
+  # data path
+  set data_index [lsearch -exact $sub_dirs "data"]
+  set data_path  [join [lrange $sub_dirs $data_index end] "/"]
+
+  # tps path
+  set data_index [lsearch -exact $sub_dirs "tps"]
+  set tps_path   [join [lrange $sub_dirs $data_index end] "/"]
+
+  switch $type {
+    {CLIBS} {
+      set resolved_path "\$XILINX_VIVADO/$data_path"
+    }
+    {SPCPT} -
+    {SPEXT} {
+      set resolved_path "\$XILINX_VIVADO/$data_path"
+    }
+    {BOOST} {
+      set resolved_path "\$XILINX_VIVADO/$tps_path"
+    }
+    default {
+      send_msg_id USF-XSim-106 INFO "unknown systemc pre-compiled library path: '$type'!"
+    }
+  }
+  return $resolved_path
 }
 }
 #

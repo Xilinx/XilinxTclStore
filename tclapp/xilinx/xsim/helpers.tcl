@@ -73,6 +73,8 @@ proc usf_init_vars {} {
  
   set a_sim_vars(sp_cpt_dir) {}
   set a_sim_vars(sp_ext_dir) {}
+
+  set a_sim_vars(b_ref_sysc_lib_env) [get_param "project.refSystemCLibPathWithXilinxEnv"]
   
   set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set a_sim_vars(compiled_design_lib) "xsim.dir"
