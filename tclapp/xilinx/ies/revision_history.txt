@@ -1,3 +1,4 @@
+4.44 do not launch simulator gui in batch mode
 4.43 compile glbl if force_compile_glbl is true
 4.42 support for uvm
 4.41 helpers for determining design language of same type
