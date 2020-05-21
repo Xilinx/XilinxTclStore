@@ -45,6 +45,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
+  set a_sim_vars(b_int_is_gui_mode)  0
   set a_sim_vars(b_int_halt_script)  0
   set a_sim_vars(b_int_systemc_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
@@ -342,7 +343,7 @@ proc usf_create_do_file { simulator do_filename } {
       puts $fh_do "power -enable"
     }
 
-    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
+    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
       # no op in batch mode
     } else {
       puts $fh_do "add_wave /$top/*"
@@ -407,7 +408,7 @@ proc usf_create_do_file { simulator do_filename } {
       }
     }
 
-    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
+    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
       puts $fh_do "quit"
     }
   }
@@ -1095,7 +1096,7 @@ proc usf_launch_script { simulator step } {
   }
 
   set b_wait 0
-  if { $a_sim_vars(b_batch) } {
+  if { $a_sim_vars(b_batch) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
     set b_wait 1 
   }
   set faulty_run 0

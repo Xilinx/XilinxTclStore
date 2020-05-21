@@ -46,6 +46,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
+  set a_sim_vars(b_int_is_gui_mode)  0
   set a_sim_vars(b_int_systemc_mode) 0
   set a_sim_vars(b_int_rtl_kernel_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
@@ -850,7 +851,7 @@ proc usf_launch_script { simulator step } {
   }
 
   set b_wait 0
-  if { $a_sim_vars(b_batch) } {
+  if { $a_sim_vars(b_batch) || (!$::tclapp::xilinx::xsim::a_sim_vars(b_int_is_gui_mode)) } {
     set b_wait 1 
   }
   set faulty_run 0

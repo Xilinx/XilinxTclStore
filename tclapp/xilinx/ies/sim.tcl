@@ -223,6 +223,7 @@ proc usf_ies_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -251,6 +252,7 @@ proc usf_ies_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_ide_gui"            { set ::tclapp::xilinx::ies::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"        { set ::tclapp::xilinx::ies::a_sim_vars(b_int_halt_script) 1                        }
       "-int_compile_glbl"       { set ::tclapp::xilinx::ies::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::ies::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
@@ -935,7 +937,10 @@ proc usf_ies_write_simulate_script {} {
   if { $::tclapp::xilinx::ies::a_sim_vars(b_batch) || $b_scripts_only } {
    # no gui
   } else {
-    set arg_list [linsert $arg_list end "-gui"]
+    # launch_simulation - if called from vivado in gui mode only
+    if { $::tclapp::xilinx::ies::a_sim_vars(b_int_is_gui_mode) } {
+      set arg_list [linsert $arg_list end "-gui"]
+    }
   }
 
   puts $fh_scr "# set ${tool} command line args"

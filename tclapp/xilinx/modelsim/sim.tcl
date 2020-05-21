@@ -222,6 +222,7 @@ proc usf_modelsim_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -251,6 +252,7 @@ proc usf_modelsim_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_ide_gui"            { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"        { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_halt_script) 1                        }
       "-int_compile_glbl"       { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
@@ -1320,6 +1322,11 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     if { [get_param "simulator.quitOnSimulationComplete"] } {
       puts $fh "\nquit -force"
     }
+  } else {
+    # launch_simulation - if called from vivado in batch or Tcl mode, quit
+    if { !$::tclapp::xilinx::modelsim::a_sim_vars(b_int_is_gui_mode) } {
+      puts $fh "\nquit -force"
+    }
   }
   close $fh
 }
@@ -1369,9 +1376,18 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   }
 
   set batch_sw {-c}
-  if { ({simulate} == $step) && (!$b_batch) && (!$b_scripts_only) } {
-    set batch_sw {}
+  if { ({simulate} == $step) } {
+    # launch_simulation
+    if { (!$b_batch) && (!$b_scripts_only) } {
+      # launch_simulation - if called from vivado in batch or Tcl mode, run in command mode
+      if { !$::tclapp::xilinx::modelsim::a_sim_vars(b_int_is_gui_mode) } {
+        set batch_sw {-c}
+      } else {
+        set batch_sw {}
+      }
+    }
   }
+
 
   set s_64bit {}
   if {$::tcl_platform(platform) == "unix"} {
