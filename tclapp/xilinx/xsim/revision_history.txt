@@ -1,3 +1,4 @@
+2.325 reverted fix for do not launch simulator gui in batch mode
 2.324 do not launch simulator gui in batch mode
 2.323 reference pre-compiled library paths with XILINX_VIVADO
 2.322 compile glbl if force_compile_glbl is true
