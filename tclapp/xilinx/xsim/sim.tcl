@@ -202,7 +202,7 @@ proc simulate { args } {
       }
     
       # close for batch flow
-      if { $a_sim_vars(b_batch) || (!$::tclapp::xilinx::xsim::a_sim_vars(b_int_is_gui_mode)) } {
+      if { $a_sim_vars(b_batch) } {
         send_msg_id USF-XSim-009 INFO "Closing simulation..."
         close_sim
       }
@@ -569,7 +569,6 @@ proc usf_xsim_setup_args { args } {
   # [-int_sm_lib_dir <arg>]: Simulation model library directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
-  # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_rtl_kernel_mode]: RTL Kernel simulation mode (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
@@ -599,7 +598,6 @@ proc usf_xsim_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
-      "-int_ide_gui"            { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_systemc_mode"       { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1                       }
       "-int_rtl_kernel_mode"    { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_rtl_kernel_mode) 1                    }
       "-int_sm_lib_dir"         { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
