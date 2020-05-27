@@ -1,3 +1,4 @@
+9.4 add glbl top for post* and behav pure vhdl flows
 9.3 do not launch simulator gui in batch mode
 9.2 compile glbl if force_compile_glbl is true
 9.1 support for uvm
