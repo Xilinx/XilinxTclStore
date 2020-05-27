@@ -1312,10 +1312,13 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
 
   set b_verilog_sim_netlist 0
+  set b_vhdl_sim_netlist 0
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
     if { {Verilog} == $target_lang } {
       set b_verilog_sim_netlist 1
+    }
+    if { {VHDL} == $target_lang } {
+      set b_vhdl_sim_netlist 1
     }
   }
 
@@ -1356,9 +1359,26 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     }
   }
 
-  # for pure VHDL design instantiating verilog primitives, do not set glbl top
-  if { $a_sim_vars(b_int_compile_glbl) && [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)] } { 
-    set b_add_glbl 0
+  # versal
+  if { $a_sim_vars(b_int_compile_glbl) } {
+    # for pure VHDL design instantiating verilog primitives, do not set glbl top
+    if { [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)] } {
+      set b_add_glbl 0
+    }
+    if { !$b_add_glbl } {
+      # for behav
+      if { ({behav_sim} == $sim_flow) } {
+        if { [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)] } {
+          set b_add_glbl 1
+        }
+      }
+      # for post* when target lang is vhdl, set glbl
+      if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+        if { $b_vhdl_sim_netlist } {
+          set b_add_glbl 1
+        }
+      }
+    }
   }
 
   if { $b_add_glbl } {
