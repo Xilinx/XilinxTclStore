@@ -567,46 +567,16 @@ proc usf_vcs_write_compile_script {} {
 
   xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
 
-  set tool "vhdlan"
-  set arg_list [list]
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-full64"]
-    #if { $a_sim_vars(b_int_systemc_mode) } {
-    #  if { $a_sim_vars(b_system_sim_design) } {
-    #    lappend arg_list ""
-    #  }
-    #}
+  set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+  set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+
+  if { $b_contain_vhdl_srcs } {
+    usf_vcs_write_vhdl_compile_options $fh_scr
   }
 
-  set more_vhdlan_options [string trim [get_property "VCS.COMPILE.VHDLAN.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_vhdlan_options } {
-    set arg_list [linsert $arg_list end "$more_vhdlan_options"]
+  if { $b_contain_verilog_srcs } {
+    usf_vcs_write_verilog_compile_options $fh_scr
   }
-
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-  set tool "vlogan"
-  set arg_list [list]
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-full64"]
-    if { $a_sim_vars(b_int_systemc_mode) } {
-      if { $a_sim_vars(b_system_sim_design) } {
-        lappend arg_list "-sysc"
-      }
-    }
-  }
-
-  set more_vlogan_options [string trim [get_property "VCS.COMPILE.VLOGAN.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_vlogan_options } {
-    set arg_list [linsert $arg_list end "$more_vlogan_options"]
-  }
-
-  puts $fh_scr "\n# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     # syscan (systemC)
@@ -752,13 +722,17 @@ proc usf_vcs_write_compile_script {} {
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
-  set redirect_cmd_str "2>&1 | tee -a"
+  set redirect_cmd_str "2>&1 | tee"
   set log {}
   set b_redirect false
   set b_appended false
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set b_add_redirect true
   set b_add_once true
+  set b_first_vhdlan true
+  set b_first_vlogan true
+  set n_vhd_count 1
+  set n_ver_count 1
 
   foreach file $::tclapp::xilinx::vcs::a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
@@ -778,7 +752,7 @@ proc usf_vcs_write_compile_script {} {
       if { $b_group_files } {
         if { (!$b_redirect) || (!$b_appended) } {
           if { $b_add_once } {
-            puts $fh_scr "$redirect_cmd_str $log"
+            puts $fh_scr "$redirect_cmd_str -a $log"
             set b_add_redirect false
             set b_add_once false
           }
@@ -830,7 +804,24 @@ proc usf_vcs_write_compile_script {} {
             puts $fh_scr "$src_file \\"
             set b_redirect true
           } else {
-            puts $fh_scr "$redirect_cmd_str $log\n"
+            set rdcs "$redirect_cmd_str $log"
+            if { "vhdlan.log" == $log } {
+              incr n_vhd_count
+              if { $b_first_vhdlan } {
+                set b_first_vhdlan false
+              } else {
+                set rdcs "$redirect_cmd_str -a $log"
+              }
+            }
+            if { "vlogan.log" == $log } {
+              incr n_ver_count
+              if { $b_first_vlogan } {
+                set b_first_vlogan false
+              } else {
+                set rdcs "$redirect_cmd_str -a $log"
+              }
+            }
+            puts $fh_scr "$rdcs\n"
             usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
             set b_appended true
           }
@@ -854,7 +845,14 @@ proc usf_vcs_write_compile_script {} {
   if { $b_add_redirect } {
     if { $b_group_files } {
       if { (!$b_redirect) || (!$b_appended) } {
-        puts $fh_scr "$redirect_cmd_str $log\n"
+        set rdcs "$redirect_cmd_str -a $log"
+        if { ("vhdlan.log" == $log) && ($n_vhd_count == 1) } {
+          set rdcs "$redirect_cmd_str $log"
+        }
+        if { ("vlogan.log" == $log) && ($n_ver_count == 1) } {
+          set rdcs "$redirect_cmd_str $log"
+        }
+        puts $fh_scr "$rdcs\n"
       }
     }
   }
@@ -1764,4 +1762,67 @@ proc usf_vcs_write_library_search_order { fh_scr } {
     puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
   }
 }
+
+proc usf_vcs_write_vhdl_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+ 
+  set tool "vhdlan"
+  set arg_list [list]
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-full64"]
+    #if { $a_sim_vars(b_int_systemc_mode) } {
+    #  if { $a_sim_vars(b_system_sim_design) } {
+    #    lappend arg_list ""
+    #  }
+    #}
+  }
+
+  set more_vhdlan_options [string trim [get_property "VCS.COMPILE.VHDLAN.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vhdlan_options } {
+    set arg_list [linsert $arg_list end "$more_vhdlan_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_vcs_write_verilog_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "vlogan"
+  set arg_list [list]
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-full64"]
+    if { $a_sim_vars(b_int_systemc_mode) } {
+      if { $a_sim_vars(b_system_sim_design) } {
+        lappend arg_list "-sysc"
+      }
+    }
+  }
+
+  set more_vlogan_options [string trim [get_property "VCS.COMPILE.VLOGAN.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vlogan_options } {
+    set arg_list [linsert $arg_list end "$more_vlogan_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
 }
