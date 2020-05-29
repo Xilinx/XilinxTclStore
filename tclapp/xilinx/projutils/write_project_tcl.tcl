@@ -98,6 +98,10 @@ proc write_project_tcl {args} {
       }
     }
   }
+
+  #read properties to exclude
+  read_props_to_exclude
+
   # suppress all messages if -quiet flag is provided
   if { $a_global_vars(b_arg_quiet) } {
     suppress_messages
@@ -181,6 +185,7 @@ variable a_global_vars
 variable l_script_data [list]
 variable l_local_files [list]
 variable l_remote_files [list]
+variable l_bc_filesets  [list]
 variable b_project_board_set 0
 
 # set file types to filter
@@ -189,7 +194,7 @@ variable l_filetype_filter [list]
 # Setup filter for non-user-settable filetypes
 set l_filetype_filter [list "ip" "ipx" "embedded design sources" "elf" "coefficient files" "configuration files" \
                             "block diagrams" "block designs" "dsp design sources" "text" \
-                            "design checkpoint" "waveform configuration file"]
+                            "design checkpoint" "waveform configuration file" "csv"]
 # ip file extension types
 variable l_valid_ip_extns [list]
 set l_valid_ip_extns      [list ".xci" ".bd" ".slx"]
@@ -239,9 +244,12 @@ proc reset_global_vars {} {
     set a_global_vars(b_arg_use_bd_files) 1
   }
 
+  set a_global_vars(excludePropDict)      [dict create]
+
   set l_script_data                       [list]
   set l_local_files                       [list]
   set l_remote_files                      [list]
+  set l_bc_filesets                       [list]
 }
 
 proc write_project_tcl_script {} {
@@ -262,10 +270,12 @@ proc write_project_tcl_script {} {
   variable l_open_bds [list]
   variable l_added_bds
   variable a_os
+  variable l_bc_filesets
 
   set l_script_data [list]
   set l_local_files [list]
   set l_remote_files [list]
+  set l_bc_filesets  [list]
   set l_open_bds [list]
   set l_added_bds [list]
   
@@ -347,7 +357,16 @@ proc write_project_tcl_script {} {
   wr_prflow $proj_dir $proj_name
   if { !$a_global_vars(b_arg_use_bd_files) } {
     wr_bd
+    wr_bd_bc_specific
   }
+
+  # write BC and RM filesets to handle extra files(ELF, XDC) added
+  if { [llength $l_bc_filesets] > 0 } {
+    write_specified_fileset $proj_dir $proj_name $l_bc_filesets 0
+  }
+  wr_bc_managed_rm_files $proj_dir $proj_name
+
+  wr_prConf $proj_dir $proj_name 
   wr_runs $proj_dir $proj_name
   wr_proj_info $proj_name
 
@@ -733,7 +752,7 @@ proc wr_bd {} {
   }
 
   # Get all BD files in the design
-  set bd_files [get_files -norecurse *.bd]
+  set bd_files [get_files -norecurse *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
   lappend l_script_data "\n# Adding sources referenced in BDs, if not already added"
 
 
@@ -761,6 +780,31 @@ proc wr_bd {} {
   }
 }
 
+proc wr_bd_bc_specific {} {
+  # Summary: write generate_target for the top level BD that contains Block Containers 
+  # Return Value: None
+
+  variable l_bc_filesets
+  variable l_script_data
+
+  set bd_files [get_files -norecurse *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
+  set bc_filesets_size [llength $l_bc_filesets]
+
+  foreach bd_file $bd_files {
+    set refs [ get_files -quiet -references -of_objects [ get_files $bd_file ] ]
+    # If BD has references and project has BC filesets, then 
+    # we are assuming it as it is top level BD with BCs
+    # TODO - Need to check whether this assumption works for all cases
+    set delivered_targets [lsearch [get_property delivered_targets [get_files $bd_file] ] Synthesis]
+    set stale_targets [lsearch [get_property stale_targets [get_files $bd_file] ] Synthesis]
+    set is_generated [expr {$delivered_targets != -1 && $stale_targets == -1}]
+    if { [llength $refs] != 0 && $is_generated == 1 && $bc_filesets_size != 0} { 
+      set filename [file tail $bd_file]
+      lappend l_script_data "generate_target all \[get_files $filename\]\n"
+    }
+  }
+}
+
 proc wr_filesets { proj_dir proj_name } {
   # Summary: write fileset object properties 
   # This helper command is used to script help.
@@ -774,11 +818,11 @@ proc wr_filesets { proj_dir proj_name } {
   # write fileset data
   foreach {fs_data} $a_fileset_types {
     set filesets [get_filesets -filter FILESET_TYPE==[lindex $fs_data 0]]
-    write_specified_fileset $proj_dir $proj_name $filesets
+    write_specified_fileset $proj_dir $proj_name $filesets 1
   }
 }
 
-proc write_specified_fileset { proj_dir proj_name filesets } {
+proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
   # Summary: write fileset properties and sources 
   # This helper command is used to script help.
   # Argument Usage: 
@@ -790,6 +834,7 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
   variable a_global_vars
   variable l_script_data
   variable a_fileset_types
+  variable l_bc_filesets
 
   # write filesets
   set type "file"
@@ -801,10 +846,17 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
       continue
     }
 
+    # Is this a Block Container managed block fileset?
+    # If so, we don't need to create block fileset, it will be auto created
+    if { $ignore_bc == 1 && [is_bc_managed_fileset $tcl_obj] == true } {
+      lappend l_bc_filesets $tcl_obj
+      continue
+    }
+
     set fs_type [get_property fileset_type [get_filesets $tcl_obj]]
 
     # is this a IP block fileset? if yes, do not create block fileset, but create for a pure HDL based fileset (no IP's)
-    if { [is_ip_fileset $tcl_obj] } {
+    if { [is_ip_fileset $tcl_obj] || [is_bc_managed_fileset $tcl_obj] } {
       # do not create block fileset
     } elseif { [string equal $tcl_obj "utils_1"] } {
       # do not create utils fileset
@@ -850,10 +902,12 @@ proc write_specified_fileset { proj_dir proj_name filesets } {
             }
           }
           set repo_path_str [join $path_list " "]
-          lappend l_script_data "set_property \"ip_repo_paths\" \"${repo_path_str}\" \$obj" 
+          lappend l_script_data "if \{ \$obj != \{\} \} \{"
+          lappend l_script_data "   set_property \"ip_repo_paths\" \"${repo_path_str}\" \$obj" 
           lappend l_script_data "" 
-          lappend l_script_data "# Rebuild user ip_repo's index before adding any source files"
-          lappend l_script_data "update_ip_catalog -rebuild"
+          lappend l_script_data "   # Rebuild user ip_repo's index before adding any source files"
+          lappend l_script_data "   update_ip_catalog -rebuild"
+          lappend l_script_data "\}"
           lappend l_script_data ""
         }
       }
@@ -1226,6 +1280,10 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
 
   foreach prop $properties {
     if { [is_deprecated_property $prop] } { continue }
+
+    # is property excluded from being written into the script file
+    if { [is_excluded_property $current_obj $prop] } { continue }
+
     # skip read-only properties
     if { [lsearch $read_only_props $prop] != -1 } { continue }
     if { ([string equal $type "gadget"]) && ([string equal -nocase $prop "type"]) } {
@@ -1606,6 +1664,48 @@ proc is_deprecated_property { property } {
   return false
 }
 
+proc read_props_to_exclude {} {
+  # Summary: read properties that need to be excluded from writing into the script file generated by write_project_tcl command.
+  # Argument Usage: 
+  # Return Value:
+  # none
+  variable a_global_vars
+
+  set objPropList [get_param project.wpt.excludeProperties -quiet]
+
+  foreach objPropEle $objPropList {
+    set objPropSplits [split $objPropEle ":"]
+    if { [llength $objPropSplits] == 2 } {
+      dict lappend a_global_vars(excludePropDict) [lindex $objPropSplits 0] [lindex $objPropSplits 1]
+    }
+  }
+}
+
+#This is a short term fix to address the need of exluding properties of certain object from getting written into the script file
+#In this fix to execlude a property for an object comparison is done based on string representation of the tcl object.
+#There is a chance that there are two Tcl objects with same string representaion in that case it all comes down to property name.
+#If property name is also same then, then it could produce undefined results.
+#This fix takes an assumption that object_string_rep:property is unique in the list.
+proc is_excluded_property { obj property } {
+  # Summary: To determine if a property of an object is excluded from writing into the script file or not.
+  # Argument Usage: 
+  # Return Value:
+  # none
+  variable a_global_vars
+
+  foreach _obj [dict keys $a_global_vars(excludePropDict)] {
+    if { $_obj == $obj } {
+      set _property [dict get $a_global_vars(excludePropDict) $_obj]
+
+      if { [lsearch -nocase $_property $property] != -1 } {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
 proc write_files { proj_dir proj_name tcl_obj type } {
   # Summary: write file and file properties 
   # This helper command is used to script help.
@@ -1630,7 +1730,8 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   set import_coln [list]
   set add_file_coln [list]
 
-  foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj]] {
+  set bc_managed_fs_filter "IS_BLOCK_CONTAINER_MANAGED == 0"
+  foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj] -filter $bc_managed_fs_filter] {
     if { [file extension $file] == ".xcix" } { continue }
     # Skip direct import/add of BD files if -use_bd_files is not provided
     if { [file extension $file] == ".bd" && !$a_global_vars(b_arg_use_bd_files) } { continue }
@@ -1731,7 +1832,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
             lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
           }
        } else {
-          lappend l_script_data "# Add local files from the original project (-no_copy_sources specified)"
+         lappend l_script_data "# Add local files from the original project (-no_copy_sources specified)"
           lappend l_script_data "set files \[list \\"
           foreach ifile $import_coln {
             lappend l_script_data " $ifile\\"
@@ -2400,6 +2501,10 @@ proc is_ip_fileset { fileset } {
     return false
   }
 
+  if { [is_bc_managed_fileset $fileset] } {
+    return false
+  }
+
   if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
     return false
   }
@@ -2417,6 +2522,26 @@ proc is_ip_fileset { fileset } {
   if { $b_found } {
     return true
   }
+  return false
+}
+
+proc is_bc_managed_fileset { fileset } {
+  # Summary: Determine if the fileset is managed by Block Container
+  # Argument Usage:
+  # fileset: fileset name
+  # Return Value:
+  # true (1) if the fileset contains a BD that is managed by Block Container, false (0) otherwise
+
+  # make sure fileset is block fileset type
+  if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
+    return false
+  }
+
+  set bc_managed_fs_filter "IS_BLOCK_CONTAINER_MANAGED == 1"
+  if {[llength [get_files -norecurse -quiet -of_objects [get_filesets $fileset] -filter $bc_managed_fs_filter]] == 1} {
+    return true
+  }
+
   return false
 }
 
@@ -2572,6 +2697,27 @@ proc write_specified_dashboard { proj_dir proj_name } {
 
 }
 
+proc wr_bc_managed_rm_files { proj_dir proj_name } {
+  # Summary: write bc managed reconfig module files
+  # This helper command is used to script help.
+  # Argument Usage: 
+  # proj_name: project name
+  # Return Value:
+  
+  if { [get_property pr_flow [current_project]] == 0 } {
+    return
+  }
+
+  set partitionDefs [get_partition_defs -filter "IS_BLOCK_CONTAINER_MANAGED == 1"]
+  if { [llength $partitionDefs] == 0 } {
+    return
+  }
+  set reconfigModules [get_reconfig_modules -of_objects $partitionDefs]
+  foreach rm $reconfigModules {
+    write_reconfigmodule_files $proj_dir $proj_name $rm
+  }
+}
+
 proc wr_prflow { proj_dir proj_name } {
   # Summary: write partial reconfiguration and properties 
   # This helper command is used to script help.
@@ -2587,7 +2733,7 @@ proc wr_prflow { proj_dir proj_name } {
   # write below properties only if it's a pr project
   wr_pdefs $proj_dir $proj_name
   wr_reconfigModules $proj_dir $proj_name
-  wr_prConf $proj_dir $proj_name 
+  #wr_prConf $proj_dir $proj_name 
 }
 
 proc wr_pdefs { proj_dir proj_name } {
@@ -2599,7 +2745,7 @@ proc wr_pdefs { proj_dir proj_name } {
   # None
 
   # write pDef i.e. create partition def
-  set partitionDefs [get_partition_def]
+  set partitionDefs [get_partition_defs -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
   
   foreach partitionDef $partitionDefs {
     write_specified_partition_definition $proj_dir $proj_name $partitionDef
@@ -2642,8 +2788,14 @@ proc wr_reconfigModules { proj_dir proj_name } {
   # Return Value:
   # None
 
+  # Ignore Block Container managed PartionDefs/RMs
+  set partitionDefs [get_partition_defs -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
+  if { [llength $partitionDefs] == 0 } {
+    return
+  }
+
   # write  reconfigurations modules
-  set reconfigModules [get_reconfig_modules]
+  set reconfigModules [get_reconfig_modules -of_objects $partitionDefs]
   variable a_global_vars
 
   # associate a bd with rm to be used with write_specified_reconfig_module
@@ -2740,6 +2892,10 @@ proc wr_prConf {proj_dir proj_name} {
   # Return Value:
   # None
 
+  if { [get_property pr_flow [current_project]] == 0 } {
+    return
+  }
+
   # write pr configurations
   set prConfigurations [get_pr_configurations]
 
@@ -2783,7 +2939,9 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   set l_remote_file_list [list]
 
   # return if empty fileset
-  if {[llength [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]]] == 0 } {
+  set bc_managed_fs_filter "IS_BLOCK_CONTAINER_MANAGED == 0"
+  set files [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule] -filter $bc_managed_fs_filter]
+  if {[llength $files] == 0 } {
     lappend l_script_data "# Empty (no sources present)\n"
     return
   }
@@ -2795,7 +2953,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   set add_file_coln [list]
   set bd_list [list]
  
-  foreach file [get_files -quiet -norecurse -of_objects [get_filesets -of_objects $reconfigModule]] {
+  foreach file $files { 
     if { [file extension $file ] ==".bd" && !$a_global_vars(b_arg_use_bd_files)} {
       lappend bd_list $file
       continue

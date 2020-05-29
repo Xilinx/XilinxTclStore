@@ -156,7 +156,7 @@ proc usf_ies_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set l_local_ip_libs [xcs_get_libs_from_local_repo]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
     if { {} != $clibs_dir } {
       set libraries [xcs_get_compiled_libraries $clibs_dir $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
@@ -184,7 +184,7 @@ proc usf_ies_setup_simulation { args } {
   }
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir)
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # fetch design files
   set global_files_str {}
@@ -223,6 +223,7 @@ proc usf_ies_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
@@ -250,6 +251,7 @@ proc usf_ies_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_halt_script"        { set ::tclapp::xilinx::ies::a_sim_vars(b_int_halt_script) 1                        }
       "-int_compile_glbl"       { set ::tclapp::xilinx::ies::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::ies::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
       "-int_csim_compile_order" { set ::tclapp::xilinx::ies::a_sim_vars(b_int_csim_compile_order) 1                 }
@@ -325,6 +327,9 @@ proc usf_ies_write_setup_files {} {
   variable l_local_design_libraries
   set top $::tclapp::xilinx::ies::a_sim_vars(s_sim_top)
   set dir $::tclapp::xilinx::ies::a_sim_vars(s_launch_dir)
+  set sim_flow $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow)
+  set fs_obj [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]
+  set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   #
   # cds.lib
@@ -341,6 +346,21 @@ proc usf_ies_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
+
+  set b_add_dummy_binding 0
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { {funcsim} == $netlist_mode } {
+      set b_add_dummy_binding 1
+    }
+  }
+
+  if { $b_add_dummy_binding } {
+    puts $fh "DEFINE simprims_ver ies_lib/simprims_ver"
+    set simprim_dir "$dir/ies_lib/simprims_ver"
+    if { ![file exists $simprim_dir] } {
+      [catch {file mkdir $simprim_dir} error_msg]
+    }
+  }
   set libs [list]
   set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
@@ -927,7 +947,8 @@ proc usf_ies_write_simulate_script {} {
     set tool_path_val "$tool"
   }
   set arg_list [list "${tool_path_val}" "\$${tool}_opts" "${top_lib}.$top" "-input" "$do_filename"]
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     variable a_ies_sim_vars
     set clibs_dir $a_ies_sim_vars(s_compiled_lib_dir)
     #lappend arg_list "-sv_root \"$clibs_dir/secureip\""

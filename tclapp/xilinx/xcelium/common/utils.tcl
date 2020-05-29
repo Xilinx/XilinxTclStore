@@ -847,7 +847,10 @@ proc xcs_get_bin_path { tool_name path_sep } {
   set bin_path {}
   foreach path [split $path_value $path_sep] {
     set exe_file [file normalize [file join $path $tool_name]]
-    if { [file exists $exe_file] } {
+    #
+    # make sure it exists and is of file-type and is not a directory
+    #
+    if { [file exists $exe_file] && [file isfile $exe_file] && ![file isdirectory $exe_file] } {
       set bin_path $path
       break
     }
@@ -1508,7 +1511,7 @@ proc xcs_get_path_from_data {path_from_data} {
   return [file normalize [file join $data_dir $path_from_data]]
 }
 
-proc xcs_get_libs_from_local_repo {} {
+proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1523,34 +1526,61 @@ proc xcs_get_libs_from_local_repo {} {
     set install_dir [join [lrange $install_comps $index end] "/"]
   }
 
+  variable a_sim_lib_info
+  array unset a_sim_lib_info
+
+  set b_libs_referenced_from_locked_ips 0
+  set b_libs_referenced_from_local_repo 0
+
+  set lib_info [list]
   set lib_dict [dict create]
   foreach ip_obj [get_ips -all -quiet] {
     if { {} == $ip_obj } { continue }
-    # is ip in locked state? compile files from this ip locally
     set b_is_locked 0
     set b_is_locked [get_property -quiet is_locked $ip_obj]
+
+    # is IP locked? fetch the referenced libraries from this IP
     if { $b_is_locked } {
       foreach file_obj [get_files -quiet -all -of_objects $ip_obj -filter {USED_IN=~"*ipstatic*"}] {
         set lib [get_property library $file_obj]
         if { {xil_defaultlib} == $lib } { continue }
+        # add local library to collection
         dict append lib_dict $lib
+        if { ![info exists a_sim_lib_info($lib)] } {
+          set a_sim_lib_info($ip_obj#$lib) "LOCKED_IP"
+        }
+        if { !$b_libs_referenced_from_locked_ips } {
+          set b_libs_referenced_from_locked_ips 1
+        }
       }
     } else {
-      # is this ip from local repo? compile files from this ip locally
+      #
+      # IP is not locked. Is this referenced from local repository?
+      #   1. get the IPDEF value of this IP and then the IP def object
+      #   2. get the first repository path value from this IP def obj, if any, else continue
+      #   3. is tail-end (leaf) dir name is "ip_repo"? if not, continue
+      #   4. split the repository path value and search for "IP_HEAD"
+      #      - if not found, use this repo path as is
+      #      - else get the sub-path starting from "IP_HEAD" till end
+      #   5. if install repo dir does not match with the local repo path, then
+      #      get the IP object libraries from this local repo 
+
+      # 1. **********************************************************************
       set ip_def_obj [get_ipdefs -quiet -all [get_property -quiet ipdef $ip_obj]]
       if { {} == $ip_def_obj } { continue }
-      
-      # fetch the first repo path currently and get the IP_HEAD sub_dir
+
+      # 2. **********************************************************************
       set local_repo [lindex [get_property -quiet repository $ip_def_obj] 0]
       if { {} == $local_repo } { continue }
       set local_repo [string map {\\ /} $local_repo]
 
-      # continue if local ip repo sub_dir not found
+      # 3. **********************************************************************
       set ip_repo_sub_dir [file tail $local_repo]
       if { {ip_repo} != $ip_repo_sub_dir } {
         continue
       }
 
+      # 4. **********************************************************************
       set local_comps [split $local_repo {/}]
       set index [lsearch -exact $local_comps "IP_HEAD"]
       if { $index == -1 } {
@@ -1558,14 +1588,50 @@ proc xcs_get_libs_from_local_repo {} {
       } else {
         set local_dir [join [lrange $local_comps $index end] "/"]
       }
-  
-      # if install ip_head sub-dir doesnot match with local ip repo path, filter libraries for this ip to be processed locally
+ 
+      # 5. **********************************************************************
       if { [string equal -nocase $install_dir $local_dir] != 1 } {
         foreach file_obj [get_files -quiet -all -of_objects $ip_obj -filter {USED_IN=~"*ipstatic*"}] {
           set lib [get_property library $file_obj]
           if { {xil_defaultlib} == $lib } { continue }
+          # add local library to collection
           dict append lib_dict $lib
+          if { ![info exists a_sim_lib_info($lib)] } {
+            set a_sim_lib_info($ip_obj#$lib) "CUSTOM_IP"
+          }
+          if { !$b_libs_referenced_from_local_repo } {
+            set b_libs_referenced_from_local_repo 1
+          }
         }
+      }
+    }
+  }
+
+  if { ($b_libs_referenced_from_locked_ips || $b_libs_referenced_from_local_repo) && $b_pre_compile } {
+    send_msg_id SIM-utils-020 INFO "The project contains locked or custom IPs. The pre-compiled version of these IPs will not be referenced and the sources from these IP libraries will be compiled locally.\n"
+
+    if { $b_int_sm_lib_ref_debug } {
+      if { [array size a_sim_lib_info] > 0 } {
+        package require struct::matrix
+        struct::matrix mt;
+        mt add columns 3;
+        set lines [list]
+        puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+        puts "Pre-compiled library reference information for locked or custom IPs:-"
+        puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+        lappend lines "IP LIBRARY TYPE"
+        lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
+        foreach {key value} [array get a_sim_lib_info] {
+          set ip_info [split $key {#}]
+          set ip_name [lindex $ip_info 0]
+          set ip_lib  [lindex $ip_info 1]
+          set type    $value
+          lappend lines "$ip_name $ip_lib $type"
+          lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
+        }
+        foreach line $lines {mt add row $line}
+        puts [mt format 2string]
+        mt destroy
       }
     }
   }
@@ -1693,7 +1759,8 @@ proc xcs_is_embedded_flow {} {
   }
 
   # check if gt_quad_base present
-  if { [xcs_find_ip "gt_quad_base"] } {
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  if { {} != $ip_obj } {
     return 1
   }
   return 0
@@ -2563,7 +2630,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
         "SystemVerilog"                {set compiler "vlogan"}
-        "SystemC"                      {set compiler "g++"}
+        "SystemC"                      {set compiler "syscan"}
         "CPP"                          {set compiler "g++"}
         "C"                            {set compiler "gcc"}
       }
@@ -2780,18 +2847,36 @@ proc xcs_design_contain_sv_ip { } {
   return false
 }
 
-proc xcs_find_sv_pkg_libs { run_dir } {
+proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_sv_pkg_libs
 
+  if { $b_int_sm_lib_ref_debug } {
+    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
+    puts "Finding IP XML files:-"
+    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
+  }
   set tmp_dir "$run_dir/_tmp_ip_comp_"
   set ip_comps [list]
   foreach ip [get_ips -all -quiet] {
     set ip_file [get_property ip_file $ip]
+    # default ip xml file location
     set ip_filename [file rootname $ip_file];append ip_filename ".xml"
+    # find from ip_output_dir
+    set ip_dir [get_property ip_output_dir -quiet $ip]
+    if { ({} != $ip_dir) && [file exists $ip_dir] } {
+      set ipfile [file root [file tail $ip_file]];append ipfile ".xml"
+      set ipfile "$ip_dir/$ipfile"
+      if { [file exists $ipfile] } {
+        set ip_filename $ipfile
+      } else {
+        send_msg_id SIM-utils-065 WARNING "Failed to find the IP component XML file for '$ip' from IP_OUTPUT_DIR property! (file does not exist:'$ipfile')\n"
+      }
+    }
+    
     if { ![file exists $ip_filename] } {
       # extract files
       set ip_file_obj [get_files -all -quiet $ip_filename]
@@ -2802,8 +2887,19 @@ proc xcs_find_sv_pkg_libs { run_dir } {
         send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
         continue;
       }
+    } else {
+      if { $b_int_sm_lib_ref_debug } {
+        puts "$ip_filename"
+      }
     }
     lappend ip_comps $ip_filename
+  }
+  if { $b_int_sm_lib_ref_debug } {
+    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
+  }
+
+  if { $b_int_sm_lib_ref_debug } {
+    puts "System Verilog static sources compiled into IP library:-"
   }
 
   foreach ip_xml $ip_comps {
@@ -2814,7 +2910,24 @@ proc xcs_find_sv_pkg_libs { run_dir } {
       if { ([string last "simulation" $type] != -1) && ($type != "examples_simulation") } {
         set sub_lib_cores [get_property component_subcores $file_group]
         if { [llength $sub_lib_cores] == 0 } {
-          continue
+          # No sub-cores (find system verilog static sources that are compiled into IP library)
+          foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
+            set file_entry [split $static_file { }]
+            lassign $file_entry file_key comp_ref file_group_name file_path
+            set ip_file [lindex $file_entry 3]
+            set file_type [get_property type [ipx::get_files $ip_file -of_objects $file_group]]
+            if { {systemVerilogSource} == $file_type } {
+              set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
+              if { ({} != $library) && ({xil_defaultlib} != $library) } {
+                if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+                  if { $b_int_sm_lib_ref_debug } {
+                    puts " + $library"
+                  }
+                  lappend a_sim_sv_pkg_libs $library
+                }
+              }
+            }
+          }
         }
         # reverse the order of sub-cores
         set ordered_sub_cores [list]
@@ -2823,7 +2936,7 @@ proc xcs_find_sv_pkg_libs { run_dir } {
         }
         #puts "$vlnv=$ordered_sub_cores"
         foreach sub_vlnv $ordered_sub_cores {
-          xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
+          xcs_extract_sub_core_sv_pkg_libs $sub_vlnv $b_int_sm_lib_ref_debug
         }
         foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
           set file_entry [split $static_file { }]
@@ -2834,6 +2947,9 @@ proc xcs_find_sv_pkg_libs { run_dir } {
             set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
             if { ({} != $library) && ({xil_defaultlib} != $library) } {
               if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+                if { $b_int_sm_lib_ref_debug } {
+                  puts " + $library"
+                }
                 lappend a_sim_sv_pkg_libs $library
               }
             }
@@ -2842,6 +2958,9 @@ proc xcs_find_sv_pkg_libs { run_dir } {
       }
     }
     ipx::unload_core $ip_comp
+  }
+  if { $b_int_sm_lib_ref_debug } {
+    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
   }
 
   # delete tmp dir
@@ -2945,7 +3064,7 @@ proc xcs_get_systemc_include_dir {} {
   return $incl_dir
 }
 
-proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
+proc xcs_extract_sub_core_sv_pkg_libs { vlnv b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2968,7 +3087,7 @@ proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
       }
       #puts " +$vlnv=$ordered_sub_cores"
       foreach sub_vlnv $ordered_sub_cores {
-        xcs_extract_sub_core_sv_pkg_libs $sub_vlnv
+        xcs_extract_sub_core_sv_pkg_libs $sub_vlnv $b_int_sm_lib_ref_debug
       }
       foreach static_file [ipx::get_files -filter {USED_IN=~"*ipstatic*"} -of $file_group] {
         set file_entry [split $static_file { }]
@@ -2979,6 +3098,9 @@ proc xcs_extract_sub_core_sv_pkg_libs { vlnv } {
           set library [get_property library_name [ipx::get_files $ip_file -of_objects $file_group]]
           if { ({} != $library) && ({xil_defaultlib} != $library) } {
             if { [lsearch $a_sim_sv_pkg_libs $library] == -1 } {
+              if { $b_int_sm_lib_ref_debug } {
+                puts " + $library"
+              }
               lappend a_sim_sv_pkg_libs $library
             }
           }
@@ -3385,15 +3507,16 @@ proc xcs_find_ip { name } {
   # Summary:
   # Argument Usage:
   # Return Value:
- 
+
+  set null_ip_obj {}
   foreach ip_obj [get_ips -all -quiet] {
     set ipdef [get_property -quiet IPDEF $ip_obj]
     set ip_name [lindex [split $ipdef ":"] 2]
     if { [string first $name $ip_name] != -1} {
-      return true
+      return $ip_obj
     }
   }
-  return false
+  return $null_ip_obj
 }
 
 proc xcs_get_shared_ip_libraries { clibs_dir } {
@@ -3716,8 +3839,20 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
     return
   }
 
+  # store library existence information (used for reporting critical warning, if shared library not found)
+  # set it to false and mark it true once found from the available search paths
+  variable a_ip_lib_ref_coln
+  foreach sc_lib $lib_coln {
+    if { ![info exists a_ip_lib_ref_coln($sc_lib)] } {
+      set a_ip_lib_ref_coln($sc_lib) false
+    }
+  }
+
   # target directory paths to search for
   set target_paths [xcs_get_target_sm_paths $simulator $clibs_dir $custom_sm_lib_dir $b_int_sm_lib_ref_debug sp_cpt_dir sp_ext_dir]
+
+  # construct target paths string
+  set target_paths_str [join $target_paths "\n"]
 
   # additional linked libraries
   set linked_libs           [list]
@@ -3792,6 +3927,10 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
             set a_shared_library_path_coln($shared_libname) $lib_dir
             set lib_path_dir [file dirname $lib_dir]
             set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            # mark library found from path
+            if { [info exists a_ip_lib_ref_coln($library)] } {
+              set a_ip_lib_ref_coln($library) true
+            }
             if { $b_int_sm_lib_ref_debug } {
               puts "  + Added '$shared_libname:$lib_dir' to collection" 
             }
@@ -3896,8 +4035,13 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
             }
           }
         } else {
-          if { $b_int_sm_lib_ref_debug } {
-            puts "    + error: file does not exist '$dat_file'"
+          if { ("protobuf" == $library) } {
+            # pre-compiled libraries that don't have dat file
+          } else {
+            if { $b_int_sm_lib_ref_debug } {
+              puts "    + error: file does not exist '$dat_file'"
+            }
+            send_msg_id SIM-utils-064 ERROR "The data information file for the '$library' library does not exist! '$dat_file' (this file is generated by compile_simlib tcl command). Please check if compilation errors were reported in compile_simlib.log file.\n"
           }
         }
       }
@@ -3937,6 +4081,10 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
             set a_shared_library_path_coln($shared_libname) $lib_dir
             set lib_path_dir [file dirname $lib_dir]
             set a_shared_library_mapping_path_coln($library) $lib_path_dir
+            # mark library found from path
+            if { [info exists a_ip_lib_ref_coln($library)] } {
+              set a_ip_lib_ref_coln($library) true
+            }
             if { $b_int_sm_lib_ref_debug } {
               puts "  + Library found -> $sh_file_path"
               puts "  + Added '$shared_libname:$lib_dir' to collection" 
@@ -3946,6 +4094,20 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
       }
     }
   }
+
+  # print critical warning for missing libraries
+  foreach {key value} [array get a_ip_lib_ref_coln] {
+    set ip_lib_name  $key
+    set ip_lib_found $value
+    if { {false} == $ip_lib_found } {
+      send_msg_id SIM-utils-061 "CRITICAL WARNING" "Failed to find the pre-compiled library for '$ip_lib_name' IP from the following search paths:-\n"
+      foreach tp $target_paths {
+        send_msg_id SIM-utils-062 STATUS "  '$tp'"
+      }
+      send_msg_id SIM-utils-063 STATUS "Please verify if this is a valid IP name ('$ip_lib_name') or was compiled successfully and the shared library for this IP exist in the search paths."
+    }
+  }
+
 
   # print extracted shared library information
   if { $b_int_sm_lib_ref_debug } {
@@ -4019,6 +4181,20 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
 
   set sm_cpt_dir [xcs_get_simmodel_dir $simulator "cpt"]
   set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+  # is custom protected sim-model path specified?
+  set param "simulator.customSimModelRootDir"
+  set custom_cpt_dir ""
+  [catch {set custom_cpt_dir [get_param $param]} err]
+  if { {} != $custom_cpt_dir } {
+    if { [file exists $custom_cpt_dir] } {
+      set custom_dir "$custom_cpt_dir/data"
+      if { [file exists $custom_dir] } {
+        set cpt_dir $custom_dir
+      }
+    } else {
+      send_msg_id SIM-utils-066 WARNING "The path specified with the '$param' does not exist! Using libraries from default install location.\n"
+    }
+  }
 
   # default protected dir
   set tp "$cpt_dir/$sm_cpt_dir"
@@ -4296,14 +4472,21 @@ proc xcs_get_boost_library_path {} {
   return $boost_incl_dir
 }
 
-proc xcs_get_pre_compiled_shared_objects { clibs_dir vlnv } {
+proc xcs_get_pre_compiled_shared_objects { simulator clibs_dir vlnv } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set obj_file_paths [list]
   set obj_dir "$clibs_dir/$vlnv"
+  if { "vcs" == $simulator } {
+    append obj_dir "/sysc"
+  }
   foreach obj_file [glob -nocomplain -directory $obj_dir *.o] {
+    if { "vcs" == $simulator } {
+      set file_name [file root [file tail $obj_file]]
+      if { "_stublist" == $file_name } { continue }
+    }
     lappend obj_file_paths $obj_file
   }
   

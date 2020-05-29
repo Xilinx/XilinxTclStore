@@ -107,7 +107,7 @@ proc usf_init_vars {} {
  
   # data file extension types 
   variable s_data_files_filter
-  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"STATIC MEMORY FILE\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\""
+  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"STATIC MEMORY FILE\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\" || FILE_TYPE == \"Configuration Data Object\""
 
   # embedded file extension types 
   variable s_embedded_files_filter
@@ -155,6 +155,9 @@ proc usf_init_vars {} {
   # wrapper file for executing user tcl
   set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
 
+  # ubuntu lib dir to reference crti.o
+  set a_sim_vars(ubuntu_lib_dir) "/usr/lib/x86_64-linux-gnu"
+
   variable a_sim_cache_result
   array unset a_sim_cache_result
 
@@ -183,6 +186,9 @@ proc usf_init_vars {} {
   array unset a_shared_library_mapping_path_coln
 
   variable a_sim_sv_pkg_libs [list]
+
+  variable a_ip_lib_ref_coln
+  array unset a_ip_lib_ref_coln
 
 }
 

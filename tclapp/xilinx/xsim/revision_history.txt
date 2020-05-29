@@ -1,3 +1,27 @@
+2.339 donot bind DPI-C shared library if param is false
+2.338 do not bind systemC pre-compiled IP library when selected sim-model is tlm-dpi
+2.336 replace protected simmodel path set by param
+2.335 find sv verilog static sources from IP repo root level core
+2.334 fetch IP xml sources from ip_output_dir
+2.333 support for configuration data object sources
+2.332 bind IP shared libraries for tlm selected sim model
+2.331 filter libraries that does not generate .cxl.lib_info.dat file
+2.330 print error if failed to find the dat files for simulation models
+2.329 bind IP systemc objects for VCS
+2.328 add checks for simulator executable file type
+2.327 fixed utils msg
+2.326 fixed ip object return value
+2.325 process unique shared libraries for linking during elaboration
+2.324 set clibs path for non-precompile flow
+2.323 support for VCS systemC compilation
+2.322 return ip name from xcs_find_ip
+2.321 added comment for the used_in flags usage for determining static files
+2.320 set LIBRARY_PATH for referencing crti.o for ubuntu
+2.319 revert set LIBRARY_PATH for referencing crti.o for ubuntu
+2.318 set LIBRARY_PATH for referencing crti.o for ubuntu
+2.317 added info message for locked or custom IPs in the project
+2.316 declare variable for storing referenced shared library in ipdef
+2.315 print critical warning for missing pre-compiled simulation model IP
 2.314 fixed used_in values check for simulation tag
 2.313 added helper proc to find out object files for IPs referenced in the design
 2.312 fix for referencing linked shared library paths for Questa

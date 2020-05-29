@@ -1,3 +1,22 @@
+2.268 replace protected simmodel path set by param
+2.267 find sv verilog static sources from IP repo root level core
+2.266 donot pass -64bit for windows
+2.265 fetch IP xml sources from ip_output_dir
+2.264 support for configuration data object sources
+2.263 filter libraries that does not generate .cxl.lib_info.dat file
+2.262 print error if failed to find the dat files for simulation models
+2.261 bind IP systemc objects for VCS
+2.260 add checks for simulator executable file type
+2.259 halt scripts only flow if param set
+2.258 fixed utils msg
+2.257 fixed ip object return value
+2.256 support for VCS systemC compilation
+2.255 return ip name from xcs_find_ip
+2.254 added comment for the used_in flags usage for determining static files
+2.253 added info message for locked or custom IPs in the project
+2.252 do not call quit -force for compile and elaborate steps in scripts_only mode when simulator.quitOnSimulationComplete is false
+2.251 declare variable for storing referenced shared library in ipdef
+2.250 print critical warning for missing pre-compiled simulation model IP
 2.249 fixed used_in values check for simulation tag
 2.248 added helper proc to find out object files for IPs referenced in the design
 2.247 fix for referencing linked shared library paths for Questa

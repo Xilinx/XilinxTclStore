@@ -47,6 +47,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
+  set a_sim_vars(b_int_halt_script)  0
   set a_sim_vars(b_int_systemc_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
@@ -106,7 +107,7 @@ proc usf_init_vars {} {
  
   # data file extension types 
   variable s_data_files_filter
-  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"STATIC MEMORY FILE\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\""
+  set s_data_files_filter            "FILE_TYPE == \"Data Files\" || FILE_TYPE == \"Memory File\" || FILE_TYPE == \"STATIC MEMORY FILE\" || FILE_TYPE == \"Memory Initialization Files\" || FILE_TYPE == \"CSV\" || FILE_TYPE == \"Coefficient Files\" || FILE_TYPE == \"Configuration Data Object\""
 
   # embedded file extension types 
   variable s_embedded_files_filter
@@ -166,6 +167,9 @@ proc usf_init_vars {} {
   array unset a_sim_cache_parent_comp_files
 
   variable a_sim_sv_pkg_libs [list]
+
+  variable a_ip_lib_ref_coln
+  array unset a_ip_lib_ref_coln
 
 }
 
@@ -340,7 +344,7 @@ proc usf_create_do_file { simulator do_filename } {
     if { [get_property "XCELIUM.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
       set depth "all"
     }
-    set db "probe -create -shm -all -variables -depth $depth"
+    set db "catch \{probe -create -shm -all -variables -depth $depth\} msg"
     if { $a_sim_vars(b_batch) || $b_scripts_only } {
       puts $fh_do $db
     } else {
@@ -453,16 +457,25 @@ proc usf_set_simulator_path { simulator } {
   if { {} == $install_path } {
     set bin_path [xcs_get_bin_path $tool_name $path_sep]
     if { {} == $bin_path } {
+      set b_halt_flow true
       if { $a_sim_vars(b_scripts_only) } {
-        send_msg_id USF-Xcelium-108 WARNING \
-          "Simulator executable path could not be located. Please make sure to set this path before launching the scripts.\n"
-      } else {
+        if { $a_sim_vars(b_int_halt_script) } {
+          # halt
+        } else {
+          set b_halt_flow false
+        }
+      }
+
+      if { $b_halt_flow } {
         [catch {send_msg_id USF-Xcelium-042 ERROR \
           "Failed to locate '$tool_name' executable in the shell environment 'PATH' variable. Please source the settings script included with the installation and retry this operation again.\n"}]
         # IMPORTANT - *** DONOT MODIFY THIS ***
         error "_SIM_STEP_RUN_EXEC_ERROR_"
         # IMPORTANT - *** DONOT MODIFY THIS ***
         return 1
+      } else {
+        send_msg_id USF-Xcelium-108 WARNING \
+          "Simulator executable path could not be located. Please make sure to set this path before launching the scripts.\n"
       }
     } else {
       send_msg_id USF-Xcelium-043 INFO "Using simulator executables from '$bin_path'\n"
@@ -497,7 +510,7 @@ proc usf_set_simulator_path { simulator } {
   }
   set sys_link "$xm_root/tools/systemc/lib/64bit/gnu"
   if { ![file exists $sys_link] } { 
-    send_msg_id USF-Xcelium-046 ERROR "Failed to find the Xcelium installation path! Please check if the simulator is installed correctly and PATH is set.\n"
+    send_msg_id USF-Xcelium-046 WARNING "The Xcelium GNU executables could not be located. Please check if the simulator is installed correctly.\n"
   }
     
   set a_sim_vars(s_sys_link_path) "$sys_link"

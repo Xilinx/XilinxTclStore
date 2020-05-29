@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::projutils 3.409 [list source [file join $dir projutils.tcl]]
+package ifneeded ::tclapp::xilinx::projutils 3.460 [list source [file join $dir projutils.tcl]]

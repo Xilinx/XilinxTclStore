@@ -1,3 +1,26 @@
+2.188 donot bind DPI-C shared library if param is false
+2.187 bind vivado shared library path for hw-emu
+2.186 replace protected simmodel path set by param
+2.185 find sv verilog static sources from IP repo root level core
+2.184 donot pass -64bit for windows
+2.183 fetch IP xml sources from ip_output_dir
+2.182 set path to gtye5_quad shared library in absolute format
+2.181 support for configuration data object sources
+2.180 filter libraries that does not generate .cxl.lib_info.dat file
+2.179 print error if failed to find the dat files for simulation models
+2.178 bind IP systemc objects for VCS
+2.177 add checks for simulator executable file type
+2.176 halt scripts only flow if param set
+2.175 fixed utils msg
+2.174 fixed ip object return value
+2.173 support for VCS systemC compilation
+2.172 return ip name from xcs_find_ip
+2.171 added comment for the used_in flags usage for determining static files
+2.170 added info message for locked or custom IPs in the project
+2.169 do not call quit -force for compile and elaborate steps in scripts_only mode when simulator.quitOnSimulationComplete is false
+2.168 declare variable for storing referenced shared library in ipdef
+2.167 print critical warning for missing pre-compiled simulation model IP
+2.166 export protected library path for simulate step
 2.165 fixed used_in values check for simulation tag
 2.164 added helper proc to find out object files for IPs referenced in the design
 2.163 fix for referencing linked shared library paths for Questa
