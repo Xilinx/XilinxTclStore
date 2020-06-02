@@ -164,6 +164,18 @@ proc simulate { args } {
         #[catch {send_msg_id USF-XSim-103 STATUS "xv_ref_path=$::env(xv_ref_path)"}]
       }
 
+      # set cpt lib path for aie
+      set aie_ip_obj [xcs_find_ip "ai_engine"]
+      if { {} != $aie_ip_obj } {
+        set cmd "set ::env(xv_cpt_lib_path) \"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
+        if {[catch {eval $cmd} err_msg]} {
+          puts $err_msg
+          [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the xv_cpt_lib_path!"}]
+        } else {
+          #[catch {send_msg_id USF-XSim-103 STATUS "xv_cpt_lib_path=$::env(xv_cpt_lib_path)"}]
+        }
+      }
+
       set cmd "set ::env(LD_LIBRARY_PATH) \"$dir:$::env(RDI_LIBDIR)"
       if { [llength l_sm_lib_paths] > 0 } {
         foreach sm_lib_path $l_sm_lib_paths {
@@ -177,6 +189,15 @@ proc simulate { args } {
         [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LD_LIBRARY_PATH!"}]
       } else {
         #[catch {send_msg_id USF-XSim-103 STATUS "LD_LIBRARY_PATH=$::env(LD_LIBRARY_PATH)"}]
+      }
+
+      if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+        puts "------------------------------------------------------------------------------------------------------------------------------------"
+        puts "LIBRARY PATH SETTINGS"
+        puts "------------------------------------------------------------------------------------------------------------------------------------"
+        puts "xv_ref_path=$::env(xv_ref_path)"
+        puts "xv_cpt_lib_path=$::env(xv_cpt_lib_path)"
+        puts "------------------------------------------------------------------------------------------------------------------------------------"
       }
     }
   }
