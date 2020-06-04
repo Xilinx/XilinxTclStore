@@ -141,13 +141,8 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-<<<<<<< HEAD
-      <commit_id>b7a7312e2727b9645a0fce34ff5e58d52f6a6383</commit_id>
-      <revision>8.1</revision>
-=======
       <commit_id>a5ae58248020d5619378398bf3e57a5b9551c190</commit_id>
       <revision>9.25</revision>
->>>>>>> origin/2020.1-dev
     </app>
     <app>
       <name>xcelium</name>
