@@ -1691,6 +1691,26 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
       puts $fh_scr "set xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "set xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
       puts $fh_scr "set xv_boost_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)\"\n"
+      # set PATH env to reference shared lib's 
+      set b_en_code true
+      if { $b_en_code } {
+        set b_bind_shared_lib 0
+        [catch {set b_bind_shared_lib [get_param project.bindSharedLibraryForXSCElab]} err]
+        if { $b_bind_shared_lib } {
+          puts $fh_scr "set xv_cxl_win_path=$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)"
+          set cxl_lib_paths [list]
+          variable a_shared_library_path_coln
+          foreach {key value} [array get a_shared_library_path_coln] {
+            set shared_lib_name $key
+            set lib_path        $value
+            set lib_name        [file root $shared_lib_name]
+            set lib_name        [string trimleft $lib_name {lib}]
+            lappend cxl_lib_paths "%xv_cxl_win_path%/ip/$lib_name"
+          }
+          set cxl_lib_paths_str [join $cxl_lib_paths ";"]
+          puts $fh_scr "set PATH=$cxl_lib_paths_str;%PATH%\n"
+        }
+      }
     }
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
