@@ -199,6 +199,43 @@ proc simulate { args } {
         puts "xv_cpt_lib_path=$::env(xv_cpt_lib_path)"
         puts "------------------------------------------------------------------------------------------------------------------------------------"
       }
+    } else {
+      # set PATH env to reference shared lib's
+      set b_en_code true
+      if { $b_en_code } {
+        set b_bind_shared_lib 0
+        [catch {set b_bind_shared_lib [get_param project.bindSharedLibraryForXSCElab]} err]
+        if { $b_bind_shared_lib } {
+          set cmd "set ::env(xv_cxl_win_path) $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)"
+          if {[catch {eval $cmd} err_msg]} {
+            puts $err_msg
+            [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LIBRARY_PATH env!"}]
+          }
+          set cxl_lib_paths [list]
+          variable a_shared_library_path_coln
+          foreach {key value} [array get a_shared_library_path_coln] {
+            set shared_lib_name $key
+            set lib_path        $value
+            set lib_name        [file root $shared_lib_name]
+            set lib_name        [string trimleft $lib_name {lib}]
+            lappend cxl_lib_paths "\$::env(xv_cxl_win_path)/ip/$lib_name"
+          }
+          set cxl_lib_paths_str [join $cxl_lib_paths ";"]
+          set cmd "set ::env(PATH) \"$cxl_lib_paths_str;\$::env(PATH)\""
+          if {[catch {eval $cmd} err_msg]} {
+            puts $err_msg
+            [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LIBRARY_PATH env!"}]
+          }
+          if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+            puts "------------------------------------------------------------------------------------------------------------------------------------"
+            puts "LIBRARY PATH SETTINGS"
+            puts "------------------------------------------------------------------------------------------------------------------------------------"
+            puts "xv_cxl_win_path=$::env(xv_cxl_win_path)"
+            puts "PATH=$::env(PATH)"
+            puts "------------------------------------------------------------------------------------------------------------------------------------"
+          }
+        }
+      }
     }
   }
 
@@ -1965,6 +2002,26 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
       puts $fh_scr "\nset xv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "set xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
       puts $fh_scr "set xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\"\n"
+      # set PATH env to reference shared lib's 
+      set b_en_code true
+      if { $b_en_code } {
+        set b_bind_shared_lib 0
+        [catch {set b_bind_shared_lib [get_param project.bindSharedLibraryForXSCElab]} err]
+        if { $b_bind_shared_lib } {
+          puts $fh_scr "set xv_cxl_win_path=$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)"
+          set cxl_lib_paths [list]
+          variable a_shared_library_path_coln
+          foreach {key value} [array get a_shared_library_path_coln] {
+            set shared_lib_name $key
+            set lib_path        $value
+            set lib_name        [file root $shared_lib_name]
+            set lib_name        [string trimleft $lib_name {lib}]
+            lappend cxl_lib_paths "%xv_cxl_win_path%/ip/$lib_name"
+          }
+          set cxl_lib_paths_str [join $cxl_lib_paths ";"]
+          puts $fh_scr "set PATH=$cxl_lib_paths_str;%PATH%\n"
+        }
+      }
     }
 
     if { $standalone_mode } {
