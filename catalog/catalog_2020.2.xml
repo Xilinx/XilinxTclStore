@@ -39,8 +39,8 @@
     <app>
       <name>ies</name>
       <company>xilinx</company>
-      <commit_id>fd105b3dab7c8122b151cddcd01219ea0ca0eea2</commit_id>
-      <revision>4.44</revision>
+      <commit_id>cfe6790cbd3605616a0e55a03d296e27b5820f32</commit_id>
+      <revision>4.45</revision>
     </app>
     <app>
       <name>incrcompile</name>
