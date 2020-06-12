@@ -493,52 +493,16 @@ proc usf_ies_write_compile_script {} {
 
   xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
 
-  set tool "ncvhdl"
-  set arg_list [list "-messages"]
+  set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+  set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
 
-  if { [get_property "IES.COMPILE.RELAX" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-relax"]
+  if { $b_contain_vhdl_srcs } {
+    usf_ies_write_vhdl_compile_options $fh_scr
   }
 
-  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
-
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-64bit"]
+  if { $b_contain_verilog_srcs } {
+    usf_ies_write_verilog_compile_options $fh_scr
   }
-
-  if { [get_property "INCREMENTAL" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-update"]
-  }
-
-  set more_ncvhdl_options [string trim [get_property "IES.COMPILE.NCVHDL.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_ncvhdl_options } {
-    set arg_list [linsert $arg_list end "$more_ncvhdl_options"]
-  }
-
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
- 
-  set tool "ncvlog"
-  set arg_list [list "-messages" "-logfile" "${tool}.log" "-append_log"]
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-64bit"]
-  }
-
-  if { [get_property "INCREMENTAL" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-update"]
-  }
-
-  set more_ncvlog_options [string trim [get_property "IES.COMPILE.NCVLOG.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_ncvlog_options } {
-    set arg_list [linsert $arg_list end "$more_ncvlog_options"]
-  }
-
-  puts $fh_scr "\n# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
 
   # add tcl pre hook
   if { {} != $tcl_pre_hook } {
@@ -1196,4 +1160,73 @@ proc usf_ies_create_setup_script {} {
 
   xcs_make_file_executable $scr_file
 }
+
+proc usf_ies_write_vhdl_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "ncvhdl"
+  set arg_list [list "-messages"]
+
+  if { [get_property "IES.COMPILE.RELAX" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-relax"]
+  }
+
+  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log"]]
+  #lappend arg_list "-append_log"
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+
+  if { [get_property "INCREMENTAL" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
+  }
+
+  set more_ncvhdl_options [string trim [get_property "IES.COMPILE.NCVHDL.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_ncvhdl_options } {
+    set arg_list [linsert $arg_list end "$more_ncvhdl_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_ies_write_verilog_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "ncvlog"
+  set arg_list [list "-messages" "-logfile" "${tool}.log"]
+  #lappend arg_list "-append_log"
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+
+  if { [get_property "INCREMENTAL" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
+  }
+
+  set more_ncvlog_options [string trim [get_property "IES.COMPILE.NCVLOG.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_ncvlog_options } {
+    set arg_list [linsert $arg_list end "$more_ncvlog_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
 }
