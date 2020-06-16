@@ -3953,50 +3953,93 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
         puts " + Library search path:$path"
       }
       set lib_dir_path_found ""
-      foreach lib_dir [glob -nocomplain -directory $path *] {
-        if { ![file isdirectory $lib_dir] } { continue; }
-
-        # make sure we deal with the right shared library path (library=xtlm, path=/tmp/foo/bar/xtlm)
-        set lib_leaf_dir_name [file tail $lib_dir]
-        if { $library != $lib_leaf_dir_name } {
-          continue
-        }
-        set sh_file_path "$lib_dir/$shared_libname"
-        if { $b_is_systemc_library } {
-          if { {questa} == $simulator } {
-            set gcc_version [get_param "simulator.${simulator}.gcc.version"]
-            if {$::tcl_platform(platform) == "unix"} {
-              set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
-              if { $b_int_sm_lib_ref_debug } {
-                puts "  + Shared lib path:$sh_file_path"
+      if { [get_param "project.optimizeScriptGenForSimulation"] } {
+        set lib_dir "$path/$library"
+        if { [file exists $lib_dir] && [file isdirectory $lib_dir] } {
+          set sh_file_path "$lib_dir/$shared_libname"
+          if { $b_is_systemc_library } {
+            if { {questa} == $simulator } {
+              set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+              if {$::tcl_platform(platform) == "unix"} {
+                set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
+                if { $b_int_sm_lib_ref_debug } {
+                  puts "  + Shared lib path:$sh_file_path"
+                }
               }
             }
           }
-        }
-
-        if { $b_int_sm_lib_ref_debug } {
+  
+          if { $b_int_sm_lib_ref_debug } {
+            if { [file exists $sh_file_path] } {
+              puts "  -----------------------------------------------------------------------------------------------------------"
+              puts "  + Library found -> $sh_file_path"
+              puts "  -----------------------------------------------------------------------------------------------------------"
+            }
+          }
+  
           if { [file exists $sh_file_path] } {
-            puts "  -----------------------------------------------------------------------------------------------------------"
-            puts "  + Library found -> $sh_file_path"
-            puts "  -----------------------------------------------------------------------------------------------------------"
+            if { ![info exists a_shared_library_path_coln($shared_libname)] } {
+              set a_shared_library_path_coln($shared_libname) $lib_dir
+              set lib_path_dir [file dirname $lib_dir]
+              set a_shared_library_mapping_path_coln($library) $lib_path_dir
+              # mark library found from path
+              if { [info exists a_ip_lib_ref_coln($library)] } {
+                set a_ip_lib_ref_coln($library) true
+              }
+              if { $b_int_sm_lib_ref_debug } {
+                puts "  + Added '$shared_libname:$lib_dir' to collection" 
+              }
+              lappend processed_shared_libs $shared_libname
+              set lib_dir_path_found $lib_dir
+            }
           }
         }
+      } else {
+        foreach lib_dir [glob -nocomplain -directory $path *] {
+          if { ![file isdirectory $lib_dir] } { continue; }
 
-        if { [file exists $sh_file_path] } {
-          if { ![info exists a_shared_library_path_coln($shared_libname)] } {
-            set a_shared_library_path_coln($shared_libname) $lib_dir
-            set lib_path_dir [file dirname $lib_dir]
-            set a_shared_library_mapping_path_coln($library) $lib_path_dir
-            # mark library found from path
-            if { [info exists a_ip_lib_ref_coln($library)] } {
-              set a_ip_lib_ref_coln($library) true
+          # make sure we deal with the right shared library path (library=xtlm, path=/tmp/foo/bar/xtlm)
+          set lib_leaf_dir_name [file tail $lib_dir]
+          if { $library != $lib_leaf_dir_name } {
+            continue
+          }
+          set sh_file_path "$lib_dir/$shared_libname"
+          if { $b_is_systemc_library } {
+            if { {questa} == $simulator } {
+              set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+              if {$::tcl_platform(platform) == "unix"} {
+                set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
+                if { $b_int_sm_lib_ref_debug } {
+                  puts "  + Shared lib path:$sh_file_path"
+                }
+              }
             }
-            if { $b_int_sm_lib_ref_debug } {
-              puts "  + Added '$shared_libname:$lib_dir' to collection" 
+          }
+  
+          if { $b_int_sm_lib_ref_debug } {
+            if { [file exists $sh_file_path] } {
+              puts "  -----------------------------------------------------------------------------------------------------------"
+              puts "  + Library found -> $sh_file_path"
+              puts "  -----------------------------------------------------------------------------------------------------------"
             }
-            lappend processed_shared_libs $shared_libname
-            set lib_dir_path_found $lib_dir
-            break;
+          }
+  
+          if { [file exists $sh_file_path] } {
+            if { ![info exists a_shared_library_path_coln($shared_libname)] } {
+              set a_shared_library_path_coln($shared_libname) $lib_dir
+              set lib_path_dir [file dirname $lib_dir]
+              set a_shared_library_mapping_path_coln($library) $lib_path_dir
+              # mark library found from path
+              if { [info exists a_ip_lib_ref_coln($library)] } {
+                set a_ip_lib_ref_coln($library) true
+              }
+              if { $b_int_sm_lib_ref_debug } {
+                puts "  + Added '$shared_libname:$lib_dir' to collection"
+              }
+              lappend processed_shared_libs $shared_libname
+              set lib_dir_path_found $lib_dir
+              break;
+            }
           }
         }
       }

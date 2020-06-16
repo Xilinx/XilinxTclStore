@@ -295,6 +295,7 @@ proc usf_xsim_setup_simulation { args } {
   # initialize boost library reference
   set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
 
+  # TODO: perf-fix 
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
@@ -388,6 +389,8 @@ proc usf_xsim_setup_simulation { args } {
   if { ![file exists $ip_dir] } {
     set ip_dir $a_sim_vars(s_clibs_dir)
   }
+
+  # TODO: perf-fix
   xcs_fetch_lib_info "xsim" $ip_dir $a_sim_vars(b_int_sm_lib_ref_debug)
 
   set ::tclapp::xilinx::xsim::a_sim_vars(global_files_value) $global_files_str
@@ -749,6 +752,7 @@ proc usf_xsim_verify_compiled_lib {} {
      return 1
     }
     if { $b_resolve_rdi_datadir_env } {
+      # TODO: perf-fix
       usf_resolve_rdi_datadir $run_dir $dir
     }
     set a_sim_vars(compiled_library_dir) $dir
@@ -1138,6 +1142,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     }
   } else {
     puts $fh_scr "@echo off"
+    # TODO: perf-fix
     xcs_write_script_header $fh_scr "compile" "xsim"
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nset xv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
