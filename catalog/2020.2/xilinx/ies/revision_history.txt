@@ -1,3 +1,4 @@
+4.46 implement code to find system libraries faster
 4.45 do not append log for respective language compiler
 4.44 do not launch simulator gui in batch mode
 4.43 compile glbl if force_compile_glbl is true

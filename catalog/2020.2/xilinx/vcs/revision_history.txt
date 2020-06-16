@@ -1,3 +1,4 @@
+9.7 implement code to find system libraries faster
 9.6 force add glbl top if property set
 9.5 append log based on compilation calls
 9.4 add glbl top for post* and behav pure vhdl flows
