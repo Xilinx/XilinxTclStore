@@ -1,3 +1,4 @@
+2.330 implement code to launch compile sub-steps in parallel
 2.329 implement code to find system libraries faster
 2.328 append systemC compiled library paths to the PATH for simulate step
 2.327 append systemC compiled library paths to the PATH for windows
