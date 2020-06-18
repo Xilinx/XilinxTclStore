@@ -1,0 +1,2 @@
+1.9 Improved memory requirement for large reports (report_reset_signals)
+1.8 Added support for KU+, VU+, RFSOC, HBM, 58G (report_io_reg)
