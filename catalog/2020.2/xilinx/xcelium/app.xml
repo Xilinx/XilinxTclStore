@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>implement code to find system libraries faster</revision_history>
+      <revision_history>fixed -waveform switch for probe in GUI mode</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
