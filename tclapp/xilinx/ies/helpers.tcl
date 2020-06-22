@@ -327,12 +327,13 @@ proc usf_create_do_file { simulator do_filename } {
     if { [get_property "IES.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
       set depth "all"
     }
-    set db "catch \{probe -create -shm -all -variables -depth $depth\} msg"
+    set db "catch \{probe -create -shm -all -variables -depth $depth"
     if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::ies::a_sim_vars(b_int_is_gui_mode)) } {
-      puts $fh_do $db
+      append db "\} msg"
     } else {
-      puts $fh_do "$db -waveform"
+      append db " -waveform\} msg"
     }
+    puts $fh_do $db
 
     # write tcl post hook
     set tcl_post_hook [get_property IES.SIMULATE.TCL.POST $fs_obj]
