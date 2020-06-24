@@ -1,3 +1,4 @@
+2.257 change precedence of xil_defaultlib as first library in the search order
 2.256 implement code to find system libraries faster
 2.255 do not launch simulator gui in batch mode
 2.254 compile glbl if force_compile_glbl is true

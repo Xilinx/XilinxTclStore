@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>implement code to find system libraries faster</revision_history>
+      <revision_history>change precedence of xil_defaultlib as first library in the search order</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
