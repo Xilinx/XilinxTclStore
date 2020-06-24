@@ -868,7 +868,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $::tclapp::xilinx::questa::a_sim_vars(l_design_files)
-  set design_libs [usf_questa_get_design_libs $design_files]
+  set design_libs [usf_questa_get_design_libs $design_files 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -1659,12 +1659,13 @@ proc usf_questa_get_sccom_cmd_args {} {
   return $args
 }
 
-proc usf_questa_get_design_libs { files } {
+proc usf_questa_get_design_libs { files {b_realign_default_lib 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set libs [list]
+  set b_contains_default_lib 0
   foreach file $files {
     set fargs     [split $file {|}]
     set type      [lindex $fargs 0]
@@ -1673,8 +1674,19 @@ proc usf_questa_get_design_libs { files } {
     if { {} == $library } {
       continue;
     }
+    if { $b_realign_default_lib } {
+      if { {xil_defaultlib} == $library } {
+        set b_contains_default_lib 1
+        continue;
+      }
+    }
     if { [lsearch -exact $libs $library] == -1 } {
       lappend libs $library
+    }
+  }
+  if { $b_realign_default_lib } {
+    if { $b_contains_default_lib } {
+      set libs [linsert $libs 0 "xil_defaultlib"]
     }
   }
   return $libs
