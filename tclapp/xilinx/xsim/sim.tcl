@@ -1126,10 +1126,12 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     # write vhdl prj if design contains verilog sources 
     usf_xsim_write_vhdl_prj $b_contain_verilog_srcs $b_contain_vhdl_srcs $b_is_pure_vhdl $fh_scr
 
-    # wait for jobs to finish
-    puts $fh_scr "echo \"Waiting for jobs to finish...\""
-    puts $fh_scr "wait" 
-    puts $fh_scr "echo \"No pending jobs, compilation finished.\""
+    if {$::tcl_platform(platform) == "unix"} {
+      # wait for jobs to finish
+      puts $fh_scr "echo \"Waiting for jobs to finish...\""
+      puts $fh_scr "wait" 
+      puts $fh_scr "echo \"No pending jobs, compilation finished.\""
+    }
 
   } else {
     # write verilog prj if design contains verilog sources 
