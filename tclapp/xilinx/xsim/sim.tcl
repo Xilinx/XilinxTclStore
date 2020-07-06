@@ -1110,7 +1110,15 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   # write tcl pre hook
   usf_xsim_write_tcl_pre_hook $fh_scr
 
+
   if { [get_param "project.optimizeScriptGenForSimulation"] } {
+    set b_compile_simmodels 0
+    [catch {set b_compile_simmodels [get_param "project.enableNonPreCompileSupportForSystemC"]} err]
+    if { $b_compile_simmodels } {
+      # write simmodel PRJ for non-precompile flow
+      usf_xsim_write_simmodel_prj $fh_scr
+    }
+
     # write systemc prj if design contains systemc sources 
     usf_xsim_write_systemc_prj $b_contain_sc_srcs $b_is_pure_systemc $fh_scr
   
@@ -3074,6 +3082,162 @@ proc usf_xsim_write_vhdl_prj { b_contain_verilog_srcs b_contain_vhdl_srcs b_is_p
       puts $fh_scr "call type xvhdl.log >> $log_filename"
     } else {
       puts $fh_scr "call type xvhdl.log > $log_filename"
+    }
+  }
+}
+
+proc usf_xsim_write_simmodel_prj { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  variable a_shared_library_path_coln
+
+  set s_dbg_sw {}
+  set dbg $a_sim_vars(s_int_debug_mode)
+  if { $dbg } {
+    set s_dbg_sw {-dbg}
+  }
+
+  foreach {key value} [array get a_shared_library_path_coln] {
+    set shared_lib_name $key
+    set lib_name        [file root $shared_lib_name]
+    set lib_name        [string trimleft $lib_name {lib}]
+    set lib_path        $value
+
+    set fh 0
+    set dat_file "$lib_path/.cxl.sim_info.dat"
+    if {[catch {open $dat_file r} fh]} {
+      send_msg_id USF-XSim-016 WARNING "Failed to open file to read ($dat_file)\n"
+      continue
+    }
+    set data [split [read $fh] "\n"]
+    close $fh
+
+    # open prj file
+    set prj_filename "${lib_name}_xsc.prj"
+    set prj "$a_sim_vars(s_launch_dir)/$prj_filename"
+    set fh_prj 0
+    if {[catch {open $prj w} fh_prj]} {
+      send_msg_id USF-XSim-016 WARNING "Failed to open file to write ($prj)\n"
+      continue
+    }
+    puts $fh_prj "# compile design source files for '$lib_name' library"
+
+    # simmodel file_info.dat data
+    set library_type        {}
+    set output_format       {}
+    set systemc_incl_dirs   [list]
+    set cpp_incl_dirs       [list]
+    set osci_incl_dirs      [list]
+    set c_incl_dirs         [list]
+
+    set gplus_compile_flags     {}
+    set gplus_compile_opt_flags {}
+    set gplus_compile_dbg_flags {}
+    set ldflags                 {}
+    set ldlibs                  {}
+
+    set sysc_dep_libs {}
+    set cpp_dep_libs  {}
+    set c_dep_libs    {}
+
+    set sccom_compile_flags {}
+    set more_xsc_options    {}
+    set simulator_platform  {}
+
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag       [lindex $line_info 0]
+      set val       [lindex $line_info 1]
+
+      if { ("<SYSTEMC_SOURCES>" == $tag) || ("<CPP_SOURCES>" == $tag) || ("<C_SOURCES>" == $tag) } { puts $fh_prj "\"$val\"" }
+
+      if { "<LIBRARY_TYPE>"               == $tag } { set library_type $val                  }
+      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format $val                 }
+      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs [split $val {,}] }
+      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs [split $val {,}]     }
+      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs [split $val {,}]       }
+      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs [split $val {,}]    }
+      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags $value         }
+      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags $value     }
+      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags $value     }
+      if { "<LDFLGS>"                     == $tag } { set ldflags $value                     }
+      if { "<LDLIBS>"                     == $tag } { set ldlibs $value                      }
+      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs $value               }
+      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs $value                }
+      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs $value                  }
+      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags $value         }
+      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options $value            }
+      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform $value          }
+    }
+    close $fh_prj
+
+    set xsc_arg_list [list]
+    lappend xsc_arg_list "-c"
+    set l_incl_dirs [list]
+
+    # write simmodel command line
+    switch $library_type {
+      {SystemC} {
+        foreach incl_dir $systemc_incl_dirs {
+          if { !$a_sim_vars(b_absolute_path) } {
+            set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+          }
+          lappend l_incl_dirs "$incl_dir"
+        }
+      }
+      {CPP} {
+        foreach incl_dir $cpp_incl_dirs {
+          if { !$a_sim_vars(b_absolute_path) } {
+            set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+          }
+          lappend l_incl_dirs "$incl_dir"
+        }
+      }
+      {C} {
+        foreach incl_dir $c_incl_dirs {
+          if { !$a_sim_vars(b_absolute_path) } {
+            set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+          }
+          lappend l_incl_dirs "$incl_dir"
+        }
+      }
+    }
+ 
+    if { [llength $l_incl_dirs] > 0 } {
+      lappend xsc_arg_list "--gcc_compile_options"
+      set incl_dir_strs [list]
+      foreach incl_dir $l_incl_dirs {
+        lappend incl_dir_strs "-I$incl_dir"
+      }
+      set incl_dir_cmd_str [join $incl_dir_strs " "]
+      lappend xsc_arg_list "\"$incl_dir_cmd_str\""
+    }
+    lappend xsc_arg_list "-work $a_sim_vars(default_top_library)"
+    lappend xsc_arg_list "-f $prj_filename"
+    set xsc_cmd_str [join $xsc_arg_list " "]
+    set log_filename "compile.log"
+
+    puts $fh_scr "echo \"xsc $xsc_cmd_str\""
+    if {$::tcl_platform(platform) == "unix"} {
+      set log_cmd_str $log_filename
+      set append_sw " -a "
+      #if { $b_is_pure_systemc } { set append_sw " " }
+      set full_cmd "xsc $xsc_cmd_str 2>&1 | tee${append_sw}${log_cmd_str}"
+      if { [get_param "project.optimizeScriptGenForSimulation"] } {
+        append full_cmd " &"
+      }
+      puts $fh_scr "$full_cmd"
+      xcs_write_exit_code $fh_scr
+    } else {
+      puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
+      puts $fh_scr "call type xsc.log >> $log_filename"
+      puts $fh_scr "call type xsc_err.log >> $log_filename"
+      puts $fh_scr "call type xsc_err.log"
     }
   }
 }
