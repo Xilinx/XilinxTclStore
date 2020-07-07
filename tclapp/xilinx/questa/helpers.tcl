@@ -78,6 +78,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
 
   set a_sim_vars(s_tool_bin_path)    {}
+  set a_sim_vars(s_gcc_bin_path)     {}
 
   set a_sim_vars(sp_tcl_obj)         {}
 
@@ -1331,6 +1332,8 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         if {$::tcl_platform(platform) == "unix"} {
           lappend arg_list $s_64bit
         }
+        set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+        lappend arg_list "-cpppath $gcc_path"
         lappend arg_list "-std=c++11"
         set more_opts [get_property questa.compile.sccom.more_options $fs_obj]
         if { {} != $more_opts } {
