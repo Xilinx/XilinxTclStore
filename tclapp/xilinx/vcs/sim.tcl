@@ -582,7 +582,7 @@ proc usf_vcs_write_compile_script {} {
     # syscan (systemC)
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "syscan"
-      set arg_list [list "-sysc=231"]
+      set arg_list [list "-sysc=232"]
       lappend arg_list "-V"
       set arg_list [linsert $arg_list end [list "-l" "${tool}.log"]]
       if { [get_property 32bit $fs_obj] } {
@@ -601,7 +601,7 @@ proc usf_vcs_write_compile_script {} {
       set syscan_gcc_opts [list]
       set system_includes    "-I. "
       #append system_includes "-I\$\{PWD\}/c.obj/sysc/include "
-      append system_includes "-I\$\{VCS_HOME\}/include/systemc231 "
+      append system_includes "-I\$\{VCS_HOME\}/include/systemc232 "
       #append system_includes "-I\$\{VCS_HOME\}/lib "
       append system_includes "-I\$\{VCS_HOME\}/include "
       append system_includes "-I\$\{VCS_HOME\}/include/cosim/bf "
@@ -966,7 +966,7 @@ proc usf_vcs_write_elaborate_script {} {
   set arg_list [list]
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      lappend arg_list "-sysc=231"
+      lappend arg_list "-sysc=232"
     }
   }
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
