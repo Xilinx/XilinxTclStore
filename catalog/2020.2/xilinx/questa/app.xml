@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>change precedence of xil_defaultlib as first library in the search order</revision_history>
+      <revision_history>support for gcc install path</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
