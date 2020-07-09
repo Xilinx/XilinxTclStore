@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>reverted write_project_tcl fix due to test failure</revision_history>
+      <revision_history>added debug messages for library path references</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

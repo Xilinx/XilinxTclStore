@@ -1,3 +1,4 @@
+3.419 added debug messages for library path references
 3.418 reverted write_project_tcl fix due to test failure
 3.417 implement code to find system libraries faster
 3.416 use make_wrapper to create BD wrapper instead of importing it. 

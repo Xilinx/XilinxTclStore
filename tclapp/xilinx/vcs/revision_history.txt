@@ -1,3 +1,4 @@
+9.9 added debug messages for library path references
 9.8 updated systemc version
 9.7 implement code to find system libraries faster
 9.6 force add glbl top if property set

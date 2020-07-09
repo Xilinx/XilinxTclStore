@@ -1,3 +1,4 @@
+2.178 added debug messages for library path references
 2.177 support for gcc install path
 2.176 change precedence of xil_defaultlib as first library in the search order
 2.175 implement code to find system libraries faster

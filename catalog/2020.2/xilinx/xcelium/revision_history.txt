@@ -1,3 +1,4 @@
+11.24 added debug messages for library path references
 11.23 fixed -waveform switch for probe in GUI mode
 11.22 implement code to find system libraries faster
 11.21 do not launch simulator gui in batch mode
