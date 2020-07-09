@@ -196,7 +196,9 @@ proc simulate { args } {
         puts "LIBRARY PATH SETTINGS"
         puts "------------------------------------------------------------------------------------------------------------------------------------"
         puts "xv_ref_path=$::env(xv_ref_path)"
-        puts "xv_cpt_lib_path=$::env(xv_cpt_lib_path)"
+        if { {} != $aie_ip_obj } {
+          puts "xv_cpt_lib_path=$::env(xv_cpt_lib_path)"
+        }
         puts "------------------------------------------------------------------------------------------------------------------------------------"
       }
     } else {
@@ -722,14 +724,20 @@ proc usf_xsim_verify_compiled_lib {} {
 
   # 1. is -lib_map_path specified and point to valid location?
   if { [string length $a_sim_vars(s_lib_map_path)] > 0 } {
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "(DEBUG) - checking -lib_map_path..."
+    }
     set a_sim_vars(s_lib_map_path) [file normalize $a_sim_vars(s_lib_map_path)]
     set ini_file [file normalize [file join $a_sim_vars(s_lib_map_path) $filename]]
     if { [file exists $ini_file] } {
       if { [usf_copy_ini_file $a_sim_vars(s_lib_map_path)] } {
         return 1
-      }  
+      }
       usf_resolve_rdi_datadir $run_dir $a_sim_vars(s_lib_map_path)
       set a_sim_vars(compiled_library_dir) $a_sim_vars(s_lib_map_path)
+      if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+        puts "(DEBUG) - compiled library path set to '$a_sim_vars(compiled_library_dir)'"
+      }
       return 0
     } else {
       usf_print_compiled_lib_msg
@@ -740,11 +748,20 @@ proc usf_xsim_verify_compiled_lib {} {
   # 2. if empty property (default), calculate default install location
   set dir [get_property "COMPXLIB.XSIM_COMPILED_LIBRARY_DIR" [current_project]]
   set b_resolve_rdi_datadir_env false
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    puts "(DEBUG) - checking compxlib.xsim_compiled_library_dir property..."
+  }
   if { {} == $dir } {
     set dir $::env(XILINX_VIVADO)
     set dir [file normalize [file join $dir "data/xsim"]]
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "(DEBUG) - property value empty, using XILINX_VIVADO ($dir)"
+    }
   } else {
     set b_resolve_rdi_datadir_env true
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "(DEBUG) - property currently set to '$dir'"
+    }
   }
   set file [file normalize [file join $dir $filename]]
   if { [file exists $file] } {
@@ -753,15 +770,21 @@ proc usf_xsim_verify_compiled_lib {} {
     }
     if { $b_resolve_rdi_datadir_env } {
       # TODO: perf-fix
+      if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+        puts "(DEBUG) - resolving RDI_DATADIR in xsim.ini..."
+      }
       usf_resolve_rdi_datadir $run_dir $dir
     }
     set a_sim_vars(compiled_library_dir) $dir
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "(DEBUG) - compiled library path set to '$a_sim_vars(compiled_library_dir)'"
+    }
     return 0
- }
+  }
 
- # failed to find the compiled library, print msg
- usf_print_compiled_lib_msg
- return 1
+  # failed to find the compiled library, print msg
+  usf_print_compiled_lib_msg
+  return 1
 }
 
 proc usf_xsim_set_clibs_for_non_precompile_flow {} {
@@ -846,7 +869,11 @@ proc usf_resolve_rdi_datadir { run_dir cxl_prop_dir } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   if { ![get_param "simulation.resolveDataDirEnvPathForXSim"] } {
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "(DEBUG) - param 'simulation.resolveDataDirEnvPathForXSim' is false, RDI_DATADIR will not be resolved in xsim.ini"
+    }
     return 0
   }
 
@@ -862,7 +889,10 @@ proc usf_resolve_rdi_datadir { run_dir cxl_prop_dir } {
   }
   set ini_data [read $fh]
   close $fh
-
+  
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    puts "(DEBUG) - simulation.resolveDataDirEnvPathForXSim=true (RDI_DATADIR will be resolved in xsim.ini, if found)"
+  }
   set libs [list]
   set ini_data [split $ini_data "\n"]
   foreach line $ini_data {

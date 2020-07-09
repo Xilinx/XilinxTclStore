@@ -4283,6 +4283,9 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
   set target_paths [list]
 
   set sm_cpt_dir [xcs_get_simmodel_dir $simulator "cpt"]
+  if { $b_int_sm_lib_ref_debug } {
+    puts "(DEBUG) - simmodel protected sub-dir: $sm_cpt_dir"
+  }
   set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
   # is custom protected sim-model path specified?
   set param "simulator.customSimModelRootDir"
@@ -4301,6 +4304,9 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
 
   # default protected dir
   set tp "$cpt_dir/$sm_cpt_dir"
+  if { $b_int_sm_lib_ref_debug } {
+    puts "(DEBUG) - protected (default) : $tp"
+  }
   if { ([file exists $tp]) && ([file isdirectory $tp]) } {
     lappend target_paths $tp
   } else {
@@ -4309,6 +4315,9 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
       set tp [file dirname $clibs_dir]
       set tp "$tp/$sm_cpt_dir"
       if { ([file exists $tp]) && ([file isdirectory $tp]) } {
+        if { $b_int_sm_lib_ref_debug } {
+          puts "(DEBUG) - protected (fallback): $tp"
+        }
         lappend target_paths $tp
       }
     }
@@ -4321,6 +4330,9 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
   lappend target_paths "$cpt_dir/$sm_ext_dir"
 
   set sp_ext_dir "$cpt_dir/$sm_ext_dir"
+  if { $b_int_sm_lib_ref_debug } {
+    puts "(DEBUG) - protected ext path (default): $sp_ext_dir"
+  }
 
   # add ip dir for xsim
   if { "xsim" == $simulator } {
