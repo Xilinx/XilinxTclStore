@@ -583,6 +583,7 @@ proc usf_vcs_write_compile_script {} {
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "syscan"
       set arg_list [list "-sysc=232"]
+      lappend arg_list "-cpp \$\{gcc_path\}/g++"
       lappend arg_list "-V"
       set arg_list [linsert $arg_list end [list "-l" "${tool}.log"]]
       if { [get_property 32bit $fs_obj] } {
@@ -967,6 +968,7 @@ proc usf_vcs_write_elaborate_script {} {
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
       lappend arg_list "-sysc=232"
+      lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {

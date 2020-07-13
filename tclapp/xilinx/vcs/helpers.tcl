@@ -1420,7 +1420,6 @@ proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
     "syscan" {
       if { $a_sim_vars(b_int_systemc_mode) } {
         lappend opts "\$${tool}_opts"
-        #lappend opts "-cc \$gcc_path/g++"
         lappend opts "-cflags"
         lappend opts "\"-O3 -std=c++11 -fPIC -Wall -Wno-deprecated -DSC_INCLUDE_DYNAMIC_PROCESSES \$syscan_gcc_opts\""
         lappend opts "-Mdir=$a_sim_vars(tmp_obj_dir)"
