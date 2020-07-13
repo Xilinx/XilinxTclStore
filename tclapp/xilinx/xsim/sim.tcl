@@ -1905,7 +1905,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
       set ip_obj [xcs_find_ip "noc"]
       set b_bind_noc_lib false
-      [catch {set b_bind_noc_lib [get_param "project.bindNoCStaticIPLibraryForPostNetlistSim"]} err]
+      [catch {set b_bind_noc_lib [get_param "project.bindStaticIPLibraryForNetlistSim"]} err]
       if { ({} != $ip_obj) || $b_bind_noc_lib } {
         # TODO: need to fetch these names programmatically from pre-compiled data
         lappend args_list "-L noc_nmu_v1_0_0"
