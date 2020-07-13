@@ -141,8 +141,8 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>0f70f71d1445f510c8e646ab2fe694bcac6ec045</commit_id>
-      <revision>9.9</revision>
+      <commit_id>9f6fe9b33e41a5d9eb8401dfbf760d3d9836c7f9</commit_id>
+      <revision>9.10</revision>
     </app>
     <app>
       <name>xcelium</name>

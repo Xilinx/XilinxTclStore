@@ -1,3 +1,4 @@
+9.10 pass gnu compiler path for syscan
 9.9 added debug messages for library path references
 9.8 updated systemc version
 9.7 implement code to find system libraries faster
