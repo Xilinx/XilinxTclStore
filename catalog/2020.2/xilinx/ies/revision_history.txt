@@ -1,3 +1,4 @@
+4.49 compile hbm for post synth and impl simulation
 4.48 added debug messages for library path references
 4.47 fixed -waveform switch for probe in GUI mode
 4.46 implement code to find system libraries faster

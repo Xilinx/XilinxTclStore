@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added debug messages for library path references</revision_history>
+      <revision_history>compile hbm for post synth and impl simulation</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
