@@ -1900,16 +1900,16 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-L uvm"
   }
 
-  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    if { {funcsim} == $netlist_mode } {
-      # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
-      set ip_obj [xcs_find_ip "noc"]
-      set b_bind_noc_lib false
-      [catch {set b_bind_noc_lib [get_param "project.bindStaticIPLibraryForNetlistSim"]} err]
-      if { ({} != $ip_obj) || $b_bind_noc_lib } {
-        # TODO: need to fetch these names programmatically from pre-compiled data
-        lappend args_list "-L noc_nmu_v1_0_0"
-        lappend args_list "-L noc_nsu_v1_0_0"
+  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
+    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+      if { {functional} == $a_sim_vars(s_type) } {
+        # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
+        set noc_ip_obj [xcs_find_ip "noc"]
+        if { {} != $noc_ip_obj } {
+          # TODO: need to fetch these names programmatically from pre-compiled data
+          lappend args_list "-L noc_nmu_v1_0_0"
+          lappend args_list "-L noc_nsu_v1_0_0"
+        }
       }
     }
   }

@@ -791,6 +791,23 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     }
   }
 
+  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
+    if { {functional} == $a_sim_vars(s_type) } {
+      set hbm_ip_obj [xcs_find_ip "hbm"]
+      if { {} != $hbm_ip_obj } {
+        set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
+        if { {} != $hbm_file_obj } {
+          set file_type [get_property file_type $hbm_file_obj]
+          set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts l_dummy_incl_dirs_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $hbm_file_obj
+          }
+        }
+      }
+    }
+  }
+
   if { {} != $netlist_file } {
     set file_type "Verilog"
     set extn [file extension $netlist_file]
@@ -799,6 +816,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     } elseif { {.vhd} == $extn } {
       set file_type "VHDL"
     }
+
     set cmd_str [usf_get_file_cmd_str $netlist_file $file_type false {} l_incl_dirs_opts l_dummy_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
