@@ -30,6 +30,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_project_dir)       [get_property "DIRECTORY" $project]
   set a_sim_vars(b_is_managed)        [get_property "MANAGED_IP" $project]
   set a_sim_vars(s_launch_dir)        {}
+  set a_sim_vars(s_simlib_dir)        {}
   set a_sim_vars(s_sim_top)           [get_property "TOP" [current_fileset -simset]]
 
   # launch_simulation tcl task args
@@ -62,6 +63,7 @@ proc usf_init_vars {} {
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  set a_sim_vars(b_compile_simmodels) [get_param "project.enableNonPreCompileSupportForSystemC"]
 
   set a_sim_vars(b_contain_sv_srcs)         0
   set a_sim_vars(b_contain_systemc_sources) 0

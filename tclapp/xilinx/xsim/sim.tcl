@@ -282,6 +282,16 @@ proc usf_xsim_setup_simulation { args } {
 
   variable a_sim_vars
   set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+  if { $a_sim_vars(b_compile_simmodels) } {
+    set a_sim_vars(s_simlib_dir) "$run_dir/simlibs"
+    if { ![file exists $a_sim_vars(s_simlib_dir)] } {
+      if { [catch {file mkdir $a_sim_vars(s_simlib_dir)} error_msg] } {
+        send_msg_id USF-XSim-013 ERROR "Failed to create the directory ($a_sim_vars(s_simlib_dir)): $error_msg\n"
+        return 1
+      }
+    }
+  }
+
  
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
@@ -1142,9 +1152,7 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
 
 
   if { [get_param "project.optimizeScriptGenForSimulation"] } {
-    set b_compile_simmodels 0
-    [catch {set b_compile_simmodels [get_param "project.enableNonPreCompileSupportForSystemC"]} err]
-    if { $b_compile_simmodels } {
+    if { $a_sim_vars(b_compile_simmodels) } {
       # write simmodel PRJ for non-precompile flow
       usf_xsim_write_simmodel_prj $fh_scr
     }
@@ -1242,7 +1250,11 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
         puts $fh_scr "xv_ext_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPEXT" $::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)]\""
         puts $fh_scr "xv_boost_lib_path=\"[usf_xsim_resolve_sysc_lib_path "BOOST" $::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)]\"\n"
       } else {
-        puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
+        if { $::tclapp::xilinx::xsim::a_sim_vars(b_compile_simmodels) } {
+          puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
+        } else {
+          puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
+        }
         puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
         puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
         puts $fh_scr "xv_boost_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)\"\n"
@@ -1433,7 +1445,11 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
         puts $fh_scr "export xv_cpt_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPCPT" $::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)]\""
         puts $fh_scr "xv_ext_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPEXT" $::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)]\""
       } else {
-        puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
+        if { $::tclapp::xilinx::xsim::a_sim_vars(b_compile_simmodels) } {
+          puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
+        } else {
+          puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
+        }
         puts $fh_scr "export xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
         puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
       }
@@ -2822,7 +2838,11 @@ proc usf_xsim_write_systemc_variables { fh_scr } {
         puts $fh_scr "xv_ext_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPEXT" $a_sim_vars(sp_ext_dir)]\""
         puts $fh_scr "xv_boost_lib_path=\"[usf_xsim_resolve_sysc_lib_path "BOOST" $a_sim_vars(s_boost_dir)]\"\n"
       } else {
-        puts $fh_scr "\nxv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+        if { $a_sim_vars(b_compile_simmodels) } {
+          puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
+        } else {
+          puts $fh_scr "\nxv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+        }
         puts $fh_scr "xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
         puts $fh_scr "xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
         puts $fh_scr "xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\"\n"
@@ -3130,11 +3150,28 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     set s_dbg_sw {-dbg}
   }
 
-  foreach {key value} [array get a_shared_library_path_coln] {
-    set shared_lib_name $key
-    set lib_name        [file root $shared_lib_name]
-    set lib_name        [string trimleft $lib_name {lib}]
-    set lib_path        $value
+  # nopc
+  foreach lib_name [xsc_get_simmodel_compile_order] {
+    set lib_path [xsc_find_lib_path_for_simmodel $lib_name]
+    #puts "lib_path:$lib_name = $lib_path"
+ 
+    # create local lib dir
+    set simlib_dir "$a_sim_vars(s_simlib_dir)/$lib_name"
+    if { ![file exists $simlib_dir] } {
+      if { [catch {file mkdir $simlib_dir} error_msg] } {
+        send_msg_id USF-XSim-013 ERROR "Failed to create the directory ($simlib_dir): $error_msg\n"
+        return 1
+      }
+    }
+    # copy include dir
+    set simlib_incl_dir "$lib_path/include" 
+    set target_dir "$a_sim_vars(s_simlib_dir)/$lib_name"
+    set target_incl_dir "$target_dir/include"
+    if { ![file exists $target_incl_dir] } {
+      if { [catch {file copy -force $simlib_incl_dir $target_dir} error_msg] } {
+        [catch {send_msg_id USF-XSim-010 ERROR "Failed to copy file '$simlib_incl_dir' to '$target_dir': $error_msg\n"} err]
+      }
+    }
 
     set fh 0
     set dat_file "$lib_path/.cxl.sim_info.dat"
@@ -3153,7 +3190,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       send_msg_id USF-XSim-016 WARNING "Failed to open file to write ($prj)\n"
       continue
     }
-    puts $fh_prj "# compile design source files for '$lib_name' library"
+    puts $fh_prj "# compile $lib_name sources"
 
     # simmodel file_info.dat data
     set library_type        {}
@@ -3182,60 +3219,43 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       if { {} == $line } { continue }
       set line_info [split $line {:}]
       set tag       [lindex $line_info 0]
-      set val       [lindex $line_info 1]
+      set value     [lindex $line_info 1]
 
-      if { ("<SYSTEMC_SOURCES>" == $tag) || ("<CPP_SOURCES>" == $tag) || ("<C_SOURCES>" == $tag) } { puts $fh_prj "\"$val\"" }
+      if { ("<SYSTEMC_SOURCES>" == $tag) || ("<CPP_SOURCES>" == $tag) || ("<C_SOURCES>" == $tag) } {
+        puts $fh_prj "\"$value\""
+      }
 
-      if { "<LIBRARY_TYPE>"               == $tag } { set library_type $val                  }
-      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format $val                 }
-      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs [split $val {,}] }
-      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs [split $val {,}]     }
-      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs [split $val {,}]       }
-      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs [split $val {,}]    }
-      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags $value         }
-      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags $value     }
-      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags $value     }
-      if { "<LDFLGS>"                     == $tag } { set ldflags $value                     }
-      if { "<LDLIBS>"                     == $tag } { set ldlibs $value                      }
-      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs $value               }
-      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs $value                }
-      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs $value                  }
-      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags $value         }
-      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options $value            }
-      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform $value          }
+      if { "<LIBRARY_TYPE>"               == $tag } { set library_type $value                  }
+      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format $value                 }
+      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs [split $value {,}] }
+      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs [split $value {,}]     }
+      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs [split $value {,}]       }
+      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs [split $value {,}]    }
+      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags $value           }
+      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags $value       }
+      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags $value       }
+      if { "<LDFLGS>"                     == $tag } { set ldflags $value                       }
+      if { "<LDLIBS>"                     == $tag } { set ldlibs $value                        }
+      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs $value                 }
+      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs $value                  }
+      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs $value                    }
+      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags $value           }
+      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options $value              }
+      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform $value            }
     }
     close $fh_prj
 
+    #
+    # 1. compile sources
+    # 
     set xsc_arg_list [list]
     lappend xsc_arg_list "-c"
     set l_incl_dirs [list]
 
-    # write simmodel command line
     switch $library_type {
-      {SystemC} {
-        foreach incl_dir $systemc_incl_dirs {
-          if { !$a_sim_vars(b_absolute_path) } {
-            set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
-          }
-          lappend l_incl_dirs "$incl_dir"
-        }
-      }
-      {CPP} {
-        foreach incl_dir $cpp_incl_dirs {
-          if { !$a_sim_vars(b_absolute_path) } {
-            set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
-          }
-          lappend l_incl_dirs "$incl_dir"
-        }
-      }
-      {C} {
-        foreach incl_dir $c_incl_dirs {
-          if { !$a_sim_vars(b_absolute_path) } {
-            set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
-          }
-          lappend l_incl_dirs "$incl_dir"
-        }
-      }
+      {SystemC} { foreach incl_dir $systemc_incl_dirs { lappend l_incl_dirs "$incl_dir" } }
+      {CPP}     { foreach incl_dir $cpp_incl_dirs     { lappend l_incl_dirs "$incl_dir" } }
+      {C}       { foreach incl_dir $c_incl_dirs       { lappend l_incl_dirs "$incl_dir" } }
     }
  
     if { [llength $l_incl_dirs] > 0 } {
@@ -3252,6 +3272,50 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     set xsc_cmd_str [join $xsc_arg_list " "]
     set log_filename "compile.log"
 
+    puts $fh_scr "echo \"xsc $xsc_cmd_str\""
+    if {$::tcl_platform(platform) == "unix"} {
+      set log_cmd_str $log_filename
+      set append_sw " -a "
+      #if { $b_is_pure_systemc } { set append_sw " " }
+      set full_cmd "xsc $xsc_cmd_str 2>&1 | tee${append_sw}${log_cmd_str}"
+      if { [get_param "project.optimizeScriptGenForSimulation"] } {
+        append full_cmd " &"
+      }
+      puts $fh_scr "$full_cmd"
+      xcs_write_exit_code $fh_scr
+    } else {
+      puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
+      puts $fh_scr "call type xsc.log >> $log_filename"
+      puts $fh_scr "call type xsc_err.log >> $log_filename"
+      puts $fh_scr "call type xsc_err.log"
+    }
+
+    #
+    # 2. Generate shared library
+    # 
+    
+    # find dependent libraries
+    set sysc_link_libs [list]
+    set cpp_link_libs  [list]
+    set c_link_libs    [list]
+    xsc_find_dependent_simmodel_libraries $lib_name sysc_link_libs cpp_link_libs c_link_libs
+
+    set xsc_arg_list {}
+    lappend xsc_arg_list "-v --shared"
+ 
+    # bind linked libraries
+    set link_args [list]
+    foreach lib $sysc_link_libs { lappend link_args "-L\$xv_cxl_lib_path/${lib} -l${lib}" }
+    foreach lib $cpp_link_libs  { lappend link_args "-L\$xv_cxl_lib_path/${lib} -l${lib}" }
+    foreach lib $c_link_libs    { lappend link_args "-L\$xv_cxl_lib_path/${lib} -l${lib}" }
+    if { [llength $link_args] > 0 } {
+      set link_args_str [join $link_args " "]
+      lappend xsc_arg_list "--gcc_link_options \"$link_args_str\""
+    }
+ 
+    lappend xsc_arg_list "-o \"\$xv_cxl_lib_path/$lib_name/lib${lib_name}.so\""
+    lappend xsc_arg_list "-work $lib_name"
+    set xsc_cmd_str [join $xsc_arg_list " "]
     puts $fh_scr "echo \"xsc $xsc_cmd_str\""
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename

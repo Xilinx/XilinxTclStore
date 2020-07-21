@@ -4218,6 +4218,92 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
   }
 }
 
+proc xsc_get_simmodel_compile_order { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_shared_library_path_coln 
+
+  set sm_order [list]
+
+  # get simmodel list referenced in the design
+  set lib_names [list]
+  foreach {key value} [array get a_shared_library_path_coln] {
+    set shared_lib_name $key
+    set lib_name [file root $shared_lib_name]
+    set lib_name [string trimleft $lib_name {lib}]
+    lappend lib_names $lib_name
+  }
+
+  # find compile order and construct order for the simmodels referenced in the design
+  set compile_order_file [xcs_get_path_from_data "systemc/simlibs/compile_order.dat"]
+  set fh 0
+  if { [catch {open $compile_order_file r} fh] } {
+    send_msg_id SIM-utils-068 WARNING "Failed to open file for read! '$compile_order_file'\n"
+    return $sm_order
+  }
+  set data [split [read $fh] "\n"]
+  close $fh
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^#} $line] } { continue; }
+    set lib_name $line
+    set index [lsearch -regexp $lib_names $lib_name]
+    if { {-1} != $index } {
+      set sm_lib [lindex $lib_names $index]
+      lappend sm_order $sm_lib
+    }
+  }
+  return $sm_order
+} 
+
+proc xsc_find_lib_path_for_simmodel { simmodel } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_shared_library_path_coln 
+  set lib_path {}
+  foreach {key value} [array get a_shared_library_path_coln] {
+    set shared_lib_name $key
+    set lib_name [file root $shared_lib_name]
+    set lib_name [string trimleft $lib_name {lib}]
+    if { $simmodel == $lib_name } {
+      set lib_path $value
+      return $lib_path
+    }
+  }
+}
+
+proc xsc_find_dependent_simmodel_libraries { library sysc_dep_libs_arg cpp_dep_libs_arg c_dep_libs_arg  } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_cache_lib_info
+
+  upvar $sysc_dep_libs_arg sysc_dep_libs
+  upvar $cpp_dep_libs_arg  cpp_dep_libs
+  upvar $c_dep_libs_arg    c_dep_libs
+
+  # any dependent library info fetched from .cxl.lib_info.dat?
+  if { [info exists a_sim_cache_lib_info($library)] } {
+    # SystemC#empty#common_cpp_v1_0#empty
+    set values    [split $a_sim_cache_lib_info($library) {#}]
+  
+    set lib_type  [lindex $values 0];# SystemC, CPP, C
+    set sysc_libs [lindex $values 1];# empty or list of systemc dep libs
+    set cpp_libs  [lindex $values 2];# empty or list of cpp dep libs
+    set c_libs    [lindex $values 3];# empty or list of c dep libs
+  
+    if { "empty" != $sysc_libs } { set sysc_dep_libs [split $sysc_libs ","] }
+    if { "empty" != $cpp_libs  } { set cpp_dep_libs  [split $cpp_libs  ","] }
+    if { "empty" != $c_libs    } { set c_dep_libs    [split $c_libs    ","] }
+  }
+}
+
 proc xcs_is_sc_library { library } {
   # Summary:
   # Argument Usage:
