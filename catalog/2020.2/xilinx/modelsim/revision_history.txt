@@ -1,3 +1,4 @@
+2.260 get compiler order for referenced simmodels
 2.259 compile hbm for post synth and impl simulation
 2.258 added debug messages for library path references
 2.257 change precedence of xil_defaultlib as first library in the search order

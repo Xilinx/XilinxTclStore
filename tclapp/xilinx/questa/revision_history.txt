@@ -1,3 +1,4 @@
+2.180 get compiler order for referenced simmodels
 2.179 compile hbm for post synth and impl simulation
 2.178 added debug messages for library path references
 2.177 support for gcc install path
