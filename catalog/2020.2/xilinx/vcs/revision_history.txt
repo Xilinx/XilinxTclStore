@@ -1,3 +1,4 @@
+9.13 compile simmodel sources into compiled dir
 9.12 get compiler order for referenced simmodels
 9.11 compile hbm for post synth and impl simulation
 9.10 pass gnu compiler path for syscan

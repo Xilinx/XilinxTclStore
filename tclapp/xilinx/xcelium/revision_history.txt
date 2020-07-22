@@ -1,3 +1,4 @@
+11.27 compile simmodel sources into compiled dir
 11.26 get compiler order for referenced simmodels
 11.25 compile hbm for post synth and impl simulation
 11.24 added debug messages for library path references

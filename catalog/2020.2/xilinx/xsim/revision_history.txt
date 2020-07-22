@@ -1,3 +1,4 @@
+2.338 compile simmodel sources into compiled dir
 2.337 get compiler order for referenced simmodels
 2.336 support for binding NoC library for functional netlist simulation
 2.335 fixed param name with default value true
