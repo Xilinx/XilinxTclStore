@@ -3234,6 +3234,8 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     set sccom_compile_flags     {}
     set more_xsc_options        {}
     set simulator_platform      {}
+    set cpp_compile_option      {}
+    set c_compile_option        {}
     set systemc_incl_dirs       [list]
     set cpp_incl_dirs           [list]
     set osci_incl_dirs          [list]
@@ -3268,6 +3270,8 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags $value           }
       if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options $value              }
       if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform $value            }
+      if { "<CPP_COMPILE_OPTION>"         == $tag } { set cpp_compile_option $value            }
+      if { "<C_COMPILE_OPTION>"           == $tag } { set c_compile_option $value              }
     }
     close $fh_prj
 
@@ -3293,6 +3297,15 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       set incl_dir_cmd_str [join $incl_dir_strs " "]
       lappend xsc_arg_list "\"$incl_dir_cmd_str\""
     }
+   
+    switch $library_type {
+      {SystemC} -
+      {CPP} { if { {} != $cpp_compile_option } { lappend xsc_arg_list "--gcc_compile_options \"$cpp_compile_option\"" } }
+      {C}   { if { {} != $c_compile_option   } { lappend xsc_arg_list "--gcc_compile_options \"$c_compile_option\""   } }
+    }
+
+    if { {} != $gplus_compile_flags } { lappend xsc_arg_list "--gcc_compile_options \"$gplus_compile_flags\"" }
+
     lappend xsc_arg_list "-work $lib_name"
     lappend xsc_arg_list "-f $prj_filename"
     set xsc_cmd_str [join $xsc_arg_list " "]
