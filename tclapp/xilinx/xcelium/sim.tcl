@@ -633,7 +633,7 @@ proc usf_xcelium_write_compile_script {} {
           if { !$a_sim_vars(b_absolute_path) } {
             # relative path
             set b_resolved 0
-            set resolved_path [xcs_resolve_sim_model_dir $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved]
+            set resolved_path [xcs_resolve_sim_model_dir "xcelium" $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved]
             if { $b_resolved } {
               set sim_model_incl_dir $resolved_path
             } else {

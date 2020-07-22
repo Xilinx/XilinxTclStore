@@ -4584,7 +4584,7 @@ proc xcs_resolve_sim_lib_dir { sim_dir src_lib_dir_arg b_cxl_arg } {
   return $sub_lib_path
 }
 
-proc xcs_resolve_sim_model_dir { lib_path clib_dir cpt_dir ext_dir b_resolved_arg } {
+proc xcs_resolve_sim_model_dir { simulator lib_path clib_dir cpt_dir ext_dir b_resolved_arg {b_compile_simmodels 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4598,6 +4598,11 @@ proc xcs_resolve_sim_model_dir { lib_path clib_dir cpt_dir ext_dir b_resolved_ar
   if { $b_resolved } {
     if {$::tcl_platform(platform) == "unix"} {
       set resolved_path "\$xv_cxl_lib_path/$sub_lib_path"
+      if { $b_compile_simmodels } {
+        switch $simulator {
+          {xsim} { set resolved_path "xsim.dir/$sub_lib_path" }
+        }
+      }
     } else {
       set resolved_path "%xv_cxl_lib_path%/$sub_lib_path"
     }

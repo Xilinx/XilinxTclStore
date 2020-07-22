@@ -63,7 +63,7 @@ proc usf_init_vars {} {
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
-  set a_sim_vars(b_compile_simmodels) [get_param "project.enableNonPreCompileSupportForSystemC"]
+  set a_sim_vars(b_compile_simmodels) 0
 
   set a_sim_vars(b_contain_sv_srcs)         0
   set a_sim_vars(b_contain_systemc_sources) 0
@@ -86,10 +86,11 @@ proc usf_init_vars {} {
   set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
 
   set a_sim_vars(s_tool_bin_path)    {}
-
   set a_sim_vars(sp_tcl_obj)         {}
-
   set a_sim_vars(s_boost_dir)        {}
+
+  set a_sim_vars(script_file_extn) ".bat"
+  set a_sim_vars(script_cmt_tag)   "REM"
 
   # fileset compile order
   variable l_compile_order_files     [list]
