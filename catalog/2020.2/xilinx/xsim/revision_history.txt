@@ -1,3 +1,4 @@
+2.340 pass ldflags and ldlibs acd options
 2.339 pass gplus and acd options
 2.338 compile simmodel sources into compiled dir
 2.337 get compiler order for referenced simmodels
