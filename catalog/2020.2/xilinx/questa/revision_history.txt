@@ -1,3 +1,4 @@
+2.182 reference zlib shared library for xdma
 2.181 compile simmodel sources into compiled dir
 2.180 get compiler order for referenced simmodels
 2.179 compile hbm for post synth and impl simulation
