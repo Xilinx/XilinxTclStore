@@ -1,3 +1,4 @@
+2.262 use simulator compiled object lib dir var
 2.261 compile simmodel sources into compiled dir
 2.260 get compiler order for referenced simmodels
 2.259 compile hbm for post synth and impl simulation
