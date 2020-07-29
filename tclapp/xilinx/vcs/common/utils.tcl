@@ -4600,7 +4600,7 @@ proc xcs_resolve_sim_model_dir { simulator lib_path clib_dir cpt_dir ext_dir b_r
       set resolved_path "\$xv_cxl_lib_path/$sub_lib_path"
       if { $b_compile_simmodels } {
         switch $simulator {
-          {xsim} { set resolved_path "xsim.dir/$sub_lib_path" }
+          {xsim} { set resolved_path "\$xv_cxl_obj_lib_path/$sub_lib_path" }
         }
       }
     } else {

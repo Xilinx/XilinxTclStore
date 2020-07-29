@@ -1265,6 +1265,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
       } else {
         if { $::tclapp::xilinx::xsim::a_sim_vars(b_compile_simmodels) } {
           puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
+          puts $fh_scr "xv_cxl_obj_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(compiled_design_lib)\""
         } else {
           puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
         }
@@ -1464,6 +1465,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
       } else {
         if { $::tclapp::xilinx::xsim::a_sim_vars(b_compile_simmodels) } {
           puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
+          puts $fh_scr "xv_cxl_obj_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(compiled_design_lib)\""
         } else {
           puts $fh_scr "\nxv_cxl_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)\""
         }
@@ -2859,6 +2861,7 @@ proc usf_xsim_write_systemc_variables { fh_scr } {
       } else {
         if { $a_sim_vars(b_compile_simmodels) } {
           puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
+          puts $fh_scr "xv_cxl_obj_lib_path=\"$a_sim_vars(compiled_design_lib)\""
         } else {
           puts $fh_scr "\nxv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
         }
@@ -3451,7 +3454,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     #}
  
     #lappend xsc_arg_list "-o \"\$xv_cxl_lib_path/$lib_name/lib${lib_name}.so\""
-    lappend xsc_arg_list "-o \"$a_sim_vars(compiled_design_lib)/$lib_name/lib${lib_name}${lib_type}\""
+    lappend xsc_arg_list "-o \"\$xv_cxl_obj_lib_path/$lib_name/lib${lib_name}${lib_type}\""
     lappend xsc_arg_list "-work $lib_name"
     set xsc_cmd_str [join $xsc_arg_list " "]
     puts $fh_scr "echo \"xsc $xsc_cmd_str\""
