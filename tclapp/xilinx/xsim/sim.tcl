@@ -3226,24 +3226,24 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     # simmodel file_info.dat data
     set library_type            {}
     set output_format           {}
-    set gplus_compile_flags     {}
-    set gplus_compile_opt_flags {}
-    set gplus_compile_dbg_flags {}
-    set ldflags                 {}
+    set gplus_compile_flags     [list]
+    set gplus_compile_opt_flags [list]
+    set gplus_compile_dbg_flags [list]
+    set ldflags                 [list]
     set gplus_ldflags_option    {}
     set gcc_ldflags_option      {}
-    set ldflags_lnx64           {}
-    set ldflags_win64           {}
-    set ldlibs                  {}
-    set ldlibs_lnx64            {}
-    set ldlibs_win64            {}
+    set ldflags_lnx64           [list]
+    set ldflags_win64           [list]
+    set ldlibs                  [list]
+    set ldlibs_lnx64            [list]
+    set ldlibs_win64            [list]
     set gplus_ldlibs_option     {}
     set gcc_ldlibs_option       {}
     set sysc_dep_libs           {}
     set cpp_dep_libs            {}
     set c_dep_libs              {}
     set sccom_compile_flags     {}
-    set more_xsc_options        {}
+    set more_xsc_options        [list]
     set simulator_platform      {}
     set cpp_compile_option      {}
     set c_compile_option        {}
@@ -3265,34 +3265,34 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
         puts $fh_prj "\"$file_path\""
       }
 
-      if { "<LIBRARY_TYPE>"               == $tag } { set library_type $value                  }
-      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format $value                 }
-      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs [split $value {,}] }
-      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs [split $value {,}]     }
-      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs [split $value {,}]       }
-      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs [split $value {,}]    }
-      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags $value           }
-      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags $value       }
-      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags $value       }
-      if { "<LDFLGS>"                     == $tag } { set ldflags $value                       }
-      if { "<LDFLGS_LNX64>"               == $tag } { set ldflags_lnx64 $value                 }
-      if { "<LDFLGS_WIN64>"               == $tag } { set ldflags_win64 $value                 }
-      if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option $value          }
-      if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option $value            }
-      if { "<LDLIBS>"                     == $tag } { set ldlibs $value                        }
-      if { "<LDLIBS_LNX64>"               == $tag } { set ldlibs_lnx64 $value                  }
-      if { "<LDLIBS_WIN64>"               == $tag } { set ldlibs_win64 $value                  }
-      if { "<G++_LDLIBS_OPTION>"          == $tag } { set gplus_ldlibs_option $value           }
-      if { "<GCC_LDLIBS_OPTION>"          == $tag } { set gcc_ldlibs_option $value             }
-      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs $value                 }
-      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs $value                  }
-      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs $value                    }
-      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags $value           }
-      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options $value              }
-      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform $value            }
-      if { "<CPP_COMPILE_OPTION>"         == $tag } { set cpp_compile_option $value            }
-      if { "<C_COMPILE_OPTION>"           == $tag } { set c_compile_option $value              }
-      if { "<SHARED_LIBRARY>"             == $tag } { set shared_lib $value                    }
+      if { "<LIBRARY_TYPE>"               == $tag } { set library_type $value                        }
+      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format $value                       }
+      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs [split $value {,}]       }
+      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs [split $value {,}]           }
+      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs [split $value {,}]             }
+      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs [split $value {,}]          }
+      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags [split $value {,}]     }
+      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags [split $value {,}] }
+      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags [split $value {,}] }
+      if { "<LDFLGS>"                     == $tag } { set ldflags [split $value {,}]                 }
+      if { "<LDFLGS_LNX64>"               == $tag } { set ldflags_lnx64 [split $value {,}]           }
+      if { "<LDFLGS_WIN64>"               == $tag } { set ldflags_win64 [split $value {,}]           }
+      if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option $value                }
+      if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option $value                  }
+      if { "<LDLIBS>"                     == $tag } { set ldlibs [split $value {,}]                  }
+      if { "<LDLIBS_LNX64>"               == $tag } { set ldlibs_lnx64 [split $value {,}]            }
+      if { "<LDLIBS_WIN64>"               == $tag } { set ldlibs_win64 [split $value {,}]            }
+      if { "<G++_LDLIBS_OPTION>"          == $tag } { set gplus_ldlibs_option $value                 }
+      if { "<GCC_LDLIBS_OPTION>"          == $tag } { set gcc_ldlibs_option $value                   }
+      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs $value                       }
+      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs $value                        }
+      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs $value                          }
+      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags $value                 }
+      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options [split $value {,}]        }
+      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform $value                  }
+      if { "<CPP_COMPILE_OPTION>"         == $tag } { set cpp_compile_option $value                  }
+      if { "<C_COMPILE_OPTION>"           == $tag } { set c_compile_option $value                    }
+      if { "<SHARED_LIBRARY>"             == $tag } { set shared_lib $value                          }
     }
     close $fh_prj
 
@@ -3301,42 +3301,13 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     # 
     set xsc_arg_list [list]
     lappend xsc_arg_list "-c"
-    if { $dbg } {
-      lappend xsc_arg_list "-dbg"
-    }
+    if { $dbg } { lappend xsc_arg_list "-dbg" }
   
-    if { {} != $more_xsc_options } {
-      lappend xsc_arg_list $more_xsc_options 
-    }
-    lappend xsc_arg_list "-v"
+    if { [llength $more_xsc_options]  > 0 } { foreach opt $more_xsc_options       { lappend xsc_arg_list $opt } }
 
-    if { [llength $systemc_incl_dirs] > 0 } {
-      lappend xsc_arg_list "--gcc_compile_options"
-      set incl_dir_strs [list]
-      foreach incl_dir $systemc_incl_dirs {
-        lappend incl_dir_strs "-I$incl_dir"
-      }
-      set incl_dir_cmd_str [join $incl_dir_strs " "]
-      lappend xsc_arg_list "\"$incl_dir_cmd_str\""
-    }
-    if { [llength $cpp_incl_dirs] > 0 } {
-      lappend xsc_arg_list "--gcc_compile_options"
-      set incl_dir_strs [list]
-      foreach incl_dir $cpp_incl_dirs {
-        lappend incl_dir_strs "-I$incl_dir"
-      }
-      set incl_dir_cmd_str [join $incl_dir_strs " "]
-      lappend xsc_arg_list "\"$incl_dir_cmd_str\""
-    }
-    if { [llength $c_incl_dirs] > 0 } {
-      lappend xsc_arg_list "--gcc_compile_options"
-      set incl_dir_strs [list]
-      foreach incl_dir $c_incl_dirs {
-        lappend incl_dir_strs "-I$incl_dir"
-      }
-      set incl_dir_cmd_str [join $incl_dir_strs " "]
-      lappend xsc_arg_list "\"$incl_dir_cmd_str\""
-    }
+    if { [llength $systemc_incl_dirs] > 0 } { foreach incl_dir $systemc_incl_dirs { lappend xsc_arg_list "--gcc_compile_options \"-I$incl_dir\"" } }
+    if { [llength $cpp_incl_dirs]     > 0 } { foreach incl_dir $cpp_incl_dirs     { lappend xsc_arg_list "--gcc_compile_options \"-I$incl_dir\"" } }
+    if { [llength $c_incl_dirs]       > 0 } { foreach incl_dir $c_incl_dirs       { lappend xsc_arg_list "--gcc_compile_options \"-I$incl_dir\"" } }
    
     switch $library_type {
       {SystemC} -
@@ -3344,20 +3315,23 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       {C}   { if { {} != $c_compile_option   } { lappend xsc_arg_list "--gcc_compile_options \"$c_compile_option\""   } }
     }
 
-    if { {} != $gplus_compile_flags } { lappend xsc_arg_list "--gcc_compile_options \"$gplus_compile_flags\"" }
+    if { [llength $gplus_compile_flags] > 0 } { foreach c_flag $gplus_compile_flags { lappend xsc_arg_list "--gcc_compile_options \"$c_flag\"" } }
 
     if { $dbg } {
-      if { {} != $gplus_compile_dbg_flags } { lappend xsc_arg_list "--gcc_compile_options \"$gplus_compile_dbg_flags\"" }
+      if { [llength $gplus_compile_dbg_flags] > 0 } { foreach c_flag $gplus_compile_dbg_flags { lappend xsc_arg_list "--gcc_compile_options \"$c_flag\"" } }
     } else {
-      if { {} != $gplus_compile_opt_flags } { lappend xsc_arg_list "--gcc_compile_options \"$gplus_compile_opt_flags\"" }
+      if { [llength $gplus_compile_opt_flags] > 0 } { foreach c_flag $gplus_compile_opt_flags { lappend xsc_arg_list "--gcc_compile_options \"$c_flag\"" } }
     }
    
     lappend xsc_arg_list "-work $lib_name"
     lappend xsc_arg_list "-f $prj_filename"
+
     set xsc_cmd_str [join $xsc_arg_list " "]
+
     set log_filename "compile.log"
     puts $fh_scr "$a_sim_vars(script_cmt_tag) compile '$lib_name' model sources"
     puts $fh_scr "echo \"xsc $xsc_cmd_str\""
+
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
       set append_sw " -a "
@@ -3380,31 +3354,22 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     # 2. Generate shared library (link)
     # 
     set xsc_arg_list {}
-    if { $dbg } {
-      lappend xsc_arg_list "-dbg"
-    }
+    if { $dbg } { lappend xsc_arg_list "-dbg" }
 
-    if { {} != $more_xsc_options } {
-      lappend xsc_arg_list $more_xsc_options 
-    }
-    lappend xsc_arg_list "-v"
+    if { [llength $more_xsc_options] > 0 } { foreach opt $more_xsc_options { lappend xsc_arg_list $opt } }
 
     # link objs into shared lib
-    set switch_name "--shared_systemc"
-    if {$::tcl_platform(platform) == "windows"} {
-      set switch_name "--shared"
-    }
-    if { {static} == $output_format } {
-      switch_name "--static"
-    }
+    set switch_name "--shared"
+    if {$::tcl_platform(platform) == "windows"} { set switch_name "--shared_systemc" }
+    if { {static} == $output_format } { switch_name "--static" }
     lappend xsc_arg_list $switch_name 
 
     # <LDFLAGS>
-    if { {} != $ldflags } { lappend xsc_arg_list "--gcc_link_options \"$ldflags\"" }  
+    if { [llength $ldflags] > 0 } { foreach ld_flag $ldflags { lappend xsc_arg_list "--gcc_link_options \"$ld_flag\"" } }
     if {$::tcl_platform(platform) == "windows"} {
-      if { {} != $ldflags_win64 } { lappend xsc_arg_list "--gcc_link_options \"$ldflags_win64\"" }  
+      if { [llength $ldflags_win64] > 0 } { foreach ld_flag $ldflags_win64 { lappend xsc_arg_list "--gcc_link_options \"$ld_flag\"" } }
     } else {
-      if { {} != $ldflags_lnx64 } { lappend xsc_arg_list "--gcc_link_options \"$ldflags_linx64\"" }  
+      if { [llength $ldflags_lnx64] > 0 } { foreach ld_flag $ldflags_lnx64 { lappend xsc_arg_list "--gcc_link_options \"$ld_flag\"" } }
     }
 
     # acd ldflags
@@ -3415,11 +3380,12 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     }
 
     # <LDLIBS>
-    if { {} != $ldlibs } { lappend xsc_arg_list "--gcc_link_options \"$ldlibs\"" }  
+    if { [llength $ldlibs] > 0 } { foreach ld_lib $ldlibs { lappend xsc_arg_list "--gcc_link_options \"$ld_lib\"" } }
+
     if {$::tcl_platform(platform) == "windows"} {
-      if { {} != $ldlibs_win64 } { lappend xsc_arg_list "--gcc_link_options \"$ldlibs_win64\"" }  
+      if { [llength $ldlibs_win64] > 0 } { foreach ld_lib $ldlibs { lappend xsc_arg_list "--gcc_link_options \"$ld_lib\"" } }
     } else {
-      if { {} != $ldlibs_lnx64 } { lappend xsc_arg_list "--gcc_link_options \"$ldlibs_linx64\"" }  
+      if { [llength $ldlibs_lnx64] > 0 } { foreach ld_lib $ldlibs { lappend xsc_arg_list "--gcc_link_options \"$ld_lib\"" } }
     }
 
     # acd ldlibs
@@ -3454,10 +3420,12 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     #}
  
     #lappend xsc_arg_list "-o \"\$xv_cxl_lib_path/$lib_name/lib${lib_name}.so\""
+    
     lappend xsc_arg_list "-o \"\$xv_cxl_obj_lib_path/$lib_name/lib${lib_name}${lib_type}\""
     lappend xsc_arg_list "-work $lib_name"
     set xsc_cmd_str [join $xsc_arg_list " "]
     puts $fh_scr "echo \"xsc $xsc_cmd_str\""
+
     if {$::tcl_platform(platform) == "unix"} {
       set log_cmd_str $log_filename
       set append_sw " -a "
