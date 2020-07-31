@@ -1350,6 +1350,8 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         if {$::tcl_platform(platform) == "unix"} {
           lappend arg_list $s_64bit
         }
+        set cores [get_property questa.compile.sccom.cores $fs_obj]
+        lappend arg_list "-j $cores"
         set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
         lappend arg_list "-cpppath $gcc_path"
         lappend arg_list "-std=c++11"
