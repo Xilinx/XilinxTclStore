@@ -4250,7 +4250,11 @@ proc xsc_get_simmodel_compile_order { } {
     if { [string length $line] == 0 } { continue; }
     if { [regexp {^#} $line] } { continue; }
     set lib_name $line
-    set index [lsearch -regexp $lib_names $lib_name]
+    if { {xtlm} == $lib_name } {
+      set index [lsearch -exact $lib_names $lib_name]
+    } else {
+      set index [lsearch -regexp $lib_names $lib_name]
+    }
     if { {-1} != $index } {
       set sm_lib [lindex $lib_names $index]
       lappend sm_order $sm_lib
