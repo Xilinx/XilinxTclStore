@@ -11,4 +11,4 @@ namespace eval ::tclapp::xilinx::designutils {
 
 }
 
-package provide ::tclapp::xilinx::designutils 1.48
+package provide ::tclapp::xilinx::designutils 1.49
