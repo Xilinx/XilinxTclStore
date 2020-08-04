@@ -1,3 +1,4 @@
+2.186 updated hbm version
 2.185 use exact string name search for xtlm
 2.184 pass number of cores to use for compilation
 2.183 use simulator compiled object lib dir var

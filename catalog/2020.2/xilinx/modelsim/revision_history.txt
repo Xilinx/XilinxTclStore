@@ -1,3 +1,4 @@
+2.264 updated hbm version
 2.263 use exact string name search for xtlm
 2.262 use simulator compiled object lib dir var
 2.261 compile simmodel sources into compiled dir
