@@ -927,7 +927,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
       if { {functional} == $a_sim_vars(s_type) } {
         set hbm_ip_obj [xcs_find_ip "hbm"]
         if { {} != $hbm_ip_obj } {
-          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_7"]
+          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_8"]
         }
       }
     }
@@ -1119,7 +1119,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
       if { {functional} == $a_sim_vars(s_type) } {
         set hbm_ip_obj [xcs_find_ip "hbm"]
         if { {} != $hbm_ip_obj } {
-          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_7"]
+          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_8"]
         }
       }
     }
