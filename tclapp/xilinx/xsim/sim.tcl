@@ -3175,6 +3175,11 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     set s_dbg_sw {-dbg}
   }
 
+  set platform "lin"
+  if {$::tcl_platform(platform) == "windows"} {
+    set platform "win"
+  }
+
   set data_dir [rdi::get_data_dir -quiet -datafile "systemc/simlibs"]
   # get the design simmodel compile order
   set simmodel_compile_order [xsc_get_simmodel_compile_order]
@@ -3185,7 +3190,38 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
   foreach lib_name $simmodel_compile_order {
     set lib_path [xsc_find_lib_path_for_simmodel $lib_name]
     #puts "lib_path:$lib_name = $lib_path"
+    #
+    set fh 0
+    set dat_file "$lib_path/.cxl.sim_info.dat"
+    if {[catch {open $dat_file r} fh]} {
+      send_msg_id USF-XSim-016 WARNING "Failed to open file to read ($dat_file)\n"
+      continue
+    }
+    set data [split [read $fh] "\n"]
+    close $fh
+
+    # current platform supported?
+    set simulator_platform {}
+    set b_process 0
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag   [lindex $line_info 0]
+      set value [lindex $line_info 1]
+      if { "<SIMULATOR_PLATFORM>" == $tag } {
+        if { ("all" == $value) || (("linux" == $value) && ("lin" == $platform)) || (("windows" == $vlue) && ("win" == $platform)) } {
+          # supported
+          set b_process 1
+        } else {
+          continue
+        }
+      }
+    }
+    if { !$b_process } { continue }
  
+    #send_msg_id USF-XSim-107 STATUS "Generating compilation commands for '$lib_name'\n"
+
     # create local lib dir
     set simlib_dir "$a_sim_vars(s_simlib_dir)/$lib_name"
     if { ![file exists $simlib_dir] } {
@@ -3203,15 +3239,6 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
         [catch {send_msg_id USF-XSim-010 ERROR "Failed to copy file '$simlib_incl_dir' to '$target_dir': $error_msg\n"} err]
       }
     }
-
-    set fh 0
-    set dat_file "$lib_path/.cxl.sim_info.dat"
-    if {[catch {open $dat_file r} fh]} {
-      send_msg_id USF-XSim-016 WARNING "Failed to open file to read ($dat_file)\n"
-      continue
-    }
-    set data [split [read $fh] "\n"]
-    close $fh
 
     # open prj file
     set prj_filename "${lib_name}_xsc.prj"
