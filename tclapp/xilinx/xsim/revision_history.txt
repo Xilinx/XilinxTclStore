@@ -1,3 +1,4 @@
+2.344 support for simulator platform tag
 2.343 use exact string name search for xtlm
 2.342 support for additional tags for non-precompile flow
 2.341 use simulator compiled object lib dir var
