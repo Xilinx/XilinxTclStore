@@ -918,6 +918,26 @@ proc xcs_get_bin_path { tool_name path_sep } {
   return $bin_path
 }
 
+proc xcs_get_bin_paths { tool_name path_sep } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set bin_paths [list]
+  set path_value $::env(PATH)
+  foreach path [split $path_value $path_sep] {
+    set exe_file [file normalize [file join $path $tool_name]]
+    #
+    # make sure it exists and is of file-type and is not a directory
+    #
+    if { [file exists $exe_file] && [file isfile $exe_file] && ![file isdirectory $exe_file] } {
+      lappend bin_paths $path
+    }
+  }
+  return $bin_paths
+}
+
+
 proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir b_found_in_repo_arg repo_src_file_arg } {
   # Summary:
   # Argument Usage:
@@ -4726,4 +4746,110 @@ proc xcs_find_uvm_library { } {
     send_msg_id SIM-utils-067 WARNING "Failed to get the uvm library path (RDI_DATADIR environment variable is not set).\n"
   }
   return $uvm_lib_path
+}
+
+proc xcs_get_gcc_path { simulator sim_product_name gcc_install_path gcc_path_arg b_int_sm_lib_ref_debug } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # not required for xsim
+  if { "xsim" == $simulator } {
+    return true
+  }
+
+  upvar $gcc_path_arg gcc_path
+  set gcc_path {}
+  set resolved_path {}
+
+  # gcc precedence (switch -> property -> PATH (info))
+
+  # 1. if switch specified, use this path
+  if { [llength $gcc_install_path] > 0 } {
+    if { [xcs_check_gcc_path $gcc_install_path resolved_path] } {
+      set gcc_path $resolved_path
+      return true
+    } else {
+      [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified with the '-gcc_install_path' switch is either invalid or does not exist! '$gcc_install_path'\n"} err]
+      return false
+    }
+  }
+
+  # 2. if property specified, use this path
+  set gcc_prop_dir [get_property -quiet simulator.${simulator}_gcc_install_dir [current_project]]
+  if { [llength $gcc_prop_dir] > 0 } {
+    if { [xcs_check_gcc_path $gcc_prop_dir resolved_path] } {
+      set gcc_path $resolved_path
+      return true
+    } else {
+      [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified for the 'simulator.${simulator}_gcc_install_dir' property is either invalid or does not exist! '$gcc_prop_dir'\n"} err]
+      return false;
+    }
+  }
+
+  # 3. critical warning (not found from property neither from switch)
+  set sim_ver_param "simulator.${simulator}.version"
+  set sim_ver [get_param $sim_ver_param]
+  send_msg_id SIM-utils-070 "CRITICAL WARNING" "Failed to locate the GNU compiler (g++/gcc) executable path! Please set the path using the 'simulator.${simulator}_gcc_install_dir' project property or specify the path using the '-gcc_install_path' switch that is applicable for the $sim_product_name $sim_ver version for the current Vivado release. Please see 'launch_simulation -help' command for more details.\n"
+ 
+  if { $b_int_sm_lib_ref_debug } {
+    set path_sep  {;}
+    set tool_extn {.exe}
+    if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
+    if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
+    set tool "gcc${tool_extn}"
+    set gcc_paths [xcs_get_bin_paths $tool $path_sep]
+    if { [llength $gcc_paths] > 0 } {
+      puts "---------------------------------------------------------------------"
+      puts "GCC compiler path(s) currently set with the PATH environment variable"
+      puts "---------------------------------------------------------------------"
+      foreach path $gcc_paths {
+        puts " <GCC PATH> - $path"
+      }
+      puts "---------------------------------------------------------------------"
+    }
+  }
+  return false;
+}
+
+proc xcs_check_gcc_path { path resolved_path_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $resolved_path_arg resolved_path
+
+  set gcc_path $path
+  # setup gcc exe names based on platform
+  set tool_extn {.exe}
+  if {$::tcl_platform(platform) == "unix"} {
+    set tool_extn {}
+  }
+  set gcc_exe_name   "gcc${tool_extn}"
+  set gplus_exe_name "g++${tool_extn}"
+
+  # 1. fix slashes
+  set gcc_path [regsub -all {[\[\]]} $gcc_path {/}];
+
+  # 2. path does not exist
+  if { ![file exists $gcc_path] } {
+    return false
+  }
+
+  # 3. check last element in path - is /install/bin/gcc or /install/bin/g++?
+  set last_element [file tail $gcc_path]
+  if { ($last_element == $gcc_exe_name) || ($last_element == $gplus_exe_name) } {
+    # get parent dir -> /install/bin
+    set gcc_path [file dirname $gcc_path]
+  } else {
+    # /install/bin
+    # add exe name to make sure this is the correct gcc path
+    set exe_path "$gcc_path/$gcc_exe_name"
+    if { ![file exists $exe_path] } {
+      # invalid path - does not point to gcc install dir
+      return false
+    }
+  }
+  set resolved_path $gcc_path
+  return true
 }

@@ -111,9 +111,6 @@ proc usf_questa_setup_simulation { args } {
   variable a_sim_vars
 
   ::tclapp::xilinx::questa::usf_set_simulator_path "questa"
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    send_msg_id USF-Questa-44 INFO "Using GNU compiler executables from '$a_sim_vars(s_gcc_bin_path)'\n"
-  }
 
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)

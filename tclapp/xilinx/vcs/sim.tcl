@@ -109,9 +109,6 @@ proc usf_vcs_setup_simulation { args } {
   variable a_sim_vars
 
   ::tclapp::xilinx::vcs::usf_set_simulator_path "vcs"
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    send_msg_id USF-VCS-44 INFO "Using GNU compiler executables from '$a_sim_vars(s_gcc_bin_path)'\n"
-  }
 
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
@@ -206,7 +203,7 @@ proc usf_vcs_setup_simulation { args } {
       set a_sim_vars(b_system_sim_design) 1
     }
   }
-
+  
   if { $a_sim_vars(b_int_systemc_mode) } {
     # systemC headers
     set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
@@ -542,9 +539,7 @@ proc usf_vcs_write_compile_script {} {
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        if { {} != $gcc_path } {
-          puts $fh_scr "gcc_path=\"$gcc_path\"\n"
-        }
+        puts $fh_scr "gcc_path=\"$gcc_path\"\n"
       }
       # set system sim library paths
       if { $::tclapp::xilinx::vcs::a_sim_vars(b_system_sim_design) } {
@@ -953,9 +948,7 @@ proc usf_vcs_write_elaborate_script {} {
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        if { {} != $gcc_path } {
-          puts $fh_scr "gcc_path=\"$gcc_path\""
-        }
+        puts $fh_scr "gcc_path=\"$gcc_path\""
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
         usf_vcs_write_library_search_order $fh_scr
       }
