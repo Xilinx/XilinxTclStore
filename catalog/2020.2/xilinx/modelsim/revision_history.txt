@@ -1,3 +1,4 @@
+2.265 support for setting up gcc compiler paths
 2.264 updated hbm version
 2.263 use exact string name search for xtlm
 2.262 use simulator compiled object lib dir var
