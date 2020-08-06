@@ -661,6 +661,7 @@ proc usf_xsim_setup_args { args } {
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_en_system_sim_code]: Enable code for system simulation (internal use)
+  # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
  
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -691,6 +692,7 @@ proc usf_xsim_setup_args { args } {
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
       "-int_csim_compile_order" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_csim_compile_order) 1                 }
       "-int_en_system_sim_code" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) 1                 }
+      "-int_export_source_files" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_export_source_files) 1               }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -3202,6 +3204,8 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
 
     # current platform supported?
     set simulator_platform {}
+    set simmodel_name      {}
+    set library_name       {}
     set b_process 0
     foreach line $data {
       set line [string trim $line]
@@ -3209,6 +3213,8 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       set line_info [split $line {:}]
       set tag   [lindex $line_info 0]
       set value [lindex $line_info 1]
+      if { "<SIMMODEL_NAME>"              == $tag } { set simmodel_name $value } 
+      if { "<LIBRARY_NAME>"               == $tag } { set library_name $value  }
       if { "<SIMULATOR_PLATFORM>" == $tag } {
         if { ("all" == $value) || (("linux" == $value) && ("lin" == $platform)) || (("windows" == $vlue) && ("win" == $platform)) } {
           # supported
@@ -3228,6 +3234,18 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       if { [catch {file mkdir $simlib_dir} error_msg] } {
         send_msg_id USF-XSim-013 ERROR "Failed to create the directory ($simlib_dir): $error_msg\n"
         return 1
+      }
+    }
+    # copy simmodel sources locally
+    if { $a_sim_vars(b_int_export_source_files) } {
+      set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$lib_name/src"
+      set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$lib_name"
+      if { [file exists $src_sim_model_dir] } {
+        if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
+          [catch {send_msg_id USF-XSim-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
+        } else {
+          #puts "copied '$src_sim_model_dir' to run dir:'$a_sim_vars(s_launch_dir)/simlibs'\n"
+        }
       }
     }
     # copy include dir
@@ -3289,6 +3307,11 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
 
       if { ("<SYSTEMC_SOURCES>" == $tag) || ("<CPP_SOURCES>" == $tag) || ("<C_SOURCES>" == $tag) } {
         set file_path "$data_dir/$value"
+        if { $a_sim_vars(b_int_export_source_files) } {
+          set dirs [split $value "/"]
+          set value [join [lrange $dirs 3 end] "/"]
+          set file_path "simlibs/$value"
+        }
         puts $fh_prj "\"$file_path\""
       }
 
