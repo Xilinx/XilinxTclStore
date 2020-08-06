@@ -5,12 +5,40 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2020.07.31 - Improved support for multiple Vivado patches applied at the same time
+## 2020.07.12 - Improved support for special Vivado branches
+## 2020.06.29 - Improved handling when the architecture is not supported (LUT/Net budgeting)
+##            - Silenced some get_nets warning when no object is found
+## 2020.06.09 - Added support for MARK_DEBUG metric
+##            - Added support for -hide_slacks for the DONT_TOUCH/MARK_DEBUG detailed reports
+##            - Improved the DONT_TOUCH detailed report to include the net fanout, setup slack
+##              and driver/load pins. Duplicated nets are filtered out
+##            - Filtered out the power/ground from the list of DONT_TOUCH nets
+## 2020.05.27 - Fixed major issue with average fanout calculation (incorrect value could be reported)
+##            - Improved debug messages for average fanout calculation
+##            - Updated help (-no_utilization)
+## 2020.04.09 - Fixed uncommon issue with average fanout calculation that failed
+##              restoring the current_instance
+## 2020.04.06 - Minor formatting "RAMB/FIFO" -> "RAMB" (Versal)
+## 2020.03.06 - Added support for LOOKAHEAD8 (Versal)
+## 2020.03.05 - Fixed DSP utilization (report_utilization / Versal)
+##            - Replaced "DSP48" with "DSP" inside the report
+##            - Added debug messages
 ## 2019.08.23 - Added the LUT/Net Adjusted Slack (LUT/Net budgeting)
 ##            - Fixed issue with paths starting and ending on the same cell
-## 2019.08.06 - Adjusted Net/Delay values for -1LV/-2LV (US+)
+## 2019.08.12 - Updated the LUT/Net budgeting calculation to improve pre-place
+##              and post-place correlation to better estimate intra-site nets (Versal)
+## 2019.08.08 - Updated the LUT/Net budgeting table header names for clarity
+##            - Improved pre-placement level calculation for LUT/Net budgeting (Versal)
+## 2019.08.06 - Adjusted Net/Delay values + fixed speedgrade names (Versal)
+##            - Adjusted Net/Delay values for -1LV/-2LV (US+)
+##            - Improved support for LUTCY* during LUT/Net budgeting (Versal)
+##            - Removed LUTCY* from LUT Combinining metric (Versal)
 ## 2019.07.30 - Improved runtime for -by_slr by running report_utilization
 ##              only once (Vivado 2019.1 and above)
 ##            - Added support for updated format for report_control_sets
+##            - Added support for Versal (report_utilization)
+##            - Added initial support for Versal (LUT/Net budgeting)
 ##            - Misc enhancements
 ## 2019.02.13 - Added support for Vivado patches
 ## 2019.01.10 - Added support for US+ -1LV/-2LV
@@ -106,10 +134,10 @@ namespace eval ::tclapp::xilinx::designutils {
 #      | CARRY8                                                    | 25%       | 3.63%  | OK     |
 #      | MUXF7                                                     | 15%       | 1.63%  | OK     |
 #      | LUT Combining                                             | 20%       | 36.71% | REVIEW |
-#      | DSP48                                                     | 80%       | 40.02% | OK     |
+#      | DSP                                                       | 80%       | 40.02% | OK     |
 #      | RAMB/FIFO                                                 | 80%       | 62.50% | OK     |
 #      | URAM                                                      | 80%       | 50.00% | OK     |
-#      | DSP48+RAMB+URAM (Avg)                                     | 70%       | 41.09% | OK     |
+#      | DSP+RAMB+URAM (Avg)                                       | 70%       | 41.09% | OK     |
 #      | BUFGCE* + BUFGCTRL                                        | 24        | 0      | OK     |
 #      | Control Sets                                              | 17145     | 18498  | REVIEW |
 #      | Average Fanout for modules > 100k cells                   | 4         | 3.06   | OK     |
@@ -140,9 +168,9 @@ namespace eval ::tclapp::xilinx::designutils {
 #      | CARRY8                                                    | 25%       | 63.56%  | 5339   | 8400   | REVIEW |
 #      | MUXF7                                                     | 15%       | 2.74%   | 920    | 33600  | OK     |
 #      | LUT Combining                                             | 20%       | 19.45%  | 26049  | -      | OK     |
-#      | DSP48                                                     | 80%       | 39.04%  | 253    | 648    | OK     |
+#      | DSP                                                       | 80%       | 39.04%  | 253    | 648    | OK     |
 #      | RAMB/FIFO                                                 | 80%       | 13.19%  | 28.5   | 216    | OK     |
-#      | DSP48+RAMB+URAM (Avg)                                     | 70%       | 26.11%  | 281.5  | 864    | OK     |
+#      | DSP+RAMB+URAM (Avg)                                       | 70%       | 26.11%  | 281.5  | 864    | OK     |
 #      | BUFGCE* + BUFGCTRL                                        | 24        | 5       | 5      | -      | OK     |
 #      | Control Sets                                              | 1260      | 3593    | 3593   | -      | REVIEW |
 #      | Average Fanout for modules > 100k cells                   | 4         | 3.00    | 3.00   | -      | OK     |
@@ -179,10 +207,12 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-regions <arg>]: Clock regions patterns
   # [-slr <arg>]: SLR name
   # [-by_slr]: Run the report on each SLR
+  # [-no_utilization]: Skip utilization checks
   # [-no_methodology_checks]: Skip methodology checks
   # [-no_path_budgeting]: Skip LUT/Net budgeting
   # [-no_fanout]: Skip average fanout calculation
   # [-no_dont_touch]: Skip DONT_TOUCH check
+  # [-no_mark_debug]: Skip MARK_DEBUG check
   # [-no_hfn]: Skip Non-FD high fanout nets metric
   # [-no_control_sets]: Skip control sets metric
   # [-max_paths <arg>]: max number of paths per clock group for LUT/Net budgeting. Default is 100
@@ -191,6 +221,7 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-show_resources]: Show Used/Available resources count in the summary table
   # [-show_not_found]: Show metrics that could not be extracted
   # [-show_all_paths]: Show all paths analyzed by LUT/Net budgeting
+  # [-hide_slacks]: Hide the setup slack of the nets inside the DONT_TOUCH/MARK_DEBUG detailed reports
   # [-csv]: Add CSV to the output report
   # [-transpose]: Transpose the CSV file
   # [-no_header]: Suppress the files header
@@ -336,7 +367,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2019.08.23}
+  variable version {2020.07.31}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -345,6 +376,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   variable reports
   variable guidelines
   variable data
+  variable dbgtbl
   array set params [list failed 0 format {table} max_paths 100 show_resources 0 transpose 0 verbose 0 debug 0 debug_level 1 vivado_version [version -short] ]
 #   catch { unset reports }
   array set reports [list]
@@ -377,6 +409,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   variable reports
   variable metrics
   variable params
+  variable dbgtbl
   variable guidelines
   variable output
   variable data
@@ -395,8 +428,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(max_paths) 100
 #   set params(vivado_version) [version -short]
   # Remove from the Vivado version any letter that would fail 'package vcompare' + remove reference to
-  # any patched version (_ARxxxxx)
-  set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_AR[0-9]+$} [version -short] {}] {0}]
+  # any patched version (_ARxxxxx) or special branches (2020.2_SAM)
+#   set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_AR[0-9]+$} [version -short] {}] {0}]
+  set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {(_AR[0-9]+)} [version -short] {}] {}] {0}]
   set pid {tmp}
   catch { set pid [pid] }
   set filename {}
@@ -443,6 +477,7 @@ set reportBySLRNew 0
   # Timing paths to be considered for LUT/Net budgeting
   set timingPathsBudgeting [list]
   set showAllBudgetingPaths 0
+  set showSlackInsideDetailedReports 1
   # Override LUT budgeting
   set lutBudgeting 0
   # Override Net budgeting
@@ -519,6 +554,10 @@ set reportBySLRNew 0
       {^-no_do(n(t(_(t(o(u(ch?)?)?)?)?)?)?)?$} {
         lappend skipChecks {dont_touch}
       }
+      {^-no_mark_debug$} -
+      {^-no_ma(r(k(_(d(e(b(ug?)?)?)?)?)?)?)?$} {
+        lappend skipChecks {mark_debug}
+      }
       {^-no_hfn$} -
       {^-no_fd_hfn$} -
       {^-no_h(fn?)?$} -
@@ -538,7 +577,7 @@ set reportBySLRNew 0
       {^-path_budgeting_only$} -
       {^-po(s(t(_(o(o(c(_(s(y(n(th?)?)?)?)?)?)?)?)?)?)?)?$} -
       {^-pa(t(h(_(b(u(d(g(e(t(i(n(g(_(o(n(ly?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
-        set skipChecks [concat $skipChecks {utilization dont_touch control_sets non_fd_hfn average_fanout methodology_check}]
+        set skipChecks [concat $skipChecks {utilization dont_touch mark_debug control_sets non_fd_hfn average_fanout methodology_check}]
       }
       {^-cell$} -
       {^-ce(ll?)?$} {
@@ -614,6 +653,10 @@ set reportBySLRNew 0
       {^-show_all_paths$} -
       {^-show_a(l(l(_(p(a(t(hs?)?)?)?)?)?)?)?$} {
         set showAllBudgetingPaths 1
+      }
+      {^-hide_slacks$} -
+      {^-hi(d(e(_(s(l(a(c(ks)?)?)?)?)?)?)?)?$} {
+        set showSlackInsideDetailedReports 0
       }
       {^-max_paths$} -
       {^-ma(x(_(p(a(t(hs?)?)?)?)?)?)?$} {
@@ -715,11 +758,13 @@ set reportBySLRNew 0
               [-pblock <pblock>]
               [-slr <slr>][-by_slr]
               [-regions <pattern>]
+              [-no_utilization]
               [-no_methodology_checks]
               [-no_path_budgeting]
               [-no_hfn]
               [-no_fanout]
               [-no_dont_touch]
+              [-no_mark_debug]
               [-no_control_sets]
               [-post_ooc_synth]
               [-ignore_pr]
@@ -728,6 +773,7 @@ set reportBySLRNew 0
               [-show_resources]
               [-show_not_found]
               [-show_all_paths]
+              [-hide_slacks]
               [-csv][-transpose]
               [-no_header]
               [-verbose|-v]
@@ -754,11 +800,13 @@ set reportBySLRNew 0
     Use -no_path_budgeting to prevent calculation of the LUT/Net budgeting
     Use -no_hfn to prevent calculation of Non-FD high fanout nets
     Use -no_dont_touch to prevent calculation of DONT_TOUCH metric
+    Use -no_mark_debug to prevent calculation of MARK_DEBUG metric
     Use -no_control_sets to prevent extraction of control sets metric
     Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
     Use -show_resources to report the detailed number of used and available resources in the summary table
     Use -show_not_found to report metrics that have not been extracted (hidden by default)
     Use -show_all_paths to report all the paths analyzed in the LUT/Net budgeting. Default it to only report paths with budgeting violation
+    Use -hide_slacks to reduce runtime and not report the setup slack of the nets inside the DONT_TOUCH/MARK_DEBUG detailed reports
     Use -post_ooc_synth to only run the LUT/Net path budgeting
     Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
     Use -max_paths to define the max number of paths per clock group for LUT/Net budgeting. Default is 100
@@ -964,11 +1012,15 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
   switch -regexp -- "${optionTop}${optionCell}${optionPblock}${optionRegion}${optionSlr}" {
     {^1.1..$} {
       set reportMode {pblockAndTop}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+#       set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+      # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC)"]
     }
     {^.11..$} {
       set reportMode {pblockAndCell}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
+#       set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
+      # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC) && NAME =~ $prCell/*"]
     }
     {^..1..$} {
       set reportMode {pblockOnly}
@@ -978,7 +1030,9 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       dputs " -D- parent+nested pblocks: $allPblocks"
       set leafCells [list]
       foreach pblock $allPblocks {
-        set cells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && PBLOCK == $pblock"]
+#         set cells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && PBLOCK == $pblock"]
+        # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+        set cells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC) && PBLOCK == $pblock"]
         dputs " -D- pblock $pblock: [llength $cells] cells"
         set leafCells [concat $leafCells $cells]
       }
@@ -988,11 +1042,15 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
     }
     {^1..1.$} {
       set reportMode {regionAndTop}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+#       set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+     # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+     set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC)"]
     }
     {^.1.1.$} {
       set reportMode {regionAndCell}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
+#       set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
+     # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC) && NAME =~ $prCell/*"]
     }
     {^...1.$} {
       set reportMode {regionOnly}
@@ -1007,11 +1065,15 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
     }
     {^1...1$} {
       set reportMode {slrAndTop}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+#       set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+      # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC)"]
     }
     {^.1..1$} {
       set reportMode {slrAndCell}
-      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
+#       set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
+      # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+      set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC) && NAME =~ $prCell/*"]
     }
     {^....1$} {
       set reportMode {slrOnly}
@@ -1020,7 +1082,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       set skipChecks [concat $skipChecks {average_fanout path_budgeting methodology_check}]
       # dont_touch is not supported in this mode as it would flag DONT_TOUCH on shell/static
       # logic contained in some of the SLRs
-      set skipChecks [concat $skipChecks {dont_touch}]
+      set skipChecks [concat $skipChecks {dont_touch mark_debug}]
       # Sanity check for a tuned message
       if {[llength $leafCells] == 0} {
         puts " -E- no leaf primitive found under SLR $slrs. Make sure the design is placed. Cannot continue"
@@ -1037,15 +1099,21 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           set prPblock [get_pblocks -quiet {pblock_CL}]
           # Change reporting mode
           set reportMode {pblockAndCell}
-          set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
+#           set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO) && NAME =~ $prCell/*"]
+          # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+          set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC) && NAME =~ $prCell/*"]
           puts " -I- Partial Reconfigurable design detected (cell:$prCell / pblock:$prPblock)"
         } else {
           set reportMode {default}
-          set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+#           set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+          # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+          set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC)"]
         }
       } else {
         set reportMode {default}
-        set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+#         set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != MACRO)"]
+        # Filter out DSP atoms to only keep the DSP macros: this fixes an issue with report_utilization
+        set leafCells [get_cells -quiet -hier -filter "IS_PRIMITIVE && (PRIMITIVE_LEVEL != INTERNAL) && (LIB_CELL != GND) && (LIB_CELL != VCC)"]
       }
     }
   }
@@ -1056,9 +1124,9 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
   # Remove excluded leaf cells
   if {$excludeCell != {}} {
     # The following checks are not supported with -exclude_cell
-    set skipChecks [concat $skipChecks {average_fanout path_budgeting methodology_check dont_touch control_sets non_fd_hfn}]
+    set skipChecks [concat $skipChecks {average_fanout path_budgeting methodology_check dont_touch mark_debug control_sets non_fd_hfn}]
 #     set skipChecks [concat $skipChecks {average_fanout path_budgeting methodology_check dont_touch control_sets}]
-    puts " -W- Disabled checks (-exclude_cell): control sets / non-FD HFN / average fanout / path budgeting / methodology checks / DONT_TOUCH attributes"
+    puts " -W- Disabled checks (-exclude_cell): control sets / non-FD HFN / average fanout / path budgeting / methodology checks / DONT_TOUCH / MARK_DEBUG attributes"
     dputs " -D- number of extracted leaf cells: [llength $leafCells]"
     dputs " -D- excluded cell: $excludeCell"
     set leafCells [filter -quiet $leafCells "NAME !~ $excludeCell/*"]
@@ -1160,6 +1228,10 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
     catch { array unset guidelines design.dont_touch }
   }
 
+  if {[lsearch $skipChecks {mark_debug}] != -1} {
+    catch { array unset guidelines design.mark_debug }
+  }
+
   if {[lsearch $skipChecks {control_sets}] != -1} {
     catch { array unset guidelines utilization.ctrlsets.* }
   }
@@ -1233,6 +1305,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       addMetric {design.ports}                  {Number of ports}
       addMetric {design.slrs}                   {Number of SLRs}
       addMetric {design.dont_touch}             {Number of DONT_TOUCH (cells/nets)}
+      addMetric {design.mark_debug}             {Number of MARK_DEBUG (nets)}
 
       set part [get_property -quiet PART [current_design]]
       setMetric {design.part}                   $part
@@ -1349,6 +1422,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           set dontTouchLeafCells [get_cells -quiet -hier -filter {IS_PRIMITIVE && DONT_TOUCH}]
         }
       }
+      # Filter out the power/ground nets and use the top-level net names to avoid redundancies
+      set dontTouchNets [get_nets -quiet -segments -top_net_of_hierarchical_group [filter -quiet $dontTouchNets {TYPE!=GROUND && TYPE!= POWER}]]
       set numDontTouch [expr [llength $dontTouchNets] + [llength $dontTouchHierCells] + [llength $dontTouchLeafCells] ]
       setMetric {design.dont_touch} $numDontTouch
 
@@ -1365,7 +1440,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         set tbl [::tclapp::xilinx::designutils::prettyTable create [format "DONT_TOUCH (Hierarchical Cells)\n[llength $dontTouchHierCells] module(s)"] ]
         $tbl indent 1
         $tbl header [list {Cell} ]
-        foreach el [lsort $dontTouchHierCells] {
+        foreach el [lsort -dictionary $dontTouchHierCells] {
           $tbl addrow [list $el]
           set empty 0
         }
@@ -1375,7 +1450,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         set tbl [::tclapp::xilinx::designutils::prettyTable create [format "DONT_TOUCH (Leaf Cells)\n[llength $dontTouchLeafCells] cell(s)"] ]
         $tbl indent 1
         $tbl header [list {Cell} ]
-        foreach el [lsort $dontTouchLeafCells] {
+        foreach el [lsort -dictionary $dontTouchLeafCells] {
           $tbl addrow [list $el]
           set empty 0
         }
@@ -1384,11 +1459,40 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         # Nets
         set tbl [::tclapp::xilinx::designutils::prettyTable create [format "DONT_TOUCH (Nets)\n[llength $dontTouchNets] net(s)"] ]
         $tbl indent 1
-        $tbl header [list {Net} ]
-        foreach el [lsort $dontTouchNets] {
-          $tbl addrow [list $el]
+        if {$showSlackInsideDetailedReports} {
+          $tbl header [list {Net} {Fanout} {Slack} {Driver Pin} {Load Pins}]
+        } else {
+          $tbl header [list {Net} {Fanout} {Driver Pin} {Load Pins}]
+        }
+        set dontTouchNets [lsort -dictionary $dontTouchNets]
+        foreach net $dontTouchNets prop [get_property -quiet FLAT_PIN_COUNT $dontTouchNets] {
+          set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
+          set loads [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==IN}]
+          catch {unset tmp}
+          # Column "Load Pins" should report a distribution of the load pins:
+          # E.g: FDCE/C (204730) FDPE/C (26) FDRE/C (130873) FDSE/C (5218) HARD_SYNC/CLK (1) RAMB36E2/CLKARDCLK (196)
+          set uniqueLoads [list]
+          foreach pin $loads \
+                  refname [get_property -quiet REF_NAME $loads] \
+                  refpinname [get_property -quiet REF_PIN_NAME $loads] {
+            incr tmp([format {%s/%s} $refname $refpinname])
+          }
+          foreach el [lsort -dictionary [array names tmp]] {
+            lappend uniqueLoads [format {%s (%s)} $el $tmp($el)]
+          }
+          set uniqueLoads [join $uniqueLoads { }]
+          if {$showSlackInsideDetailedReports} {
+            set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
+            set slack [get_property -quiet SETUP_SLACK $driver]
+            if {$slack == {}} { set slack {N/A} }
+            $tbl addrow [list $net [expr $prop -1] $slack [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
+          } else {
+            $tbl addrow [list $net [expr $prop -1]        [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
+          }
           set empty 0
         }
+        # Sort the list of nets, higest fanout first
+        if {!$empty} { $tbl sort -Fanout +Net }
         puts $FH [$tbl print]
         catch {$tbl destroy}
         close $FH
@@ -1401,6 +1505,127 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       }
       set stepStopTime [clock seconds]
       puts " -I- DONT_TOUCH metric completed in [expr $stepStopTime - $stepStartTime] seconds"
+    }
+
+    ########################################################################################
+    ##
+    ## MARK_DEBUG metric
+    ##
+    ########################################################################################
+
+    if {1 && [llength [array names guidelines design.mark_debug]] && ([lsearch $skipChecks {mark_debug}] == -1)} {
+      set stepStartTime [clock seconds]
+      set numMarkDebug 0
+      set markDebugNets [list]
+      switch $reportMode {
+        pblockAndTop {
+          # Number of nets with MARK_DEBUG.
+          set markDebugNets [get_nets -quiet -hier -filter {MARK_DEBUG}]
+        }
+        pblockAndCell {
+          # Number of nets with MARK_DEBUG.
+          set markDebugNets [filter -quiet [get_nets -quiet -of $leafCells] {MARK_DEBUG}]
+        }
+        pblockOnly {
+          # Number of nets with MARK_DEBUG.
+          set parents [getParentCells $leafCells]
+          set markDebugNets [filter -quiet [get_nets -quiet -of $leafCells] {MARK_DEBUG}]
+        }
+        regionAndTop {
+          # Number of nets with MARK_DEBUG.
+          set markDebugNets [get_nets -quiet -hier -filter {MARK_DEBUG}]
+        }
+        regionAndCell {
+           # Number of nets with MARK_DEBUG.
+          set markDebugNets [filter -quiet [get_nets -quiet -of $leafCells] {MARK_DEBUG}]
+       }
+        regionOnly {
+          # Number of nets with MARK_DEBUG.
+          set parents [getParentCells $leafCells]
+          set markDebugNets [filter -quiet [get_nets -quiet -of $leafCells] {MARK_DEBUG}]
+       }
+        slrAndTop {
+          # Number of nets with MARK_DEBUG.
+          set markDebugNets [get_nets -quiet -hier -filter {MARK_DEBUG}]
+        }
+        slrAndCell {
+          # Number of nets with MARK_DEBUG.
+          set markDebugNets [filter -quiet [get_nets -quiet -of $leafCells] {MARK_DEBUG}]
+        }
+        slrOnly {
+          # Number of nets with MARK_DEBUG.
+#           set parents [getParentCells $leafCells]
+#           set markDebugNets [filter -quiet [get_nets -quiet -of $leafCells] {MARK_DEBUG}]
+          # mark_debug is not supported in this mode as it would flag MARK_DEBUG on shell/static
+          # logic contained in some of the SLRs
+          array unset guidelines design.mark_debug
+        }
+        default {
+          # Number of nets with MARK_DEBUG.
+          set markDebugNets [get_nets -quiet -hier -filter {MARK_DEBUG}]
+        }
+      }
+      # Filter out the power/ground nets and use the top-level net names to avoid redundancies
+      set markDebugNets [lsort -dictionary [get_nets -quiet -segments -top_net_of_hierarchical_group [filter -quiet $markDebugNets {TYPE!=GROUND && TYPE!= POWER}]]]
+      set numMarkDebug [llength $markDebugNets]
+      setMetric {design.mark_debug} $numMarkDebug
+
+      if {$detailedReportsPrefix != {}} {
+        set empty 1
+        catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.MARK_DEBUG.rpt ${detailedReportsDir}/${detailedReportsPrefix}.MARK_DEBUG.rpt.${pid} }
+        set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.MARK_DEBUG.rpt.${pid}" $filemode]
+        if {$showFileHeader} {
+          puts $FH "# ---------------------------------------------------------------------------"
+          puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+          puts $FH "# ---------------------------------------------------------------------------\n"
+        }
+        # Nets
+        set tbl [::tclapp::xilinx::designutils::prettyTable create [format "MARK_DEBUG (Nets)\n[llength $markDebugNets] net(s)"] ]
+        $tbl indent 1
+        if {$showSlackInsideDetailedReports} {
+          $tbl header [list {Net} {Fanout} {Slack} {Driver Pin} {Load Pins}]
+        } else {
+          $tbl header [list {Net} {Fanout} {Driver Pin} {Load Pins}]
+        }
+        foreach net $markDebugNets prop [get_property -quiet FLAT_PIN_COUNT $markDebugNets] {
+          set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
+          set loads [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==IN}]
+          catch {unset tmp}
+          # Column "Load Pins" should report a distribution of the load pins:
+          # E.g: FDCE/C (204730) FDPE/C (26) FDRE/C (130873) FDSE/C (5218) HARD_SYNC/CLK (1) RAMB36E2/CLKARDCLK (196)
+          set uniqueLoads [list]
+          foreach pin $loads \
+                  refname [get_property -quiet REF_NAME $loads] \
+                  refpinname [get_property -quiet REF_PIN_NAME $loads] {
+            incr tmp([format {%s/%s} $refname $refpinname])
+          }
+          foreach el [lsort -dictionary [array names tmp]] {
+            lappend uniqueLoads [format {%s (%s)} $el $tmp($el)]
+          }
+          set uniqueLoads [join $uniqueLoads { }]
+          if {$showSlackInsideDetailedReports} {
+            set slack [get_property -quiet SETUP_SLACK $driver]
+            if {$slack == {}} { set slack {N/A} }
+            $tbl addrow [list $net [expr $prop -1] $slack [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
+          } else {
+            $tbl addrow [list $net [expr $prop -1]        [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
+          }
+          set empty 0
+        }
+        # Sort the list of nets, higest fanout first
+        if {!$empty} { $tbl sort -Fanout +Net }
+        puts $FH [$tbl print]
+        catch {$tbl destroy}
+        close $FH
+        if {$empty} {
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.MARK_DEBUG.rpt.${pid}
+        } else {
+          file rename -force ${detailedReportsDir}/${detailedReportsPrefix}.MARK_DEBUG.rpt.${pid} ${detailedReportsDir}/${detailedReportsPrefix}.MARK_DEBUG.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.MARK_DEBUG.rpt]"
+        }
+      }
+      set stepStopTime [clock seconds]
+      puts " -I- MARK_DEBUG metric completed in [expr $stepStopTime - $stepStartTime] seconds"
     }
 
     ########################################################################################
@@ -1592,56 +1817,62 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       # | Unique Control Sets                       |      651 |    17888 |  18533 |       |           |       |
       # +-------------------------------------------+----------+----------+--------+-------+-----------+-------+
 
-      addMetric {utilization.clb.lut}          {CLB LUTs}
-      addMetric {utilization.clb.lut.pct}      {CLB LUTs (%)}
-      addMetric {utilization.clb.lut.avail}    {CLB LUTs (Avail)}
-      addMetric {utilization.clb.ff}           {CLB Registers}
-      addMetric {utilization.clb.ff.pct}       {CLB Registers (%)}
-      addMetric {utilization.clb.ff.avail}     {CLB Registers (Avail)}
-      addMetric {utilization.clb.ld}           {CLB Latches}
-      addMetric {utilization.clb.ld.pct}       {CLB Latches (%)}
-      addMetric {utilization.clb.ld.avail}     {CLB Latches (Avail)}
-      addMetric {utilization.clb.carry8}       {CARRY8}
-      addMetric {utilization.clb.carry8.pct}   {CARRY8 (%)}
-      addMetric {utilization.clb.carry8.avail} {CARRY8 (Avail)}
-      addMetric {utilization.clb.f7mux}        {F7 Muxes}
-      addMetric {utilization.clb.f7mux.pct}    {F7 Muxes (%)}
-      addMetric {utilization.clb.f7mux.avail}  {F7 Muxes (Avail)}
-      addMetric {utilization.clb.f8mux}        {F8 Muxes}
-      addMetric {utilization.clb.f8mux.pct}    {F8 Muxes (%)}
-      addMetric {utilization.clb.f8mux.avail}  {F8 Muxes (Avail)}
-      addMetric {utilization.clb.f9mux}        {F9 Muxes}
-      addMetric {utilization.clb.f9mux.pct}    {F9 Muxes (%)}
-      addMetric {utilization.clb.f9mux.avail}  {F9 Muxes (Avail)}
-      addMetric {utilization.clb.lutmem}       {LUT as Memory}
-      addMetric {utilization.clb.lutmem.pct}   {LUT as Memory (%)}
-      addMetric {utilization.clb.lutmem.avail} {LUT as Memory (Avail)}
-#       addMetric {utilization.ctrlsets.uniq}  {Unique Control Sets}
-#       addMetric {utilization.ctrlsets.lost}  {Registers Lost due to Control Sets}
+      addMetric {utilization.clb.lut}              {CLB LUTs}
+      addMetric {utilization.clb.lut.pct}          {CLB LUTs (%)}
+      addMetric {utilization.clb.lut.avail}        {CLB LUTs (Avail)}
+      addMetric {utilization.clb.ff}               {CLB Registers}
+      addMetric {utilization.clb.ff.pct}           {CLB Registers (%)}
+      addMetric {utilization.clb.ff.avail}         {CLB Registers (Avail)}
+      addMetric {utilization.clb.ld}               {CLB Latches}
+      addMetric {utilization.clb.ld.pct}           {CLB Latches (%)}
+      addMetric {utilization.clb.ld.avail}         {CLB Latches (Avail)}
+      addMetric {utilization.clb.carry8}           {CARRY8}
+      addMetric {utilization.clb.carry8.pct}       {CARRY8 (%)}
+      addMetric {utilization.clb.carry8.avail}     {CARRY8 (Avail)}
+      addMetric {utilization.clb.lookahead8}       {LOOKAHEAD8}
+      addMetric {utilization.clb.lookahead8.pct}   {LOOKAHEAD8 (%)}
+      addMetric {utilization.clb.lookahead8.avail} {LOOKAHEAD8 (Avail)}
+      addMetric {utilization.clb.f7mux}            {F7 Muxes}
+      addMetric {utilization.clb.f7mux.pct}        {F7 Muxes (%)}
+      addMetric {utilization.clb.f7mux.avail}      {F7 Muxes (Avail)}
+      addMetric {utilization.clb.f8mux}            {F8 Muxes}
+      addMetric {utilization.clb.f8mux.pct}        {F8 Muxes (%)}
+      addMetric {utilization.clb.f8mux.avail}      {F8 Muxes (Avail)}
+      addMetric {utilization.clb.f9mux}            {F9 Muxes}
+      addMetric {utilization.clb.f9mux.pct}        {F9 Muxes (%)}
+      addMetric {utilization.clb.f9mux.avail}      {F9 Muxes (Avail)}
+      addMetric {utilization.clb.lutmem}           {LUT as Memory}
+      addMetric {utilization.clb.lutmem.pct}       {LUT as Memory (%)}
+      addMetric {utilization.clb.lutmem.avail}     {LUT as Memory (Avail)}
+#       addMetric {utilization.ctrlsets.uniq}      {Unique Control Sets}
+#       addMetric {utilization.ctrlsets.lost}      {Registers Lost due to Control Sets}
 
-      extractMetricFromTable report {utilization.clb.lut}          -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.lut.pct}      -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.lut}              -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lut.pct}          -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.ff}           -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.ff.pct}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.ff}               -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.ff.pct}           -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.ld}           -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{Register as Latch}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.ld.pct}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{Register as Latch}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.ld}               -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{Register as Latch}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.ld.pct}           -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{Register as Latch}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.carry8}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CARRY8}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.carry8.pct}   -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CARRY8}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.carry8}           -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CARRY8}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.carry8.pct}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CARRY8}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.f7mux}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F7 Muxes}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f7mux.pct}    -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F7 Muxes}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.lookahead8}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LOOKAHEAD8}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lookahead8.pct}   -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LOOKAHEAD8}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.f8mux}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F8 Muxes}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f8mux.pct}    -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F8 Muxes}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.f7mux}            -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F7 Muxes}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f7mux.pct}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F7 Muxes}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.f9mux}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F9 Muxes}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f9mux.pct}    -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F9 Muxes}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.f8mux}            -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F8 Muxes}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f8mux.pct}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F8 Muxes}} -column {Util%} -trim float -default {n/a}
 
-      extractMetricFromTable report {utilization.clb.lutmem}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LUT as Memory}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.clb.lutmem.pct}   -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LUT as Memory}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.clb.f9mux}            -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F9 Muxes}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f9mux.pct}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F9 Muxes}} -column {Util%} -trim float -default {n/a}
+
+      extractMetricFromTable report {utilization.clb.lutmem}           -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LUT as Memory}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lutmem.pct}       -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LUT as Memory}} -column {Util%} -trim float -default {n/a}
 
       # +-------------------+------+-------+-----------+-------+
       # |     Site Type     | Used | Fixed | Available | Util% |
@@ -1691,13 +1922,25 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       # | DSPs           |        0 |     2257 | 2257 |     0 |      5640 | 40.02 |
       # |   DSP_ALU only |        0 |     2257 | 2257 |       |           |       |
       # +----------------+----------+----------+------+-------+-----------+-------+
+      # +--------------------+------+-------+-----------+-------+
+      # |      Site Type     | Used | Fixed | Available | Util% |
+      # +--------------------+------+-------+-----------+-------+
+      # | DSP Slices         |  202 |     0 |      1968 | 10.26 |
+      # |   DSP58            |  182 |     0 |           |       |
+      # |   DSPCPLX          |    0 |     0 |           |       |
+      # |   DSPFP32          |    0 |     0 |           |       |
+      # |   DSP48E5          |   20 |     0 |           |       |
+      # | DSP Imux registers |    0 |     0 |           |       |
+      # |   Pipelining       |    0 |       |           |       |
+      # |   Hold fixing      |    0 |       |           |       |
+      # +--------------------+------+-------+-----------+-------+
 
       addMetric {utilization.dsp}       {DSPs}
       addMetric {utilization.dsp.pct}   {DSPs (%)}
       addMetric {utilization.dsp.avail} {DSPs (Avail)}
 
-      extractMetricFromTable report {utilization.dsp}              -search {{(ARITHMETIC|DSP)\s*$} {(ARITHMETIC|DSP)\s*$}} -row {{DSPs}} -column {Used} -default {n/a}
-      extractMetricFromTable report {utilization.dsp.pct}          -search {{(ARITHMETIC|DSP)\s*$} {(ARITHMETIC|DSP)\s*$}} -row {{DSPs}} -column {Util%} -trim float -default {n/a}
+      extractMetricFromTable report {utilization.dsp}              -search {{(ARITHMETIC|DSP)\s*$} {(ARITHMETIC|DSP)\s*$}} -row {{DSPs} {DSP Slices}} -column {Used} -default {n/a}
+      extractMetricFromTable report {utilization.dsp.pct}          -search {{(ARITHMETIC|DSP)\s*$} {(ARITHMETIC|DSP)\s*$}} -row {{DSPs} {DSP Slices}} -column {Util%} -trim float -default {n/a}
 
       # +----------------------+------+-------+-----------+-------+
       # |       Site Type      | Used | Fixed | Available | Util% |
@@ -1805,30 +2048,32 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         }
       }
 
-      extractMetricFromTable report {utilization.clb.lut.avail}    -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.ff.avail}     -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.ld.avail}     -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{Register as Latch}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.carry8.avail} -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CARRY8}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f7mux.avail}  -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F7 Muxes}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f8mux.avail}  -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F8 Muxes}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.f9mux.avail}  -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F9 Muxes}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.clb.lutmem.avail} -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LUT as Memory}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.ram.tile.avail}   -search {{(BLOCKRAM|Memory)\s*$} {(BLOCKRAM|Memory)\s*$}} -row {{Block RAM Tile}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.uram.tile.avail}  -search {{(BLOCKRAM|Memory)\s*$} {(BLOCKRAM|Memory)\s*$}} -row {{URAM}} -column {Available} -default {n/a}
-      extractMetricFromTable report {utilization.dsp.avail}        -search {{(ARITHMETIC|DSP)\s*$}  {(ARITHMETIC|DSP)\s*$}}  -row {{DSPs}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lut.avail}        -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB LUTs} {Slice LUTs}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.ff.avail}         -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.ld.avail}         -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{Register as Latch}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.carry8.avail}     -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{CARRY8}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lookahead8.avail} -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LOOKAHEAD8}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f7mux.avail}      -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F7 Muxes}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f8mux.avail}      -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F8 Muxes}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.f9mux.avail}      -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{F9 Muxes}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.clb.lutmem.avail}     -search {{(Slice|CLB|Netlist) Logic\s*$} {(Slice|CLB|Netlist) Logic\s*$}} -row {{LUT as Memory}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.ram.tile.avail}       -search {{(BLOCKRAM|Memory)\s*$} {(BLOCKRAM|Memory)\s*$}} -row {{Block RAM Tile}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.uram.tile.avail}      -search {{(BLOCKRAM|Memory)\s*$} {(BLOCKRAM|Memory)\s*$}} -row {{URAM}} -column {Available} -default {n/a}
+      extractMetricFromTable report {utilization.dsp.avail}            -search {{(ARITHMETIC|DSP)\s*$}  {(ARITHMETIC|DSP)\s*$}}  -row {{DSPs} {DSP Slices}} -column {Available} -default {n/a}
 
       # Calculate the utilization (%) based on the available and used resources
       foreach var [list \
-        {utilization.clb.lut}    \
-        {utilization.clb.ff}     \
-        {utilization.clb.carry8} \
-        {utilization.clb.f7mux}  \
-        {utilization.clb.f8mux}  \
-        {utilization.clb.f9mux}  \
-        {utilization.clb.lutmem} \
-        {utilization.ram.tile}   \
-        {utilization.uram.tile}  \
-        {utilization.dsp}        \
+        {utilization.clb.lut}        \
+        {utilization.clb.ff}         \
+        {utilization.clb.carry8}     \
+        {utilization.clb.lookahead8} \
+        {utilization.clb.f7mux}      \
+        {utilization.clb.f8mux}      \
+        {utilization.clb.f9mux}      \
+        {utilization.clb.lutmem}     \
+        {utilization.ram.tile}       \
+        {utilization.uram.tile}      \
+        {utilization.dsp}            \
         ] {
 
           if {[package vcompare $params(vivado_version) 2018.2.0] >= 0} {
@@ -1931,38 +2176,41 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         # | Unique Control Sets        |   7635 |   3925 |   7577 |   7.75 |   3.98 |   7.69 |
         # +----------------------------+--------+--------+--------+--------+--------+--------+
 
-        extractMetricFromTable report {utilization.clb.lut}          -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB LUTs} {Slice LUTs}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.clb.lut.pct}      -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB LUTs} {Slice LUTs}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.clb.lut}              -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB LUTs} {Slice LUTs}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.lut.pct}          -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB LUTs} {Slice LUTs}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.clb.ff}           -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.clb.ff.pct}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.clb.ff}               -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.ff.pct}           -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CLB Registers} {Slice Registers} {^Registers$}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.clb.ld}           -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Register as Latch}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.clb.ld.pct}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Register as Latch}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.clb.ld}               -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Register as Latch}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.ld.pct}           -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Register as Latch}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.clb.carry8}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CARRY8}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.clb.carry8.pct}   -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CARRY8}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.clb.carry8}           -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CARRY8}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.carry8.pct}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{CARRY8}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.clb.f7mux}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F7 Muxes}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.clb.f7mux.pct}    -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F7 Muxes}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.clb.lookahead8}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{LOOKAHEAD8}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.lookahead8.pct}   -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{LOOKAHEAD8}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.clb.f8mux}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F8 Muxes}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.clb.f8mux.pct}    -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F8 Muxes}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.clb.f7mux}            -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F7 Muxes}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.f7mux.pct}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F7 Muxes}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.clb.f9mux}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F9 Muxes}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.clb.f9mux.pct}    -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F9 Muxes}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.clb.f8mux}            -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F8 Muxes}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.f8mux.pct}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F8 Muxes}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.clb.lutmem}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{LUT as Memory}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.clb.lutmem.pct}   -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{LUT as Memory}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.clb.f9mux}            -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F9 Muxes}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.f9mux.pct}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{F9 Muxes}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.ram.tile}         -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Block RAM Tile}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.ram.tile.pct}     -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Block RAM Tile}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.clb.lutmem}           -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{LUT as Memory}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.clb.lutmem.pct}       -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{LUT as Memory}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.uram.tile}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{URAM}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.uram.tile.pct}    -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{URAM}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.ram.tile}             -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Block RAM Tile}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.ram.tile.pct}         -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{Block RAM Tile}} -column "$slrs %" -trim float -default {n/a}
 
-        extractMetricFromTable report {utilization.dsp}              -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{DSPs}} -column $slrs -default {n/a}
-        extractMetricFromTable report {utilization.dsp.pct}          -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{DSPs}} -column "$slrs %" -trim float -default {n/a}
+        extractMetricFromTable report {utilization.uram.tile}            -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{URAM}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.uram.tile.pct}        -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{URAM}} -column "$slrs %" -trim float -default {n/a}
+
+        extractMetricFromTable report {utilization.dsp}                  -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{DSPs} {DSP Slices}} -column $slrs -default {n/a}
+        extractMetricFromTable report {utilization.dsp.pct}              -search {{SLR CLB Logic} {SLR CLB Logic}} -row {{DSPs} {DSP Slices}} -column "$slrs %" -trim float -default {n/a}
 
         # BUFG* stats are not inside the "SLR CLB Logic and Dedicated Block Utilization" table, therefore
         # they should not be reported
@@ -1985,16 +2233,17 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 
         if {$params(debug)} { puts " -D- calculating available resources for $slrPblock" }
         foreach var [list \
-          {utilization.clb.lut}    \
-          {utilization.clb.ff}     \
-          {utilization.clb.carry8} \
-          {utilization.clb.f7mux}  \
-          {utilization.clb.f8mux}  \
-          {utilization.clb.f9mux}  \
-          {utilization.clb.lutmem} \
-          {utilization.ram.tile}   \
-          {utilization.uram.tile}  \
-          {utilization.dsp}        \
+          {utilization.clb.lut}        \
+          {utilization.clb.ff}         \
+          {utilization.clb.carry8}     \
+          {utilization.clb.lookahead8} \
+          {utilization.clb.f7mux}      \
+          {utilization.clb.f8mux}      \
+          {utilization.clb.f9mux}      \
+          {utilization.clb.lutmem}     \
+          {utilization.ram.tile}       \
+          {utilization.uram.tile}      \
+          {utilization.dsp}            \
           ] {
             # Clear the metrics related to the available resources
             # Re-calculate the available resources by dividing the number extracted from the main table by the number of SLRs.
@@ -2222,34 +2471,34 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       set data(@) [list]
       switch $reportMode {
         pblockAndTop {
-          calculateAvgFanout . $limit
+          calculateAvgFanoutTop . $limit
         }
         pblockAndCell {
-          calculateAvgFanout $prCell $limit
+          calculateAvgFanoutTop $prCell $limit
         }
         pblockOnly {
           # NOT SUPPORTED
         }
         regionAndTop {
-          calculateAvgFanout . $limit
+          calculateAvgFanoutTop . $limit
         }
         regionAndCell {
-          calculateAvgFanout $prCell $limit
+          calculateAvgFanoutTop $prCell $limit
         }
         regionOnly {
           # NOT SUPPORTED
         }
         slrAndTop {
-          calculateAvgFanout . $limit
+          calculateAvgFanoutTop . $limit
         }
         slrAndCell {
-          calculateAvgFanout $prCell $limit
+          calculateAvgFanoutTop $prCell $limit
         }
         slrOnly {
           # NOT SUPPORTED
         }
         default {
-          calculateAvgFanout . $limit
+          calculateAvgFanoutTop . $limit
         }
       }
       set maxfo [lindex [lsort -decreasing -real $data(-)] 0]
@@ -2267,6 +2516,14 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
           puts $FH "# ---------------------------------------------------------------------------\n"
         }
+
+        if {$params(debug) && ($params(debug_level) >= 2)} {
+          foreach line [split [$dbgtbl print] \n] {
+            puts $FH "# $line"
+          }
+          puts $FH ""
+        }
+
         set tbl [::tclapp::xilinx::designutils::prettyTable create [format "Average Fanout\nMin Module Size: $limit"] ]
         $tbl indent 1
         $tbl header [list {Cell} {Flat Leaf Cells} {Flat Pins} {Flat Average Fanout} ]
@@ -2396,6 +2653,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 
       set speedgrade [get_property -quiet SPEED [get_property -quiet PART [current_design]]]
       set architecture [get_property -quiet ARCHITECTURE [get_property -quiet PART [current_design]]]
+      set error 0
       switch $architecture {
         artix7 -
         kintex7 -
@@ -2484,341 +2742,502 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
             }
           }
         }
+        versal {
+          # Initial estimations: same values as for US+
+          switch -regexp -- $speedgrade {
+            "-1.*LP.*" {
+              # Versal -1LP == US+ -1LV
+              set timBudgetPerLUT 0.449
+              set timBudgetPerNet 0.302
+            }
+            "-1.*MP.*" {
+              set timBudgetPerLUT 0.350
+              set timBudgetPerNet 0.239
+            }
+            "-2.*LP.*" {
+              # Versal -2LP == US+ -2LV
+              set timBudgetPerLUT 0.391
+              set timBudgetPerNet 0.263
+            }
+            "-2.*MP.*" {
+              set timBudgetPerLUT 0.300
+              set timBudgetPerNet 0.208
+            }
+            "-3.*HP.*" {
+              set timBudgetPerLUT 0.250
+              set timBudgetPerNet 0.177
+            }
+            default {
+              set timBudgetPerLUT 0.350
+              set timBudgetPerNet 0.239
+              puts " -W- speedgrade $speedgrade is not matching any expected value. Using default speedgrade values (LUT=$timBudgetPerLUT / Net=$timBudgetPerNet)."
+            }
+          }
+        }
         default {
-          puts " -E- architecture $architecture is not supported for LUT/Net budgeting."
+          puts " -E- architecture $architecture is not supported for LUT/Net budgeting. Skipped."
           incr error
         }
       }
 
-      if {$lutBudgeting != 0} {
-        set timBudgetPerLUT $lutBudgeting
-        puts " -W- LUT budgeting overriden by the user: $lutBudgeting"
-      }
-      if {$netBudgeting != 0} {
-        set timBudgetPerNet $netBudgeting
-        puts " -W- Net budgeting overriden by the user: $netBudgeting"
-      }
+      # Only run if the architecture is supported
+      if {!$error} {
+        if {$lutBudgeting != 0} {
+          set timBudgetPerLUT $lutBudgeting
+          puts " -W- LUT budgeting overriden by the user: $lutBudgeting"
+        }
+        if {$netBudgeting != 0} {
+          set timBudgetPerNet $netBudgeting
+          puts " -W- Net budgeting overriden by the user: $netBudgeting"
+        }
 
-      # Override the LUT+NET budgeting if provided as part as the configuration
-      if {$guidelines(design.device.maxlvls.lutbudget) != {}} {
-        set timBudgetPerLUT $guidelines(design.device.maxlvls.lutbudget)
-      }
-      # Override the NET budgeting if provided as part as the configuration
-      if {$guidelines(design.device.maxlvls.netbudget) != {}} {
-        set timBudgetPerNet $guidelines(design.device.maxlvls.netbudget)
-      }
+        # Override the LUT+NET budgeting if provided as part as the configuration
+        if {$guidelines(design.device.maxlvls.lutbudget) != {}} {
+          set timBudgetPerLUT $guidelines(design.device.maxlvls.lutbudget)
+        }
+        # Override the NET budgeting if provided as part as the configuration
+        if {$guidelines(design.device.maxlvls.netbudget) != {}} {
+          set timBudgetPerNet $guidelines(design.device.maxlvls.netbudget)
+        }
 
-      addMetric {design.device.maxlvls.lut}   "Number of paths above max LUT budgeting (${timBudgetPerLUT}ns)"
-      addMetric {design.device.maxlvls.net}   "Number of paths above max Net budgeting (${timBudgetPerNet}ns)"
+        addMetric {design.device.maxlvls.lut}   "Number of paths above max LUT budgeting (${timBudgetPerLUT}ns)"
+        addMetric {design.device.maxlvls.net}   "Number of paths above max Net budgeting (${timBudgetPerNet}ns)"
 
-      # Summary table for LUT/Net budgeting
-      set tbl    [::tclapp::xilinx::designutils::prettyTable create [format {Budgeting Summary (lut=%sns/net=%sns)} $timBudgetPerLUT $timBudgetPerNet] ]
-      set dbgtbl [::tclapp::xilinx::designutils::prettyTable create [format {Budgeting Summary (lut=%sns/net=%sns)} $timBudgetPerLUT $timBudgetPerNet] ]
-      $tbl indent 1
-      $dbgtbl indent 1
-      $tbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
-      $dbgtbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
+        # Summary table for LUT/Net budgeting
+        set tbl    [::tclapp::xilinx::designutils::prettyTable create [format {Budgeting Summary (lut=%sns/net=%sns)} $timBudgetPerLUT $timBudgetPerNet] ]
+        set dbgtbl [::tclapp::xilinx::designutils::prettyTable create [format {Budgeting Summary (lut=%sns/net=%sns)} $timBudgetPerLUT $timBudgetPerNet] ]
+        $tbl indent 1
+        $dbgtbl indent 1
+        $tbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
+        $dbgtbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
 
-      if {$timingPathsBudgeting != {}} {
-        # For debug EOU, timnig paths can e passed from the command line
-        set spaths $timingPathsBudgeting
-        puts " -W- Timing paths provided by the user: [llength $spaths]"
-      } else {
-        switch $reportMode {
-          pblockAndTop {
-            set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
-          }
-          pblockAndCell {
-            set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
-          }
-          pblockOnly {
-            # NOT SUPPORTED
-          }
-          regionAndTop {
-            set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
-          }
-          regionAndCell {
-            set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
-          }
-          regionOnly {
-            # NOT SUPPORTED
-          }
-          slrAndTop {
-            set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
-          }
-          slrAndCell {
-            set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
-          }
-          slrOnly {
-            # NOT SUPPORTED
-          }
-          default {
-            set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+        if {$timingPathsBudgeting != {}} {
+          # For debug EOU, timnig paths can be passed from the command line
+          set spaths $timingPathsBudgeting
+          puts " -W- Timing paths provided by the user: [llength $spaths]"
+        } else {
+          switch $reportMode {
+            pblockAndTop {
+              set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+            }
+            pblockAndCell {
+              set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+            }
+            pblockOnly {
+              # NOT SUPPORTED
+            }
+            regionAndTop {
+              set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+            }
+            regionAndCell {
+              set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+            }
+            regionOnly {
+              # NOT SUPPORTED
+            }
+            slrAndTop {
+              set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+            }
+            slrAndCell {
+              set spaths [get_timing_paths -quiet -cell $prCell -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+            }
+            slrOnly {
+              # NOT SUPPORTED
+            }
+            default {
+              set spaths [get_timing_paths -quiet -setup -sort_by group -nworst 1 -max $params(max_paths) -slack_less_than 2.0]
+            }
           }
         }
-      }
 
-      if {[llength [get_property -quiet CLASS $spaths]] == 1} {
-        # Workaround when there is only 1 timing path
-        set sps [list [get_property -quiet STARTPOINT_PIN $spaths] ]
-        set eps [list [get_property -quiet ENDPOINT_PIN $spaths] ]
-        set sprefs [get_property -quiet REF_NAME $sps]
-        set eprefs [get_property -quiet REF_NAME $eps]
-      } else {
-        set sps [get_property -quiet STARTPOINT_PIN $spaths]
-        set eps [get_property -quiet ENDPOINT_PIN $spaths]
-        set sprefs [get_property -quiet REF_NAME $sps]
-        set eprefs [get_property -quiet REF_NAME $eps]
-      }
-      set numFailedLut 0
-      set numFailedNet 0
-      set numFailedLutPassNet 0
-      set numFailedNetPassLut 0
-      set addrow 0
-      foreach path $spaths \
-              sp $sps \
-              spref $sprefs \
-              ep $eps \
-              epref $eprefs {
-        set requirement [get_property -quiet REQUIREMENT $path]
-        set logic_levels [get_property -quiet LOGIC_LEVELS $path]
-        set group [get_property -quiet GROUP $path]
-        set slack [get_property -quiet SLACK $path]
-        set skew [get_property -quiet SKEW $path]
-        set uncertainty [get_property -quiet UNCERTAINTY $path]
-        set datapath_delay [get_property -quiet DATAPATH_DELAY $path]
-        set cell_delay [get_property -quiet DATAPATH_LOGIC_DELAY $path]
-        set net_delay [get_property -quiet DATAPATH_NET_DELAY $path]
+        if {[llength [get_property -quiet CLASS $spaths]] == 1} {
+          # Workaround when there is only 1 timing path
+          set sps [list [get_property -quiet STARTPOINT_PIN $spaths] ]
+          set eps [list [get_property -quiet ENDPOINT_PIN $spaths] ]
+          set sprefs [get_property -quiet REF_NAME $sps]
+          set eprefs [get_property -quiet REF_NAME $eps]
+        } else {
+          set sps [get_property -quiet STARTPOINT_PIN $spaths]
+          set eps [get_property -quiet ENDPOINT_PIN $spaths]
+          set sprefs [get_property -quiet REF_NAME $sps]
+          set eprefs [get_property -quiet REF_NAME $eps]
+        }
+        set numFailedLut 0
+        set numFailedNet 0
+        set numFailedLutPassNet 0
+        set numFailedNetPassLut 0
         set addrow 0
-        if {$skew == {}} { set skew 0.0 }
-        if {$uncertainty == {}} { set uncertainty 0.0 }
+        foreach path $spaths \
+                sp $sps \
+                spref $sprefs \
+                ep $eps \
+                epref $eprefs {
+          set requirement [get_property -quiet REQUIREMENT $path]
+          set logic_levels [get_property -quiet LOGIC_LEVELS $path]
+          set group [get_property -quiet GROUP $path]
+          set slack [get_property -quiet SLACK $path]
+          set skew [get_property -quiet SKEW $path]
+          set uncertainty [get_property -quiet UNCERTAINTY $path]
+          set datapath_delay [get_property -quiet DATAPATH_DELAY $path]
+          set cell_delay [get_property -quiet DATAPATH_LOGIC_DELAY $path]
+          set net_delay [get_property -quiet DATAPATH_NET_DELAY $path]
+          set addrow 0
+          if {$skew == {}} { set skew 0.0 }
+          if {$uncertainty == {}} { set uncertainty 0.0 }
 
-        # Number of LUT* in the datapath
-        set levels [llength [filter [get_cells -quiet -of $path] {REF_NAME =~ LUT*}]]
-        if {$params(debug) && ($params(debug_level) >= 2)} {
-          puts " -D- level calculation based on LUTs/Nets: $levels"
-        }
-
-        if {![regexp {^FD} $spref] && ![regexp {^LD} $spref]} {
-          # If the startpoint is not an FD* or a LD*, then account for it by increasing the number of levels
-          incr levels
-          if {$params(debug) && ($params(debug_level) >= 2)} {
-            puts " -D- level increase: startpoint not a FD or LD"
+          # Number of LUT* in the datapath
+#         set levels [llength [filter [get_cells -quiet -of $path] {REF_NAME =~ LUT*}]]
+          # Versal improvement for LUTCY* support: to count the number of levels, count the number of LUT*
+          # that are NOT driven by an intra-site net
+          set levels 0
+          # Cells/nets/pins: get_cells/get_nets/get_pins preserve the order in the timing path
+          set cells [get_cells -quiet -of $path]
+          set ref_names [get_property -quiet REF_NAME $cells]
+          set nets [get_nets -quiet -of $path]
+          # To construct the list of pins:
+          #   - get_pins return both input and output pins of the timing path => filter to only keep output pins
+          #   - only the output pin is needed for each cell, unless this is the destination cell which then requires the ENDPOINT_PIN ($ep)
+          set pins [get_property -quiet {REF_PIN_NAME} [get_pins -quiet [list [get_pins -quiet -of $path -filter {direction == OUT}] $ep]] ]
+          if {[llength $cells] != [llength $pins]} {
+            if {[get_cells -quiet -of $sp] == [get_cells -quiet -of $ep]} {
+              # If the startpoint and endpoint cells are the same, then 'get_cells -quiet -of $path' only returns
+              # the cell for the startpoint. The cell for the endpoint needs to be added.
+              lappend cells [lindex $cells 0]
+            } else {
+              # Something wrong happened ...
+              puts " -W- LUT/Net budgeting - the number of pins ([llength $pins]) and cells ([llength $cells]) differ. Skipping path ($path)"
+              continue
+            }
           }
-        }
+          # To iterate through $cells/$nets/$pins, we need to assiciate:
+          #   - each net of the datapath => $nets
+          #   - with its driver pin => lrange $pins 0 end-1
+          #   - and its load => lrange $cells 1 end
+          set prev1refname {}
+          set prev2refname {}
+          if {$params(debug) && ($params(debug_level) >= 2)} {
+            puts " -D- processing path $path"
+            puts " -D- datapath: $ref_names"
+          }
+          foreach net $nets cell [lrange $cells 1 end] pin [lrange $pins 0 end-1] {
+            set refname [get_property -quiet REF_NAME $cell]
+            if {[regexp {^LUT.*$} $refname]} {
+
+#             if {[regexp -nocase {^(PROP|GE|COUTB|COUTD|COUTF|COUTH)$} $pin]} {}
+              if {[regexp -nocase {^(PROP|GE|COUTB|COUTD|COUTF)$} $pin]} {
+                # Versal: Attempt to detect which nets will be reported as intra-site after placement.
+                # If the output LUT pin is PROP or GE, then the driving net should be intra-site.
+                # If the LUTCY* is driven by LOOKAHEAD/COUT* then it is also an intra-site.
+                # Note: LOOKAHEAD/COUTH always connects to a routing resource going outside of the slice => removed from the list
+                if {$params(debug) && ($params(debug_level) >= 2)} {
+                  puts " -D- net $net driving $refname: * -> INTRASITE (driver pin $pin)"
+                }
+                # Intra-site net. Do nothing
+                # Keep track of the REF_NAME from the previous 2 stages
+                set prev2refname $prev1refname
+                set prev1refname $refname
+                continue
+              }
+
+              switch -nocase [get_property -quiet ROUTE_STATUS $net] {
+                INTRA_SITE -
+                INTRASITE {
+                  # Intra-site net. Do nothing
+                  if {$params(debug) && ($params(debug_level) >= 2)} {
+                    puts " -D- net $net driving $refname: INTRASITE"
+                  }
+                }
+                UNPLACED {
+                  # After opt_design, intra-site nets are reported as UNPLACED instead of INTRASITE
+#                 if {[regexp -nocase {^(PROP|GE|COUTB|COUTD|COUTF|COUTH)$} $pin]} {}
+                  if {[regexp -nocase {^(PROP|GE|COUTB|COUTD|COUTF)$} $pin]} {
+                    # Versal: Attempt to detect which nets will be reported as intra-site after placement.
+                    # If the output LUT pin is PROP or GE, then the driving net should be intra-site.
+                    # If the LUTCY* is driven by LOOKAHEAD/COUT* then it is also an intra-site.
+                    if {$params(debug) && ($params(debug_level) >= 2)} {
+                      puts " -D- net $net driving $refname: UNPLACED -> INTRASITE (driver pin $pin)"
+                    }
+                    # Intra-site net. Do nothing
+                  } elseif {[regexp -nocase {^LUTCY.*$} $refname] && [regexp -nocase {^LUTCY.*$} $prev1refname] && [regexp -nocase {^LUTCY.*$} $prev2refname]} {
+                    # Versal: when 3 LUTCY* are cascaded, the assumption is that they will be placed in to 2 different slices
+                    # and therefore the net being processed should not be considered as intra-site.
+                    # If the net connected to the cell is not intra-site, then increase the level number
+                    if {$params(debug) && ($params(debug_level) >= 2)} {
+                      puts " -D- net $net driving $refname: UNPLACED"
+                    }
+                    incr levels
+                  } elseif {[regexp -nocase {^LUTCY.*$} $refname] && [regexp -nocase {^LUTCY.*$} $prev1refname] && ![regexp -nocase {^LUTCY.*$} $prev2refname]} {
+                    # Versal: nets between 2 cascaded LUTCY* are considered intra-site. Beyond 2, the net is not
+                    # considered anymore intra-site.
+                    if {$params(debug) && ($params(debug_level) >= 2)} {
+                      puts " -D- net $net driving $refname: UNPLACED -> INTRASITE (cascaded LUTCY)"
+                    }
+                  } else {
+                    # If the net connected to the cell is not intra-site, then increase the level number
+                    if {$params(debug) && ($params(debug_level) >= 2)} {
+                      puts " -D- net $net driving $refname: UNPLACED"
+                    }
+                    incr levels
+                  }
+                }
+                UNROUTED {
+                  # If the net connected to the cell is not intra-site, then increase the level number
+                  if {$params(debug) && ($params(debug_level) >= 2)} {
+                    puts " -D- net $net driving $refname: UNROUTED"
+                  }
+                  incr levels
+                }
+                ROUTED {
+                  # If the net connected to the cell is not intra-site, then increase the level number
+                  if {$params(debug) && ($params(debug_level) >= 2)} {
+                    puts " -D- net $net driving $refname: ROUTED"
+                  }
+                  incr levels
+                }
+                default {
+                  # If the net connected to the cell is not intra-site, then increase the level number
+                  if {$params(debug) && ($params(debug_level) >= 2)} {
+                    puts " -D- net $net driving $refname: UNKNOWN"
+                  }
+                  incr levels
+                }
+              }
+#             if {[regexp {(INTRASITE|INTRA_SITE)} [get_property -quiet ROUTE_STATUS $net]]} {
+#               # Intra-site net. Do nothing
+#             } else {
+#               # If the net connected to the cell is not intra-site, then increase the level number
+#               incr levels
+#            }
+            }
+            # Keep track of the REF_NAME from the previous 2 stages
+            set prev2refname $prev1refname
+            set prev1refname $refname
+          }
+          if {$params(debug) && ($params(debug_level) >= 2)} {
+            puts " -D- level calculation based on LUTs/Nets: $levels"
+          }
+
+          if {![regexp {^FD} $spref] && ![regexp {^LD} $spref]} {
+            # If the startpoint is not an FD* or a LD*, then account for it by increasing the number of levels
+            incr levels
+            if {$params(debug) && ($params(debug_level) >= 2)} {
+              puts " -D- level increase: startpoint not a FD or LD"
+            }
+          }
 #         if {!([regexp {^FD} $epref] && ([get_property -quiet REF_PIN_NAME $ep] == {D}))} {
 #           # If the endpoint is not an FD*/D, then account for it by increasing the number of levels
 #           incr levels
 #         }
-        # The endpoint needs more processing
-        if {[regexp {^[LF]D} $epref]} {
-          if {[get_property -quiet REF_PIN_NAME $ep] != {D}} {
-            # If the endpoint is not an FD*/D, then account for it by increasing the number of levels
-            if {$params(debug) && ($params(debug_level) >= 2)} {
-              puts " -D- level increase: endpoint pin not D"
-            }
-            incr levels
-          } else {
-            set dnet [get_nets -quiet -of $ep]
-            if {[regexp {(INTRASITE|INTRA_SITE)} [get_property -quiet ROUTE_STATUS $dnet]]} {
-              # Intra-site net. Do nothing
+          # The endpoint needs more processing
+          if {[regexp {^[LF]D} $epref]} {
+            if {[get_property -quiet REF_PIN_NAME $ep] != {D}} {
+              # If the endpoint is not an FD*/D, then account for it by increasing the number of levels
+              if {$params(debug) && ($params(debug_level) >= 2)} {
+                puts " -D- level increase: endpoint pin not D"
+              }
+              incr levels
             } else {
-              # If the net connected to the endpoint has a fanout>1 (FLAT_PIN_COUNT>2)
-              # then increase the number of levels since there is no shape to force the endpoint
-              # and its driver to be placed into the same slice
-              if {[get_property -quiet FLAT_PIN_COUNT $dnet] > 2 || ![regexp {LUT*} [get_property -quiet REF_NAME [get_pins -quiet -leaf -filter {DIRECTION==OUT} -of $dnet]]]} {
-                if {$params(debug) && ($params(debug_level) >= 2)} {
-                  puts " -D- level increase: fanout before endpoint"
+              set dnet [get_nets -quiet -of $ep]
+              if {[regexp {(INTRASITE|INTRA_SITE)} [get_property -quiet ROUTE_STATUS $dnet]]} {
+                # Intra-site net. Do nothing
+              } else {
+                # If the net connected to the endpoint has a fanout>1 (FLAT_PIN_COUNT>2)
+                # then increase the number of levels since there is no shape to force the endpoint
+                # and its driver to be placed into the same slice
+                if {[get_property -quiet FLAT_PIN_COUNT $dnet] > 2 || ![regexp {LUT*} [get_property -quiet REF_NAME [get_pins -quiet -leaf -filter {DIRECTION==OUT} -of $dnet]]]} {
+                  if {$params(debug) && ($params(debug_level) >= 2)} {
+                    puts " -D- level increase: fanout before endpoint"
+                  }
+                  incr levels
                 }
-                incr levels
               }
             }
+          } else {
+            # If the endpoint is not a register/latch, then increase the number of levels
+            if {$params(debug) && ($params(debug_level) >= 2)} {
+              puts " -D- level increase: endpoint not a FD or LD"
+            }
+            incr levels
           }
-        } else {
-          # If the endpoint is not a register/latch, then increase the number of levels
           if {$params(debug) && ($params(debug_level) >= 2)} {
-            puts " -D- level increase: endpoint not a FD or LD"
+            puts " -D- level calculation after startpoint/endpoint adjustment: $levels"
           }
-          incr levels
-        }
-        if {$params(debug) && ($params(debug_level) >= 2)} {
-          puts " -D- level calculation after startpoint/endpoint adjustment: $levels"
-        }
 
-        # Calculate the maximum number of LUTs based on path requirement, skew and uncertainty
-        # int(): truncate (e.g 1.8 => 1)
-        # round() : round to the nearest (e.g 1.8 => 2)
-        set lut_budget [expr int(($requirement + $skew - $uncertainty) / double($timBudgetPerLUT)) ]
+          # Calculate the maximum number of LUTs based on path requirement, skew and uncertainty
+          # int(): truncate (e.g 1.8 => 1)
+          # round() : round to the nearest (e.g 1.8 => 2)
+          set lut_budget [expr int(($requirement + $skew - $uncertainty) / double($timBudgetPerLUT)) ]
 #         set lut_budget [expr round(($requirement + $skew - $uncertainty) / double($timBudgetPerLUT)) ]
-        set lut_adjSlack [expr $slack + $datapath_delay - ($levels * $timBudgetPerLUT)]
-        # Calculate the maximum number of Nets based on path requirement, skew, uncertainty and logic cell delay
-        set net_budget [expr int(($requirement + $skew - $uncertainty - $cell_delay) / double($timBudgetPerNet)) ]
+          set lut_adjSlack [expr $slack + $datapath_delay - ($levels * $timBudgetPerLUT)]
+          # Calculate the maximum number of Nets based on path requirement, skew, uncertainty and logic cell delay
+          set net_budget [expr int(($requirement + $skew - $uncertainty - $cell_delay) / double($timBudgetPerNet)) ]
 #         set net_budget [expr round(($requirement + $skew - $uncertainty - $cell_delay) / double($timBudgetPerNet)) ]
-        set net_adjSlack [expr $slack + $net_delay - ($levels * $timBudgetPerNet)]
-        # Calculate the maximum datapath based on path requirement, skew and uncertainty
-        set datapath_budget [format {%.3f} [expr double($lut_budget) * double($timBudgetPerLUT)] ]
+          set net_adjSlack [expr $slack + $net_delay - ($levels * $timBudgetPerNet)]
+          # Calculate the maximum datapath based on path requirement, skew and uncertainty
+          set datapath_budget [format {%.3f} [expr double($lut_budget) * double($timBudgetPerLUT)] ]
 #         if {$datapath_budget > [expr $requirement + $skew - $uncertainty]} {}
 
-        # Debug table for LUT/Net budgeting
-        set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay $logic_levels $levels]
-
-        # Adding condition "$net_adjSlack < 0" in the test below
-        if {$levels > $net_budget && $net_adjSlack < 0} {
-          # Save the path inside the detailed report file
-          if {$FHNet != {}} {
-            puts $FHNet [report_timing -quiet -of $path -return_string]
-            set emptyNet 0
-            # Save the path for the RPX file
-            lappend pathsNet $path
-          }
           # Debug table for LUT/Net budgeting
-          lappend row [format {%s (*)} $net_budget]
-          # Path failed => add row to summary table
-          incr addrow
-          if {$params(debug)} {
+          set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay $logic_levels $levels]
+
+          # Adding condition "$net_adjSlack < 0" in the test below
+          if {$levels > $net_budget && $net_adjSlack < 0} {
+            # Save the path inside the detailed report file
+            if {$FHNet != {}} {
+              puts $FHNet [report_timing -quiet -of $path -return_string]
+              set emptyNet 0
+              # Save the path for the RPX file
+              lappend pathsNet $path
+            }
+            # Debug table for LUT/Net budgeting
+            lappend row [format {%s (*)} $net_budget]
+            # Path failed => add row to summary table
+            incr addrow
+            if {$params(debug)} {
 #             puts " -D- Net budgeting: $path"
 #             puts " -D- net_budget=$net_budget / levels=$levels / slack=$slack / requirement=$requirement / skew=$skew / uncertainty=$uncertainty / dp_budget=$datapath_budget / datapath_delay=$datapath_delay / cell_delay=$cell_delay"
+            }
+            incr numFailedNet
+            if {$levels <= $lut_budget} {
+              # Path that fails the net budgeting but passes the lut budgeting
+              incr numFailedNetPassLut
+            }
+          } else {
+            # Debug table for LUT/Net budgeting
+            lappend row [format {%s} $net_budget]
+  #             puts " -I- $path"
+  #             puts " -I- net_budget=$net_budget / levels=$levels / slack=$slack / requirement=$requirement / skew=$skew / uncertainty=$uncertainty / dp_budget=$datapath_budget / datapath_delay=$datapath_delay / cell_delay=$cell_delay"
           }
-          incr numFailedNet
-          if {$levels <= $lut_budget} {
-            # Path that fails the net budgeting but passes the lut budgeting
-            incr numFailedNetPassLut
-          }
-        } else {
-          # Debug table for LUT/Net budgeting
-          lappend row [format {%s} $net_budget]
-#             puts " -I- $path"
-#             puts " -I- net_budget=$net_budget / levels=$levels / slack=$slack / requirement=$requirement / skew=$skew / uncertainty=$uncertainty / dp_budget=$datapath_budget / datapath_delay=$datapath_delay / cell_delay=$cell_delay"
-        }
-        # Adding condition "$lut_adjSlack < 0" in the test below
-        if {$levels > $lut_budget && $lut_adjSlack < 0} {
-          # Save the path inside the detailed report file
-          if {$FHLut != {}} {
-            puts $FHLut [report_timing -quiet -of $path -return_string]
-            set emptyLut 0
-            # Save the path for the RPX file
-            lappend pathsLut $path
-          }
-          # Debug table for LUT/Net budgeting
-          lappend row [format {%s (*)} $lut_budget]
-          # Path failed => add row to summary table
-          incr addrow
-          if {$params(debug)} {
+          # Adding condition "$lut_adjSlack < 0" in the test below
+          if {$levels > $lut_budget && $lut_adjSlack < 0} {
+            # Save the path inside the detailed report file
+            if {$FHLut != {}} {
+              puts $FHLut [report_timing -quiet -of $path -return_string]
+              set emptyLut 0
+              # Save the path for the RPX file
+              lappend pathsLut $path
+            }
+            # Debug table for LUT/Net budgeting
+            lappend row [format {%s (*)} $lut_budget]
+            # Path failed => add row to summary table
+            incr addrow
+            if {$params(debug)} {
 #             puts " -D- LUT budgeting: $path"
 #             puts " -D- lut_budget=$lut_budget / levels=$levels / slack=$slack / requirement=$requirement / skew=$skew / uncertainty=$uncertainty / dp_budget=$datapath_budget / datapath_delay=$datapath_delay"
-          }
-          incr numFailedLut
-          if {$levels <= $net_budget} {
-            # Path that fails the lut budgeting but passes the net budgeting
-            incr numFailedLutPassNet
-          }
-        } else {
-          # Debug table for LUT/Net budgeting
-          lappend row [format {%s} $lut_budget]
+            }
+            incr numFailedLut
+            if {$levels <= $net_budget} {
+              # Path that fails the lut budgeting but passes the net budgeting
+              incr numFailedLutPassNet
+            }
+          } else {
+            # Debug table for LUT/Net budgeting
+            lappend row [format {%s} $lut_budget]
 #             puts " -I- $path"
 #             puts " -I- lut_budget=$lut_budget / levels=$levels / slack=$slack / requirement=$requirement / skew=$skew / uncertainty=$uncertainty / dp_budget=$datapath_budget / datapath_delay=$datapath_delay"
+          }
+          lappend row [format %.3f $net_adjSlack]
+          lappend row [format %.3f $lut_adjSlack]
+          # Debug table for LUT/Net budgeting
+          lappend row [get_property -quiet REF_NAME [get_cells -quiet -of $path]]
+          lappend row $path
+          if {$addrow} {
+            # Add row to the summary table
+            $tbl addrow $row
+          }
+          $dbgtbl addrow $row
         }
-        lappend row [format %.3f $net_adjSlack]
-        lappend row [format %.3f $lut_adjSlack]
-        # Debug table for LUT/Net budgeting
-        lappend row [get_property -quiet REF_NAME [get_cells -quiet -of $path]]
-        lappend row $path
-        if {$addrow} {
-          # Add row to the summary table
-          $tbl addrow $row
+        if {$params(debug)} {
+          # Debug table for LUT/Net budgeting
+          set output [concat $output [split [$dbgtbl print] \n] ]
+          catch {$dbgtbl destroy}
+          puts [join $output \n]
+          set output [list]
+          puts " -D- Number of processed paths: [llength $spaths]"
+          puts " -D- Number of paths that fail the LUT budgeting but pass the Net budgeting: $numFailedLutPassNet"
+          puts " -D- Number of paths that fail the Net budgeting but pass the LUT budgeting: $numFailedNetPassLut"
         }
-        $dbgtbl addrow $row
-      }
-      if {$params(debug)} {
-        # Debug table for LUT/Net budgeting
-        set output [concat $output [split [$dbgtbl print] \n] ]
-        catch {$dbgtbl destroy}
-        puts [join $output \n]
-        set output [list]
-        puts " -D- Number of processed paths: [llength $spaths]"
-        puts " -D- Number of paths that fail the LUT budgeting but pass the Net budgeting: $numFailedLutPassNet"
-        puts " -D- Number of paths that fail the Net budgeting but pass the LUT budgeting: $numFailedNetPassLut"
-      }
-      if {$showAllBudgetingPaths} {
-        # Show all paths analyzed for the LUT/Net budgeting. Replace the table with debug table
-        set tbl $dbgtbl
-      }
-      setMetric {design.device.maxlvls.lut}  $numFailedLut
-      setMetric {design.device.maxlvls.net}  $numFailedNet
-      set stepStopTime [clock seconds]
-      puts " -I- path budgeting metrics completed in [expr $stepStopTime - $stepStartTime] seconds"
-      if {$detailedReportsPrefix != {}} {
-        close $FHLut
-        close $FHNet
-        set FHLut {}
-        set FHNet {}
-        if {$emptyLut} {
-          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
-        } else {
-          # Print the summary table at the beginning of the detailed report
-          set FHLut [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt {w}]
-          set FH [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} {r}]
-          if {$showFileHeader} {
-            puts $FHLut "# ---------------------------------------------------------------------------"
-            puts $FHLut [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-            puts $FHLut "# ---------------------------------------------------------------------------\n"
-          }
-          foreach line [split [$tbl print] \n] {
-            puts $FHLut [format {# %s} $line]
-          }
-          puts $FHLut "# Note: (*): failed the budgeting\n"
-          while {![eof $FH]} {
-            gets $FH line
-            puts $FHLut $line
-          }
+        if {$showAllBudgetingPaths} {
+          # Show all paths analyzed for the LUT/Net budgeting. Replace the table with debug table
+          set tbl $dbgtbl
+        }
+        setMetric {design.device.maxlvls.lut}  $numFailedLut
+        setMetric {design.device.maxlvls.net}  $numFailedNet
+        set stepStopTime [clock seconds]
+        puts " -I- path budgeting metrics completed in [expr $stepStopTime - $stepStartTime] seconds"
+        if {$detailedReportsPrefix != {}} {
           close $FHLut
-          close $FH
-          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
-#           file rename -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} ${detailedReportsPrefix}.timing_budget_LUT.rpt
-          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt]"
-          # Save the interactive report (RPX)
-          if {[llength $pathsLut]} {
-            report_timing -of $pathsLut -rpx ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid}
-            # Delete temporary file
-            catch { file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid} }
-            puts " -I- Generated interactive report [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx]"
-          }
-        }
-        if {$emptyNet} {
-          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
-        } else {
-          # Print the summary table at the beginning of the detailed report
-          set FHNet [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt {w}]
-          set FH [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} {r}]
-          if {$showFileHeader} {
-            puts $FHNet "# ---------------------------------------------------------------------------"
-            puts $FHNet [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
-            puts $FHNet "# ---------------------------------------------------------------------------\n"
-          }
-          foreach line [split [$tbl print] \n] {
-            puts $FHNet [format {# %s} $line]
-          }
-          puts $FHNet "# Note: (*): failed the budgeting\n"
-          while {![eof $FH]} {
-            gets $FH line
-            puts $FHNet $line
-          }
           close $FHNet
-          close $FH
-          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
+          set FHLut {}
+          set FHNet {}
+          if {$emptyLut} {
+            file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
+          } else {
+            # Print the summary table at the beginning of the detailed report
+            set FHLut [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt {w}]
+            set FH [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} {r}]
+            if {$showFileHeader} {
+              puts $FHLut "# ---------------------------------------------------------------------------"
+              puts $FHLut [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+              puts $FHLut "# ---------------------------------------------------------------------------\n"
+            }
+            foreach line [split [$tbl print] \n] {
+              puts $FHLut [format {# %s} $line]
+            }
+            puts $FHLut "# Note: (*): failed the budgeting\n"
+            while {![eof $FH]} {
+              gets $FH line
+              puts $FHLut $line
+            }
+            close $FHLut
+            close $FH
+            file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
+#           file rename -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} ${detailedReportsPrefix}.timing_budget_LUT.rpt
+            puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt]"
+            # Save the interactive report (RPX)
+            if {[llength $pathsLut]} {
+              report_timing -of $pathsLut -rpx ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid}
+              # Delete temporary file
+              catch { file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid} }
+              puts " -I- Generated interactive report [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx]"
+            }
+          }
+          if {$emptyNet} {
+            file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
+          } else {
+            # Print the summary table at the beginning of the detailed report
+            set FHNet [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt {w}]
+            set FH [open ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} {r}]
+            if {$showFileHeader} {
+              puts $FHNet "# ---------------------------------------------------------------------------"
+              puts $FHNet [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+              puts $FHNet "# ---------------------------------------------------------------------------\n"
+            }
+            foreach line [split [$tbl print] \n] {
+              puts $FHNet [format {# %s} $line]
+            }
+            puts $FHNet "# Note: (*): failed the budgeting\n"
+            while {![eof $FH]} {
+              gets $FH line
+              puts $FHNet $line
+            }
+            close $FHNet
+            close $FH
+            file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
 #           file rename -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt
-          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt]"
-          # Save the interactive report (RPX)
-          if {[llength $pathsNet]} {
-            report_timing -of $pathsNet -rpx ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx.${pid}
-            # Delete temporary file
-            catch { file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx.${pid} }
-            puts " -I- Generated interactive report [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx]"
+            puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt]"
+            # Save the interactive report (RPX)
+            if {[llength $pathsNet]} {
+              report_timing -of $pathsNet -rpx ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx.${pid}
+              # Delete temporary file
+              catch { file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx.${pid} }
+              puts " -I- Generated interactive report [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx]"
+            }
           }
         }
+        # Destroy summary table
+        catch {$tbl destroy}
       }
-      # Destroy summary table
-      catch {$tbl destroy}
 
     } else {
       set timBudgetPerLUT {}
@@ -2948,9 +3367,9 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
     #   | CARRY8                                                    | 25%       | 36.62% | 5339   | 14580  | REVIEW |
     #   | MUXF7                                                     | 15%       | 1.58%  | 920    | 58320  | OK     |
     #   | LUT Combining                                             | 20%       | 19.45% | 26049  | -      | OK     |
-    #   | DSP48                                                     | 80%       | 24.52% | 253    | 1032   | OK     |
+    #   | DSP                                                       | 80%       | 24.52% | 253    | 1032   | OK     |
     #   | RAMB/FIFO                                                 | 80%       | 7.20%  | 28.5   | 396    | OK     |
-    #   | DSP48+RAMB+URAM (Avg)                                     | 70%       | 15.86% | -      | -      | OK     |
+    #   | DSP+RAMB+URAM (Avg)                                       | 70%       | 15.86% | -      | -      | OK     |
     #   | BUFGCE* + BUFGCTRL                                        | 24        | 5      | 5      | -      | OK     |
     #   | Control Sets                                              | 2187      | 3593   | 3593   | -      | REVIEW |
     #   | Average Fanout for modules > 100k cells                   | 4         | 3.00   | 3.00   | -      | OK     |
@@ -2961,21 +3380,32 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
   } else {
     $tbl header [list {Criteria} {Guideline} {Actual} {Status}]
   }
-  generateTableRow tbl {utilization.clb.lut.pct}    {LUT}
-  generateTableRow tbl {utilization.clb.ff.pct}     {FD}
-  generateTableRow tbl {utilization.clb.ld}         {LD}
-  generateTableRow tbl {utilization.clb.lutmem.pct} {LUTRAM+SRL}
-  generateTableRow tbl {utilization.clb.carry8.pct} {CARRY8}
-  generateTableRow tbl {utilization.clb.f7mux.pct}  {MUXF7}
-  generateTableRow tbl {utilization.clb.f8mux.pct}  {MUXF8}
-  generateTableRow tbl {design.cells.hlutnm.pct}    {LUT Combining}
-  generateTableRow tbl {utilization.dsp.pct}        {DSP48}
-  generateTableRow tbl {utilization.ram.tile.pct}   {RAMB/FIFO}
-  generateTableRow tbl {utilization.uram.tile.pct}  {URAM}
-  generateTableRow tbl {utilization.bigblocks.pct}  {DSP48+RAMB+URAM (Avg)}
-  generateTableRow tbl {utilization.clk.all}        {BUFGCE* + BUFGCTRL}
-  generateTableRow tbl {design.dont_touch}          {DONT_TOUCH (cells/nets)}
-  generateTableRow tbl {utilization.ctrlsets.uniq}  {Control Sets}
+  generateTableRow tbl {utilization.clb.lut.pct}        {LUT}
+  generateTableRow tbl {utilization.clb.ff.pct}         {FD}
+  generateTableRow tbl {utilization.clb.ld}             {LD}
+  generateTableRow tbl {utilization.clb.lutmem.pct}     {LUTRAM+SRL}
+  generateTableRow tbl {utilization.clb.carry8.pct}     {CARRY8}
+  generateTableRow tbl {utilization.clb.lookahead8.pct} {LOOKAHEAD8}
+  generateTableRow tbl {utilization.clb.f7mux.pct}      {MUXF7}
+  generateTableRow tbl {utilization.clb.f8mux.pct}      {MUXF8}
+  generateTableRow tbl {design.cells.hlutnm.pct}        {LUT Combining}
+  generateTableRow tbl {utilization.dsp.pct}            {DSP}
+#   generateTableRow tbl {utilization.ram.tile.pct}       {RAMB/FIFO}
+  set architecture [get_property -quiet ARCHITECTURE [get_property -quiet PART [current_design]]]
+  switch $architecture {
+    versal {
+      generateTableRow tbl {utilization.ram.tile.pct}       {RAMB}
+    }
+    default {
+      generateTableRow tbl {utilization.ram.tile.pct}       {RAMB/FIFO}
+    }
+  }
+  generateTableRow tbl {utilization.uram.tile.pct}      {URAM}
+  generateTableRow tbl {utilization.bigblocks.pct}      {DSP+RAMB+URAM (Avg)}
+  generateTableRow tbl {utilization.clk.all}            {BUFGCE* + BUFGCTRL}
+  generateTableRow tbl {design.dont_touch}              {DONT_TOUCH (cells/nets)}
+  generateTableRow tbl {design.mark_debug}              {MARK_DEBUG (nets)}
+  generateTableRow tbl {utilization.ctrlsets.uniq}      {Control Sets}
   if {[llength [array names guidelines design.cells.maxavgfo*]] == 2} {
 #     generateTableRow tbl {design.cells.maxavgfo}      {Average Fanout for modules > 100k cells}
     generateTableRow tbl {design.cells.maxavgfo}      "Average Fanout for modules > [expr $guidelines(design.cells.maxavgfo.limit) / 1000]k cells"
@@ -3028,32 +3458,34 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
     $tblcsv addrow [list {design.suite} {Design Suite} $suite]
     $tblcsv addrow [list {design.name} {Design Name} $design]
   }
-  $tblcsv addrow [list {design.part}                {Part}               [getMetric {design.part}] ]
-  $tblcsv addrow [list {design.top}                 {Top}                [get_property -quiet TOP [current_design -quiet]] ]
-  $tblcsv addrow [list {design.run.pr.cell}         {PR (Cell)}          $prCell ]
-  $tblcsv addrow [list {design.run.pr.pblock}       {PR (Pblock)}        $prPblock ]
-  $tblcsv addrow [list {design.run.slr}             {SLR-Level Analysis} $slrs ]
-  $tblcsv addrow [list {design.run.regions}         {Clock Regions} $regions ]
-  $tblcsv addrow [list {utilization.clb.lut}        {LUT(#)}             [getMetric {utilization.clb.lut}] ]
-  $tblcsv addrow [list {utilization.clb.ff}         {FD(#)}              [getMetric {utilization.clb.ff}] ]
-  $tblcsv addrow [list {utilization.ram.tile}       {RAMB/FIFO(#)}       [getMetric {utilization.ram.tile}] ]
-  $tblcsv addrow [list {utilization.uram.tile}      {URAM(#)}            [getMetric {utilization.uram.tile}] ]
-  $tblcsv addrow [list {utilization.dsp}            {DSP48(#)}           [getMetric {utilization.dsp}] ]
-  $tblcsv addrow [list {design.failure}             {Criteria to review} $params(failed) ]
-  $tblcsv addrow [list {utilization.clb.lut.pct}    {LUT(%)}                [getMetric {utilization.clb.lut.pct}] ]
-  $tblcsv addrow [list {utilization.clb.ff.pct}     {FD(%)}                 [getMetric {utilization.clb.ff.pct}] ]
-  $tblcsv addrow [list {utilization.clb.lutmem.pct} {LUTRAM+SRL(%)}         [getMetric {utilization.clb.lutmem.pct}] ]
-  $tblcsv addrow [list {utilization.clb.carry8.pct} {CARRY8(%)}             [getMetric {utilization.clb.carry8.pct}] ]
-  $tblcsv addrow [list {utilization.clb.f7mux.pct}  {MUXF7(%)}              [getMetric {utilization.clb.f7mux.pct}] ]
-  $tblcsv addrow [list {utilization.clb.f8mux.pct}  {MUXF8(%)}              [getMetric {utilization.clb.f8mux.pct}] ]
-  $tblcsv addrow [list {design.cells.hlutnm.pct}    {LUT Combining(%)}      [getMetric {design.cells.hlutnm.pct}] ]
-  $tblcsv addrow [list {utilization.dsp.pct}        {DSP48(%)}              [getMetric {utilization.dsp.pct}] ]
-  $tblcsv addrow [list {utilization.ram.tile.pct}   {RAMB/FIFO(%)}          [getMetric {utilization.ram.tile.pct}] ]
-  $tblcsv addrow [list {utilization.uram.tile.pct}  {URAM(%)}               [getMetric {utilization.ram.tile.pct}] ]
-  $tblcsv addrow [list {utilization.bigblocks.pct}  {DSP48+RAMB+URAM (Avg)(%)}       [getMetric {utilization.bigblocks.pct}] ]
-  $tblcsv addrow [list {utilization.clk.all}        {BUFGCE* + BUFGCTRL} [getMetric {utilization.clk.all}] ]
-  $tblcsv addrow [list {utilization.ctrlsets.uniq}  {Control Sets}       [getMetric {utilization.ctrlsets.uniq}] ]
-  $tblcsv addrow [list {design.dont_touch}          {DONT_TOUCH(#)}      [getMetric {design.dont_touch}] ]
+  $tblcsv addrow [list {design.part}                    {Part}               [getMetric {design.part}] ]
+  $tblcsv addrow [list {design.top}                     {Top}                [get_property -quiet TOP [current_design -quiet]] ]
+  $tblcsv addrow [list {design.run.pr.cell}             {PR (Cell)}          $prCell ]
+  $tblcsv addrow [list {design.run.pr.pblock}           {PR (Pblock)}        $prPblock ]
+  $tblcsv addrow [list {design.run.slr}                 {SLR-Level Analysis} $slrs ]
+  $tblcsv addrow [list {design.run.regions}             {Clock Regions} $regions ]
+  $tblcsv addrow [list {utilization.clb.lut}            {LUT(#)}             [getMetric {utilization.clb.lut}] ]
+  $tblcsv addrow [list {utilization.clb.ff}             {FD(#)}              [getMetric {utilization.clb.ff}] ]
+  $tblcsv addrow [list {utilization.ram.tile}           {RAMB/FIFO(#)}       [getMetric {utilization.ram.tile}] ]
+  $tblcsv addrow [list {utilization.uram.tile}          {URAM(#)}            [getMetric {utilization.uram.tile}] ]
+  $tblcsv addrow [list {utilization.dsp}                {DSP(#)}           [getMetric {utilization.dsp}] ]
+  $tblcsv addrow [list {design.failure}                 {Criteria to review} $params(failed) ]
+  $tblcsv addrow [list {utilization.clb.lut.pct}        {LUT(%)}                [getMetric {utilization.clb.lut.pct}] ]
+  $tblcsv addrow [list {utilization.clb.ff.pct}         {FD(%)}                 [getMetric {utilization.clb.ff.pct}] ]
+  $tblcsv addrow [list {utilization.clb.lutmem.pct}     {LUTRAM+SRL(%)}         [getMetric {utilization.clb.lutmem.pct}] ]
+  $tblcsv addrow [list {utilization.clb.carry8.pct}     {CARRY8(%)}             [getMetric {utilization.clb.carry8.pct}] ]
+  $tblcsv addrow [list {utilization.clb.lookahead8.pct} {LOOKAHEAD8(%)}         [getMetric {utilization.clb.lookahead8.pct}] ]
+  $tblcsv addrow [list {utilization.clb.f7mux.pct}      {MUXF7(%)}              [getMetric {utilization.clb.f7mux.pct}] ]
+  $tblcsv addrow [list {utilization.clb.f8mux.pct}      {MUXF8(%)}              [getMetric {utilization.clb.f8mux.pct}] ]
+  $tblcsv addrow [list {design.cells.hlutnm.pct}        {LUT Combining(%)}      [getMetric {design.cells.hlutnm.pct}] ]
+  $tblcsv addrow [list {utilization.dsp.pct}            {DSP(%)}                [getMetric {utilization.dsp.pct}] ]
+  $tblcsv addrow [list {utilization.ram.tile.pct}       {RAMB/FIFO(%)}          [getMetric {utilization.ram.tile.pct}] ]
+  $tblcsv addrow [list {utilization.uram.tile.pct}      {URAM(%)}               [getMetric {utilization.ram.tile.pct}] ]
+  $tblcsv addrow [list {utilization.bigblocks.pct}      {DSP+RAMB+URAM (Avg)(%)}       [getMetric {utilization.bigblocks.pct}] ]
+  $tblcsv addrow [list {utilization.clk.all}            {BUFGCE* + BUFGCTRL} [getMetric {utilization.clk.all}] ]
+  $tblcsv addrow [list {utilization.ctrlsets.uniq}      {Control Sets}       [getMetric {utilization.ctrlsets.uniq}] ]
+  $tblcsv addrow [list {design.dont_touch}              {DONT_TOUCH(#)}      [getMetric {design.dont_touch}] ]
+  $tblcsv addrow [list {design.mark_debug}              {MARK_DEBUG(#)}      [getMetric {design.mark_debug}] ]
   if {[llength [array names guidelines design.cells.maxavgfo*]] == 2} {
     $tblcsv addrow [list {design.cells.maxavgfo}      "Average Fanout for modules > [expr $guidelines(design.cells.maxavgfo.limit) / 1000]k cells" [getMetric {design.cells.maxavgfo}] ]
   }
@@ -3142,6 +3574,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::config {} {
   # Threshold (PASS) for CARRY8
   set guidelines(utilization.clb.carry8.pct)      {<=25%}
 
+  # Threshold (PASS) for LOOKAHEAD8
+  set guidelines(utilization.clb.lookahead8.pct)  {<=25%}
+
   # Threshold (PASS) for MUXF7
   set guidelines(utilization.clb.f7mux.pct)       {<=15%}
 
@@ -3151,7 +3586,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::config {} {
   # Threshold (PASS) for LUT Combining (HLUTNM)
   set guidelines(design.cells.hlutnm.pct)         {<=20%}
 
-  # Threshold (PASS) for DSP48
+  # Threshold (PASS) for DSP
   set guidelines(utilization.dsp.pct)             {<=80%}
 
   # Threshold (PASS) for RAMB36/FIFO36
@@ -3160,7 +3595,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::config {} {
   # Threshold (PASS) for URAM
   set guidelines(utilization.uram.tile.pct)        {<=80%}
 
-  # Threshold (PASS) for DSP48+RAMB38+URAM (average)
+  # Threshold (PASS) for DSP+RAMB38+URAM (average)
   set guidelines(utilization.bigblocks.pct)       {<=70%}
 
   # Threshold (PASS) for BUFGCE* + BUFGCTRL
@@ -3174,6 +3609,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::config {} {
 
   # Threshold (PASS) for DONT_TOUCH properties
   set guidelines(design.dont_touch)               "=0"
+
+  # Threshold (PASS) for MARK_DEBUG properties
+  set guidelines(design.mark_debug)               "=0"
 
   # Limit for 'Average Fanout for modules > ...k cells' calculation
   set guidelines(design.cells.maxavgfo.limit)     {100000}
@@ -3217,6 +3655,27 @@ proc ::tclapp::xilinx::designutils::report_failfast::config {} {
   return -code ok
 }
 
+proc ::tclapp::xilinx::designutils::report_failfast::calculateAvgFanoutTop {cell minCellCount} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  variable params
+  variable dbgtbl
+  set dbgtbl [::tclapp::xilinx::designutils::prettyTable create]
+  $dbgtbl indent 1
+  $dbgtbl header [list {Cell} {Primitives} {Pins} {Flat Pin Count} {Avg Fanout} ]
+  set avgFO [calculateAvgFanout $cell $minCellCount]
+  $dbgtbl title [format "Cell: %s\nAvg Fanout: %s\nMin Cell Count: %s" $cell $avgFO $minCellCount]
+  if {$params(debug) && ($params(debug_level) >= 2)} {
+    puts [$dbgtbl print]
+  }
+  # Do not clear the table as it can be saved inside the detailed report
+#   $dbgtbl cleartable
+  return $avgFO
+}
+
 proc ::tclapp::xilinx::designutils::report_failfast::calculateAvgFanout {cell minCellCount} {
   # Summary :
   # Argument Usage:
@@ -3224,67 +3683,92 @@ proc ::tclapp::xilinx::designutils::report_failfast::calculateAvgFanout {cell mi
   # Categories: xilinxtclstore, designutils
 
   variable data
+  variable dbgtbl
+  variable params
   set current [current_instance -quiet .]
-  current_instance -quiet
-  current_instance -quiet $cell
-  set hierCells [lsort [get_cells -quiet -filter {!IS_PRIMITIVE}]]
-  foreach c $hierCells {
-    calculateAvgFanout $c $minCellCount
-  }
-
-  set primitives [get_cells -quiet -filter {IS_PRIMITIVE && REF_NAME !~ BUFG* && REF_NAME !~ VCC && REF_NAME !~ GND}]
-  set opins [get_pins -quiet -of $primitives -filter {!IS_CLOCK && DIRECTION == OUT && IS_CONNECTED}]
-  set nets [get_nets -quiet -of $opins -filter {(FLAT_PIN_COUNT > 1) && (TYPE == SIGNAL)}]
   set avgFanout 0.0
-  set totalFlatPinCount 0
-  set numPins [llength $opins]
-  set numPrimitives [llength $primitives]
-  if {[llength $nets] != 0} {
-    # Calculate total fanout of the cell
-    set totalFlatPinCount [expr [join [get_property -quiet FLAT_PIN_COUNT $nets] +] ]
-  }
+  # Catch any potential TCL_ERROR from too many nested loops
+  if {[catch {
+    current_instance -quiet
+    current_instance -quiet $cell
+    set hierCells [lsort [get_cells -quiet -filter {!IS_PRIMITIVE}]]
+    foreach c $hierCells {
+      calculateAvgFanout $c $minCellCount
+    }
 
-  # Calculate the average pin fanout of the cell
-  if {$numPins != 0} {
-    set avgFanout [format {%.2f} [expr ((1.0 * $totalFlatPinCount) - $numPins) / $numPins ] ]
-  } else {
+    set primitives [get_cells -quiet -filter {IS_PRIMITIVE && REF_NAME !~ BUFG* && REF_NAME !~ VCC && REF_NAME !~ GND}]
+    set opins [get_pins -quiet -of $primitives -filter {!IS_CLOCK && DIRECTION == OUT && IS_CONNECTED}]
+    set nets [get_nets -quiet -of $opins -filter {(FLAT_PIN_COUNT > 1) && (TYPE == SIGNAL)}]
     set avgFanout 0.0
+    set totalFlatPinCount 0
+    set numPins [llength $opins]
+    set numPrimitives [llength $primitives]
+    if {[llength $nets] != 0} {
+      # Calculate total fanout of the cell
+      set totalFlatPinCount [expr [join [get_property -quiet FLAT_PIN_COUNT $nets] +] ]
+    }
+
+    # Calculate the average pin fanout of the cell
+    if {$numPins != 0} {
+      set avgFanout [format {%.2f} [expr ((1.0 * $totalFlatPinCount) - $numPins) / $numPins ] ]
+    } else {
+      set avgFanout 0.0
+    }
+
+    set data(${cell}:PIN_COUNT) $totalFlatPinCount
+    set data(${cell}:OPINS) $numPins
+    set data(${cell}:PRIMITIVES) $numPrimitives
+    set data(${cell}:AVG_FANOUT) $avgFanout
+
+  # puts "#primitives: [llength $primitives]"
+  # puts "#hierCells: [llength $hierCells]"
+  # puts "#opins: [llength $opins]"
+  # puts "#totalFlatPinCount: $totalFlatPinCount"
+
+    foreach c $hierCells {
+      set totalFlatPinCount [expr $totalFlatPinCount + $data(${c}:FLAT_PIN_COUNT)]
+      set numPins [expr $numPins + $data(${c}:FLAT_OPINS)]
+      set numPrimitives [expr $numPrimitives + $data(${c}:FLAT_PRIMITIVES)]
+    }
+
+    # Calculate the average pin fanout of the cell
+    if {$numPins != 0} {
+      set avgFanout [format {%.2f} [expr ((1.0 * $totalFlatPinCount) - $numPins) / $numPins ] ]
+    } else {
+      set avgFanout 0.0
+    }
+
+    set data(${cell}:FLAT_PIN_COUNT) $totalFlatPinCount
+    set data(${cell}:FLAT_OPINS) $numPins
+    set data(${cell}:FLAT_PRIMITIVES) $numPrimitives
+    set data(${cell}:FLAT_AVG_FANOUT) $avgFanout
+
+    # Save data from current cell inside the debug table
+    if {$params(debug) && ($params(debug_level) == 2)} {
+      if {$numPrimitives > $minCellCount} {
+        $dbgtbl addrow [list $cell $numPrimitives $numPins $totalFlatPinCount $avgFanout ]
+      }
+    } elseif {$params(debug) && ($params(debug_level) >= 3)} {
+      if {$numPrimitives > $minCellCount} {
+        $dbgtbl addrow [list $cell $numPrimitives $numPins $totalFlatPinCount "$avgFanout (*)" ]
+      } else {
+        $dbgtbl addrow [list $cell $numPrimitives $numPins $totalFlatPinCount $avgFanout ]
+      }
+    }
+
+    if {$numPrimitives > $minCellCount} {
+      lappend data(-) $avgFanout
+      lappend data(@) $cell
+  #     puts "$cell / numPrimitives=$numPrimitives / avgFanout=$avgFanout"
+    }
+
+  } errorstring]} {
+    puts " -E- Average fanout calculation failed: $errorstring"
+#     if {$params(verbose)} { puts " -E- Average fanout calculation failed: $errorstring" }
   }
 
-  set data(${cell}:PIN_COUNT) $totalFlatPinCount
-  set data(${cell}:OPINS) $numPins
-  set data(${cell}:PRIMITIVES) $numPrimitives
-  set data(${cell}:AVG_FANOUT) $avgFanout
-
-# puts "#primitives: [llength $primitives]"
-# puts "#hierCells: [llength $hierCells]"
-# puts "#opins: [llength $opins]"
-# puts "#totalFlatPinCount: $totalFlatPinCount"
-
-  foreach c $hierCells {
-    set totalFlatPinCount [expr $totalFlatPinCount + $data(${c}:FLAT_PIN_COUNT)]
-    set numPins [expr $numPins + $data(${c}:FLAT_OPINS)]
-    set numPrimitives [expr $numPrimitives + $data(${c}:FLAT_PRIMITIVES)]
-  }
-
-  # Calculate the average pin fanout of the cell
-  if {$numPins != 0} {
-    set avgFanout [format {%.2f} [expr ((1.0 * $totalFlatPinCount) - $numPins) / $numPins ] ]
-  } else {
-    set avgFanout 0.0
-  }
-
-  set data(${cell}:FLAT_PIN_COUNT) $totalFlatPinCount
-  set data(${cell}:FLAT_OPINS) $numPins
-  set data(${cell}:FLAT_PRIMITIVES) $numPrimitives
-  set data(${cell}:FLAT_AVG_FANOUT) $avgFanout
-
-  if {$numPrimitives > $minCellCount} {
-    lappend data(-) $avgFanout
-    lappend data(@) $cell
-#     puts "$cell / numPrimitives=$numPrimitives / avgFanout=$avgFanout"
-  }
-
+  # Restore the current instance
+  current_instance -quiet
   current_instance -quiet $current
   # Make sure the memory is released
   set primitives {}
@@ -3590,6 +4074,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::getReport {name args} {
   variable params
   if {[info exists reports($name)]} {
     if {$params(verbose)} { puts " -I- Found report '$name'" }
+    if {$params(debug) && ($params(debug_level) >= 4)} {
+      # Output report in debug mode
+      puts " -D- report: $name"
+      foreach line [split $reports($name) \n] {
+        puts " -D- # [string range $line 0 199]"
+      }
+    }
     return $reports($name)
   }
   set res {}
@@ -3603,6 +4094,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::getReport {name args} {
   set stopTime [clock seconds]
   if {$params(verbose)} { puts " -I- report '$name' completed in [expr $stopTime - $startTime] seconds" }
   set reports($name) $res
+  if {$params(debug) && ($params(debug_level) >= 4)} {
+    # Output report in debug mode
+    puts " -D- report: $name"
+    foreach line [split $reports($name) \n] {
+      puts " -D- # [string range $line 0 199]"
+    }
+  }
   return $res
 }
 
@@ -4361,7 +4859,9 @@ proc ::tclapp::xilinx::designutils::report_failfast::extractTables {report {maxn
       }
     }
     if {$print && $debug && $inline && ($params(debug_level) >= 4)} {
-      puts [format {# %s} $line]
+#       puts [format {# %s} $line]
+      # Only display the first 200 characters to avoid very long lines
+      puts [format {# %s} [string range $line 0 199]]
     }
   }
 

@@ -15,17 +15,20 @@
      Use -region for Clock Region-based analysis (more info with -longhelp)
      Use -slr for SLR-based analysis (more info with -longhelp)
      Use -by_slr to automatically run the analysis for each SLR
+     Use -no_utilization to prevent extraction of the utilization metrics
      Use -no_methodology_check to prevent extraction of the TIMING-* metrics
      Use -no_fanout to prevent calculation of the average fanout
      Use -no_path_budgeting to prevent calculation of the LUT/Net budgeting
      Use -no_hfn to prevent calculation of Non-FD high fanout nets
      Use -no_dont_touch to prevent calculation of DONT_TOUCH metric
+     Use -no_mark_debug to prevent calculation of MARK_DEBUG metric
      Use -no_control_sets to prevent extraction of control sets metric
      Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
      Use -show_resources to report the detailed number of used and available resources in the summary table
      Use -show_not_found to report metrics that have not been extracted (hidden by default)
      Use -show_all_paths to report all the paths analyzed in the LUT/Net budgeting. Default it to only report paths with budgeting violation
      Use -post_ooc_synth to only run the LUT/Net path budgeting after post OOC synthesis
+     Use -hide_slacks to hide the setup slacks of the nets inside the DONT_TOUCH/MARK_DEBUG detailed reports
      Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
      Use -max_paths to set the max number of paths per clock group for LUT/Net budgeting. Default is 100
      Use -no_header to suppress the files header
