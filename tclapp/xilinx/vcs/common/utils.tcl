@@ -4787,7 +4787,21 @@ proc xcs_get_gcc_path { simulator sim_product_name gcc_install_path gcc_path_arg
     }
   }
 
-  # 3. critical warning (not found from property neither from switch)
+  # 3. if env specified, use this path
+  if { [info exists ::env(GCC_SIM_EXE_PATH)] } {
+    set gcc_env_dir $::env(GCC_SIM_EXE_PATH)
+    if { [llength $gcc_env_dir] > 0 } {
+      if { [xcs_check_gcc_path $gcc_env_dir resolved_path] } {
+        set gcc_path $resolved_path
+        return true
+      } else {
+        [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified with the 'GCC_SIM_EXE_PATH' path environment variable is either invalid or does not exist! '$gcc_env_dir'\n"} err]
+        return false;
+      }
+    }
+  }
+
+  # 4. critical warning (not found from property neither from switch)
   set sim_ver_param "simulator.${simulator}.version"
   set sim_ver [get_param $sim_ver_param]
   send_msg_id SIM-utils-070 "CRITICAL WARNING" "Failed to locate the GNU compiler (g++/gcc) executable path! Please set the path using the 'simulator.${simulator}_gcc_install_dir' project property or specify the path using the '-gcc_install_path' switch that is applicable for the $sim_product_name $sim_ver version for the current Vivado release. Please see 'launch_simulation -help' command for more details.\n"
