@@ -1,3 +1,4 @@
+2.347 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
 2.346 support for compiling simmodel sources from simulation run dir
 2.345 support for setting up gcc compiler paths
 2.344 support for simulator platform tag

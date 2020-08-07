@@ -1,3 +1,4 @@
+11.30 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
 11.29 support for setting up gcc compiler paths
 11.28 use simulator compiled object lib dir var
 11.27 compile simmodel sources into compiled dir

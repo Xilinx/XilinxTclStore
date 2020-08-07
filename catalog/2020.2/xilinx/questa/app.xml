@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass 16 cores for distributed processing for sccom</revision_history>
+      <revision_history>support for setting up gcc compiler paths with GCC_SIM_EXE_PATH</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

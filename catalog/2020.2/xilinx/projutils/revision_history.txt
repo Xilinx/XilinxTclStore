@@ -1,3 +1,4 @@
+3.425 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
 3.424 support for setting up gcc compiler paths
 3.423 use exact string name search for xtlm
 3.422 use simulator compiled object lib dir var
