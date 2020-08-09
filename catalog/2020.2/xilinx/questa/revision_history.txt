@@ -1,3 +1,4 @@
+2.189 support for setting up include and obj path for non-precompile flow
 2.188 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
 2.187 pass 16 cores for distributed processing for sccom
 2.186 support for setting up gcc compiler paths

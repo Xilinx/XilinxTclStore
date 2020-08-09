@@ -1,3 +1,4 @@
+2.348 support for setting up include and obj path for non-precompile flow
 2.347 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
 2.346 support for compiling simmodel sources from simulation run dir
 2.345 support for setting up gcc compiler paths
