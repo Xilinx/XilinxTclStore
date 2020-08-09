@@ -4608,7 +4608,7 @@ proc xcs_resolve_sim_lib_dir { sim_dir src_lib_dir_arg b_cxl_arg } {
   return $sub_lib_path
 }
 
-proc xcs_resolve_sim_model_dir { simulator lib_path clib_dir cpt_dir ext_dir b_resolved_arg {b_compile_simmodels 0} } {
+proc xcs_resolve_sim_model_dir { simulator lib_path clib_dir cpt_dir ext_dir b_resolved_arg b_compile_simmodels context } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4624,7 +4624,24 @@ proc xcs_resolve_sim_model_dir { simulator lib_path clib_dir cpt_dir ext_dir b_r
       set resolved_path "\$xv_cxl_lib_path/$sub_lib_path"
       if { $b_compile_simmodels } {
         switch $simulator {
-          {xsim} { set resolved_path "\$xv_cxl_obj_lib_path/$sub_lib_path" }
+          {xsim} {
+            switch $context {
+              "obj" {
+                if { [string match "ip/*" $sub_lib_path] } {
+                  set dirs [split $sub_lib_path {/}]
+                  set sub_lib_path [join [lrange $dirs 1 end] "/"]
+                }
+                set resolved_path "\$xv_cxl_obj_lib_path/$sub_lib_path"
+              }
+              "include" {
+                if { [string match "ip/*" $sub_lib_path] } {
+                  set dirs [split $sub_lib_path {/}]
+                  set sub_lib_path [join [lrange $dirs 1 end] "/"]
+                }
+                set resolved_path "\$xv_cxl_lib_path/$sub_lib_path"
+              }
+            }
+          }
         }
       }
     } else {

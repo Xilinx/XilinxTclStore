@@ -1551,7 +1551,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
         foreach sm_path $sm_lib_paths {
           lappend l_sm_lib_paths $sm_path
           set b_resolved 0
-          set resolved_path [xcs_resolve_sim_model_dir "xsim" $sm_path $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir) $::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir) b_resolved $::tclapp::xilinx::xsim::a_sim_vars(b_compile_simmodels)]
+          set resolved_path [xcs_resolve_sim_model_dir "xsim" $sm_path $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir) $::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir) $::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir) b_resolved $::tclapp::xilinx::xsim::a_sim_vars(b_compile_simmodels) "obj"]
           if { $b_resolved } {
             lappend cxl_dirs $resolved_path
           } else {
@@ -1830,7 +1830,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         # relative path to library include dir
         set incl_dir "$lib_path/include"
         set b_resolved 0
-        set resolved_path [xcs_resolve_sim_model_dir "xsim" $incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved]
+        set resolved_path [xcs_resolve_sim_model_dir "xsim" $incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels) "include"]
         if { $b_resolved } {
           set incl_dir $resolved_path
         } else {
@@ -1843,7 +1843,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
         # is clibs, protected or ext dir? replace with variable
         set b_resolved 0
-        set resolved_path [xcs_resolve_sim_model_dir "xsim" $lib_path $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels)]
+        set resolved_path [xcs_resolve_sim_model_dir "xsim" $lib_path $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels) "obj"]
         if { $b_resolved } {
           set rel_lib_path $resolved_path
         } else {
@@ -2169,7 +2169,7 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
 
           set b_resolved 0
           set rel_lib_path {}
-          set resolved_path [xcs_resolve_sim_model_dir "xsim" $lib_path $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels)]
+          set resolved_path [xcs_resolve_sim_model_dir "xsim" $lib_path $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels) "obj"]
           if { $b_resolved } {
             set rel_lib_path $resolved_path
           } else {
@@ -3627,7 +3627,7 @@ proc usf_xsim_write_systemc_prj { b_contain_sc_srcs b_is_pure_systemc fh_scr } {
             if { [file exists $incl_dir] } {
               if { !$a_sim_vars(b_absolute_path) } {
                 set b_resolved 0
-                set resolved_path [xcs_resolve_sim_model_dir "xsim" $incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved]
+                set resolved_path [xcs_resolve_sim_model_dir "xsim" $incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels) "include"]
                 if { $b_resolved } {
                   set incl_dir $resolved_path
                 } else {
