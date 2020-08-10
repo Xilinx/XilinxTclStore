@@ -3225,7 +3225,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       }
     }
     if { !$b_process } { continue }
- 
+
     #send_msg_id USF-XSim-107 STATUS "Generating compilation commands for '$lib_name'\n"
 
     # create local lib dir
@@ -3238,14 +3238,18 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     }
     # copy simmodel sources locally
     if { $a_sim_vars(b_int_export_source_files) } {
-      set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$lib_name/src"
-      set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$lib_name"
+      if { {} == $simmodel_name } { send_msg_id USF-XSim-107 WARNING "Empty tag '$simmodel_name'!\n" }
+      if { {} == $library_name  } { send_msg_id USF-XSim-107 WARNING "Empty tag '$library_name'!\n"  }
+      set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
+      set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
       if { [file exists $src_sim_model_dir] } {
         if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
           [catch {send_msg_id USF-XSim-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
         } else {
           #puts "copied '$src_sim_model_dir' to run dir:'$a_sim_vars(s_launch_dir)/simlibs'\n"
         }
+      } else {
+        [catch {send_msg_id USF-XSim-108 ERROR "File '$src_sim_model_dir' does not exist\n"} err]
       }
     }
     # copy include dir
