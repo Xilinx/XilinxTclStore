@@ -3182,6 +3182,9 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     set platform "win"
   }
 
+  set simulator "xsim"
+  set compiler  "xsc"
+
   set data_dir [rdi::get_data_dir -quiet -datafile "systemc/simlibs"]
   # get the design simmodel compile order
   set simmodel_compile_order [xsc_get_simmodel_compile_order]
@@ -3375,6 +3378,14 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       if { [llength $gplus_compile_dbg_flags] > 0 } { foreach c_flag $gplus_compile_dbg_flags { lappend xsc_arg_list "--gcc_compile_options \"$c_flag\"" } }
     } else {
       if { [llength $gplus_compile_opt_flags] > 0 } { foreach c_flag $gplus_compile_opt_flags { lappend xsc_arg_list "--gcc_compile_options \"$c_flag\"" } }
+    }
+
+    # config simmodel options
+    set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+    set cfg_val ""
+    [catch {set cfg_val [get_param $cfg_opt]} err]
+    if { {<empty>} != $cfg_val } {
+      lappend xsc_arg_list "--gcc_compile_options \"$cfg_val\""
     }
    
     lappend xsc_arg_list "-work $lib_name"
