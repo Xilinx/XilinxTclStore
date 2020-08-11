@@ -1,3 +1,4 @@
+2.350 support for config simmodel options for non-precompile flow
 2.349 fixed simmodel and library name logistics for non-precompile flow
 2.348 support for setting up include and obj path for non-precompile flow
 2.347 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
