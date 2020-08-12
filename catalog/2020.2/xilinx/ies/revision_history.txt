@@ -1,3 +1,4 @@
+4.57 add dummy simprims_ver mapping for gt_quad_base
 4.56 support for setting up include and obj path for non-precompile flow
 4.55 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
 4.54 support for setting up gcc compiler paths
