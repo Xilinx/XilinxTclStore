@@ -348,6 +348,14 @@ proc usf_ies_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
+  
+  set b_bind_dpi_c false
+  [catch {set b_bind_dpi_c [get_param project.bindGTDPICModel]} err]
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  # if bind_dpi is false, then set ip_obj to null (donot trigger code below)
+  if { !$b_bind_dpi_c } {
+    set ip_ob {}
+  }
 
   set b_add_dummy_binding 0
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
@@ -356,7 +364,7 @@ proc usf_ies_write_setup_files {} {
     }
   }
 
-  if { $b_add_dummy_binding } {
+  if { ({} != $ip_obj) || $b_add_dummy_binding } {
     puts $fh "DEFINE simprims_ver ies_lib/simprims_ver"
     set simprim_dir "$dir/ies_lib/simprims_ver"
     if { ![file exists $simprim_dir] } {
