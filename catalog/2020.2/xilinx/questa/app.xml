@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for setting up include and obj path for non-precompile flow</revision_history>
+      <revision_history>support for setting up cores property for sccom compile step</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
