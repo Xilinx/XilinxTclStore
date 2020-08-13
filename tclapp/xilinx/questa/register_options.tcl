@@ -45,6 +45,7 @@ proc register_options { simulator } {
     {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008}}}   {Specify VHDL syntax}}
     {{compile.use_explicit_decl}   {bool}   {1}                                     {Log all signals}}
     {{compile.load_glbl}           {bool}   {1}                                     {Load GLBL module}}
+    {{compile.sccom.cores}         {enum}   {{off} {off} {{off} {4} {8} {12} {16}}} {Specify number of process cores to run in parallel}}
     {{compile.sccom.more_options}  {string} {}                                      {More SCCOM compilation options}}
     {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
