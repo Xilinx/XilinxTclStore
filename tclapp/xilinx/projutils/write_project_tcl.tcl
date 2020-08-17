@@ -2916,11 +2916,22 @@ proc write_specified_prConfiguration { proj_dir proj_name prConfig } {
 
   # fetch pr config properties
   set name           [get_property name [$get_what $prConfig]]
+  set configObj   [$get_what $prConfig]
+  set partition     [get_property "partition_cell_rms" $configObj] 
+  set greyBoxCell     [get_property "greybox_cells" $configObj] 
+  variable options 
+  if {$partition ne ""} {
+    set options "-partitions \[list $partition \]" 
+  }
   
-  lappend l_script_data "# Create '$prConfig' pr configurations"
-  lappend l_script_data "create_pr_configuration -name $name"
+  if {$greyBoxCell ne ""} {
+    set options "$options -greyboxes \[list $greyBoxCell \]" 
+  }
 
+  lappend l_script_data "# Create '$prConfig' pr configurations"
+  lappend l_script_data "create_pr_configuration -name $name $options"
   lappend l_script_data "set obj \[$get_what $prConfig\]"
+
   write_props $proj_dir $proj_name $get_what $prConfig "prConfiguration"
 }
 
