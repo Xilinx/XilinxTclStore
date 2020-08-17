@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>support for setting up include and obj path for non-precompile flow</revision_history>
+      <revision_history>create_pr_configuraion can not create empty configuration. Addres DRC to prohibit this.</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
