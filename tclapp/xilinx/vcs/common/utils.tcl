@@ -4859,8 +4859,9 @@ proc xcs_check_gcc_path { path resolved_path_arg } {
   set gcc_exe_name   "gcc${tool_extn}"
   set gplus_exe_name "g++${tool_extn}"
 
-  # 1. fix slashes
+  # 1. fix/trim slashes
   set gcc_path [regsub -all {[\[\]]} $gcc_path {/}];
+  set gcc_path [string trimright $gcc_path {/}]
 
   # 2. path does not exist
   if { ![file exists $gcc_path] } {

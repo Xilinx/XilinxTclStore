@@ -1424,19 +1424,23 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
               }
             }
           }
-
+ 
           # bind vivado library $XILINX_VIVADO/lib/<os>.o (for AIE)
-          set xdma_ip_obj [xcs_find_ip "sim_xdma"]
-          if { ({} != $aie_ip_obj) || ({} != $xdma_ip_obj) } {
-            # path to XILINX_VIVADO
-            set xv_dir [file dirname $data_dir]
-            # set OS sub-dir type
-            set os_dir "lnx64.o"
-            if {$::tcl_platform(platform) == "windows"} {
-              set os_dir "win64.o"
+          set b_bind_vivado_util_libs false
+          [catch {set b_bind_vivado_util_libs [get_param "project.bindVivadoUtilSharedLibForSystemSim"]} err]
+          if { $b_bind_vivado_util_libs } { 
+            set xdma_ip_obj [xcs_find_ip "sim_xdma"]
+            if { ({} != $aie_ip_obj) || ({} != $xdma_ip_obj) } {
+              # path to XILINX_VIVADO
+              set xv_dir [file dirname $data_dir]
+              # set OS sub-dir type
+              set os_dir "lnx64.o"
+              if {$::tcl_platform(platform) == "windows"} {
+                set os_dir "win64.o"
+              }
+              # set library dir '$XILINX_VIVADO/lib/lnx64.o'
+              lappend shared_ip_libs "${xv_dir}/lib/${os_dir}"
             }
-            # set library dir '$XILINX_VIVADO/lib/lnx64.o'
-            lappend shared_ip_libs "${xv_dir}/lib/${os_dir}"
           }
 
           if { [llength $shared_ip_libs] > 0 } {
