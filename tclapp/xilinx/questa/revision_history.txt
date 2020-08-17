@@ -1,3 +1,4 @@
+2.191 trim trailing slashes for the gcc path
 2.190 support for setting up cores property for sccom compile step
 2.189 support for setting up include and obj path for non-precompile flow
 2.188 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH

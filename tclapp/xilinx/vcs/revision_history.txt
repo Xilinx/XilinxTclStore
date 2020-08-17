@@ -1,3 +1,4 @@
+9.18 trim trailing slashes for the gcc path
 9.17 support for setting up include and obj path for non-precompile flow
 9.16 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
 9.15 support for setting up gcc compiler paths
