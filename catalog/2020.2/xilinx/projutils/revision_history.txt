@@ -1,3 +1,4 @@
+3.427 create_pr_configuraion can not create empty configuration. Addres DRC to prohibit this.
 3.426 support for setting up include and obj path for non-precompile flow
 3.425 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
 3.424 support for setting up gcc compiler paths
