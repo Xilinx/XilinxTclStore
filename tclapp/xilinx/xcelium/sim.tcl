@@ -603,6 +603,11 @@ proc usf_xcelium_write_compile_script {} {
       lappend xmsc_gcc_opts "-Wno-deprecated"
       lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
       lappend xmsc_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
+
+      # param to bind shared protobuf
+      set b_bind_protobuf false
+      [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
+
       variable l_system_sim_incl_dirs
       set incl_dirs [list]
       set uniq_dirs [list]
@@ -622,6 +627,10 @@ proc usf_xcelium_write_compile_script {} {
       set l_sim_model_incl_dirs [list]
       foreach {key value} [array get a_shared_library_path_coln] {
         set shared_lib_name $key
+        if { ("libprotobuf.so" == $shared_lib_name) && (!$b_bind_protobuf) } {
+          # don't bind shared library but bind static library built with the simmodel itself 
+          continue
+        }
         set lib_path        $value
         set sim_model_incl_dir "$lib_path/include"
         if { [file exists $sim_model_incl_dir] } {
@@ -1532,9 +1541,18 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
 
   variable a_shared_library_path_coln
   variable a_sim_vars
+
+  # param to bind shared protobuf
+  set b_bind_protobuf false
+  [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
+
   puts $fh_scr "# set library search order"
   set l_sm_lib_paths [list]
   foreach {library lib_dir} [array get a_shared_library_path_coln] {
+    if { ("libprotobuf.so" == $library) && (!$b_bind_protobuf) } {
+      # don't bind shared library but bind static library built with the simmodel itself 
+      continue
+    }
     set sm_lib_dir [file normalize $lib_dir]
     set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
     lappend l_sm_lib_paths $sm_lib_dir
