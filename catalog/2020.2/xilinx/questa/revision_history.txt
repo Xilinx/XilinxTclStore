@@ -1,3 +1,4 @@
+2.192 bind IP static library for instantiated IPs in the design
 2.191 trim trailing slashes for the gcc path
 2.190 support for setting up cores property for sccom compile step
 2.189 support for setting up include and obj path for non-precompile flow
