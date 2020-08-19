@@ -1412,17 +1412,30 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             set lib_dir "$lib_path"
             lappend shared_ip_libs $lib_dir
           }
- 
-          set ip_objs [get_ips -all -quiet]
-          foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] { 
-            foreach ip_obj $ip_objs {
-              set ipdef [get_property -quiet IPDEF $ip_obj]
-              set ip_name [lindex [split $ipdef ":"] 2]
-              if { [string first $ip_name $shared_ip_lib] != -1} {
-                set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
-                lappend shared_ip_libs $lib_dir
+
+          # bind IP static librarries
+          set sh_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+          set uniq_shared_libs    [list]
+          set shared_libs_to_link [list]
+          foreach ip_obj [get_ips -all -quiet] {
+            set ipdef [get_property -quiet IPDEF $ip_obj]
+            set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+            set ssm_type [get_property -quiet selected_sim_model $ip_obj]
+            if { [lsearch $sh_ip_libs $vlnv_name] != -1 } {
+              if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+                if { ("tlm" == $ssm_type) } {
+                  # bind systemC library
+                  lappend shared_libs_to_link $vlnv_name
+                  lappend uniq_shared_libs $vlnv_name
+                } else {
+                  # rtl, tlm_dpi (no binding)
+                }
               }
             }
+          }
+          foreach vlnv_name $shared_libs_to_link {
+            set lib_dir "$a_sim_vars(s_clibs_dir)/$vlnv_name"
+            lappend shared_ip_libs $lib_dir 
           }
  
           # bind vivado library $XILINX_VIVADO/lib/<os>.o (for AIE)
@@ -1683,19 +1696,30 @@ proc usf_questa_get_sccom_cmd_args {} {
       }
   
       lappend args "-lib $a_sim_vars(default_top_library)"
-      set ip_objs [get_ips -all -quiet]
-      foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
-        foreach ip_obj $ip_objs {
-          set ipdef [get_property -quiet IPDEF $ip_obj]
-          set ip_name [lindex [split $ipdef ":"] 2]
-          if { [string first $ip_name $shared_ip_lib] != -1} {
-            # TODO: need to determine the type of IP library and then reference the library
-            #       accordingly, similar to sim-models (xcs_is_c_library/xcs_is_cpp_library)
-            #       Pass -lib for now.
-            lappend args "-lib ${shared_ip_lib}"
+      # bind IP static librarries
+      set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+      set uniq_shared_libs    [list]
+      set shared_libs_to_link [list]
+      foreach ip_obj [get_ips -all -quiet] {
+        set ipdef [get_property -quiet IPDEF $ip_obj]
+        set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+        set ssm_type [get_property -quiet selected_sim_model $ip_obj]
+        if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+          if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+            if { ("tlm" == $ssm_type) } {
+              # bind systemC library
+              lappend shared_libs_to_link $vlnv_name
+              lappend uniq_shared_libs $vlnv_name
+            } else {
+              # rtl, tlm_dpi (no binding)
+            }
           }
         }
       }
+      foreach vlnv_name $shared_libs_to_link {
+        lappend args "-lib $vlnv_name"
+      }
+
       lappend args "-work $a_sim_vars(default_top_library)"
     }
   }
