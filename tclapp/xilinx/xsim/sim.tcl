@@ -3384,7 +3384,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
     set cfg_val ""
     [catch {set cfg_val [get_param $cfg_opt]} err]
-    if { {<empty>} != $cfg_val } {
+    if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
       lappend xsc_arg_list "--gcc_compile_options \"$cfg_val\""
     }
    
