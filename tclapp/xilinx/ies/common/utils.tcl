@@ -4018,7 +4018,7 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
         foreach lib_dir [glob -nocomplain -directory $path *] {
           if { ![file isdirectory $lib_dir] } { continue; }
 
-          # make sure we deal with the right shared library path (library=xtlm, path=/tmp/foo/bar/xtlm)
+          # make sure we deal with the right shared library path (library=xtlm, path=/tmp/xtlm)
           set lib_leaf_dir_name [file tail $lib_dir]
           if { $library != $lib_leaf_dir_name } {
             continue
@@ -4765,7 +4765,7 @@ proc xcs_find_uvm_library { } {
   return $uvm_lib_path
 }
 
-proc xcs_get_gcc_path { simulator sim_product_name gcc_install_path gcc_path_arg b_int_sm_lib_ref_debug } {
+proc xcs_get_gcc_path { simulator sim_product_name simulator_install_path gcc_install_path gcc_path_arg path_type_arg b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4776,7 +4776,9 @@ proc xcs_get_gcc_path { simulator sim_product_name gcc_install_path gcc_path_arg
   }
 
   upvar $gcc_path_arg gcc_path
-  set gcc_path {}
+  upvar $path_type_arg path_type
+  set gcc_path      {}
+  set path_type     0
   set resolved_path {}
 
   # gcc precedence (switch -> property -> PATH (info))
@@ -4785,6 +4787,7 @@ proc xcs_get_gcc_path { simulator sim_product_name gcc_install_path gcc_path_arg
   if { [llength $gcc_install_path] > 0 } {
     if { [xcs_check_gcc_path $gcc_install_path resolved_path] } {
       set gcc_path $resolved_path
+      set path_type 1
       return true
     } else {
       [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified with the '-gcc_install_path' switch is either invalid or does not exist! '$gcc_install_path'\n"} err]
@@ -4797,6 +4800,7 @@ proc xcs_get_gcc_path { simulator sim_product_name gcc_install_path gcc_path_arg
   if { [llength $gcc_prop_dir] > 0 } {
     if { [xcs_check_gcc_path $gcc_prop_dir resolved_path] } {
       set gcc_path $resolved_path
+      set path_type 2
       return true
     } else {
       [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified for the 'simulator.${simulator}_gcc_install_dir' property is either invalid or does not exist! '$gcc_prop_dir'\n"} err]
@@ -4810,6 +4814,7 @@ proc xcs_get_gcc_path { simulator sim_product_name gcc_install_path gcc_path_arg
     if { [llength $gcc_env_dir] > 0 } {
       if { [xcs_check_gcc_path $gcc_env_dir resolved_path] } {
         set gcc_path $resolved_path
+        set path_type 3
         return true
       } else {
         [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified with the 'GCC_SIM_EXE_PATH' path environment variable is either invalid or does not exist! '$gcc_env_dir'\n"} err]
@@ -4818,17 +4823,64 @@ proc xcs_get_gcc_path { simulator sim_product_name gcc_install_path gcc_path_arg
     }
   }
 
-  # 4. critical warning (not found from property neither from switch)
+  set tool_extn {.exe}
+  if {$::tcl_platform(platform) == "unix"} {
+    set tool_extn {}
+  }
+  set tool "gcc${tool_extn}"
+
+  # 4. find from simulator install area
+  if { {} != $simulator_install_path } {
+    set sim_root_dir $simulator_install_path
+    set gcc_version  [get_param "simulator.${simulator}.gcc.version"]
+    if { {} != $gcc_version } {
+      switch $simulator {
+        {questa} {
+          # fetch tool install dir
+          if {$::tcl_platform(platform) == "unix"} {
+            set sim_root_dir [file dirname $sim_root_dir]
+            # gcc sub-dir wrt install dir
+            set gcc_sub_dir  "gcc-${gcc_version}-linux_x86_64/bin"
+            set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
+            if { [file exists $gcc_root_dir] } {
+              set gcc_exe_file "$gcc_root_dir/$tool" 
+              if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
+                set gcc_path $gcc_root_dir
+                set path_type 4
+                return true
+              }
+            }
+          }
+        }
+        {xcelium} {
+          # fetch tool install dir
+          set sim_root_dir [file dirname $sim_root_dir]
+          set sim_root_dir [file dirname $sim_root_dir]
+          set sim_root_dir [file dirname $sim_root_dir]
+          # gcc sub-dir wrt install dir
+          set gcc_sub_dir  "tools/cdsgcc/gcc/${gcc_version}/bin"
+          set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
+          if { [file exists $gcc_root_dir] } {
+            set gcc_exe_file "$gcc_root_dir/$tool" 
+            if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
+              set gcc_path $gcc_root_dir
+              set path_type 4
+              return true
+            }
+          }
+        }
+      }
+    }
+  }
+
+  # 5. critical warning (not found from property neither from switch)
   set sim_ver_param "simulator.${simulator}.version"
   set sim_ver [get_param $sim_ver_param]
-  send_msg_id SIM-utils-070 "CRITICAL WARNING" "Failed to locate the GNU compiler (g++/gcc) executable path! Please set the path using the 'simulator.${simulator}_gcc_install_dir' project property or specify the path using the '-gcc_install_path' switch that is applicable for the $sim_product_name $sim_ver version for the current Vivado release. Please see 'launch_simulation -help' command for more details.\n"
+  send_msg_id SIM-utils-070 "CRITICAL WARNING" "Failed to locate the GNU compiler (g++/gcc) executable path! Please set the path using the -gcc_install_path switch or by setting the simulator.${simulator}_gcc_install_dir project property or by setting the GCC_SIM_EXE_PATH environment variable. Please see 'launch_simulation -help' for more details on setting the path and the recommended GCC version that is applicable for the $sim_product_name $sim_ver simulator version for the current Vivado release.\n"
  
   if { $b_int_sm_lib_ref_debug } {
-    set path_sep  {;}
-    set tool_extn {.exe}
+    set path_sep {;}
     if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
-    if {$::tcl_platform(platform) == "unix"} { set tool_extn {} }
-    set tool "gcc${tool_extn}"
     set gcc_paths [xcs_get_bin_paths $tool $path_sep]
     if { [llength $gcc_paths] > 0 } {
       puts "---------------------------------------------------------------------"

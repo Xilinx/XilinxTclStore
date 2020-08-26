@@ -532,9 +532,15 @@ proc usf_set_gcc_path {} {
 
   send_msg_id USF-Xcelium-005 INFO "Finding GCC installation...\n"
   set gcc_path {}
-  if { [xcs_get_gcc_path "xcelium" "Xcelium" $a_sim_vars(s_gcc_bin_path) gcc_path $a_sim_vars(b_int_sm_lib_ref_debug)] } {
+  set simulator "xcelium"
+  if { [xcs_get_gcc_path $simulator "Xcelium" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
     set a_sim_vars(s_gcc_bin_path) $gcc_path
-    send_msg_id USF-Xcelium-25 INFO "Using GCC executables from '$a_sim_vars(s_gcc_bin_path)'"
+    switch $path_type {
+      1 { send_msg_id USF-Questa-25 INFO "Using GCC executables set by -gcc_install_path switch from '$a_sim_vars(s_gcc_bin_path)'"                        }
+      2 { send_msg_id USF-Questa-25 INFO "Using GCC executbales set by simulator.${simulator}_gcc_install_dir property from '$a_sim_vars(s_gcc_bin_path)'" }
+      3 { send_msg_id USF-Questa-25 INFO "Using GCC executbales set by GCC_SIM_EXE_PATH environment variable from '$a_sim_vars(s_gcc_bin_path)'"           }
+      4 { send_msg_id USF-Questa-25 INFO "Using simulator installed GCC executables from '$a_sim_vars(s_gcc_bin_path)'"                                    }
+    }
   }
 }
 
