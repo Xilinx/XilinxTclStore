@@ -1,3 +1,4 @@
+11.35 fixed gcc install message
 11.34 find gcc compiler path from simulator install
 11.33 param to bind protobuf shared library
 11.32 trim trailing slashes for the gcc path
