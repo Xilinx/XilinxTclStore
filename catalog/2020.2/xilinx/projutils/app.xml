@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>trim trailing slashes for the gcc path</revision_history>
+      <revision_history>find gcc compiler path from simulator install</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

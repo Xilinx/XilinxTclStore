@@ -1,3 +1,4 @@
+3.428 find gcc compiler path from simulator install
 3.427 trim trailing slashes for the gcc path
 3.426 support for setting up include and obj path for non-precompile flow
 3.425 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH

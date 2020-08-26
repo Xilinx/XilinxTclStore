@@ -1,3 +1,4 @@
+4.59 find gcc compiler path from simulator install
 4.58 trim trailing slashes for the gcc path
 4.57 add dummy simprims_ver mapping for gt_quad_base
 4.56 support for setting up include and obj path for non-precompile flow

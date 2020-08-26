@@ -1,3 +1,4 @@
+2.353 find gcc compiler path from simulator install
 2.352 check for empty param value for xsc compile options
 2.351 trim trailing slashes for the gcc path
 2.350 support for config simmodel options for non-precompile flow
