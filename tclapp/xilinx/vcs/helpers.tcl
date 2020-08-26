@@ -541,10 +541,10 @@ proc usf_set_gcc_path {} {
   if { [xcs_get_gcc_path $simulator "VCS" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
     set a_sim_vars(s_gcc_bin_path) $gcc_path
     switch $path_type {
-      1 { send_msg_id USF-Questa-25 INFO "Using GCC executables set by -gcc_install_path switch from '$a_sim_vars(s_gcc_bin_path)'"                        }
-      2 { send_msg_id USF-Questa-25 INFO "Using GCC executbales set by simulator.${simulator}_gcc_install_dir property from '$a_sim_vars(s_gcc_bin_path)'" }
-      3 { send_msg_id USF-Questa-25 INFO "Using GCC executbales set by GCC_SIM_EXE_PATH environment variable from '$a_sim_vars(s_gcc_bin_path)'"           }
-      4 { send_msg_id USF-Questa-25 INFO "Using simulator installed GCC executables from '$a_sim_vars(s_gcc_bin_path)'"                                    }
+      1 { send_msg_id USF-VCS-25 INFO "Using GCC executables set by -gcc_install_path switch from '$a_sim_vars(s_gcc_bin_path)'"                        }
+      2 { send_msg_id USF-VCS-25 INFO "Using GCC executables set by simulator.${simulator}_gcc_install_dir property from '$a_sim_vars(s_gcc_bin_path)'" }
+      3 { send_msg_id USF-VCS-25 INFO "Using GCC executables set by GCC_SIM_EXE_PATH environment variable from '$a_sim_vars(s_gcc_bin_path)'"           }
+      4 { send_msg_id USF-VCS-25 INFO "Using simulator installed GCC executables from '$a_sim_vars(s_gcc_bin_path)'"                                    }
     }
   }
 }
