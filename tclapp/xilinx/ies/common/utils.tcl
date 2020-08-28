@@ -515,7 +515,7 @@ proc xcs_fetch_header_from_export { vh_file b_is_bd dynamic_repo_dir } {
   return $vh_file
 }
 
-proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
+proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir b_use_gen_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -527,6 +527,12 @@ proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
 
   # get parent composite file path dir
   set comp_file [get_property parent_composite_file -quiet $vh_file_obj] 
+  if { $b_use_gen_dir } {
+    set proj [get_property "NAME" [current_project]]
+    set from "/${proj}.srcs/"
+    set with "/${proj}.gen/"
+    regsub -all $from $comp_file $with comp_file
+  }
   set comp_file_dir [file dirname $comp_file]
   set comp_file_dir [string map {\\ /} $comp_file_dir]
   # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2
@@ -559,14 +565,14 @@ proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
   return $dst_cip_file
 }
 
-proc xcs_fetch_ip_static_header_file { file vh_file_obj ipstatic_dir ip_repo_dir } {
+proc xcs_fetch_ip_static_header_file { file vh_file_obj ipstatic_dir ip_repo_dir b_use_gen_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   # fetch verilog header files from ip_user_files/ipstatic, if param is false (old behavior)
   if { ![get_param project.includeIPStaticVHFileDirsFromRepo] } {
-    return [xcs_fetch_ip_static_file $file $vh_file_obj $ipstatic_dir]
+    return [xcs_fetch_ip_static_file $file $vh_file_obj $ipstatic_dir $b_use_gen_dir]
   }
 
   variable a_sim_cache_ip_repo_header_files
