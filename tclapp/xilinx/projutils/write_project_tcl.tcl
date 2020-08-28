@@ -184,6 +184,7 @@ variable a_global_vars
 variable l_script_data [list]
 variable l_local_files [list]
 variable l_remote_files [list]
+variable l_bd_wrapper [list]
 variable l_bc_filesets  [list]
 variable b_project_board_set 0
 
@@ -248,6 +249,7 @@ proc reset_global_vars {} {
   set l_script_data                       [list]
   set l_local_files                       [list]
   set l_remote_files                      [list]
+  set l_bd_wrapper                        [list]
   set l_bc_filesets                       [list]
 }
 
@@ -777,6 +779,8 @@ proc wr_bd {} {
   if { $clean_temp == 1} {
     file delete -force $temp_dir
   }
+  
+  wr_bd_wrapper
 }
 
 proc wr_bd_bc_specific {} {
@@ -804,6 +808,29 @@ proc wr_bd_bc_specific {} {
   }
 }
 
+proc wr_bd_wrapper {} {
+
+  variable l_script_data
+  variable l_bd_wrapper
+  
+  if {[llength $l_bd_wrapper]>0} { 	
+    lappend l_script_data "#call make_wrapper to create wrapper files"
+    foreach fileset_designame_wrappername $l_bd_wrapper {
+      set fs_name [lindex $fileset_designame_wrappername 0]
+      set design [lindex $fileset_designame_wrappername 1]
+      set wrapper_name [lindex $fileset_designame_wrappername 2]
+      
+      lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse \$proj_dir/\${_xil_proj_name_}.srcs/$fs_name/bd/$design/$design.bd\] \] == 1  \} \{"
+      lappend l_script_data "  import_files -fileset $fs_name $wrapper_name"
+      lappend l_script_data "\} else \{"	  
+      lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse \$proj_dir/\${_xil_proj_name_}.srcs/$fs_name/bd/$design/$design.bd] -top\]"
+      lappend l_script_data "  add_files -norecurse -fileset $fs_name \$wrapper_path"
+      lappend l_script_data "\}"
+      lappend l_script_data ""
+    }
+    lappend l_script_data ""
+  }
+}
 proc wr_filesets { proj_dir proj_name } {
   # Summary: write fileset object properties 
   # This helper command is used to script help.
@@ -1714,6 +1741,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
   variable a_global_vars
   variable l_script_data
+  variable l_bd_wrapper
 
   set l_local_file_list [list]
   set l_remote_file_list [list]
@@ -1726,6 +1754,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
   set fs_name [get_filesets $tcl_obj]
 
+  set make_wrapper_list [list]
   set import_coln [list]
   set add_file_coln [list]
 
@@ -1735,8 +1764,8 @@ proc write_files { proj_dir proj_name tcl_obj type } {
     # Skip direct import/add of BD files if -use_bd_files is not provided
     if { [file extension $file] == ".bd" && !$a_global_vars(b_arg_use_bd_files) } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-    set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
-    set src_file [join [lrange $path_dirs $begin+1 end] "/"]
+    set srcs_index [lsearch -exact $path_dirs "$proj_name.srcs"]
+    set src_file [join [lrange $path_dirs $srcs_index+1 end] "/"]
 
     # fetch first object
     set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
@@ -1772,8 +1801,57 @@ proc write_files { proj_dir proj_name tcl_obj type } {
     } else {
       set file "\"$file\""
 
-      # is local? add to local project, add to collection and then import this collection by default unless -no_copy_sources is specified
-      if { [is_local_to_project $file] } {
+      set designName ""
+      set wrapperName ""
+      set bd_file ""
+      if { $srcs_index != -1 && [llength $path_dirs] == $srcs_index+6 } {
+	  
+        set designName  [lindex $path_dirs $srcs_index+3]
+        set wrapperName "_wrapper.v"
+        if {[get_property target_language [current_project]] == "VHDL"} {
+          set wrapperName "_wrapper.vhd"
+        }
+        set wrapperName [concat $designName$wrapperName]
+        set bd_file [join [lrange $path_dirs 0 $srcs_index+2] "/"]
+        set bd_file ${bd_file}/${designName}/${designName}.bd
+      }
+      
+      if {
+        $designName != "" &&
+        [lindex $path_dirs $srcs_index+2] =="bd" &&
+        [lindex $path_dirs $srcs_index+3] ==$designName &&
+        [lindex $path_dirs $srcs_index+4] =="hdl" &&
+        [lindex $path_dirs $srcs_index+5] == "$wrapperName" &&
+        [llength [get_files $bd_file]] == 1 &&
+        [get_property IS_LOCKED [get_files $bd_file ] ] !=1
+        } { 
+
+        set wrapper_file ""
+        # add to the import collection
+        if { $a_global_vars(b_absolute_path)|| [need_abs_path $file]  } {
+          set wrapper_file $file
+        } else {
+          set file_no_quotes [string trim $file "\""]
+          set org_file_path "\$\{origin_dir\}/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
+          set wrapper_file "\[file normalize \"$org_file_path\" \]"
+        }		
+
+        # this is a wrapper file        
+        if { $a_global_vars(b_arg_use_bd_files) } {
+          set pair_fileset_designame [list]
+          lappend pair_fileset_designame $wrapper_file
+          lappend pair_fileset_designame $designName
+          lappend make_wrapper_list $pair_fileset_designame          
+        } else {
+          set fileset_designame_wrappername [list]
+          lappend fileset_designame_wrappername $fs_name
+          lappend fileset_designame_wrappername $designName
+          lappend fileset_designame_wrappername $wrapper_file
+          lappend l_bd_wrapper $fileset_designame_wrappername		  
+        }
+		
+      } elseif { [is_local_to_project $file] } {
+        # is local? add to local project, add to collection and then import this collection by default unless -no_copy_sources is specified
         if { $a_global_vars(b_arg_dump_proj_info) } {
           set src_file "\$PSRCDIR/$src_file"
         }
@@ -1847,6 +1925,23 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       lappend l_script_data ""
     } 
 
+
+    if {[llength $make_wrapper_list]>0} { 	
+      lappend l_script_data "#call make_wrapper to create wrapper files"
+      foreach pair_fileset_designame $make_wrapper_list {
+        set wrapper_name [lindex $pair_fileset_designame 0]
+        set design [lindex $pair_fileset_designame 1]
+        lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse \$proj_dir/\${_xil_proj_name_}.srcs/$fs_name/bd/$design/$design.bd\] \] == 1  \} \{"
+        lappend l_script_data "  import_files -fileset $tcl_obj $wrapper_name"
+        lappend l_script_data "\} else \{"
+        lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse \$proj_dir/\${_xil_proj_name_}.srcs/$fs_name/bd/$design/$design.bd\] -top\]"
+        lappend l_script_data "  add_files -norecurse -fileset $fs_name \$wrapper_path"
+        lappend l_script_data "\}"
+        lappend l_script_data ""
+      }
+      lappend l_script_data ""
+    }
+	
   # write fileset file properties for remote files (added sources)
   write_fileset_file_properties $tcl_obj $fs_name $proj_dir $l_remote_file_list "remote"
 
