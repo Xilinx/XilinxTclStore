@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>update composite file path for revision control</revision_history>
+      <revision_history>calculate ip filename from ip_output_dir for revision control</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
