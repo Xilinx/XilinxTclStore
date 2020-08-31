@@ -2933,7 +2933,7 @@ proc xcs_design_contain_sv_ip { } {
   return false
 }
 
-proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
+proc xcs_find_sv_pkg_libs { run_dir b_use_gen_dir b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2948,11 +2948,16 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
   set tmp_dir "$run_dir/_tmp_ip_comp_"
   set ip_comps [list]
   foreach ip [get_ips -all -quiet] {
+    set ip_name [get_property name $ip]
     set ip_file [get_property ip_file $ip]
+    set ip_dir [get_property ip_output_dir -quiet $ip]
     # default ip xml file location
     set ip_filename [file rootname $ip_file];append ip_filename ".xml"
+    if { $b_use_gen_dir } {
+      set ip_filename "$ip_dir/$ip_name";append ip_filename ".xml"
+    }
+    
     # find from ip_output_dir
-    set ip_dir [get_property ip_output_dir -quiet $ip]
     if { ({} != $ip_dir) && [file exists $ip_dir] } {
       set ipfile [file root [file tail $ip_file]];append ipfile ".xml"
       set ipfile "$ip_dir/$ipfile"

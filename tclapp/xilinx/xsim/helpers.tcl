@@ -64,6 +64,8 @@ proc usf_init_vars {} {
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  set a_sim_vars(b_use_gen_dir)      [get_param "project.enableRevisedDirStructure"]
+
   set a_sim_vars(b_compile_simmodels) 0
 
   set a_sim_vars(b_contain_sv_srcs)         0
@@ -78,7 +80,6 @@ proc usf_init_vars {} {
   set a_sim_vars(sp_ext_dir) {}
 
   set a_sim_vars(b_ref_sysc_lib_env) [get_param "project.refSystemCLibPathWithXilinxEnv"]
-  set a_sim_vars(b_use_gen_dir)      [get_param "project.enableRevisedDirStructure"]
   
   set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set a_sim_vars(compiled_design_lib) "xsim.dir"

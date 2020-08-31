@@ -160,7 +160,7 @@ proc export_simulation {args} {
   xcs_get_xpm_libraries
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs "[pwd]" false
+  xcs_find_sv_pkg_libs "[pwd]" $a_sim_vars(b_use_gen_dir) false
 
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
@@ -317,6 +317,8 @@ proc xps_init_vars {} {
     variable home
     source -notrace "$home/common/utils.tcl"
   }
+
+  set a_sim_vars(b_use_gen_dir)      [get_param "project.enableRevisedDirStructure"]
   
   # setup cache
   variable a_sim_cache_result

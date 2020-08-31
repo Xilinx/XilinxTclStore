@@ -62,6 +62,7 @@ proc usf_init_vars {} {
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  set a_sim_vars(b_use_gen_dir)      [get_param "project.enableRevisedDirStructure"]
 
   set a_sim_vars(b_contain_systemc_sources) 0
   set a_sim_vars(b_contain_cpp_sources)     0

@@ -190,7 +190,7 @@ proc usf_vcs_setup_simulation { args } {
   }
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
+  xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_use_gen_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
   # fetch design files
   set global_files_str {}
