@@ -170,6 +170,18 @@ proc usf_init_vars {} {
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
 
+  variable a_sim_cache_lib_info
+  array unset a_sim_cache_lib_info
+
+  variable a_sim_cache_lib_type_info
+  array unset a_sim_cache_lib_type_info
+
+  variable a_shared_library_path_coln
+  array unset a_shared_library_path_coln
+
+  variable a_shared_library_mapping_path_coln
+  array unset a_shared_library_mapping_path_coln
+
   variable a_sim_sv_pkg_libs [list]
 
   variable a_ip_lib_ref_coln
