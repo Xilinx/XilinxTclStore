@@ -1,3 +1,4 @@
+9.24 added lib cache array vars
 9.23 donot bind Vivado library
 9.22 calculate ip filename from ip_output_dir for revision control
 9.21 update composite file path for revision control
