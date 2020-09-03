@@ -107,7 +107,7 @@ proc write_project_tcl {args} {
   }
  
   # script file is a must
-  if { [string equal $a_global_vars(script_file) ""] } {
+  if { [lsearch {"" ".tcl"} [file tail $a_global_vars(script_file)]] != -1 } {
     if { $a_global_vars(b_arg_quiet) } {
       reset_msg_setting
     }
