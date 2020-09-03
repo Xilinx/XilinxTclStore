@@ -5504,7 +5504,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
         if { $b_is_bd } {
           set vh_file [xcs_fetch_ipi_static_header_file $vh_file_obj $vh_file $a_sim_vars(s_ipstatic_source_dir) $a_sim_vars(s_ip_repo_dir)]
         } else {
-          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir) $a_sim_vars(s_ip_repo_dir)]
+          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir) $a_sim_vars(s_ip_repo_dir) $a_sim_vars(b_use_gen_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
             if { [file exists $vh_file_path] } {
               set vh_file $vh_file_path

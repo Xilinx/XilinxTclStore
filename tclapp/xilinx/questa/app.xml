@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>calculate ip filename from ip_output_dir for revision control</revision_history>
+      <revision_history>pass rev control var for fetching static header sources</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
