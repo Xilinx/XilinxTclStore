@@ -1,3 +1,4 @@
+2.197 pass rev control var for fetching static header sources
 2.196 calculate ip filename from ip_output_dir for revision control
 2.195 update composite file path for revision control
 2.194 fixed gcc install message
