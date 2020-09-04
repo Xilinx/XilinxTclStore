@@ -1,3 +1,4 @@
+2.356 re-aligned source file paths for rev control for classic use case
 2.355 calculate ip filename from ip_output_dir for revision control
 2.354 update composite file path for revision control
 2.353 find gcc compiler path from simulator install
