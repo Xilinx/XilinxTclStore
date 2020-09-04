@@ -1303,6 +1303,14 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
   set read_only_props [rdi::get_attr_specs -class [get_property class $current_obj] -filter {is_readonly}]
   set prop_info_list [list]
   set properties [list_property $current_obj]
+  
+  #move board_part_repo_pats property before board_part CR:1072610
+  set idx [lsearch $properties "BOARD_PART_REPO_PATHS"]
+  if {$idx ne -1} {
+    set properties [lreplace $properties $idx $idx]
+    set properties [linsert $properties 0 "BOARD_PART_REPO_PATHS"]
+  }
+  
 
   foreach prop $properties {
     if { [is_deprecated_property $prop] } { continue }
