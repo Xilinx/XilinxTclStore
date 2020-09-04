@@ -1,3 +1,4 @@
+3.433 Moved board_part_repo_paths property before board_part property in write_project_tcl
 3.432 donot write empty file name
 3.431 pass rev control var for fetching static header sources
 3.430 calculate ip filename from ip_output_dir for revision control

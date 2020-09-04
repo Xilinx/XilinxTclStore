@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>donot write empty file name</revision_history>
+      <revision_history>Moved board_part_repo_paths property before board_part property in write_project_tcl</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
