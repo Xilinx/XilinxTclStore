@@ -1251,8 +1251,18 @@ proc xcs_get_sub_file_path { src_file_path dir_path_to_remove } {
   # Argument Usage:
   # Return Value:
 
-  set src_path_comps [file split [file normalize $src_file_path]]
-  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
+  set s_file $src_file_path
+  set d_file $dir_path_to_remove
+
+  if { [get_param "project.enableRevisedDirStructure"] } {
+    set proj [get_property "NAME" [current_project]]
+    set from "/${proj}.srcs/"
+    set with "/${proj}.gen/"
+    regsub -all $from $d_file $with d_file
+  }
+
+  set src_path_comps [file split [file normalize $s_file]]
+  set dir_path_comps [file split [file normalize $d_file]]
 
   set src_path_len [llength $src_path_comps]
   set dir_path_len [llength $dir_path_comps]

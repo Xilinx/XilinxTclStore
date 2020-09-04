@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass rev control var for fetching static header sources</revision_history>
+      <revision_history>re-aligned source file paths for rev control for classic use case</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
