@@ -515,7 +515,7 @@ proc xcs_fetch_header_from_export { vh_file b_is_bd dynamic_repo_dir } {
   return $vh_file
 }
 
-proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir b_use_gen_dir } {
+proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -527,11 +527,13 @@ proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir b_use_gen_dir } {
 
   # get parent composite file path dir
   set comp_file [get_property parent_composite_file -quiet $vh_file_obj] 
-  if { $b_use_gen_dir } {
+  if { [get_param "project.enableRevisedDirStructure"] } {
     set proj [get_property "NAME" [current_project]]
     set from "/${proj}.srcs/"
     set with "/${proj}.gen/"
-    regsub -all $from $comp_file $with comp_file
+    if { [regexp $with $src_ip_file] } {
+      regsub -all $from $comp_file $with comp_file
+    }
   }
   set comp_file_dir [file dirname $comp_file]
   set comp_file_dir [string map {\\ /} $comp_file_dir]
@@ -565,14 +567,14 @@ proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir b_use_gen_dir } {
   return $dst_cip_file
 }
 
-proc xcs_fetch_ip_static_header_file { file vh_file_obj ipstatic_dir ip_repo_dir b_use_gen_dir } {
+proc xcs_fetch_ip_static_header_file { file vh_file_obj ipstatic_dir ip_repo_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   # fetch verilog header files from ip_user_files/ipstatic, if param is false (old behavior)
   if { ![get_param project.includeIPStaticVHFileDirsFromRepo] } {
-    return [xcs_fetch_ip_static_file $file $vh_file_obj $ipstatic_dir $b_use_gen_dir]
+    return [xcs_fetch_ip_static_file $file $vh_file_obj $ipstatic_dir]
   }
 
   variable a_sim_cache_ip_repo_header_files
@@ -1258,7 +1260,9 @@ proc xcs_get_sub_file_path { src_file_path dir_path_to_remove } {
     set proj [get_property "NAME" [current_project]]
     set from "/${proj}.srcs/"
     set with "/${proj}.gen/"
-    regsub -all $from $d_file $with d_file
+    if { [regexp $with $s_file] } {
+      regsub -all $from $d_file $with d_file
+    }
   }
 
   set src_path_comps [file split [file normalize $s_file]]
@@ -2943,7 +2947,7 @@ proc xcs_design_contain_sv_ip { } {
   return false
 }
 
-proc xcs_find_sv_pkg_libs { run_dir b_use_gen_dir b_int_sm_lib_ref_debug } {
+proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -2963,7 +2967,7 @@ proc xcs_find_sv_pkg_libs { run_dir b_use_gen_dir b_int_sm_lib_ref_debug } {
     set ip_dir [get_property ip_output_dir -quiet $ip]
     # default ip xml file location
     set ip_filename [file rootname $ip_file];append ip_filename ".xml"
-    if { $b_use_gen_dir } {
+    if { [get_param "project.enableRevisedDirStructure"] } {
       set ip_filename "$ip_dir/$ip_name";append ip_filename ".xml"
     }
     

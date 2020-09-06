@@ -160,7 +160,7 @@ proc export_simulation {args} {
   xcs_get_xpm_libraries
 
   # cache all system verilog package libraries
-  xcs_find_sv_pkg_libs "[pwd]" $a_sim_vars(b_use_gen_dir) false
+  xcs_find_sv_pkg_libs "[pwd]" false
 
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
@@ -318,7 +318,6 @@ proc xps_init_vars {} {
     source -notrace "$home/common/utils.tcl"
   }
 
-  set a_sim_vars(b_use_gen_dir)      [get_param "project.enableRevisedDirStructure"]
   
   # setup cache
   variable a_sim_cache_result
@@ -5504,7 +5503,7 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
         if { $b_is_bd } {
           set vh_file [xcs_fetch_ipi_static_header_file $vh_file_obj $vh_file $a_sim_vars(s_ipstatic_source_dir) $a_sim_vars(s_ip_repo_dir)]
         } else {
-          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir) $a_sim_vars(s_ip_repo_dir) $a_sim_vars(b_use_gen_dir)]
+          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(s_ipstatic_source_dir) $a_sim_vars(s_ip_repo_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
             if { [file exists $vh_file_path] } {
               set vh_file $vh_file_path

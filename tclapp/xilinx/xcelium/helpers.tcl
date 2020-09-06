@@ -63,7 +63,6 @@ proc usf_init_vars {} {
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
-  set a_sim_vars(b_use_gen_dir)      [get_param "project.enableRevisedDirStructure"]
 
   set a_sim_vars(b_contain_systemc_sources) 0
   set a_sim_vars(b_contain_cpp_sources)     0
@@ -248,7 +247,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
         if { $b_is_bd } {
           set vh_file [xcs_fetch_ipi_static_header_file $vh_file_obj $vh_file $a_sim_vars(ipstatic_dir) $a_sim_vars(s_ip_repo_dir)]
         } else {
-          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir) $a_sim_vars(s_ip_repo_dir) $a_sim_vars(b_use_gen_dir)]
+          set vh_file_path [xcs_fetch_ip_static_header_file $vh_file $vh_file_obj $a_sim_vars(ipstatic_dir) $a_sim_vars(s_ip_repo_dir)]
           if { $a_sim_vars(b_use_static_lib) } {
             if { [file exists $vh_file_path] } {
               set vh_file $vh_file_path
