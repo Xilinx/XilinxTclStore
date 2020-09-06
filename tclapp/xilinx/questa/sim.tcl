@@ -542,7 +542,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     usf_add_quit_on_error $fh "compile"
   }
  
-  set design_lib_dir "$dir/modelsim_lib" 
+  set design_lib_dir "$dir/questa_lib"
   set lib_dir_path [file normalize [string map {\\ /} $design_lib_dir]]
   if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
     puts $fh "${tool_path_str}vlib $lib_dir_path/work"
