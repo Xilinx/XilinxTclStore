@@ -42,6 +42,7 @@ proc write_project_tcl {args} {
   # [-dump_project_info]: Write object values
   # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
   # [-internal]: Print basic header information in the generated tcl script
+  # [-validate]: Runs a validate script before recreating the project. To test if the files and paths refrenced in the tcl file exists or not.
   # [-quiet]: Execute the command quietly, returning no messages from the command.
   # file: Name of the tcl script file to generate
 
@@ -86,6 +87,7 @@ proc write_project_tcl {args} {
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
       "-internal"             { set a_global_vars(b_internal) 1 }
+      "-validate"             { set a_global_vars(b_validate) 1 }
       "-quiet"                { set a_global_vars(b_arg_quiet) 1}
       default {
         # is incorrect switch specified?
@@ -185,6 +187,7 @@ variable l_script_data [list]
 variable l_local_files [list]
 variable l_remote_files [list]
 variable l_bd_wrapper [list]
+variable l_validate_repo_paths [list]
 variable l_bc_filesets  [list]
 variable b_project_board_set 0
 
@@ -228,6 +231,7 @@ proc reset_global_vars {} {
   set a_global_vars(b_arg_no_ip_version)  0
   set a_global_vars(b_absolute_path)      0
   set a_global_vars(b_internal)           0
+  set a_global_vars(b_validate)           0
   set a_global_vars(b_arg_all_props)      0
   set a_global_vars(b_arg_dump_proj_info) 0
   set a_global_vars(b_local_sources)      0
@@ -250,6 +254,7 @@ proc reset_global_vars {} {
   set l_local_files                       [list]
   set l_remote_files                      [list]
   set l_bd_wrapper                        [list]
+  set l_validate_repo_paths               [list]
   set l_bc_filesets                       [list]
 }
 
@@ -272,6 +277,7 @@ proc write_project_tcl_script {} {
   variable l_added_bds
   variable a_os
   variable l_bc_filesets
+  variable l_validate_repo_paths
 
   set l_script_data [list]
   set l_local_files [list]
@@ -279,6 +285,7 @@ proc write_project_tcl_script {} {
   set l_bc_filesets  [list]
   set l_open_bds [list]
   set l_added_bds [list]
+  set l_validate_repo_paths [list]
   
   # Create temp directory (if required) for BD procs
   set temp_dir [ file join [file dirname $a_global_vars(script_file)] .Xiltemp ]  
@@ -375,7 +382,13 @@ proc write_project_tcl_script {} {
   wr_dashboards $proj_dir $proj_name 
   # write header
   write_header $proj_dir $proj_name $file
-
+  
+  # write validate script
+  set l_validate_script [wr_validate_files]
+  foreach line $l_validate_script {
+    puts $a_global_vars(fh) $line
+  }
+  
   # write script data
   foreach line $l_script_data {
     puts $a_global_vars(fh) $line
@@ -431,6 +444,71 @@ proc write_project_tcl_script {} {
   reset_global_vars
 
   return 0
+}
+
+proc wr_validate_files {} {
+  variable a_global_vars
+  set l_script_validate [list]
+  variable l_validate_repo_paths
+
+  variable l_local_files 
+  variable l_remote_files 
+  
+  lappend l_script_validate "# Check file required for this script exists"
+  lappend l_script_validate "proc checkRequiredFiles \{ origin_dir\} \{"
+  lappend l_script_validate "  set status true" 
+  if {[llength $l_local_files]>0} {
+  
+    lappend l_script_validate "  set files \[list \\"
+    foreach file $l_local_files {
+      lappend l_script_validate "   $file \\"
+    }
+    lappend l_script_validate "  \]"
+    
+    lappend l_script_validate "  foreach ifile \$files \{"
+    lappend l_script_validate "    if \{ !\[file isfile \$ifile\] \} \{"
+    lappend l_script_validate "      puts \" Could not find local file \$ifile \""
+    lappend l_script_validate "      set status false" 
+    lappend l_script_validate "    \}" 
+    lappend l_script_validate "  \}"
+    lappend l_script_validate ""
+  }
+  if {[llength $l_remote_files]>0} {
+    lappend l_script_validate "  set files \[list \\"
+    foreach file $l_remote_files {
+      lappend l_script_validate "   $file \\"
+    }
+    lappend l_script_validate "  \]"
+    
+    lappend l_script_validate "  foreach ifile \$files \{"
+    lappend l_script_validate "    if \{ !\[file isfile \$ifile\] \} \{"
+    lappend l_script_validate "      puts \" Could not find remote file \$ifile \""
+    lappend l_script_validate "      set status false" 
+    lappend l_script_validate "    \}" 
+    lappend l_script_validate "  \}"
+    lappend l_script_validate ""
+  }
+
+  if {[llength $l_validate_repo_paths]>0} {
+    lappend l_script_validate "  set paths \[list \\"
+    foreach path $l_validate_repo_paths {
+      lappend l_script_validate "   $path \\"
+    }
+    lappend l_script_validate "  \]"
+    
+    lappend l_script_validate "  foreach ipath \$paths \{"
+    lappend l_script_validate "    if \{ !\[file isdirectory \$ipath\] \} \{"
+    lappend l_script_validate "      puts \" Could not access \$ipath \""
+    lappend l_script_validate "      set status false" 
+    lappend l_script_validate "    \}" 
+    lappend l_script_validate "  \}"
+    lappend l_script_validate ""
+  }
+ 
+ 
+  lappend l_script_validate "  return \$status"
+  lappend l_script_validate "\}"
+  return $l_script_validate  
 }
 
 proc wr_create_project { proj_dir name part_name } {
@@ -528,7 +606,21 @@ proc wr_create_project { proj_dir name part_name } {
     lappend l_script_data "set orig_proj_dir \"$path\""
   }
   lappend l_script_data ""
-
+  
+  # Validate 
+  
+  lappend l_script_data "# Check for paths and files needed for project creation" 
+  lappend l_script_data "set validate_required $a_global_vars(b_validate)" 
+  lappend l_script_data "if \{ \$validate_required \} \{"
+  lappend l_script_data "  if \{ \[checkRequiredFiles \$origin_dir\] \} \{"  
+  lappend l_script_data "    puts \"Tcl file \$script_file is valid. All files required for project creation is accesable. \""
+  lappend l_script_data "  \} else \{"
+  lappend l_script_data "    puts \"Tcl file \$script_file is not valid. Not all files required for project creation is accesable. \""
+  lappend l_script_data "    return"
+  lappend l_script_data "  \}"
+  lappend l_script_data "\}"  
+  lappend l_script_data ""
+  
   # create project
   lappend l_script_data "# Create project"
     
@@ -861,6 +953,7 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
   variable l_script_data
   variable a_fileset_types
   variable l_bc_filesets
+  variable l_validate_repo_paths
 
   # write filesets
   set type "file"
@@ -921,10 +1014,16 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
           foreach path $repo_paths {
             if { $a_global_vars(b_absolute_path) || [need_abs_path $path] } {
               lappend path_list $path
+              if { [lsearch $l_validate_repo_paths $path] == -1 } {
+                 lappend l_validate_repo_paths $path
+              }
             } else {
               set rel_file_path "[get_relative_file_path_for_source $path [get_script_execution_dir]]"
               set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               lappend path_list $path
+              if { [lsearch $l_validate_repo_paths $path] == -1 } {
+                lappend l_validate_repo_paths $path
+              }
             }
           }
           set repo_path_str [join $path_list " "]
