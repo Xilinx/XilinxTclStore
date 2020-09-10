@@ -222,6 +222,7 @@ proc usf_modelsim_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -251,6 +252,7 @@ proc usf_modelsim_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::modelsim::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_ide_gui"            { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"        { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_halt_script) 1                        }
       "-int_compile_glbl"       { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::modelsim::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
@@ -627,10 +629,6 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   puts $fh ""
 
-  set log "compile.log"
-  set redirect_cmd_str "2>&1 | tee -a $log"
-  set redirect_cmd_str ""
-
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
@@ -658,7 +656,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
           puts $fh "$src_file \\"
           set b_redirect true
         } else {
-          puts $fh "$redirect_cmd_str"
+          puts $fh ""
           usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
           set b_appended true
         }
@@ -674,7 +672,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   if { $b_group_files } {
     if { (!$b_redirect) || (!$b_appended) } {
-      puts $fh "$redirect_cmd_str"
+      puts $fh ""
     }
   }
 
@@ -924,6 +922,17 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     }
   }
 
+  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
+    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+      if { {functional} == $a_sim_vars(s_type) } {
+        set hbm_ip_obj [xcs_find_ip "hbm"]
+        if { {} != $hbm_ip_obj } {
+          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_8"]
+        }
+      }
+    }
+  }
+
   lappend arg_list "-work"
   lappend arg_list $a_sim_vars(default_top_library)
   
@@ -1026,7 +1035,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set t_opts [join $arg_list " "]
 
   set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
-  set design_libs [usf_modelsim_get_design_libs $design_files]
+  set design_libs [usf_modelsim_get_design_libs $design_files 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -1102,6 +1111,17 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   if { $b_reference_xpm_library } {
     if { {behav_sim} == $sim_flow } {
       set arg_list [linsert $arg_list end "-L" "xpm"]
+    }
+  }
+
+  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
+    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+      if { {functional} == $a_sim_vars(s_type) } {
+        set hbm_ip_obj [xcs_find_ip "hbm"]
+        if { {} != $hbm_ip_obj } {
+          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_8"]
+        }
+      }
     }
   }
 
@@ -1324,6 +1344,11 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
     if { [get_param "simulator.quitOnSimulationComplete"] } {
       puts $fh "\nquit -force"
     }
+  } else {
+    # launch_simulation - if called from vivado in batch or Tcl mode, quit
+    if { !$::tclapp::xilinx::modelsim::a_sim_vars(b_int_is_gui_mode) } {
+      puts $fh "\nquit -force"
+    }
   }
   close $fh
 }
@@ -1373,9 +1398,18 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   }
 
   set batch_sw {-c}
-  if { ({simulate} == $step) && (!$b_batch) && (!$b_scripts_only) } {
-    set batch_sw {}
+  if { ({simulate} == $step) } {
+    # launch_simulation
+    if { (!$b_batch) && (!$b_scripts_only) } {
+      # launch_simulation - if called from vivado in batch or Tcl mode, run in command mode
+      if { !$::tclapp::xilinx::modelsim::a_sim_vars(b_int_is_gui_mode) } {
+        set batch_sw {-c}
+      } else {
+        set batch_sw {}
+      }
+    }
   }
+
 
   set s_64bit {}
   if {$::tcl_platform(platform) == "unix"} {
@@ -1421,7 +1455,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     }
 
     if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      puts $fh_scr "source $do_filename 2>&1 | tee -a $log_filename"
+      puts $fh_scr "source $do_filename 2>&1 | tee $log_filename"
       xcs_write_exit_code $fh_scr
     } else {
       if { {} != $tool_path } {
@@ -1482,12 +1516,13 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   close $fh_scr
 }
 
-proc usf_modelsim_get_design_libs { files } {
+proc usf_modelsim_get_design_libs { files {b_realign_default_lib 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set libs [list]
+  set b_contains_default_lib 0
   foreach file $files {
     set fargs     [split $file {|}]
     set type      [lindex $fargs 0]
@@ -1496,8 +1531,19 @@ proc usf_modelsim_get_design_libs { files } {
     if { {} == $library } {
       continue;
     }
+    if { $b_realign_default_lib } {
+      if { {xil_defaultlib} == $library } {
+        set b_contains_default_lib 1
+        continue;
+      }
+    }
     if { [lsearch -exact $libs $library] == -1 } {
       lappend libs $library
+    }
+  }
+  if { $b_realign_default_lib } {
+    if { $b_contains_default_lib } {
+      set libs [linsert $libs 0 "xil_defaultlib"]
     }
   }
   return $libs

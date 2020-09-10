@@ -223,6 +223,7 @@ proc usf_ies_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -251,6 +252,7 @@ proc usf_ies_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::ies::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_ide_gui"            { set ::tclapp::xilinx::ies::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"        { set ::tclapp::xilinx::ies::a_sim_vars(b_int_halt_script) 1                        }
       "-int_compile_glbl"       { set ::tclapp::xilinx::ies::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::ies::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
@@ -346,6 +348,14 @@ proc usf_ies_write_setup_files {} {
     set lib_map_path "?"
   }
   puts $fh "INCLUDE $lib_map_path/$filename"
+  
+  set b_bind_dpi_c false
+  [catch {set b_bind_dpi_c [get_param project.bindGTDPICModel]} err]
+  set ip_obj [xcs_find_ip "gt_quad_base"]
+  # if bind_dpi is false, then set ip_obj to null (donot trigger code below)
+  if { !$b_bind_dpi_c } {
+    set ip_ob {}
+  }
 
   set b_add_dummy_binding 0
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
@@ -354,7 +364,7 @@ proc usf_ies_write_setup_files {} {
     }
   }
 
-  if { $b_add_dummy_binding } {
+  if { ({} != $ip_obj) || $b_add_dummy_binding } {
     puts $fh "DEFINE simprims_ver ies_lib/simprims_ver"
     set simprim_dir "$dir/ies_lib/simprims_ver"
     if { ![file exists $simprim_dir] } {
@@ -491,52 +501,16 @@ proc usf_ies_write_compile_script {} {
 
   xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
 
-  set tool "ncvhdl"
-  set arg_list [list "-messages"]
+  set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+  set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
 
-  if { [get_property "IES.COMPILE.RELAX" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-relax"]
+  if { $b_contain_vhdl_srcs } {
+    usf_ies_write_vhdl_compile_options $fh_scr
   }
 
-  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
-
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-64bit"]
+  if { $b_contain_verilog_srcs } {
+    usf_ies_write_verilog_compile_options $fh_scr
   }
-
-  if { [get_property "INCREMENTAL" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-update"]
-  }
-
-  set more_ncvhdl_options [string trim [get_property "IES.COMPILE.NCVHDL.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_ncvhdl_options } {
-    set arg_list [linsert $arg_list end "$more_ncvhdl_options"]
-  }
-
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
- 
-  set tool "ncvlog"
-  set arg_list [list "-messages" "-logfile" "${tool}.log" "-append_log"]
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-64bit"]
-  }
-
-  if { [get_property "INCREMENTAL" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-update"]
-  }
-
-  set more_ncvlog_options [string trim [get_property "IES.COMPILE.NCVLOG.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_ncvlog_options } {
-    set arg_list [linsert $arg_list end "$more_ncvlog_options"]
-  }
-
-  puts $fh_scr "\n# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
 
   # add tcl pre hook
   if { {} != $tcl_pre_hook } {
@@ -935,7 +909,10 @@ proc usf_ies_write_simulate_script {} {
   if { $::tclapp::xilinx::ies::a_sim_vars(b_batch) || $b_scripts_only } {
    # no gui
   } else {
-    set arg_list [linsert $arg_list end "-gui"]
+    # launch_simulation - if called from vivado in gui mode only
+    if { $::tclapp::xilinx::ies::a_sim_vars(b_int_is_gui_mode) } {
+      set arg_list [linsert $arg_list end "-gui"]
+    }
   }
 
   puts $fh_scr "# set ${tool} command line args"
@@ -1191,4 +1168,73 @@ proc usf_ies_create_setup_script {} {
 
   xcs_make_file_executable $scr_file
 }
+
+proc usf_ies_write_vhdl_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "ncvhdl"
+  set arg_list [list "-messages"]
+
+  if { [get_property "IES.COMPILE.RELAX" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-relax"]
+  }
+
+  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log"]]
+  #lappend arg_list "-append_log"
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+
+  if { [get_property "INCREMENTAL" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
+  }
+
+  set more_ncvhdl_options [string trim [get_property "IES.COMPILE.NCVHDL.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_ncvhdl_options } {
+    set arg_list [linsert $arg_list end "$more_ncvhdl_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_ies_write_verilog_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "ncvlog"
+  set arg_list [list "-messages" "-logfile" "${tool}.log"]
+  #lappend arg_list "-append_log"
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+
+  if { [get_property "INCREMENTAL" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
+  }
+
+  set more_ncvlog_options [string trim [get_property "IES.COMPILE.NCVLOG.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_ncvlog_options } {
+    set arg_list [linsert $arg_list end "$more_ncvlog_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
 }

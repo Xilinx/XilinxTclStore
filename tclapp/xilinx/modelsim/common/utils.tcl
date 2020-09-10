@@ -206,6 +206,66 @@ proc xcs_control_pre_compile_flow { b_static_arg } {
   }
 }
 
+proc xcs_is_pure_verilog { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure verilog?
+  if { $b_ver && (!$b_vhd && !$b_sc && !$b_cpp && !$b_c) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_vhdl { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure VHDL?
+  if { $b_vhd && (!$b_ver && !$b_sc && !$b_cpp && !$b_c) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_systemc { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure systemC?
+  if { $b_sc && (!$b_ver && !$b_vhd && !$cpp && !$b_c) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_cpp { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure cpp?
+  if { $b_cpp && (!$b_ver && !$b_vhd && !$b_sc && !$b_c) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_c { b_ver b_vhd b_sc b_cpp b_c } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure c?
+  if { $b_c && (!$b_ver && !$b_vhd && !$b_sc && !$b_cpp) } {
+    return true
+  }
+  return false
+}
+
 proc xcs_contains_verilog { design_files {flow "NULL"} {s_netlist_file {}} } {
   # Summary:
   # Argument Usage:
@@ -467,6 +527,14 @@ proc xcs_fetch_ip_static_file { file vh_file_obj ipstatic_dir } {
 
   # get parent composite file path dir
   set comp_file [get_property parent_composite_file -quiet $vh_file_obj] 
+  if { [get_param "project.enableRevisedDirStructure"] } {
+    set proj [get_property "NAME" [current_project]]
+    set from "/${proj}.srcs/"
+    set with "/${proj}.gen/"
+    if { [regexp $with $src_ip_file] } {
+      regsub -all $from $comp_file $with comp_file
+    }
+  }
   set comp_file_dir [file dirname $comp_file]
   set comp_file_dir [string map {\\ /} $comp_file_dir]
   # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2
@@ -858,6 +926,26 @@ proc xcs_get_bin_path { tool_name path_sep } {
   return $bin_path
 }
 
+proc xcs_get_bin_paths { tool_name path_sep } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set bin_paths [list]
+  set path_value $::env(PATH)
+  foreach path [split $path_value $path_sep] {
+    set exe_file [file normalize [file join $path $tool_name]]
+    #
+    # make sure it exists and is of file-type and is not a directory
+    #
+    if { [file exists $exe_file] && [file isfile $exe_file] && ![file isdirectory $exe_file] } {
+      lappend bin_paths $path
+    }
+  }
+  return $bin_paths
+}
+
+
 proc xcs_get_dynamic_sim_file_core_classic { src_file dynamic_repo_dir b_found_in_repo_arg repo_src_file_arg } {
   # Summary:
   # Argument Usage:
@@ -1165,8 +1253,20 @@ proc xcs_get_sub_file_path { src_file_path dir_path_to_remove } {
   # Argument Usage:
   # Return Value:
 
-  set src_path_comps [file split [file normalize $src_file_path]]
-  set dir_path_comps [file split [file normalize $dir_path_to_remove]]
+  set s_file $src_file_path
+  set d_file $dir_path_to_remove
+
+  if { [get_param "project.enableRevisedDirStructure"] } {
+    set proj [get_property "NAME" [current_project]]
+    set from "/${proj}.srcs/"
+    set with "/${proj}.gen/"
+    if { [regexp $with $s_file] } {
+      regsub -all $from $d_file $with d_file
+    }
+  }
+
+  set src_path_comps [file split [file normalize $s_file]]
+  set dir_path_comps [file split [file normalize $d_file]]
 
   set src_path_len [llength $src_path_comps]
   set dir_path_len [llength $dir_path_comps]
@@ -2862,11 +2962,16 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
   set tmp_dir "$run_dir/_tmp_ip_comp_"
   set ip_comps [list]
   foreach ip [get_ips -all -quiet] {
+    set ip_name [get_property name $ip]
     set ip_file [get_property ip_file $ip]
+    set ip_dir [get_property ip_output_dir -quiet $ip]
     # default ip xml file location
     set ip_filename [file rootname $ip_file];append ip_filename ".xml"
+    if { [get_param "project.enableRevisedDirStructure"] } {
+      set ip_filename "$ip_dir/$ip_name";append ip_filename ".xml"
+    }
+    
     # find from ip_output_dir
-    set ip_dir [get_property ip_output_dir -quiet $ip]
     if { ({} != $ip_dir) && [file exists $ip_dir] } {
       set ipfile [file root [file tail $ip_file]];append ipfile ".xml"
       set ipfile "$ip_dir/$ipfile"
@@ -3893,50 +3998,93 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
         puts " + Library search path:$path"
       }
       set lib_dir_path_found ""
-      foreach lib_dir [glob -nocomplain -directory $path *] {
-        if { ![file isdirectory $lib_dir] } { continue; }
-
-        # make sure we deal with the right shared library path (library=xtlm, path=/tmp/foo/bar/xtlm)
-        set lib_leaf_dir_name [file tail $lib_dir]
-        if { $library != $lib_leaf_dir_name } {
-          continue
-        }
-        set sh_file_path "$lib_dir/$shared_libname"
-        if { $b_is_systemc_library } {
-          if { {questa} == $simulator } {
-            set gcc_version [get_param "simulator.${simulator}.gcc.version"]
-            if {$::tcl_platform(platform) == "unix"} {
-              set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
-              if { $b_int_sm_lib_ref_debug } {
-                puts "  + Shared lib path:$sh_file_path"
+      if { [get_param "project.optimizeScriptGenForSimulation"] } {
+        set lib_dir "$path/$library"
+        if { [file exists $lib_dir] && [file isdirectory $lib_dir] } {
+          set sh_file_path "$lib_dir/$shared_libname"
+          if { $b_is_systemc_library } {
+            if { {questa} == $simulator } {
+              set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+              if {$::tcl_platform(platform) == "unix"} {
+                set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
+                if { $b_int_sm_lib_ref_debug } {
+                  puts "  + Shared lib path:$sh_file_path"
+                }
               }
             }
           }
-        }
-
-        if { $b_int_sm_lib_ref_debug } {
+  
+          if { $b_int_sm_lib_ref_debug } {
+            if { [file exists $sh_file_path] } {
+              puts "  -----------------------------------------------------------------------------------------------------------"
+              puts "  + Library found -> $sh_file_path"
+              puts "  -----------------------------------------------------------------------------------------------------------"
+            }
+          }
+  
           if { [file exists $sh_file_path] } {
-            puts "  -----------------------------------------------------------------------------------------------------------"
-            puts "  + Library found -> $sh_file_path"
-            puts "  -----------------------------------------------------------------------------------------------------------"
+            if { ![info exists a_shared_library_path_coln($shared_libname)] } {
+              set a_shared_library_path_coln($shared_libname) $lib_dir
+              set lib_path_dir [file dirname $lib_dir]
+              set a_shared_library_mapping_path_coln($library) $lib_path_dir
+              # mark library found from path
+              if { [info exists a_ip_lib_ref_coln($library)] } {
+                set a_ip_lib_ref_coln($library) true
+              }
+              if { $b_int_sm_lib_ref_debug } {
+                puts "  + Added '$shared_libname:$lib_dir' to collection" 
+              }
+              lappend processed_shared_libs $shared_libname
+              set lib_dir_path_found $lib_dir
+            }
           }
         }
+      } else {
+        foreach lib_dir [glob -nocomplain -directory $path *] {
+          if { ![file isdirectory $lib_dir] } { continue; }
 
-        if { [file exists $sh_file_path] } {
-          if { ![info exists a_shared_library_path_coln($shared_libname)] } {
-            set a_shared_library_path_coln($shared_libname) $lib_dir
-            set lib_path_dir [file dirname $lib_dir]
-            set a_shared_library_mapping_path_coln($library) $lib_path_dir
-            # mark library found from path
-            if { [info exists a_ip_lib_ref_coln($library)] } {
-              set a_ip_lib_ref_coln($library) true
+          # make sure we deal with the right shared library path (library=xtlm, path=/tmp/xtlm)
+          set lib_leaf_dir_name [file tail $lib_dir]
+          if { $library != $lib_leaf_dir_name } {
+            continue
+          }
+          set sh_file_path "$lib_dir/$shared_libname"
+          if { $b_is_systemc_library } {
+            if { {questa} == $simulator } {
+              set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+              if {$::tcl_platform(platform) == "unix"} {
+                set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
+                if { $b_int_sm_lib_ref_debug } {
+                  puts "  + Shared lib path:$sh_file_path"
+                }
+              }
             }
-            if { $b_int_sm_lib_ref_debug } {
-              puts "  + Added '$shared_libname:$lib_dir' to collection" 
+          }
+  
+          if { $b_int_sm_lib_ref_debug } {
+            if { [file exists $sh_file_path] } {
+              puts "  -----------------------------------------------------------------------------------------------------------"
+              puts "  + Library found -> $sh_file_path"
+              puts "  -----------------------------------------------------------------------------------------------------------"
             }
-            lappend processed_shared_libs $shared_libname
-            set lib_dir_path_found $lib_dir
-            break;
+          }
+  
+          if { [file exists $sh_file_path] } {
+            if { ![info exists a_shared_library_path_coln($shared_libname)] } {
+              set a_shared_library_path_coln($shared_libname) $lib_dir
+              set lib_path_dir [file dirname $lib_dir]
+              set a_shared_library_mapping_path_coln($library) $lib_path_dir
+              # mark library found from path
+              if { [info exists a_ip_lib_ref_coln($library)] } {
+                set a_ip_lib_ref_coln($library) true
+              }
+              if { $b_int_sm_lib_ref_debug } {
+                puts "  + Added '$shared_libname:$lib_dir' to collection"
+              }
+              lappend processed_shared_libs $shared_libname
+              set lib_dir_path_found $lib_dir
+              break;
+            }
           }
         }
       }
@@ -4115,6 +4263,96 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
   }
 }
 
+proc xsc_get_simmodel_compile_order { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_shared_library_path_coln 
+
+  set sm_order [list]
+
+  # get simmodel list referenced in the design
+  set lib_names [list]
+  foreach {key value} [array get a_shared_library_path_coln] {
+    set shared_lib_name $key
+    set lib_name [file root $shared_lib_name]
+    set lib_name [string trimleft $lib_name {lib}]
+    lappend lib_names $lib_name
+  }
+
+  # find compile order and construct order for the simmodels referenced in the design
+  set compile_order_file [xcs_get_path_from_data "systemc/simlibs/compile_order.dat"]
+  set fh 0
+  if { [catch {open $compile_order_file r} fh] } {
+    send_msg_id SIM-utils-068 WARNING "Failed to open file for read! '$compile_order_file'\n"
+    return $sm_order
+  }
+  set data [split [read $fh] "\n"]
+  close $fh
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^#} $line] } { continue; }
+    set lib_name $line
+    if { {xtlm} == $lib_name } {
+      set index [lsearch -exact $lib_names $lib_name]
+    } else {
+      set index [lsearch -regexp $lib_names $lib_name]
+    }
+    if { {-1} != $index } {
+      set sm_lib [lindex $lib_names $index]
+      lappend sm_order $sm_lib
+    }
+  }
+  return $sm_order
+} 
+
+proc xsc_find_lib_path_for_simmodel { simmodel } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_shared_library_path_coln 
+  set lib_path {}
+  foreach {key value} [array get a_shared_library_path_coln] {
+    set shared_lib_name $key
+    set lib_name [file root $shared_lib_name]
+    set lib_name [string trimleft $lib_name {lib}]
+    if { $simmodel == $lib_name } {
+      set lib_path $value
+      return $lib_path
+    }
+  }
+}
+
+proc xsc_find_dependent_simmodel_libraries { library sysc_dep_libs_arg cpp_dep_libs_arg c_dep_libs_arg  } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_cache_lib_info
+
+  upvar $sysc_dep_libs_arg sysc_dep_libs
+  upvar $cpp_dep_libs_arg  cpp_dep_libs
+  upvar $c_dep_libs_arg    c_dep_libs
+
+  # any dependent library info fetched from .cxl.lib_info.dat?
+  if { [info exists a_sim_cache_lib_info($library)] } {
+    # SystemC#empty#common_cpp_v1_0#empty
+    set values    [split $a_sim_cache_lib_info($library) {#}]
+  
+    set lib_type  [lindex $values 0];# SystemC, CPP, C
+    set sysc_libs [lindex $values 1];# empty or list of systemc dep libs
+    set cpp_libs  [lindex $values 2];# empty or list of cpp dep libs
+    set c_libs    [lindex $values 3];# empty or list of c dep libs
+  
+    if { "empty" != $sysc_libs } { set sysc_dep_libs [split $sysc_libs ","] }
+    if { "empty" != $cpp_libs  } { set cpp_dep_libs  [split $cpp_libs  ","] }
+    if { "empty" != $c_libs    } { set c_dep_libs    [split $c_libs    ","] }
+  }
+}
+
 proc xcs_is_sc_library { library } {
   # Summary:
   # Argument Usage:
@@ -4180,6 +4418,9 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
   set target_paths [list]
 
   set sm_cpt_dir [xcs_get_simmodel_dir $simulator "cpt"]
+  if { $b_int_sm_lib_ref_debug } {
+    puts "(DEBUG) - simmodel protected sub-dir: $sm_cpt_dir"
+  }
   set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
   # is custom protected sim-model path specified?
   set param "simulator.customSimModelRootDir"
@@ -4198,6 +4439,9 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
 
   # default protected dir
   set tp "$cpt_dir/$sm_cpt_dir"
+  if { $b_int_sm_lib_ref_debug } {
+    puts "(DEBUG) - protected (default) : $tp"
+  }
   if { ([file exists $tp]) && ([file isdirectory $tp]) } {
     lappend target_paths $tp
   } else {
@@ -4206,6 +4450,9 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
       set tp [file dirname $clibs_dir]
       set tp "$tp/$sm_cpt_dir"
       if { ([file exists $tp]) && ([file isdirectory $tp]) } {
+        if { $b_int_sm_lib_ref_debug } {
+          puts "(DEBUG) - protected (fallback): $tp"
+        }
         lappend target_paths $tp
       }
     }
@@ -4218,6 +4465,9 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
   lappend target_paths "$cpt_dir/$sm_ext_dir"
 
   set sp_ext_dir "$cpt_dir/$sm_ext_dir"
+  if { $b_int_sm_lib_ref_debug } {
+    puts "(DEBUG) - protected ext path (default): $sp_ext_dir"
+  }
 
   # add ip dir for xsim
   if { "xsim" == $simulator } {
@@ -4383,7 +4633,7 @@ proc xcs_resolve_sim_lib_dir { sim_dir src_lib_dir_arg b_cxl_arg } {
   return $sub_lib_path
 }
 
-proc xcs_resolve_sim_model_dir { lib_path clib_dir cpt_dir ext_dir b_resolved_arg } {
+proc xcs_resolve_sim_model_dir { simulator lib_path clib_dir cpt_dir ext_dir b_resolved_arg b_compile_simmodels context } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4397,6 +4647,28 @@ proc xcs_resolve_sim_model_dir { lib_path clib_dir cpt_dir ext_dir b_resolved_ar
   if { $b_resolved } {
     if {$::tcl_platform(platform) == "unix"} {
       set resolved_path "\$xv_cxl_lib_path/$sub_lib_path"
+      if { $b_compile_simmodels } {
+        switch $simulator {
+          {xsim} {
+            switch $context {
+              "obj" {
+                if { [string match "ip/*" $sub_lib_path] } {
+                  set dirs [split $sub_lib_path {/}]
+                  set sub_lib_path [join [lrange $dirs 1 end] "/"]
+                }
+                set resolved_path "\$xv_cxl_obj_lib_path/$sub_lib_path"
+              }
+              "include" {
+                if { [string match "ip/*" $sub_lib_path] } {
+                  set dirs [split $sub_lib_path {/}]
+                  set sub_lib_path [join [lrange $dirs 1 end] "/"]
+                }
+                set resolved_path "\$xv_cxl_lib_path/$sub_lib_path"
+              }
+            }
+          }
+        }
+      }
     } else {
       set resolved_path "%xv_cxl_lib_path%/$sub_lib_path"
     }
@@ -4491,4 +4763,202 @@ proc xcs_get_pre_compiled_shared_objects { simulator clibs_dir vlnv } {
   }
   
   return $obj_file_paths
+}
+
+proc xcs_find_uvm_library { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set uvm_lib_path {}
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+
+  if { [info exists ::env(RDI_DATADIR)] } {
+    foreach data_dir [split $::env(RDI_DATADIR) $sep] {
+      set path "$data_dir/xsim/system_verilog/uvm"
+      if { [file exists $path] } {
+        set uvm_lib_path $path
+        break;
+      }
+    }
+  } else {
+    send_msg_id SIM-utils-067 WARNING "Failed to get the uvm library path (RDI_DATADIR environment variable is not set).\n"
+  }
+  return $uvm_lib_path
+}
+
+proc xcs_get_gcc_path { simulator sim_product_name simulator_install_path gcc_install_path gcc_path_arg path_type_arg b_int_sm_lib_ref_debug } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  # not required for xsim
+  if { "xsim" == $simulator } {
+    return true
+  }
+
+  upvar $gcc_path_arg gcc_path
+  upvar $path_type_arg path_type
+  set gcc_path      {}
+  set path_type     0
+  set resolved_path {}
+
+  # gcc precedence (switch -> property -> PATH (info))
+
+  # 1. if switch specified, use this path
+  if { [llength $gcc_install_path] > 0 } {
+    if { [xcs_check_gcc_path $gcc_install_path resolved_path] } {
+      set gcc_path $resolved_path
+      set path_type 1
+      return true
+    } else {
+      [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified with the '-gcc_install_path' switch is either invalid or does not exist! '$gcc_install_path'\n"} err]
+      return false
+    }
+  }
+
+  # 2. if property specified, use this path
+  set gcc_prop_dir [get_property -quiet simulator.${simulator}_gcc_install_dir [current_project]]
+  if { [llength $gcc_prop_dir] > 0 } {
+    if { [xcs_check_gcc_path $gcc_prop_dir resolved_path] } {
+      set gcc_path $resolved_path
+      set path_type 2
+      return true
+    } else {
+      [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified for the 'simulator.${simulator}_gcc_install_dir' property is either invalid or does not exist! '$gcc_prop_dir'\n"} err]
+      return false;
+    }
+  }
+
+  # 3. if env specified, use this path
+  if { [info exists ::env(GCC_SIM_EXE_PATH)] } {
+    set gcc_env_dir $::env(GCC_SIM_EXE_PATH)
+    if { [llength $gcc_env_dir] > 0 } {
+      if { [xcs_check_gcc_path $gcc_env_dir resolved_path] } {
+        set gcc_path $resolved_path
+        set path_type 3
+        return true
+      } else {
+        [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified with the 'GCC_SIM_EXE_PATH' path environment variable is either invalid or does not exist! '$gcc_env_dir'\n"} err]
+        return false;
+      }
+    }
+  }
+
+  set tool_extn {.exe}
+  if {$::tcl_platform(platform) == "unix"} {
+    set tool_extn {}
+  }
+  set tool "gcc${tool_extn}"
+
+  # 4. find from simulator install area
+  if { {} != $simulator_install_path } {
+    set sim_root_dir $simulator_install_path
+    set gcc_version  [get_param "simulator.${simulator}.gcc.version"]
+    if { {} != $gcc_version } {
+      switch $simulator {
+        {questa} {
+          # fetch tool install dir
+          if {$::tcl_platform(platform) == "unix"} {
+            set sim_root_dir [file dirname $sim_root_dir]
+            # gcc sub-dir wrt install dir
+            set gcc_sub_dir  "gcc-${gcc_version}-linux_x86_64/bin"
+            set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
+            if { [file exists $gcc_root_dir] } {
+              set gcc_exe_file "$gcc_root_dir/$tool" 
+              if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
+                set gcc_path $gcc_root_dir
+                set path_type 4
+                return true
+              }
+            }
+          }
+        }
+        {xcelium} {
+          # fetch tool install dir
+          set sim_root_dir [file dirname $sim_root_dir]
+          set sim_root_dir [file dirname $sim_root_dir]
+          set sim_root_dir [file dirname $sim_root_dir]
+          # gcc sub-dir wrt install dir
+          set gcc_sub_dir  "tools/cdsgcc/gcc/${gcc_version}/bin"
+          set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
+          if { [file exists $gcc_root_dir] } {
+            set gcc_exe_file "$gcc_root_dir/$tool" 
+            if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
+              set gcc_path $gcc_root_dir
+              set path_type 4
+              return true
+            }
+          }
+        }
+      }
+    }
+  }
+
+  # 5. critical warning (not found from property neither from switch)
+  set sim_ver_param "simulator.${simulator}.version"
+  set sim_ver [get_param $sim_ver_param]
+  send_msg_id SIM-utils-070 "CRITICAL WARNING" "Failed to locate the GNU compiler (g++/gcc) executable path! Please set the path using the -gcc_install_path switch or by setting the simulator.${simulator}_gcc_install_dir project property or by setting the GCC_SIM_EXE_PATH environment variable. Please see 'launch_simulation -help' for more details on setting the path and the recommended GCC version that is applicable for the $sim_product_name $sim_ver simulator version for the current Vivado release.\n"
+ 
+  if { $b_int_sm_lib_ref_debug } {
+    set path_sep {;}
+    if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
+    set gcc_paths [xcs_get_bin_paths $tool $path_sep]
+    if { [llength $gcc_paths] > 0 } {
+      puts "---------------------------------------------------------------------"
+      puts "GCC compiler path(s) currently set with the PATH environment variable"
+      puts "---------------------------------------------------------------------"
+      foreach path $gcc_paths {
+        puts " <GCC PATH> - $path"
+      }
+      puts "---------------------------------------------------------------------"
+    }
+  }
+  return false;
+}
+
+proc xcs_check_gcc_path { path resolved_path_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $resolved_path_arg resolved_path
+
+  set gcc_path $path
+  # setup gcc exe names based on platform
+  set tool_extn {.exe}
+  if {$::tcl_platform(platform) == "unix"} {
+    set tool_extn {}
+  }
+  set gcc_exe_name   "gcc${tool_extn}"
+  set gplus_exe_name "g++${tool_extn}"
+
+  # 1. fix/trim slashes
+  set gcc_path [regsub -all {[\[\]]} $gcc_path {/}];
+  set gcc_path [string trimright $gcc_path {/}]
+
+  # 2. path does not exist
+  if { ![file exists $gcc_path] } {
+    return false
+  }
+
+  # 3. check last element in path - is /install/bin/gcc or /install/bin/g++?
+  set last_element [file tail $gcc_path]
+  if { ($last_element == $gcc_exe_name) || ($last_element == $gplus_exe_name) } {
+    # get parent dir -> /install/bin
+    set gcc_path [file dirname $gcc_path]
+  } else {
+    # /install/bin
+    # add exe name to make sure this is the correct gcc path
+    set exe_path "$gcc_path/$gcc_exe_name"
+    if { ![file exists $exe_path] } {
+      # invalid path - does not point to gcc install dir
+      return false
+    }
+  }
+  set resolved_path $gcc_path
+  return true
 }

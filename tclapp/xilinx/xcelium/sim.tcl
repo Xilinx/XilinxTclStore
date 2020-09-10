@@ -113,9 +113,6 @@ proc usf_xcelium_setup_simulation { args } {
   variable a_sim_vars
 
   ::tclapp::xilinx::xcelium::usf_set_simulator_path "xcelium"
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    send_msg_id USF-Xcelium-44 INFO "Using GNU compiler executables from '$a_sim_vars(s_gcc_bin_path)'\n"
-  }
  
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
@@ -253,6 +250,7 @@ proc usf_xcelium_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
@@ -283,6 +281,7 @@ proc usf_xcelium_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_ide_gui"            { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"        { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_halt_script) 1                        }
       "-int_systemc_mode"       { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_systemc_mode) 1                       }
       "-int_gcc_bin_path"       { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
@@ -536,9 +535,7 @@ proc usf_xcelium_write_compile_script {} {
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        if { {} != $gcc_path } {
-          puts $fh_scr "gcc_path=\"$gcc_path\"\n"
-        }
+        puts $fh_scr "gcc_path=\"$gcc_path\"\n"
       }
       # set system sim library paths
       if { $::tclapp::xilinx::xcelium::a_sim_vars(b_system_sim_design) } { 
@@ -561,59 +558,25 @@ proc usf_xcelium_write_compile_script {} {
 
   xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
 
-  set tool "xmvhdl"
-  set arg_list [list "-messages"]
+  set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+  set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
 
-  if { [get_property "XCELIUM.COMPILE.RELAX" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-relax"]
+  if { $b_contain_vhdl_srcs } {
+    usf_xcelium_write_vhdl_compile_options $fh_scr
   }
 
-  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
-
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-64bit"]
+  if { $b_contain_verilog_srcs } {
+    usf_xcelium_write_verilog_compile_options $fh_scr
   }
-
-  if { [get_property "INCREMENTAL" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-update"]
-  }
-
-  set more_xmvhdl_options [string trim [get_property "XCELIUM.COMPILE.XMVHDL.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_xmvhdl_options } {
-    set arg_list [linsert $arg_list end "$more_xmvhdl_options"]
-  }
-
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
- 
-  set tool "xmvlog"
-  set arg_list [list "-messages" "-logfile" "${tool}.log" "-append_log"]
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-64bit"]
-  }
-
-  if { [get_property "INCREMENTAL" $fs_obj] } {
-    set arg_list [linsert $arg_list end "-update"]
-  }
-
-  set more_xmvlog_options [string trim [get_property "XCELIUM.COMPILE.XMVLOG.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_xmvlog_options } {
-    set arg_list [linsert $arg_list end "$more_xmvlog_options"]
-  }
-
-  puts $fh_scr "\n# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     # xmsc (systemC)
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "xmsc"
       set arg_list [list "-messages"]
-      set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log" "-append_log"]]
+      set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log"]]
+      #lappend arg_list "-append_log"
+
       if { [get_property 32bit $fs_obj] } {
         set arg_list [linsert $arg_list 0 "-32bit"]
       } else {
@@ -640,6 +603,11 @@ proc usf_xcelium_write_compile_script {} {
       lappend xmsc_gcc_opts "-Wno-deprecated"
       lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
       lappend xmsc_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
+
+      # param to bind shared protobuf
+      set b_bind_protobuf false
+      [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
+
       variable l_system_sim_incl_dirs
       set incl_dirs [list]
       set uniq_dirs [list]
@@ -659,13 +627,17 @@ proc usf_xcelium_write_compile_script {} {
       set l_sim_model_incl_dirs [list]
       foreach {key value} [array get a_shared_library_path_coln] {
         set shared_lib_name $key
+        if { ("libprotobuf.so" == $shared_lib_name) && (!$b_bind_protobuf) } {
+          # don't bind shared library but bind static library built with the simmodel itself 
+          continue
+        }
         set lib_path        $value
         set sim_model_incl_dir "$lib_path/include"
         if { [file exists $sim_model_incl_dir] } {
           if { !$a_sim_vars(b_absolute_path) } {
             # relative path
             set b_resolved 0
-            set resolved_path [xcs_resolve_sim_model_dir $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved]
+            set resolved_path [xcs_resolve_sim_model_dir "xcelium" $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved false ""]
             if { $b_resolved } {
               set sim_model_incl_dir $resolved_path
             } else {
@@ -892,9 +864,7 @@ proc usf_xcelium_write_elaborate_script {} {
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        if { {} != $gcc_path } {
-          puts $fh_scr "gcc_path=\"$gcc_path\""
-        }
+        puts $fh_scr "gcc_path=\"$gcc_path\""
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
         usf_xcelium_write_library_search_order $fh_scr 
       }
@@ -1296,7 +1266,10 @@ proc usf_xcelium_write_simulate_script {} {
   if { $::tclapp::xilinx::xcelium::a_sim_vars(b_batch) || $b_scripts_only } {
    # no gui
   } else {
-    set arg_list [linsert $arg_list end "-gui"]
+    # launch_simulation - if called from vivado in gui mode only
+    if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode) } {
+      set arg_list [linsert $arg_list end "-gui"]
+    }
   }
 
   puts $fh_scr "# set ${tool} command line args"
@@ -1568,9 +1541,18 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
 
   variable a_shared_library_path_coln
   variable a_sim_vars
+
+  # param to bind shared protobuf
+  set b_bind_protobuf false
+  [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
+
   puts $fh_scr "# set library search order"
   set l_sm_lib_paths [list]
   foreach {library lib_dir} [array get a_shared_library_path_coln] {
+    if { ("libprotobuf.so" == $library) && (!$b_bind_protobuf) } {
+      # don't bind shared library but bind static library built with the simmodel itself 
+      continue
+    }
     set sm_lib_dir [file normalize $lib_dir]
     set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
     lappend l_sm_lib_paths $sm_lib_dir
@@ -1620,4 +1602,73 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     }
   }
 }
+
+proc usf_xcelium_write_vhdl_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "xmvhdl"
+  set arg_list [list "-messages"]
+
+  if { [get_property "XCELIUM.COMPILE.RELAX" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-relax"]
+  }
+
+  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log"]]
+  #lappend arg_list "-append_log"
+  
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+  
+  if { [get_property "INCREMENTAL" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
+  }
+  
+  set more_xmvhdl_options [string trim [get_property "XCELIUM.COMPILE.XMVHDL.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_xmvhdl_options } {
+    set arg_list [linsert $arg_list end "$more_xmvhdl_options"]
+  }
+  
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_xcelium_write_verilog_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "xmvlog"
+  set arg_list [list "-messages" "-logfile" "${tool}.log"]
+  #lappend arg_list "-append_log"
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+  
+  if { [get_property "INCREMENTAL" $fs_obj] } {
+    set arg_list [linsert $arg_list end "-update"]
+  }
+  
+  set more_xmvlog_options [string trim [get_property "XCELIUM.COMPILE.XMVLOG.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_xmvlog_options } {
+    set arg_list [linsert $arg_list end "$more_xmvlog_options"]
+  }
+  
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
 }

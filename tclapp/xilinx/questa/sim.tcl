@@ -245,8 +245,10 @@ proc usf_questa_setup_args { args } {
   # [-int_sm_lib_dir <arg>]: Simulation model library directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
@@ -275,8 +277,10 @@ proc usf_questa_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_ide_gui"            { set ::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"        { set ::tclapp::xilinx::questa::a_sim_vars(b_int_halt_script) 1                        }
       "-int_systemc_mode"       { set ::tclapp::xilinx::questa::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_gcc_bin_path"       { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
       "-int_sm_lib_dir"         { incr i;set ::tclapp::xilinx::questa::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
       "-int_compile_glbl"       { set ::tclapp::xilinx::questa::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::questa::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
@@ -538,7 +542,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     usf_add_quit_on_error $fh "compile"
   }
  
-  set design_lib_dir "$dir/modelsim_lib" 
+  set design_lib_dir "$dir/questa_lib"
   set lib_dir_path [file normalize [string map {\\ /} $design_lib_dir]]
   if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
     puts $fh "${tool_path_str}vlib $lib_dir_path/work"
@@ -651,10 +655,6 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
 
   puts $fh ""
 
-  set log "compile.log"
-  set redirect_cmd_str "2>&1 | tee -a $log"
-  set redirect_cmd_str ""
-
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
@@ -682,7 +682,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
           puts $fh "$src_file \\"
           set b_redirect true
         } else {
-          puts $fh "$redirect_cmd_str"
+          puts $fh ""
           usf_questa_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
           set b_appended true
         }
@@ -698,7 +698,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
 
   if { $b_group_files } {
     if { (!$b_redirect) || (!$b_appended) } {
-      puts $fh "$redirect_cmd_str"
+      puts $fh ""
     }
   }
 
@@ -848,6 +848,13 @@ proc usf_questa_get_elaboration_cmdline {} {
     }
   }
 
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { $a_sim_vars(b_contain_systemc_sources) } {
+      set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+      lappend arg_list "-cpppath $gcc_path"
+    }
+  }
+
   set acc_val {}
   set acc [get_property "QUESTA.ELABORATE.ACC" $fs_obj]
   if { {None} == $acc } {
@@ -870,7 +877,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $::tclapp::xilinx::questa::a_sim_vars(l_design_files)
-  set design_libs [usf_questa_get_design_libs $design_files]
+  set design_libs [usf_questa_get_design_libs $design_files 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -962,6 +969,17 @@ proc usf_questa_get_elaboration_cmdline {} {
     # pass xpm library reference for behavioral simulation only
     if { {behav_sim} == $sim_flow } {
       set arg_list [linsert $arg_list end "-L" "xpm"]
+    }
+  }
+
+  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
+    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+      if { {functional} == $a_sim_vars(s_type) } {
+        set hbm_ip_obj [xcs_find_ip "hbm"]
+        if { {} != $hbm_ip_obj } {
+          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_8"]
+        }
+      }
     }
   }
 
@@ -1278,6 +1296,11 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     if { [get_param "simulator.quitOnSimulationComplete"] } {
       puts $fh "\nquit -force"
     }
+  } else {
+    # launch_simulation - if called from vivado in batch or Tcl mode, quit
+    if { !$::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) } {
+      puts $fh "\nquit -force"
+    }
   }
   close $fh
 }
@@ -1327,8 +1350,16 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   }
 
   set batch_sw {-c}
-  if { ({simulate} == $step) && (!$b_batch) && (!$b_scripts_only) } {
-    set batch_sw {}
+  if { ({simulate} == $step) } {
+    # launch_simulation
+    if { (!$b_batch) && (!$b_scripts_only) } {
+      # launch_simulation - if called from vivado in batch or Tcl mode, run in command mode
+      if { !$::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) } {
+        set batch_sw {-c}
+      } else {
+        set batch_sw {}
+      }
+    }
   }
 
   set s_64bit {}
@@ -1381,30 +1412,48 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             set lib_dir "$lib_path"
             lappend shared_ip_libs $lib_dir
           }
- 
-          set ip_objs [get_ips -all -quiet]
-          foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] { 
-            foreach ip_obj $ip_objs {
-              set ipdef [get_property -quiet IPDEF $ip_obj]
-              set ip_name [lindex [split $ipdef ":"] 2]
-              if { [string first $ip_name $shared_ip_lib] != -1} {
-                set lib_dir "$a_sim_vars(s_clibs_dir)/$shared_ip_lib"
-                lappend shared_ip_libs $lib_dir
+
+          # bind IP static librarries
+          set sh_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+          set uniq_shared_libs    [list]
+          set shared_libs_to_link [list]
+          foreach ip_obj [get_ips -all -quiet] {
+            set ipdef [get_property -quiet IPDEF $ip_obj]
+            set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+            set ssm_type [get_property -quiet selected_sim_model $ip_obj]
+            if { [lsearch $sh_ip_libs $vlnv_name] != -1 } {
+              if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+                if { ("tlm" == $ssm_type) } {
+                  # bind systemC library
+                  lappend shared_libs_to_link $vlnv_name
+                  lappend uniq_shared_libs $vlnv_name
+                } else {
+                  # rtl, tlm_dpi (no binding)
+                }
               }
             }
           }
-
+          foreach vlnv_name $shared_libs_to_link {
+            set lib_dir "$a_sim_vars(s_clibs_dir)/$vlnv_name"
+            lappend shared_ip_libs $lib_dir 
+          }
+ 
           # bind vivado library $XILINX_VIVADO/lib/<os>.o (for AIE)
-          if { {} != $aie_ip_obj } {
-            # path to XILINX_VIVADO
-            set xv_dir [file dirname $data_dir]
-            # set OS sub-dir type
-            set os_dir "lnx64.o"
-            if {$::tcl_platform(platform) == "windows"} {
-              set os_dir "win64.o"
+          set b_bind_vivado_util_libs false
+          [catch {set b_bind_vivado_util_libs [get_param "project.bindVivadoUtilSharedLibForSystemSim"]} err]
+          if { $b_bind_vivado_util_libs } { 
+            set xdma_ip_obj [xcs_find_ip "sim_xdma"]
+            if { ({} != $aie_ip_obj) || ({} != $xdma_ip_obj) } {
+              # path to XILINX_VIVADO
+              set xv_dir [file dirname $data_dir]
+              # set OS sub-dir type
+              set os_dir "lnx64.o"
+              if {$::tcl_platform(platform) == "windows"} {
+                set os_dir "win64.o"
+              }
+              # set library dir '$XILINX_VIVADO/lib/lnx64.o'
+              lappend shared_ip_libs "${xv_dir}/lib/${os_dir}"
             }
-            # set library dir '$XILINX_VIVADO/lib/lnx64.o'
-            lappend shared_ip_libs "${xv_dir}/lib/${os_dir}"
           }
 
           if { [llength $shared_ip_libs] > 0 } {
@@ -1474,25 +1523,48 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       xcs_write_exit_code $fh_scr
     }
 
+    set b_append_log false
     if { ({elaborate} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
       # write sccom cmd line
       set args [usf_questa_get_sccom_cmd_args]
       if { [llength $args] > 0 } {
         set sccom_cmd_str [join $args " "]
         puts $fh_scr "\$bin_path/sccom $sccom_cmd_str 2>&1 | tee $log_filename"
+        set b_append_log true
         xcs_write_exit_code $fh_scr
       }
     }
  
-    if { (({compile} == $step) || ({elaborate} == $step)) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      puts $fh_scr "source $do_filename 2>&1 | tee -a $log_filename"
+    if { ({compile} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+      puts $fh_scr "source $do_filename 2>&1 | tee $log_filename"
+      xcs_write_exit_code $fh_scr
+    } elseif { ({elaborate} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+      set append_sw " "
+      if { $b_append_log } { set append_sw " -a " }
+      puts $fh_scr "source $do_filename 2>&1 | tee${append_sw}${log_filename}"
       xcs_write_exit_code $fh_scr
     } else {
+      # simulate step
+      set gcc_cmd {}
+      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+        set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+        set gcc_cmd "-cpppath $gcc_path"
+      }
       if { {} != $tool_path } {
-        puts $fh_scr "\$bin_path/vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        set s_cmd "\$bin_path/vsim $s_64bit"
+        if { {} != $gcc_cmd } {
+          append s_cmd " $gcc_cmd "
+        }
+        append s_cmd " $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        puts $fh_scr $s_cmd
         xcs_write_exit_code $fh_scr
       } else {
-        puts $fh_scr "vsim $s_64bit $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        set s_cmd "vsim $s_64bit"
+        if { {} != $gcc_cmd } {
+          append s_cmd " $gcc_cmd "
+        }
+        append s_cmd " $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        puts $fh_scr $s_cmd
         xcs_write_exit_code $fh_scr
       }
     }
@@ -1591,7 +1663,16 @@ proc usf_questa_get_sccom_cmd_args {} {
           }
         }
       }
+      set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+      lappend args "-cpppath $gcc_path"
       lappend args "-link"
+
+      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+        set ip_obj [xcs_find_ip "ai_engine"]
+        if { {} != $ip_obj } {
+          lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
+        }
+      }
   
       set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
       if { {} != $more_opts } {
@@ -1615,31 +1696,43 @@ proc usf_questa_get_sccom_cmd_args {} {
       }
   
       lappend args "-lib $a_sim_vars(default_top_library)"
-      set ip_objs [get_ips -all -quiet]
-      foreach shared_ip_lib [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)] {
-        foreach ip_obj $ip_objs {
-          set ipdef [get_property -quiet IPDEF $ip_obj]
-          set ip_name [lindex [split $ipdef ":"] 2]
-          if { [string first $ip_name $shared_ip_lib] != -1} {
-            # TODO: need to determine the type of IP library and then reference the library
-            #       accordingly, similar to sim-models (xcs_is_c_library/xcs_is_cpp_library)
-            #       Pass -lib for now.
-            lappend args "-lib ${shared_ip_lib}"
+      # bind IP static librarries
+      set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+      set uniq_shared_libs    [list]
+      set shared_libs_to_link [list]
+      foreach ip_obj [get_ips -all -quiet] {
+        set ipdef [get_property -quiet IPDEF $ip_obj]
+        set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+        set ssm_type [get_property -quiet selected_sim_model $ip_obj]
+        if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+          if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+            if { ("tlm" == $ssm_type) } {
+              # bind systemC library
+              lappend shared_libs_to_link $vlnv_name
+              lappend uniq_shared_libs $vlnv_name
+            } else {
+              # rtl, tlm_dpi (no binding)
+            }
           }
         }
       }
+      foreach vlnv_name $shared_libs_to_link {
+        lappend args "-lib $vlnv_name"
+      }
+
       lappend args "-work $a_sim_vars(default_top_library)"
     }
   }
   return $args
 }
 
-proc usf_questa_get_design_libs { files } {
+proc usf_questa_get_design_libs { files {b_realign_default_lib 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   set libs [list]
+  set b_contains_default_lib 0
   foreach file $files {
     set fargs     [split $file {|}]
     set type      [lindex $fargs 0]
@@ -1648,8 +1741,19 @@ proc usf_questa_get_design_libs { files } {
     if { {} == $library } {
       continue;
     }
+    if { $b_realign_default_lib } {
+      if { {xil_defaultlib} == $library } {
+        set b_contains_default_lib 1
+        continue;
+      }
+    }
     if { [lsearch -exact $libs $library] == -1 } {
       lappend libs $library
+    }
+  }
+  if { $b_realign_default_lib } {
+    if { $b_contains_default_lib } {
+      set libs [linsert $libs 0 "xil_defaultlib"]
     }
   }
   return $libs

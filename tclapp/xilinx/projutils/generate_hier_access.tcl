@@ -38,10 +38,9 @@ proc hbs_init_vars {} {
 }
 
 proc generate_hier_access {args} {
-  # Summary:
-  # Generate sources for hierarchical access simulation
+  # Summary: Generate sources for hierarchical access simulation
+  
   # Argument Usage: 
-  #
   # [-bypass <arg> = xil_dut_bypass]: Hierarchical access module name
   # [-driver <arg> = xil_bypass_driver]: Signal driver template module name
   # [-directory <arg> = current working directory]: Output directory for the generated sources
@@ -51,6 +50,7 @@ proc generate_hier_access {args} {
 
   # Return Value:
   # None
+  
   # Categories: simulation, xilinxtclstore
   
   variable a_hbs_vars
@@ -771,6 +771,7 @@ proc hbs_extract_hier_paths_from_simulator_log {} {
     set index [string first {XIL_PORT_SPEC} $line]
     set line_str [string range $line 0 $index-1]
     set hier_path [lindex [split $line_str {:}] 1]
+
     # set the testbench top name
     set a_hbs_vars(user_design_testbench) [lindex [split $hier_path {.}] 0]
     set port_spec_str [string range $line $index+14 end]
