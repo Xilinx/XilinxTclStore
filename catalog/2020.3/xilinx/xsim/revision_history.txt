@@ -1,3 +1,4 @@
+2.340 merged contents from 2020.2
 2.339 donot bind DPI-C shared library if param is false
 2.338 do not bind systemC pre-compiled IP library when selected sim-model is tlm-dpi
 2.336 replace protected simmodel path set by param

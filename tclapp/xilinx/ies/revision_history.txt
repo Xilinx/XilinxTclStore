@@ -1,3 +1,4 @@
+4.58 merged contents from 2020.2
 4.57 replace protected simmodel path set by param
 4.56 find sv verilog static sources from IP repo root level core
 4.55 fetch IP xml sources from ip_output_dir
