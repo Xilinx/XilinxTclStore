@@ -1190,7 +1190,15 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
     if {$::tcl_platform(platform) == "unix"} {
       # wait for jobs to finish
       puts $fh_scr "echo \"Waiting for jobs to finish...\""
-      puts $fh_scr "wait" 
+      if { $b_contain_sc_srcs } {
+        puts $fh_scr "wait \$XSC_SYSC_PID"
+      }
+      if { $a_sim_vars(b_contain_cpp_sources) } {
+        puts $fh_scr "wait \$XSC_CPP_PID"
+      }
+      if { $a_sim_vars(b_contain_c_sources) } {
+        puts $fh_scr "wait \$XSC_C_PID"
+      }
       puts $fh_scr "echo \"No pending jobs, compilation finished.\""
     }
 
@@ -3688,6 +3696,7 @@ proc usf_xsim_write_systemc_prj { b_contain_sc_srcs b_is_pure_systemc fh_scr } {
             append full_cmd " &"
           }
           puts $fh_scr "$full_cmd"
+          puts $fh_scr "XSC_SYSC_PID=\$!"
           xcs_write_exit_code $fh_scr
         } else {
           puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
@@ -3786,6 +3795,7 @@ proc usf_xsim_write_cpp_prj { b_is_pure_cpp fh_scr } {
             append full_cmd " &"
           }
           puts $fh_scr "$full_cmd"
+          puts $fh_scr "XSC_CPP_PID=\$!"
           xcs_write_exit_code $fh_scr
         } else {
           puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
@@ -3884,6 +3894,7 @@ proc usf_xsim_write_c_prj { b_is_pure_c fh_scr } {
             append full_cmd " &"
           }
           puts $fh_scr "$full_cmd"
+          puts $fh_scr "XSC_C_PID=\$!"
           xcs_write_exit_code $fh_scr
         } else {
           puts $fh_scr "call xsc $s_dbg_sw $xsc_cmd_str 2> xsc_err.log"
