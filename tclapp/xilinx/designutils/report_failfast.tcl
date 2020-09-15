@@ -5,6 +5,15 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2020.09.09 - Suppressed details from the nets summary tables for DONT_TOUCH/MARK_DEBUG
+##              when there are too many nets
+## 2020.08.28 - Added support for metrics LUT4/5/6 and LUT5/6
+##              Disabled by default. Enabled through config file
+##            - Added support for top-level rent metric (report_design_analysis)
+##              Disabled by default. Enabled through config file
+##            - Added support for -rent/-no_rent/-rda
+##            - Added support for environment variable FAILFAST_CONFIG to point to a config file
+## 2020.08.17 - Improved support for multiple Vivado patches applied at the same time
 ## 2020.07.31 - Improved support for multiple Vivado patches applied at the same time
 ## 2020.07.12 - Improved support for special Vivado branches
 ## 2020.06.29 - Improved handling when the architecture is not supported (LUT/Net budgeting)
@@ -215,6 +224,8 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-no_mark_debug]: Skip MARK_DEBUG check
   # [-no_hfn]: Skip Non-FD high fanout nets metric
   # [-no_control_sets]: Skip control sets metric
+  # [-rent]: Force rent metric (when not enabled inside the config file)
+  # [-no_rent]: Skip rent metric (when enabled inside the config file)
   # [-max_paths <arg>]: max number of paths per clock group for LUT/Net budgeting. Default is 100
   # [-post_ooc_synth]: Post OOC Synthesis - only run LUT/Net budgeting
   # [-ignore_pr]: Disable auto-detection of Partial Reconfigurable designs
@@ -367,7 +378,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2020.07.31}
+  variable version {2020.09.09}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -377,7 +388,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   variable guidelines
   variable data
   variable dbgtbl
-  array set params [list failed 0 format {table} max_paths 100 show_resources 0 transpose 0 verbose 0 debug 0 debug_level 1 vivado_version [version -short] ]
+  array set params [list failed 0 format {table} max_paths 100 max_dont_touch 2000 max_mark_debug 2000 show_resources 0 transpose 0 verbose 0 debug 0 debug_level 1 vivado_version [version -short] ]
 #   catch { unset reports }
   array set reports [list]
   catch { unset metrics }
@@ -426,11 +437,15 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(transpose) 0
   set params(show_resources) 0
   set params(max_paths) 100
+  set params(max_dont_touch) 2000
+  set params(max_mark_debug) 2000
 #   set params(vivado_version) [version -short]
   # Remove from the Vivado version any letter that would fail 'package vcompare' + remove reference to
   # any patched version (_ARxxxxx) or special branches (2020.2_SAM)
+  # Other alternatives seen in the field: v2020.1_(AR75369_AR75386)
 #   set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_AR[0-9]+$} [version -short] {}] {0}]
-  set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {(_AR[0-9]+)} [version -short] {}] {}] {0}]
+#   set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {(_AR[0-9]+)} [version -short] {}] {}] {0}]
+  set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {([_\(\)]*AR[0-9\(\)]+)} [version -short] {}] {}] {0}]
   set pid {tmp}
   catch { set pid [pid] }
   set filename {}
@@ -446,6 +461,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set optionPblock 0
   set optionRegion 0
   set optionSlr 0
+  set optionRent 0
   # For Partial Reconfigurable designs: both the cell and pblock must be specified
   set prDetect 1
   set prCell {}
@@ -461,6 +477,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set extractUtilizationFromSLRTable 0
   set reportUtilizationFile {}
   set reportControlSetsFile {}
+  set reportDesignAnalysisFile {}
   set reportBySLR 0
 # dpefour
 set reportBySLRNew 0
@@ -573,11 +590,20 @@ set reportBySLRNew 0
         # Hidden command line option
         lappend skipChecks {utilization}
       }
+      {^-no_rent$} -
+      {^-no_r(e(nt?)?)?$} {
+        lappend skipChecks {rent}
+      }
+      {^-rent$} -
+      {^-re(nt?)?$} {
+        # Force the rent metric if not included in the config file
+        set optionRent 1
+      }
       {^-post_ooc_synth$} -
       {^-path_budgeting_only$} -
       {^-po(s(t(_(o(o(c(_(s(y(n(th?)?)?)?)?)?)?)?)?)?)?)?$} -
       {^-pa(t(h(_(b(u(d(g(e(t(i(n(g(_(o(n(ly?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} {
-        set skipChecks [concat $skipChecks {utilization dont_touch mark_debug control_sets non_fd_hfn average_fanout methodology_check}]
+        set skipChecks [concat $skipChecks {utilization dont_touch mark_debug control_sets non_fd_hfn average_fanout methodology_check rent}]
       }
       {^-cell$} -
       {^-ce(ll?)?$} {
@@ -682,6 +708,10 @@ set reportBySLRNew 0
       {^--report_control_sets$} {
         set reportControlSetsFile [lshift args]
       }
+      {^--rda$} -
+      {^--report_design_analysis$} {
+        set reportDesignAnalysisFile [lshift args]
+      }
       {^-verbose$} -
       {^-v(e(r(b(o(se?)?)?)?)?)?$} {
         set params(verbose) 1
@@ -725,6 +755,18 @@ set reportBySLRNew 0
       {^--v(i(v(a(d(o(-(v(e(r(s(i(on?)?)?)?)?)?)?)?)?)?)?)?)?$} {
         set params(vivado_version) [lshift args]
       }
+      {^--debug-max-dont-touch?$} -
+      {^--debug-max-d(o(n(t(-(t(o(u(ch?)?)?)?)?)?)?)?)?$} -
+      {^--max-dont-touch?$} -
+      {^--max-d(o(n(t(-(t(o(u(ch?)?)?)?)?)?)?)?)?$} {
+        set params(max_dont_touch) [lshift args]
+      }
+      {^--debug-max-mark-debug?$} -
+      {^--debug-max-m(a(r(k(-(d(e(b(ug?)?)?)?)?)?)?)?)?$} -
+      {^--max-mark-debug?$} -
+      {^--max-m(a(r(k(-(d(e(b(ug?)?)?)?)?)?)?)?)?$} {
+        set params(max_mark_debug) [lshift args]
+      }
       {^-help$} -
       {^-h(e(lp?)?)?$} {
         set help 1
@@ -766,6 +808,7 @@ set reportBySLRNew 0
               [-no_dont_touch]
               [-no_mark_debug]
               [-no_control_sets]
+              [-rent][-no_rent]
               [-post_ooc_synth]
               [-ignore_pr]
               [-exclude_cell <cell>]
@@ -802,6 +845,9 @@ set reportBySLRNew 0
     Use -no_dont_touch to prevent calculation of DONT_TOUCH metric
     Use -no_mark_debug to prevent calculation of MARK_DEBUG metric
     Use -no_control_sets to prevent extraction of control sets metric
+    Use -rent to force the extraction of rent metric (when not enabled in config file)
+      Rent is extracted through report_timing_summary and can require very long runtime
+    Use -no_rent to prevent extraction of rent metric (when enabled in config file)
     Use -ignore_pr to prevent auto detection of Partial Reconfigurable designs and always runs the analysis from top-level
     Use -show_resources to report the detailed number of used and available resources in the summary table
     Use -show_not_found to report metrics that have not been extracted (hidden by default)
@@ -1181,8 +1227,29 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
     importReport report_control_sets $reportControlSetsFile
   }
 
+  if {$reportDesignAnalysisFile != {}} {
+    importReport report_design_analysis $reportDesignAnalysisFile
+  }
+
   # Reset internal data structures
   reset
+
+  # Force the rent metric if not included in the config file
+  if {$optionRent} {
+    # Threshold (PASS) for top-level rent
+    set guidelines(design.rent) {<=0.85}
+  }
+
+  if {($userConfigFilename == {}) && [info exists ::env(FAILFAST_CONFIG)] && ($::env(FAILFAST_CONFIG) != {})} {
+    if {[file exists $::env(FAILFAST_CONFIG)]} {
+      set userConfigFilename $::env(FAILFAST_CONFIG)
+      if {$params(verbose)} {
+        puts " -I- found config file '$::env(FAILFAST_CONFIG)' (FAILFAST_CONFIG)"
+      }
+    } else {
+      puts " -W- config file '$::env(FAILFAST_CONFIG)' does not exists (FAILFAST_CONFIG)"
+    }
+  }
 
   if {$userConfigFilename != {}} {
     # Read the user config file
@@ -1300,6 +1367,22 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       addMetric {design.part.speed.id}          {Speed ID}
       addMetric {design.part.speed.date}        {Speed date}
 #       addMetric {design.nets}                   {Number of nets}
+      addMetric {design.cells.lut1}             {Number of LUT1 cells}
+      addMetric {design.cells.lut1.pct}         {Number of LUT1 cells (%)}
+      addMetric {design.cells.lut2}             {Number of LUT2 cells}
+      addMetric {design.cells.lut2.pct}         {Number of LUT2 cells (%)}
+      addMetric {design.cells.lut3}             {Number of LUT3 cells}
+      addMetric {design.cells.lut3.pct}         {Number of LUT3 cells (%)}
+      addMetric {design.cells.lut4}             {Number of LUT4 cells}
+      addMetric {design.cells.lut4.pct}         {Number of LUT4 cells (%)}
+      addMetric {design.cells.lut5}             {Number of LUT5 cells}
+      addMetric {design.cells.lut5.pct}         {Number of LUT5 cells (%)}
+      addMetric {design.cells.lut6}             {Number of LUT6 cells}
+      addMetric {design.cells.lut6.pct}         {Number of LUT6 cells (%)}
+      addMetric {design.cells.lut56}            {Number of LUT5/LUT6 cells}
+      addMetric {design.cells.lut56.pct}        {Number of LUT5/LUT6 cells (%)}
+      addMetric {design.cells.lut456}           {Number of LUT4/LUT5/LUT6 cells}
+      addMetric {design.cells.lut456.pct}       {Number of LUT4/LUT5/LUT6 cells (%)}
       addMetric {design.cells.hlutnm}           {Number of HLUTNM cells}
       addMetric {design.cells.hlutnm.pct}       {Number of HLUTNM cells (%)}
       addMetric {design.ports}                  {Number of ports}
@@ -1322,6 +1405,32 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       set luts [filter -quiet $leafCells {REF_NAME =~ LUT*}]
       # Versal: filter out the LUTCY* cells
       set luts [filter -quiet $luts {REF_NAME !~ LUTCY*}]
+
+      set lut1 [llength [filter -quiet $luts {REF_NAME == LUT1}] ]
+      set lut2 [llength [filter -quiet $luts {REF_NAME == LUT2}] ]
+      set lut3 [llength [filter -quiet $luts {REF_NAME == LUT3}] ]
+      set lut4 [llength [filter -quiet $luts {REF_NAME == LUT4}] ]
+      set lut5 [llength [filter -quiet $luts {REF_NAME == LUT5}] ]
+      set lut6 [llength [filter -quiet $luts {REF_NAME == LUT6}] ]
+      set lut456 [expr $lut4 + $lut5 + $lut6]
+      set lut56 [expr $lut5 + $lut6]
+      setMetric {design.cells.lut1} $lut1
+      setMetric {design.cells.lut2} $lut2
+      setMetric {design.cells.lut3} $lut3
+      setMetric {design.cells.lut4} $lut4
+      setMetric {design.cells.lut5} $lut5
+      setMetric {design.cells.lut6} $lut6
+      setMetric {design.cells.lut456} $lut456
+      setMetric {design.cells.lut56} $lut56
+      # Percent of each LUT type in the total number of LUTs
+      foreach el {lut1 lut2 lut3 lut4 lut5 lut6 lut456 lut56} {
+        if {[llength $luts] != 0} {
+          setMetric "design.cells.${el}.pct" [format {%.2f} [expr {100.0 * double([subst $$el]) / double([llength $luts])}] ]
+        } else {
+          setMetric "design.cells.${el}.pct" {n/a}
+        }
+      }
+
       set hlutnm [filter -quiet $luts {SOFT_HLUTNM != "" || HLUTNM != ""}]
       setMetric {design.cells.hlutnm} [llength $hlutnm]
       # Calculate the percent of HLUTNM over the total number of LUT
@@ -1423,7 +1532,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         }
       }
       # Filter out the power/ground nets and use the top-level net names to avoid redundancies
-      set dontTouchNets [get_nets -quiet -segments -top_net_of_hierarchical_group [filter -quiet $dontTouchNets {TYPE!=GROUND && TYPE!= POWER}]]
+#       set dontTouchNets [get_nets -quiet -segments -top_net_of_hierarchical_group [filter -quiet $dontTouchNets {TYPE!=GROUND && TYPE!= POWER}]]
+      set dontTouchNets [get_nets -quiet -segments -top_net_of_hierarchical_group [filter -quiet $dontTouchNets {FLAT_PIN_COUNT>=2 && TYPE!=GROUND && TYPE!= POWER}]]
       set numDontTouch [expr [llength $dontTouchNets] + [llength $dontTouchHierCells] + [llength $dontTouchLeafCells] ]
       setMetric {design.dont_touch} $numDontTouch
 
@@ -1465,35 +1575,46 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           $tbl header [list {Net} {Fanout} {Driver Pin} {Load Pins}]
         }
         set dontTouchNets [lsort -dictionary $dontTouchNets]
-        foreach net $dontTouchNets prop [get_property -quiet FLAT_PIN_COUNT $dontTouchNets] {
-          set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
-          set loads [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==IN}]
-          catch {unset tmp}
-          # Column "Load Pins" should report a distribution of the load pins:
-          # E.g: FDCE/C (204730) FDPE/C (26) FDRE/C (130873) FDSE/C (5218) HARD_SYNC/CLK (1) RAMB36E2/CLKARDCLK (196)
-          set uniqueLoads [list]
-          foreach pin $loads \
-                  refname [get_property -quiet REF_NAME $loads] \
-                  refpinname [get_property -quiet REF_PIN_NAME $loads] {
-            incr tmp([format {%s/%s} $refname $refpinname])
-          }
-          foreach el [lsort -dictionary [array names tmp]] {
-            lappend uniqueLoads [format {%s (%s)} $el $tmp($el)]
-          }
-          set uniqueLoads [join $uniqueLoads { }]
-          if {$showSlackInsideDetailedReports} {
+        if {[llength $dontTouchNets] <= $params(max_dont_touch)} {
+          foreach net $dontTouchNets prop [get_property -quiet FLAT_PIN_COUNT $dontTouchNets] {
             set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
-            set slack [get_property -quiet SETUP_SLACK $driver]
-            if {$slack == {}} { set slack {N/A} }
-            $tbl addrow [list $net [expr $prop -1] $slack [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
-          } else {
-            $tbl addrow [list $net [expr $prop -1]        [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
+            set loads [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==IN}]
+            catch {unset tmp}
+            # Column "Load Pins" should report a distribution of the load pins:
+            # E.g: FDCE/C (204730) FDPE/C (26) FDRE/C (130873) FDSE/C (5218) HARD_SYNC/CLK (1) RAMB36E2/CLKARDCLK (196)
+            set uniqueLoads [list]
+            foreach pin $loads \
+                    refname [get_property -quiet REF_NAME $loads] \
+                    refpinname [get_property -quiet REF_PIN_NAME $loads] {
+              incr tmp([format {%s/%s} $refname $refpinname])
+            }
+            foreach el [lsort -dictionary [array names tmp]] {
+              lappend uniqueLoads [format {%s (%s)} $el $tmp($el)]
+            }
+            set uniqueLoads [join $uniqueLoads { }]
+            if {$showSlackInsideDetailedReports} {
+              set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
+              set slack [get_property -quiet SETUP_SLACK $driver]
+              if {$slack == {}} { set slack {N/A} }
+              $tbl addrow [list $net [expr $prop -1] $slack [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
+            } else {
+              $tbl addrow [list $net [expr $prop -1]        [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
+            }
+            set empty 0
           }
-          set empty 0
+          # Sort the list of nets, higest fanout first
+          if {!$empty} { $tbl sort -Fanout +Net }
+          puts $FH [$tbl print]
+        } else {
+          # When there are too many nets, just generate a simple table
+          $tbl header [list {Net} ]
+          foreach el [lsort $dontTouchNets] {
+            $tbl addrow [list $el]
+            set empty 0
+          }
+          puts $FH [$tbl print]
+          puts $FH " -W- More than $params(max_dont_touch) nets have the property DONT_TOUCH=1. For runtime reduction, the net details are not reported in the above table"
         }
-        # Sort the list of nets, higest fanout first
-        if {!$empty} { $tbl sort -Fanout +Net }
-        puts $FH [$tbl print]
         catch {$tbl destroy}
         close $FH
         if {$empty} {
@@ -1587,34 +1708,45 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         } else {
           $tbl header [list {Net} {Fanout} {Driver Pin} {Load Pins}]
         }
-        foreach net $markDebugNets prop [get_property -quiet FLAT_PIN_COUNT $markDebugNets] {
-          set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
-          set loads [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==IN}]
-          catch {unset tmp}
-          # Column "Load Pins" should report a distribution of the load pins:
-          # E.g: FDCE/C (204730) FDPE/C (26) FDRE/C (130873) FDSE/C (5218) HARD_SYNC/CLK (1) RAMB36E2/CLKARDCLK (196)
-          set uniqueLoads [list]
-          foreach pin $loads \
-                  refname [get_property -quiet REF_NAME $loads] \
-                  refpinname [get_property -quiet REF_PIN_NAME $loads] {
-            incr tmp([format {%s/%s} $refname $refpinname])
+        if {[llength $markDebugNets] <= $params(max_mark_debug)} {
+          foreach net $markDebugNets prop [get_property -quiet FLAT_PIN_COUNT $markDebugNets] {
+            set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
+            set loads [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==IN}]
+            catch {unset tmp}
+            # Column "Load Pins" should report a distribution of the load pins:
+            # E.g: FDCE/C (204730) FDPE/C (26) FDRE/C (130873) FDSE/C (5218) HARD_SYNC/CLK (1) RAMB36E2/CLKARDCLK (196)
+            set uniqueLoads [list]
+            foreach pin $loads \
+                    refname [get_property -quiet REF_NAME $loads] \
+                    refpinname [get_property -quiet REF_PIN_NAME $loads] {
+              incr tmp([format {%s/%s} $refname $refpinname])
+            }
+            foreach el [lsort -dictionary [array names tmp]] {
+              lappend uniqueLoads [format {%s (%s)} $el $tmp($el)]
+            }
+            set uniqueLoads [join $uniqueLoads { }]
+            if {$showSlackInsideDetailedReports} {
+              set slack [get_property -quiet SETUP_SLACK $driver]
+              if {$slack == {}} { set slack {N/A} }
+              $tbl addrow [list $net [expr $prop -1] $slack [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
+            } else {
+              $tbl addrow [list $net [expr $prop -1]        [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
+            }
+            set empty 0
           }
-          foreach el [lsort -dictionary [array names tmp]] {
-            lappend uniqueLoads [format {%s (%s)} $el $tmp($el)]
+          # Sort the list of nets, higest fanout first
+          if {!$empty} { $tbl sort -Fanout +Net }
+          puts $FH [$tbl print]
+        } else {
+          # When there are too many nets, just generate a simple table
+          $tbl header [list {Net} ]
+          foreach el [lsort $markDebugNets] {
+            $tbl addrow [list $el]
+            set empty 0
           }
-          set uniqueLoads [join $uniqueLoads { }]
-          if {$showSlackInsideDetailedReports} {
-            set slack [get_property -quiet SETUP_SLACK $driver]
-            if {$slack == {}} { set slack {N/A} }
-            $tbl addrow [list $net [expr $prop -1] $slack [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
-          } else {
-            $tbl addrow [list $net [expr $prop -1]        [format {%s/%s} [get_property -quiet REF_NAME $driver] [get_property -quiet REF_PIN_NAME $driver]] $uniqueLoads ]
-          }
-          set empty 0
+          puts $FH [$tbl print]
+          puts $FH " -W- More than $params(max_mark_debug) nets have the property MARK_DEBUG=1. For runtime reduction, the net details are not reported in the above table"
         }
-        # Sort the list of nets, higest fanout first
-        if {!$empty} { $tbl sort -Fanout +Net }
-        puts $FH [$tbl print]
         catch {$tbl destroy}
         close $FH
         if {$empty} {
@@ -3246,6 +3378,71 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 
     ########################################################################################
     ##
+    ## Rent metric
+    ##
+    ########################################################################################
+
+    if {1 && ([llength [array names guidelines design.rent]] == 1) && ([lsearch $skipChecks {rent}] == -1)} {
+      set stepStartTime [clock seconds]
+      addMetric {design.rent}   "Top-level rent"
+
+      switch $reportMode {
+        pblockAndTop {
+        }
+        pblockAndCell {
+        }
+        pblockOnly {
+          # NOT SUPPORTED
+        }
+        regionAndTop {
+        }
+        regionAndCell {
+        }
+        regionOnly {
+          # NOT SUPPORTED
+        }
+        slrAndTop {
+        }
+        slrAndCell {
+        }
+        slrOnly {
+          # NOT SUPPORTED
+        }
+        default {
+        }
+      }
+
+      set report [getReport report_design_analysis -quiet -complexity -hierarchical_depth 0 -return_string]
+
+      set tbl [extractTables $report]
+      if {[llength $tbl] == 1} {
+        # There should be only 1 table:
+        #   +---------------+------------------------+------+----------------+-----------------+-----------+-----------+------------+-----------+-----------+-----------+------------+------------+-----+------+------+------+
+        #   | Instance      | Module                 | Rent | Average Fanout | Total Instances | Registers | LUT1      | LUT2       | LUT3      | LUT4      | LUT5      | LUT6       | Memory LUT | DSP | RAMB | MUXF | URAM |
+        #   +---------------+------------------------+------+----------------+-----------------+-----------+-----------+------------+-----------+-----------+-----------+------------+------------+-----+------+------+------+
+        #   | (top)         | my_ip_exdes            | 0.77 | 1.37           | 5971            | 5094      | 51(7.2%)  | 201(28.6%) | 60(8.5%)  | 69(9.8%)  | 65(9.2%)  | 258(36.6%) | 128        | 0   | 0    | 0    | 0    |
+        #   | DUT           | my_ip                  | 0.98 | 1.21           | 3830            | 3608      | 34(17.4%) | 38(19.5%)  | 36(18.5%) | 25(12.8%) | 22(11.3%) | 40(20.5%)  | 0          | 0   | 0    | 0    | 0    |
+        #   | i_pkt_gen_mon | my_ip_lbus_pkt_gen_mon | 0.18 | 1.82           | 2130            | 1486      | 17(3.3%)  | 163(32.0%) | 24(4.7%)  | 44(8.6%)  | 43(8.4%)  | 218(42.8%) | 128        | 0   | 0    | 0    | 0    |
+        #   +---------------+------------------------+------+----------------+-----------------+-----------+-----------+------------+-----------+-----------+-----------+------------+------------+-----+------+------+------+
+        set header [$tbl header]
+        set idx [lsearch -nocase $header {Rent}]
+        if {$idx != -1} {
+          set rent [lindex [lsort -real -decreasing [$tbl getcolumns $idx]] 0]
+        } else {
+          set rent {n/a}
+        }
+
+      } else {
+        set rent {n/a}
+      }
+
+      setMetric {design.rent}  $rent
+      set stepStopTime [clock seconds]
+      puts " -I- rent metric completed in [expr $stepStopTime - $stepStartTime] seconds"
+    }
+
+    ########################################################################################
+    ##
     ## Dump all metrics (debug)
     ##
     ########################################################################################
@@ -3381,6 +3578,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
     $tbl header [list {Criteria} {Guideline} {Actual} {Status}]
   }
   generateTableRow tbl {utilization.clb.lut.pct}        {LUT}
+  generateTableRow tbl {design.cells.lut456.pct}        {LUT4/5/6}
+  generateTableRow tbl {design.cells.lut56.pct}         {LUT5/6}
   generateTableRow tbl {utilization.clb.ff.pct}         {FD}
   generateTableRow tbl {utilization.clb.ld}             {LD}
   generateTableRow tbl {utilization.clb.lutmem.pct}     {LUTRAM+SRL}
@@ -3414,6 +3613,11 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 #     generateTableRow tbl {design.nets.nonfdhfn}       {Non-FD high fanout nets > 10k loads}
     generateTableRow tbl {design.nets.nonfdhfn}       "Non-FD high fanout nets > [expr $guidelines(design.nets.nonfdhfn.limit) / 1000]k loads"
   }
+  if {[llength [array names guidelines design.rent]] == 1} {
+    generateTableRow tbl {design.rent}                "Rent"
+  }
+
+
   if {[llength [array names guidelines methodology.*]]} {
     $tbl separator
     generateTableRow tbl {methodology.timing-6}       [format {TIMING-6 (%s)} [get_property -quiet DESCRIPTION [get_methodology_check {TIMING-6}]] ]
@@ -3491,6 +3695,9 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
   }
   if {[llength [array names guidelines design.nets.nonfdhfn*]] == 2} {
     $tblcsv addrow [list {design.nets.nonfdhfn}       "Non-FD high fanout nets > [expr $guidelines(design.nets.nonfdhfn.limit) / 1000]k loads"     [getMetric {design.nets.nonfdhfn}] ]
+  }
+  if {[llength [array names guidelines design.rent]] == 1} {
+    $tblcsv addrow [list {design.rent}                "Rent"   [getMetric {design.rent}] ]
   }
   $tblcsv addrow [list {methodology.timing-6}       {TIMING-6}           [getMetric {methodology.timing-6}] ]
   $tblcsv addrow [list {methodology.timing-7}       {TIMING-7}           [getMetric {methodology.timing-7}] ]
@@ -3651,6 +3858,15 @@ proc ::tclapp::xilinx::designutils::report_failfast::config {} {
 
   # Threshold (PASS) for Net budgeting
   set guidelines(design.device.maxlvls.net)       "=0"
+
+  # Threshold (PASS) for LUT4 + LUT5 + LUT6
+#   set guidelines(design.cells.lut456.pct)         {<=80%}
+
+  # Threshold (PASS) for LUT5 + LUT6
+#   set guidelines(design.cells.lut56.pct)          {<=70%}
+
+  # Threshold (PASS) for top-level rent
+#   set guidelines(design.rent)                     {<=0.85}
 
   return -code ok
 }
