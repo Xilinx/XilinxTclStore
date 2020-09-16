@@ -1737,26 +1737,6 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
   return [join $resolved_file_paths " "]
 } 
 
-proc xps_get_design_libs {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-  set libs [list]
-  foreach file $a_sim_vars(l_design_files) {
-    set fargs     [split $file {|}]
-    set library   [lindex $fargs 2]
-    if { {} == $library } {
-      continue;
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-  return $libs
-}
-
 proc xps_export_fs_data_files { filter data_files_arg } {
   # Summary:
   # Argument Usage:
@@ -1946,7 +1926,7 @@ proc xps_get_compiled_libraries { simulator l_local_ip_libs_arg } {
   upvar $l_local_ip_libs_arg l_local_ip_libs
   variable a_sim_vars
   variable l_target_simulator
-  set libraries [list]
+
   set compiled_libraries [list]
 
   if { !$a_sim_vars(b_use_static_lib) } {
@@ -1956,14 +1936,13 @@ proc xps_get_compiled_libraries { simulator l_local_ip_libs_arg } {
   set clibs_dir [xps_get_lib_map_path $simulator]
   if { {} != $clibs_dir } {
     set libraries [xcs_get_compiled_libraries $clibs_dir]
-  }
-
-  # filter local ip definitions
-  foreach lib $libraries {
-    if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
-      continue
-    } else {
-      lappend compiled_libraries $lib
+    # filter local ip definitions
+    foreach lib $libraries {
+      if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
+        continue
+      } else {
+        lappend compiled_libraries $lib
+      }
     }
   }
   return $compiled_libraries
@@ -2146,7 +2125,7 @@ proc xps_write_single_step_for_ies_xcelium { simulator fh_unix launch_dir srcs_d
   }
   if { $a_sim_vars(b_use_static_lib) } {
     variable l_compiled_libraries
-    foreach lib [xps_get_design_libs] {
+    foreach lib [xcs_get_design_libs $a_sim_vars(l_design_files)] {
       if {[string length $lib] == 0} { continue; }
       if { [xcs_is_static_ip_lib $lib $l_compiled_libraries] } {
         lappend base_libs [string tolower $lib]
@@ -3841,7 +3820,7 @@ proc xps_write_xsim_setup_file { launch_dir } {
     send_msg_id exportsim-Tcl-049 "Failed to open file to write ($file)\n"
     return 1
   }
-  set design_libs [xps_get_design_libs] 
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
@@ -4180,7 +4159,7 @@ proc xps_write_do_file_for_compile { simulator dir srcs_dir } {
     puts $fh "vlib ${design_lib_dir}/work"
   }
   puts $fh "vlib $lib_dir\n"
-  set design_libs [xps_get_design_libs] 
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
   set b_default_lib false
   set default_lib $a_sim_vars(default_lib)
   foreach lib $design_libs {
@@ -4390,7 +4369,6 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       }
  
       # RTL
-      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       set arg_list [list "+acc" "-l" "elaborate.log"]
       if { !$a_sim_vars(b_32bit) } {
         if {$::tcl_platform(platform) == "windows"} {
@@ -4402,10 +4380,14 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       if { [llength $l_generics] > 0 } {
         xps_append_generics $l_generics arg_list
       }
+
       set t_opts [join $arg_list " "]
+
+      set design_files $a_sim_vars(l_design_files)
+      set design_libs [xcs_get_design_libs $design_files 1]
+
+      # add simulation libraries
       set arg_list [list]
-      # add user design libraries
-      set design_libs [xps_get_design_libs]
 
       # add sv pkg libraries
       #variable a_sim_sv_pkg_libs
@@ -4416,25 +4398,30 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       #  }
       #}
 
+      # add user design libraries
       foreach lib $design_libs {
         if {[string length $lib] == 0} { continue; }
         lappend arg_list "-L"
         lappend arg_list "$lib"
+        #lappend arg_list "[string tolower $lib]"
       }
 
-      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-        # append sv pkg libs
-        foreach sv_pkg_lib $a_sim_sv_pkg_libs {
-          lappend arg_list "-L $sv_pkg_lib"
+      # add xilinx vip library
+      if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+        if { [xcs_design_contain_sv_ip] } {
+          lappend arg_list "-L"
+          lappend arg_list "xilinx_vip"
         }
       }
 
-      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
+      if { [xcs_contains_verilog $design_files] } {
         set arg_list [linsert $arg_list end "-L" "unisims_ver"]
         set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
       }
+
       # add secureip
       set arg_list [linsert $arg_list end "-L" "secureip"]
+
       # reference XPM modules from precompiled libs if param is set
       set b_reference_xpm_library 0
       [catch {set b_reference_xpm_library [get_param project.usePreCompiledXPMLibForSim]} err]
@@ -4452,25 +4439,32 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       }
 
       if { $b_reference_xpm_library } {
+        # pass xpm library reference for behavioral simulation only
         set arg_list [linsert $arg_list end "-L" "xpm"]
       }
-      set default_lib $a_sim_vars(default_lib)
+
       lappend arg_list "-work"
-      lappend arg_list $top_lib
+      lappend arg_list $a_sim_vars(default_lib)
+
       set d_libs [join $arg_list " "]
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
+
       set arg_list [list]
       lappend arg_list "vopt"
       xps_append_config_opts arg_list $simulator "vopt"
+
       lappend arg_list $t_opts
       lappend arg_list "$d_libs"
+
       set top $a_sim_vars(s_top)
       lappend arg_list "${top_lib}.$top"
-      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
+      if { [xcs_contains_verilog $design_files] } {
         lappend arg_list "${top_lib}.glbl"
       }
+
       lappend arg_list "-o"
       lappend arg_list "${top}_opt"
+
       set cmd_str [join $arg_list " "]
       puts $fh "$cmd_str"
     }
@@ -4669,7 +4663,7 @@ proc xps_get_simulation_cmdline_modelsim { simulator {b_hier_access "false"} } {
   set t_opts [join $args " "]
   set args [list]
   # add user design libraries
-  set design_libs [xps_get_design_libs]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args "-L"
@@ -4836,7 +4830,7 @@ proc xps_write_xelab_cmdline { fh_unix launch_dir } {
   }
  
   # add user design libraries
-  set design_libs [xps_get_design_libs]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args "-L $lib"
@@ -5326,7 +5320,7 @@ proc xps_write_main { simulator fh_unix launch_dir } {
     "xcelium" -
     "vcs" {
       set libs [list]
-      foreach lib [xps_get_design_libs] {
+      foreach lib [xcs_get_design_libs $a_sim_vars(l_design_files)] {
         if {[string length $lib] == 0} { continue; }
         if { ({work} == $lib) && ({vcs} == $simulator) } { continue; }
         if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_compiled_libraries]) } {

@@ -526,7 +526,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib modelsim_lib/msim\n"
   }
 
-  set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -833,7 +833,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
-  set design_libs [usf_modelsim_get_design_libs $design_files]
+  set design_libs [xcs_get_design_libs $design_files]
 
   # add simulation libraries
   set arg_list [list]
@@ -1035,7 +1035,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set t_opts [join $arg_list " "]
 
   set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
-  set design_libs [usf_modelsim_get_design_libs $design_files 1]
+  set design_libs [xcs_get_design_libs $design_files 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -1514,39 +1514,6 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     puts $fh_scr "exit 0"
   }
   close $fh_scr
-}
-
-proc usf_modelsim_get_design_libs { files {b_realign_default_lib 0} } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set libs [list]
-  set b_contains_default_lib 0
-  foreach file $files {
-    set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set library   [lindex $fargs 2]
-    if { {} == $library } {
-      continue;
-    }
-    if { $b_realign_default_lib } {
-      if { {xil_defaultlib} == $library } {
-        set b_contains_default_lib 1
-        continue;
-      }
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-  if { $b_realign_default_lib } {
-    if { $b_contains_default_lib } {
-      set libs [linsert $libs 0 "xil_defaultlib"]
-    }
-  }
-  return $libs
 }
 
 proc usf_modelsim_map_pre_compiled_libs { fh cmd } {

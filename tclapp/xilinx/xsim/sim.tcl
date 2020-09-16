@@ -1042,7 +1042,7 @@ proc usf_xsim_write_setup_file {} {
       puts $fh "uvm=$uvm_lib"
     }
   }
-  set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
@@ -1936,7 +1936,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # design source libs
-  set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) 1]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) 1]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
@@ -2632,40 +2632,6 @@ proc usf_xsim_get_sim_mode_as_pretty_str { mode } {
     set ms "Unknown"
   }
   return $ms
-}
-
-proc usf_xsim_get_design_libs { design_files {b_realign_default_lib 0} } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set libs [list]
-  set b_contains_default_lib 0
-  foreach file $design_files {
-    set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set library   [lindex $fargs 2]
-    set cmd_str   [lindex $fargs 3]
-    if { {} == $library } {
-      continue;
-    }
-    if { $b_realign_default_lib } {
-      if { {xil_defaultlib} == $library } {
-        set b_contains_default_lib 1
-        continue;
-      }
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-  if { $b_realign_default_lib } {
-    if { $b_contains_default_lib } {
-      set libs [linsert $libs 0 "xil_defaultlib"]
-    }
-  }
-  return $libs
 }
 
 proc usf_xsim_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg } {

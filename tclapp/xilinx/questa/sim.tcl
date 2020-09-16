@@ -552,7 +552,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib questa_lib/msim\n"
   }
 
-  set design_libs [usf_questa_get_design_libs $::tclapp::xilinx::questa::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::questa::a_sim_vars(l_design_files)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -877,7 +877,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $::tclapp::xilinx::questa::a_sim_vars(l_design_files)
-  set design_libs [usf_questa_get_design_libs $design_files 1]
+  set design_libs [xcs_get_design_libs $design_files 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -988,13 +988,17 @@ proc usf_questa_get_elaboration_cmdline {} {
   
   set d_libs [join $arg_list " "]
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
+
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
+
   lappend arg_list "-o"
   lappend arg_list "${top}_opt"
+
   set cmd_str [join $arg_list " "]
   return $cmd_str
 }
@@ -1724,39 +1728,6 @@ proc usf_questa_get_sccom_cmd_args {} {
     }
   }
   return $args
-}
-
-proc usf_questa_get_design_libs { files {b_realign_default_lib 0} } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set libs [list]
-  set b_contains_default_lib 0
-  foreach file $files {
-    set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set library   [lindex $fargs 2]
-    if { {} == $library } {
-      continue;
-    }
-    if { $b_realign_default_lib } {
-      if { {xil_defaultlib} == $library } {
-        set b_contains_default_lib 1
-        continue;
-      }
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-  if { $b_realign_default_lib } {
-    if { $b_contains_default_lib } {
-      set libs [linsert $libs 0 "xil_defaultlib"]
-    }
-  }
-  return $libs
 }
 
 proc usf_questa_map_pre_compiled_libs { fh cmd } {

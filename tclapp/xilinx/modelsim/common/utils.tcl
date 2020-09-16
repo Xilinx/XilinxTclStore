@@ -4962,3 +4962,44 @@ proc xcs_check_gcc_path { path resolved_path_arg } {
   set resolved_path $gcc_path
   return true
 }
+
+proc xcs_get_design_libs { files {b_realign 0} } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set uniq_libs [list]
+  set b_contains_default_lib 0
+
+  foreach file $files {
+    set fargs     [split $file {|}]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set library   [lindex $fargs 2]
+    if { {} == $library } {
+      continue;
+    }
+
+    # contains default lib and needs realignment?
+    if { $b_realign } {
+      if { {xil_defaultlib} == $library } {
+        set b_contains_default_lib 1
+        continue;
+      }
+    }
+
+    # add unique library to collection
+    if { [lsearch -exact $uniq_libs $library] == -1 } {
+      lappend uniq_libs $library
+    }
+  }
+
+  # insert default library at the beginning
+  if { $b_realign } {
+    if { $b_contains_default_lib } {
+      set uniq_libs [linsert $uniq_libs 0 "xil_defaultlib"]
+    }
+  }
+
+  return $uniq_libs
+}

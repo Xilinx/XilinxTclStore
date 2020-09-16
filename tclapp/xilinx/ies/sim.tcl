@@ -372,7 +372,7 @@ proc usf_ies_write_setup_files {} {
     }
   }
   set libs [list]
-  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
@@ -678,7 +678,7 @@ proc usf_ies_write_elaborate_script {} {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
 
   set arg_list [list]
   # add simulation libraries
@@ -938,28 +938,6 @@ proc usf_ies_write_simulate_script {} {
   close $fh_scr
 }
 
-proc usf_ies_get_design_libs { files } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set libs [list]
-  foreach file $files {
-    set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set library   [lindex $fargs 2]
-    set cmd_str   [lindex $fargs 3]
-    if { {} == $library } {
-      continue;
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-  return $libs
-}
-
 proc usf_ies_map_pre_compiled_libs { fh } {
   # Summary:
   # Argument Usage:
@@ -1049,7 +1027,7 @@ proc usf_ies_create_setup_script {} {
   puts $fh_scr "\{"
   set simulator "ies"
   set libs [list]
-  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # continue if no local library found or continue if this library is precompiled (not local)
