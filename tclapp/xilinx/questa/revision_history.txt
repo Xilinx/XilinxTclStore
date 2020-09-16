@@ -1,3 +1,4 @@
+2.190 refactored design library proc for consistent functionality
 2.189 merged contents from 2020.2
 2.188 donot bind DPI-C shared library if param is false
 2.187 bind vivado shared library path for hw-emu

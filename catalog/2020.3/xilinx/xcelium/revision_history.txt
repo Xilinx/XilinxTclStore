@@ -1,3 +1,4 @@
+11.42 refactored design library proc for consistent functionality
 11.41 merged contents from 2020.2
 11.40 donot bind DPI-C shared library if param is false
 11.39 replace protected simmodel path set by param
