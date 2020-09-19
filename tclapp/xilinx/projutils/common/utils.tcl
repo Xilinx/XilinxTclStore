@@ -3979,6 +3979,11 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
   foreach library $lib_coln {
     # target shared library name to search for
     set shared_libname "lib${library}.${extn}"
+   
+    # set protobuf static lib for xcelium
+    if { ("xcelium" == $simulator) && ("protobuf" == $library) } {
+      set shared_libname "lib${library}.a"
+    }
 
     # is systemc library?
     set b_is_systemc_library [xcs_is_sc_library $library]
@@ -4467,6 +4472,11 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
   set sp_ext_dir "$cpt_dir/$sm_ext_dir"
   if { $b_int_sm_lib_ref_debug } {
     puts "(DEBUG) - protected ext path (default): $sp_ext_dir"
+  }
+
+  # add ext utils dir for xcelium static library
+  if { "xcelium" == $simulator } {
+    lappend target_paths "$cpt_dir/$sm_ext_dir/utils"
   }
 
   # add ip dir for xsim
