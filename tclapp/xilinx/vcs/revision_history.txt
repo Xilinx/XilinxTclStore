@@ -1,3 +1,4 @@
+9.28 add check for protobuf static library
 9.27 check for gen dir in path before replacing for rev control
 9.26 re-aligned source file paths for rev control for classic use case
 9.25 pass rev control var for fetching static header sources
