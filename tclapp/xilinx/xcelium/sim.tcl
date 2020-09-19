@@ -1082,6 +1082,10 @@ proc usf_xcelium_write_elaborate_script {} {
         lappend link_arg_list "\$gcc_objs"
         set l_sm_lib_paths [list]
         foreach {library lib_dir} [array get a_shared_library_path_coln] {
+          # don't bind static protobuf (simmodel will bind these during compilation)
+          if { ("libprotobuf.a" == $library) } {
+            continue;
+          }
           set sm_lib_dir [file normalize $lib_dir]
           set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
           set lib_name [string trimleft $library "lib"]
@@ -1552,6 +1556,10 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     if { ("libprotobuf.so" == $library) && (!$b_bind_protobuf) } {
       # don't bind shared library but bind static library built with the simmodel itself 
       continue
+    }
+    # don't bind static protobuf (simmodel will bind these during compilation)
+    if { ("libprotobuf.a" == $library) } {
+      continue;
     }
     set sm_lib_dir [file normalize $lib_dir]
     set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>check for gen dir in path before replacing for rev control</revision_history>
+      <revision_history>add check for protobuf static library</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
