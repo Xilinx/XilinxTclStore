@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Using new commands for creating GUI custom commands and add procs for install and uninstall.</revision_history>
+      <revision_history>1.7</revision_history>
       <name>questa_cdc</name>
       <company>mentor</company>
       <company_display>Mentor, a Siemens Business</company_display>
@@ -10,8 +10,24 @@
       <display>Mentor Graphics Questa CDC</display>
       <procs>
         <proc>
+          <name>write_questa_autocheck_script</name>
+          <summary>This proc generates the Questa Autocheck script file</summary>
+        </proc>
+        <proc>
           <name>write_questa_cdc_script</name>
           <summary>This proc generates the Questa CDC script file</summary>
+        </proc>
+        <proc>
+          <name>write_questa_lint_script</name>
+           <summary>This proc generates the Questa Lint script file</summary>
+        </proc>
+        <proc>
+          <name>write_questa_rdc_script</name>
+          <summary>This proc generates the Questa RDC script file</summary>
+        </proc>
+        <proc>
+          <name>write_questa_resetcheck_script</name>
+          <summary>This proc generates the Questa ResetCheck script file</summary>
         </proc>
       </procs>
     </app>

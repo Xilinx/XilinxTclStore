@@ -1,20 +1,21 @@
-# Usage: write_questa_cdc_script <top_module> [-output_directory <output_directory>] [-use_existing_xdc|-no_sdc]
+# Usage: write_questa_autocheck_script <top_module> [-output_directory <output_directory>] [-use_existing_xdc]
 ###############################################################################
 #
-# write_questa_cdc_script.tcl (Routine for Mentor Graphics Questa CDC Application)
+# write_questa_autocheck_script.tcl (Routine for Mentor Graphics Questa AutoCheck Application)
 #
 # Script created on 12/20/2016 by Islam Ahmed (Mentor Graphics Inc) &
 #                                 Ravi Kurlagunda
 #
 ###############################################################################
 
-namespace eval ::tclapp::mentor::questa_cdc {
+namespace eval ::tclapp::mentor::questa_autocheck {
   # Export procs that should be allowed to import into other namespaces
-  variable QUESTA_CDC_TCL_SCRIPT_PATH [file normalize [file dirname [info script]]]
-  namespace export write_questa_cdc_script
+## Keep an environment variable with the path of the script
+  variable QUESTA_AUTOCHECK_TCL_SCRIPT_PATH [file normalize [file dirname [info script]]]
+  namespace export write_questa_autocheck_script
 }
 
-proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
+proc ::tclapp::mentor::questa_autocheck::matches_default_libs {lib} {
   
   # Summary: internally used routine to check if default libs used
   
@@ -24,7 +25,7 @@ proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   # Return Value:
   # 1 is returned when the passed library matches on of the names of the default libraries
 
-  # Categories: xilinxtclstore, mentor, questa_cdc
+  # Categories: xilinxtclstore, mentor, questa_autocheck
 
   regsub ":.*" $lib {} lib
   if {[string match -nocase $lib "xil_defaultlib"]} {
@@ -36,7 +37,7 @@ proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
+proc ::tclapp::mentor::questa_autocheck::uniquify_lib {lib lang num} {
   
   # Summary: internally used routine to uniquify libs
   
@@ -48,7 +49,7 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   # Return Value:
   # The name of the uniquified library is returned 
 
-  # Categories: xilinxtclstore, mentor, questa_cdc
+  # Categories: xilinxtclstore, mentor, questa_autocheck
 
 
   set new_lib ""
@@ -60,38 +61,39 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   return $new_lib
 }
 
-proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
+proc ::tclapp::mentor::questa_autocheck::write_questa_autocheck_script {args} {
 
-  # Summary : This proc generates the Questa CDC script file
+  # Summary : This proc generates the Questa AutoCheck script file
 
   # Argument Usage:
   # top_module : Provide the design top name
   # [-output_directory <arg>]: Specify the output directory to generate the scripts in
   # [-use_existing_xdc]: Ignore running write_xdc command to generate the SDC file of the synthesized design, and use the input constraints file instead
-  # [-no_sdc]: Don't generate SDC file, user is expected to update generated tcl file to add constraints information 
-  # [-run <arg>]: Run Questa CDC and invoke the UI of Questa CDC debug after generating the running scripts, default behavior is to stop after the generation of the scripts
-  # [-add_button]: Add a button to run Questa CDC in Vivado UI.
-  # [-remove_button]: Remove the Questa CDC button from Vivado UI.
+  # [-run <arg>]: Run Questa AutoCheck and invoke the UI of Questa AutoCheck debug after generating the running scripts, default behavior is to stop after the generation of the scripts
+  # [-verify_timeout <arg>]: Specify the timeout for Questa AutoCheck Verify run. By default the value specified is in seconds, use 'm' or 'h' suffix to interpret the value as minutes or hours 
+  # [-add_button]: Add a button to run Questa AutoCheck in Vivado UI.
+  # [-remove_button]: Remove the Questa AutoCheck button from Vivado UI.
 
   # Return Value: Returns '0' on successful completion
 
-  # Categories: xilinxtclstore, mentor, questa_cdc
+  # Categories: xilinxtclstore, mentor, questa_autocheck
 
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
 
-  
+
 
   set userOD "."
   set top_module ""
   set use_existing_xdc 0
-  set no_sdc 0
-  set run_questa_cdc "cdc run"
+  set run_questa_autocheck "autocheck compile"
+  set autocheck_verify_timeout "10m"
+  set autocheck_constraints ""
   set add_button 0
   set remove_button 0
-  set usage_msg "Usage    : write_questa_cdc_script <top_module> \[-output_directory <out_dir>\] \[-use_existing_xdc|-no_sdc\] \[-run <report_clock|cdc_run>\] \[-add_button\] \[-remove_button\]"
+  set usage_msg "Usage : write_questa_autocheck_script <top_module> \[-output_directory <out_dir>\] \[-use_existing_xdc\] \[-run <autocheck_compile|autocheck_verify>\] \[-verify_timeout <value>\] \[-autocheck_constraints <constraints_file>\] \[-add_button\] \[-remove_button\]"
   # Parse the arguments
-  if { [llength $args] > 8 } {
+  if { [llength $args] > 10 } {
     puts "** ERROR : Extra arguments passed to the proc."
     puts $usage_msg
     return 1
@@ -112,16 +114,31 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       }
     } elseif { [lindex $args $i] == "-use_existing_xdc" } {
       set use_existing_xdc 1
-    } elseif { [lindex $args $i] == "-no_sdc" } {
-      set no_sdc 1
     } elseif { [lindex $args $i] == "-run" } {
       incr i
-      set run_questa_cdc "[lindex $args $i]"
-      if { ($run_questa_cdc != "cdc_run") && ($run_questa_cdc != "report_clock") } {
-        puts "** ERROR : Invalid argument value for -run '$run_questa_cdc'"
+      set run_questa_autocheck "[lindex $args $i]"
+      if { ($run_questa_autocheck != "autocheck_compile") && ($run_questa_autocheck != "autocheck_verify") } {
+        puts "** ERROR : Invalid argument value for -run '$run_questa_autocheck'"
         puts $usage_msg
         return 1
       }
+    } elseif { [lindex $args $i] == "-verify_timeout" } {
+      incr i
+      set autocheck_verify_timeout "[lindex $args $i]"
+      if { ($autocheck_verify_timeout == "") } {
+        puts "** ERROR : Missing argument value for -verify_timeout"
+        puts $usage_msg
+        return 1
+      }
+    } elseif { [lindex $args $i] == "-autocheck_constraints" } {
+      incr i
+      set autocheck_constraints "[lindex $args $i]"
+      if { ($autocheck_constraints == "") } {
+        puts "** ERROR : Missing argument value for -autocheck_constraints"
+        puts $usage_msg
+        return 1
+      }
+      set autocheck_constraints [file normalize $autocheck_constraints]
     } elseif { [lindex $args $i] == "-add_button" } {
       set add_button 1
     } elseif { [lindex $args $i] == "-remove_button" } {
@@ -144,83 +161,67 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     return 1
   }
 
-  ## Add Vivado GUI button for Questa CDC
+  ## Add Vivado GUI button for Questa AutoCheck
   if { $add_button == 1 } {
     ## Example for code of the Vivado GUI button
     ## -----------------------------------------
-    ## 0=Run%20Questa%20CDC tclapp::mentor::questa_cdc::write_questa_cdc_script "" /home/iahmed/questa_cdc_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20CDC%20Run "" -run true
+    ## 0=Run%20Questa%20AutoCheck tclapp::mentor::questa_autocheck::write_questa_autocheck_script "" /home/iahmed/questa_autocheck_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20AutoCheck%20Run "" -run true
     ## -----------------------------------------
 
-    
     set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
-    set status [catch {exec grep write_questa_cdc_script $commands_file} result]
+    set status [catch {exec grep write_questa_autocheck_script $commands_file} result]
     if { $status == 0 } {
-      puts "INFO : Vivado GUI button for running Questa CDC is already installed in $commands_file. Exiting ..."
+      puts "INFO : Vivado GUI button for running Questa AutoCheck is already installed in $commands_file. Exiting ..."
       return $rc
     }
-    variable QUESTA_CDC_TCL_SCRIPT_PATH
-    set questa_cdc_logo "$QUESTA_CDC_TCL_SCRIPT_PATH/questa_cdc_logo.PNG"
-    if { ! [file exists $questa_cdc_logo] } {
-      set questa_cdc_logo "\"$questa_cdc_logo\""
-      puts "INFO: Can't find the Questa CDC logo at $questa_cdc_logo"
-      if { [file exists "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"] } {
-        set questa_cdc_logo "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"
-        puts "INFO: Found the Questa CDC logo at $questa_cdc_logo"
+    variable QUESTA_AUTOCHECK_TCL_SCRIPT_PATH
+    set questa_autocheck_logo "$QUESTA_AUTOCHECK_TCL_SCRIPT_PATH/questa_autocheck_logo.PNG"
+    if { ! [file exists $questa_autocheck_logo] } {
+      set questa_autocheck_logo "\"$questa_autocheck_logo\""
+      puts "INFO: Can't find the Questa AutoCheck logo at $questa_autocheck_logo"
+      if { [file exists "$::env(QHOME)/share/fpga_libs/Xilinx/questa_autocheck_logo.PNG"] } {
+        set questa_autocheck_logo "$::env(QHOME)/share/fpga_libs/Xilinx/questa_autocheck_logo.PNG"
+        puts "INFO: Found the Questa AutoCheck logo at $questa_autocheck_logo"
       }
     }
     if { [catch {open $commands_file a} result] } {
-      puts stderr "ERROR: Could not open commands.paini to add the Questa CDC button, path '$commands_file'\n$result"
+      puts stderr "ERROR: Could not open commands.paini to add the Questa AutoCheck button, path '$commands_file'\n$result"
       set rc 9
       return $rc
     } else {
       set commands_fh $result
-      puts "INFO: Adding Vivado GUI button for running Questa CDC in $commands_file"
+      puts "INFO: Adding Vivado GUI button for running Questa AutoCheck in $commands_file"
     }
-    set questa_cdc_command_index 0
-    set vivado_cmds_version 1
+    set questa_autocheck_command_index 0
     if { [file size $commands_file] } {
       set last_command_index [exec cat $commands_file | tail -1 | cut -f1 -d=]
       if { $last_command_index == "VERSION" } {
         ## This means that there are no commands in the file, and only the "VERSION" line is there
-        set questa_cdc_command_index 0
-        set vivado_cmds_version [exec cat $commands_file | tail -1 | cut -f2 -d=]
+        set questa_autocheck_command_index 0
       } else {
-        set questa_cdc_command_index [incr last_command_index]
-        set vivado_cmds_version [exec cat $commands_file | head -1 | cut -f2 -d=]
+        set questa_autocheck_command_index [incr last_command_index]
       }
     } else {
-      puts $commands_fh "VERSION=$vivado_cmds_version"
-      set questa_cdc_command_index 0
+      puts $commands_fh "VERSION=1"
+      set questa_autocheck_command_index 0
     }
-    set button_code ""
-    if { $vivado_cmds_version == 1 } {
-      set button_code "$questa_cdc_command_index=Run%20Questa%20CDC"
-      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
+    set button_code "$questa_autocheck_command_index=Run%20Questa%20AutoCheck"
+    set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_autocheck_script.tcl;%20tclapp::mentor::questa_autocheck::write_questa_autocheck_script"
                  
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
-      set button_code "$button_code \"\" $questa_cdc_logo \"\" \"\" true ^@ \"\" true 4"
-      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-      set button_code "$button_code Output%20Directory \"\" -output_directory%20QCDC true"
-      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-      set button_code "$button_code Invoke%20Questa%20CDC%20Run \"\" -run%20report_clock true"
-    } else {
-      set button_code "$questa_cdc_command_index=$questa_cdc_command_index Run%20Questa%20CDC Run%20Questa%20CDC"
-        set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
-                       
-
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
-      set button_code "$button_code \"\" $questa_cdc_logo \"\" \"\" true ^ \"\" true 4"
-      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-      set button_code "$button_code Output%20Directory \"\" -output_directory%20QCDC true"
-      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-      set button_code "$button_code Invoke%20Questa%20CDC%20Run \"\" -run%20report_clock true"
-    }
+#   set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_autocheck_script.tcl;%20tclapp::mentor::questa_autocheck::write_questa_autocheck_script"
+    set button_code "$button_code \"\" $questa_autocheck_logo \"\" \"\" true ^@ \"\" true 6"
+    set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
+    set button_code "$button_code Output%20Directory \"\" -output_directory%20QAUTOCHECK true"
+    set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
+    set button_code "$button_code Invoke%20Questa%20AutoCheck%20Run \"\" -run%20autocheck_verify true"
+    set button_code "$button_code AutoCheck%20Verify%20Timeout \"\" -verify_timeout%2010m true"
+    set button_code "$button_code AutoCheck%20Constraints%20File \"\" \"\" true"
     puts $commands_fh $button_code
     close $commands_fh
     return $rc
   }
 
-  ## Remove Vivado GUI button for Questa CDC
+  ## Remove Vivado GUI button for Questa AutoCheck
   if { $remove_button == 1 } {
     set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
     ## Temp file to write the modified file
@@ -231,16 +232,16 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     set ip_data [read $ip_file]
     set ip_lines [split $ip_data "\n"]
 
-    set questa_cdc_command_found 0
+    set questa_autocheck_command_found 0
     foreach ip_line $ip_lines {
       if { $ip_line == "" } {
         continue
       }
-      if { [regexp {Questa.*CDC.*write_questa_cdc_script.tcl} $ip_line] } {
-        set questa_cdc_command_found 1
+      if { [regexp {Questa.*AutoCheck.*write_questa_autocheck_script.tcl} $ip_line] } {
+        set questa_autocheck_command_found 1
         continue
       }
-      if { $questa_cdc_command_found == 1 } {
+      if { $questa_autocheck_command_found == 1 } {
         regsub {(^\d+)=.*} $ip_line {\1} cmd_id
         regsub {^\d+=(.*)} $ip_line {\1} cmd_text
         incr cmd_id -1 
@@ -256,10 +257,10 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     exec rm -f 
     file delete $commands_file
     file rename ${commands_file}.tmp $commands_file
-    if { $questa_cdc_command_found == 1 } {
-      puts "INFO: Vivado GUI button for running Questa CDC is removed from $commands_file"
+    if { $questa_autocheck_command_found == 1 } {
+      puts "INFO: Vivado GUI button for running Questa AutoCheck is removed from $commands_file"
     } else {
-      puts "INFO: Vivado GUI button for running Questa CDC wasn't found in $commands_file."
+      puts "INFO: Vivado GUI button for running Questa AutoCheck wasn't found in $commands_file."
       puts "    : File has not been changed."
     }
     return $rc
@@ -277,13 +278,12 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     file mkdir $userOD
   }
 
-  set qcdc_ctrl "qcdc_ctrl.tcl"
-  set run_makefile "Makefile.qcdc"
-  set run_batfile "run_qcdc.bat"
-  set run_sdcfile "qcdc_sdc.tcl"
-  set qcdc_compile_tcl "qcdc_compile.tcl"
-  set run_script "qcdc_run.sh"
-  set tcl_script "qcdc_run.tcl"
+  set qautocheck_ctrl "qautocheck_ctrl.tcl"
+  set qautocheck_compile_tcl "qautocheck_compile.tcl"
+  set run_makefile "Makefile.qautocheck"
+  set run_batfile "run_qac.bat"
+  set run_sdcfile "qautocheck_sdc.tcl"
+  set run_script "qautocheck_run.sh"
   set encrypted_lib "dummmmmy_lib"
 
   ## Vivado install dir
@@ -304,68 +304,59 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   # Settings
   set top_lib_dir "qft"
-  set cdc_out_dir "CDC_RESULTS"
+  set autocheck_out_dir "AUTOCHECK_RESULTS"
   set modelsimini "modelsim.ini"
 
   # Open output files to write
-  if { [catch {open $userOD/$run_makefile w} result] } {
-    puts stderr "ERROR: Could not open $run_makefile for writing\n$result"
-    set rc 2
-    return $rc
-  } else {
-    set qcdc_run_makefile_fh $result
-    puts "INFO: Writing Questa CDC run Makefile to file $userOD/$run_makefile"
-  }
   if { [catch {open $userOD/$run_batfile w} result] } {
     puts stderr "ERROR: Could not open $run_batfile for writing\n$result"
     set rc 2
     return $rc
   } else {
-    set qcdc_run_batfile_fh $result
-    puts "INFO: Writing Questa CDC run batfile to file $userOD/$run_batfile"
+    set qautocheck_run_batfile_fh $result
+    puts "INFO: Writing Questa autocheck run batfile to file $userOD/$run_batfile"
   }
   if { [catch {open $userOD/$run_sdcfile w} result] } {
     puts stderr "ERROR: Could not open $run_sdcfile for writing\n$result"
     set rc 2
     return $rc
   } else {
-    set qcdc_run_sdcfile_fh $result
-    puts "INFO: Writing Questa CDC run batfile to file $userOD/$run_sdcfile"
+    set qautocheck_run_sdcfile_fh $result
+    puts "INFO: Writing Questa autocheck run batfile to file $userOD/$run_sdcfile"
   }
   if { [catch {open $userOD/$run_script w} result] } {
     puts stderr "ERROR: Could not open $run_script for writing\n$result"
     set rc 2
     return $rc
   } else {
-    set qcdc_run_fh $result
-    puts "INFO: Writing Questa CDC run script to file $userOD/$run_script"
+    set qautocheck_run_fh $result
+    puts "INFO: Writing Questa autocheck run script to file $userOD/$run_script"
   }
-
-  if { [catch {open $userOD/$tcl_script w} result] } {
-    puts stderr "ERROR: Could not open $tcl_script for writing\n$result"
-    set rc 10
+  if { [catch {open $userOD/$run_makefile w} result] } {
+    puts stderr "ERROR: Could not open $run_makefile for writing\n$result"
+    set rc 2
     return $rc
   } else {
-    set qcdc_tcl_fh $result
-    puts "INFO: Writing Questa CDC tcl script to file $userOD/$tcl_script"
+    set qautocheck_run_makefile_fh $result
+    puts "INFO: Writing Questa AutoCheck run Makefile to file $userOD/$run_makefile"
   }
 
-  if { [catch {open $userOD/$qcdc_ctrl w} result] } {
-    puts stderr "ERROR: Could not open $qcdc_ctrl for writing\n$result"
+  if { [catch {open $userOD/$qautocheck_ctrl w} result] } {
+    puts stderr "ERROR: Could not open $qautocheck_ctrl for writing\n$result"
     set rc 3
     return $rc
   } else {
-    set qcdc_ctrl_fh $result
-    puts "INFO: Writing Questa CDC control directives script to file $userOD/$qcdc_ctrl"
+    set qautocheck_ctrl_fh $result
+    puts "INFO: Writing Questa AutoCheck control directives script to file $userOD/$qautocheck_ctrl"
   }
 
-  if { [catch {open $userOD/$qcdc_compile_tcl w} result] } {
-    puts stderr "ERROR: Could not open $qcdc_compile_tcl for writing\n$result"
+  if { [catch {open $userOD/$qautocheck_compile_tcl w} result] } {
+    puts stderr "ERROR: Could not open $qautocheck_compile_tcl for writing\n$result"
     set rc 4
     return $rc
   } else {
-    set qcdc_compile_tcl_fh $result
-    puts "INFO: Writing Questa CDC Tcl script to file $userOD/$qcdc_compile_tcl"
+    set qautocheck_compile_tcl_fh $result
+    puts "INFO: Writing Questa AutoCheck Tcl script to file $userOD/$qautocheck_compile_tcl"
   }
 
 
@@ -394,16 +385,19 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     puts "INFO: Found synthesis fileset $synth_fileset"
   }
   update_compile_order -fileset $synth_fileset
-######CDC-25493- Extraction of +define options########
-  set verilog_define_options [ get_property verilog_define [current_fileset] ]
-  if { [string match $verilog_define_options ""]  } {
-  } else {
-  	set modified_verilog_define_options [regsub -all " " $verilog_define_options "+"]
-        set prefix_verilog_define_options "+define+"
-        set verilog_define_options "${prefix_verilog_define_options}${modified_verilog_define_options}"
- }
 
+  ######CDC-25493- Extraction of +define options########
+   set verilog_define_options [ get_property verilog_define [current_fileset] ]
+   if { [string match $verilog_define_options ""]  } {
+   } else {
+         set modified_verilog_define_options [regsub -all " " $verilog_define_options "+"]
+         set prefix_verilog_define_options "+define+"
+         set verilog_define_options "${prefix_verilog_define_options}${modified_verilog_define_options}"
+  }  
  
+
+
+  
   ## Blackbox unisims
 #  link_design -part [get_parts [get_property PART [current_project]]]
 #  puts "set_option stop {\\"
@@ -447,15 +441,15 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   set num_files 0
   set global_incdirs [list ]
 
-
-  #Get filelist for each IP
+  ## Get filelist for each IP
   for {set i 0} {$i <= $num_ip} {incr i} {
     if {$i < $num_ip} {
       set ip [lindex $ips $i]
       if {[catch {  set ip_container [get_property IP_CORE_CONTAINER $ip]       } errmsg]} {
         puts "ErrorMsg: $errmsg"
 	set ip_container "dummy"
-	}
+	} 
+
 
 #support for CDC-25506 - "write_questa_cdc_script" needs to be enhanced to automatically extract source code for compressed Xilinx IP Containers (.xcix files).
       if {[regexp {xcix} $ip_container all value] && [file exists $ip_container]}  {
@@ -470,7 +464,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 			set hdl_file [file tail $wrong_file]
 			foreach extract_file $extracted_files { 
 				if {[regexp $hdl_file $extract_file]}  {
-                                        if {[regexp {vho} $extract_file all value]  || [regexp {veo} $extract_file all value] || [regexp {txt} $extract_file all value] || [regexp {tb_} $extract_file all value]   }	{ 
+                                        if {[regexp {vho} $extract_file all value]  || [regexp {veo} $extract_file all value]  || [regexp {txt} $extract_file all value] || [regexp {tb_} $extract_file all value]}	{ 
 					} else {						 
 					      lappend files $extract_file
                                         }
@@ -493,16 +487,15 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
               # Keep a list of all the include files, this is added to handle an issue in the 'wavegen' Xilinx example in which clog2b.vh wasn't added into compilation file
               set all_include_files [get_files -filter {USED_IN_SYNTHESIS && FILE_TYPE =="Verilog Header"}]
               foreach include_file $all_include_files {
-#                  if { [lsearch -exact $files $include_file] == "-1"  } {
+#                 if { [lsearch -exact $files $include_file] == "-1" } {
 	      if {[file exists $include_file]} {
                       lappend files $include_file
-              }
+		}
 #                  }
              }
        }
     } else {
       set is_xcix "0"
-#      set ip_container [get_property IP_CORE_CONTAINER $top_module]
       set ip $top_module
       set ip_name $top_module
       set ip_ref  $top_module
@@ -522,11 +515,15 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       }
       puts "INFO: Collecting files for Top level"
     }
+
+
+
+
+
     puts "DEBUG: Files for (IP: $ip) are: $files"
 
     set lib_file_order []
     array set lib_file_array {}
-
 
     set prev_lib ""
     set prev_hdl_lang ""
@@ -558,24 +555,25 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
             if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
                   set fn [get_property NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
                   set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-		  if { [string match $ft "VHDL 2008"] }  {
-		  	set ft "VHDL"
-                        set vhdl_std "-2008"
-		  }
+     		 if { [string match $ft "VHDL 2008"] }  {
+      		     set ft "VHDL"
+      		     set vhdl_std "-2008"
+    		  }
                   set fs [get_property FILESET_NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
                   set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
             } else {
                  set fn [get_property NAME [lindex [get_files -all $f] 0]]
                  set ft [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
-		 if { [string match $ft "VHDL 2008"] }  {
-		      set ft "VHDL"
-		      set vhdl_std "-2008"
-		 }
+    		  if { [string match $ft "VHDL 2008"] }  {
+      		     set ft "VHDL"
+      		     set vhdl_std "-2008"
+     		 }
                  set fs [get_property FILESET_NAME [lindex [get_files -all $f] 0]]
                  set lib [get_property LIBRARY [lindex [get_files -all $f] 0]]
             }
       }
-      puts "\nINFO: File= $fn Library= $lib File_type= $ft"
+
+      puts "\nINFO: File= $fn Library= $lib File_type= $ft "
       ## Create a new compile unit if library or language changes between the previous and current files
       if {$prev_lib == ""} {
         set num_lib 0
@@ -585,13 +583,16 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       if {$resp_file_order == 1} {
         set lib [uniquify_lib $lib $ft $num_lib]
       }
+
       ## Create a list of files for each library
       if {[string match $ft "Verilog"] || [string match $ft "Verilog Header"] || [string match $ft "SystemVerilog"] || [string match $ft "VHDL"] || [string match $ft "VHDL 2008"]} {
-        if {[info exists lib_file_array($lib)]} { 
+        if {[info exists lib_file_array($lib)]} {
+ 
+
 	  set file_h [open $fn]
 	  set found_encrypted 1
 	  while {[gets $file_h line] >= 0} {
-	      if {[regexp {library} $line all value]  || [regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value] || [regexp {`protect} $line all value] || [regexp {define} $line all value]  || [regexp {function} $line all value] || [regexp {task} $line all value]     } {
+	      if {[regexp {library} $line all value] || [regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value] || [regexp {`protect} $line all value] || [regexp {define} $line all value] || [regexp {function} $line all value] || [regexp {task} $line all value]   } {
 		  set found_encrypted 0
 	          break
 	      }
@@ -607,11 +608,17 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 	  }  else {
 	    set lib_file_array($lib) [concat $lib_file_array($lib) " " $fn]
           }
+
+
+
+
+
         } else {
+
           set file_h [open $fn]
           set found_encrypted 1
           while {[gets $file_h line] >= 0} {
-              if {[regexp {library} $line all value]  || [regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value]   || [regexp {`protect} $line all value]  || [regexp {define} $line all value]   || [regexp {function} $line all value] || [regexp {task} $line all value]     } {
+              if {[regexp {library} $line all value] || [regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value]   || [regexp {`protect} $line all value]  || [regexp {define} $line all value]  || [regexp {function} $line all value] || [regexp {task} $line all value]     } {
                   set found_encrypted 0
                   break
               }
@@ -636,6 +643,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
             }
 
           }
+
 
 
           puts "\nINFO: Adding Library= $lib to list of libraries"
@@ -704,12 +712,12 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
             } else {
               set is_include [get_property IS_GLOBAL_INCLUDE [lindex [get_files -all $f] 0]]
               set f_type [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
-	      if { [string match $f_type "VHDL 2008"] }  {
-	         set f_type "VHDL"
-		 set vhdl_std "-2008"
-	      }
+		      if { [string match $f_type "VHDL 2008"] }  {
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
             }
-            }
+	    }
             if {$is_include == 1 || [string match $f_type "Verilog Header"]} {
               set file_dir [file dirname $f]
               if {![info exists incdir_ar($file_dir)]} {
@@ -724,12 +732,10 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
         }
         ## Print files to compile script
         set debug_num [llength lib_file_array($lib)]
-        puts "DEBUG: Found $debug_num of files in library= $lib, IP= $ip_ref IPINST= $ip_name"
-
+        puts "DEBUG: Found $debug_num of files in library= $lib, IP= $ip_ref IPINST= $ip_name" 
         if {[string match $lang "VHDL"]} {
           set line "vcom -allowProtectedBeforeBody $vhdl_std -work $lib_no_num \\"
           lappend compile_lines $line
-      
           foreach f [split $lib_file_array($lib)] {
                   if {$is_xcix == "1"} {
                       if ([regexp {vhd} $f all value]) {
@@ -740,16 +746,16 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
                   } else {
                       if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
                           set f_type [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-			  if { [string match $f_type "VHDL 2008"] }  {
-		                set f_type "VHDL"
-				set vhdl_std "-2008"
-		          }
+	      if { [string match $f_type "VHDL 2008"] }  {
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
                       } else {
                            set f_type [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
-			   if { [string match $f_type "VHDL 2008"] }  {
-			      set f_type "VHDL"
-			      set vhdl_std "-2008"
-			   }
+	      if { [string match $f_type "VHDL 2008"] }  {
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
                       }
                   }
             if {[string match $f_type "VHDL"]} {
@@ -790,10 +796,18 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
            } else {
             if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
               set f_type [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+	      if { [string match $f_type "VHDL 2008"] }  {
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
             } else {
               set f_type [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
+	      if { [string match $f_type "VHDL 2008"] }  {
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
             }
-            }
+	    }
             if {[string match $f_type "Verilog"] || [string match $f_type "SystemVerilog"]} {
               if {![regexp {^blk_mem_gen_v\d+_\d+$} $lib] || ([regexp {^blk_mem_gen_v\d+_\d+$} $lib] && [regexp {/blk_mem_gen_v\d+_\d+\.v} $f]) } {
                 set line "  $f \\"
@@ -820,7 +834,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     foreach subcore $lib_file_order {
       if {![info exists black_box_libs($subcore)]} {
         if {[regexp {^blk_mem_gen_v\d+_\d+} $subcore]} {
-          set line "#cdc blackbox memory ${subcore}_synth"
+          set line "netlist blackbox ${subcore}_synth"
           lappend black_box_lines $line
           set black_box_libs($subcore) 1
         }
@@ -839,37 +853,38 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     return $rc
   }
 
-  puts $qcdc_compile_tcl_fh "\n#"
-  puts $qcdc_compile_tcl_fh "# Create work library"
-  puts $qcdc_compile_tcl_fh "#"
-  puts $qcdc_compile_tcl_fh "vlib $top_lib_dir"
-  puts $qcdc_compile_tcl_fh "vlib $top_lib_dir/xil_defaultlib"
+  puts $qautocheck_compile_tcl_fh "\n#"
+  puts $qautocheck_compile_tcl_fh "# Create work library"
+  puts $qautocheck_compile_tcl_fh "#"
+  puts $qautocheck_compile_tcl_fh "vlib $top_lib_dir"
+  puts $qautocheck_compile_tcl_fh "vlib $top_lib_dir/xil_defaultlib"
   foreach key [array names compiled_lib_list] {
     regsub ":.*" $key {} key
-    puts $qcdc_compile_tcl_fh "vlib $top_lib_dir/$key"
+    puts $qautocheck_compile_tcl_fh "vlib $top_lib_dir/$key"
   }
 
-  puts $qcdc_compile_tcl_fh "\n#"
-  puts $qcdc_compile_tcl_fh "# Map libraries"
-  puts $qcdc_compile_tcl_fh "#"
-  puts $qcdc_compile_tcl_fh "vmap work $top_lib_dir/xil_defaultlib"
+  puts $qautocheck_compile_tcl_fh "\n#"
+  puts $qautocheck_compile_tcl_fh "# Map libraries"
+  puts $qautocheck_compile_tcl_fh "#"
+  puts $qautocheck_compile_tcl_fh "vmap work $top_lib_dir/xil_defaultlib"
   foreach key [array names compiled_lib_list] {
     regsub ":.*" $key {} key
-    puts $qcdc_compile_tcl_fh "vmap $key $top_lib_dir/$key"
+    puts $qautocheck_compile_tcl_fh "vmap $key $top_lib_dir/$key"
   }
 
-  puts $qcdc_compile_tcl_fh "\n#"
-  puts $qcdc_compile_tcl_fh "# Compile files section"
-  puts $qcdc_compile_tcl_fh "#"
+  puts $qautocheck_compile_tcl_fh "\n#"
+  puts $qautocheck_compile_tcl_fh "# Compile files section"
+  puts $qautocheck_compile_tcl_fh "#"
+
 
   set first_pack "1"
   foreach l $compile_lines {
     if {[regexp {\_pack\.vhd} $l all value] } {
 	if {$first_pack == "1"} {
-                 puts $qcdc_compile_tcl_fh "\n$vcom_line\n $l"
+                 puts $qautocheck_compile_tcl_fh "\n$vcom_line\n $l"
                  set first_pack "0"
         } else {
-                 puts $qcdc_compile_tcl_fh "$l"
+                 puts $qautocheck_compile_tcl_fh "$l"
                  set first_pack "0"
 
         }
@@ -884,31 +899,34 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
 
 
-  puts $qcdc_compile_tcl_fh "\n"
+  puts $qautocheck_compile_tcl_fh "\n"
+
+
+
+
   foreach l $compile_lines {
-    puts $qcdc_compile_tcl_fh $l
+    puts $qautocheck_compile_tcl_fh $l
   }
 
-  puts $qcdc_compile_tcl_fh "\n#"
-  puts $qcdc_compile_tcl_fh "# Add global set/reset"
-  puts $qcdc_compile_tcl_fh "#"
-  puts $qcdc_compile_tcl_fh "vlog  -suppress 13389  $verilog_define_options -work xil_defaultlib $vivado_dir/data/verilog/src/glbl.v"
+  puts $qautocheck_compile_tcl_fh "\n#"
+  puts $qautocheck_compile_tcl_fh "# Add global set/reset"
+  puts $qautocheck_compile_tcl_fh "#"
+  puts $qautocheck_compile_tcl_fh "vlog  -suppress 13389  $verilog_define_options -work xil_defaultlib $vivado_dir/data/verilog/src/glbl.v"
 
-  close $qcdc_compile_tcl_fh
+  close $qautocheck_compile_tcl_fh
 
   ## Print compile information
-  puts $qcdc_ctrl_fh "cdc preference -internal_sync_resets_on -print_port_domain_template"
-  puts $qcdc_ctrl_fh "netlist fpga -vendor xilinx -version $vivado_version -library vivado"
+  puts $qautocheck_ctrl_fh "netlist fpga -vendor xilinx -version $vivado_version -library vivado"
 
   if {$black_box_lines != ""} {
-    puts $qcdc_ctrl_fh "\n#"
-    puts $qcdc_ctrl_fh "# Black box blk_mem_gen"
-    puts $qcdc_ctrl_fh "#"
+    puts $qautocheck_ctrl_fh "\n#"
+    puts $qautocheck_ctrl_fh "# Black box blk_mem_gen"
+    puts $qautocheck_ctrl_fh "#"
     foreach l $black_box_lines {
-      puts $qcdc_ctrl_fh $l
+      puts $qautocheck_ctrl_fh $l
     }
   }
-  close $qcdc_ctrl_fh
+  close $qautocheck_ctrl_fh
 
   ## Get the library names and append a '-L' to the library name
   array set qft_libs {}
@@ -921,16 +939,20 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     set lib_args [concat $lib_args -L $lib]
   }
 
-## Dump the run Makefile
-  puts $qcdc_run_makefile_fh "DUT=$top_module"
-  puts $qcdc_run_makefile_fh ""
-  puts $qcdc_run_makefile_fh "clean:"
-  puts $qcdc_run_makefile_fh "\trm -rf $top_lib_dir $cdc_out_dir"
-  puts $qcdc_run_makefile_fh ""
-  puts $qcdc_run_makefile_fh "cdc_run:"
-  puts $qcdc_run_makefile_fh "\t\$(QHOME)/bin/qverify -c -licq -l qcdc_${top_module}.log -od $cdc_out_dir -do \"\\"
-  puts $qcdc_run_makefile_fh "\tonerror {exit 1}; \\"
-  puts $qcdc_run_makefile_fh "\tdo $qcdc_ctrl; \\"
+  ## Dump the run Makefile
+  puts $qautocheck_run_makefile_fh "DUT=$top_module"
+  puts $qautocheck_run_makefile_fh "TIMEOUT=$autocheck_verify_timeout"
+  puts $qautocheck_run_makefile_fh ""
+  puts $qautocheck_run_makefile_fh "clean:"
+  puts $qautocheck_run_makefile_fh "\trm -rf $top_lib_dir $autocheck_out_dir"
+  puts $qautocheck_run_makefile_fh ""
+  puts $qautocheck_run_makefile_fh "autocheck_compile:"
+  puts $qautocheck_run_makefile_fh "\t\$(QHOME)/bin/qverify -c -licq -l qautocheck_${top_module}.log -od $autocheck_out_dir -do \"\\"
+  puts $qautocheck_run_makefile_fh "\tonerror {exit 1}; \\"
+  if { $autocheck_constraints != "" } {
+    puts $qautocheck_run_makefile_fh "\tdo $autocheck_constraints; \\"
+  }
+  puts $qautocheck_run_makefile_fh "\tdo $qautocheck_ctrl; \\"
 
   ## Get the constraints file
   if { $use_existing_xdc == 1 } {
@@ -944,7 +966,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
            set vhdl_std "-2008"
       }
       if { $ft == "XDC" } {
-        puts $qcdc_run_makefile_fh "\tsdc load $file; \\"
+        puts $qautocheck_run_makefile_fh "\tsdc load $file; \\"
       }
     }
   } else {
@@ -958,45 +980,60 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       set rc 8
       return $rc
     } else {
-      puts $qcdc_run_makefile_fh "\tsdc load $sdc_out_file; \\"
+      puts $qautocheck_run_makefile_fh "\tsdc load $sdc_out_file; \\"
     }
   }
-  puts $qcdc_run_makefile_fh "\tdo $qcdc_compile_tcl; \\"
-  puts $qcdc_run_makefile_fh "\tcdc run -d \$(DUT) $lib_args; \\"
-  puts $qcdc_run_makefile_fh "\texit 0\""
+  puts $qautocheck_run_makefile_fh "\tdo $qautocheck_compile_tcl; \\"
+  puts $qautocheck_run_makefile_fh "\tautocheck disable -type ARITH*; \\"
+  puts $qautocheck_run_makefile_fh "\tautocheck compile -d \$(DUT) $lib_args; \\"
+  puts $qautocheck_run_makefile_fh "\texit 0\""
 
-  close $qcdc_run_makefile_fh
+  ## Dump commands for the verify run in the run Makefile
+  puts $qautocheck_run_makefile_fh ""
+  puts $qautocheck_run_makefile_fh "autocheck_verify:"
+  puts $qautocheck_run_makefile_fh "\t\$(QHOME)/bin/qverify -c -licq -od $autocheck_out_dir -do \"\\"
+  puts $qautocheck_run_makefile_fh "\tonerror {exit 1}; \\"
+  puts $qautocheck_run_makefile_fh "\tautocheck load db $autocheck_out_dir/autocheck_compile.db; \\"
+  puts $qautocheck_run_makefile_fh "\tautocheck verify -j 4 -rtl_init_values -timeout \$(TIMEOUT); \\"
+  puts $qautocheck_run_makefile_fh "\texit 0\""
 
-  puts $qcdc_run_batfile_fh "@ECHO OFF"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh "SET DUT=$top_module"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh "IF \[%1\]==\[\] goto :usage"
-  puts $qcdc_run_batfile_fh "IF %1==clean ("
-  puts $qcdc_run_batfile_fh "    call :clean"
-  puts $qcdc_run_batfile_fh ") ELSE IF %1==compile ("
-  puts $qcdc_run_batfile_fh "    call :compile"
-  puts $qcdc_run_batfile_fh ") ELSE IF %1==cdc ("
-  puts $qcdc_run_batfile_fh "    call :cdc"
-  puts $qcdc_run_batfile_fh ") ELSE IF %1==debug_cdc ("
-  puts $qcdc_run_batfile_fh "    call :debug_cdc"
-  puts $qcdc_run_batfile_fh ") ELSE IF %1==all ("
-  puts $qcdc_run_batfile_fh "    call :clean"
-  puts $qcdc_run_batfile_fh "    call :compile"
-  puts $qcdc_run_batfile_fh "    call :cdc"
-  puts $qcdc_run_batfile_fh "    call :debug_cdc"
-  puts $qcdc_run_batfile_fh ") ELSE ("
-  puts $qcdc_run_batfile_fh "    call :usage"
-  puts $qcdc_run_batfile_fh ")"
-  puts $qcdc_run_batfile_fh "exit /b"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh ":clean"
-  puts $qcdc_run_batfile_fh "\tIF EXIST $top_lib_dir RMDIR /S /Q $top_lib_dir"
-  puts $qcdc_run_batfile_fh "\tIF EXIST $cdc_out_dir RMDIR /S /Q $cdc_out_dir"
-  puts $qcdc_run_batfile_fh "\texit /b"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh ":compile"
-  puts $qcdc_run_batfile_fh "\tqverify -c -licq -l qcdc_${top_module}.log -od $cdc_out_dir -do ^\"do $qcdc_ctrl;do $qcdc_compile_tcl;do $run_sdcfile^\""
+  close $qautocheck_run_makefile_fh
+  puts $qautocheck_run_batfile_fh "@ECHO OFF"
+  puts $qautocheck_run_batfile_fh ""
+  puts $qautocheck_run_batfile_fh "SET DUT=$top_module"
+  puts $qautocheck_run_batfile_fh "SET TIMEOUT=$autocheck_verify_timeout"
+  puts $qautocheck_run_batfile_fh ""
+  puts $qautocheck_run_batfile_fh "IF \[%1\]==\[\] goto :usage"
+  puts $qautocheck_run_batfile_fh "IF %1==clean ("
+  puts $qautocheck_run_batfile_fh "    call :clean"
+  puts $qautocheck_run_batfile_fh ") ELSE IF %1==compile ("
+  puts $qautocheck_run_batfile_fh "    call :compile"
+  puts $qautocheck_run_batfile_fh ") ELSE IF %1==autocheck ("
+  puts $qautocheck_run_batfile_fh "    call :autocheck"
+  puts $qautocheck_run_batfile_fh ") ELSE IF %1==debug_autocheck ("
+  puts $qautocheck_run_batfile_fh "    call :debug_autocheck"
+  puts $qautocheck_run_batfile_fh ") ELSE IF %1==all ("
+  puts $qautocheck_run_batfile_fh "    call :clean"
+  puts $qautocheck_run_batfile_fh "    call :compile"
+  puts $qautocheck_run_batfile_fh "    call :autocheck"
+  puts $qautocheck_run_batfile_fh "    call :debug_autocheck"
+  puts $qautocheck_run_batfile_fh ") ELSE ("
+  puts $qautocheck_run_batfile_fh "    call :usage"
+  puts $qautocheck_run_batfile_fh ")"
+  puts $qautocheck_run_batfile_fh "exit /b"
+  puts $qautocheck_run_batfile_fh ""
+  puts $qautocheck_run_batfile_fh ":clean"
+  puts $qautocheck_run_batfile_fh "\tIF EXIST $top_lib_dir RMDIR /S /Q $top_lib_dir"
+  puts $qautocheck_run_batfile_fh "\tIF EXIST $autocheck_out_dir RMDIR /S /Q $autocheck_out_dir"
+  puts $qautocheck_run_batfile_fh "\texit /b"
+  puts $qautocheck_run_batfile_fh ""
+  puts $qautocheck_run_batfile_fh ":compile"
+
+  set autocheck_constraints_do ""
+  if {$autocheck_constraints != ""} {
+    set autocheck_constraints_do "do $autocheck_constraints;"
+  }
+  puts $qautocheck_run_batfile_fh "\tqverify -c -licq -l qautocheck_${top_module}.log -od $autocheck_out_dir -do ^\"$autocheck_constraints_do do $qautocheck_ctrl;  do $run_sdcfile;do $qautocheck_compile_tcl^\""
 
 
   ## Get the constraints file
@@ -1011,7 +1048,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
            set vhdl_std "-2008"
       }
       if { $ft == "XDC" } {
-        puts $qcdc_run_sdcfile_fh "sdc load $file"
+        puts $qautocheck_run_sdcfile_fh "sdc load $file"
       }
     }
   } else {
@@ -1025,108 +1062,59 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       set rc 8
       return $rc
     } else {
-      puts $qcdc_run_sdcfile_fh "sdc load $sdc_out_file;"
+      puts $qautocheck_run_sdcfile_fh "sdc load $sdc_out_file;"
     }
   }
-  puts $qcdc_run_batfile_fh "\texit /b"
-  puts $qcdc_run_batfile_fh ""
+  puts $qautocheck_run_batfile_fh "\texit /b"
+  puts $qautocheck_run_batfile_fh ""
 
-  puts $qcdc_run_batfile_fh ":cdc"
-  puts $qcdc_run_batfile_fh "\tqverify -c -licq -l qcdc_${top_module}.log -od $cdc_out_dir -do ^\"do $qcdc_ctrl;cdc run -d %DUT% $lib_args; ^\""
-  puts $qcdc_run_batfile_fh "\texit /b"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh ":debug_cdc"
-  puts $qcdc_run_batfile_fh "\tqverify  $cdc_out_dir\/cdc\.db "
-  puts $qcdc_run_batfile_fh "\texit /b"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh ":usage"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc clean \.\.\.\.\.\. Clean all results from directory"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc compile \.\.\.\. Compile source code"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc cdc \.\.\.\.\.\.\.\. Run CDC"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc debug_cdc \.\. Debug CDC Run"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc all \.\.\.\.\.\.\.\. Run all CDC Steps on Souce Code and Launch Debug"
-  puts $qcdc_run_batfile_fh "\texit /b"
+  puts $qautocheck_run_batfile_fh ":autocheck"
+  puts $qautocheck_run_batfile_fh "\tqverify -c -licq -l qautocheck_${top_module}.log -od $autocheck_out_dir -do ^\"do $qautocheck_ctrl; autocheck compile -d %DUT% $lib_args;autocheck verify -j 4 -rtl_init_values -timeout %TIMEOUT%;  ^\""
+  puts $qautocheck_run_batfile_fh "\texit /b"
+  puts $qautocheck_run_batfile_fh ""
+  puts $qautocheck_run_batfile_fh ":debug_autocheck"
+  puts $qautocheck_run_batfile_fh "\tqverify  $autocheck_out_dir\/autocheck\.db "
+  puts $qautocheck_run_batfile_fh "\texit /b"
+  puts $qautocheck_run_batfile_fh ""
+  puts $qautocheck_run_batfile_fh ":usage"
+  puts $qautocheck_run_batfile_fh "\tECHO \#\#\# run_qac clean \.\.\.\.\.\.\.\.\.\.\.\. Clean all results from directory"
+  puts $qautocheck_run_batfile_fh "\tECHO \#\#\# run_qac compile \.\.\.\.\.\.\.\.\.\. Compile source code"
+  puts $qautocheck_run_batfile_fh "\tECHO \#\#\# run_qac autocheck \.\.\.\.\.\.\.\. Run autocheck"
+  puts $qautocheck_run_batfile_fh "\tECHO \#\#\# run_qac debug_autocheck \.\. Debug autocheck Run"
+  puts $qautocheck_run_batfile_fh "\tECHO \#\#\# run_qac all \.\.\.\.\.\.\.\.\.\.\.\.\.\. Run all autocheck Steps on Souce Code and Launch Debug"
+  puts $qautocheck_run_batfile_fh "\texit /b"
 
 
-  close $qcdc_run_batfile_fh
+  close $qautocheck_run_batfile_fh
   ## Dump the run file
-  puts $qcdc_run_fh "#! /bin/sh"
-  puts $qcdc_run_fh ""
-  puts $qcdc_run_fh "rm -rf $top_lib_dir $cdc_out_dir"
-  puts $qcdc_run_fh "\$QHOME/bin/qverify -c -licq -l qcdc_${top_module}.log -od $cdc_out_dir -do ${tcl_script}"
-  close $qcdc_run_fh
+  puts $qautocheck_run_fh "#! /bin/sh"
+  puts $qautocheck_run_fh ""
+  puts $qautocheck_run_fh "rm -rf $top_lib_dir $autocheck_out_dir"
+  puts $qautocheck_run_fh "qverify -c -licq -l qautocheck_${top_module}.log -od $autocheck_out_dir -do \"do $autocheck_constraints; do $qautocheck_ctrl;  do $run_sdcfile; do $qautocheck_compile_tcl;autocheck disable -type ARITH*;autocheck compile -d \$(DUT) $lib_args;autocheck verify -j 4 -rtl_init_values -timeout \$(TIMEOUT);    \""
+  close $qautocheck_run_fh
 
-  puts $qcdc_tcl_fh "onerror {exit 1}"
-  puts $qcdc_tcl_fh "do $qcdc_ctrl"
 
-  ## Get the constraints file
-  if { $no_sdc == 0 } {
-    if { $use_existing_xdc == 1 } {
-      puts "INFO : Using existing XDC files."
-      set constr_fileset [current_fileset -constrset]
-      set files [get_files -all -of [get_filesets $constr_fileset] *]
-      foreach file $files {
-        set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $constr_fileset] $file] 0]]
-	if { [string match $ft "VHDL 2008"] }  {
-	      set ft "VHDL"
-	      set vhdl_std "-2008"
-	}
-        if { $ft == "XDC" } {
-          puts $qcdc_tcl_fh "sdc load $file"
-        }
-      }
-    } else {
-      set sdc_out_file "${top_module}_syn.sdc"
-      puts "INFO : Running write_xdc command to generate the XDC file of the synthesized design"
-      puts "     : Executing write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force"
-      if { [catch {write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force} result] } {
-        puts "** ERROR : Can't generate SDC file for the design."
-        puts "         : Please run the synthesis step, or open the synthesized design then re-run the script."
-        puts "         : You can use '-use_existing_xdc' option with the script to ignore generating the SDC file and use the input XDC files."
-        set rc 8
-        return $rc
-      } else {
-        puts $qcdc_tcl_fh "sdc load $sdc_out_file"
-      }
-    }
-  }
-  puts $qcdc_tcl_fh "do $qcdc_compile_tcl"
-  if { $run_questa_cdc == "report_clock" } { 
-    puts $qcdc_tcl_fh "cdc run -d $top_module $lib_args -report_clock"
-  } else {
-    puts $qcdc_tcl_fh "cdc run -d $top_module $lib_args"
-    puts $qcdc_tcl_fh "cdc generate report ${top_module}_detailed.rpt"
-  }
-  puts $qcdc_tcl_fh "exit 0"
+  puts "INFO : Generation of running scripts for Questa AutoCheck is done at [pwd]/$userOD"
 
-#  puts $qcdc_tcl_fh "sdc load $top_module.sdc"
-#  puts $qcdc_tcl_fh "do $qcdc_ctrl"
-
-  close $qcdc_tcl_fh
-  puts "INFO : Generation of running scripts for Questa CDC is done at [pwd]/$userOD"
-
-  ## Change permissions of the generated running script
-  exec chmod u+x $userOD/$run_script
-  if { $run_questa_cdc == "cdc_run" } {
-    puts "INFO : Running Questa CDC (Command: cdc run), the UI will be invoked when the run is finished"
-    puts "     : Log can be found at $userOD/CDC_RESULTS/qverify.log"
-    exec /bin/sh -c "cd $userOD; sh qcdc_run.sh"
-    puts "INFO : Questa CDC run is finished"
-    puts "INFO : Invoking Questa CDC UI for debugging."
-    exec qverify -l qverify_ui.log $userOD/CDC_RESULTS/cdc.db &
-  } elseif { $run_questa_cdc == "report_clock" } {
-    puts "INFO : Running Questa CDC (Command: cdc run -report_clock), the UI will be invoked when the run is finished"
-    puts "     : Log can be found at $userOD/CDC_RESULTS/qverify.log"
-    exec /bin/sh -c "cd $userOD; sh qcdc_run.sh"
-    puts "INFO : Questa CDC run is finished"
-    puts "INFO : Invoking Questa CDC UI for debugging."
-    exec /bin/sh -c "cd $userOD; qverify -l qverify_ui.log CDC_RESULTS/cdc.db" &
+  if { $run_questa_autocheck == "autocheck_compile" } {
+    puts "INFO : Running Questa AutoCheck (Command: autocheck compile), the UI will be invoked when the run is finished"
+    puts "     : Log can be found at $userOD/AUTOCHECK_RESULTS/qverify.log"
+    exec /bin/sh -c "cd $userOD; make autocheck_compile -f $run_makefile"
+    puts "INFO : Questa AutoCheck run is finished"
+    puts "INFO : Invoking Questa AutoCheck UI for debugging."
+    exec qverify -l qverify_ui.log $userOD/AUTOCHECK_RESULTS/autocheck_compile.db &
+  } elseif { $run_questa_autocheck == "autocheck_verify" } {
+    puts "INFO : Running Questa AutoCheck (Command: autocheck verify), the UI will be invoked when the run is finished"
+    puts "     : Log can be found at $userOD/AUTOCHECK_RESULTS/qverify.log"
+    exec /bin/sh -c "cd $userOD; make autocheck_compile autocheck_verify -f $run_makefile"
+    puts "INFO : Questa AutoCheck run is finished"
+    puts "INFO : Invoking Questa AutoCheck UI for debugging."
+    exec /bin/sh -c "cd $userOD; qverify -l qverify_ui.log AUTOCHECK_RESULTS/autocheck_verify.db" &
   }
   return $rc
 }
 
-## Keep an environment variable with the path of the script
 
 
-## Auto-import the procs of the Questa CDC script
-namespace import tclapp::mentor::questa_cdc::*
+## Auto-import the procs of the Questa AutoCheck script
+namespace import tclapp::mentor::questa_autocheck::*

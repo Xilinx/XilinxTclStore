@@ -6,6 +6,18 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
+set auto_index(::tclapp::mentor::questa_lint::matches_default_libs) [list source [file join $dir write_questa_lint_script.tcl]]
+set auto_index(::tclapp::mentor::questa_lint::uniquify_lib) [list source [file join $dir write_questa_lint_script.tcl]]
+set auto_index(::tclapp::mentor::questa_lint::write_questa_lint_script) [list source [file join $dir write_questa_lint_script.tcl]]
+set auto_index(::tclapp::mentor::questa_rdc::matches_default_libs) [list source [file join $dir write_questa_rdc_script.tcl]]
+set auto_index(::tclapp::mentor::questa_rdc::uniquify_lib) [list source [file join $dir write_questa_rdc_script.tcl]]
+set auto_index(::tclapp::mentor::questa_rdc::write_questa_rdc_script) [list source [file join $dir write_questa_rdc_script.tcl]]
+set auto_index(::tclapp::mentor::questa_autocheck::matches_default_libs) [list source [file join $dir write_questa_autocheck_script.tcl]]
+set auto_index(::tclapp::mentor::questa_autocheck::uniquify_lib) [list source [file join $dir write_questa_autocheck_script.tcl]]
+set auto_index(::tclapp::mentor::questa_autocheck::write_questa_autocheck_script) [list source [file join $dir write_questa_autocheck_script.tcl]]
+set auto_index(::tclapp::mentor::questa_resetcheck::matches_default_libs) [list source [file join $dir write_questa_resetcheck_script.tcl]]
+set auto_index(::tclapp::mentor::questa_resetcheck::uniquify_lib) [list source [file join $dir write_questa_resetcheck_script.tcl]]
+set auto_index(::tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script) [list source [file join $dir write_questa_resetcheck_script.tcl]]
 set auto_index(::tclapp::mentor::questa_cdc::matches_default_libs) [list source [file join $dir write_questa_cdc_script.tcl]]
 set auto_index(::tclapp::mentor::questa_cdc::uniquify_lib) [list source [file join $dir write_questa_cdc_script.tcl]]
 set auto_index(::tclapp::mentor::questa_cdc::write_questa_cdc_script) [list source [file join $dir write_questa_cdc_script.tcl]]

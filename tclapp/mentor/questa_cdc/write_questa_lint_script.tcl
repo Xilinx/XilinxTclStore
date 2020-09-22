@@ -1,20 +1,20 @@
-# Usage: write_questa_cdc_script <top_module> [-output_directory <output_directory>] [-use_existing_xdc|-no_sdc]
+# Usage: write_questa_lint_script <top_module> [-output_directory <output_directory>]
 ###############################################################################
 #
-# write_questa_cdc_script.tcl (Routine for Mentor Graphics Questa CDC Application)
+# write_questa_lint_script.tcl (Routine for Mentor Graphics Questa Lint Application)
 #
 # Script created on 12/20/2016 by Islam Ahmed (Mentor Graphics Inc) &
 #                                 Ravi Kurlagunda
 #
 ###############################################################################
 
-namespace eval ::tclapp::mentor::questa_cdc {
+namespace eval ::tclapp::mentor::questa_lint {
   # Export procs that should be allowed to import into other namespaces
-  variable QUESTA_CDC_TCL_SCRIPT_PATH [file normalize [file dirname [info script]]]
-  namespace export write_questa_cdc_script
+  variable QUESTA_Lint_TCL_SCRIPT_PATH [file normalize [file dirname [info script]]]
+  namespace export write_questa_lint_script
 }
 
-proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
+proc ::tclapp::mentor::questa_lint::matches_default_libs {lib} {
   
   # Summary: internally used routine to check if default libs used
   
@@ -24,7 +24,7 @@ proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   # Return Value:
   # 1 is returned when the passed library matches on of the names of the default libraries
 
-  # Categories: xilinxtclstore, mentor, questa_cdc
+  # Categories: xilinxtclstore, mentor, questa_lint
 
   regsub ":.*" $lib {} lib
   if {[string match -nocase $lib "xil_defaultlib"]} {
@@ -36,7 +36,7 @@ proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
+proc ::tclapp::mentor::questa_lint::uniquify_lib {lib lang num} {
   
   # Summary: internally used routine to uniquify libs
   
@@ -48,7 +48,7 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   # Return Value:
   # The name of the uniquified library is returned 
 
-  # Categories: xilinxtclstore, mentor, questa_cdc
+  # Categories: xilinxtclstore, mentor, questa_lint
 
 
   set new_lib ""
@@ -60,36 +60,32 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   return $new_lib
 }
 
-proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
+proc ::tclapp::mentor::questa_lint::write_questa_lint_script {args} {
 
-  # Summary : This proc generates the Questa CDC script file
+  # Summary : This proc generates the Questa Lint script file
 
   # Argument Usage:
   # top_module : Provide the design top name
   # [-output_directory <arg>]: Specify the output directory to generate the scripts in
-  # [-use_existing_xdc]: Ignore running write_xdc command to generate the SDC file of the synthesized design, and use the input constraints file instead
-  # [-no_sdc]: Don't generate SDC file, user is expected to update generated tcl file to add constraints information 
-  # [-run <arg>]: Run Questa CDC and invoke the UI of Questa CDC debug after generating the running scripts, default behavior is to stop after the generation of the scripts
-  # [-add_button]: Add a button to run Questa CDC in Vivado UI.
-  # [-remove_button]: Remove the Questa CDC button from Vivado UI.
+  # [-run <arg>]: Run Questa Lint and invoke the UI of Questa Lint debug after generating the running scripts, default behavior is to stop after the generation of the scripts
+  # [-add_button]: Add a button to run Questa Lint in Vivado UI.
+  # [-remove_button]: Remove the Questa Lint button from Vivado UI.
 
   # Return Value: Returns '0' on successful completion
 
-  # Categories: xilinxtclstore, mentor, questa_cdc
+  # Categories: xilinxtclstore, mentor, questa_lint
 
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
 
-  
 
   set userOD "."
   set top_module ""
-  set use_existing_xdc 0
   set no_sdc 0
-  set run_questa_cdc "cdc run"
+  set run_questa_lint "lint run"
   set add_button 0
   set remove_button 0
-  set usage_msg "Usage    : write_questa_cdc_script <top_module> \[-output_directory <out_dir>\] \[-use_existing_xdc|-no_sdc\] \[-run <report_clock|cdc_run>\] \[-add_button\] \[-remove_button\]"
+  set usage_msg "Usage    : write_questa_lint_script <top_module> \[-output_directory <out_dir>\] \[-run <report_clock|lint_run>\] \[-add_button\] \[-remove_button\]"
   # Parse the arguments
   if { [llength $args] > 8 } {
     puts "** ERROR : Extra arguments passed to the proc."
@@ -110,15 +106,15 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
         puts $usage_msg
         return 1
       }
-    } elseif { [lindex $args $i] == "-use_existing_xdc" } {
-      set use_existing_xdc 1
+    ## } elseif { [lindex $args $i] == "-use_existing_xdc" } {
+    ##  set use_existing_xdc 1
     } elseif { [lindex $args $i] == "-no_sdc" } {
       set no_sdc 1
     } elseif { [lindex $args $i] == "-run" } {
       incr i
-      set run_questa_cdc "[lindex $args $i]"
-      if { ($run_questa_cdc != "cdc_run") && ($run_questa_cdc != "report_clock") } {
-        puts "** ERROR : Invalid argument value for -run '$run_questa_cdc'"
+      set run_questa_lint "[lindex $args $i]"
+      if { ($run_questa_lint != "lint_run") && ($run_questa_lint != "report_clock") } {
+        puts "** ERROR : Invalid argument value for -run '$run_questa_lint'"
         puts $usage_msg
         return 1
       }
@@ -144,83 +140,83 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     return 1
   }
 
-  ## Add Vivado GUI button for Questa CDC
+  ## Add Vivado GUI button for Questa Lint
   if { $add_button == 1 } {
     ## Example for code of the Vivado GUI button
     ## -----------------------------------------
-    ## 0=Run%20Questa%20CDC tclapp::mentor::questa_cdc::write_questa_cdc_script "" /home/iahmed/questa_cdc_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20CDC%20Run "" -run true
+    ## 0=Run%20Questa%20Lint tclapp::mentor::questa_lint::write_questa_lint_script "" /home/iahmed/questa_lint_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20Lint%20Run "" -run true
     ## -----------------------------------------
 
-    
     set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
-    set status [catch {exec grep write_questa_cdc_script $commands_file} result]
+    set status [catch {exec grep write_questa_lint_script $commands_file} result]
     if { $status == 0 } {
-      puts "INFO : Vivado GUI button for running Questa CDC is already installed in $commands_file. Exiting ..."
+      puts "INFO : Vivado GUI button for running Questa Lint is already installed in $commands_file. Exiting ..."
       return $rc
     }
-    variable QUESTA_CDC_TCL_SCRIPT_PATH
-    set questa_cdc_logo "$QUESTA_CDC_TCL_SCRIPT_PATH/questa_cdc_logo.PNG"
-    if { ! [file exists $questa_cdc_logo] } {
-      set questa_cdc_logo "\"$questa_cdc_logo\""
-      puts "INFO: Can't find the Questa CDC logo at $questa_cdc_logo"
-      if { [file exists "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"] } {
-        set questa_cdc_logo "$::env(QHOME)/share/fpga_libs/Xilinx/questa_cdc_logo.PNG"
-        puts "INFO: Found the Questa CDC logo at $questa_cdc_logo"
+    variable QUESTA_Lint_TCL_SCRIPT_PATH
+    set questa_lint_logo "$QUESTA_Lint_TCL_SCRIPT_PATH/questa_lint_logo.PNG"
+    if { ! [file exists $questa_lint_logo] } {
+      set questa_lint_logo "\"$questa_lint_logo\""
+      puts "INFO: Can't find the Questa Lint logo at $questa_lint_logo"
+      if { [file exists "$::env(QHOME)/share/fpga_libs/Xilinx/questa_lint_logo.PNG"] } {
+        set questa_lint_logo "$::env(QHOME)/share/fpga_libs/Xilinx/questa_lint_logo.PNG"
+        puts "INFO: Found the Questa Lint logo at $questa_lint_logo"
       }
     }
     if { [catch {open $commands_file a} result] } {
-      puts stderr "ERROR: Could not open commands.paini to add the Questa CDC button, path '$commands_file'\n$result"
+      puts stderr "ERROR: Could not open commands.paini to add the Questa Lint button, path '$commands_file'\n$result"
       set rc 9
       return $rc
     } else {
       set commands_fh $result
-      puts "INFO: Adding Vivado GUI button for running Questa CDC in $commands_file"
+      puts "INFO: Adding Vivado GUI button for running Questa Lint in $commands_file"
     }
-    set questa_cdc_command_index 0
+    set questa_lint_command_index 0
     set vivado_cmds_version 1
     if { [file size $commands_file] } {
       set last_command_index [exec cat $commands_file | tail -1 | cut -f1 -d=]
       if { $last_command_index == "VERSION" } {
         ## This means that there are no commands in the file, and only the "VERSION" line is there
-        set questa_cdc_command_index 0
+        set questa_lint_command_index 0
         set vivado_cmds_version [exec cat $commands_file | tail -1 | cut -f2 -d=]
       } else {
-        set questa_cdc_command_index [incr last_command_index]
+        set questa_lint_command_index [incr last_command_index]
         set vivado_cmds_version [exec cat $commands_file | head -1 | cut -f2 -d=]
       }
     } else {
       puts $commands_fh "VERSION=$vivado_cmds_version"
-      set questa_cdc_command_index 0
+      set questa_lint_command_index 0
     }
     set button_code ""
     if { $vivado_cmds_version == 1 } {
-      set button_code "$questa_cdc_command_index=Run%20Questa%20CDC"
-      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
-                 
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
-      set button_code "$button_code \"\" $questa_cdc_logo \"\" \"\" true ^@ \"\" true 4"
+      set button_code "$questa_lint_command_index=Run%20Questa%20Lint"
+ 
+			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
+ 
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_lint::write_questa_lint_script"
+      set button_code "$button_code \"\" $questa_lint_logo \"\" \"\" true ^@ \"\" true 4"
       set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-      set button_code "$button_code Output%20Directory \"\" -output_directory%20QCDC true"
-      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-      set button_code "$button_code Invoke%20Questa%20CDC%20Run \"\" -run%20report_clock true"
+      set button_code "$button_code Output%20Directory \"\" -output_directory%20QLint true"
+      ## set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
+      set button_code "$button_code Invoke%20Questa%20Lint%20Run \"\" -run%20report_clock true"
     } else {
-      set button_code "$questa_cdc_command_index=$questa_cdc_command_index Run%20Questa%20CDC Run%20Questa%20CDC"
-        set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
-                       
-
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
-      set button_code "$button_code \"\" $questa_cdc_logo \"\" \"\" true ^ \"\" true 4"
+      set button_code "$questa_lint_command_index=$questa_lint_command_index Run%20Questa%20Lint Run%20Questa%20Lint"
+       
+			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
+               
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_lint::write_questa_lint_script"
+      set button_code "$button_code \"\" $questa_lint_logo \"\" \"\" true ^ \"\" true 4"
       set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-      set button_code "$button_code Output%20Directory \"\" -output_directory%20QCDC true"
-      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-      set button_code "$button_code Invoke%20Questa%20CDC%20Run \"\" -run%20report_clock true"
+      set button_code "$button_code Output%20Directory \"\" -output_directory%20QLint true"
+      ## set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
+      set button_code "$button_code Invoke%20Questa%20Lint%20Run \"\" -run%20report_clock true"
     }
     puts $commands_fh $button_code
     close $commands_fh
     return $rc
   }
 
-  ## Remove Vivado GUI button for Questa CDC
+  ## Remove Vivado GUI button for Questa Lint
   if { $remove_button == 1 } {
     set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
     ## Temp file to write the modified file
@@ -231,16 +227,16 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     set ip_data [read $ip_file]
     set ip_lines [split $ip_data "\n"]
 
-    set questa_cdc_command_found 0
+    set questa_lint_command_found 0
     foreach ip_line $ip_lines {
       if { $ip_line == "" } {
         continue
       }
-      if { [regexp {Questa.*CDC.*write_questa_cdc_script.tcl} $ip_line] } {
-        set questa_cdc_command_found 1
+      if { [regexp {Questa.*Lint.*write_questa_lint_script.tcl} $ip_line] } {
+        set questa_lint_command_found 1
         continue
       }
-      if { $questa_cdc_command_found == 1 } {
+      if { $questa_lint_command_found == 1 } {
         regsub {(^\d+)=.*} $ip_line {\1} cmd_id
         regsub {^\d+=(.*)} $ip_line {\1} cmd_text
         incr cmd_id -1 
@@ -256,10 +252,10 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     exec rm -f 
     file delete $commands_file
     file rename ${commands_file}.tmp $commands_file
-    if { $questa_cdc_command_found == 1 } {
-      puts "INFO: Vivado GUI button for running Questa CDC is removed from $commands_file"
+    if { $questa_lint_command_found == 1 } {
+      puts "INFO: Vivado GUI button for running Questa Lint is removed from $commands_file"
     } else {
-      puts "INFO: Vivado GUI button for running Questa CDC wasn't found in $commands_file."
+      puts "INFO: Vivado GUI button for running Questa Lint wasn't found in $commands_file."
       puts "    : File has not been changed."
     }
     return $rc
@@ -277,13 +273,14 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     file mkdir $userOD
   }
 
-  set qcdc_ctrl "qcdc_ctrl.tcl"
-  set run_makefile "Makefile.qcdc"
-  set run_batfile "run_qcdc.bat"
-  set run_sdcfile "qcdc_sdc.tcl"
-  set qcdc_compile_tcl "qcdc_compile.tcl"
-  set run_script "qcdc_run.sh"
-  set tcl_script "qcdc_run.tcl"
+  set qlintlint_ctrl "qlint_ctrl.tcl"
+  set run_makefile "Makefile.qlint"
+  set run_batfile "run_qlint.bat"
+  set run_sdcfile "qlint_sdc.tcl"
+  set qlint_ctrl "qlint_ctrl.tcl"
+  set qlint_compile_tcl "qlint_compile.tcl"
+  set run_script "qlint_run.sh"
+  set tcl_script "qlint_run.tcl"
   set encrypted_lib "dummmmmy_lib"
 
   ## Vivado install dir
@@ -304,7 +301,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   # Settings
   set top_lib_dir "qft"
-  set cdc_out_dir "CDC_RESULTS"
+  set lint_out_dir "Lint_RESULTS"
   set modelsimini "modelsim.ini"
 
   # Open output files to write
@@ -313,32 +310,32 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     set rc 2
     return $rc
   } else {
-    set qcdc_run_makefile_fh $result
-    puts "INFO: Writing Questa CDC run Makefile to file $userOD/$run_makefile"
+    set qlint_run_makefile_fh $result
+    puts "INFO: Writing Questa lint run Makefile to file $userOD/$run_makefile"
   }
   if { [catch {open $userOD/$run_batfile w} result] } {
     puts stderr "ERROR: Could not open $run_batfile for writing\n$result"
     set rc 2
     return $rc
   } else {
-    set qcdc_run_batfile_fh $result
-    puts "INFO: Writing Questa CDC run batfile to file $userOD/$run_batfile"
+    set qlint_run_batfile_fh $result
+    puts "INFO: Writing Questa lint run batfile to file $userOD/$run_batfile"
   }
   if { [catch {open $userOD/$run_sdcfile w} result] } {
     puts stderr "ERROR: Could not open $run_sdcfile for writing\n$result"
     set rc 2
     return $rc
   } else {
-    set qcdc_run_sdcfile_fh $result
-    puts "INFO: Writing Questa CDC run batfile to file $userOD/$run_sdcfile"
+    set qlint_run_sdcfile_fh $result
+    puts "INFO: Writing Questa lint run batfile to file $userOD/$run_sdcfile"
   }
   if { [catch {open $userOD/$run_script w} result] } {
     puts stderr "ERROR: Could not open $run_script for writing\n$result"
     set rc 2
     return $rc
   } else {
-    set qcdc_run_fh $result
-    puts "INFO: Writing Questa CDC run script to file $userOD/$run_script"
+    set qlint_run_fh $result
+    puts "INFO: Writing Questa Lint run script to file $run_script"
   }
 
   if { [catch {open $userOD/$tcl_script w} result] } {
@@ -346,26 +343,26 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     set rc 10
     return $rc
   } else {
-    set qcdc_tcl_fh $result
-    puts "INFO: Writing Questa CDC tcl script to file $userOD/$tcl_script"
+    set qlint_tcl_fh $result
+    puts "INFO: Writing Questa Lint tcl script to file $tcl_script"
   }
 
-  if { [catch {open $userOD/$qcdc_ctrl w} result] } {
-    puts stderr "ERROR: Could not open $qcdc_ctrl for writing\n$result"
+  if { [catch {open $userOD/$qlint_ctrl w} result] } {
+    puts stderr "ERROR: Could not open $qlint_ctrl for writing\n$result"
     set rc 3
     return $rc
   } else {
-    set qcdc_ctrl_fh $result
-    puts "INFO: Writing Questa CDC control directives script to file $userOD/$qcdc_ctrl"
+    set qlint_ctrl_fh $result
+    puts "INFO: Writing Questa Lint control directives script to file $qlint_ctrl"
   }
 
-  if { [catch {open $userOD/$qcdc_compile_tcl w} result] } {
-    puts stderr "ERROR: Could not open $qcdc_compile_tcl for writing\n$result"
+  if { [catch {open $userOD/$qlint_compile_tcl w} result] } {
+    puts stderr "ERROR: Could not open $qlint_compile_tcl for writing\n$result"
     set rc 4
     return $rc
   } else {
-    set qcdc_compile_tcl_fh $result
-    puts "INFO: Writing Questa CDC Tcl script to file $userOD/$qcdc_compile_tcl"
+    set qlint_compile_tcl_fh $result
+    puts "INFO: Writing Questa Lint Tcl script to file $qlint_compile_tcl"
   }
 
 
@@ -394,7 +391,8 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     puts "INFO: Found synthesis fileset $synth_fileset"
   }
   update_compile_order -fileset $synth_fileset
-######CDC-25493- Extraction of +define options########
+
+######Lint-25493- Extraction of +define options########
   set verilog_define_options [ get_property verilog_define [current_fileset] ]
   if { [string match $verilog_define_options ""]  } {
   } else {
@@ -402,7 +400,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
         set prefix_verilog_define_options "+define+"
         set verilog_define_options "${prefix_verilog_define_options}${modified_verilog_define_options}"
  }
-
  
   ## Blackbox unisims
 #  link_design -part [get_parts [get_property PART [current_project]]]
@@ -448,6 +445,8 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   set global_incdirs [list ]
 
 
+
+
   #Get filelist for each IP
   for {set i 0} {$i <= $num_ip} {incr i} {
     if {$i < $num_ip} {
@@ -457,7 +456,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 	set ip_container "dummy"
 	}
 
-#support for CDC-25506 - "write_questa_cdc_script" needs to be enhanced to automatically extract source code for compressed Xilinx IP Containers (.xcix files).
+#support for Lint-25506 - "write_questa_lint_script" needs to be enhanced to automatically extract source code for compressed Xilinx IP Containers (.xcix files).
       if {[regexp {xcix} $ip_container all value] && [file exists $ip_container]}  {
               set is_xcix "1"
               set ip_name [get_property NAME $ip]
@@ -470,7 +469,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 			set hdl_file [file tail $wrong_file]
 			foreach extract_file $extracted_files { 
 				if {[regexp $hdl_file $extract_file]}  {
-                                        if {[regexp {vho} $extract_file all value]  || [regexp {veo} $extract_file all value] || [regexp {txt} $extract_file all value] || [regexp {tb_} $extract_file all value]   }	{ 
+                                        if {[regexp {vho} $extract_file all value]  || [regexp {veo} $extract_file all value] || [regexp {txt} $extract_file all value] || [regexp {tb_} $extract_file all value]}	{ 
 					} else {						 
 					      lappend files $extract_file
                                         }
@@ -493,16 +492,15 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
               # Keep a list of all the include files, this is added to handle an issue in the 'wavegen' Xilinx example in which clog2b.vh wasn't added into compilation file
               set all_include_files [get_files -filter {USED_IN_SYNTHESIS && FILE_TYPE =="Verilog Header"}]
               foreach include_file $all_include_files {
-#                  if { [lsearch -exact $files $include_file] == "-1"  } {
+#                  if { [lsearch -exact $files $include_file] == "-1" } {
 	      if {[file exists $include_file]} {
                       lappend files $include_file
-              }
+	      }
 #                  }
              }
        }
     } else {
       set is_xcix "0"
-#      set ip_container [get_property IP_CORE_CONTAINER $top_module]
       set ip $top_module
       set ip_name $top_module
       set ip_ref  $top_module
@@ -558,19 +556,19 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
             if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
                   set fn [get_property NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
                   set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-		  if { [string match $ft "VHDL 2008"] }  {
-		  	set ft "VHDL"
-                        set vhdl_std "-2008"
-		  }
+  		    if { [string match $ft "VHDL 2008"] }  {
+       			    set ft "VHDL"
+       			    set vhdl_std "-2008"
+     		 }
                   set fs [get_property FILESET_NAME [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
                   set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
             } else {
                  set fn [get_property NAME [lindex [get_files -all $f] 0]]
                  set ft [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
-		 if { [string match $ft "VHDL 2008"] }  {
-		      set ft "VHDL"
-		      set vhdl_std "-2008"
-		 }
+  		    if { [string match $ft "VHDL 2008"] }  {
+       			    set ft "VHDL"
+       			    set vhdl_std "-2008"
+     		 }
                  set fs [get_property FILESET_NAME [lindex [get_files -all $f] 0]]
                  set lib [get_property LIBRARY [lindex [get_files -all $f] 0]]
             }
@@ -588,10 +586,11 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
       ## Create a list of files for each library
       if {[string match $ft "Verilog"] || [string match $ft "Verilog Header"] || [string match $ft "SystemVerilog"] || [string match $ft "VHDL"] || [string match $ft "VHDL 2008"]} {
         if {[info exists lib_file_array($lib)]} { 
+
 	  set file_h [open $fn]
 	  set found_encrypted 1
 	  while {[gets $file_h line] >= 0} {
-	      if {[regexp {library} $line all value]  || [regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value] || [regexp {`protect} $line all value] || [regexp {define} $line all value]  || [regexp {function} $line all value] || [regexp {task} $line all value]     } {
+	      if {[regexp {library} $line all value] ||[regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY } $line all value] || [regexp {PACKAGE} $line all value] || [regexp {`protect} $line all value] || [regexp {define} $line all value]  || [regexp {function} $line all value] || [regexp {task} $line all value]      } {
 		  set found_encrypted 0
 	          break
 	      }
@@ -611,7 +610,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
           set file_h [open $fn]
           set found_encrypted 1
           while {[gets $file_h line] >= 0} {
-              if {[regexp {library} $line all value]  || [regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value]   || [regexp {`protect} $line all value]  || [regexp {define} $line all value]   || [regexp {function} $line all value] || [regexp {task} $line all value]     } {
+              if {[regexp {library} $line all value] ||[regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value]   || [regexp {`protect} $line all value] || [regexp {define} $line all value]   || [regexp {function} $line all value] || [regexp {task} $line all value]     } {
                   set found_encrypted 0
                   break
               }
@@ -705,11 +704,11 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
               set is_include [get_property IS_GLOBAL_INCLUDE [lindex [get_files -all $f] 0]]
               set f_type [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
 	      if { [string match $f_type "VHDL 2008"] }  {
-	         set f_type "VHDL"
-		 set vhdl_std "-2008"
-	      }
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
             }
-            }
+	    }
             if {$is_include == 1 || [string match $f_type "Verilog Header"]} {
               set file_dir [file dirname $f]
               if {![info exists incdir_ar($file_dir)]} {
@@ -740,16 +739,16 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
                   } else {
                       if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
                           set f_type [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
-			  if { [string match $f_type "VHDL 2008"] }  {
-		                set f_type "VHDL"
-				set vhdl_std "-2008"
-		          }
+	      if { [string match $f_type "VHDL 2008"] }  {
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
                       } else {
                            set f_type [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
-			   if { [string match $f_type "VHDL 2008"] }  {
-			      set f_type "VHDL"
-			      set vhdl_std "-2008"
-			   }
+	      if { [string match $f_type "VHDL 2008"] }  {
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
                       }
                   }
             if {[string match $f_type "VHDL"]} {
@@ -790,10 +789,18 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
            } else {
             if { [get_files -all -of [get_filesets $synth_fileset] $f] != "" } {
               set f_type [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $synth_fileset] $f] 0]]
+	      if { [string match $f_type "VHDL 2008"] }  {
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
             } else {
               set f_type [get_property FILE_TYPE [lindex [get_files -all $f] 0]]
+	      if { [string match $f_type "VHDL 2008"] }  {
+		      set f_type "VHDL"
+		      set vhdl_std "-2008"
+	         }
             }
-            }
+	    }
             if {[string match $f_type "Verilog"] || [string match $f_type "SystemVerilog"]} {
               if {![regexp {^blk_mem_gen_v\d+_\d+$} $lib] || ([regexp {^blk_mem_gen_v\d+_\d+$} $lib] && [regexp {/blk_mem_gen_v\d+_\d+\.v} $f]) } {
                 set line "  $f \\"
@@ -820,7 +827,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     foreach subcore $lib_file_order {
       if {![info exists black_box_libs($subcore)]} {
         if {[regexp {^blk_mem_gen_v\d+_\d+} $subcore]} {
-          set line "#cdc blackbox memory ${subcore}_synth"
+          set line "#lint blackbox memory ${subcore}_synth"
           lappend black_box_lines $line
           set black_box_libs($subcore) 1
         }
@@ -839,37 +846,38 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     return $rc
   }
 
-  puts $qcdc_compile_tcl_fh "\n#"
-  puts $qcdc_compile_tcl_fh "# Create work library"
-  puts $qcdc_compile_tcl_fh "#"
-  puts $qcdc_compile_tcl_fh "vlib $top_lib_dir"
-  puts $qcdc_compile_tcl_fh "vlib $top_lib_dir/xil_defaultlib"
+  puts $qlint_compile_tcl_fh "\n#"
+  puts $qlint_compile_tcl_fh "# Create work library"
+  puts $qlint_compile_tcl_fh "#"
+  puts $qlint_compile_tcl_fh "vlib $top_lib_dir"
+  puts $qlint_compile_tcl_fh "vlib $top_lib_dir/xil_defaultlib"
   foreach key [array names compiled_lib_list] {
     regsub ":.*" $key {} key
-    puts $qcdc_compile_tcl_fh "vlib $top_lib_dir/$key"
+    puts $qlint_compile_tcl_fh "vlib $top_lib_dir/$key"
   }
 
-  puts $qcdc_compile_tcl_fh "\n#"
-  puts $qcdc_compile_tcl_fh "# Map libraries"
-  puts $qcdc_compile_tcl_fh "#"
-  puts $qcdc_compile_tcl_fh "vmap work $top_lib_dir/xil_defaultlib"
+  puts $qlint_compile_tcl_fh "\n#"
+  puts $qlint_compile_tcl_fh "# Map libraries"
+  puts $qlint_compile_tcl_fh "#"
+  puts $qlint_compile_tcl_fh "vmap work $top_lib_dir/xil_defaultlib"
   foreach key [array names compiled_lib_list] {
     regsub ":.*" $key {} key
-    puts $qcdc_compile_tcl_fh "vmap $key $top_lib_dir/$key"
+    puts $qlint_compile_tcl_fh "vmap $key $top_lib_dir/$key"
   }
 
-  puts $qcdc_compile_tcl_fh "\n#"
-  puts $qcdc_compile_tcl_fh "# Compile files section"
-  puts $qcdc_compile_tcl_fh "#"
+  puts $qlint_compile_tcl_fh "\n#"
+  puts $qlint_compile_tcl_fh "# Compile files section"
+  puts $qlint_compile_tcl_fh "#"
+
 
   set first_pack "1"
   foreach l $compile_lines {
     if {[regexp {\_pack\.vhd} $l all value] } {
 	if {$first_pack == "1"} {
-                 puts $qcdc_compile_tcl_fh "\n$vcom_line\n $l"
+                 puts $qlint_compile_tcl_fh "\n$vcom_line\n $l"
                  set first_pack "0"
         } else {
-                 puts $qcdc_compile_tcl_fh "$l"
+                 puts $qlint_compile_tcl_fh "$l"
                  set first_pack "0"
 
         }
@@ -884,31 +892,33 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   }
 
 
-  puts $qcdc_compile_tcl_fh "\n"
+  puts $qlint_compile_tcl_fh "\n"
+
+
+
   foreach l $compile_lines {
-    puts $qcdc_compile_tcl_fh $l
+    puts $qlint_compile_tcl_fh $l
   }
 
-  puts $qcdc_compile_tcl_fh "\n#"
-  puts $qcdc_compile_tcl_fh "# Add global set/reset"
-  puts $qcdc_compile_tcl_fh "#"
-  puts $qcdc_compile_tcl_fh "vlog  -suppress 13389  $verilog_define_options -work xil_defaultlib $vivado_dir/data/verilog/src/glbl.v"
+  puts $qlint_compile_tcl_fh "\n#"
+  puts $qlint_compile_tcl_fh "# Add global set/reset"
+  puts $qlint_compile_tcl_fh "#"
+  puts $qlint_compile_tcl_fh "vlog  -suppress 13389  $verilog_define_options -work xil_defaultlib $vivado_dir/data/verilog/src/glbl.v"
 
-  close $qcdc_compile_tcl_fh
+  close $qlint_compile_tcl_fh
 
   ## Print compile information
-  puts $qcdc_ctrl_fh "cdc preference -internal_sync_resets_on -print_port_domain_template"
-  puts $qcdc_ctrl_fh "netlist fpga -vendor xilinx -version $vivado_version -library vivado"
+  puts $qlint_ctrl_fh "netlist fpga -vendor xilinx -version $vivado_version -library vivado"
 
   if {$black_box_lines != ""} {
-    puts $qcdc_ctrl_fh "\n#"
-    puts $qcdc_ctrl_fh "# Black box blk_mem_gen"
-    puts $qcdc_ctrl_fh "#"
+    puts $qlint_ctrl_fh "\n#"
+    puts $qlint_ctrl_fh "# Black box blk_mem_gen"
+    puts $qlint_ctrl_fh "#"
     foreach l $black_box_lines {
-      puts $qcdc_ctrl_fh $l
+      puts $qlint_ctrl_fh $l
     }
   }
-  close $qcdc_ctrl_fh
+  close $qlint_ctrl_fh
 
   ## Get the library names and append a '-L' to the library name
   array set qft_libs {}
@@ -921,212 +931,194 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     set lib_args [concat $lib_args -L $lib]
   }
 
-## Dump the run Makefile
-  puts $qcdc_run_makefile_fh "DUT=$top_module"
-  puts $qcdc_run_makefile_fh ""
-  puts $qcdc_run_makefile_fh "clean:"
-  puts $qcdc_run_makefile_fh "\trm -rf $top_lib_dir $cdc_out_dir"
-  puts $qcdc_run_makefile_fh ""
-  puts $qcdc_run_makefile_fh "cdc_run:"
-  puts $qcdc_run_makefile_fh "\t\$(QHOME)/bin/qverify -c -licq -l qcdc_${top_module}.log -od $cdc_out_dir -do \"\\"
-  puts $qcdc_run_makefile_fh "\tonerror {exit 1}; \\"
-  puts $qcdc_run_makefile_fh "\tdo $qcdc_ctrl; \\"
 
-  ## Get the constraints file
-  if { $use_existing_xdc == 1 } {
-    puts "INFO : Using existing XDC files."
-    set constr_fileset [current_fileset -constrset]
-    set files [get_files -all -of [get_filesets $constr_fileset] *]
-    foreach file $files {
-      set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $constr_fileset] $file] 0]]
-      if { [string match $ft "VHDL 2008"] }  {
-           set ft "VHDL"
-           set vhdl_std "-2008"
-      }
-      if { $ft == "XDC" } {
-        puts $qcdc_run_makefile_fh "\tsdc load $file; \\"
-      }
-    }
-  } else {
-    set sdc_out_file "${top_module}_syn.sdc"
-    puts "INFO : Running write_xdc command to generate the XDC file of the synthesized design"
-    puts "     : Executing write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force"
-    if { [catch {write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force} result] } {
-      puts "** ERROR : Can't generate SDC file for the design."
-      puts "         : Please run the synthesis step, or open the synthesized design then re-run the script."
-      puts "         : You can use '-use_existing_xdc' option with the script to ignore generating the SDC file and use the input XDC files."
-      set rc 8
-      return $rc
-    } else {
-      puts $qcdc_run_makefile_fh "\tsdc load $sdc_out_file; \\"
-    }
-  }
-  puts $qcdc_run_makefile_fh "\tdo $qcdc_compile_tcl; \\"
-  puts $qcdc_run_makefile_fh "\tcdc run -d \$(DUT) $lib_args; \\"
-  puts $qcdc_run_makefile_fh "\texit 0\""
-
-  close $qcdc_run_makefile_fh
-
-  puts $qcdc_run_batfile_fh "@ECHO OFF"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh "SET DUT=$top_module"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh "IF \[%1\]==\[\] goto :usage"
-  puts $qcdc_run_batfile_fh "IF %1==clean ("
-  puts $qcdc_run_batfile_fh "    call :clean"
-  puts $qcdc_run_batfile_fh ") ELSE IF %1==compile ("
-  puts $qcdc_run_batfile_fh "    call :compile"
-  puts $qcdc_run_batfile_fh ") ELSE IF %1==cdc ("
-  puts $qcdc_run_batfile_fh "    call :cdc"
-  puts $qcdc_run_batfile_fh ") ELSE IF %1==debug_cdc ("
-  puts $qcdc_run_batfile_fh "    call :debug_cdc"
-  puts $qcdc_run_batfile_fh ") ELSE IF %1==all ("
-  puts $qcdc_run_batfile_fh "    call :clean"
-  puts $qcdc_run_batfile_fh "    call :compile"
-  puts $qcdc_run_batfile_fh "    call :cdc"
-  puts $qcdc_run_batfile_fh "    call :debug_cdc"
-  puts $qcdc_run_batfile_fh ") ELSE ("
-  puts $qcdc_run_batfile_fh "    call :usage"
-  puts $qcdc_run_batfile_fh ")"
-  puts $qcdc_run_batfile_fh "exit /b"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh ":clean"
-  puts $qcdc_run_batfile_fh "\tIF EXIST $top_lib_dir RMDIR /S /Q $top_lib_dir"
-  puts $qcdc_run_batfile_fh "\tIF EXIST $cdc_out_dir RMDIR /S /Q $cdc_out_dir"
-  puts $qcdc_run_batfile_fh "\texit /b"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh ":compile"
-  puts $qcdc_run_batfile_fh "\tqverify -c -licq -l qcdc_${top_module}.log -od $cdc_out_dir -do ^\"do $qcdc_ctrl;do $qcdc_compile_tcl;do $run_sdcfile^\""
-
-
-  ## Get the constraints file
-  if { $use_existing_xdc == 1 } {
-    puts "INFO : Using existing XDC files."
-    set constr_fileset [current_fileset -constrset]
-    set files [get_files -all -of [get_filesets $constr_fileset] *]
-    foreach file $files {
-      set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $constr_fileset] $file] 0]]
-      if { [string match $ft "VHDL 2008"] }  {
-           set ft "VHDL"
-           set vhdl_std "-2008"
-      }
-      if { $ft == "XDC" } {
-        puts $qcdc_run_sdcfile_fh "sdc load $file"
-      }
-    }
-  } else {
-    set sdc_out_file "${top_module}_syn.sdc"
-    puts "INFO : Running write_xdc command to generate the XDC file of the synthesized design"
-    puts "     : Executing write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force"
-    if { [catch {write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force} result] } {
-      puts "** ERROR : Can't generate SDC file for the design."
-      puts "         : Please run the synthesis step, or open the synthesized design then re-run the script."
-      puts "         : You can use '-use_existing_xdc' option with the script to ignore generating the SDC file and use the input XDC files."
-      set rc 8
-      return $rc
-    } else {
-      puts $qcdc_run_sdcfile_fh "sdc load $sdc_out_file;"
-    }
-  }
-  puts $qcdc_run_batfile_fh "\texit /b"
-  puts $qcdc_run_batfile_fh ""
-
-  puts $qcdc_run_batfile_fh ":cdc"
-  puts $qcdc_run_batfile_fh "\tqverify -c -licq -l qcdc_${top_module}.log -od $cdc_out_dir -do ^\"do $qcdc_ctrl;cdc run -d %DUT% $lib_args; ^\""
-  puts $qcdc_run_batfile_fh "\texit /b"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh ":debug_cdc"
-  puts $qcdc_run_batfile_fh "\tqverify  $cdc_out_dir\/cdc\.db "
-  puts $qcdc_run_batfile_fh "\texit /b"
-  puts $qcdc_run_batfile_fh ""
-  puts $qcdc_run_batfile_fh ":usage"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc clean \.\.\.\.\.\. Clean all results from directory"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc compile \.\.\.\. Compile source code"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc cdc \.\.\.\.\.\.\.\. Run CDC"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc debug_cdc \.\. Debug CDC Run"
-  puts $qcdc_run_batfile_fh "\tECHO \#\#\# run_qcdc all \.\.\.\.\.\.\.\. Run all CDC Steps on Souce Code and Launch Debug"
-  puts $qcdc_run_batfile_fh "\texit /b"
-
-
-  close $qcdc_run_batfile_fh
   ## Dump the run file
-  puts $qcdc_run_fh "#! /bin/sh"
-  puts $qcdc_run_fh ""
-  puts $qcdc_run_fh "rm -rf $top_lib_dir $cdc_out_dir"
-  puts $qcdc_run_fh "\$QHOME/bin/qverify -c -licq -l qcdc_${top_module}.log -od $cdc_out_dir -do ${tcl_script}"
-  close $qcdc_run_fh
-
-  puts $qcdc_tcl_fh "onerror {exit 1}"
-  puts $qcdc_tcl_fh "do $qcdc_ctrl"
+  puts $qlint_run_makefile_fh "DUT=$top_module"
+  puts $qlint_run_makefile_fh ""
+  puts $qlint_run_makefile_fh "clean:"
+  puts $qlint_run_makefile_fh "\trm -rf $top_lib_dir $lint_out_dir"
+  puts $qlint_run_makefile_fh ""
+  puts $qlint_run_makefile_fh "lint_run:"
+  puts $qlint_run_makefile_fh "\t\$(QHOME)/bin/qverify -c -licq -l qlint_${top_module}.log -od $lint_out_dir -do \"\\"
+  puts $qlint_run_makefile_fh "\tonerror {exit 1}; \\"
+  puts $qlint_run_makefile_fh "\tdo $qlint_ctrl; \\"
 
   ## Get the constraints file
-  if { $no_sdc == 0 } {
-    if { $use_existing_xdc == 1 } {
-      puts "INFO : Using existing XDC files."
-      set constr_fileset [current_fileset -constrset]
-      set files [get_files -all -of [get_filesets $constr_fileset] *]
-      foreach file $files {
-        set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $constr_fileset] $file] 0]]
-	if { [string match $ft "VHDL 2008"] }  {
-	      set ft "VHDL"
-	      set vhdl_std "-2008"
-	}
-        if { $ft == "XDC" } {
-          puts $qcdc_tcl_fh "sdc load $file"
-        }
-      }
-    } else {
-      set sdc_out_file "${top_module}_syn.sdc"
-      puts "INFO : Running write_xdc command to generate the XDC file of the synthesized design"
-      puts "     : Executing write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force"
-      if { [catch {write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force} result] } {
-        puts "** ERROR : Can't generate SDC file for the design."
-        puts "         : Please run the synthesis step, or open the synthesized design then re-run the script."
-        puts "         : You can use '-use_existing_xdc' option with the script to ignore generating the SDC file and use the input XDC files."
-        set rc 8
-        return $rc
-      } else {
-        puts $qcdc_tcl_fh "sdc load $sdc_out_file"
-      }
-    }
-  }
-  puts $qcdc_tcl_fh "do $qcdc_compile_tcl"
-  if { $run_questa_cdc == "report_clock" } { 
-    puts $qcdc_tcl_fh "cdc run -d $top_module $lib_args -report_clock"
-  } else {
-    puts $qcdc_tcl_fh "cdc run -d $top_module $lib_args"
-    puts $qcdc_tcl_fh "cdc generate report ${top_module}_detailed.rpt"
-  }
-  puts $qcdc_tcl_fh "exit 0"
+  ## if { $use_existing_xdc == 1 } {
+  ##   puts "INFO : Using existing XDC files."
+  ##   set constr_fileset [current_fileset -constrset]
+  ##   set files [get_files -all -of [get_filesets $constr_fileset] *]
+  ##   foreach file $files {
+  ##     set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $constr_fileset] $file] 0]]
+  ##     if { [string match $ft "VHDL 2008"] }  {
+  ##          set ft "VHDL"
+  ##          set vhdl_std "-2008"
+  ##     }
+  ##     if { $ft == "XDC" } {
+  ##       puts $qlint_run_makefile_fh "\tsdc load $file; \\"
+  ##     }
+  ##   }
+  ## } else {
+  ##   set sdc_out_file "${top_module}_syn.sdc"
+  ##   puts "INFO : Running write_xdc command to generate the XDC file of the synthesized design"
+  ##   puts "     : Executing write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force"
+  ##   if { [catch {write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force} result] } {
+  ##     puts "** ERROR : Can't generate SDC file for the design."
+  ##     puts "         : Please run the synthesis step, or open the synthesized design then re-run the script."
+  ##     puts "         : You can use '-use_existing_xdc' option with the script to ignore generating the SDC file and use the input XDC files."
+  ##     set rc 8
+  ##     return $rc
+  ##   } else {
+  ##     puts $qlint_run_makefile_fh "\tsdc load $sdc_out_file; \\"
+  ##   }
+  ## }
+  puts $qlint_run_makefile_fh "\tdo $qlint_compile_tcl; \\"
+  puts $qlint_run_makefile_fh "\tlint run -d \$(DUT) $lib_args; \\"
+  puts $qlint_run_makefile_fh "\texit 0\""
 
-#  puts $qcdc_tcl_fh "sdc load $top_module.sdc"
-#  puts $qcdc_tcl_fh "do $qcdc_ctrl"
+  close $qlint_run_makefile_fh
 
-  close $qcdc_tcl_fh
-  puts "INFO : Generation of running scripts for Questa CDC is done at [pwd]/$userOD"
+  puts $qlint_run_batfile_fh "@ECHO OFF"
+  puts $qlint_run_batfile_fh ""
+  puts $qlint_run_batfile_fh "SET DUT=$top_module"
+  puts $qlint_run_batfile_fh ""
+  puts $qlint_run_batfile_fh "IF \[%1\]==\[\] goto :usage"
+  puts $qlint_run_batfile_fh "IF %1==clean ("
+  puts $qlint_run_batfile_fh "    call :clean"
+  puts $qlint_run_batfile_fh ") ELSE IF %1==compile ("
+  puts $qlint_run_batfile_fh "    call :compile"
+  puts $qlint_run_batfile_fh ") ELSE IF %1==lint ("
+  puts $qlint_run_batfile_fh "    call :lint"
+  puts $qlint_run_batfile_fh ") ELSE IF %1==debug_lint ("
+  puts $qlint_run_batfile_fh "    call :debug_lint"
+  puts $qlint_run_batfile_fh ") ELSE IF %1==all ("
+  puts $qlint_run_batfile_fh "    call :clean"
+  puts $qlint_run_batfile_fh "    call :compile"
+  puts $qlint_run_batfile_fh "    call :lint"
+  puts $qlint_run_batfile_fh "    call :debug_lint"
+  puts $qlint_run_batfile_fh ") ELSE ("
+  puts $qlint_run_batfile_fh "    call :usage"
+  puts $qlint_run_batfile_fh ")"
+  puts $qlint_run_batfile_fh "exit /b"
+  puts $qlint_run_batfile_fh ""
+  puts $qlint_run_batfile_fh ":clean"
+  puts $qlint_run_batfile_fh "\tIF EXIST $top_lib_dir RMDIR /S /Q $top_lib_dir"
+  puts $qlint_run_batfile_fh "\tIF EXIST $lint_out_dir RMDIR /S /Q $lint_out_dir"
+  puts $qlint_run_batfile_fh "\texit /b"
+  puts $qlint_run_batfile_fh ""
+  puts $qlint_run_batfile_fh ":compile"
+  puts $qlint_run_batfile_fh "\tqverify -c -licq -l qlint_${top_module}.log -od $lint_out_dir -do ^\"do $qlint_ctrl;do $qlint_compile_tcl;do $run_sdcfile^\""
+
+
+  ## Get the constraints file
+  ## if { $use_existing_xdc == 1 } {
+  ##   puts "INFO : Using existing XDC files."
+  ##   set constr_fileset [current_fileset -constrset]
+  ##   set files [get_files -all -of [get_filesets $constr_fileset] *]
+  ##   foreach file $files {
+  ##     set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $constr_fileset] $file] 0]]
+  ##     if { [string match $ft "VHDL 2008"] }  {
+  ##          set ft "VHDL"
+  ##          set vhdl_std "-2008"
+  ##     }
+  ##     if { $ft == "XDC" } {
+  ##       puts $qlint_run_sdcfile_fh "sdc load $file"
+  ##     }
+  ##   }
+  ## } else {
+  ##   set sdc_out_file "${top_module}_syn.sdc"
+  ##   puts "INFO : Running write_xdc command to generate the XDC file of the synthesized design"
+  ##   puts "     : Executing write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force"
+  ##   if { [catch {write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force} result] } {
+  ##     puts "** ERROR : Can't generate SDC file for the design."
+  ##     puts "         : Please run the synthesis step, or open the synthesized design then re-run the script."
+  ##     puts "         : You can use '-use_existing_xdc' option with the script to ignore generating the SDC file and use the input XDC files."
+  ##     set rc 8
+  ##     return $rc
+  ##   } else {
+  ##     puts $qlint_run_sdcfile_fh "sdc load $sdc_out_file;"
+  ##   }
+  ## }
+  puts $qlint_run_batfile_fh "\texit /b"
+  puts $qlint_run_batfile_fh ""
+
+  puts $qlint_run_batfile_fh ":lint"
+  puts $qlint_run_batfile_fh "\tqverify -c -licq -l qlint_${top_module}.log -od $lint_out_dir -do ^\"do $qlint_ctrl; lint run -d %DUT% $lib_args; ^\""
+  puts $qlint_run_batfile_fh "\texit /b"
+  puts $qlint_run_batfile_fh ""
+  puts $qlint_run_batfile_fh ":debug_lint"
+  puts $qlint_run_batfile_fh "\tqverify  $lint_out_dir\/lint\.db "
+  puts $qlint_run_batfile_fh "\texit /b"
+  puts $qlint_run_batfile_fh ""
+  puts $qlint_run_batfile_fh ":usage"
+  puts $qlint_run_batfile_fh "\tECHO \#\#\# run_qlint clean \.\.\.\.\.\.\. Clean all results from directory"
+  puts $qlint_run_batfile_fh "\tECHO \#\#\# run_qlint compile \.\.\.\.\. Compile source code"
+  puts $qlint_run_batfile_fh "\tECHO \#\#\# run_qlint lint \.\.\.\.\.\.\.\. Run Lint"
+  puts $qlint_run_batfile_fh "\tECHO \#\#\# run_qlint debug_lint \.\. Debug Lint Run"
+  puts $qlint_run_batfile_fh "\tECHO \#\#\# run_qlint all \.\.\.\.\.\.\.\.\. Run all Lint Steps on Souce Code and Launch Debug"
+  puts $qlint_run_batfile_fh "\texit /b"
+
+
+  close $qlint_run_batfile_fh
+  puts $qlint_run_fh "#! /bin/sh"
+  puts $qlint_run_fh ""
+  puts $qlint_run_fh "rm -rf $top_lib_dir $lint_out_dir"
+  puts $qlint_run_fh "\$QHOME/bin/qverify -c -licq -l qlint_${top_module}.log -od $lint_out_dir -do ${tcl_script}"
+  close $qlint_run_fh
+
+  puts $qlint_tcl_fh "onerror {exit 1}"
+  puts $qlint_tcl_fh "do $qlint_ctrl"
+
+  ## Get the constraints file
+#  if { $no_sdc == 0 } {
+#    if { $use_existing_xdc == 1 } {
+#      puts "INFO : Using existing XDC files."
+#      set constr_fileset [current_fileset -constrset]
+#      set files [get_files -all -of [get_filesets $constr_fileset] *]
+#      foreach file $files {
+#        set ft [get_property FILE_TYPE [lindex [get_files -all -of [get_filesets $constr_fileset] $file] 0]]
+#        if { $ft == "XDC" } {
+#          puts $qlint_tcl_fh "sdc load $file"
+#        }
+#      }
+#    } else {
+#      set sdc_out_file "${top_module}_syn.sdc"
+#      puts "INFO : Running write_xdc command to generate the XDC file of the synthesized design"
+#      puts "     : Executing write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force"
+#      if { [catch {write_xdc -exclude_physical -sdc $userOD/$sdc_out_file -force} result] } {
+#        puts "** ERROR : Can't generate SDC file for the design."
+#        puts "         : Please run the synthesis step, or open the synthesized design then re-run the script."
+#        puts "         : You can use '-use_existing_xdc' option with the script to ignore generating the SDC file and use the input XDC files."
+#        set rc 8
+#        return $rc
+#      } else {
+#        puts $qlint_tcl_fh "sdc load $sdc_out_file"
+#      }
+#    }
+#  }
+  puts $qlint_tcl_fh "do $qlint_compile_tcl"
+  puts $qlint_tcl_fh "lint run -d $top_module $lib_args"
+  puts $qlint_tcl_fh "lint generate report ${top_module}_detailed.rpt"
+  puts $qlint_tcl_fh "exit 0"
+
+#  puts $qlint_tcl_fh "sdc load $top_module.sdc"
+#  puts $qlint_tcl_fh "do $qlint_ctrl"
+
+  close $qlint_tcl_fh
+  puts "INFO : Generation of running scripts for Questa Lint is done at [pwd]/$userOD"
 
   ## Change permissions of the generated running script
   exec chmod u+x $userOD/$run_script
-  if { $run_questa_cdc == "cdc_run" } {
-    puts "INFO : Running Questa CDC (Command: cdc run), the UI will be invoked when the run is finished"
-    puts "     : Log can be found at $userOD/CDC_RESULTS/qverify.log"
-    exec /bin/sh -c "cd $userOD; sh qcdc_run.sh"
-    puts "INFO : Questa CDC run is finished"
-    puts "INFO : Invoking Questa CDC UI for debugging."
-    exec qverify -l qverify_ui.log $userOD/CDC_RESULTS/cdc.db &
-  } elseif { $run_questa_cdc == "report_clock" } {
-    puts "INFO : Running Questa CDC (Command: cdc run -report_clock), the UI will be invoked when the run is finished"
-    puts "     : Log can be found at $userOD/CDC_RESULTS/qverify.log"
-    exec /bin/sh -c "cd $userOD; sh qcdc_run.sh"
-    puts "INFO : Questa CDC run is finished"
-    puts "INFO : Invoking Questa CDC UI for debugging."
-    exec /bin/sh -c "cd $userOD; qverify -l qverify_ui.log CDC_RESULTS/cdc.db" &
-  }
+  puts "INFO : Running Questa Lint (Command: lint run), the UI will be invoked when the run is finished"
+  puts "     : Log can be found at $userOD/Lint_RESULTS/qverify.log"
+  exec /bin/sh -c "cd $userOD; sh qlint_run.sh"
+  puts "INFO : Questa Lint run is finished"
+  puts "INFO : Invoking Questa Lint UI for debugging."
+  exec qverify -l qverify_ui.log $userOD/Lint_RESULTS/lint.db &
   return $rc
 }
 
-## Keep an environment variable with the path of the script
 
 
-## Auto-import the procs of the Questa CDC script
-namespace import tclapp::mentor::questa_cdc::*
+## Auto-import the procs of the Questa Lint script
+namespace import tclapp::mentor::questa_lint::*
