@@ -3163,6 +3163,15 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
   # get the design simmodel compile order
   set simmodel_compile_order [xsc_get_simmodel_compile_order]
 
+  # is pure-rtl sources for system simulation (selected_sim_model = rtl), don't need to compile the systemC/CPP/C sim-models
+  if { [llength $simmodel_compile_order] == 0 } {
+    if { [file exists $a_sim_vars(s_simlib_dir)] } {
+      # delete <run-dir>/simlibs dir (not required)
+      [catch {file delete -force $a_sim_vars(s_simlib_dir)} error_msg]
+    }
+    return
+  }
+
   # update mappings in xsim.ini
   usf_add_simmodel_mappings $simmodel_compile_order
 

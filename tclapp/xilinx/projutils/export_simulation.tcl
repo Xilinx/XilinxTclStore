@@ -4369,7 +4369,9 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
       }
  
       # RTL
-      set arg_list [list "+acc" "-l" "elaborate.log"]
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
+      # 1076948 - default access to nets/ports/registers (npr)
+      set arg_list [list "+acc=npr" "-l" "elaborate.log"]
       if { !$a_sim_vars(b_32bit) } {
         if {$::tcl_platform(platform) == "windows"} {
           # -64 not supported
