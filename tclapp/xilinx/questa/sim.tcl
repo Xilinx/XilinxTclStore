@@ -1446,8 +1446,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           set b_bind_vivado_util_libs false
           [catch {set b_bind_vivado_util_libs [get_param "project.bindVivadoUtilSharedLibForSystemSim"]} err]
           if { $b_bind_vivado_util_libs } { 
-            set xdma_ip_obj [xcs_find_ip "sim_xdma"]
-            if { ({} != $aie_ip_obj) || ({} != $xdma_ip_obj) } {
+            if { {} != $aie_ip_obj } {
               # path to XILINX_VIVADO
               set xv_dir [file dirname $data_dir]
               # set OS sub-dir type
