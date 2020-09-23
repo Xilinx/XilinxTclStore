@@ -529,9 +529,9 @@ proc usf_xcelium_write_compile_script {} {
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "compile" "xcelium"
   if { {} != $tool_path } {
+    xcs_write_pipe_exit $fh_scr
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
-    xcs_write_pipe_exit $fh_scr
  
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
@@ -860,9 +860,9 @@ proc usf_xcelium_write_elaborate_script {} {
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "elaborate" "xcelium"
   if { {} != $tool_path } {
+    xcs_write_pipe_exit $fh_scr
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
-    xcs_write_pipe_exit $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
@@ -1237,9 +1237,9 @@ proc usf_xcelium_write_simulate_script {} {
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "simulate" "xcelium"
   if { {} != $tool_path } {
+    xcs_write_pipe_exit $fh_scr
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
-    xcs_write_pipe_exit $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
