@@ -535,6 +535,7 @@ proc usf_vcs_write_compile_script {} {
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
+    xcs_write_pipe_exit $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
@@ -945,6 +946,8 @@ proc usf_vcs_write_elaborate_script {} {
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
+    xcs_write_pipe_exit $fh_scr
+
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
@@ -1429,6 +1432,8 @@ proc usf_vcs_write_simulate_script {} {
   if { {} != $tool_path } {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
+    xcs_write_pipe_exit $fh_scr
+
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
