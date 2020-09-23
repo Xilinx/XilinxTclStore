@@ -1,3 +1,4 @@
+9.29 set shell variables to catch error conditions
 9.28 add check for protobuf static library
 9.27 check for gen dir in path before replacing for rev control
 9.26 re-aligned source file paths for rev control for classic use case
