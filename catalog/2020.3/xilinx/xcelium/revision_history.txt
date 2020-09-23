@@ -1,3 +1,4 @@
+11.44 set shell variables to catch error conditions
 11.43 add check for protobuf static library
 11.42 refactored design library proc for consistent functionality
 11.41 merged contents from 2020.2
