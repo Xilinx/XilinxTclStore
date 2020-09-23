@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set shell variables to catch error conditions</revision_history>
+      <revision_history>set shell variables to catch error condition for step execution</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

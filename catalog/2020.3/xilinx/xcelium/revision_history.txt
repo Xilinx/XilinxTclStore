@@ -1,3 +1,4 @@
+11.45 set shell variables to catch error condition for step execution
 11.44 set shell variables to catch error conditions
 11.43 add check for protobuf static library
 11.42 refactored design library proc for consistent functionality
