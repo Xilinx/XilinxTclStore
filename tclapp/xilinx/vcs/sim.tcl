@@ -533,7 +533,11 @@ proc usf_vcs_write_compile_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "compile" "vcs"
   if { {} != $tool_path } {
-    xcs_write_pipe_exit $fh_scr
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
 
@@ -944,7 +948,11 @@ proc usf_vcs_write_elaborate_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "elaborate" "vcs"
   if { {} != $tool_path } {
-    xcs_write_pipe_exit $fh_scr
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
 
@@ -1430,7 +1438,11 @@ proc usf_vcs_write_simulate_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "simulate" "vcs"
   if { {} != $tool_path } {
-    xcs_write_pipe_exit $fh_scr
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
 

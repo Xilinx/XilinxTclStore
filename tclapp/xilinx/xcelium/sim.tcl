@@ -529,7 +529,11 @@ proc usf_xcelium_write_compile_script {} {
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "compile" "xcelium"
   if { {} != $tool_path } {
-    xcs_write_pipe_exit $fh_scr
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
  
@@ -860,7 +864,11 @@ proc usf_xcelium_write_elaborate_script {} {
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "elaborate" "xcelium"
   if { {} != $tool_path } {
-    xcs_write_pipe_exit $fh_scr
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
 
@@ -1237,7 +1245,11 @@ proc usf_xcelium_write_simulate_script {} {
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "simulate" "xcelium"
   if { {} != $tool_path } {
-    xcs_write_pipe_exit $fh_scr
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
 
