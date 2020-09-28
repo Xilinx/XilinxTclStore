@@ -1,3 +1,4 @@
+9.31 set shell variables to catch error condition under param
 9.30 set shell variables to catch error condition for step execution
 9.29 set shell variables to catch error conditions
 9.28 add check for protobuf static library
