@@ -1,3 +1,4 @@
+1.51 Various enhancements (report_failfast)
 1.50 Various enhancements (report_gtye5_refclk_summary/report_failfast)
 1.49 Added support for Versal + various enhancements (report_failfast)
 1.48 Various enhancements (prettyTable)
