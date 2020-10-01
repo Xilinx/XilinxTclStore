@@ -1780,7 +1780,7 @@ proc usf_vcs_write_library_search_order { fh_scr } {
     set cardano_api_path {}
     if { [info exists ::env(XILINX_VITIS)] } {
       set xilinx_vitis $::env(XILINX_VITIS)
-      set cardano_api_path "$xilinx_vitis/cardano/lib/vcs64.o"
+      set cardano_api_path "$xilinx_vitis/aietools/lib/vcs64.o"
     } else {
       set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
       send_msg_id USF-VCS-019 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
@@ -1797,6 +1797,18 @@ proc usf_vcs_write_library_search_order { fh_scr } {
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+    # for aie
+    if { {} != $ip_obj } {
+      if { [info exists ::env(XILINX_VITIS)] } {
+        set xilinx_vitis $::env(XILINX_VITIS)
+        set cardano "$xilinx_vitis/aietools"
+        set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
+        #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
+        puts $fh_scr "source $chess_script"
+      } else {
+        send_msg_id USF-VCS-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
+      }
+    }
   }
 }
 
