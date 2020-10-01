@@ -1573,7 +1573,7 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     set cardano_api_path {}
     if { [info exists ::env(XILINX_VITIS)] } {
       set xilinx_vitis $::env(XILINX_VITIS)
-      set cardano_api_path "$xilinx_vitis/cardano/lib/xcelium64.o"
+      set cardano_api_path "$xilinx_vitis/aietools/lib/xcelium64.o"
     } else {
       set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
       send_msg_id USF-Xcelium-019 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
@@ -1595,9 +1595,9 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     if { {} != $ip_obj } {
       if { [info exists ::env(XILINX_VITIS)] } {
         set xilinx_vitis $::env(XILINX_VITIS)
-        set cardano "$xilinx_vitis/cardano"
+        set cardano "$xilinx_vitis/aietools"
         set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
-        #puts $fh_scr "export CARDANO_ROOT=\"$cardano\""
+        #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
         puts $fh_scr "source $chess_script"
       } else {
         send_msg_id USF-Xcelium-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
