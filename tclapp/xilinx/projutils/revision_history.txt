@@ -1,3 +1,4 @@
+3.467 donot filter preferred_sim_model from generated script when non-default value is set
 3.465 pass xilinx_vip for sv packages
 3.464 add check for protobuf static library
 3.462 refactored design library proc for consistent functionality
