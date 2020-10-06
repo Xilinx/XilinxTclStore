@@ -446,17 +446,6 @@ proc write_project_tcl_script {} {
   return 0
 }
 
-proc get_source_dir { proj_name path_dirs} {	
-  set srcs_dir "${proj_name}.gen"
-  set srcs_index [lsearch -exact $path_dirs "${proj_name}.gen"]
-  
-  if { $srcs_index == -1 } {
-    set srcs_index [lsearch -exact $path_dirs "${proj_name}.srcs"]
-    set srcs_dir "${proj_name}.srcs"
-  }
-  return [list $srcs_index $srcs_dir]
-}
-
 proc wr_validate_files {} {
   variable a_global_vars
   set l_script_validate [list]
@@ -1561,10 +1550,9 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
     # fix paths wrt the original project dir
     if {([string equal -nocase $prop "top_file"]) && ($cur_val != "") } {
       set file $cur_val
-      #set srcs_dir "${proj_name}.srcs"
+
+      set srcs_dir "${proj_name}.srcs"
       set file_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-      set src_dir_index [get_source_dir $proj_name $file_dirs]
-      set srcs_dir [lindex $src_dir_index 1]
       set src_file [join [lrange $file_dirs [lsearch -exact $file_dirs "$srcs_dir"] end] "/"]
 
       if { [is_local_to_project $file] || [need_abs_path $file]} {
@@ -1582,21 +1570,15 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
       set fs_name $tcl_obj
 
       set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-      
-      set sourec_dir_extension "srcs"
-      set srcs_index [lsearch -exact $path_dirs "${proj_name}.gen"]      
-      if { $srcs_index != -1 }  {
-        set sourec_dir_extension "gen"
-      }
       set src_file [join [lrange $path_dirs [lsearch -exact $path_dirs "$fs_name"] end] "/"]
       set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
       set file_props [list_property $file_object]
 
       if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
         if { $a_global_vars(b_arg_no_copy_srcs) } {
-          set proj_file_path "\$orig_proj_dir/${proj_name}.$sourec_dir_extension/$src_file"
+          set proj_file_path "\$orig_proj_dir/${proj_name}.srcs/$src_file"
         } else {
-          set proj_file_path "\$proj_dir/\$\{_xil_proj_name_\}.$sourec_dir_extension/$src_file"
+          set proj_file_path "\$proj_dir/\$\{_xil_proj_name_\}.srcs/$src_file"
         }
       } else {
         # is file new inside project?
@@ -1648,10 +1630,8 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
           if { ($cur_val != "") } {
             set file $cur_val
 
-            #set srcs_dir "${proj_name}.srcs"
+            set srcs_dir "${proj_name}.srcs"
             set file_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-            set src_dir_index [get_source_dir $proj_name $file_dirs]
-            set srcs_dir [lindex $src_dir_index 1]
             set src_file [join [lrange $file_dirs [lsearch -exact $file_dirs "$srcs_dir"] end] "/"]
 
             set tcl_file_path {}
@@ -1687,10 +1667,8 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
         # fix path
         set file $cur_val
 
-        #set srcs_dir "${proj_name}.srcs"
+        set srcs_dir "${proj_name}.srcs"
         set file_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-        set src_dir_index [get_source_dir $proj_name $file_dirs]
-        set srcs_dir [lindex $src_dir_index 1]
         set src_file [join [lrange $file_dirs [lsearch -exact $file_dirs "$srcs_dir"] end] "/"]
         set cur_val "\$PSRCDIR/$src_file"
       }
@@ -1893,11 +1871,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
     # Skip direct import/add of BD files if -use_bd_files is not provided
     if { [file extension $file] == ".bd" && !$a_global_vars(b_arg_use_bd_files) } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-	
-    set src_dir_index [get_source_dir $proj_name $path_dirs]
-    set srcs_index [lindex $src_dir_index 0]
-    set srcs_dir [lindex $src_dir_index 1]
-
+    set srcs_index [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $srcs_index+1 end] "/"]
 
     # fetch first object
@@ -1911,7 +1885,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       set rel_file_path [get_relative_file_path_for_source $file [get_script_execution_dir]]
       set proj_file_path "\$\{origin_dir\}/$rel_file_path"
 
-      set file "\"[file normalize $proj_dir/${srcs_dir}/$src_file]\""
+      set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
 
       if { $a_global_vars(b_arg_no_copy_srcs) } {
         # add to the local collection
@@ -1945,11 +1919,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
           set wrapperName "_wrapper.vhd"
         }
         set wrapperName [concat $designName$wrapperName]
-        #set complete bd path for bd_file.
-        set bd_file [join [lrange $path_dirs 0 $srcs_index-1] "/"] 
-        set bd_filset [join [lrange $path_dirs $srcs_index+1 $srcs_index+2] "/"]
-        #bd files are always inside proj_name.srcs directory
-        set bd_file ${bd_file}/${proj_name}.srcs/$bd_filset 
+        set bd_file [join [lrange $path_dirs 0 $srcs_index+2] "/"]
         set bd_file ${bd_file}/${designName}/${designName}.bd
       }
       
@@ -2109,11 +2079,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
     set constrs_file  {}
     set file_category {}
     set path_dirs     [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-    
-    set src_dir_index [get_source_dir $proj_name $path_dirs]
-    set begin [lindex $src_dir_index 0]
-    set srcs_dir [lindex $src_dir_index 1]
-		
+    set begin         [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file      [join [lrange $path_dirs $begin+1 end] "/"]
     set file_object   [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
     set file_props    [list_property $file_object]
@@ -2123,7 +2089,7 @@ proc write_constrs { proj_dir proj_name tcl_obj type } {
       set imported_path  [get_property "imported_from" $file]
       set rel_file_path  [get_relative_file_path_for_source $file [get_script_execution_dir]]
       set proj_file_path \$\{origin_dir\}/$rel_file_path
-      set file           "\"[file normalize $proj_dir/$srcs_dir/$src_file]\""
+      set file           "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
       # donot copy imported constrs in new project? set it as remote file in new project.
       if { $a_global_vars(b_arg_no_copy_srcs) } {
         set constrs_file $file
@@ -3205,11 +3171,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
       continue
     }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-    
-    set src_dir_index [get_source_dir $proj_name $path_dirs]
-    set begin [lindex $src_dir_index 0]
-    set srcs_dir [lindex $src_dir_index 1]	
-	
+    set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
     set src_file [join [lrange $path_dirs $begin+1 end] "/"]
 
     # fetch first object
@@ -3223,7 +3185,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
       set rel_file_path [get_relative_file_path_for_source $file [get_script_execution_dir]]
       set proj_file_path "\$origin_dir/$rel_file_path"
 
-      set file "\"[file normalize $proj_dir/$srcs_dir/$src_file]\""
+      set file "\"[file normalize $proj_dir/${proj_name}.srcs/$src_file]\""
 
       if { $a_global_vars(b_arg_no_copy_srcs) } {
         # add to the local collection
