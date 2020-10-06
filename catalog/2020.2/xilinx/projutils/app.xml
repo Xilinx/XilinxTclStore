@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>donot filter preferred_sim_model from generated script when non-default value is set</revision_history>
+      <revision_history>Add chengs in write_project_tcl to check for project_name.gen directory in parallel with project_name.srcs</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
