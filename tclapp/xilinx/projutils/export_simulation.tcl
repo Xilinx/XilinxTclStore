@@ -4125,9 +4125,8 @@ proc xps_get_xsim_verilog_options { launch_dir opts_arg } {
   }
 
   # xilinx_vip
-  if { ([lsearch -exact $l_compiled_libraries "xilinx_vip"] == -1) } {
-    variable a_sim_sv_pkg_libs
-    if { [llength $a_sim_sv_pkg_libs] > 0 } {
+  if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+    if { [xcs_design_contain_sv_ip] } {
       lappend opts "--include \"[xcs_get_vip_include_dirs]\""
     }
   }
@@ -4391,7 +4390,8 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
  
       # RTL
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
-      set arg_list [list "+acc" "-l" "elaborate.log"]
+      # 1076948 - default access to nets/ports/registers (npr)
+      set arg_list [list "+acc=npr" "-l" "elaborate.log"]
       if { !$a_sim_vars(b_32bit) } {
         if {$::tcl_platform(platform) == "windows"} {
           # -64 not supported
@@ -4422,10 +4422,20 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
         lappend arg_list "$lib"
       }
 
-      if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
-        # append sv pkg libs
-        foreach sv_pkg_lib $a_sim_sv_pkg_libs {
-          lappend arg_list "-L $sv_pkg_lib"
+      #
+      # 1076948 - do not bind system verilog static source libs (not required), vopt auto picks from modelsim.ini
+      #
+      #if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
+      #  # append sv pkg libs
+      #  foreach sv_pkg_lib $a_sim_sv_pkg_libs {
+      #    lappend arg_list "-L $sv_pkg_lib"
+      #  }
+      #}
+      
+      # add xilinx vip library
+      if { [get_param "project.usePreCompiledXilinxVIPLibForSim"] } {
+        if { [xcs_design_contain_sv_ip] } {
+          lappend arg_list "-L xilinx_vip"
         }
       }
 

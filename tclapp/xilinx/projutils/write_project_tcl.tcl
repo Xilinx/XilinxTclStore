@@ -912,10 +912,10 @@ proc wr_bd_wrapper {} {
       set design [lindex $fileset_designame_wrappername 1]
       set wrapper_name [lindex $fileset_designame_wrappername 2]
       
-      lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse \$proj_dir/\${_xil_proj_name_}.srcs/$fs_name/bd/$design/$design.bd\] \] == 1  \} \{"
+      lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse $design.bd\] \] == 1  \} \{"
       lappend l_script_data "  import_files -fileset $fs_name $wrapper_name"
       lappend l_script_data "\} else \{"	  
-      lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse \$proj_dir/\${_xil_proj_name_}.srcs/$fs_name/bd/$design/$design.bd] -top\]"
+      lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse $design.bd] -top\]"
       lappend l_script_data "  add_files -norecurse -fileset $fs_name \$wrapper_path"
       lappend l_script_data "\}"
       lappend l_script_data ""
@@ -1245,7 +1245,7 @@ proc filter { prop val { file {} } } {
   }
 
   # filter sim_types
-  if { ([string equal -nocase $prop {allowed_sim_models}]) || ([string equal -nocase $prop {preferred_sim_model}]) } {
+  if { ([string equal -nocase $prop {allowed_sim_models}]) } {
     return 1
   }
 
@@ -1839,6 +1839,34 @@ proc is_excluded_property { obj property } {
   return false
 }
 
+proc getBdforMangedWrapper { fs_name wraperfile proj_name path_dirs } { 
+  variable a_global_vars
+  
+  set srcs_index [lsearch -exact $path_dirs "$proj_name.srcs"]
+  if { $srcs_index == -1} {
+    #check for .gen directory
+    set srcs_index [lsearch -exact $path_dirs "$proj_name.gen"]
+  }
+  set src_file [join [lrange $path_dirs $srcs_index+1 end] "/"]  
+	
+  set wrapperName [file tail $wraperfile]
+  set wrapperNameNoExtension [file rootname $wrapperName]
+  set designName [string range $wrapperNameNoExtension 0 [expr {[string last "_wrapper" $wrapperNameNoExtension] - 1}]]
+  
+  if { $designName == "" } {
+  #Not a wrapper file
+  return
+  }
+  set manged_file_path "$fs_name/bd/$designName/hdl/$wrapperName"
+  set manged_file_path [string trim $manged_file_path "\""]
+
+  if { $src_file != $manged_file_path || [get_files $designName.bd] == "" } {
+    #Wrapper file is not managed by project
+    return
+  }
+  return [list $designName $wrapperName]
+}
+
 proc write_files { proj_dir proj_name tcl_obj type } {
   # Summary: write file and file properties 
   # This helper command is used to script help.
@@ -1911,27 +1939,14 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       set designName ""
       set wrapperName ""
       set bd_file ""
-      if { $srcs_index != -1 && [llength $path_dirs] == $srcs_index+6 } {
-	  
-        set designName  [lindex $path_dirs $srcs_index+3]
-        set wrapperName "_wrapper.v"
-        if {[get_property target_language [current_project]] == "VHDL"} {
-          set wrapperName "_wrapper.vhd"
-        }
-        set wrapperName [concat $designName$wrapperName]
-        set bd_file [join [lrange $path_dirs 0 $srcs_index+2] "/"]
-        set bd_file ${bd_file}/${designName}/${designName}.bd
-      }
+
+      set design_wrapperName [getBdforMangedWrapper $fs_name $file $proj_name $path_dirs]
       
-      if {
-        $designName != "" &&
-        [lindex $path_dirs $srcs_index+2] =="bd" &&
-        [lindex $path_dirs $srcs_index+3] ==$designName &&
-        [lindex $path_dirs $srcs_index+4] =="hdl" &&
-        [lindex $path_dirs $srcs_index+5] == "$wrapperName" &&
-        [llength [get_files $bd_file]] == 1 &&
-        [get_property IS_LOCKED [get_files $bd_file ] ] !=1
-        } { 
+      if { [llength $design_wrapperName] == 2} {
+        set designName [lindex $design_wrapperName 0]
+        set wrapperName [lindex $design_wrapperName 1]	  
+      }      
+      if { $designName != "" } { 
 
         set wrapper_file ""
         # add to the import collection
@@ -2038,10 +2053,10 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       foreach pair_fileset_designame $make_wrapper_list {
         set wrapper_name [lindex $pair_fileset_designame 0]
         set design [lindex $pair_fileset_designame 1]
-        lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse \$proj_dir/\${_xil_proj_name_}.srcs/$fs_name/bd/$design/$design.bd\] \] == 1  \} \{"
+        lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse $design.bd\] \] == 1  \} \{"
         lappend l_script_data "  import_files -fileset $tcl_obj $wrapper_name"
         lappend l_script_data "\} else \{"
-        lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse \$proj_dir/\${_xil_proj_name_}.srcs/$fs_name/bd/$design/$design.bd\] -top\]"
+        lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse $design.bd\] -top\]"
         lappend l_script_data "  add_files -norecurse -fileset $fs_name \$wrapper_path"
         lappend l_script_data "\}"
         lappend l_script_data ""

@@ -5,6 +5,9 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2020.09.29 - Added support for custom metrics (-custom_metrics/-only_custom_metrics,
+##              -no_custom_metrics,FAILFAST_CUSTOM_METRICS)
+##            - Added support for -only_fails to only show failing metrics
 ## 2020.09.09 - Suppressed details from the nets summary tables for DONT_TOUCH/MARK_DEBUG
 ##              when there are too many nets
 ## 2020.08.28 - Added support for metrics LUT4/5/6 and LUT5/6
@@ -195,6 +198,32 @@ namespace eval ::tclapp::xilinx::designutils {
 #      | Number of paths above max Net budgeting (0.298ns)         | 0         | 35      | 35     | -      | REVIEW |
 #      +-----------------------------------------------------------+-----------+---------+--------+--------+--------+
 
+# User custom metrics
+# ===================
+# 1) Specify the file that includes the custom metrics with -custom_metrics <filename>
+#    To skip custom metrics, use -no_custom_metrics
+#    To only report custom metrics, use -only_custom_metrics
+# 2) Example of custom metric file
+#    addMetric custom.<metricName> <description> <guideline>
+#    setMetric custom.<metricName> <value> [<availableResources>]
+#    -- For example --
+#    addMetric custom.mymetric1 {Description for mymetric1} {<=50%}
+#    setMetric custom.mymetric1 60 123
+#    addMetric custom.mymetric2 {Description for mymetric2} {>=60%}
+#    setMetric custom.mymetric2 60
+# 3) Example of report with custom metrics (-only_custom_metrics)
+#    +------------------------------------------------------------------------+
+#    | Design Summary                                                         |
+#    | checkpoint_post_synth                                                  |
+#    | xc7k70tfbg484-3                                                        |
+#    +---------------------------+-----------+--------+------+-------+--------+
+#    | Criteria                  | Guideline | Actual | Used | Avail | Status |
+#    +---------------------------+-----------+--------+------+-------+--------+
+#    | Description for mymetric1 | 50%       | 60%    | 60   | 123   | REVIEW |
+#    | Description for mymetric2 | 60%       | 60%    | 60   | -     | OK     |
+#    +---------------------------+-----------+--------+------+-------+--------+
+
+
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils {
   namespace export report_failfast
@@ -233,6 +262,10 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-show_not_found]: Show metrics that could not be extracted
   # [-show_all_paths]: Show all paths analyzed by LUT/Net budgeting
   # [-hide_slacks]: Hide the setup slack of the nets inside the DONT_TOUCH/MARK_DEBUG detailed reports
+  # [-custom_metrics <arg>]: Optional user custom metrics file(s)
+  # [-no_custom_metrics]: Skip user custom metrics
+  # [-only_custom_metrics]: Only report user custom metrics
+  # [-only_fails]: Only report failing metrics
   # [-csv]: Add CSV to the output report
   # [-transpose]: Transpose the CSV file
   # [-no_header]: Suppress the files header
@@ -378,7 +411,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2020.09.09}
+  variable version {2020.09.29}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -388,7 +421,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   variable guidelines
   variable data
   variable dbgtbl
-  array set params [list failed 0 format {table} max_paths 100 max_dont_touch 2000 max_mark_debug 2000 show_resources 0 transpose 0 verbose 0 debug 0 debug_level 1 vivado_version [version -short] ]
+  array set params [list failed 0 format {table} max_paths 100 max_dont_touch 2000 max_mark_debug 2000 show_resources 0 show_fail_only 0 transpose 0 verbose 0 debug 0 debug_level 1 vivado_version [version -short] ]
 #   catch { unset reports }
   array set reports [list]
   catch { unset metrics }
@@ -436,6 +469,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(format) {table}
   set params(transpose) 0
   set params(show_resources) 0
+  set params(show_fail_only) 0
   set params(max_paths) 100
   set params(max_dont_touch) 2000
   set params(max_mark_debug) 2000
@@ -453,6 +487,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set detailedReportsPrefix {}
   set detailedReportsDir [file normalize .] ; # Current directory
   set userConfigFilename {}
+  set userCustomMetricsFiles [list]
   set time [clock seconds]
   set date [clock format $time]
   # -top/-cell/-pblock/-region/-slr
@@ -532,6 +567,24 @@ set reportBySLRNew 0
       {^-co(n(f(i(g(_(f(i(le?)?)?)?)?)?)?)?)?$} {
         set userConfigFilename [lshift args]
       }
+      {^-custom_metrics$} -
+      {^-cus(t(o(m(_(m(e(t(r(i(cs?)?)?)?)?)?)?)?)?)?)?$} {
+        set files [lshift args]
+        if {[file exists $files]} {
+          # Single file
+          lappend userCustomMetricsFiles $files
+        } else {
+          # List of files
+          foreach file $files {
+            if {![file exists $file]} {
+              puts " -E- custom metric file '$file' does not exist"
+              incr error
+            } else {
+              lappend userCustomMetricsFiles $file
+            }
+          }
+        }
+      }
       {^-export_config$} -
       {^-ex(p(o(r(t(_(c(o(n(f(ig?)?)?)?)?)?)?)?)?)?)?$} {
         set file [lshift args]
@@ -593,6 +646,20 @@ set reportBySLRNew 0
       {^-no_rent$} -
       {^-no_r(e(nt?)?)?$} {
         lappend skipChecks {rent}
+      }
+      {^-no_custom_metrics$} -
+      {^-no_cu(s(t(o(m(_(m(e(t(r(i(cs?)?)?)?)?)?)?)?)?)?)?)?$} {
+        lappend skipChecks {custom_metrics}
+      }
+      {^-only_custom_metrics$} -
+      {^-only_cu(s(t(o(m(_(m(e(t(r(i(cs?)?)?)?)?)?)?)?)?)?)?)?$} {
+        set skipChecks [concat $skipChecks {utilization path_budgeting dont_touch mark_debug control_sets non_fd_hfn average_fanout methodology_check rent}]
+      }
+      {^-only_fails$} -
+      {^-only_f(a(i(ls?)?)?)?$} -
+      {^-show_only_fails$} -
+      {^-show_o(n(l(y(_(f(a(i(ls?)?)?)?)?)?)?)?)?$} {
+        set params(show_fail_only) 1
       }
       {^-rent$} -
       {^-re(nt?)?$} {
@@ -796,6 +863,7 @@ set reportBySLRNew 0
               [-detailed_reports <prefix>]
               [-config_file <filename>]
               [-export_config <filename>]
+              [-custom_metrics <filename>]
               [-cell <cell>][-top]
               [-pblock <pblock>]
               [-slr <slr>][-by_slr]
@@ -817,6 +885,7 @@ set reportBySLRNew 0
               [-show_not_found]
               [-show_all_paths]
               [-hide_slacks]
+              [-only_fails]
               [-csv][-transpose]
               [-no_header]
               [-verbose|-v]
@@ -857,6 +926,8 @@ set reportBySLRNew 0
     Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
     Use -max_paths to define the max number of paths per clock group for LUT/Net budgeting. Default is 100
     Use -no_header to suppress the files header
+    Use -only_fails to only report metrics that are failing and need to be reviewed
+    Use -custom_metrics/-no_custom_metrics/-only_custom_metrics to control user custom metrics
 
     Use -longhelp for further information about use models
 
@@ -1248,6 +1319,16 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       }
     } else {
       puts " -W- config file '$::env(FAILFAST_CONFIG)' does not exists (FAILFAST_CONFIG)"
+    }
+  }
+
+  if {($userCustomMetricsFiles == {}) && [info exists ::env(FAILFAST_CUSTOM_METRICS)] && ($::env(FAILFAST_CUSTOM_METRICS) != {})} {
+    foreach file [split $::env(FAILFAST_CUSTOM_METRICS) {:}] {
+      if {![file exists $file]} {
+        puts " -W- custom metric file '$file' does not exist (FAILFAST_CUSTOM_METRICS)"
+      } else {
+        lappend userCustomMetricsFiles $file
+      }
     }
   }
 
@@ -3443,6 +3524,33 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 
     ########################################################################################
     ##
+    ## User custom metrics
+    ##
+    ########################################################################################
+
+    if {[llength $userCustomMetricsFiles] && ([lsearch $skipChecks {custom_metrics}] == -1)} {
+      # Rename procs for user EoU
+      rename addMetric addMetric_ORG
+      rename setMetric setMetric_ORG
+      rename addCustomMetric addMetric
+      rename setCustomMetric setMetric
+      foreach file $userCustomMetricsFiles {
+        if {$params(verbose)} {
+          puts " -I- sourcing custom metrics file '[file normalize $file]"
+        }
+        if {[catch "source $file" errorstring]} {
+          puts " -E- the following error happened by sourcing '[file normalize $file']. Some custom metrics might not be extracted."
+          puts " -E- $errorstring"
+        }
+      }
+      rename addMetric addCustomMetric
+      rename setMetric setCustomMetric
+      rename addMetric_ORG addMetric
+      rename setMetric_ORG setMetric
+    }
+
+    ########################################################################################
+    ##
     ## Dump all metrics (debug)
     ##
     ########################################################################################
@@ -3637,6 +3745,25 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
     generateTableRow tbl {design.device.maxlvls.net}
   }
 
+  # User custom metrics
+  if {[llength [array names guidelines custom*.*]]} {
+    $tbl separator
+    set prevSuffix {UNSET}
+    foreach metric [lsort -dictionary [array names guidelines custom*.*]] {
+      if {[regexp {\.avail} $metric]} {
+        # Skip xxx.avail metrics since they only hold the available resources for that metric
+        continue
+      }
+      regexp {^custom([0-9]*)\.} $metric - suffix
+      if {($prevSuffix != {UNSET}) && ($prevSuffix != $suffix)} {
+        # Add a row separator when changing section of custum metrics (e.g custom1.* -> custom2.*)
+        $tbl separator
+      }
+      set prevSuffix $suffix
+      generateTableRow tbl $metric $metrics(${metric}:description)
+    }
+  }
+
   foreach line [split [$tbl print] \n] {
     lappend output [format {# %s} $line]
   }
@@ -3706,6 +3833,18 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
   $tblcsv addrow [list {methodology.timing-35}      {TIMING-35}          [getMetric {methodology.timing-35}] ]
   $tblcsv addrow [list {design.device.maxlvls.lut}  "Number of paths above max LUT budgeting ${timBudgetPerLUT}ns" [getMetric {design.device.maxlvls.lut}] ]
   $tblcsv addrow [list {design.device.maxlvls.net}  "Number of paths above max Net budgeting ${timBudgetPerNet}ns" [getMetric {design.device.maxlvls.net}] ]
+
+  # User custom metrics
+  if {[llength [array names guidelines custom*.*]]} {
+    foreach metric [lsort -dictionary [array names guidelines custom*.*]] {
+      if {[regexp {\.avail} $metric]} {
+        # Skip xxx.avail metrics since they only hold the available resources for that metric
+        continue
+      }
+      $tblcsv addrow [list $metric $metrics(${metric}:description) [getMetric $metric] ]
+    }
+  }
+
   # puts [$tblcsv print]
   if {$params(transpose)} {
     $tblcsv transpose
@@ -4123,8 +4262,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::generateTableRow {&tbl name
     set suffix {%}
     regsub {%$} $guideline {} guideline
   }
+  # E.g: $guideline == {<=70}
   if {[regexp {^([^0-9]+)([0-9].*)$} $guideline - mode m]} {
     set guideline $m
+  } elseif {($guideline == {-}) || ($guideline == {})} {
+    # For user custom metrics, a guideline of "-" means to just display
+    # the metric value without comparing it to any threshold
+    set mode {-}
   } else {
     set mode {<=}
   }
@@ -4191,6 +4335,11 @@ proc ::tclapp::xilinx::designutils::report_failfast::generateTableRow {&tbl name
         set status {REVIEW}
       }
     }
+    "-" {
+      # No guideline, just display the metric value
+      # (mainly to be used for user custom metrics)
+      set status {-}
+    }
   }
   if {$value == {n/a}} { set status {ERROR} }
   lappend row $status
@@ -4199,6 +4348,10 @@ proc ::tclapp::xilinx::designutils::report_failfast::generateTableRow {&tbl name
     ERROR {
       incr params(failed)
     }
+  }
+  if {$params(show_fail_only) && (($status == "OK") || ($status == "-"))} {
+    # If -only_fails, then only show metrics that have failed. Skip $status=="OK"
+    return -code ok
   }
   # Add row to table
   $tbl addrow $row
@@ -4224,6 +4377,53 @@ proc ::tclapp::xilinx::designutils::report_failfast::reset { {force 0} } {
 #   catch { unset reports }
 #   array set reports [list]
   array set metrics [list]
+  return -code ok
+}
+
+proc ::tclapp::xilinx::designutils::report_failfast::addCustomMetric {name description guideline} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  variable metrics
+  variable guidelines
+  variable params
+  if {![regexp {^custom[0-9]*\.} $name]} {
+    puts " -W- custom metric should start with 'custom*.'. Skipping metric '$name'"
+    return -code ok
+  }
+  if {$params(verbose)} {
+    puts " -I- adding customer metric '$name'"
+  }
+  addMetric_ORG $name $description
+  if {![info exists guidelines(${name})]} {
+    # Only override the guideline if not already defined (e.g from config file)
+    set guidelines(${name}) $guideline
+  }
+  # For custom metrics, automatically add the corresponding metric that holds the available resources
+  dputs " -D- adding customer metric '${name}.avail'"
+  addMetric_ORG ${name}.avail [format {%s (Avail)} $description]
+  return -code ok
+}
+
+proc ::tclapp::xilinx::designutils::report_failfast::setCustomMetric {name value {avail -}} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  variable metrics
+  if {![info exists metrics(${name}:def)]} {
+    puts " -E- metric '$name' does not exist"
+    return -code ok
+  }
+  dputs " -D- setting: $name = $value (available resources=$avail)"
+  set metrics(${name}:def) 2
+  set metrics(${name}:val) $value
+  # For custom metrics, save the available resources in a single call
+  set metrics(${name}.avail:def) 2
+  set metrics(${name}.avail:val) $avail
   return -code ok
 }
 

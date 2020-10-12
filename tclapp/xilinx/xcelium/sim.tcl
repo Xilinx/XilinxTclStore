@@ -529,6 +529,11 @@ proc usf_xcelium_write_compile_script {} {
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "compile" "xcelium"
   if { {} != $tool_path } {
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
  
@@ -859,8 +864,14 @@ proc usf_xcelium_write_elaborate_script {} {
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "elaborate" "xcelium"
   if { {} != $tool_path } {
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
+
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
@@ -1234,8 +1245,14 @@ proc usf_xcelium_write_simulate_script {} {
   puts $fh_scr "#!/bin/bash -f"
   xcs_write_script_header $fh_scr "simulate" "xcelium"
   if { {} != $tool_path } {
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
+
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
@@ -1578,7 +1595,7 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     set cardano_api_path {}
     if { [info exists ::env(XILINX_VITIS)] } {
       set xilinx_vitis $::env(XILINX_VITIS)
-      set cardano_api_path "$xilinx_vitis/cardano/lib/xcelium64.o"
+      set cardano_api_path "$xilinx_vitis/aietools/lib/xcelium64.o"
     } else {
       set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
       send_msg_id USF-Xcelium-019 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
@@ -1600,9 +1617,9 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     if { {} != $ip_obj } {
       if { [info exists ::env(XILINX_VITIS)] } {
         set xilinx_vitis $::env(XILINX_VITIS)
-        set cardano "$xilinx_vitis/cardano"
+        set cardano "$xilinx_vitis/aietools"
         set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
-        #puts $fh_scr "export CARDANO_ROOT=\"$cardano\""
+        #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
         puts $fh_scr "source $chess_script"
       } else {
         send_msg_id USF-Xcelium-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
