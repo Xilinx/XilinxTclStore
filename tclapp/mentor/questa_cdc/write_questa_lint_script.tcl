@@ -8,13 +8,13 @@
 #
 ###############################################################################
 
-namespace eval ::tclapp::mentor::questa_lint {
+namespace eval ::tclapp::mentor::questa_cdc {
   # Export procs that should be allowed to import into other namespaces
   variable QUESTA_Lint_TCL_SCRIPT_PATH [file normalize [file dirname [info script]]]
   namespace export write_questa_lint_script
 }
 
-proc ::tclapp::mentor::questa_lint::matches_default_libs {lib} {
+proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   
   # Summary: internally used routine to check if default libs used
   
@@ -36,7 +36,7 @@ proc ::tclapp::mentor::questa_lint::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::mentor::questa_lint::uniquify_lib {lib lang num} {
+proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   
   # Summary: internally used routine to uniquify libs
   
@@ -60,7 +60,7 @@ proc ::tclapp::mentor::questa_lint::uniquify_lib {lib lang num} {
   return $new_lib
 }
 
-proc ::tclapp::mentor::questa_lint::write_questa_lint_script {args} {
+proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
 
   # Summary : This proc generates the Questa Lint script file
 
@@ -144,10 +144,10 @@ proc ::tclapp::mentor::questa_lint::write_questa_lint_script {args} {
   if { $add_button == 1 } {
     ## Example for code of the Vivado GUI button
     ## -----------------------------------------
-    ## 0=Run%20Questa%20Lint tclapp::mentor::questa_lint::write_questa_lint_script "" /home/iahmed/questa_lint_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20Lint%20Run "" -run true
+    ## 0=Run%20Questa%20Lint tclapp::mentor::questa_cdc::write_questa_lint_script "" /home/iahmed/questa_lint_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20Lint%20Run "" -run true
     ## -----------------------------------------
 
-    set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
+    set commands_file "$::env(HOME)/AppData/Roaming/Xilinx/Vivado/$vivado_version/commands/commands.paini"
     set status [catch {exec grep write_questa_lint_script $commands_file} result]
     if { $status == 0 } {
       puts "INFO : Vivado GUI button for running Questa Lint is already installed in $commands_file. Exiting ..."
@@ -193,7 +193,7 @@ proc ::tclapp::mentor::questa_lint::write_questa_lint_script {args} {
  
 			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
  
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_lint::write_questa_lint_script"
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_lint_script"
       set button_code "$button_code \"\" $questa_lint_logo \"\" \"\" true ^@ \"\" true 4"
       set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
       set button_code "$button_code Output%20Directory \"\" -output_directory%20QLint true"
@@ -204,7 +204,7 @@ proc ::tclapp::mentor::questa_lint::write_questa_lint_script {args} {
        
 			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
                
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_lint::write_questa_lint_script"
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_lint_script"
       set button_code "$button_code \"\" $questa_lint_logo \"\" \"\" true ^ \"\" true 4"
       set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
       set button_code "$button_code Output%20Directory \"\" -output_directory%20QLint true"
@@ -218,7 +218,7 @@ proc ::tclapp::mentor::questa_lint::write_questa_lint_script {args} {
 
   ## Remove Vivado GUI button for Questa Lint
   if { $remove_button == 1 } {
-    set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
+    set commands_file "$::env(HOME)/AppData/Roaming/Xilinx/Vivado/$vivado_version/commands/commands.paini"
     ## Temp file to write the modified file
     set op_file [open "$commands_file.tmp" w]
 
@@ -546,7 +546,12 @@ proc ::tclapp::mentor::questa_lint::write_questa_lint_script {args} {
                                         }
 				}
 			}
-            set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f_original] 0]]
+#            set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f_original] 0]]
+             if { [catch {set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f_original] 0]]} result] } {
+                      set lib $xcix_ip_name
+             } else {
+                      set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f_original] 0]]
+             }
             if ([regexp {vhd} $f all value]) {
                      set ft "VHDL"
 	    } else   {
@@ -1108,17 +1113,18 @@ proc ::tclapp::mentor::questa_lint::write_questa_lint_script {args} {
   puts "INFO : Generation of running scripts for Questa Lint is done at [pwd]/$userOD"
 
   ## Change permissions of the generated running script
-  exec chmod u+x $userOD/$run_script
+  ## exec chmod u+x $userOD/$run_script
   puts "INFO : Running Questa Lint (Command: lint run), the UI will be invoked when the run is finished"
   puts "     : Log can be found at $userOD/Lint_RESULTS/qverify.log"
-  exec /bin/sh -c "cd $userOD; sh qlint_run.sh"
+  ## exec /bin/sh -c "cd $userOD; sh qlint_run.sh"
   puts "INFO : Questa Lint run is finished"
   puts "INFO : Invoking Questa Lint UI for debugging."
   exec qverify -l qverify_ui.log $userOD/Lint_RESULTS/lint.db &
   return $rc
 }
 
-
+## Keep an environment variable with the path of the script
+#set env(QUESTA_Lint_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa Lint script
-namespace import tclapp::mentor::questa_lint::*
+#namespace import tclapp::mentor::questa_cdc::*

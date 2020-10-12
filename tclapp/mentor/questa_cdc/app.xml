@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>1.7</revision_history>
+      <revision_history>Adding RDC/Autocheck/LINT</revision_history>
       <name>questa_cdc</name>
       <company>mentor</company>
       <company_display>Mentor, a Siemens Business</company_display>

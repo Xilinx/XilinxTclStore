@@ -152,7 +152,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     ## -----------------------------------------
 
     
-    set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
+    set commands_file "$::env(HOME)/AppData/Roaming/Xilinx/Vivado/$vivado_version/commands/commands.paini"
     set status [catch {exec grep write_questa_cdc_script $commands_file} result]
     if { $status == 0 } {
       puts "INFO : Vivado GUI button for running Questa CDC is already installed in $commands_file. Exiting ..."
@@ -222,7 +222,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   ## Remove Vivado GUI button for Questa CDC
   if { $remove_button == 1 } {
-    set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.paini"
+    set commands_file "$::env(HOME)/AppData/Roaming/Xilinx/Vivado/$vivado_version/commands/commands.paini"
     ## Temp file to write the modified file
     set op_file [open "$commands_file.tmp" w]
 
@@ -548,7 +548,12 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
                                         }
 				}
 			}
-            set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f_original] 0]]
+#            set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f_original] 0]]
+             if { [catch {set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f_original] 0]]} result] } {
+                      set lib $xcix_ip_name
+             } else {
+                      set lib [get_property LIBRARY [lindex [get_files -all -of [get_filesets $synth_fileset] $f_original] 0]]
+             }
             if ([regexp {vhd} $f all value]) {
                      set ft "VHDL"
 	    } else   {
@@ -1106,27 +1111,29 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   puts "INFO : Generation of running scripts for Questa CDC is done at [pwd]/$userOD"
 
   ## Change permissions of the generated running script
-  exec chmod u+x $userOD/$run_script
+  ## exec chmod u+x $userOD/$run_script
   if { $run_questa_cdc == "cdc_run" } {
     puts "INFO : Running Questa CDC (Command: cdc run), the UI will be invoked when the run is finished"
     puts "     : Log can be found at $userOD/CDC_RESULTS/qverify.log"
-    exec /bin/sh -c "cd $userOD; sh qcdc_run.sh"
+    ## exec /bin/sh -c "cd $userOD; sh qcdc_run.sh"
     puts "INFO : Questa CDC run is finished"
     puts "INFO : Invoking Questa CDC UI for debugging."
-    exec qverify -l qverify_ui.log $userOD/CDC_RESULTS/cdc.db &
+    ## exec qverify -l qverify_ui.log $userOD/CDC_RESULTS/cdc.db &
+    cd $userOD
+    cmd /c run_qcdc all
   } elseif { $run_questa_cdc == "report_clock" } {
     puts "INFO : Running Questa CDC (Command: cdc run -report_clock), the UI will be invoked when the run is finished"
     puts "     : Log can be found at $userOD/CDC_RESULTS/qverify.log"
-    exec /bin/sh -c "cd $userOD; sh qcdc_run.sh"
+    ## exec /bin/sh -c "cd $userOD; sh qcdc_run.sh"
     puts "INFO : Questa CDC run is finished"
     puts "INFO : Invoking Questa CDC UI for debugging."
-    exec /bin/sh -c "cd $userOD; qverify -l qverify_ui.log CDC_RESULTS/cdc.db" &
+    ## exec /bin/sh -c "cd $userOD; qverify -l qverify_ui.log CDC_RESULTS/cdc.db" &
   }
   return $rc
 }
 
 ## Keep an environment variable with the path of the script
-
+#set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa CDC script
-namespace import tclapp::mentor::questa_cdc::*
+#namespace import tclapp::mentor::questa_cdc::*
