@@ -1192,7 +1192,7 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   usf_add_quit_on_error $fh "simulate"
   
   if { [get_param "project.allowSharedLibraryType"] } {
-    puts $fh "set xv_lib_path \"$::env(RDI_LIBDIR)\""
+    #puts $fh "set xv_lib_path \"$::env(RDI_LIBDIR)\""
   }
 
   puts $fh "$cmd_str"
@@ -1451,7 +1451,8 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
                 set os_dir "win64.o"
               }
               # set library dir '$XILINX_VIVADO/lib/lnx64.o'
-              lappend shared_ip_libs "${xv_dir}/lib/${os_dir}"
+              # cr:1077390 - disable lnx64.o linkages
+              #lappend shared_ip_libs "${xv_dir}/lib/${os_dir}"
             }
           }
 
@@ -1467,7 +1468,6 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     if { {simulate} == $step } {
       if { [get_param "project.allowSharedLibraryType"] } {
         puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
-        puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
 
         set args_list [list]
         foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
@@ -1485,6 +1485,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         }
 
         if { [llength $args_list] != 0 } {
+          puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
           set cmd_args [join $args_list ":"]
           if { [get_param "project.copyShLibsToCurrRunDir"] } {
             puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
@@ -1691,6 +1692,19 @@ proc usf_questa_get_sccom_cmd_args {} {
           lappend args "-l$lib_name"
         } else {
           lappend args "-lib $lib_name"
+        }
+      }
+
+      # cr:1079132 - bind aie_cluster (TODO: have aie_xtlm advertize this as dependent library in file_info.dat)
+      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+        set ip_obj [xcs_find_ip "ai_engine"]
+        if { {} != $ip_obj } {
+          # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
+          set cpt_dir  [xcs_get_simmodel_dir "questa" "cpt"]
+          set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
+          set lib_name "aie_cluster_v1_0_0"
+          lappend args "-L$data_dir/$cpt_dir/$lib_name"
+          lappend args "-l$lib_name"
         }
       }
   
