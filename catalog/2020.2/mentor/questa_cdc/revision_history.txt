@@ -1,3 +1,4 @@
+1.7 Adding RDC/Autocheck/LINT
 1.6 Using new commands for creating GUI custom commands and add procs for install and uninstall 
 1.5 Handle VERSION '2' of the Vivado Tcl custom commands 
 1.4 Disable loading of liberty files in Questa CDC runs, as the cells will be already loaded in Questa CDC run using 'netlist fpga' command 
