@@ -5504,6 +5504,11 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
             }
           } else {
             set vh_file $vh_file_path
+            # if full path to vh_file not found, prepend project dir (for the cases when ipstatic dir is empty)
+            if { ![file exists $vh_file] } {
+              set proj_dir [get_property directory [current_project]]
+              set vh_file "$proj_dir/$vh_file"
+            }
           }
         }
       }
