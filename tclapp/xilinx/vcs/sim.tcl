@@ -1131,19 +1131,6 @@ proc usf_vcs_write_elaborate_script {} {
           puts "------------------------------------------------------------------------------------------------------------------------------------"
         }
 
-        # bind vivado library $XILINX_VIVADO/lib/<os>.o (for hip_config)
-        set b_bind_vivado_util_libs false
-        [catch {set b_bind_vivado_util_libs [get_param "project.bindVivadoUtilSharedLibForSystemSim"]} err]
-        if { $b_bind_vivado_util_libs } {
-          #
-          # TODO: find out conditions under which rdi_hip_config will be binded
-          #  - use-case 1: when switching from rtl->tlm for a HIP noc design
-          # Revisit this if issues found
-          #set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
-          #set xil_lib_path [file normalize "$sm_dir/../lib/lnx64.o"]
-          #set arg_list [linsert $arg_list end "-L$xil_lib_path -lrdi_hip_config"]
-        }
-        #  
         set arg_list [linsert $arg_list end "-Mdir=c.obj"]
         set arg_list [linsert $arg_list end "-lstdc++fs"]
       }
@@ -1736,14 +1723,6 @@ proc usf_vcs_write_library_search_order { fh_scr } {
   }
 
   set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
-  # TODO
-  # bind vivado library $XILINX_VIVADO/lib/<os>.o (for rdi_hip_config)
-  # Revisit this if issues found
-  set b_bind_vivado_util_libs false
-  [catch {set b_bind_vivado_util_libs [get_param "project.bindVivadoUtilSharedLibForSystemSim"]} err]
-  if { $b_bind_vivado_util_libs } {
-    #lappend l_sm_lib_paths [file normalize "$sm_dir/../lib/lnx64.o"]
-  }
 
   set ld_path "LD_LIBRARY_PATH=."
   # for aie
