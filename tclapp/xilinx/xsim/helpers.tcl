@@ -30,6 +30,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_project_dir)       [get_property "DIRECTORY" $project]
   set a_sim_vars(b_is_managed)        [get_property "MANAGED_IP" $project]
   set a_sim_vars(s_launch_dir)        {}
+  set a_sim_vars(s_simlib_dir)        {}
   set a_sim_vars(s_sim_top)           [get_property "TOP" [current_fileset -simset]]
 
   # launch_simulation tcl task args
@@ -53,11 +54,20 @@ proc usf_init_vars {} {
   set a_sim_vars(b_int_sm_lib_ref_debug) 0
   set a_sim_vars(b_int_csim_compile_order) 0
   set a_sim_vars(b_int_en_system_sim_code) 0
+  set a_sim_vars(b_int_export_source_files) 0
+  # default is false
+  set a_sim_vars(b_force_compile_glbl) [get_param project.forceCompileGlblForSimulation]
+  if { !$a_sim_vars(b_force_compile_glbl) } {
+    set a_sim_vars(b_force_compile_glbl) [get_property force_compile_glbl [current_fileset -simset]]
+  }
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
 
+  set a_sim_vars(b_compile_simmodels) 0
+
+  set a_sim_vars(b_contain_sv_srcs)         0
   set a_sim_vars(b_contain_systemc_sources) 0
   set a_sim_vars(b_contain_cpp_sources)     0
   set a_sim_vars(b_contain_c_sources)       0
@@ -67,6 +77,8 @@ proc usf_init_vars {} {
  
   set a_sim_vars(sp_cpt_dir) {}
   set a_sim_vars(sp_ext_dir) {}
+
+  set a_sim_vars(b_ref_sysc_lib_env) [get_param "project.refSystemCLibPathWithXilinxEnv"]
   
   set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set a_sim_vars(compiled_design_lib) "xsim.dir"
@@ -76,10 +88,11 @@ proc usf_init_vars {} {
   set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
 
   set a_sim_vars(s_tool_bin_path)    {}
-
   set a_sim_vars(sp_tcl_obj)         {}
-
   set a_sim_vars(s_boost_dir)        {}
+
+  set a_sim_vars(script_file_extn) ".bat"
+  set a_sim_vars(script_cmt_tag)   "REM"
 
   # fileset compile order
   variable l_compile_order_files     [list]

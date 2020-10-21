@@ -90,8 +90,8 @@ proc xif_init_vars {} {
 
 
 proc export_ip_user_files {args} {
-  # Summary:
-  # Generate and export IP/IPI user files from a project. This can be scoped to work on one or more IPs.
+  # Summary: Generate and export IP/IPI user files from a project. This can be scoped to work on one or more IPs.
+
   # Argument Usage:
   # [-of_objects <arg>]: IP,IPI or a fileset object
   # [-ip_user_files_dir <arg>]: Directory path to simulation base directory (for static, dynamic, wrapper, netlist, script and MEM files)

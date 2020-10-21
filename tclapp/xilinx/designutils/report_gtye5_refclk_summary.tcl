@@ -143,7 +143,7 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
 
 
     if { $quad_cell_l eq ""} {
-       puts "ERROR: There is no gt_quad_base IP in the design. Script is valid only for gt_quad_base IP based IPI designs"
+       puts "ERROR: [BD 5-104] gt_quad_base IP based block design must be open to run this command. Please create/open a block design."
        if { [file exists $file_name1] == 1} {
          set done [export_ip_user_files -of_objects  [get_files $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt] -no_script -reset -force -quiet]
          set done [remove_files  $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt]
@@ -225,6 +225,9 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
             set list_AK0 [list $snumk]
             set ref_name $quadCell\/GT_REFCLK$n
             set ref_clk_src [find_connected_core $ref_name]
+			if { $ref_clk_src eq "" } {
+              set ref_clk_src [find_connected_pin $ref_name]             
+            }
             lappend list_AK0 $ref_name
             lappend list_AK0 "multiple"
             set prot_val ""
@@ -250,7 +253,7 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
                set lkeya1 [lindex $lkeya 0]
                set lkeyf "$quadCell\/$lkeya1\_GT_IP_INTERFACE"
                set pCellName [find_connected_core $lkeyf]
-              lappend list_AK0 $pCellName
+               lappend list_AK0 $pCellName
 
            } else {
              set freq_val_with_prot_src [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} $temp ]]]]]]]]
@@ -265,6 +268,9 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
               set list_AK0 [list $snumk]
               set ref_name $quadCell\/GT_REFCLK$n
               set ref_clk_src [find_connected_core $ref_name]
+              if { $ref_clk_src eq "" } {
+              set ref_clk_src [find_connected_pin $ref_name]             
+              }
               lappend list_AK0 $ref_name
               set SRC ""
               set prot_src_info ""
@@ -321,16 +327,19 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
         puts $outfilek "Note:     If Quad reference clock frequencies are same, user could optimize the reference clock inputs by shorting them."
         puts $outfilek "          If the REFCLK sources are same for multiple ref clocks in the table, that indicates those ref clocks are already shorted."
         puts $outfilek "          Example gtye5_refclk_summary.txt given below "
-        puts $outfilek "          +-------+-----------------------------+------------+-------------+------------------+"
-        puts $outfilek "          | S.No. |       GTYE5_REFCLOCK Name   | Freq       | ParentIP    |   REFCLK Source  |"
-        puts $outfilek "          +-------+-----------------------------+------------+-------------+------------------+"
-        puts $outfilek "          | 1     | /<gt_quad_base_i>/GTREFCLK0 | 156.250000 | <ParentIPx> | <REFCLK Sourcex> |"
-        puts $outfilek "          | 2     | /<gt_quad_base_j>/GTREFCLK1 | 156.250000 | <ParentIPy> | <REFCLK Sourcey> |"
-        puts $outfilek "          | 3     | /<gt_quad_base_k>/GTREFCLK2 | 156.250000 | <ParentIPz> | <REFCLK Sourcez> |"
-        puts $outfilek "          | 4     | /<gt_quad_base_l>/GTREFCLK0 | 250.000000 | <ParentIPa> | <REFCLK Sourcea> |"
-        puts $outfilek "          | 5     | /<gt_quad_base_m>/GTREFCLK1 | mutiple    | <ParentIPb> | <REFCLK Sourceb> |"
-        puts $outfilek "          | 6     | /<gt_quad_base_n>/GTREFCLK2 | mutiple    | <ParentIPc> | <REFCLK Sourcec> |"
-        puts $outfilek "          +-------+-----------------------------+------------+-------------+------------------+"
+        puts $outfilek "          +-------+-----------------------------+-------------+--------------+-------------------+"
+        puts $outfilek "          | S.No. |       GTYE5_REFCLOCK Name   | Freq        | ParentIP     |   REFCLK Source   |"
+        puts $outfilek "          +-------+-----------------------------+-------------+--------------+-------------------+"
+        puts $outfilek "          | 1     | /<gt_quad_base_i>/GTREFCLK0 | 156.250000  | <ParentIP x> | <REFCLK Source x> |"
+        puts $outfilek "          | 2     | /<gt_quad_base_j>/GTREFCLK1 | 156.250000  | <ParentIP y> | <REFCLK Source y> |"
+        puts $outfilek "          | 3     | /<gt_quad_base_k>/GTREFCLK2 | 156.250000  | <ParentIP z> | <REFCLK Source z> |"
+        puts $outfilek "          | 4     | /<gt_quad_base_l>/GTREFCLK0 | 250.000000  | <ParentIP a> | <REFCLK Source a> |"
+        puts $outfilek "          | 5     | /<gt_quad_base_m>/GTREFCLK1 | Multiple[1] | <ParentIP b> | <REFCLK Source b> |"
+        puts $outfilek "          | 6     | /<gt_quad_base_n>/GTREFCLK2 | Multiple[1] | <ParentIP c> | <REFCLK Source c> |"
+        puts $outfilek "          +-------+-----------------------------+-------------+--------------+-------------------+"
+        puts $outfilek "Note: [1] In the table, 'Multiple' frequency indicates that the quad base IP is configured with multiple reference clock values with the single clock source"
+        puts $outfilek "         Refer IP refrence clock summary log file located at <project_*>/<project_*>.srcs/sources_1/ip/<gt_quad_base_inst>/<gt_quad_base_inst>_summary.log for reference clock frequency details per configuration"
+        puts $outfilek " "
         puts $outfilek "          In this table, it is possible to short the first three GTREFCLKs that are of same frequency values."
         puts $outfilek " "
         puts $outfilek "          Please follow below steps to short the Quad reference clock sources. "

@@ -46,11 +46,16 @@ proc usf_init_vars {} {
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
+  set a_sim_vars(b_int_is_gui_mode)  0
   set a_sim_vars(b_int_halt_script)  0
   set a_sim_vars(b_int_systemc_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
+  # default is false
   set a_sim_vars(b_force_compile_glbl) [get_param project.forceCompileGlblForSimulation]
+  if { !$a_sim_vars(b_force_compile_glbl) } {
+    set a_sim_vars(b_force_compile_glbl) [get_property force_compile_glbl [current_fileset -simset]]
+  }
   set a_sim_vars(b_int_sm_lib_ref_debug) 0
   set a_sim_vars(b_int_csim_compile_order) 0
 
@@ -73,6 +78,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
 
   set a_sim_vars(s_tool_bin_path)    {}
+  set a_sim_vars(s_gcc_bin_path)     {}
 
   set a_sim_vars(sp_tcl_obj)         {}
 
@@ -346,6 +352,28 @@ proc usf_set_simulator_path { simulator } {
   set a_sim_vars(s_tool_bin_path) [string map {/ \\\\} $bin_path]
   if {$::tcl_platform(platform) == "unix"} {
     set a_sim_vars(s_tool_bin_path) $bin_path
+  }
+}
+
+proc usf_set_gcc_path {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  send_msg_id USF-Questa-005 INFO "Finding GCC installation...\n"
+  set gcc_path  {}
+  set path_type {}
+  set simulator "questa"
+  if { [xcs_get_gcc_path $simulator "Questa" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
+    set a_sim_vars(s_gcc_bin_path) $gcc_path
+    switch $path_type {
+      1 { send_msg_id USF-Questa-25 INFO "Using GCC executables set by -gcc_install_path switch from '$a_sim_vars(s_gcc_bin_path)'"                        }
+      2 { send_msg_id USF-Questa-25 INFO "Using GCC executables set by simulator.${simulator}_gcc_install_dir property from '$a_sim_vars(s_gcc_bin_path)'" }
+      3 { send_msg_id USF-Questa-25 INFO "Using GCC executables set by GCC_SIM_EXE_PATH environment variable from '$a_sim_vars(s_gcc_bin_path)'"           }
+      4 { send_msg_id USF-Questa-25 INFO "Using simulator installed GCC executables from '$a_sim_vars(s_gcc_bin_path)'"                                    }
+    }
   }
 }
 
@@ -647,6 +675,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_systemc_sources) } {
           set a_sim_vars(b_contain_systemc_sources) true
+          usf_set_gcc_path
         }
           
         # is dynamic? process
@@ -691,6 +720,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_cpp_sources) } {
           set a_sim_vars(b_contain_cpp_sources) true
+          usf_set_gcc_path
         }
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
@@ -733,6 +763,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_c_sources) } {
           set a_sim_vars(b_contain_c_sources) true
+          usf_set_gcc_path
         }
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
@@ -785,6 +816,23 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     }
   }
 
+  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
+    if { {functional} == $a_sim_vars(s_type) } {
+      set hbm_ip_obj [xcs_find_ip "hbm"]
+      if { {} != $hbm_ip_obj } {
+        set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
+        if { {} != $hbm_file_obj } {
+          set file_type [get_property file_type $hbm_file_obj]
+          set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts l_dummy_incl_dirs_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $hbm_file_obj
+          }
+        }
+      }
+    }
+  }
+
   if { {} != $netlist_file } {
     set file_type "Verilog"
     set extn [file extension $netlist_file]
@@ -793,6 +841,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     } elseif { {.vhd} == $extn } {
       set file_type "VHDL"
     }
+
     set cmd_str [usf_get_file_cmd_str $netlist_file $file_type false {} l_incl_dirs_opts l_dummy_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
@@ -919,7 +968,7 @@ proc usf_launch_script { simulator step } {
   }
 
   set b_wait 0
-  if { $a_sim_vars(b_batch) } {
+  if { $a_sim_vars(b_batch) || (!$::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode)) } {
     set b_wait 1 
   }
   set faulty_run 0
@@ -1326,6 +1375,12 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         if {$::tcl_platform(platform) == "unix"} {
           lappend arg_list $s_64bit
         }
+        set cores [string tolower [get_property questa.compile.sccom.cores $fs_obj]]
+        if { {off} != $cores } {
+          lappend arg_list "-j $cores"
+        }
+        set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+        lappend arg_list "-cpppath $gcc_path"
         lappend arg_list "-std=c++11"
         set more_opts [get_property questa.compile.sccom.more_options $fs_obj]
         if { {} != $more_opts } {

@@ -6,7 +6,6 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
-
 set auto_index(::tclapp::xilinx::projutils::convert_ngc) [list source [file join $dir convert_ngc.tcl]]
 set auto_index(::tclapp::xilinx::projutils::copy_run) [list source [file join $dir copy_run.tcl]]
 set auto_index(::tclapp::xilinx::projutils::export_bd_synth) [list source [file join $dir export_bd_synth.tcl]]

@@ -44,9 +44,14 @@ proc usf_init_vars {} {
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
+  set a_sim_vars(b_int_is_gui_mode)  0
   set a_sim_vars(b_int_halt_script)  0
   set a_sim_vars(b_int_compile_glbl) 0
+  # default is false
   set a_sim_vars(b_force_compile_glbl) [get_param project.forceCompileGlblForSimulation]
+  if { !$a_sim_vars(b_force_compile_glbl) } {
+    set a_sim_vars(b_force_compile_glbl) [get_property force_compile_glbl [current_fileset -simset]]
+  }
   set a_sim_vars(b_int_sm_lib_ref_debug)   0
   set a_sim_vars(b_int_csim_compile_order) 0
 
@@ -322,12 +327,13 @@ proc usf_create_do_file { simulator do_filename } {
     if { [get_property "IES.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
       set depth "all"
     }
-    set db "catch \{probe -create -shm -all -variables -depth $depth\} msg"
-    if { $a_sim_vars(b_batch) || $b_scripts_only } {
-      puts $fh_do $db
+    set db "catch \{probe -create -shm -all -variables -depth $depth"
+    if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::ies::a_sim_vars(b_int_is_gui_mode)) } {
+      append db "\} msg"
     } else {
-      puts $fh_do "$db -waveform"
+      append db " -waveform\} msg"
     }
+    puts $fh_do $db
 
     # write tcl post hook
     set tcl_post_hook [get_property IES.SIMULATE.TCL.POST $fs_obj]
@@ -374,7 +380,7 @@ proc usf_create_do_file { simulator do_filename } {
       puts $fh_do ""
     }
 
-    if { $a_sim_vars(b_batch) || $b_scripts_only } {
+    if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::ies::a_sim_vars(b_int_is_gui_mode)) } {
       puts $fh_do "exit"
     }
   }
@@ -741,6 +747,23 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     }
   }
 
+  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
+    if { {functional} == $a_sim_vars(s_type) } {
+      set hbm_ip_obj [xcs_find_ip "hbm"]
+      if { {} != $hbm_ip_obj } {
+        set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
+        if { {} != $hbm_file_obj } {
+          set file_type [get_property file_type $hbm_file_obj]
+          set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $hbm_file_obj
+          }
+        }
+      }
+    }
+  }
+
   if { {} != $netlist_file } {
     set file_type "Verilog"
     set extn [file extension $netlist_file]
@@ -874,7 +897,7 @@ proc usf_launch_script { simulator step } {
   }
 
   set b_wait 0
-  if { $a_sim_vars(b_batch) } {
+  if { $a_sim_vars(b_batch) || (!$::tclapp::xilinx::ies::a_sim_vars(b_int_is_gui_mode)) } {
     set b_wait 1 
   }
   set faulty_run 0

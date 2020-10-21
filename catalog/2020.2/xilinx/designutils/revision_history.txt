@@ -1,3 +1,10 @@
+1.52 Various enhancements (report_gtye5_refclk_summary)
+1.51 Various enhancements (report_failfast)
+1.50 Various enhancements (report_gtye5_refclk_summary/report_failfast)
+1.49 Added support for Versal + various enhancements (report_failfast)
+1.48 Various enhancements (prettyTable)
+1.47 Output file path in the INFO message updated (report_gtye5_refclk_summary)
+1.46 Added new proc report_gtye5_refclk_summary.tcl
 1.45 Various improvements (report_failfast)
 1.44 Added support for updated report_control_sets format (report_failfast)
 1.43 Added support for Vivado patches (report_failfast)

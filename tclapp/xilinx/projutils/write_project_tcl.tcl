@@ -28,8 +28,7 @@ namespace eval ::tclapp::xilinx::projutils {
 
 namespace eval ::tclapp::xilinx::projutils {
 proc write_project_tcl {args} {
-  # Summary: 
-  # Export Tcl script for re-creating the current project
+  # Summary: Export Tcl script for re-creating the current project
 
   # Argument Usage: 
   # [-paths_relative_to <arg> = Script output directory path]: Override the reference directory variable for source file relative paths
@@ -43,6 +42,7 @@ proc write_project_tcl {args} {
   # [-dump_project_info]: Write object values
   # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
   # [-internal]: Print basic header information in the generated tcl script
+  # [-validate]: Runs a validate script before recreating the project. To test if the files and paths refrenced in the tcl file exists or not.
   # [-quiet]: Execute the command quietly, returning no messages from the command.
   # file: Name of the tcl script file to generate
 
@@ -87,6 +87,7 @@ proc write_project_tcl {args} {
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
       "-internal"             { set a_global_vars(b_internal) 1 }
+      "-validate"             { set a_global_vars(b_validate) 1 }
       "-quiet"                { set a_global_vars(b_arg_quiet) 1}
       default {
         # is incorrect switch specified?
@@ -108,7 +109,7 @@ proc write_project_tcl {args} {
   }
  
   # script file is a must
-  if { [string equal $a_global_vars(script_file) ""] } {
+  if { [lsearch {"" ".tcl"} [file tail $a_global_vars(script_file)]] != -1 } {
     if { $a_global_vars(b_arg_quiet) } {
       reset_msg_setting
     }
@@ -185,6 +186,8 @@ variable a_global_vars
 variable l_script_data [list]
 variable l_local_files [list]
 variable l_remote_files [list]
+variable l_bd_wrapper [list]
+variable l_validate_repo_paths [list]
 variable l_bc_filesets  [list]
 variable b_project_board_set 0
 
@@ -228,6 +231,7 @@ proc reset_global_vars {} {
   set a_global_vars(b_arg_no_ip_version)  0
   set a_global_vars(b_absolute_path)      0
   set a_global_vars(b_internal)           0
+  set a_global_vars(b_validate)           0
   set a_global_vars(b_arg_all_props)      0
   set a_global_vars(b_arg_dump_proj_info) 0
   set a_global_vars(b_local_sources)      0
@@ -249,6 +253,8 @@ proc reset_global_vars {} {
   set l_script_data                       [list]
   set l_local_files                       [list]
   set l_remote_files                      [list]
+  set l_bd_wrapper                        [list]
+  set l_validate_repo_paths               [list]
   set l_bc_filesets                       [list]
 }
 
@@ -271,6 +277,7 @@ proc write_project_tcl_script {} {
   variable l_added_bds
   variable a_os
   variable l_bc_filesets
+  variable l_validate_repo_paths
 
   set l_script_data [list]
   set l_local_files [list]
@@ -278,6 +285,7 @@ proc write_project_tcl_script {} {
   set l_bc_filesets  [list]
   set l_open_bds [list]
   set l_added_bds [list]
+  set l_validate_repo_paths [list]
   
   # Create temp directory (if required) for BD procs
   set temp_dir [ file join [file dirname $a_global_vars(script_file)] .Xiltemp ]  
@@ -374,7 +382,13 @@ proc write_project_tcl_script {} {
   wr_dashboards $proj_dir $proj_name 
   # write header
   write_header $proj_dir $proj_name $file
-
+  
+  # write validate script
+  set l_validate_script [wr_validate_files]
+  foreach line $l_validate_script {
+    puts $a_global_vars(fh) $line
+  }
+  
   # write script data
   foreach line $l_script_data {
     puts $a_global_vars(fh) $line
@@ -430,6 +444,71 @@ proc write_project_tcl_script {} {
   reset_global_vars
 
   return 0
+}
+
+proc wr_validate_files {} {
+  variable a_global_vars
+  set l_script_validate [list]
+  variable l_validate_repo_paths
+
+  variable l_local_files 
+  variable l_remote_files 
+  
+  lappend l_script_validate "# Check file required for this script exists"
+  lappend l_script_validate "proc checkRequiredFiles \{ origin_dir\} \{"
+  lappend l_script_validate "  set status true" 
+  if {[llength $l_local_files]>0} {
+  
+    lappend l_script_validate "  set files \[list \\"
+    foreach file $l_local_files {
+      lappend l_script_validate "   $file \\"
+    }
+    lappend l_script_validate "  \]"
+    
+    lappend l_script_validate "  foreach ifile \$files \{"
+    lappend l_script_validate "    if \{ !\[file isfile \$ifile\] \} \{"
+    lappend l_script_validate "      puts \" Could not find local file \$ifile \""
+    lappend l_script_validate "      set status false" 
+    lappend l_script_validate "    \}" 
+    lappend l_script_validate "  \}"
+    lappend l_script_validate ""
+  }
+  if {[llength $l_remote_files]>0} {
+    lappend l_script_validate "  set files \[list \\"
+    foreach file $l_remote_files {
+      lappend l_script_validate "   $file \\"
+    }
+    lappend l_script_validate "  \]"
+    
+    lappend l_script_validate "  foreach ifile \$files \{"
+    lappend l_script_validate "    if \{ !\[file isfile \$ifile\] \} \{"
+    lappend l_script_validate "      puts \" Could not find remote file \$ifile \""
+    lappend l_script_validate "      set status false" 
+    lappend l_script_validate "    \}" 
+    lappend l_script_validate "  \}"
+    lappend l_script_validate ""
+  }
+
+  if {[llength $l_validate_repo_paths]>0} {
+    lappend l_script_validate "  set paths \[list \\"
+    foreach path $l_validate_repo_paths {
+      lappend l_script_validate "   $path \\"
+    }
+    lappend l_script_validate "  \]"
+    
+    lappend l_script_validate "  foreach ipath \$paths \{"
+    lappend l_script_validate "    if \{ !\[file isdirectory \$ipath\] \} \{"
+    lappend l_script_validate "      puts \" Could not access \$ipath \""
+    lappend l_script_validate "      set status false" 
+    lappend l_script_validate "    \}" 
+    lappend l_script_validate "  \}"
+    lappend l_script_validate ""
+  }
+ 
+ 
+  lappend l_script_validate "  return \$status"
+  lappend l_script_validate "\}"
+  return $l_script_validate  
 }
 
 proc wr_create_project { proj_dir name part_name } {
@@ -527,7 +606,21 @@ proc wr_create_project { proj_dir name part_name } {
     lappend l_script_data "set orig_proj_dir \"$path\""
   }
   lappend l_script_data ""
-
+  
+  # Validate 
+  
+  lappend l_script_data "# Check for paths and files needed for project creation" 
+  lappend l_script_data "set validate_required $a_global_vars(b_validate)" 
+  lappend l_script_data "if \{ \$validate_required \} \{"
+  lappend l_script_data "  if \{ \[checkRequiredFiles \$origin_dir\] \} \{"  
+  lappend l_script_data "    puts \"Tcl file \$script_file is valid. All files required for project creation is accesable. \""
+  lappend l_script_data "  \} else \{"
+  lappend l_script_data "    puts \"Tcl file \$script_file is not valid. Not all files required for project creation is accesable. \""
+  lappend l_script_data "    return"
+  lappend l_script_data "  \}"
+  lappend l_script_data "\}"  
+  lappend l_script_data ""
+  
   # create project
   lappend l_script_data "# Create project"
     
@@ -778,6 +871,8 @@ proc wr_bd {} {
   if { $clean_temp == 1} {
     file delete -force $temp_dir
   }
+  
+  wr_bd_wrapper
 }
 
 proc wr_bd_bc_specific {} {
@@ -805,6 +900,29 @@ proc wr_bd_bc_specific {} {
   }
 }
 
+proc wr_bd_wrapper {} {
+
+  variable l_script_data
+  variable l_bd_wrapper
+  
+  if {[llength $l_bd_wrapper]>0} { 	
+    lappend l_script_data "#call make_wrapper to create wrapper files"
+    foreach fileset_designame_wrappername $l_bd_wrapper {
+      set fs_name [lindex $fileset_designame_wrappername 0]
+      set design [lindex $fileset_designame_wrappername 1]
+      set wrapper_name [lindex $fileset_designame_wrappername 2]
+      
+      lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse $design.bd\] \] == 1  \} \{"
+      lappend l_script_data "  import_files -fileset $fs_name $wrapper_name"
+      lappend l_script_data "\} else \{"	  
+      lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse $design.bd] -top\]"
+      lappend l_script_data "  add_files -norecurse -fileset $fs_name \$wrapper_path"
+      lappend l_script_data "\}"
+      lappend l_script_data ""
+    }
+    lappend l_script_data ""
+  }
+}
 proc wr_filesets { proj_dir proj_name } {
   # Summary: write fileset object properties 
   # This helper command is used to script help.
@@ -835,6 +953,7 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
   variable l_script_data
   variable a_fileset_types
   variable l_bc_filesets
+  variable l_validate_repo_paths
 
   # write filesets
   set type "file"
@@ -895,10 +1014,16 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
           foreach path $repo_paths {
             if { $a_global_vars(b_absolute_path) || [need_abs_path $path] } {
               lappend path_list $path
+              if { [lsearch $l_validate_repo_paths $path] == -1 } {
+                 lappend l_validate_repo_paths $path
+              }
             } else {
               set rel_file_path "[get_relative_file_path_for_source $path [get_script_execution_dir]]"
               set path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               lappend path_list $path
+              if { [lsearch $l_validate_repo_paths $path] == -1 } {
+                lappend l_validate_repo_paths $path
+              }
             }
           }
           set repo_path_str [join $path_list " "]
@@ -1120,7 +1245,7 @@ proc filter { prop val { file {} } } {
   }
 
   # filter sim_types
-  if { ([string equal -nocase $prop {allowed_sim_models}]) || ([string equal -nocase $prop {preferred_sim_model}]) } {
+  if { ([string equal -nocase $prop {allowed_sim_models}]) } {
     return 1
   }
 
@@ -1277,6 +1402,14 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
   set read_only_props [rdi::get_attr_specs -class [get_property class $current_obj] -filter {is_readonly}]
   set prop_info_list [list]
   set properties [list_property $current_obj]
+  
+  #move board_part_repo_pats property before board_part CR:1072610
+  set idx [lsearch $properties "BOARD_PART_REPO_PATHS"]
+  if {$idx ne -1} {
+    set properties [lreplace $properties $idx $idx]
+    set properties [linsert $properties 0 "BOARD_PART_REPO_PATHS"]
+  }
+  
 
   foreach prop $properties {
     if { [is_deprecated_property $prop] } { continue }
@@ -1706,6 +1839,34 @@ proc is_excluded_property { obj property } {
   return false
 }
 
+proc getBdforMangedWrapper { fs_name wraperfile proj_name path_dirs } { 
+  variable a_global_vars
+  
+  set srcs_index [lsearch -exact $path_dirs "$proj_name.srcs"]
+  if { $srcs_index == -1} {
+    #check for .gen directory
+    set srcs_index [lsearch -exact $path_dirs "$proj_name.gen"]
+  }
+  set src_file [join [lrange $path_dirs $srcs_index+1 end] "/"]  
+	
+  set wrapperName [file tail $wraperfile]
+  set wrapperNameNoExtension [file rootname $wrapperName]
+  set designName [string range $wrapperNameNoExtension 0 [expr {[string last "_wrapper" $wrapperNameNoExtension] - 1}]]
+  
+  if { $designName == "" } {
+  #Not a wrapper file
+  return
+  }
+  set manged_file_path "$fs_name/bd/$designName/hdl/$wrapperName"
+  set manged_file_path [string trim $manged_file_path "\""]
+
+  if { $src_file != $manged_file_path || [get_files $designName.bd] == "" } {
+    #Wrapper file is not managed by project
+    return
+  }
+  return [list $designName $wrapperName]
+}
+
 proc write_files { proj_dir proj_name tcl_obj type } {
   # Summary: write file and file properties 
   # This helper command is used to script help.
@@ -1715,6 +1876,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
   variable a_global_vars
   variable l_script_data
+  variable l_bd_wrapper
 
   set l_local_file_list [list]
   set l_remote_file_list [list]
@@ -1727,6 +1889,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
   set fs_name [get_filesets $tcl_obj]
 
+  set make_wrapper_list [list]
   set import_coln [list]
   set add_file_coln [list]
 
@@ -1736,8 +1899,8 @@ proc write_files { proj_dir proj_name tcl_obj type } {
     # Skip direct import/add of BD files if -use_bd_files is not provided
     if { [file extension $file] == ".bd" && !$a_global_vars(b_arg_use_bd_files) } { continue }
     set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
-    set begin [lsearch -exact $path_dirs "$proj_name.srcs"]
-    set src_file [join [lrange $path_dirs $begin+1 end] "/"]
+    set srcs_index [lsearch -exact $path_dirs "$proj_name.srcs"]
+    set src_file [join [lrange $path_dirs $srcs_index+1 end] "/"]
 
     # fetch first object
     set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
@@ -1773,8 +1936,44 @@ proc write_files { proj_dir proj_name tcl_obj type } {
     } else {
       set file "\"$file\""
 
-      # is local? add to local project, add to collection and then import this collection by default unless -no_copy_sources is specified
-      if { [is_local_to_project $file] } {
+      set designName ""
+      set wrapperName ""
+      set bd_file ""
+
+      set design_wrapperName [getBdforMangedWrapper $fs_name $file $proj_name $path_dirs]
+      
+      if { [llength $design_wrapperName] == 2} {
+        set designName [lindex $design_wrapperName 0]
+        set wrapperName [lindex $design_wrapperName 1]	  
+      }      
+      if { $designName != "" } { 
+
+        set wrapper_file ""
+        # add to the import collection
+        if { $a_global_vars(b_absolute_path)|| [need_abs_path $file]  } {
+          set wrapper_file $file
+        } else {
+          set file_no_quotes [string trim $file "\""]
+          set org_file_path "\$\{origin_dir\}/[get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]"
+          set wrapper_file "\[file normalize \"$org_file_path\" \]"
+        }		
+
+        # this is a wrapper file        
+        if { $a_global_vars(b_arg_use_bd_files) } {
+          set pair_fileset_designame [list]
+          lappend pair_fileset_designame $wrapper_file
+          lappend pair_fileset_designame $designName
+          lappend make_wrapper_list $pair_fileset_designame          
+        } else {
+          set fileset_designame_wrappername [list]
+          lappend fileset_designame_wrappername $fs_name
+          lappend fileset_designame_wrappername $designName
+          lappend fileset_designame_wrappername $wrapper_file
+          lappend l_bd_wrapper $fileset_designame_wrappername		  
+        }
+		
+      } elseif { [is_local_to_project $file] } {
+        # is local? add to local project, add to collection and then import this collection by default unless -no_copy_sources is specified
         if { $a_global_vars(b_arg_dump_proj_info) } {
           set src_file "\$PSRCDIR/$src_file"
         }
@@ -1848,6 +2047,23 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       lappend l_script_data ""
     } 
 
+
+    if {[llength $make_wrapper_list]>0} { 	
+      lappend l_script_data "#call make_wrapper to create wrapper files"
+      foreach pair_fileset_designame $make_wrapper_list {
+        set wrapper_name [lindex $pair_fileset_designame 0]
+        set design [lindex $pair_fileset_designame 1]
+        lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse $design.bd\] \] == 1  \} \{"
+        lappend l_script_data "  import_files -fileset $tcl_obj $wrapper_name"
+        lappend l_script_data "\} else \{"
+        lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse $design.bd\] -top\]"
+        lappend l_script_data "  add_files -norecurse -fileset $fs_name \$wrapper_path"
+        lappend l_script_data "\}"
+        lappend l_script_data ""
+      }
+      lappend l_script_data ""
+    }
+	
   # write fileset file properties for remote files (added sources)
   write_fileset_file_properties $tcl_obj $fs_name $proj_dir $l_remote_file_list "remote"
 
@@ -2917,11 +3133,22 @@ proc write_specified_prConfiguration { proj_dir proj_name prConfig } {
 
   # fetch pr config properties
   set name           [get_property name [$get_what $prConfig]]
+  set configObj   [$get_what $prConfig]
+  set partition     [get_property "partition_cell_rms" $configObj] 
+  set greyBoxCell     [get_property "greybox_cells" $configObj] 
+  variable options 
+  if {$partition ne ""} {
+    set options "-partitions \[list $partition \]" 
+  }
   
-  lappend l_script_data "# Create '$prConfig' pr configurations"
-  lappend l_script_data "create_pr_configuration -name $name"
+  if {$greyBoxCell ne ""} {
+    set options "$options -greyboxes \[list $greyBoxCell \]" 
+  }
 
+  lappend l_script_data "# Create '$prConfig' pr configurations"
+  lappend l_script_data "create_pr_configuration -name $name $options"
   lappend l_script_data "set obj \[$get_what $prConfig\]"
+
   write_props $proj_dir $proj_name $get_what $prConfig "prConfiguration"
 }
 

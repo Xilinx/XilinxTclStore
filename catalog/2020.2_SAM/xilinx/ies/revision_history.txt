@@ -1,0 +1,173 @@
+4.44 do not launch simulator gui in batch mode
+4.43 compile glbl if force_compile_glbl is true
+4.42 support for uvm
+4.41 helpers for determining design language of same type
+4.40 merged fixes from 2020.1
+4.39 fixed used_in values check for simulation tag
+4.38 added helper proc to find out object files for IPs referenced in the design
+4.37 fix for referencing linked shared library paths for Questa
+4.36 compile xpm sv sources into xpm library for non-precompile mode
+4.35 check for ips before fetching the ip_output_dir value
+4.34 helper to find the used_in values of duplicate files if synthesis type
+4.33 reference simmodel shared library
+4.32 filter systemc sources from exporting into run directory
+4.31 add compiler types for xcelium co-simulation support
+4.30 added file existence check for protoinst sources
+4.29 fixed boost include dir path
+4.28 force compile glbl when param set to true
+4.27 fixed xv_boost_lib_path variable for windows for finding include directory
+4.26 top level attribute change to integer for sv port type
+4.25 revert sv file type determination fix
+4.24 process library type information for all precompiled shared libraries
+4.23 updated warning msg for boost library
+4.22 exit simulation step or sub-compilation step on error
+4.21 return exit status for the command
+4.20 helper to fetch boost header include path from RDI_DATADIR
+4.19 vars to reference protected and ext library paths
+4.18 helper to construct vlnv name from ip definition
+4.17 resolve simulation model library path with xv_cxl_lib_path variable
+4.16 find systemc library for Questa from internal path
+4.15 use compile order for cosim using internal switch
+4.14 disable gt quad
+4.13 support for static memory data file
+4.12 fetch systemc sources for the BD if it is a top level BD with no parent composite
+4.11 fetch systemc sources from the parent composite file for a BD if selected sim model is tlm
+4.10 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
+4.08 fetch output directory from IP file name if IP_OUTPUT_DIR not set
+4.07 compile glbl for post simulation when internal glbl flag is set
+4.06 set debug msgs as optional arg for sc libs proc
+4.05 check for ipdef var before getting the xml filename
+4.04 support for linking quad library
+4.03 support for exporting CSV files to simulation run dir
+4.02 support for printing debug msgs for library referencing
+4.01 helper proc to find C, SystemC, CPP sources in the design
+4.00 donot reference glbl by default unless conditions met
+3.99 helper proc to determine if pure vhdl design required for glbl determination
+3.98 print debug information for referenced shared libraries
+3.97 inspect TLM property value for IP while determining systemc libraries
+3.96 do not compile XPM component file if simulator language is verilog
+3.95 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
+3.94 update protoinst file in repo directory
+3.93 updated algorithm to reference compiled simulation library from custom paths
+3.92 reference compiled simulation library from custom paths
+3.91 added helper proc to resolve verilog header sources from ip_user_files dir
+3.90 export addr_map.xml sources into simulation run dir
+3.89 fixed xsim ip compiled library dir path
+3.88 find library info from ip compiled library dir
+3.87 check for IP in quiet mode and return default header file if IP does not exist
+3.86 updated target paths for finding simulation models
+3.85 helper proc to find shared libraries
+3.84 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
+3.83 process referenced linked libraries from IPs
+3.82 fixed dat_file var while fetching library info
+3.81 delete stale static files for precompiled library for sync mode
+3.80 consider BD SystemC sources
+3.79 add BD file type to the file extension check while fetching SystemC sources
+3.78 consider SV design sources if param set for compiling vip library
+3.77 proc to read library info from dat file
+3.76 reference SystemC include directory
+3.75 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
+3.74 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
+3.73 detect and fetch protoinst file from the ip_user_files for xsim
+3.72 support for compling c, cpp source types
+3.71 donot process static files
+3.70 fetch unique systemc libraries
+3.69 find systemc dependent libraries from property for a given IP
+3.68 fetch systemc libraries from ip
+3.67 support for compiling C sources with gcc
+3.66 fetch systemc include file path
+3.65 find shared libraries from the cxl data file
+3.64 check for gt quad base for mem file export
+3.63 support for mixed file type export and compilation for Questa
+3.62 check for variable existence before fetching the value
+3.61 helper procedure to find IP
+3.60 check for file existence before extracting
+3.59 reference xilinx_vip include directory for ovm/uvm based designs
+3.58 support for SystemC file type while determining files for XSC
+3.57 fetch requires_vip property on the fetched IP object
+3.56 reference xilinx_vip if requires_vip property is set on the IP instance
+3.55 reference xilinx_vip if requires_vip property is set on the IP
+3.54 initial support for systemC source compilation
+3.53 support for systemC source compilation
+3.52 compile glbl if XPM_CDC core is being referenced in the design
+3.51 additionally reference precompiled AXI-VIP library if param is set
+3.50 reference precompiled AXI-VIP library if param is set
+3.49 reference precompiled AXI-VIP library
+3.48 use global incremental property on simulation fileset
+3.47 add software build info in script header
+3.46 compile files into simulator library dir with _lib suffix
+3.45 add copyright version header in script files
+3.44 reference user specified XPM data if param set
+3.43 refactored procs into utils
+3.42 check for empty source file object before extracting
+3.41 extract xml comp files for finding SV pkg libraries
+3.40 source user tcl file from wrapper generated in run directory
+3.39 fetch sv files in quiet mode as those may not be part of compile order
+3.38 find xpm libraries from the design
+3.37 fixed error token strings while parsing log
+3.36 pass relax option value for the compile step
+3.35 find system verilog libraries from the design and add to SV package list
+3.34 refactored procs into common utils
+3.33 removed axi-bfm library referencing
+3.32 catch exception and print message while sourcing post tcl code hook
+3.31 add SV package library for the parent core
+3.30 support for the pre and post TCL hooks
+3.29 support for the system verilog library packages
+3.28 reference IP static verilog header file directory path from repository
+3.27 reference compiled library from the path specified with -lib_map_path
+3.26 fixed the library search order for user design libraries for behavioral simulation
+3.25 added comment for XPM library referencing
+3.24 removed XPM library and reference design libraries first for post simulation flow
+3.23 support for vhdl 2008
+3.22 fixed library variable name while calculating local IP libraries
+3.21 pass source file object to extract_files
+3.20 reference cached IP static file object in xcs_find_ipstatic_file_path
+3.19 consider XPM precompiled library for RTL based designs
+3.18 refactored export_fs_non_hdl_data_files proc to common utils
+3.17 refactored procs to common utils
+3.16 refactor common procs to utils
+3.15 export data files to run dir directly, if ip_user_files dir is not specified
+3.14 refactored common procs to utils
+3.13 export and reference static files for remote BD
+3.12 process static files from locked always explicitly
+3.11 refactor procs into common utils
+3.10 fetch all ipdef objects while determining static files from local repo
+3.09 check for local design libraries while mapping and process them
+3.08 construct local design libraries collection for mapping
+3.07 refactored netlist generation common procs to utils
+3.06 compile XPM files locally and donot reference from precompiled libs
+3.05 fixed variable name while calculating the parent composite file path sub-dir length
+3.04 cache unique compile order files for reference
+3.03 continue processing design libraries if ip_repo not found from repoitory value
+3.02 cache unique compile order files for reference
+3.01 set unset all design files variable for caching
+3.00 compile ips from project repository locally having same vlnvr
+2.99 refactor uniquify_cmd_str procedure to use dict keys
+2.98 pass pulse_e, pulse_int_e for post impl timing flows
+2.97 support logging all signals
+2.96 compile glbl into top library for elaborate
+2.95 compile glbl into top library for vhdl netlist
+2.94 replaced simulator uut with saif_scope
+2.93 add xpm library for elaborate step
+2.92 support for precompiled XPM library
+2.91 support for XPM files for -of_objects
+2.90 add VCOM VHDL file for XPM simulation, CR:947555
+2.89 set absolute path for xpm files
+2.88 pass clibs directory while checking for compiled libraries
+2.87 updated progress message for compile step
+2.86 set absolute path for glbl.v if absolute_path switch specified
+2.85 map vhdl generics to verilog parameters with namemap_mixgen for ncelab
+2.84 define proc to return true if system verilog source found
+2.83 fixed tcl syntax error while fetching libraries
+2.82 check for null file object before checking for used in property
+2.81 fetch IPI static files for old IP definitions
+2.80 export and compile static files for the older IP libraries
+2.79 print warning if file not found from repo
+2.78 support for verilog header
+2.77 support for referencing old ips from previous projects
+2.76 support for the new verilog header type
+2.75 control IP pre-compiled flow via param
+2.74 moved procs to utils.tcl
+2.73 refactored procs in utils.tcl
+2.72 source utils.tcl with notrace
+2.71 re-structured common helper procedures in utils

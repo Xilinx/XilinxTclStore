@@ -45,11 +45,16 @@ proc usf_init_vars {} {
   set a_sim_vars(b_batch)            0
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
+  set a_sim_vars(b_int_is_gui_mode)  0
   set a_sim_vars(b_int_halt_script)  0
   set a_sim_vars(b_int_systemc_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
+  # default is false
   set a_sim_vars(b_force_compile_glbl) [get_param project.forceCompileGlblForSimulation]
+  if { !$a_sim_vars(b_force_compile_glbl) } {
+    set a_sim_vars(b_force_compile_glbl) [get_property force_compile_glbl [current_fileset -simset]]
+  }
   set a_sim_vars(b_int_sm_lib_ref_debug)   0
   set a_sim_vars(b_int_csim_compile_order) 0
 
@@ -163,6 +168,18 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
+
+  variable a_sim_cache_lib_info
+  array unset a_sim_cache_lib_info
+
+  variable a_sim_cache_lib_type_info
+  array unset a_sim_cache_lib_type_info
+
+  variable a_shared_library_path_coln
+  array unset a_shared_library_path_coln
+
+  variable a_shared_library_mapping_path_coln
+  array unset a_shared_library_mapping_path_coln
 
   variable a_sim_sv_pkg_libs [list]
 
@@ -338,7 +355,7 @@ proc usf_create_do_file { simulator do_filename } {
       puts $fh_do "power -enable"
     }
 
-    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
+    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
       # no op in batch mode
     } else {
       puts $fh_do "add_wave /$top/*"
@@ -403,7 +420,7 @@ proc usf_create_do_file { simulator do_filename } {
       }
     }
 
-    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
+    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
       puts $fh_do "quit"
     }
   }
@@ -520,6 +537,27 @@ proc usf_set_simulator_path { simulator } {
     
     set a_sim_vars(s_sys_link_path) "$sys_link"
     send_msg_id USF-VCS-047 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
+  }
+}
+
+proc usf_set_gcc_path {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  send_msg_id USF-VCS-005 INFO "Finding GCC installation...\n"
+  set gcc_path {}
+  set simulator "vcs"
+  if { [xcs_get_gcc_path $simulator "VCS" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
+    set a_sim_vars(s_gcc_bin_path) $gcc_path
+    switch $path_type {
+      1 { send_msg_id USF-VCS-25 INFO "Using GCC executables set by -gcc_install_path switch from '$a_sim_vars(s_gcc_bin_path)'"                        }
+      2 { send_msg_id USF-VCS-25 INFO "Using GCC executables set by simulator.${simulator}_gcc_install_dir property from '$a_sim_vars(s_gcc_bin_path)'" }
+      3 { send_msg_id USF-VCS-25 INFO "Using GCC executables set by GCC_SIM_EXE_PATH environment variable from '$a_sim_vars(s_gcc_bin_path)'"           }
+      4 { send_msg_id USF-VCS-25 INFO "Using simulator installed GCC executables from '$a_sim_vars(s_gcc_bin_path)'"                                    }
+    }
   }
 }
 
@@ -819,6 +857,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_systemc_sources) } {
           set a_sim_vars(b_contain_systemc_sources) true
+          usf_set_gcc_path
         }
 
         # is dynamic? process
@@ -863,6 +902,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_cpp_sources) } {
           set a_sim_vars(b_contain_cpp_sources) true
+          usf_set_gcc_path
         }
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
@@ -906,6 +946,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_c_sources) } {
           set a_sim_vars(b_contain_c_sources) true
+          usf_set_gcc_path
         }
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
@@ -955,6 +996,23 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     if { [lsearch -exact $uniq_dirs $dir] == -1 } {
       lappend uniq_dirs $dir
       lappend l_incl_dirs_opts "+incdir+$dir"
+    }
+  }
+
+  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
+    if { {functional} == $a_sim_vars(s_type) } {
+      set hbm_ip_obj [xcs_find_ip "hbm"]
+      if { {} != $hbm_ip_obj } {
+        set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
+        if { {} != $hbm_file_obj } {
+          set file_type [get_property file_type $hbm_file_obj]
+          set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $hbm_file_obj
+          }
+        }
+      }
     }
   }
 
@@ -1091,7 +1149,7 @@ proc usf_launch_script { simulator step } {
   }
 
   set b_wait 0
-  if { $a_sim_vars(b_batch) } {
+  if { $a_sim_vars(b_batch) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
     set b_wait 1 
   }
   set faulty_run 0
@@ -1415,7 +1473,6 @@ proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
     "syscan" {
       if { $a_sim_vars(b_int_systemc_mode) } {
         lappend opts "\$${tool}_opts"
-        #lappend opts "-cc \$gcc_path/g++"
         lappend opts "-cflags"
         lappend opts "\"-O3 -std=c++11 -fPIC -Wall -Wno-deprecated -DSC_INCLUDE_DYNAMIC_PROCESSES \$syscan_gcc_opts\""
         lappend opts "-Mdir=$a_sim_vars(tmp_obj_dir)"

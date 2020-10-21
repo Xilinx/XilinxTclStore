@@ -109,9 +109,6 @@ proc usf_vcs_setup_simulation { args } {
   variable a_sim_vars
 
   ::tclapp::xilinx::vcs::usf_set_simulator_path "vcs"
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    send_msg_id USF-VCS-44 INFO "Using GNU compiler executables from '$a_sim_vars(s_gcc_bin_path)'\n"
-  }
 
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
@@ -206,7 +203,7 @@ proc usf_vcs_setup_simulation { args } {
       set a_sim_vars(b_system_sim_design) 1
     }
   }
-
+  
   if { $a_sim_vars(b_int_systemc_mode) } {
     # systemC headers
     set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
@@ -260,6 +257,7 @@ proc usf_vcs_setup_args { args } {
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
+  # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
@@ -290,6 +288,7 @@ proc usf_vcs_setup_args { args } {
       "-run_dir"                { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_launch_dir) [lindex $args $i]      }
       "-int_os_type"            { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_int_os_type) [lindex $args $i]     }
       "-int_debug_mode"         { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_ide_gui"            { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"        { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_halt_script) 1                        }
       "-int_systemc_mode"       { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_systemc_mode) 1                       }
       "-int_gcc_bin_path"       { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
@@ -383,6 +382,12 @@ proc usf_vcs_write_setup_files {} {
     set lib_map_path "?"
   }
   set libs [list]
+
+  set b_search_ref_lib_mod false
+  [catch {set b_search_ref_lib_mod [get_param "simulator.searchMatchingModuleFromSetupFile"]} err]
+  if { $b_search_ref_lib_mod } {
+    puts $fh "LIBRARY_SCAN=TRUE"
+  }
 
   # unifast
   set b_compile_unifast 0
@@ -528,15 +533,18 @@ proc usf_vcs_write_compile_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "compile" "vcs"
   if { {} != $tool_path } {
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\""
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        if { {} != $gcc_path } {
-          puts $fh_scr "gcc_path=\"$gcc_path\"\n"
-        }
+        puts $fh_scr "gcc_path=\"$gcc_path\"\n"
       }
       # set system sim library paths
       if { $::tclapp::xilinx::vcs::a_sim_vars(b_system_sim_design) } {
@@ -559,52 +567,23 @@ proc usf_vcs_write_compile_script {} {
 
   xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
 
-  set tool "vhdlan"
-  set arg_list [list]
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-full64"]
-    #if { $a_sim_vars(b_int_systemc_mode) } {
-    #  if { $a_sim_vars(b_system_sim_design) } {
-    #    lappend arg_list ""
-    #  }
-    #}
+  set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+  set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+
+  if { $b_contain_vhdl_srcs } {
+    usf_vcs_write_vhdl_compile_options $fh_scr
   }
 
-  set more_vhdlan_options [string trim [get_property "VCS.COMPILE.VHDLAN.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_vhdlan_options } {
-    set arg_list [linsert $arg_list end "$more_vhdlan_options"]
+  if { $b_contain_verilog_srcs } {
+    usf_vcs_write_verilog_compile_options $fh_scr
   }
-
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-  set tool "vlogan"
-  set arg_list [list]
-  if { [get_property 32bit $fs_obj] } {
-    # donot pass os type
-  } else {
-    set arg_list [linsert $arg_list 0 "-full64"]
-    if { $a_sim_vars(b_int_systemc_mode) } {
-      if { $a_sim_vars(b_system_sim_design) } {
-        lappend arg_list "-sysc"
-      }
-    }
-  }
-
-  set more_vlogan_options [string trim [get_property "VCS.COMPILE.VLOGAN.MORE_OPTIONS" $fs_obj]]
-  if { {} != $more_vlogan_options } {
-    set arg_list [linsert $arg_list end "$more_vlogan_options"]
-  }
-
-  puts $fh_scr "\n# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     # syscan (systemC)
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "syscan"
-      set arg_list [list "-sysc=231"]
+      set arg_list [list "-sysc=232"]
+      lappend arg_list "-cpp \$\{gcc_path\}/g++"
       lappend arg_list "-V"
       set arg_list [linsert $arg_list end [list "-l" "${tool}.log"]]
       if { [get_property 32bit $fs_obj] } {
@@ -623,7 +602,7 @@ proc usf_vcs_write_compile_script {} {
       set syscan_gcc_opts [list]
       set system_includes    "-I. "
       #append system_includes "-I\$\{PWD\}/c.obj/sysc/include "
-      append system_includes "-I\$\{VCS_HOME\}/include/systemc231 "
+      append system_includes "-I\$\{VCS_HOME\}/include/systemc232 "
       #append system_includes "-I\$\{VCS_HOME\}/lib "
       append system_includes "-I\$\{VCS_HOME\}/include "
       append system_includes "-I\$\{VCS_HOME\}/include/cosim/bf "
@@ -660,7 +639,7 @@ proc usf_vcs_write_compile_script {} {
           if { !$a_sim_vars(b_absolute_path) } {
             # relative path
             set b_resolved 0
-            set resolved_path [xcs_resolve_sim_model_dir $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved]
+            set resolved_path [xcs_resolve_sim_model_dir "vcs" $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved false ""]
             if { $b_resolved } {
               set sim_model_incl_dir $resolved_path
             } else {
@@ -744,13 +723,17 @@ proc usf_vcs_write_compile_script {} {
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
-  set redirect_cmd_str "2>&1 | tee -a"
+  set redirect_cmd_str "2>&1 | tee"
   set log {}
   set b_redirect false
   set b_appended false
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set b_add_redirect true
   set b_add_once true
+  set b_first_vhdlan true
+  set b_first_vlogan true
+  set n_vhd_count 1
+  set n_ver_count 1
 
   foreach file $::tclapp::xilinx::vcs::a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
@@ -770,7 +753,7 @@ proc usf_vcs_write_compile_script {} {
       if { $b_group_files } {
         if { (!$b_redirect) || (!$b_appended) } {
           if { $b_add_once } {
-            puts $fh_scr "$redirect_cmd_str $log"
+            puts $fh_scr "$redirect_cmd_str -a $log"
             set b_add_redirect false
             set b_add_once false
           }
@@ -822,7 +805,24 @@ proc usf_vcs_write_compile_script {} {
             puts $fh_scr "$src_file \\"
             set b_redirect true
           } else {
-            puts $fh_scr "$redirect_cmd_str $log\n"
+            set rdcs "$redirect_cmd_str $log"
+            if { "vhdlan.log" == $log } {
+              incr n_vhd_count
+              if { $b_first_vhdlan } {
+                set b_first_vhdlan false
+              } else {
+                set rdcs "$redirect_cmd_str -a $log"
+              }
+            }
+            if { "vlogan.log" == $log } {
+              incr n_ver_count
+              if { $b_first_vlogan } {
+                set b_first_vlogan false
+              } else {
+                set rdcs "$redirect_cmd_str -a $log"
+              }
+            }
+            puts $fh_scr "$rdcs\n"
             usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
             set b_appended true
           }
@@ -846,7 +846,14 @@ proc usf_vcs_write_compile_script {} {
   if { $b_add_redirect } {
     if { $b_group_files } {
       if { (!$b_redirect) || (!$b_appended) } {
-        puts $fh_scr "$redirect_cmd_str $log\n"
+        set rdcs "$redirect_cmd_str -a $log"
+        if { ("vhdlan.log" == $log) && ($n_vhd_count == 1) } {
+          set rdcs "$redirect_cmd_str $log"
+        }
+        if { ("vlogan.log" == $log) && ($n_ver_count == 1) } {
+          set rdcs "$redirect_cmd_str $log"
+        }
+        puts $fh_scr "$rdcs\n"
       }
     }
   }
@@ -941,14 +948,18 @@ proc usf_vcs_write_elaborate_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "elaborate" "vcs"
   if { {} != $tool_path } {
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
+
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        if { {} != $gcc_path } {
-          puts $fh_scr "gcc_path=\"$gcc_path\""
-        }
+        puts $fh_scr "gcc_path=\"$gcc_path\""
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
         usf_vcs_write_library_search_order $fh_scr
       }
@@ -960,7 +971,8 @@ proc usf_vcs_write_elaborate_script {} {
   set arg_list [list]
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      lappend arg_list "-sysc=231"
+      lappend arg_list "-sysc=232"
+      lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
   if { [get_property "VCS.ELABORATE.DEBUG_PP" $fs_obj] } {
@@ -1055,8 +1067,6 @@ proc usf_vcs_write_elaborate_script {} {
             set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
-            # set arg_list [linsert $arg_list end "-L$cpt_dir/../lib/lnx64.o"]
-            # set arg_list [linsert $arg_list end "-lsystemc"]
             set lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
             set arg_list [linsert $arg_list end "-L$lib_dir"]
             set arg_list [linsert $arg_list end "-laie_cluster_v1_0_0"]
@@ -1121,13 +1131,18 @@ proc usf_vcs_write_elaborate_script {} {
           puts "------------------------------------------------------------------------------------------------------------------------------------"
         }
 
-        #
-        # TODO: find out conditions under which rdi_hip_config will be binded
-        #  - use-case 1: when switching from rtl->tlm for a HIP noc design
-        #
-        set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
-        set xil_lib_path [file normalize "$sm_dir/../lib/lnx64.o"]
-        set arg_list [linsert $arg_list end "-L$xil_lib_path -lrdi_hip_config"]
+        # bind vivado library $XILINX_VIVADO/lib/<os>.o (for hip_config)
+        set b_bind_vivado_util_libs false
+        [catch {set b_bind_vivado_util_libs [get_param "project.bindVivadoUtilSharedLibForSystemSim"]} err]
+        if { $b_bind_vivado_util_libs } {
+          #
+          # TODO: find out conditions under which rdi_hip_config will be binded
+          #  - use-case 1: when switching from rtl->tlm for a HIP noc design
+          # Revisit this if issues found
+          #set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
+          #set xil_lib_path [file normalize "$sm_dir/../lib/lnx64.o"]
+          #set arg_list [linsert $arg_list end "-L$xil_lib_path -lrdi_hip_config"]
+        }
         #  
         set arg_list [linsert $arg_list end "-Mdir=c.obj"]
         set arg_list [linsert $arg_list end "-lstdc++fs"]
@@ -1304,10 +1319,13 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
 
   set b_verilog_sim_netlist 0
+  set b_vhdl_sim_netlist 0
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
     if { {Verilog} == $target_lang } {
       set b_verilog_sim_netlist 1
+    }
+    if { {VHDL} == $target_lang } {
+      set b_vhdl_sim_netlist 1
     }
   }
 
@@ -1348,20 +1366,52 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     }
   }
 
-  # for pure VHDL design instantiating verilog primitives, do not set glbl top
-  if { $a_sim_vars(b_int_compile_glbl) && [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)] } { 
-    set b_add_glbl 0
+  # versal
+  if { $a_sim_vars(b_int_compile_glbl) } {
+    # for pure VHDL design instantiating verilog primitives, do not set glbl top
+    if { [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)] } {
+      set b_add_glbl 0
+    }
+    if { !$b_add_glbl } {
+      # for behav
+      if { ({behav_sim} == $sim_flow) } {
+        if { [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)] } {
+          set b_add_glbl 1
+        }
+      }
+      # for post* when target lang is vhdl, set glbl
+      if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+        if { $b_vhdl_sim_netlist } {
+          set b_add_glbl 1
+        }
+      }
+    }
   }
 
+  # force add glbl top
+  if { !$b_add_glbl } {
+    if { $a_sim_vars(b_force_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+
+  set b_set_glbl_top 0
   if { $b_add_glbl } {
     set b_is_pure_vhdl [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)]
     set b_xpm_cdc      [xcs_glbl_dependency_for_xpm]
     if { $b_is_pure_vhdl && $b_xpm_cdc && ({behav_sim} == $a_sim_vars(s_simulation_flow)) } {
-      # no op - donot pass glbl (VCS reports Error-[VH-DANGLEVL-NA] VL top in pure VHDL flow)
-    } else { 
-      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-      lappend opts "${top_lib}.glbl"
+      # no op - donot pass glbl (VCS reports Error-[VH-DANGLEVL-NA] VL top in pure VHDL flow), but set if force compile
+      if { $a_sim_vars(b_force_compile_glbl) } {
+        set b_set_glbl_top 1
+      }
+    } else {
+      set b_set_glbl_top 1
     }
+  }
+
+  if { $b_set_glbl_top } {
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+    lappend opts "${top_lib}.glbl"
   }
 }
 
@@ -1388,8 +1438,14 @@ proc usf_vcs_write_simulate_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "simulate" "vcs"
   if { {} != $tool_path } {
+    set b_set_shell_var_exit false
+    [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
+    if { $b_set_shell_var_exit } {
+      xcs_write_pipe_exit $fh_scr
+    }
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$tool_path\"\n"
+
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
@@ -1425,7 +1481,10 @@ proc usf_vcs_write_simulate_script {} {
   if { $::tclapp::xilinx::vcs::a_sim_vars(b_batch) || $b_scripts_only } {
     # no gui
   } else {
-    set arg_list [linsert $arg_list end "-gui"]
+    # launch_simulation - if called from vivado in gui mode only
+    if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode) } {
+      set arg_list [linsert $arg_list end "-gui"]
+    }
   }
   set arg_list [list $arg_list "\$${tool}_opts"]
   lappend arg_list "-do"
@@ -1597,6 +1656,11 @@ proc usf_vcs_create_setup_script {} {
 
   set file "synopsys_sim.setup"
   puts $fh_scr "  incl_ref=\"OTHERS=\$lib_map_path/$file\""
+  set b_search_ref_lib_mod false
+  [catch {set b_search_ref_lib_mod [get_param "simulator.searchMatchingModuleFromSetupFile"]} err]
+  if { $b_search_ref_lib_mod } {
+    puts $fh_scr "  echo \"LIBRARY_SCAN=TRUE\" >> \$file"
+  }
   puts $fh_scr "  for (( i=0; i<\$\{#libs\[*\]\}; i++ )); do"
   puts $fh_scr "    lib=\"\$\{libs\[i\]\}\""
   puts $fh_scr "    lib_dir=\"\$dir/\$lib\""
@@ -1694,7 +1758,14 @@ proc usf_vcs_write_library_search_order { fh_scr } {
   }
 
   set sm_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
-  lappend l_sm_lib_paths [file normalize "$sm_dir/../lib/lnx64.o"]
+  # TODO
+  # bind vivado library $XILINX_VIVADO/lib/<os>.o (for rdi_hip_config)
+  # Revisit this if issues found
+  set b_bind_vivado_util_libs false
+  [catch {set b_bind_vivado_util_libs [get_param "project.bindVivadoUtilSharedLibForSystemSim"]} err]
+  if { $b_bind_vivado_util_libs } {
+    #lappend l_sm_lib_paths [file normalize "$sm_dir/../lib/lnx64.o"]
+  }
 
   set ld_path "LD_LIBRARY_PATH=."
   # for aie
@@ -1709,7 +1780,7 @@ proc usf_vcs_write_library_search_order { fh_scr } {
     set cardano_api_path {}
     if { [info exists ::env(XILINX_VITIS)] } {
       set xilinx_vitis $::env(XILINX_VITIS)
-      set cardano_api_path "$xilinx_vitis/cardano/lib/vcs64.o"
+      set cardano_api_path "$xilinx_vitis/aietools/lib/vcs64.o"
     } else {
       set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
       send_msg_id USF-VCS-019 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
@@ -1726,6 +1797,81 @@ proc usf_vcs_write_library_search_order { fh_scr } {
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+    # for aie
+    if { {} != $ip_obj } {
+      if { [info exists ::env(XILINX_VITIS)] } {
+        set xilinx_vitis $::env(XILINX_VITIS)
+        set cardano "$xilinx_vitis/aietools"
+        set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
+        #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
+        puts $fh_scr "source $chess_script"
+      } else {
+        send_msg_id USF-VCS-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
+      }
+    }
   }
 }
+
+proc usf_vcs_write_vhdl_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+ 
+  set tool "vhdlan"
+  set arg_list [list]
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-full64"]
+    #if { $a_sim_vars(b_int_systemc_mode) } {
+    #  if { $a_sim_vars(b_system_sim_design) } {
+    #    lappend arg_list ""
+    #  }
+    #}
+  }
+
+  set more_vhdlan_options [string trim [get_property "VCS.COMPILE.VHDLAN.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vhdlan_options } {
+    set arg_list [linsert $arg_list end "$more_vhdlan_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_vcs_write_verilog_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "vlogan"
+  set arg_list [list]
+
+  if { [get_property 32bit $fs_obj] } {
+    # donot pass os type
+  } else {
+    set arg_list [linsert $arg_list 0 "-full64"]
+    if { $a_sim_vars(b_int_systemc_mode) } {
+      if { $a_sim_vars(b_system_sim_design) } {
+        lappend arg_list "-sysc"
+      }
+    }
+  }
+
+  set more_vlogan_options [string trim [get_property "VCS.COMPILE.VLOGAN.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_vlogan_options } {
+    set arg_list [linsert $arg_list end "$more_vlogan_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
 }
