@@ -1,3 +1,4 @@
+2.193 code cleanup for lnx64.o binding
 2.192 removed binding of Xilinx libs for sim_xdma
 2.191 add check for protobuf static library
 2.190 refactored design library proc for consistent functionality
