@@ -1,3 +1,4 @@
+4.61 helpers for log file deletion
 4.60 add check for protobuf static library
 4.59 refactored design library proc for consistent functionality
 4.58 merged contents from 2020.2

@@ -1,3 +1,4 @@
+11.48 helpers for log file deletion
 11.47 bind libraries and shell script from aietools
 11.46 set shell variables to catch error condition under param
 11.45 set shell variables to catch error condition for step execution

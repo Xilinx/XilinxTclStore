@@ -1,3 +1,4 @@
+9.34 helpers for log file deletion
 9.33 code cleanup for lnx64.o binding
 9.32 bind libraries and shell script from aietools
 9.31 set shell variables to catch error condition under param
