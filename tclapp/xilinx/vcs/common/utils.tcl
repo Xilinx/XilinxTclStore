@@ -5013,3 +5013,36 @@ proc xcs_get_design_libs { files {b_realign 0} } {
 
   return $uniq_libs
 }
+
+proc xcs_delete_log_files { log_files launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set log_filelist [list]
+  foreach log $log_files { lappend log_filelist "${log}.log" }
+  foreach log_file $log_filelist {
+    set full_path "$launch_dir/$log_file"
+    if { [file exists $full_path] } {
+      [catch {file delete -force $full_path} error_msg]
+    }
+  }
+}
+
+proc xcs_write_log_file_cleanup { fh_scr log_files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  puts $fh_scr "# delete log files (if exist)"
+  set log_filelist [list]
+  foreach log $log_files { lappend log_filelist "${log}.log" }
+  set files [join $log_filelist " "]
+  puts $fh_scr "logs=($files)"
+  puts $fh_scr "for (( i=0; i<\$\{#logs\[*\]\}; i++ )); do"
+  puts $fh_scr "  file=\"\$\{logs\[i\]\}\""
+  puts $fh_scr "  if \[\[ -e \$file \]\]; then"
+  puts $fh_scr "    rm -rf \$file"
+  puts $fh_scr "  fi"
+  puts $fh_scr "done"
+}
