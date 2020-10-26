@@ -727,7 +727,6 @@ proc usf_vcs_write_compile_script {} {
   set log {}
   set b_redirect false
   set b_appended false
-  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set b_add_redirect true
   set b_add_once true
   set b_first_vhdlan true
@@ -750,13 +749,11 @@ proc usf_vcs_write_compile_script {} {
 
     if { ("syscan" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
 
-      if { $b_group_files } {
-        if { (!$b_redirect) || (!$b_appended) } {
-          if { $b_add_once } {
-            puts $fh_scr "$redirect_cmd_str -a $log"
-            set b_add_redirect false
-            set b_add_once false
-          }
+      if { (!$b_redirect) || (!$b_appended) } {
+        if { $b_add_once } {
+          puts $fh_scr "$redirect_cmd_str -a $log"
+          set b_add_redirect false
+          set b_add_once false
         }
       }
 
@@ -796,65 +793,49 @@ proc usf_vcs_write_compile_script {} {
       set b_redirect false
       set b_appended false
   
-      if { $b_group_files } {
-        if { $b_first } {
-          set b_first false
-          usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
-        } else {
-          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
-            puts $fh_scr "$src_file \\"
-            set b_redirect true
-          } else {
-            set rdcs "$redirect_cmd_str $log"
-            if { "vhdlan.log" == $log } {
-              incr n_vhd_count
-              if { $b_first_vhdlan } {
-                set b_first_vhdlan false
-              } else {
-                set rdcs "$redirect_cmd_str -a $log"
-              }
-            }
-            if { "vlogan.log" == $log } {
-              incr n_ver_count
-              if { $b_first_vlogan } {
-                set b_first_vlogan false
-              } else {
-                set rdcs "$redirect_cmd_str -a $log"
-              }
-            }
-            puts $fh_scr "$rdcs\n"
-            usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
-            set b_appended true
-          }
-        }
+      if { $b_first } {
+        set b_first false
+        usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
       } else {
-        if { [regexp -nocase {vhdl} $file_type] } {
-          set log "vhdlan.log"
-        } elseif { [regexp -nocase {verilog} $file_type] } {
-          set log "vlogan.log"
-        }
-        set redirect_cmd_str "2>&1 | tee -a $log"
-        if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/$cmd_str $src_file $redirect_cmd_str"
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
+          puts $fh_scr "$src_file \\"
+          set b_redirect true
         } else {
-          puts $fh_scr "$cmd_str $src_file $redirect_cmd_str"
+          set rdcs "$redirect_cmd_str $log"
+          if { "vhdlan.log" == $log } {
+            incr n_vhd_count
+            if { $b_first_vhdlan } {
+              set b_first_vhdlan false
+            } else {
+              set rdcs "$redirect_cmd_str -a $log"
+            }
+          }
+          if { "vlogan.log" == $log } {
+            incr n_ver_count
+            if { $b_first_vlogan } {
+              set b_first_vlogan false
+            } else {
+              set rdcs "$redirect_cmd_str -a $log"
+            }
+          }
+          puts $fh_scr "$rdcs\n"
+          usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
+          set b_appended true
         }
       }
     }
   }
 
   if { $b_add_redirect } {
-    if { $b_group_files } {
-      if { (!$b_redirect) || (!$b_appended) } {
-        set rdcs "$redirect_cmd_str -a $log"
-        if { ("vhdlan.log" == $log) && ($n_vhd_count == 1) } {
-          set rdcs "$redirect_cmd_str $log"
-        }
-        if { ("vlogan.log" == $log) && ($n_ver_count == 1) } {
-          set rdcs "$redirect_cmd_str $log"
-        }
-        puts $fh_scr "$rdcs\n"
+    if { (!$b_redirect) || (!$b_appended) } {
+      set rdcs "$redirect_cmd_str -a $log"
+      if { ("vhdlan.log" == $log) && ($n_vhd_count == 1) } {
+        set rdcs "$redirect_cmd_str $log"
       }
+      if { ("vlogan.log" == $log) && ($n_ver_count == 1) } {
+        set rdcs "$redirect_cmd_str $log"
+      }
+      puts $fh_scr "$rdcs\n"
     }
   }
 

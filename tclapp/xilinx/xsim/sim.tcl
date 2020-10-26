@@ -2931,20 +2931,16 @@ proc usf_xsim_write_verilog_prj { b_contain_verilog_srcs fh_scr } {
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
     switch $type {
       {VERILOG} {
-        if { $a_sim_vars(b_group_files_by_library) } {
-          if { $b_first } {
-            set b_first false
-            usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-          } else {
-            if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-              puts $fh_vlog "\"$src_file\" \\"
-            } else {
-              puts $fh_vlog ""
-              usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-            }
-          }
+        if { $b_first } {
+          set b_first false
+          usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
         } else {
-          puts $fh_vlog $cmd_str
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+            puts $fh_vlog "\"$src_file\" \\"
+          } else {
+            puts $fh_vlog ""
+            usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+          }
         }
       }
     }
@@ -3072,20 +3068,16 @@ proc usf_xsim_write_vhdl_prj { b_contain_verilog_srcs b_contain_vhdl_srcs b_is_p
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
     switch $type {
       {VHDL} {
-        if { $a_sim_vars(b_group_files_by_library) } {
-          if { $b_first } {
-            set b_first false
-            usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-          } else {
-            if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-              puts $fh_vhdl "\"$src_file\" \\"
-            } else {
-              puts $fh_vhdl ""
-              usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-            }
-          }
+        if { $b_first } {
+          set b_first false
+          usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
         } else {
-          puts $fh_vhdl $cmd_str
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+            puts $fh_vhdl "\"$src_file\" \\"
+          } else {
+            puts $fh_vhdl ""
+            usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+          }
         }
       }
     }

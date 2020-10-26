@@ -80,7 +80,6 @@ proc usf_init_vars {} {
 
   set a_sim_vars(b_ref_sysc_lib_env) [get_param "project.refSystemCLibPathWithXilinxEnv"]
   
-  set a_sim_vars(b_group_files_by_library) [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set a_sim_vars(compiled_design_lib) "xsim.dir"
 
   # initialize ip repository dir
@@ -1159,11 +1158,7 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str other_ver_opts
   set arg_list [list]
   if { [string length $compiler] > 0 } {
     lappend arg_list $compiler
-    if { $a_sim_vars(b_group_files_by_library) } {
-      set arg_list [linsert $arg_list end "$associated_library" "$global_files_str"]
-    } else {
-      set arg_list [linsert $arg_list end "$associated_library" "$global_files_str" "\"$file\""]
-    }
+    set arg_list [linsert $arg_list end "$associated_library" "$global_files_str"]
   }
  
   # append other options (-i, --include, -d) for verilog sources 

@@ -182,18 +182,15 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
   # Return Value:
 
   upvar $opts_arg opts
-  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach element $def_gen_list {
     set key_val_pair [split $element "="]
     set name [lindex $key_val_pair 0]
     set val  [lindex $key_val_pair 1]
     set str "+define+$name=" 
-    if { $b_group_files } {    
-      # escape '
-      if { [regexp {'} $val] } {
-        regsub -all {'} $val {\\'} val
-      }
+    # escape '
+    if { [regexp {'} $val] } {
+      regsub -all {'} $val {\\'} val
     }
 
     if { [string length $val] > 0 } {

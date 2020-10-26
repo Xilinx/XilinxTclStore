@@ -532,7 +532,6 @@ proc usf_ies_write_compile_script {} {
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
-  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach file $::tclapp::xilinx::ies::a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
@@ -545,23 +544,15 @@ proc usf_ies_write_compile_script {} {
 
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
-    if { $b_group_files } {
-      if { $b_first } {
-        set b_first false
-        usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-      } else {
-        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-          puts $fh_scr "$src_file \\"
-        } else {
-          puts $fh_scr ""
-          usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-        }
-      }
+    if { $b_first } {
+      set b_first false
+      usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
     } else {
-      if { {} != $tool_path } {
-        puts $fh_scr "\$bin_path/$cmd_str $src_file"
+      if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+        puts $fh_scr "$src_file \\"
       } else {
-        puts $fh_scr "$cmd_str $src_file"
+        puts $fh_scr ""
+        usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
       }
     }
   }

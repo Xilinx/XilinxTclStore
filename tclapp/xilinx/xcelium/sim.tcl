@@ -725,7 +725,6 @@ proc usf_xcelium_write_compile_script {} {
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
-  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach file $::tclapp::xilinx::xcelium::a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
@@ -759,23 +758,15 @@ proc usf_xcelium_write_compile_script {} {
         }
       }
     } else {
-      if { $b_group_files } {
-        if { $b_first } {
-          set b_first false
-          usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
-        } else {
-          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-            puts $fh_scr "$src_file \\"
-          } else {
-            puts $fh_scr ""
-            usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
-          }
-        }
+      if { $b_first } {
+        set b_first false
+        usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
       } else {
-        if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/$cmd_str $src_file"
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+          puts $fh_scr "$src_file \\"
         } else {
-          puts $fh_scr "$cmd_str $src_file"
+          puts $fh_scr ""
+          usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
         }
       }
     }

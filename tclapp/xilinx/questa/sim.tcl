@@ -660,7 +660,6 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   set prev_file_type {}
   set b_redirect false
   set b_appended false
-  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach file $::tclapp::xilinx::questa::a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
@@ -673,33 +672,23 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
 
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
-    if { $b_group_files } {
-      if { $b_first } {
-        set b_first false
-        usf_questa_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-      } else {
-        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-          puts $fh "$src_file \\"
-          set b_redirect true
-        } else {
-          puts $fh ""
-          usf_questa_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-          set b_appended true
-        }
-      }
+    if { $b_first } {
+      set b_first false
+      usf_questa_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
     } else {
-      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-        puts $fh "$cmd_str $src_file"
+      if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+        puts $fh "$src_file \\"
+        set b_redirect true
       } else {
-        puts $fh "eval $cmd_str $src_file"
+        puts $fh ""
+        usf_questa_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+        set b_appended true
       }
     }
   }
 
-  if { $b_group_files } {
-    if { (!$b_redirect) || (!$b_appended) } {
-      puts $fh ""
-    }
+  if { (!$b_redirect) || (!$b_appended) } {
+    puts $fh ""
   }
 
   set glbl_file "glbl.v"
