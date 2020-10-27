@@ -581,311 +581,27 @@ proc usf_vcs_write_compile_script {} {
   if { $a_sim_vars(b_int_systemc_mode) } {
     # syscan (systemC)
     if { $a_sim_vars(b_contain_systemc_sources) } {
-      set tool "syscan"
-      set arg_list [list "-sysc=232"]
-      lappend arg_list "-cpp \$\{gcc_path\}/g++"
-      lappend arg_list "-V"
-      set arg_list [linsert $arg_list end [list "-l" "${tool}.log"]]
-      if { [get_property 32bit $fs_obj] } {
-        set arg_list [linsert $arg_list 0 ""]
-      } else {
-        set arg_list [linsert $arg_list 0 "-full64"]
-      }
-      set more_syscan_options [string trim [get_property "VCS.COMPILE.SYSCAN.MORE_OPTIONS" $fs_obj]]
-      if { {} != $more_syscan_options } {
-        set arg_list [linsert $arg_list end "$more_syscan_options"]
-      }
-      puts $fh_scr "# set ${tool} command line args"
-      puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-
-      # syscan gcc options
-      set syscan_gcc_opts [list]
-      set system_includes    "-I. "
-      #append system_includes "-I\$\{PWD\}/c.obj/sysc/include "
-      append system_includes "-I\$\{VCS_HOME\}/include/systemc232 "
-      #append system_includes "-I\$\{VCS_HOME\}/lib "
-      append system_includes "-I\$\{VCS_HOME\}/include "
-      append system_includes "-I\$\{VCS_HOME\}/include/cosim/bf "
-      append system_includes "-DVCSSYSTEMC=1 "
-      append syscan_gcc_opts $system_includes
-      #lappend syscan_gcc_opts "-std=c++11"
-      #lappend syscan_gcc_opts "-fPIC"
-      #lappend syscan_gcc_opts "-c"
-      #lappend syscan_gcc_opts "-Wall"
-      #lappend syscan_gcc_opts "-Wno-deprecated"
-      #lappend syscan_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
-      variable l_system_sim_incl_dirs
-      set incl_dirs [list]
-      set uniq_dirs [list]
-      foreach dir $l_system_sim_incl_dirs {
-        if { [lsearch -exact $uniq_dirs $dir] == -1 } {
-          lappend uniq_dirs $dir
-          lappend incl_dirs "-I$dir"
-        }
-      }
-      set incl_dir_str [join $incl_dirs " "]
-      if { {} != $incl_dir_str } {
-        append syscan_gcc_opts " $incl_dir_str"
-      }
-
-      # reference simmodel shared library include directories
-      variable a_shared_library_path_coln
-      set l_sim_model_incl_dirs [list]
-      foreach {key value} [array get a_shared_library_path_coln] {
-        set shared_lib_name $key
-        set lib_path        $value
-        set sim_model_incl_dir "$lib_path/include"
-        if { [file exists $sim_model_incl_dir] } {
-          if { !$a_sim_vars(b_absolute_path) } {
-            # relative path
-            set b_resolved 0
-            set resolved_path [xcs_resolve_sim_model_dir "vcs" $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved false ""]
-            if { $b_resolved } {
-              set sim_model_incl_dir $resolved_path
-            } else {
-              set sim_model_incl_dir "[xcs_get_relative_file_path $sim_model_incl_dir $a_sim_vars(s_launch_dir)]"
-            }
-          }
-          lappend l_sim_model_incl_dirs $sim_model_incl_dir
-        }
-      }
-      # simset include dir
-      foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
-        if { !$a_sim_vars(b_absolute_path) } {
-          set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
-        }
-        lappend l_sim_model_incl_dirs "$incl_dir"
-      }
-
-      if { [llength $l_sim_model_incl_dirs] > 0 } {
-        # save system incl dirs
-        variable l_systemc_incl_dirs
-        set l_systemc_incl_dirs $l_sim_model_incl_dirs
-        # append to gcc options
-        foreach incl_dir $l_sim_model_incl_dirs {
-          append syscan_gcc_opts " -I$incl_dir"
-        }
-      }
-      puts $fh_scr "${tool}_gcc_opts=\"$syscan_gcc_opts\"\n"
+      usf_vcs_write_systemc_compile_options $fh_scr
     }
     # g++ (c++)
     if { $a_sim_vars(b_contain_cpp_sources) } {
-      set tool "g++"
-      set arg_list [list "-c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
-      if { [get_property 32bit $fs_obj] } {
-        set arg_list [linsert $arg_list 0 "-m32"]
-      } else {
-        set arg_list [linsert $arg_list 0 "-m64"]
-      }
-      set more_gplus_options [string trim [get_property "VCS.COMPILE.G++.MORE_OPTIONS" $fs_obj]]
-      if { {} != $more_gplus_options } {
-        set arg_list [linsert $arg_list end "$more_gplus_options"]
-      }
-      puts $fh_scr "# set ${tool} command line args"
-      puts $fh_scr "gpp_opts=\"[join $arg_list " "]\"\n"
+      usf_vcs_write_cpp_compile_options $fh_scr
     }
     # gcc (c)
     if { $a_sim_vars(b_contain_c_sources) } {
-      set tool "gcc"
-      set arg_list [list "-c -fPIC -O3"]
-      if { [get_property 32bit $fs_obj] } {
-        set arg_list [linsert $arg_list 0 "-m32"]
-      } else {
-        set arg_list [linsert $arg_list 0 "-m64"]
-      }
-      set more_gcc_options [string trim [get_property "VCS.COMPILE.GCC.MORE_OPTIONS" $fs_obj]]
-      if { {} != $more_gcc_options } {
-        set arg_list [linsert $arg_list end "$more_gcc_options"]
-      }
-      puts $fh_scr "# set ${tool} command line args"
-      puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+      usf_vcs_write_c_compile_options $fh_scr
     }
   }
 
   # add tcl pre hook
-  if { {} != $tcl_pre_hook } {
-    if { ![file exists $tcl_pre_hook] } {
-      [catch {send_msg_id USF-VCS-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
-    }
-    set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
-    xcs_delete_backup_log $tcl_wrapper_file $dir
-    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
-    set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
-    set cmd "vivado $vivado_cmd_str"
-    puts $fh_scr "echo \"$cmd\""
-    set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
-    puts $fh_scr "ExecStep $full_cmd\n"
-  }
+  usf_vcs_write_tcl_pre_hook $fh_scr $tcl_pre_hook
 
-  puts $fh_scr "# compile design source files"
-  set log "unknown.log"
-  
-  set b_first true
-  set prev_lib  {}
-  set prev_file_type {}
-  set redirect_cmd_str "2>&1 | tee"
-  set log {}
-  set b_redirect false
-  set b_appended false
-  set b_add_redirect true
-  set b_add_once true
-  set b_first_vhdlan true
-  set b_first_vlogan true
-  set n_vhd_count 1
-  set n_ver_count 1
+  # write compile order files
+  usf_vcs_write_compile_order_files $fh_scr
 
-  foreach file $::tclapp::xilinx::vcs::a_sim_vars(l_design_files) {
-    set fargs       [split $file {|}]
-    set type        [lindex $fargs 0]
-    set file_type   [lindex $fargs 1]
-    set lib         [lindex $fargs 2]
-    set cmd_str     [lindex $fargs 3]
-    set src_file    [lindex $fargs 4]
-    set b_static_ip [lindex $fargs 5]
+  # write glbl compile
+  usf_vcs_write_glbl_compile $fh_scr
 
-    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-
-    set compiler [file tail [lindex [split $cmd_str " "] 0]]
-
-    if { ("syscan" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
-
-      if { (!$b_redirect) || (!$b_appended) } {
-        if { $b_add_once } {
-          puts $fh_scr "$redirect_cmd_str -a $log"
-          set b_add_redirect false
-          set b_add_once false
-        }
-      }
-
-      if { "syscan" == $compiler } {
-        puts $fh_scr ""
-        variable a_sim_cache_sysc_stub_files
-        set sysc_src_file [string trim $src_file {\"}]
-        set module_name [file root [file tail $sysc_src_file]]
-        if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
-          append sysc_src_file ":$module_name"
-          # switch to speedup data propagation from systemC to RTL with the interface model
-          set cmd_str [regsub {\-cflags} $cmd_str {-sysc=opt_if -cflags}]
-        }
-        set sysc_src_file "\"$sysc_src_file\""
-        if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/$cmd_str \\\n$sysc_src_file"
-        } else {
-          puts $fh_scr "$cmd_str \\\n$sysc_src_file"
-        }
-      } else {
-        if { ("g++" == $compiler) || ("gcc" == $compiler) } {
-          puts $fh_scr ""
-          if { {} != $gcc_path } {
-            puts $fh_scr "\$gcc_path/$cmd_str \\\n$src_file"
-          } else {
-            puts $fh_scr "$cmd_str \\\n$src_file"
-          }
-        }
-      }
-    } else {
-      # vlogan expects double back slash
-      if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
-        set src_file [string trim $src_file "\""]
-        regsub -all { } $src_file {\\\\ } src_file
-      }
-  
-      set b_redirect false
-      set b_appended false
-  
-      if { $b_first } {
-        set b_first false
-        usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
-      } else {
-        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
-          puts $fh_scr "$src_file \\"
-          set b_redirect true
-        } else {
-          set rdcs "$redirect_cmd_str $log"
-          if { "vhdlan.log" == $log } {
-            incr n_vhd_count
-            if { $b_first_vhdlan } {
-              set b_first_vhdlan false
-            } else {
-              set rdcs "$redirect_cmd_str -a $log"
-            }
-          }
-          if { "vlogan.log" == $log } {
-            incr n_ver_count
-            if { $b_first_vlogan } {
-              set b_first_vlogan false
-            } else {
-              set rdcs "$redirect_cmd_str -a $log"
-            }
-          }
-          puts $fh_scr "$rdcs\n"
-          usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
-          set b_appended true
-        }
-      }
-    }
-  }
-
-  if { $b_add_redirect } {
-    if { (!$b_redirect) || (!$b_appended) } {
-      set rdcs "$redirect_cmd_str -a $log"
-      if { ("vhdlan.log" == $log) && ($n_vhd_count == 1) } {
-        set rdcs "$redirect_cmd_str $log"
-      }
-      if { ("vlogan.log" == $log) && ($n_ver_count == 1) } {
-        set rdcs "$redirect_cmd_str $log"
-      }
-      puts $fh_scr "$rdcs\n"
-    }
-  }
-
-  set glbl_file "glbl.v"
-  if { $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) } {
-    set glbl_file [file normalize [file join $dir $glbl_file]]
-  }
-
-  # compile glbl file
-  set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
-  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-  if { {behav_sim} == $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow) } {
-    if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
-      set work_lib_sw {}
-      if { {work} != $top_lib } {
-        set work_lib_sw "-work $top_lib "
-      }
-      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set file_str "${work_lib_sw}\"${glbl_file}\""
-      puts $fh_scr "\n# compile glbl module"
-      if { {} != $tool_path } {
-        puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
-      } else {
-        puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
-      }
-    }
-  } else {
-    # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
-          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
-      if { ({timing} == $::tclapp::xilinx::vcs::a_sim_vars(s_type)) } {
-        # This is not supported, netlist will be verilog always
-      } else {
-        if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ($a_sim_vars(b_force_compile_glbl)) } {
-          set work_lib_sw {}
-          if { {work} != $top_lib } {
-            set work_lib_sw "-work $top_lib "
-          }
-          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-          set file_str "${work_lib_sw}\"${glbl_file}\""
-          puts $fh_scr "\n# compile glbl module"
-          if { {} != $tool_path } {
-            puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
-          } else {
-            puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
-          }
-        }
-      }
-    }
-  }
   close $fh_scr
 
   # directory for obj's
@@ -1810,6 +1526,373 @@ proc usf_vcs_write_verilog_compile_options { fh_scr } {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_vcs_write_systemc_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "syscan"
+  set arg_list [list "-sysc=232"]
+  lappend arg_list "-cpp \$\{gcc_path\}/g++"
+  lappend arg_list "-V"
+
+  set arg_list [linsert $arg_list end [list "-l" "${tool}.log"]]
+  if { [get_property 32bit $fs_obj] } {
+    set arg_list [linsert $arg_list 0 ""]
+  } else {
+    set arg_list [linsert $arg_list 0 "-full64"]
+  }
+
+  set more_syscan_options [string trim [get_property "VCS.COMPILE.SYSCAN.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_syscan_options } {
+    set arg_list [linsert $arg_list end "$more_syscan_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
+
+  # syscan gcc options
+  set syscan_gcc_opts [list]
+  set system_includes    "-I. "
+
+  #append system_includes "-I\$\{PWD\}/c.obj/sysc/include "
+  append system_includes "-I\$\{VCS_HOME\}/include/systemc232 "
+  #append system_includes "-I\$\{VCS_HOME\}/lib "
+  append system_includes "-I\$\{VCS_HOME\}/include "
+  append system_includes "-I\$\{VCS_HOME\}/include/cosim/bf "
+  append system_includes "-DVCSSYSTEMC=1 "
+  append syscan_gcc_opts $system_includes
+
+  #lappend syscan_gcc_opts "-std=c++11"
+  #lappend syscan_gcc_opts "-fPIC"
+  #lappend syscan_gcc_opts "-c"
+  #lappend syscan_gcc_opts "-Wall"
+  #lappend syscan_gcc_opts "-Wno-deprecated"
+  #lappend syscan_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
+  
+  variable l_system_sim_incl_dirs
+  set incl_dirs [list]
+  set uniq_dirs [list]
+  foreach dir $l_system_sim_incl_dirs {
+    if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+      lappend uniq_dirs $dir
+      lappend incl_dirs "-I$dir"
+    }
+  }
+
+  set incl_dir_str [join $incl_dirs " "]
+  if { {} != $incl_dir_str } {
+    append syscan_gcc_opts " $incl_dir_str"
+  }
+
+  # reference simmodel shared library include directories
+  variable a_shared_library_path_coln
+  set l_sim_model_incl_dirs [list]
+
+  foreach {key value} [array get a_shared_library_path_coln] {
+    set shared_lib_name $key
+    set lib_path        $value
+    set sim_model_incl_dir "$lib_path/include"
+    if { [file exists $sim_model_incl_dir] } {
+      if { !$a_sim_vars(b_absolute_path) } {
+        # relative path
+        set b_resolved 0
+        set resolved_path [xcs_resolve_sim_model_dir "vcs" $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved false ""]
+        if { $b_resolved } {
+          set sim_model_incl_dir $resolved_path
+        } else {
+          set sim_model_incl_dir "[xcs_get_relative_file_path $sim_model_incl_dir $a_sim_vars(s_launch_dir)]"
+        }
+      }
+      lappend l_sim_model_incl_dirs $sim_model_incl_dir
+    }
+  }
+
+  # simset include dir
+  foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
+    if { !$a_sim_vars(b_absolute_path) } {
+      set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+    }
+    lappend l_sim_model_incl_dirs "$incl_dir"
+  }
+
+  if { [llength $l_sim_model_incl_dirs] > 0 } {
+    # save system incl dirs
+    variable l_systemc_incl_dirs
+    set l_systemc_incl_dirs $l_sim_model_incl_dirs
+    # append to gcc options
+    foreach incl_dir $l_sim_model_incl_dirs {
+      append syscan_gcc_opts " -I$incl_dir"
+    }
+  }
+  puts $fh_scr "${tool}_gcc_opts=\"$syscan_gcc_opts\"\n"
+}
+
+proc usf_vcs_write_cpp_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "g++"
+  set arg_list [list "-c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
+  if { [get_property 32bit $fs_obj] } {
+    set arg_list [linsert $arg_list 0 "-m32"]
+  } else {
+    set arg_list [linsert $arg_list 0 "-m64"]
+  }
+  set more_gplus_options [string trim [get_property "VCS.COMPILE.G++.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_gplus_options } {
+    set arg_list [linsert $arg_list end "$more_gplus_options"]
+  }
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "gpp_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_vcs_write_c_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "gcc"
+  set arg_list [list "-c -fPIC -O3"]
+  if { [get_property 32bit $fs_obj] } {
+    set arg_list [linsert $arg_list 0 "-m32"]
+  } else {
+    set arg_list [linsert $arg_list 0 "-m64"]
+  }
+  set more_gcc_options [string trim [get_property "VCS.COMPILE.GCC.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_gcc_options } {
+    set arg_list [linsert $arg_list end "$more_gcc_options"]
+  }
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_vcs_write_tcl_pre_hook { fh_scr tcl_pre_hook } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  set dir $a_sim_vars(s_launch_dir)
+
+  if { {} != $tcl_pre_hook } {
+    if { ![file exists $tcl_pre_hook] } {
+      [catch {send_msg_id USF-VCS-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+    }
+    set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+    xcs_delete_backup_log $tcl_wrapper_file $dir
+    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+    set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+    set cmd "vivado $vivado_cmd_str"
+    puts $fh_scr "echo \"$cmd\""
+    set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+    puts $fh_scr "ExecStep $full_cmd\n"
+  }
+}
+
+proc usf_vcs_write_compile_order_files { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  
+  set tool_path $a_sim_vars(s_tool_bin_path)
+  set gcc_path  $a_sim_vars(s_gcc_bin_path)
+
+  puts $fh_scr "# compile design source files"
+  
+  set b_first true
+  set prev_lib  {}
+  set prev_file_type {}
+  set redirect_cmd_str "2>&1 | tee"
+  set log {}
+  set b_redirect false
+  set b_appended false
+  set b_add_redirect true
+  set b_add_once true
+  set b_first_vhdlan true
+  set b_first_vlogan true
+  set n_vhd_count 1
+  set n_ver_count 1
+
+  foreach file $a_sim_vars(l_design_files) {
+    set fargs       [split $file {|}]
+    set type        [lindex $fargs 0]
+    set file_type   [lindex $fargs 1]
+    set lib         [lindex $fargs 2]
+    set cmd_str     [lindex $fargs 3]
+    set src_file    [lindex $fargs 4]
+    set b_static_ip [lindex $fargs 5]
+
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+
+    set compiler [file tail [lindex [split $cmd_str " "] 0]]
+
+    if { ("syscan" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
+
+      if { (!$b_redirect) || (!$b_appended) } {
+        if { $b_add_once } {
+          puts $fh_scr "$redirect_cmd_str -a $log"
+          set b_add_redirect false
+          set b_add_once false
+        }
+      }
+
+      if { "syscan" == $compiler } {
+        puts $fh_scr ""
+        variable a_sim_cache_sysc_stub_files
+        set sysc_src_file [string trim $src_file {\"}]
+        set module_name [file root [file tail $sysc_src_file]]
+        if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
+          append sysc_src_file ":$module_name"
+          # switch to speedup data propagation from systemC to RTL with the interface model
+          set cmd_str [regsub {\-cflags} $cmd_str {-sysc=opt_if -cflags}]
+        }
+        set sysc_src_file "\"$sysc_src_file\""
+        if { {} != $tool_path } {
+          puts $fh_scr "\$bin_path/$cmd_str \\\n$sysc_src_file"
+        } else {
+          puts $fh_scr "$cmd_str \\\n$sysc_src_file"
+        }
+      } else {
+        if { ("g++" == $compiler) || ("gcc" == $compiler) } {
+          puts $fh_scr ""
+          if { {} != $gcc_path } {
+            puts $fh_scr "\$gcc_path/$cmd_str \\\n$src_file"
+          } else {
+            puts $fh_scr "$cmd_str \\\n$src_file"
+          }
+        }
+      }
+    } else {
+      # vlogan expects double back slash
+      if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
+        set src_file [string trim $src_file "\""]
+        regsub -all { } $src_file {\\\\ } src_file
+      }
+  
+      set b_redirect false
+      set b_appended false
+  
+      if { $b_first } {
+        set b_first false
+        usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
+      } else {
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
+          puts $fh_scr "$src_file \\"
+          set b_redirect true
+        } else {
+          set rdcs "$redirect_cmd_str $log"
+          if { "vhdlan.log" == $log } {
+            incr n_vhd_count
+            if { $b_first_vhdlan } {
+              set b_first_vhdlan false
+            } else {
+              set rdcs "$redirect_cmd_str -a $log"
+            }
+          }
+          if { "vlogan.log" == $log } {
+            incr n_ver_count
+            if { $b_first_vlogan } {
+              set b_first_vlogan false
+            } else {
+              set rdcs "$redirect_cmd_str -a $log"
+            }
+          }
+          puts $fh_scr "$rdcs\n"
+          usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
+          set b_appended true
+        }
+      }
+    }
+  }
+
+  if { $b_add_redirect } {
+    if { (!$b_redirect) || (!$b_appended) } {
+      set rdcs "$redirect_cmd_str -a $log"
+      if { ("vhdlan.log" == $log) && ($n_vhd_count == 1) } {
+        set rdcs "$redirect_cmd_str $log"
+      }
+      if { ("vlogan.log" == $log) && ($n_ver_count == 1) } {
+        set rdcs "$redirect_cmd_str $log"
+      }
+      puts $fh_scr "$rdcs\n"
+    }
+  }
+}
+
+proc usf_vcs_write_glbl_compile { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  
+  set dir         $a_sim_vars(s_launch_dir)
+  set fs_obj      [get_filesets $a_sim_vars(s_simset)]
+  set tool_path   $a_sim_vars(s_tool_bin_path)
+  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+
+  set glbl_file "glbl.v"
+  if { $a_sim_vars(b_absolute_path) } {
+    set glbl_file [file normalize [file join $dir $glbl_file]]
+  }
+
+  # compile glbl file
+  set b_load_glbl [get_property "VCS.COMPILE.LOAD_GLBL" $fs_obj]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+  if { {behav_sim} == $::tclapp::xilinx::vcs::a_sim_vars(s_simulation_flow) } {
+    if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
+      set work_lib_sw {}
+      if { {work} != $top_lib } {
+        set work_lib_sw "-work $top_lib "
+      }
+      xcs_copy_glbl_file $dir
+      set file_str "${work_lib_sw}\"${glbl_file}\""
+      puts $fh_scr "\n# compile glbl module"
+      if { {} != $tool_path } {
+        puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+      } else {
+        puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+      }
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
+      if { ({timing} == $a_sim_vars(s_type)) } {
+        # This is not supported, netlist will be verilog always
+      } else {
+        if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ($a_sim_vars(b_force_compile_glbl)) } {
+          set work_lib_sw {}
+          if { {work} != $top_lib } {
+            set work_lib_sw "-work $top_lib "
+          }
+          xcs_copy_glbl_file $dir
+          set file_str "${work_lib_sw}\"${glbl_file}\""
+          puts $fh_scr "\n# compile glbl module"
+          if { {} != $tool_path } {
+            puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          } else {
+            puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          }
+        }
+      }
+    }
+  }
 }
 
 }

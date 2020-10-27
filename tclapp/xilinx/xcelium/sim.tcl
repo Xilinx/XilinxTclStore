@@ -577,239 +577,26 @@ proc usf_xcelium_write_compile_script {} {
   if { $a_sim_vars(b_int_systemc_mode) } {
     # xmsc (systemC)
     if { $a_sim_vars(b_contain_systemc_sources) } {
-      set tool "xmsc"
-      set arg_list [list "-messages"]
-      set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log"]]
-      #lappend arg_list "-append_log"
-
-      if { [get_property 32bit $fs_obj] } {
-        set arg_list [linsert $arg_list 0 "-32bit"]
-      } else {
-        set arg_list [linsert $arg_list 0 "-64bit"]
-      }
-      set b_no_sysc_analysis false
-      [catch {set b_no_sysc_analysis [get_param simulator.donotCollectSystemCInfoForXcelium]} err]
-      if { $b_no_sysc_analysis } {
-        set arg_list [linsert $arg_list 1 "-noedg"]
-      }
-      set more_xmsc_options [string trim [get_property "XCELIUM.COMPILE.XMSC.MORE_OPTIONS" $fs_obj]]
-      if { {} != $more_xmsc_options } {
-        set arg_list [linsert $arg_list end "$more_xmsc_options"]
-      }
-      puts $fh_scr "# set ${tool} command line args"
-      puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-
-      # xmsc gcc options
-      set xmsc_gcc_opts [list]
-      lappend xmsc_gcc_opts "-std=c++11"
-      lappend xmsc_gcc_opts "-fPIC"
-      lappend xmsc_gcc_opts "-c"
-      lappend xmsc_gcc_opts "-Wall"
-      lappend xmsc_gcc_opts "-Wno-deprecated"
-      lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
-      lappend xmsc_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
-
-      # param to bind shared protobuf
-      set b_bind_protobuf false
-      [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
-
-      variable l_system_sim_incl_dirs
-      set incl_dirs [list]
-      set uniq_dirs [list]
-      foreach dir $l_system_sim_incl_dirs {
-        if { [lsearch -exact $uniq_dirs $dir] == -1 } {
-          lappend uniq_dirs $dir
-          lappend incl_dirs "-I$dir"
-        }
-      }
-      set incl_dir_str [join $incl_dirs " "]
-      if { {} != $incl_dir_str } {
-        append xmsc_gcc_opts " $incl_dir_str"
-      }
-
-      # reference simmodel shared library include directories
-      variable a_shared_library_path_coln
-      set l_sim_model_incl_dirs [list]
-      foreach {key value} [array get a_shared_library_path_coln] {
-        set shared_lib_name $key
-        if { ("libprotobuf.so" == $shared_lib_name) && (!$b_bind_protobuf) } {
-          # don't bind shared library but bind static library built with the simmodel itself 
-          continue
-        }
-        set lib_path        $value
-        set sim_model_incl_dir "$lib_path/include"
-        if { [file exists $sim_model_incl_dir] } {
-          if { !$a_sim_vars(b_absolute_path) } {
-            # relative path
-            set b_resolved 0
-            set resolved_path [xcs_resolve_sim_model_dir "xcelium" $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved false ""]
-            if { $b_resolved } {
-              set sim_model_incl_dir $resolved_path
-            } else {
-              set sim_model_incl_dir "[xcs_get_relative_file_path $sim_model_incl_dir $a_sim_vars(s_launch_dir)]"
-            }
-          }
-          lappend l_sim_model_incl_dirs $sim_model_incl_dir
-        }
-      }
-      # simset include dir
-      foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
-        if { !$a_sim_vars(b_absolute_path) } {
-          set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
-        }
-        lappend l_sim_model_incl_dirs "$incl_dir"
-      }
-
-      if { [llength $l_sim_model_incl_dirs] > 0 } {
-        # save system incl dirs
-        variable l_systemc_incl_dirs
-        set l_systemc_incl_dirs $l_sim_model_incl_dirs
-        # append to gcc options
-        foreach incl_dir $l_sim_model_incl_dirs {
-          append xmsc_gcc_opts " -I$incl_dir"
-        }
-      }
-      puts $fh_scr "${tool}_gcc_opts=\"$xmsc_gcc_opts\"\n"
+      usf_xcelium_write_systemc_compile_options $fh_scr
     }
     # g++ (c++)
     if { $a_sim_vars(b_contain_cpp_sources) } {
-      set tool "g++"
-      set arg_list [list "-c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
-      if { [get_property 32bit $fs_obj] } {
-        set arg_list [linsert $arg_list 0 "-m32"]
-      } else {
-        set arg_list [linsert $arg_list 0 "-m64"]
-      }
-      set more_gplus_options [string trim [get_property "XCELIUM.COMPILE.G++.MORE_OPTIONS" $fs_obj]]
-      if { {} != $more_gplus_options } {
-        set arg_list [linsert $arg_list end "$more_gplus_options"]
-      }
-      puts $fh_scr "# set ${tool} command line args"
-      puts $fh_scr "gpp_opts=\"[join $arg_list " "]\"\n"
+      usf_xcelium_write_cpp_compile_options $fh_scr
     }
     # gcc (c)
     if { $a_sim_vars(b_contain_c_sources) } {
-      set tool "gcc"
-      set arg_list [list "-c -fPIC -O3"]
-      if { [get_property 32bit $fs_obj] } {
-        set arg_list [linsert $arg_list 0 "-m32"]
-      } else {
-        set arg_list [linsert $arg_list 0 "-m64"]
-      }
-      set more_gcc_options [string trim [get_property "XCELIUM.COMPILE.GCC.MORE_OPTIONS" $fs_obj]]
-      if { {} != $more_gcc_options } {
-        set arg_list [linsert $arg_list end "$more_gcc_options"]
-      }
-      puts $fh_scr "# set ${tool} command line args"
-      puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+      usf_xcelium_write_c_compile_options $fh_scr
     }
   }
 
   # add tcl pre hook
-  if { {} != $tcl_pre_hook } {
-    if { ![file exists $tcl_pre_hook] } {
-      [catch {send_msg_id USF-Xcelium-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
-    }
-    set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
-    xcs_delete_backup_log $tcl_wrapper_file $dir
-    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
-    set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
-    set cmd "vivado $vivado_cmd_str"
-    puts $fh_scr "echo \"$cmd\""
-    set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
-    puts $fh_scr "ExecStep $full_cmd\n"
-  }
+  usf_xcelium_write_tcl_pre_hook $fh_scr $tcl_pre_hook
+ 
+  # write compile order files
+  usf_xcelium_write_compile_order_files $fh_scr
 
-  puts $fh_scr "# compile design source files"
-
-  set b_first true
-  set prev_lib  {}
-  set prev_file_type {}
-
-  foreach file $::tclapp::xilinx::xcelium::a_sim_vars(l_design_files) {
-    set fargs       [split $file {|}]
-    set type        [lindex $fargs 0]
-    set file_type   [lindex $fargs 1]
-    set lib         [lindex $fargs 2]
-    set cmd_str     [lindex $fargs 3]
-    set src_file    [lindex $fargs 4]
-    set b_static_ip [lindex $fargs 5]
-
-    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-
-    set compiler [file tail [lindex [split $cmd_str " "] 0]]
-
-    if { ("xmsc" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
-      if { "xmsc" == $compiler } {
-        puts $fh_scr ""
-        if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/$cmd_str \\\n$src_file"
-        } else {
-          puts $fh_scr "$cmd_str \\\n$src_file"
-        }
-      } else {
-        if { ("g++" == $compiler) || ("gcc" == $compiler) } {
-          puts $fh_scr ""
-          if { {} != $gcc_path } {
-            puts $fh_scr "\$gcc_path/$cmd_str \\\n$src_file"
-          } else {
-            puts $fh_scr "$cmd_str \\\n$src_file"
-          }
-        }
-      }
-    } else {
-      if { $b_first } {
-        set b_first false
-        usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
-      } else {
-        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-          puts $fh_scr "$src_file \\"
-        } else {
-          puts $fh_scr ""
-          usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
-        }
-      }
-    }
-  }
-
-  set glbl_file "glbl.v"
-  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_absolute_path) } {
-    set glbl_file [file normalize [file join $dir $glbl_file]]
-  }
-
-  # compile glbl file
-  if { {behav_sim} == $::tclapp::xilinx::xcelium::a_sim_vars(s_simulation_flow) } {
-    set b_load_glbl [get_property "XCELIUM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::xcelium::a_sim_vars(s_simset)]]
-    if { [xcs_compile_glbl_file "xcelium" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
-      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-      set file_str "-work $top_lib \"${glbl_file}\""
-      puts $fh_scr "\n# compile glbl module"
-      if { {} != $tool_path } {
-        puts $fh_scr "\$bin_path/xmvlog \$xmvlog_opts $file_str"
-      } else {
-        puts $fh_scr "xmvlog \$xmvlog_opts $file_str"
-      }
-    }
-  } else {
-    # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
-          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
-      if { ({timing} == $::tclapp::xilinx::xcelium::a_sim_vars(s_type)) } {
-        # This is not supported, netlist will be verilog always
-      } else {
-        xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-        set file_str "-work $top_lib \"${glbl_file}\""
-        puts $fh_scr "\n# compile glbl module"
-        if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/xmvlog \$xmvlog_opts $file_str"
-        } else {
-          puts $fh_scr "xmvlog \$xmvlog_opts $file_str"
-        }
-      }
-    }
-  }
+  # write glbl compile
+  usf_xcelium_write_glbl_compile $fh_scr
 
   close $fh_scr
 
@@ -1663,6 +1450,299 @@ proc usf_xcelium_write_verilog_compile_options { fh_scr } {
   
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_xcelium_write_systemc_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "xmsc"
+  set arg_list [list "-messages"]
+  set arg_list [linsert $arg_list end [list "-logfile" "${tool}.log"]]
+  #lappend arg_list "-append_log"
+
+  if { [get_property 32bit $fs_obj] } {
+    set arg_list [linsert $arg_list 0 "-32bit"]
+  } else {
+    set arg_list [linsert $arg_list 0 "-64bit"]
+  }
+
+  set b_no_sysc_analysis false
+  [catch {set b_no_sysc_analysis [get_param "simulator.donotCollectSystemCInfoForXcelium"]} err]
+  if { $b_no_sysc_analysis } {
+    set arg_list [linsert $arg_list 1 "-noedg"]
+  }
+
+  set more_xmsc_options [string trim [get_property "XCELIUM.COMPILE.XMSC.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_xmsc_options } {
+    set arg_list [linsert $arg_list end "$more_xmsc_options"]
+  }
+
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
+
+  # xmsc gcc options
+  set xmsc_gcc_opts [list]
+  lappend xmsc_gcc_opts "-std=c++11"
+  lappend xmsc_gcc_opts "-fPIC"
+  lappend xmsc_gcc_opts "-c"
+  lappend xmsc_gcc_opts "-Wall"
+  lappend xmsc_gcc_opts "-Wno-deprecated"
+  lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
+  lappend xmsc_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
+
+  variable l_system_sim_incl_dirs
+  set incl_dirs [list]
+  set uniq_dirs [list]
+  foreach dir $l_system_sim_incl_dirs {
+    if { [lsearch -exact $uniq_dirs $dir] == -1 } {
+      lappend uniq_dirs $dir
+      lappend incl_dirs "-I$dir"
+    }
+  }
+
+  set incl_dir_str [join $incl_dirs " "]
+  if { {} != $incl_dir_str } {
+    append xmsc_gcc_opts " $incl_dir_str"
+  }
+
+  # reference simmodel shared library include directories
+  variable a_shared_library_path_coln
+  set l_sim_model_incl_dirs [list]
+
+  # param to bind shared protobuf
+  set b_bind_protobuf false
+  [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
+
+  foreach {key value} [array get a_shared_library_path_coln] {
+    set shared_lib_name $key
+    if { ("libprotobuf.so" == $shared_lib_name) && (!$b_bind_protobuf) } {
+      # don't bind shared library but bind static library built with the simmodel itself 
+      continue
+    }
+    set lib_path            $value
+    set sim_model_incl_dir "$lib_path/include"
+    if { [file exists $sim_model_incl_dir] } {
+      if { !$a_sim_vars(b_absolute_path) } {
+        # relative path
+        set b_resolved 0
+        set resolved_path [xcs_resolve_sim_model_dir "xcelium" $sim_model_incl_dir $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved false ""]
+        if { $b_resolved } {
+          set sim_model_incl_dir $resolved_path
+        } else {
+          set sim_model_incl_dir "[xcs_get_relative_file_path $sim_model_incl_dir $a_sim_vars(s_launch_dir)]"
+        }
+      }
+      lappend l_sim_model_incl_dirs $sim_model_incl_dir
+    }
+  }
+
+  # simset include dir
+  foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
+    if { !$a_sim_vars(b_absolute_path) } {
+      set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+    }
+    lappend l_sim_model_incl_dirs "$incl_dir"
+  }
+
+  if { [llength $l_sim_model_incl_dirs] > 0 } {
+    # save system incl dirs
+    variable l_systemc_incl_dirs
+    set l_systemc_incl_dirs $l_sim_model_incl_dirs
+    # append to gcc options
+    foreach incl_dir $l_sim_model_incl_dirs {
+      append xmsc_gcc_opts " -I$incl_dir"
+    }
+  }
+  puts $fh_scr "${tool}_gcc_opts=\"$xmsc_gcc_opts\"\n"
+}
+
+proc usf_xcelium_write_cpp_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "g++"
+  set arg_list [list "-c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
+  if { [get_property 32bit $fs_obj] } {
+    set arg_list [linsert $arg_list 0 "-m32"]
+  } else {
+    set arg_list [linsert $arg_list 0 "-m64"]
+  }
+  set more_gplus_options [string trim [get_property "XCELIUM.COMPILE.G++.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_gplus_options } {
+    set arg_list [linsert $arg_list end "$more_gplus_options"]
+  }
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "gpp_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_xcelium_write_c_compile_options { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set fs_obj [get_filesets $a_sim_vars(s_simset)]
+
+  set tool "gcc"
+  set arg_list [list "-c -fPIC -O3"]
+  if { [get_property 32bit $fs_obj] } {
+    set arg_list [linsert $arg_list 0 "-m32"]
+  } else {
+    set arg_list [linsert $arg_list 0 "-m64"]
+  }
+  set more_gcc_options [string trim [get_property "XCELIUM.COMPILE.GCC.MORE_OPTIONS" $fs_obj]]
+  if { {} != $more_gcc_options } {
+    set arg_list [linsert $arg_list end "$more_gcc_options"]
+  }
+  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_xcelium_write_tcl_pre_hook { fh_scr tcl_pre_hook } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set dir $a_sim_vars(s_launch_dir)
+
+  if { {} != $tcl_pre_hook } {
+    if { ![file exists $tcl_pre_hook] } {
+      [catch {send_msg_id USF-Xcelium-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+    }
+    set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
+    xcs_delete_backup_log $tcl_wrapper_file $dir
+    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+    set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+    set cmd "vivado $vivado_cmd_str"
+    puts $fh_scr "echo \"$cmd\""
+    set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+    puts $fh_scr "ExecStep $full_cmd\n"
+  }
+}
+
+proc usf_xcelium_write_compile_order_files { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set tool_path $a_sim_vars(s_tool_bin_path)
+  set gcc_path  $a_sim_vars(s_gcc_bin_path)
+
+  puts $fh_scr "# compile design source files"
+
+  set b_first true
+  set prev_lib  {}
+  set prev_file_type {}
+
+  foreach file $a_sim_vars(l_design_files) {
+    set fargs       [split $file {|}]
+    set type        [lindex $fargs 0]
+    set file_type   [lindex $fargs 1]
+    set lib         [lindex $fargs 2]
+    set cmd_str     [lindex $fargs 3]
+    set src_file    [lindex $fargs 4]
+    set b_static_ip [lindex $fargs 5]
+
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+
+    set compiler [file tail [lindex [split $cmd_str " "] 0]]
+
+    if { ("xmsc" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
+      if { "xmsc" == $compiler } {
+        puts $fh_scr ""
+        if { {} != $tool_path } {
+          puts $fh_scr "\$bin_path/$cmd_str \\\n$src_file"
+        } else {
+          puts $fh_scr "$cmd_str \\\n$src_file"
+        }
+      } else {
+        if { ("g++" == $compiler) || ("gcc" == $compiler) } {
+          puts $fh_scr ""
+          if { {} != $gcc_path } {
+            puts $fh_scr "\$gcc_path/$cmd_str \\\n$src_file"
+          } else {
+            puts $fh_scr "$cmd_str \\\n$src_file"
+          }
+        }
+      }
+    } else {
+      if { $b_first } {
+        set b_first false
+        usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
+      } else {
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+          puts $fh_scr "$src_file \\"
+        } else {
+          puts $fh_scr ""
+          usf_xcelium_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib
+        }
+      }
+    }
+  }
+}
+
+proc usf_xcelium_write_glbl_compile { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set dir         $a_sim_vars(s_launch_dir)
+  set fs_obj      [get_filesets $a_sim_vars(s_simset)]
+  set tool_path   $a_sim_vars(s_tool_bin_path)
+  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
+
+  set glbl_file "glbl.v"
+  if { $a_sim_vars(b_absolute_path) } {
+    set glbl_file [file normalize [file join $dir $glbl_file]]
+  }
+
+  # compile glbl file
+  if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
+    set b_load_glbl [get_property "XCELIUM.COMPILE.LOAD_GLBL" [get_filesets $a_sim_vars(s_simset)]]
+    if { [xcs_compile_glbl_file "xcelium" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
+      xcs_copy_glbl_file $dir
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+      set file_str "-work $top_lib \"${glbl_file}\""
+      puts $fh_scr "\n# compile glbl module"
+      if { {} != $tool_path } {
+        puts $fh_scr "\$bin_path/xmvlog \$xmvlog_opts $file_str"
+      } else {
+        puts $fh_scr "xmvlog \$xmvlog_opts $file_str"
+      }
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
+      if { ({timing} == $a_sim_vars(s_type)) } {
+        # This is not supported, netlist will be verilog always
+      } else {
+        xcs_copy_glbl_file $dir
+        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+        set file_str "-work $top_lib \"${glbl_file}\""
+        puts $fh_scr "\n# compile glbl module"
+        if { {} != $tool_path } {
+          puts $fh_scr "\$bin_path/xmvlog \$xmvlog_opts $file_str"
+        } else {
+          puts $fh_scr "xmvlog \$xmvlog_opts $file_str"
+        }
+      }
+    }
+  }
 }
 
 }
