@@ -1,3 +1,4 @@
+11.50 code-refactoring for compile step procedures
 11.49 removed obsolete code - assemble files by library
 11.48 helpers for log file deletion
 11.47 bind libraries and shell script from aietools
