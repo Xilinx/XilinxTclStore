@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>code-refactoring for compile step procedures</revision_history>
+      <revision_history>script update for log file messaging improvements</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

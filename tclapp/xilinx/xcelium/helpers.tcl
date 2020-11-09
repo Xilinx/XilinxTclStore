@@ -141,6 +141,14 @@ proc usf_init_vars {} {
                 FILE_TYPE != \"BMM\"                          && \
                 FILE_TYPE != \"ELF\""
 
+  # run logs
+  set a_sim_vars(clog)                   "compile.log"
+  set a_sim_vars(tmp_log_file)           ".tmp_log"
+  set a_sim_vars(run_logs_compile)       [list $a_sim_vars(clog) xmvhdl.log xmvlog.log xmsc.log $a_sim_vars(tmp_log_file)]
+  set a_sim_vars(run_logs_elaborate)     [list elaborate.log]
+  set a_sim_vars(run_logs_simulate)      [list simulate.log]
+  set a_sim_vars(b_refactorForMessaging) [get_param "project.refactorSimScriptExecutionForMessaging"]
+
   # simulation mode types
   variable a_sim_mode_types
   set a_sim_mode_types(behavioral)          {behav}

@@ -455,7 +455,7 @@ proc usf_vcs_write_setup_files {} {
 
 }
 
-proc usf_vcs_set_initial_cmd { fh_scr cmd_str compiler src_file file_type lib prev_file_type_arg prev_lib_arg log_arg } {
+proc usf_vcs_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg log_arg } {
   # Summary: Print compiler command line and store previous file type and library information
   # Argument Usage:
   # Return Value:
@@ -467,36 +467,27 @@ proc usf_vcs_set_initial_cmd { fh_scr cmd_str compiler src_file file_type lib pr
   upvar $prev_lib_arg  prev_lib
   upvar $log_arg log
 
-  set tool_path $::tclapp::xilinx::vcs::a_sim_vars(s_tool_bin_path)
-  set gcc_path  $::tclapp::xilinx::vcs::a_sim_vars(s_gcc_bin_path)
+  set tool_path $a_sim_vars(s_tool_bin_path)
 
-  if { ("g++" == $compiler) || ("gcc" == $compiler) } {
-    if { {} != $gcc_path } {
-      puts $fh_scr "\$gcc_path/$cmd_str \\"
+  if { {} != $tool_path } {
+    if { $a_sim_vars(b_system_sim_design) } {
+      if { [regexp -nocase {vhdl} $file_type] } {
+        puts $fh_scr "\$bin_path/$cmd_str \\"
+      } else {
+        puts $fh_scr "\$bin_path/$cmd_str -sysc \\"
+      }
     } else {
-      puts $fh_scr "$cmd_str \\"
+      puts $fh_scr "\$bin_path/$cmd_str \\"
     }
   } else {
-    if { {} != $tool_path } {
-      if { $a_sim_vars(b_system_sim_design) } {
-        if { [regexp -nocase {vhdl} $file_type] } {
-          puts $fh_scr "\$bin_path/$cmd_str \\"
-        } else {
-          puts $fh_scr "\$bin_path/$cmd_str -sysc \\"
-        }
+    if { $a_sim_vars(b_system_sim_design) } {
+      if { [regexp -nocase {vhdl} $file_type] } {
+        puts $fh_scr "$cmd_str \\"
       } else {
-        puts $fh_scr "\$bin_path/$cmd_str \\"
+        puts $fh_scr "$cmd_str -sysc \\"
       }
     } else {
-      if { $a_sim_vars(b_system_sim_design) } {
-        if { [regexp -nocase {vhdl} $file_type] } {
-          puts $fh_scr "$cmd_str \\"
-        } else {
-          puts $fh_scr "$cmd_str -sysc \\"
-        }
-      } else {
-        puts $fh_scr "$cmd_str \\"
-      }
+      puts $fh_scr "$cmd_str \\"
     }
   }
   puts $fh_scr "$src_file \\"
@@ -533,6 +524,9 @@ proc usf_vcs_write_compile_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "compile" "vcs"
   if { {} != $tool_path } {
+    if { $a_sim_vars(b_refactorForMessaging) } {
+      xcs_write_log_file_cleanup $fh_scr $a_sim_vars(run_logs_compile)
+    }
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
@@ -597,7 +591,11 @@ proc usf_vcs_write_compile_script {} {
   usf_vcs_write_tcl_pre_hook $fh_scr $tcl_pre_hook
 
   # write compile order files
-  usf_vcs_write_compile_order_files $fh_scr
+  if { $a_sim_vars(b_refactorForMessaging) } {
+    usf_vcs_write_compile_order_files_msg $fh_scr
+  } else {
+    usf_vcs_write_compile_order_files $fh_scr
+  }
 
   # write glbl compile
   usf_vcs_write_glbl_compile $fh_scr
@@ -1487,6 +1485,9 @@ proc usf_vcs_write_vhdl_compile_options { fh_scr } {
     #  }
     #}
   }
+  if { $a_sim_vars(b_refactorForMessaging) } {
+    lappend arg_list "-l $a_sim_vars(tmp_log_file)"
+  }
 
   set more_vhdlan_options [string trim [get_property "VCS.COMPILE.VHDLAN.MORE_OPTIONS" $fs_obj]]
   if { {} != $more_vhdlan_options } {
@@ -1517,6 +1518,9 @@ proc usf_vcs_write_verilog_compile_options { fh_scr } {
         lappend arg_list "-sysc"
       }
     }
+  }
+  if { $a_sim_vars(b_refactorForMessaging) } {
+    lappend arg_list "-l $a_sim_vars(tmp_log_file)"
   }
 
   set more_vlogan_options [string trim [get_property "VCS.COMPILE.VLOGAN.MORE_OPTIONS" $fs_obj]]
@@ -1642,7 +1646,7 @@ proc usf_vcs_write_cpp_compile_options { fh_scr } {
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
 
   set tool "g++"
-  set arg_list [list "-c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
+  set arg_list [list "--version -c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
   if { [get_property 32bit $fs_obj] } {
     set arg_list [linsert $arg_list 0 "-m32"]
   } else {
@@ -1665,7 +1669,7 @@ proc usf_vcs_write_c_compile_options { fh_scr } {
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
 
   set tool "gcc"
-  set arg_list [list "-c -fPIC -O3"]
+  set arg_list [list "--version -c -fPIC -O3"]
   if { [get_property 32bit $fs_obj] } {
     set arg_list [linsert $arg_list 0 "-m32"]
   } else {
@@ -1699,6 +1703,156 @@ proc usf_vcs_write_tcl_pre_hook { fh_scr tcl_pre_hook } {
     puts $fh_scr "echo \"$cmd\""
     set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
     puts $fh_scr "ExecStep $full_cmd\n"
+  }
+}
+
+proc usf_vcs_write_compile_order_files_msg { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  
+  set tool_path $a_sim_vars(s_tool_bin_path)
+  set gcc_path  $a_sim_vars(s_gcc_bin_path)
+
+  set log              {}
+  set null             "2>/dev/null"
+  set prev_lib         {}
+  set prev_file_type   {}
+  set redirect_cmd_str "2>&1 | tee"
+  set n_file_group     1
+  set n_vhd_file_group 0
+  set n_ver_file_group 0
+  set b_first          true
+  set b_last_src_rtl   true
+
+  puts $fh_scr "# compile design source files"
+  foreach file $a_sim_vars(l_design_files) {
+    set fargs       [split $file {|}]
+    set type        [lindex $fargs 0]
+    set file_type   [lindex $fargs 1]
+    set lib         [lindex $fargs 2]
+    set cmd_str     [lindex $fargs 3]
+    set src_file    [lindex $fargs 4]
+    set b_static_ip [lindex $fargs 5]
+
+    # if IP static file for pre-compile flow? continue
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } {
+      continue
+    }
+
+    # compiler name
+    set compiler [file tail [lindex [split $cmd_str " "] 0]]
+    switch -exact -- $compiler {
+      "vhdlan" -
+      "vlogan" {
+        # vlogan expects double back slash
+        if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
+          set src_file [string trim $src_file "\""]
+          regsub -all { } $src_file {\\\\ } src_file
+        }
+
+        # first occurence (start of rtl command line)
+        if { $b_first } {
+          set b_first false
+          usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
+        } else {
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
+            puts $fh_scr "$src_file \\"
+          } else {
+            set rdcs "$redirect_cmd_str"
+            set cstr "$a_sim_vars(clog)"
+            if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+            append rdcs " $cstr"
+            append rdcs "; cat $a_sim_vars(tmp_log_file)"
+            if { "vhdlan.log" == $log } { incr n_vhd_file_group;if { $n_vhd_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+            if { "vlogan.log" == $log } { incr n_ver_file_group;if { $n_ver_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+            append rdcs $rdap
+            puts $fh_scr "$rdcs\n"
+
+            incr n_file_group
+            usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
+          }
+        }
+      }
+      "syscan" -
+      "g++"    -
+      "gcc"    {
+        # previous compilation step re-direction (if any)
+        if { ("vhdlan.log" == $log) || ("vlogan.log" == $log) } {
+          set rdcs "$redirect_cmd_str"
+          set cstr "$a_sim_vars(clog)"
+          if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+          append rdcs " $cstr"
+          append rdcs "; cat $a_sim_vars(tmp_log_file)"
+          if { "vhdlan.log" == $log } { incr n_vhd_file_group;if { $n_vhd_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+          if { "vlogan.log" == $log } { incr n_ver_file_group;if { $n_ver_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+          append rdcs $rdap
+          puts $fh_scr "$rdcs\n"
+        }
+
+        if { "syscan" == $compiler } {
+          variable a_sim_cache_sysc_stub_files
+          # trim double-quotes
+          set sysc_src_file [string trim $src_file {\"}]
+
+          # get the module name and if corresponding stub exists, append the module name to source file
+          set module_name [file root [file tail $sysc_src_file]]
+          if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
+            append sysc_src_file ":$module_name"
+
+            # switch to speedup data propagation from systemC to RTL with the interface model
+            set cmd_str [regsub {\-cflags} $cmd_str {-sysc=opt_if -cflags}]
+          }
+          set src_file "\"$sysc_src_file\""
+        }
+       
+        # setup command line
+        set gcc_cmd "$cmd_str \\\n$src_file \\"
+        if { {} != $tool_path } {
+          set gcc_cmd "\$bin_path/$cmd_str \\\n$src_file \\"
+        }
+        puts $fh_scr "$gcc_cmd"
+
+        # setup redirection
+        set cstr "$a_sim_vars(clog)"
+        if { $n_file_group > 1 } {set cstr "-a $a_sim_vars(clog)"}
+        puts $fh_scr "$redirect_cmd_str $cstr\n"
+ 
+        incr n_file_group
+        set log {}
+        set b_last_src_rtl false
+
+      }
+      default {
+        # not supported
+      }
+    }
+  }
+
+  # last redirect command for vhdl/verilog file groups
+  if { $b_last_src_rtl } {
+    if { "vhdlan.log" == $log } { incr n_vhd_file_group }
+    if { "vlogan.log" == $log } { incr n_ver_file_group }
+   
+    # count number of file groups 
+    if { ($n_vhd_file_group > 1) || ($n_vhd_file_group > 1) } { incr n_file_group }
+
+    set rdcs "$redirect_cmd_str"
+    set cstr "$a_sim_vars(clog)"
+    if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+    append rdcs " $cstr";append rdcs "; cat $a_sim_vars(tmp_log_file)"
+  
+    # only 1 vhdl or verilog file to compile?
+    if { [expr $n_vhd_file_group + $n_ver_file_group] == 1 } {
+      set rdap " > $log $null"
+    } else {
+      if {"vhdlan.log" == $log} { if {$n_vhd_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+      if {"vlogan.log" == $log} { if {$n_ver_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+    }
+    append rdcs $rdap
+    puts $fh_scr "$rdcs"
   }
 }
 
@@ -1789,7 +1943,7 @@ proc usf_vcs_write_compile_order_files { fh_scr } {
   
       if { $b_first } {
         set b_first false
-        usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
+        usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
       } else {
         if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
           puts $fh_scr "$src_file \\"
@@ -1813,7 +1967,7 @@ proc usf_vcs_write_compile_order_files { fh_scr } {
             }
           }
           puts $fh_scr "$rdcs\n"
-          usf_vcs_set_initial_cmd $fh_scr $cmd_str $compiler $src_file $file_type $lib prev_file_type prev_lib log
+          usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
           set b_appended true
         }
       }
@@ -1846,6 +2000,8 @@ proc usf_vcs_write_glbl_compile { fh_scr } {
   set tool_path   $a_sim_vars(s_tool_bin_path)
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
 
+  set null "2>/dev/null"
+
   set glbl_file "glbl.v"
   if { $a_sim_vars(b_absolute_path) } {
     set glbl_file [file normalize [file join $dir $glbl_file]]
@@ -1863,10 +2019,18 @@ proc usf_vcs_write_glbl_compile { fh_scr } {
       xcs_copy_glbl_file $dir
       set file_str "${work_lib_sw}\"${glbl_file}\""
       puts $fh_scr "\n# compile glbl module"
-      if { {} != $tool_path } {
-        puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+      if { $a_sim_vars(b_refactorForMessaging) } {
+        if { {} != $tool_path } {
+          puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
+        } else {
+          puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
+        }
       } else {
-        puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+        if { {} != $tool_path } {
+          puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+        } else {
+          puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+        }
       }
     }
   } else {
@@ -1884,10 +2048,18 @@ proc usf_vcs_write_glbl_compile { fh_scr } {
           xcs_copy_glbl_file $dir
           set file_str "${work_lib_sw}\"${glbl_file}\""
           puts $fh_scr "\n# compile glbl module"
-          if { {} != $tool_path } {
-            puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          if { $a_sim_vars(b_refactorForMessaging) } {
+            if { {} != $tool_path } {
+              puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
+            } else {
+              puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
+            }
           } else {
-            puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+            if { {} != $tool_path } {
+              puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+            } else {
+              puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+            }
           }
         }
       }

@@ -3419,7 +3419,7 @@ proc xcs_write_script_header { fh step simulator } {
   set version_info [split [version] "\n"]
   set release      [lindex $version_info 0]
   set swbuild      [lindex $version_info 1]
-  set copyright    [lindex $version_info 3]
+  set copyright    [lindex $version_info 2]
   set product      [lindex [split $release " "] 0]
   set version_id   [join [lrange $release 1 end] " "]
   set simulator    [xcs_get_simulator_pretty_name $simulator]
@@ -5035,14 +5035,14 @@ proc xcs_write_log_file_cleanup { fh_scr log_files } {
   # Return Value:
 
   puts $fh_scr "# delete log files (if exist)"
-  set log_filelist [list]
-  foreach log $log_files { lappend log_filelist "${log}.log" }
-  set files [join $log_filelist " "]
+  set files [join $log_files " "]
+  puts $fh_scr "reset_log()\n\{"
   puts $fh_scr "logs=($files)"
   puts $fh_scr "for (( i=0; i<\$\{#logs\[*\]\}; i++ )); do"
   puts $fh_scr "  file=\"\$\{logs\[i\]\}\""
   puts $fh_scr "  if \[\[ -e \$file \]\]; then"
   puts $fh_scr "    rm -rf \$file"
   puts $fh_scr "  fi"
-  puts $fh_scr "done"
+  puts $fh_scr "done\n\}"
+  puts $fh_scr "reset_log"
 }
