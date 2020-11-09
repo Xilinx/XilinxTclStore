@@ -1,3 +1,4 @@
+3.470 Port validate proc changes from 2020.2
 3.469 helpers for log file deletion
 3.468 prepend project dir for empty ipstatic dir
 3.467 donot filter preferred_sim_model from generated script when non-default value is set
