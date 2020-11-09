@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Port validate proc changes from 2020.2</revision_history>
+      <revision_history>script update for log file messaging improvements</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

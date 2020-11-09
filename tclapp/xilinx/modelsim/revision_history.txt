@@ -1,3 +1,4 @@
+2.274 script update for log file messaging improvements
 2.273 removed obsolete code - assemble files by library
 2.272 helpers for log file deletion
 2.271 add check for protobuf static library
