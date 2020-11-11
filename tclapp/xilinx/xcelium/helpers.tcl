@@ -98,7 +98,6 @@ proc usf_init_vars {} {
   # list of xpm libraries
   variable l_xpm_libraries [list]
 
-  variable l_design_c_files          [list]
   variable l_system_sim_incl_dirs    [list]
   set a_sim_vars(tmp_obj_dir)        "c.obj"
 
@@ -142,12 +141,12 @@ proc usf_init_vars {} {
                 FILE_TYPE != \"ELF\""
 
   # run logs
-  set a_sim_vars(clog)                   "compile.log"
-  set a_sim_vars(tmp_log_file)           ".tmp_log"
-  set a_sim_vars(run_logs_compile)       [list $a_sim_vars(clog) xmvhdl.log xmvlog.log xmsc.log $a_sim_vars(tmp_log_file)]
-  set a_sim_vars(run_logs_elaborate)     [list elaborate.log]
-  set a_sim_vars(run_logs_simulate)      [list simulate.log]
-  set a_sim_vars(b_refactorForMessaging) [get_param "project.refactorSimScriptExecutionForMessaging"]
+  set a_sim_vars(clog)                 "compile.log"
+  set a_sim_vars(tmp_log_file)         ".tmp_log"
+  set a_sim_vars(run_logs_compile)     [list $a_sim_vars(clog) xmvhdl.log xmvlog.log xmsc.log $a_sim_vars(tmp_log_file)]
+  set a_sim_vars(run_logs_elaborate)   [list elaborate.log]
+  set a_sim_vars(run_logs_simulate)    [list simulate.log]
+  set a_sim_vars(b_optimizeForRuntime) [get_param "project.optimizeSimScriptExecution"]
 
   # simulation mode types
   variable a_sim_mode_types
@@ -184,6 +183,9 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_lib_type_info
   array unset a_sim_cache_lib_type_info
+
+  variable a_design_c_files_coln
+  array unset a_design_c_files_coln
 
   variable a_shared_library_path_coln
   array unset a_shared_library_path_coln
@@ -1477,10 +1479,15 @@ proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
     "xmsc" {
       if { $a_sim_vars(b_int_systemc_mode) } {
         lappend opts "\$${tool}_opts"
-        lappend opts "-work $work_lib"
-        lappend opts "-compiler \$gcc_path/g++"
-        lappend opts "-cFlags"
-        set gcc_opts "\"-o $a_sim_vars(tmp_obj_dir)/${file_name}.o \$xmsc_gcc_opts\""
+        if { $a_sim_vars(b_optimizeForRuntime) } {
+          set file_name "$a_sim_vars(s_sim_top)_xmsc.f"
+          set gcc_opts "\$xmsc_gcc_opts -f $file_name"
+        } else {
+          lappend opts "-work $work_lib"
+          lappend opts "-compiler \$gcc_path/g++"
+          lappend opts "-cFlags"
+          set gcc_opts "\"-o $a_sim_vars(tmp_obj_dir)/${file_name}.o \$xmsc_gcc_opts\""
+        }
         lappend opts $gcc_opts
       }
     }
@@ -1600,11 +1607,17 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
   set compiler [xcs_get_compiler_name "xcelium" $file_type]
   set arg_list [list]
   if { [string length $compiler] > 0 } {
-    lappend arg_list $compiler
+    if { ($a_sim_vars(b_optimizeForRuntime)) && ( $compiler == "xmsc") } {
+      lappend arg_list "xmsc_run"
+    } else {
+      lappend arg_list $compiler
+    }
     usf_append_compiler_options $compiler $file $associated_library $file_type arg_list
     if { ("xmsc" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
-      variable l_design_c_files
-      lappend l_design_c_files $file
+      variable a_design_c_files_coln
+      if { ![info exists a_design_c_files_coln($file)] } {
+        set a_design_c_files_coln($file) $file_type
+      }
     }
     if { ("g++" == $compiler) || ("gcc" == $compiler) } {
       # no work lib required

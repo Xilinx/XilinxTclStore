@@ -524,7 +524,7 @@ proc usf_vcs_write_compile_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "compile" "vcs"
   if { {} != $tool_path } {
-    if { $a_sim_vars(b_refactorForMessaging) } {
+    if { $a_sim_vars(b_optimizeForRuntime) } {
       xcs_write_log_file_cleanup $fh_scr $a_sim_vars(run_logs_compile)
     }
     set b_set_shell_var_exit false
@@ -591,7 +591,7 @@ proc usf_vcs_write_compile_script {} {
   usf_vcs_write_tcl_pre_hook $fh_scr $tcl_pre_hook
 
   # write compile order files
-  if { $a_sim_vars(b_refactorForMessaging) } {
+  if { $a_sim_vars(b_optimizeForRuntime) } {
     usf_vcs_write_compile_order_files_msg $fh_scr
   } else {
     usf_vcs_write_compile_order_files $fh_scr
@@ -835,10 +835,13 @@ proc usf_vcs_write_elaborate_script {} {
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
       #puts $fh_scr "# set gcc objects"
-      variable l_design_c_files
       set objs_arg [list]
       set uniq_objs [list]
-      foreach c_file $l_design_c_files {
+
+      variable a_design_c_files_coln
+      foreach {key value} [array get a_design_c_files_coln] {
+        set c_file     $key
+        set file_type  $value
         set file_name [file tail [file root $c_file]]
         append file_name ".o"
         if { [lsearch -exact $uniq_objs $file_name] == -1 } {
@@ -1485,7 +1488,7 @@ proc usf_vcs_write_vhdl_compile_options { fh_scr } {
     #  }
     #}
   }
-  if { $a_sim_vars(b_refactorForMessaging) } {
+  if { $a_sim_vars(b_optimizeForRuntime) } {
     lappend arg_list "-l $a_sim_vars(tmp_log_file)"
   }
 
@@ -1519,7 +1522,7 @@ proc usf_vcs_write_verilog_compile_options { fh_scr } {
       }
     }
   }
-  if { $a_sim_vars(b_refactorForMessaging) } {
+  if { $a_sim_vars(b_optimizeForRuntime) } {
     lappend arg_list "-l $a_sim_vars(tmp_log_file)"
   }
 
@@ -1646,7 +1649,7 @@ proc usf_vcs_write_cpp_compile_options { fh_scr } {
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
 
   set tool "g++"
-  set arg_list [list "--version -c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
+  set arg_list [list "-c -fPIC -O3 -std=c++11 -DCOMMON_CPP_DLL"]
   if { [get_property 32bit $fs_obj] } {
     set arg_list [linsert $arg_list 0 "-m32"]
   } else {
@@ -1669,7 +1672,7 @@ proc usf_vcs_write_c_compile_options { fh_scr } {
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
 
   set tool "gcc"
-  set arg_list [list "--version -c -fPIC -O3"]
+  set arg_list [list "-c -fPIC -O3"]
   if { [get_property 32bit $fs_obj] } {
     set arg_list [linsert $arg_list 0 "-m32"]
   } else {
@@ -2019,7 +2022,7 @@ proc usf_vcs_write_glbl_compile { fh_scr } {
       xcs_copy_glbl_file $dir
       set file_str "${work_lib_sw}\"${glbl_file}\""
       puts $fh_scr "\n# compile glbl module"
-      if { $a_sim_vars(b_refactorForMessaging) } {
+      if { $a_sim_vars(b_optimizeForRuntime) } {
         if { {} != $tool_path } {
           puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
         } else {
@@ -2048,7 +2051,7 @@ proc usf_vcs_write_glbl_compile { fh_scr } {
           xcs_copy_glbl_file $dir
           set file_str "${work_lib_sw}\"${glbl_file}\""
           puts $fh_scr "\n# compile glbl module"
-          if { $a_sim_vars(b_refactorForMessaging) } {
+          if { $a_sim_vars(b_optimizeForRuntime) } {
             if { {} != $tool_path } {
               puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
             } else {

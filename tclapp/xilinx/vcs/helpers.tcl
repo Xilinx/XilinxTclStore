@@ -96,7 +96,6 @@ proc usf_init_vars {} {
   # list of xpm libraries
   variable l_xpm_libraries [list]
 
-  variable l_design_c_files          [list]
   variable l_system_sim_incl_dirs    [list]
   set a_sim_vars(tmp_obj_dir)        "c.obj"
 
@@ -140,12 +139,12 @@ proc usf_init_vars {} {
                 FILE_TYPE != \"ELF\""
 
   # run logs
-  set a_sim_vars(clog)                   "compile.log"
-  set a_sim_vars(tmp_log_file)           ".tmp_log"
-  set a_sim_vars(run_logs_compile)       [list $a_sim_vars(clog) vhdlan.log vlogan.log syscan.log $a_sim_vars(tmp_log_file)]
-  set a_sim_vars(run_logs_elaborate)     [list elaborate.log]
-  set a_sim_vars(run_logs_simulate)      [list simulate.log]
-  set a_sim_vars(b_refactorForMessaging) [get_param "project.refactorSimScriptExecutionForMessaging"]
+  set a_sim_vars(clog)                 "compile.log"
+  set a_sim_vars(tmp_log_file)         ".tmp_log"
+  set a_sim_vars(run_logs_compile)     [list $a_sim_vars(clog) vhdlan.log vlogan.log syscan.log $a_sim_vars(tmp_log_file)]
+  set a_sim_vars(run_logs_elaborate)   [list elaborate.log]
+  set a_sim_vars(run_logs_simulate)    [list simulate.log]
+  set a_sim_vars(b_optimizeForRuntime) [get_param "project.optimizeSimScriptExecution"]
 
   # simulation mode types
   variable a_sim_mode_types
@@ -182,6 +181,9 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_lib_type_info
   array unset a_sim_cache_lib_type_info
+
+  variable a_design_c_files_coln
+  array unset a_design_c_files_coln
 
   variable a_shared_library_path_coln
   array unset a_shared_library_path_coln
@@ -1606,8 +1608,10 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
     usf_append_compiler_options $compiler $file $associated_library $file_type arg_list
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { ("syscan" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
-        variable l_design_c_files
-        lappend l_design_c_files $file
+        variable a_design_c_files_coln
+        if { ![info exists a_design_c_files_coln($file)] } {
+          set a_design_c_files_coln($file) $file_type
+        }
       }
       if { ("g++" == $compiler) || ("gcc" == $compiler) } {
        # no work lib required
