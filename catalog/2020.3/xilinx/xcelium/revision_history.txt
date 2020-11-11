@@ -1,3 +1,4 @@
+11.52 param change for script runtime improvements
 11.51 script update for log file messaging improvements
 11.50 code-refactoring for compile step procedures
 11.49 removed obsolete code - assemble files by library

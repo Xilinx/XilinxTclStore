@@ -1,3 +1,4 @@
+9.38 param change for script runtime improvements
 9.37 script update for log file messaging improvements
 9.36 code-refactoring for compile step procedures
 9.35 removed obsolete code - assemble files by library
