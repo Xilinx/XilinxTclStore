@@ -1,3 +1,4 @@
+2.348 find xilinx_vip from VIVADO if not found from default data dir
 2.347 script update for log file messaging improvements
 2.346 removed obsolete code - assemble files by library
 2.345 helpers for log file deletion

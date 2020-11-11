@@ -1,3 +1,4 @@
+11.53 find xilinx_vip from VIVADO if not found from default data dir
 11.52 param change for script runtime improvements
 11.51 script update for log file messaging improvements
 11.50 code-refactoring for compile step procedures
