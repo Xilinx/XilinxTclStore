@@ -3105,6 +3105,14 @@ proc xcs_get_vip_include_dirs {} {
   set incl_dir {}
   if { [llength $a_sim_sv_pkg_libs] > 0 } {
     set data_dir [rdi::get_data_dir -quiet -datafile xilinx_vip]
+    if { {} == $data_dir } {
+      if { [info exists ::env(VIVADO)] } {
+        set xv $::env(VIVADO)
+        if { ({} != $xv) && ([file exists $xv]) } {
+          set data_dir "$xv/data"
+        }
+      }
+    }
     set incl_dir "${data_dir}/xilinx_vip/include"
     if { [file exists $incl_dir] } {
       return $incl_dir
@@ -3123,7 +3131,17 @@ proc xcs_get_xilinx_vip_files {} {
   if { [llength $a_sim_sv_pkg_libs] == 0 } {
     return $xv_files
   }
-  set xv_dir [file normalize "[rdi::get_data_dir -quiet -datafile "xilinx_vip"]/xilinx_vip"]
+  set xv_dir [rdi::get_data_dir -quiet -datafile "xilinx_vip"]
+  if { {} == $xv_dir } {
+    if { [info exists ::env(VIVADO)] } {
+      set xv $::env(VIVADO)
+      if { ({} != $xv) && ([file exists $xv]) } {
+        set xv_dir "$xv/data/xilinx_vip"
+      }
+    }
+  } else {
+    set xv_dir "$xv_dir/xilinx_vip"
+  }
   set file "$xv_dir/xilinx_vip_pkg.list.f"
   if { ![file exists $file] } {
     send_msg_id SIM-utils-058 WARNING "File does not exist! '$file'\n"
