@@ -103,6 +103,12 @@ proc simulate { args } {
       puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
       close $fh
     }
+
+    # write run script
+    if { [get_param "project.writeRunScriptForSimulation"] } {
+      usf_write_run_script "xsim" $a_sim_vars(run_logs)
+    }
+
     return
   }
 
