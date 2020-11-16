@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Fixed bugs and improved SoC flow</revision_history>
+      <name>protoip</name>
+      <pkg_require>Vivado 2015.1</pkg_require>
+      <author>Bulat Khusainov</author>
+      <company>icl</company>
+      <company_display>Imperial College London</company_display>
+      <summary>Protoip is a utility for quickly prototyping C-based IP in FPGA hardware</summary>
+      <display>IP prototyping in FPGA hardware</display>
+      <procs>
+        <proc>
+          <name>ip_design_build</name>
+          <summary>Build the IP XACT of the project according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.</summary>
+        </proc>
+        <proc>
+          <name>ip_design_build_debug</name>
+          <summary>Open the project named &apos;project_name&apos; in the Vivado HLS GUI.</summary>
+        </proc>
+        <proc>
+          <name>ip_design_delete</name>
+          <summary>Delete a project from [WORKING DIRECTORY]</summary>
+        </proc>
+        <proc>
+          <name>ip_design_duplicate</name>
+          <summary>Duplicate a project in [WORKING DIRECTORY]</summary>
+        </proc>
+        <proc>
+          <name>ip_design_test</name>
+          <summary>Run a C/RTL simulation of the project named &apos;project_name&apos; according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt using Vivado HLS.</summary>
+        </proc>
+        <proc>
+          <name>ip_design_test_debug</name>
+          <summary>Open the project named &apos;project_name&apos; in the Vivado HLS GUI to run a C/RTL simulation.</summary>
+        </proc>
+        <proc>
+          <name>ip_prototype_build</name>
+          <summary>Build the IP prototype of the project according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt using Vivado.</summary>
+        </proc>
+        <proc>
+          <name>ip_prototype_build_debug</name>
+          <summary>Open Vivado GUI to debug the project named &apos;project_name&apos; according to the project configuration parameters [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt</summary>
+        </proc>
+        <proc>
+          <name>ip_prototype_load</name>
+          <summary>Build the FPGA Ethernet server application using SDK according to the specification in [WORKING DIRECTORY]/design_parameters.tcl and program the FPGA. A connected evaluation board is required.</summary>
+        </proc>
+        <proc>
+          <name>ip_prototype_load_debug</name>
+          <summary>Open SDK to debug the the FPGA Ethernet server running on the FPGA ARM processor.</summary>
+        </proc>
+        <proc>
+          <name>ip_prototype_test</name>
+          <summary>Run a test of the IP prototype named &apos;project_name&apos; according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt. A connected evaluation board is required.</summary>
+        </proc>
+        <proc>
+          <name>make_rand_stimuli</name>
+          <summary>Create input vectors with random data (-5,5) to be used as stimuli by ip_design_test.</summary>
+        </proc>
+        <proc>
+          <name>make_template</name>
+          <summary>Build the IP prototype project template in the current working directory</summary>
+        </proc>
+        <proc>
+          <name>soc_prototype_load</name>
+          <summary>Build user&apos;s code (from soc_user.c and soc_user.h files) and the FPGA Ethernet server application using SDK according to the specification in [WORKING DIRECTORY]/design_parameters.tcl and program the FPGA. A connected evaluation board is required.</summary>
+        </proc>
+        <proc>
+          <name>soc_prototype_load_debug</name>
+          <summary>Open SDK to debug user&apos;s code (from soc_user.c and soc_user.h files) and the the FPGA Ethernet server running on the FPGA ARM processor.</summary>
+        </proc>
+        <proc>
+          <name>soc_prototype_test</name>
+          <summary>Run a test of the SOC named &apos;project_name&apos; according to the specification in [WORKING DIRECTORY]/doc/project_name/ip_configuration_parameters.txt. A connected evaluation board is required.</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
