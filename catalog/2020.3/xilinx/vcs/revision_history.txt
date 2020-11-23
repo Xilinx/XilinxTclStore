@@ -1,3 +1,4 @@
+9.40 compile systemC sources into library and generate interface
 9.39 find xilinx_vip from VIVADO if not found from default data dir
 9.38 param change for script runtime improvements
 9.37 script update for log file messaging improvements
