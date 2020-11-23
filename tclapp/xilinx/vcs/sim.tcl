@@ -592,7 +592,8 @@ proc usf_vcs_write_compile_script {} {
 
   # write compile order files
   if { $a_sim_vars(b_optimizeForRuntime) } {
-    usf_vcs_write_compile_order_files_msg $fh_scr
+    usf_vcs_write_compile_order_files_opt $fh_scr
+    #usf_vcs_write_compile_order_files_msg $fh_scr
   } else {
     usf_vcs_write_compile_order_files $fh_scr
   }
@@ -828,6 +829,9 @@ proc usf_vcs_write_elaborate_script {} {
 
         set arg_list [linsert $arg_list end "-Mdir=c.obj"]
         set arg_list [linsert $arg_list end "-lstdc++fs"]
+        if { $a_sim_vars(b_optimizeForRuntime) } {
+          set arg_list [linsert $arg_list end $a_sim_vars(syscan_libname)]
+        }
       }
     }
   }
@@ -1543,6 +1547,21 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
   variable a_sim_vars
   set fs_obj [get_filesets $a_sim_vars(s_simset)]
 
+  if { $a_sim_vars(b_optimizeForRuntime) } {
+    set tool "g++"
+    puts $fh_scr "# set ${tool} command line args for systemC shared library and systemC/HDL interface model"
+    set arg_list [list "-fPIC -O3 -std=c++11 -g -DCOMMON_CPP_DLL -DSC_INCLUDE_DYNAMIC_PROCESSES"]
+    if { [get_property 32bit $fs_obj] } {
+      set arg_list [linsert $arg_list 0 "-m32"]
+    } else {
+      set arg_list [linsert $arg_list 0 "-m64"]
+    }
+    puts $fh_scr "gpp_sysc_opts=\"[join $arg_list " "]\""
+
+    set arg_list [list "-fPIC -O3 -std=c++11 -Wall -Wno-deprecated -DSC_INCLUDE_DYNAMIC_PROCESSES"]
+    puts $fh_scr "gpp_sysc_hdl_opts=\"[join $arg_list " "]\"\n"
+  }
+
   set tool "syscan"
   set arg_list [list "-sysc=232"]
   lappend arg_list "-cpp \$\{gcc_path\}/g++"
@@ -1706,6 +1725,178 @@ proc usf_vcs_write_tcl_pre_hook { fh_scr tcl_pre_hook } {
     puts $fh_scr "echo \"$cmd\""
     set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
     puts $fh_scr "ExecStep $full_cmd\n"
+  }
+}
+
+proc usf_vcs_write_compile_order_files_opt { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  
+  set tool_path $a_sim_vars(s_tool_bin_path)
+  set gcc_path  $a_sim_vars(s_gcc_bin_path)
+  set top       $a_sim_vars(s_sim_top)
+
+  set log              {}
+  set null             "2>/dev/null"
+  set prev_lib         {}
+  set prev_file_type   {}
+  set redirect_cmd_str "2>&1 | tee"
+
+  set n_file_group       1
+  set n_vhd_file_group   0
+  set n_ver_file_group   0
+  set n_gplus_file_group 0
+  set n_gcc_file_group   0
+  set b_first          true
+
+  #####################
+  # RTL - vhdlan/vlogan
+  #####################
+  foreach file $a_sim_vars(l_design_files) {
+    set fargs       [split $file {|}]
+    set type        [lindex $fargs 0]
+    set file_type   [lindex $fargs 1]
+    set lib         [lindex $fargs 2]
+    set cmd_str     [lindex $fargs 3]
+    set src_file    [lindex $fargs 4]
+    set b_static_ip [lindex $fargs 5]
+    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+    set compiler [file tail [lindex [split $cmd_str " "] 0]]
+    switch -exact -- $compiler {
+      "vhdlan" -
+      "vlogan" {
+        # vlogan expects double back slash
+        if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
+          set src_file [string trim $src_file "\""]
+          regsub -all { } $src_file {\\\\ } src_file
+        }
+
+        if { $b_first } {
+          set b_first false
+          usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
+        } else {
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
+            puts $fh_scr "$src_file \\"
+          } else {
+            set rdcs "$redirect_cmd_str"
+            set cstr "$a_sim_vars(clog)"
+            if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+            append rdcs " $cstr"
+            append rdcs "; cat $a_sim_vars(tmp_log_file)"
+            if { "vhdlan.log" == $log } { incr n_vhd_file_group;if { $n_vhd_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+            if { "vlogan.log" == $log } { incr n_ver_file_group;if { $n_ver_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+            append rdcs $rdap
+            puts $fh_scr "$rdcs\n"
+            incr n_file_group
+            usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
+          }
+        }
+      }
+    }
+  }
+  # last redirect command for vhdl/verilog file groups
+  if { ("vhdlan.log" == $log) || ("vlogan.log" == $log) } {
+    if { "vhdlan.log" == $log } { incr n_vhd_file_group   }
+    if { "vlogan.log" == $log } { incr n_ver_file_group   }
+    if { ($n_vhd_file_group > 1) || ($n_vhd_file_group > 1) } { incr n_file_group }
+    set rdcs "$redirect_cmd_str"
+    set cstr "$a_sim_vars(clog)"
+    if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+    append rdcs " $cstr";append rdcs "; cat $a_sim_vars(tmp_log_file)"
+    # only 1 vhdl or verilog file to compile?
+    if { [expr $n_vhd_file_group + $n_ver_file_group] == 1 } {
+      set rdap " > $log $null"
+    } else {
+      if {"vhdlan.log" == $log} { if {$n_vhd_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+      if {"vlogan.log" == $log} { if {$n_ver_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+    }
+    append rdcs $rdap
+    puts $fh_scr "$rdcs"
+  }
+
+  ##################
+  # systemC - syscan
+  ##################
+  if { $a_sim_vars(b_contain_systemc_sources) } {
+    if { $n_file_group > 1 } { puts $fh_scr "" }
+    variable a_sim_cache_sysc_stub_files
+    set sysc_stub_modules [list]
+    set b_first true
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      switch -exact -- $compiler {
+        "syscan" {
+          if { $b_first } {
+            set cmd_str "\$gcc_path/g++ \$gpp_sysc_opts \$syscan_gcc_opts "
+            set gcc_cmd "$cmd_str \\\n$src_file \\"
+            puts $fh_scr "$gcc_cmd"
+            set b_first false
+          } else {
+            puts $fh_scr "$src_file \\"
+          }
+          set sysc_src_file [string trim $src_file {\"}]
+          set module_name [file root [file tail $sysc_src_file]]
+          if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
+            lappend sysc_stub_modules "$module_name"
+          }
+        }
+      }
+    }
+    incr n_file_group
+    puts $fh_scr "-shared -o $a_sim_vars(syscan_libname)"
+    puts $fh_scr ""
+    set gcc_cmd "syscan "
+    if { {} != $tool_path } {
+      set gcc_cmd "\$bin_path/syscan "
+    }
+    append gcc_cmd "\$syscan_opts -cflags \"\$gpp_sysc_hdl_opts \$syscan_gcc_opts\" -Mdir=c.obj \\"
+    puts $fh_scr "$gcc_cmd"
+    foreach stub_mod $sysc_stub_modules {
+      puts $fh_scr "$a_sim_vars(syscan_libname):$stub_mod \\"
+    }
+  }
+
+  #################
+  # cpp/C - g++/gcc 
+  #################
+  if { $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
+    if { $n_file_group > 1 } { puts $fh_scr "" }
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      switch -exact -- $compiler {
+        "g++"    -
+        "gcc"    {
+          set gcc_cmd "$cmd_str \\\n$src_file \\"
+          if { {} != $tool_path } {
+            set gcc_cmd "\$bin_path/$cmd_str \\\n$src_file \\"
+          }
+          puts $fh_scr "$gcc_cmd"
+          set cstr "$a_sim_vars(clog)"
+          if { $n_file_group > 1 } {set cstr "-a $a_sim_vars(clog)"}
+          puts $fh_scr "$redirect_cmd_str $cstr\n"
+          incr n_file_group
+        }
+      }
+    }
   }
 }
 

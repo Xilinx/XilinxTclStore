@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>find xilinx_vip from VIVADO if not found from default data dir</revision_history>
+      <revision_history>compile systemC sources into library and generate interface</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

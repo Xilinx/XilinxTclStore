@@ -146,6 +146,8 @@ proc usf_init_vars {} {
   set a_sim_vars(run_logs_simulate)    [list simulate.log]
   set a_sim_vars(b_optimizeForRuntime) [get_param "project.optimizeSimScriptExecution"]
 
+  set a_sim_vars(syscan_libname) "lib_sc.so"
+
   # simulation mode types
   variable a_sim_mode_types
   set a_sim_mode_types(behavioral)          {behav}
