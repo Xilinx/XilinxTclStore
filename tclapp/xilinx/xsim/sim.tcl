@@ -668,6 +668,7 @@ proc usf_xsim_setup_args { args } {
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_en_system_sim_code]: Enable code for system simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
+  # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
  
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -680,25 +681,26 @@ proc usf_xsim_setup_args { args } {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-simset"                 { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_simset) [lindex $args $i]          }
-      "-mode"                   { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_mode) [lindex $args $i]            }
-      "-type"                   { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_type) [lindex $args $i]            }
-      "-scripts_only"           { set ::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) 1                           }
-      "-of_objects"             { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_comp_file) [lindex $args $i]       }
-      "-absolute_path"          { set ::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) 1                          }
-      "-lib_map_path"           { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
-      "-batch"                  { set ::tclapp::xilinx::xsim::a_sim_vars(b_batch) 1                                  }
-      "-run_dir"                { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i]      }
-      "-int_os_type"            { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i]     }
-      "-int_debug_mode"         { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
-      "-int_systemc_mode"       { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1                       }
-      "-int_rtl_kernel_mode"    { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_rtl_kernel_mode) 1                    }
-      "-int_sm_lib_dir"         { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
-      "-int_compile_glbl"       { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_compile_glbl) 1                       }
-      "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
-      "-int_csim_compile_order" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_csim_compile_order) 1                 }
-      "-int_en_system_sim_code" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) 1                 }
-      "-int_export_source_files" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_export_source_files) 1               }
+      "-simset"                   { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_simset) [lindex $args $i]          }
+      "-mode"                     { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_mode) [lindex $args $i]            }
+      "-type"                     { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_type) [lindex $args $i]            }
+      "-scripts_only"             { set ::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) 1                           }
+      "-of_objects"               { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_comp_file) [lindex $args $i]       }
+      "-absolute_path"            { set ::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) 1                          }
+      "-lib_map_path"             { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
+      "-batch"                    { set ::tclapp::xilinx::xsim::a_sim_vars(b_batch) 1                                  }
+      "-run_dir"                  { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i]      }
+      "-int_os_type"              { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i]     }
+      "-int_debug_mode"           { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_systemc_mode"         { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_rtl_kernel_mode"      { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_rtl_kernel_mode) 1                    }
+      "-int_sm_lib_dir"           { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
+      "-int_compile_glbl"         { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_compile_glbl) 1                       }
+      "-int_sm_lib_ref_debug"     { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
+      "-int_csim_compile_order"   { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_csim_compile_order) 1                 }
+      "-int_en_system_sim_code"   { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) 1                 }
+      "-int_export_source_files"  { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_export_source_files) 1                }
+      "-int_en_vitis_hw_emu_mode" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) 1               }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -2469,16 +2471,41 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr "\}"
   }
 
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+    puts $fh_scr "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_scr "    puts \$msg"
+    puts $fh_scr "  \}"
+    puts $fh_scr "\}"
+    puts $fh_scr "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
+    puts $fh_scr "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
+    puts $fh_scr "    puts \$msg"
+    puts $fh_scr "  \}"
+    puts $fh_scr "\}"
+  }
+
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
-  if { {} == $rt } {
-    # no runtime specified
-    # puts $fh_scr "\nrun all"
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "\nputs \"We are running Simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulaion again.\""
+    puts $fh_scr "puts \"\""
+    puts $fh_scr "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
+    puts $fh_scr "puts \"\""
+    puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+    puts $fh_scr "  run 1ns"
+    puts $fh_scr "\} else \{"
+    puts $fh_scr "  run all"
+    puts $fh_scr "\}"
   } else {
-    set rt_value [string tolower $rt]
-    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-      puts $fh_scr "\nrun all"
+    if { {} == $rt } {
+      # no runtime specified
+      # puts $fh_scr "\nrun all"
     } else {
-      puts $fh_scr "\nrun $rt"
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh_scr "\nrun all"
+      } else {
+        puts $fh_scr "\nrun $rt"
+      }
     }
   }
 
@@ -2498,16 +2525,33 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     }
     puts $fh_scr ""
   }
-    
-  if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
-    set b_no_quit [get_property "XSIM.SIMULATE.NO_QUIT" $fs_obj]
-    if { $b_no_quit } {
-      # do not quit simulation
-    } else {
-      # quit simulation
-      puts $fh_scr "quit"
+  
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "\nif \{ \[file exists profile.tcl\] \} \{"
+    puts $fh_scr "  if \{ \[catch \{source -notrace profile.tcl \} msg\] \} \{"
+    puts $fh_scr "    puts \$msg"
+    puts $fh_scr "  \}"
+    puts $fh_scr "\}\n"
+    puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+    puts $fh_scr "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+    puts $fh_scr "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_scr "      puts \$msg"
+    puts $fh_scr "    \}"
+    puts $fh_scr "  \}"
+    puts $fh_scr "  quit"
+    puts $fh_scr "\}"
+  } else {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
+      set b_no_quit [get_property "XSIM.SIMULATE.NO_QUIT" $fs_obj]
+      if { $b_no_quit } {
+        # do not quit simulation
+      } else {
+        # quit simulation
+        puts $fh_scr "quit"
+      }
     }
   }
+
   close $fh_scr
 }
 

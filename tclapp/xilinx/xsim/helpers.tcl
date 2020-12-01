@@ -55,6 +55,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_int_csim_compile_order) 0
   set a_sim_vars(b_int_en_system_sim_code) 0
   set a_sim_vars(b_int_export_source_files) 0
+  set a_sim_vars(b_int_en_vitis_hw_emu_mode) 0
   # default is false
   set a_sim_vars(b_force_compile_glbl) [get_param project.forceCompileGlblForSimulation]
   if { !$a_sim_vars(b_force_compile_glbl) } {
