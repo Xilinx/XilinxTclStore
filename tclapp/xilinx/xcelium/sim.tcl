@@ -257,6 +257,7 @@ proc usf_xcelium_setup_args { args } {
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
+  # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -269,26 +270,27 @@ proc usf_xcelium_setup_args { args } {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-simset"                 { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_simset) [lindex $args $i]          }
-      "-mode"                   { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_mode) [lindex $args $i]            }
-      "-type"                   { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_type) [lindex $args $i]            }
-      "-scripts_only"           { set ::tclapp::xilinx::xcelium::a_sim_vars(b_scripts_only) 1                           }
-      "-of_objects"             { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_comp_file) [lindex $args $i]       }
-      "-absolute_path"          { set ::tclapp::xilinx::xcelium::a_sim_vars(b_absolute_path) 1                          }
-      "-lib_map_path"           { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
-      "-install_path"           { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_install_path) [lindex $args $i]    }
-      "-batch"                  { set ::tclapp::xilinx::xcelium::a_sim_vars(b_batch) 1                                  }
-      "-run_dir"                { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_launch_dir) [lindex $args $i]      }
-      "-int_os_type"            { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_os_type) [lindex $args $i]     }
-      "-int_debug_mode"         { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
-      "-int_ide_gui"            { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode) 1                        }
-      "-int_halt_script"        { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_halt_script) 1                        }
-      "-int_systemc_mode"       { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_systemc_mode) 1                       }
-      "-int_gcc_bin_path"       { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
-      "-int_sm_lib_dir"         { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
-      "-int_compile_glbl"       { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_compile_glbl) 1                       }
-      "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
-      "-int_csim_compile_order" { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_csim_compile_order) 1                 }
+      "-simset"                   { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_simset) [lindex $args $i]          }
+      "-mode"                     { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_mode) [lindex $args $i]            }
+      "-type"                     { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_type) [lindex $args $i]            }
+      "-scripts_only"             { set ::tclapp::xilinx::xcelium::a_sim_vars(b_scripts_only) 1                           }
+      "-of_objects"               { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_comp_file) [lindex $args $i]       }
+      "-absolute_path"            { set ::tclapp::xilinx::xcelium::a_sim_vars(b_absolute_path) 1                          }
+      "-lib_map_path"             { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
+      "-install_path"             { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_install_path) [lindex $args $i]    }
+      "-batch"                    { set ::tclapp::xilinx::xcelium::a_sim_vars(b_batch) 1                                  }
+      "-run_dir"                  { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_launch_dir) [lindex $args $i]      }
+      "-int_os_type"              { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_os_type) [lindex $args $i]     }
+      "-int_debug_mode"           { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_ide_gui"              { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode) 1                        }
+      "-int_halt_script"          { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_halt_script) 1                        }
+      "-int_systemc_mode"         { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_gcc_bin_path"         { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
+      "-int_sm_lib_dir"           { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
+      "-int_compile_glbl"         { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_compile_glbl) 1                       }
+      "-int_sm_lib_ref_debug"     { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
+      "-int_csim_compile_order"   { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_csim_compile_order) 1                 }
+      "-int_en_vitis_hw_emu_mode" { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) 1               }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -1088,12 +1090,21 @@ proc usf_xcelium_write_simulate_script {} {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
 
-  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_batch) || $b_scripts_only } {
-   # no gui
-  } else {
-    # launch_simulation - if called from vivado in gui mode only
-    if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode) } {
+  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    set exec_mode [get_property -quiet "simulator_launch_mode" $fs_obj]
+    if { "batch" == $exec_mode } {
+      # default
+    } else {
       set arg_list [linsert $arg_list end "-gui"]
+    }
+  } else {
+    if { $::tclapp::xilinx::xcelium::a_sim_vars(b_batch) || $b_scripts_only } {
+     # no gui
+    } else {
+      # launch_simulation - if called from vivado in gui mode only
+      if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode) } {
+        set arg_list [linsert $arg_list end "-gui"]
+      }
     }
   }
 
