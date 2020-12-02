@@ -141,14 +141,14 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>7d84f48ba35455c0b9be336dffd44b287afc870a</commit_id>
-      <revision>9.40</revision>
+      <commit_id>eb26f9c9f145f7647c1609a5530055adea3884bd</commit_id>
+      <revision>9.41</revision>
     </app>
     <app>
       <name>xcelium</name>
       <company>xilinx</company>
-      <commit_id>a4685e277d1f6a958a69a7bec96d2608f545c3ff</commit_id>
-      <revision>11.53</revision>
+      <commit_id>eb26f9c9f145f7647c1609a5530055adea3884bd</commit_id>
+      <revision>11.54</revision>
     </app>
     <app>
       <name>xsim</name>
