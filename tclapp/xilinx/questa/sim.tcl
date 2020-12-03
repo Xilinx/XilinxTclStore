@@ -1182,7 +1182,10 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   } else {
     usf_questa_create_wave_do_file $wave_do_file
   }
-
+  if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    # TODO: this is not required but mentioned in hw_emu_common_util.tcl (need to confirm)
+    #puts $fh "set xv_lib_path \"\$::env(XILINX_VIVADO)/lib/lnx64.o/Default:\$::env(XILINX_VIVADO)/lib/lnx64.o\""
+  }
   set cmd_str [usf_questa_get_simulation_cmdline]
   usf_add_quit_on_error $fh "simulate"
   
@@ -1194,6 +1197,11 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   if { [get_property "QUESTA.SIMULATE.IEEE_WARNINGS" $fs_obj] } {
     puts $fh "\nset NumericStdNoWarnings 1"
     puts $fh "set StdArithNoWarnings 1"
+  }
+  if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+    puts $fh "  source \$::env(USER_PRE_SIM_SCRIPT)"
+    puts $fh "\}"
   }
   puts $fh "\ndo \{$wave_do_filename\}"
   puts $fh "\nview wave"
@@ -1252,15 +1260,27 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   }
 
   set rt [string trim [get_property "QUESTA.SIMULATE.RUNTIME" $fs_obj]]
-  if { {} == $rt } {
-    # no runtime specified
-    puts $fh "\nrun"
+  if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh "\nputs \"We are running Simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulaion again.\""
+    puts $fh "puts \"\""
+    puts $fh "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
+    puts $fh "puts \"\""
+    puts $fh "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+    puts $fh "  run 1ns"
+    puts $fh "\} else \{"
+    puts $fh "  run all"
+    puts $fh "\}"
   } else {
-    set rt_value [string tolower $rt]
-    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-      puts $fh "\nrun -all"
+    if { {} == $rt } {
+      # no runtime specified
+      puts $fh "\nrun"
     } else {
-      puts $fh "\nrun $rt"
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh "\nrun -all"
+      } else {
+        puts $fh "\nrun $rt"
+      }
     }
   }
 
@@ -1285,16 +1305,25 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     puts $fh ""
   }
 
-  if { $b_batch } {
-    puts $fh "\nquit -force"
-  } elseif { $b_scripts_only } {
-    if { [get_param "simulator.quitOnSimulationComplete"] } {
-      puts $fh "\nquit -force"
-    }
+  if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh "\nif \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+    puts $fh "  source \$::env(USER_POST_SIM_SCRIPT)"
+    puts $fh "\}"
+    puts $fh "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+    puts $fh "  quit -force"
+    puts $fh "\}"
   } else {
-    # launch_simulation - if called from vivado in batch or Tcl mode, quit
-    if { !$::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) } {
+    if { $b_batch } {
       puts $fh "\nquit -force"
+    } elseif { $b_scripts_only } {
+      if { [get_param "simulator.quitOnSimulationComplete"] } {
+        puts $fh "\nquit -force"
+      }
+    } else {
+      # launch_simulation - if called from vivado in batch or Tcl mode, quit
+      if { !$::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) } {
+        puts $fh "\nquit -force"
+      }
     }
   }
   close $fh

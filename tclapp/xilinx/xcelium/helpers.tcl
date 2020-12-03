@@ -346,88 +346,102 @@ proc usf_create_do_file { simulator do_filename } {
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id USF-Xcelium-036 ERROR "Failed to open file to write ($do_file)\n"
+    return
+  }
+
+  # suppress ieee warnings
+  if { [get_property "XCELIUM.SIMULATE.IEEE_WARNINGS" $fs_obj] } {
+    puts $fh_do "set pack_assert_off {numeric_std std_logic_arith}\n"
+  } 
+  # generate saif file for power estimation
+  set saif {}
+  set uut {}
+  [catch {set uut [get_property -quiet "XCELIUM.SIMULATE.UUT" $fs_obj]} msg]
+  set saif_scope [get_property "XCELIUM.SIMULATE.SAIF_SCOPE" $fs_obj]
+  if { {} != $saif_scope } {
+    set uut $saif_scope
+  }
+  set saif [get_property "XCELIUM.SIMULATE.SAIF" $fs_obj]
+  if { {} != $saif } {
+    if { {} == $uut } {
+      set uut "/$top/uut"
+    }
+    puts $fh_do "dumpsaif -scope $uut -overwrite -output $saif"
+  }
+  puts $fh_do "database -open waves -into waves.shm -default"
+
+  set depth 1
+  if { [get_property "XCELIUM.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
+    set depth "all"
+  }
+  set db "catch \{probe -create -shm -all -variables -depth $depth"
+  if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode)) } {
+    append db "\} msg"
   } else {
-    # suppress ieee warnings
-    if { [get_property "XCELIUM.SIMULATE.IEEE_WARNINGS" $fs_obj] } {
-      puts $fh_do "set pack_assert_off {numeric_std std_logic_arith}\n"
-    } 
-    # generate saif file for power estimation
-    set saif {}
-    set uut {}
-    [catch {set uut [get_property -quiet "XCELIUM.SIMULATE.UUT" $fs_obj]} msg]
-    set saif_scope [get_property "XCELIUM.SIMULATE.SAIF_SCOPE" $fs_obj]
-    if { {} != $saif_scope } {
-      set uut $saif_scope
-    }
-    set saif [get_property "XCELIUM.SIMULATE.SAIF" $fs_obj]
-    if { {} != $saif } {
-      if { {} == $uut } {
-        set uut "/$top/uut"
-      }
-      puts $fh_do "dumpsaif -scope $uut -overwrite -output $saif"
-    }
-    puts $fh_do "database -open waves -into waves.shm -default"
+    append db " -waveform\} msg"
+  }
+  puts $fh_do $db
 
-    set depth 1
-    if { [get_property "XCELIUM.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
-      set depth "all"
-    }
-    set db "catch \{probe -create -shm -all -variables -depth $depth"
-    if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode)) } {
-      append db "\} msg"
-    } else {
-      append db " -waveform\} msg"
-    }
-    puts $fh_do $db
+  # write tcl post hook
+  set tcl_post_hook [get_property XCELIUM.SIMULATE.TCL.POST $fs_obj]
+  if { {} != $tcl_post_hook } {
+    puts $fh_do "\n# execute post tcl file"
+    puts $fh_do "set rc \[catch \{"
+    puts $fh_do "  puts \"source $tcl_post_hook\""
+    puts $fh_do "  source \"$tcl_post_hook\""
+    puts $fh_do "\} result\]"
+    puts $fh_do "if \{\$rc\} \{"
+    puts $fh_do "  puts \"\$result\""
+    puts $fh_do "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
+    #puts $fh_do "  return -code error"
+    puts $fh_do "\}"
+  }
 
-    # write tcl post hook
-    set tcl_post_hook [get_property XCELIUM.SIMULATE.TCL.POST $fs_obj]
-    if { {} != $tcl_post_hook } {
-      puts $fh_do "\n# execute post tcl file"
-      puts $fh_do "set rc \[catch \{"
-      puts $fh_do "  puts \"source $tcl_post_hook\""
-      puts $fh_do "  source \"$tcl_post_hook\""
-      puts $fh_do "\} result\]"
-      puts $fh_do "if \{\$rc\} \{"
-      puts $fh_do "  puts \"\$result\""
-      puts $fh_do "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
-      #puts $fh_do "  return -code error"
-      puts $fh_do "\}"
-    }
+   if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_do "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+    puts $fh_do "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_do "    puts \$msg"
+    puts $fh_do "  \}"
+    puts $fh_do "\}"
+    puts $fh_do "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
+    puts $fh_do "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
+    puts $fh_do "    puts \$msg"
+    puts $fh_do "  \}"
+    puts $fh_do "\}"
+  }
 
-    set rt [string trim [get_property "XCELIUM.SIMULATE.RUNTIME" $fs_obj]]
-    if { {} == $rt } {
-      # no runtime specified
+  set rt [string trim [get_property "XCELIUM.SIMULATE.RUNTIME" $fs_obj]]
+  if { {} == $rt } {
+    # no runtime specified
+    puts $fh_do "\nrun"
+  } else {
+    set rt_value [string tolower $rt]
+    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
       puts $fh_do "\nrun"
     } else {
-      set rt_value [string tolower $rt]
-      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-        puts $fh_do "\nrun"
-      } else {
-        puts $fh_do "\nrun $rt"
-      }
+      puts $fh_do "\nrun $rt"
     }
+  }
 
-    if { {} != $saif } {
-      puts $fh_do "dumpsaif -end"
-    }
+  if { {} != $saif } {
+    puts $fh_do "dumpsaif -end"
+  }
 
-    # add TCL sources
-    set tcl_src_files [list]
-    set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
-    set sim_obj $::tclapp::xilinx::xcelium::a_sim_vars(s_simset)
-    xcs_find_files tcl_src_files $::tclapp::xilinx::xcelium::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::xcelium::a_sim_vars(b_absolute_path) $sim_obj
-    if {[llength $tcl_src_files] > 0} {
-      puts $fh_do ""
-      foreach file $tcl_src_files {
-        puts $fh_do "source \{$file\}"
-      }
-      puts $fh_do ""
+  # add TCL sources
+  set tcl_src_files [list]
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
+  set sim_obj $::tclapp::xilinx::xcelium::a_sim_vars(s_simset)
+  xcs_find_files tcl_src_files $::tclapp::xilinx::xcelium::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::xcelium::a_sim_vars(b_absolute_path) $sim_obj
+  if {[llength $tcl_src_files] > 0} {
+    puts $fh_do ""
+    foreach file $tcl_src_files {
+      puts $fh_do "source \{$file\}"
     }
+    puts $fh_do ""
+  }
 
-    if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode)) } {
-      puts $fh_do "exit"
-    }
+  if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode)) } {
+    puts $fh_do "exit"
   }
   close $fh_do
 }

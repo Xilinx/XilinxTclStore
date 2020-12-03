@@ -350,92 +350,106 @@ proc usf_create_do_file { simulator do_filename } {
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id USF-VCS-035 ERROR "Failed to open file to write ($do_file)\n"
+    return
+  }
+
+  # generate saif file for power estimation
+  set saif {}
+  set uut {}
+  [catch {set uut [get_property -quiet "VCS.SIMULATE.UUT" $fs_obj]} msg]
+  set saif_scope [get_property "VCS.SIMULATE.SAIF_SCOPE" $fs_obj]
+  if { {} != $saif_scope } {
+    set uut $saif_scope
+  }
+  set saif [get_property "VCS.SIMULATE.SAIF" $fs_obj]
+  if { {} != $saif } {
+    if { {} == $uut } {
+      set uut "$top.uut"
+    }
+    puts $fh_do "power $uut"
+    puts $fh_do "power -enable"
+  }
+
+  if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
+    # no op in batch mode
   } else {
-    # generate saif file for power estimation
-    set saif {}
-    set uut {}
-    [catch {set uut [get_property -quiet "VCS.SIMULATE.UUT" $fs_obj]} msg]
-    set saif_scope [get_property "VCS.SIMULATE.SAIF_SCOPE" $fs_obj]
-    if { {} != $saif_scope } {
-      set uut $saif_scope
-    }
-    set saif [get_property "VCS.SIMULATE.SAIF" $fs_obj]
-    if { {} != $saif } {
-      if { {} == $uut } {
-        set uut "$top.uut"
-      }
-      puts $fh_do "power $uut"
-      puts $fh_do "power -enable"
-    }
+    puts $fh_do "add_wave /$top/*"
+  }
+  
+  if { [get_property "VCS.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
+    puts $fh_do "dump -add / -depth 0"
+  }
 
-    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
-      # no op in batch mode
+  # write tcl post hook
+  set tcl_post_hook [get_property VCS.SIMULATE.TCL.POST $fs_obj]
+  if { {} != $tcl_post_hook } {
+    puts $fh_do "\n# execute post tcl file"
+    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
+      puts $fh_do "set rc \[catch \{"
+      puts $fh_do "  puts \"source $tcl_post_hook\""
+      puts $fh_do "  source \"$tcl_post_hook\""
+      puts $fh_do "\} result\]"
+      puts $fh_do "if \{\$rc\} \{"
+      puts $fh_do "  puts \"\$result\""
+      puts $fh_do "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
+      #puts $fh_do "  return -code error"
+      puts $fh_do "\}"
     } else {
-      puts $fh_do "add_wave /$top/*"
+      # TODO: catch mechanism not working in VCS GUI
+      puts $fh_do "  puts \"source $tcl_post_hook\""
+      puts $fh_do "  source \"$tcl_post_hook\""
     }
-    
-    if { [get_property "VCS.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
-      puts $fh_do "dump -add / -depth 0"
-    }
+  }
 
-    # write tcl post hook
-    set tcl_post_hook [get_property VCS.SIMULATE.TCL.POST $fs_obj]
-    if { {} != $tcl_post_hook } {
-      puts $fh_do "\n# execute post tcl file"
-      if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
-        puts $fh_do "set rc \[catch \{"
-        puts $fh_do "  puts \"source $tcl_post_hook\""
-        puts $fh_do "  source \"$tcl_post_hook\""
-        puts $fh_do "\} result\]"
-        puts $fh_do "if \{\$rc\} \{"
-        puts $fh_do "  puts \"\$result\""
-        puts $fh_do "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
-        #puts $fh_do "  return -code error"
-        puts $fh_do "\}"
-      } else {
-        # TODO: catch mechanism not working in VCS GUI
-        puts $fh_do "  puts \"source $tcl_post_hook\""
-        puts $fh_do "  source \"$tcl_post_hook\""
-      }
-    }
+  if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_do "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+    puts $fh_do "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_do "    puts \$msg"
+    puts $fh_do "  \}"
+    puts $fh_do "\}"
+    puts $fh_do "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
+    puts $fh_do "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
+    puts $fh_do "    puts \$msg"
+    puts $fh_do "  \}"
+    puts $fh_do "\}"
+  }
 
-    set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]
-    if { {} == $rt } {
-      # no runtime specified
+  set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]
+  if { {} == $rt } {
+    # no runtime specified
+    puts $fh_do "run"
+  } else {
+    set rt_value [string tolower $rt]
+    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
       puts $fh_do "run"
     } else {
-      set rt_value [string tolower $rt]
-      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-        puts $fh_do "run"
-      } else {
-        puts $fh_do "run $rt"
-      }
+      puts $fh_do "run $rt"
     }
+  }
 
-    if { {} != $saif } {
-      set timescale {1}
-      if { {} == $uut } {
-        set uut "$top.uut"
-      }
-      set module $uut
-      puts $fh_do "power -disable"
-      puts $fh_do "power -report $saif $timescale $module"
+  if { {} != $saif } {
+    set timescale {1}
+    if { {} == $uut } {
+      set uut "$top.uut"
     }
+    set module $uut
+    puts $fh_do "power -disable"
+    puts $fh_do "power -report $saif $timescale $module"
+  }
 
-    # add TCL sources
-    set tcl_src_files [list]
-    set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
-    set sim_obj $::tclapp::xilinx::vcs::a_sim_vars(s_simset)
-    xcs_find_files tcl_src_files $::tclapp::xilinx::vcs::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) $sim_obj
-    if {[llength $tcl_src_files] > 0} {
-      foreach file $tcl_src_files {
-        puts $fh_do "source \{$file\}"
-      }
+  # add TCL sources
+  set tcl_src_files [list]
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
+  set sim_obj $::tclapp::xilinx::vcs::a_sim_vars(s_simset)
+  xcs_find_files tcl_src_files $::tclapp::xilinx::vcs::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) $sim_obj
+  if {[llength $tcl_src_files] > 0} {
+    foreach file $tcl_src_files {
+      puts $fh_do "source \{$file\}"
     }
+  }
 
-    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
-      puts $fh_do "quit"
-    }
+  if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
+    puts $fh_do "quit"
   }
   close $fh_do
 }
