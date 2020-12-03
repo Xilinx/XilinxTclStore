@@ -906,6 +906,39 @@ proc xcs_generate_ip_netlist { comp_file runs_to_launch_arg } {
   send_msg_id SIM-utils-014 INFO "Run scheduled for '$ip_basename':$run_name\n"
 }
 
+proc xcs_get_noc_libs_for_netlist_sim { sim_flow s_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set noc_libs [list]
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { {functional} == $s_type } {
+      #
+      # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
+      #
+      if { {} != [xcs_find_ip "noc"] } {
+        set noc_ip_libs   [list]
+        set uniq_noc_libs [list]
+        foreach ip_obj [get_ips -all -quiet] {
+          set ipdef [get_property -quiet IPDEF $ip_obj]
+          set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+          if { ([regexp {^noc_nmu} $vlnv_name]) ||
+               ([regexp {^noc_nsu} $vlnv_name]) ||
+               ([regexp {^noc_nps} $vlnv_name]) } {
+
+            if { [lsearch -exact $uniq_noc_libs $vlnv_name] == -1 } {
+              lappend noc_libs "$vlnv_name"
+              lappend uniq_noc_libs $vlnv_name
+            }
+          }
+        }
+      }
+    }
+  }
+  return $noc_libs
+}
+
 proc xcs_get_bin_path { tool_name path_sep } {
   # Summary:
   # Argument Usage:

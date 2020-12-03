@@ -1956,16 +1956,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
-    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-      if { {functional} == $a_sim_vars(s_type) } {
-        # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
-        set noc_ip_obj [xcs_find_ip "noc"]
-        if { {} != $noc_ip_obj } {
-          # TODO: need to fetch these names programmatically from pre-compiled data
-          lappend args_list "-L noc_nmu_v1_0_0"
-          lappend args_list "-L noc_nsu_v1_0_0"
-        }
-      }
+    foreach noc_lib [xcs_get_noc_libs_for_netlist_sim $sim_flow $a_sim_vars(s_type)] {
+      lappend args_list "-L $noc_lib"
     }
   }
 
