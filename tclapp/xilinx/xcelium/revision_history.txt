@@ -1,3 +1,4 @@
+11.56 helper to return list of noc libraries for netlist simulation
 11.55 Vitis HW EMU wrapper code updates
 11.54 Vitis HW EMU settings under conditional switch
 11.53 find xilinx_vip from VIVADO if not found from default data dir

@@ -1,3 +1,4 @@
+9.43 helper to return list of noc libraries for netlist simulation
 9.42 Vitis HW EMU wrapper code updates
 9.41 Vitis HW EMU settings under conditional switch
 9.40 compile systemC sources into library and generate interface
