@@ -5,6 +5,8 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2020.12.07 - Fixed issue with some non-FD HFN that were not reported
+##            - Added ordering of the non-FD HFN table (high to low)
 ## 2020.09.29 - Added support for custom metrics (-custom_metrics/-only_custom_metrics,
 ##              -no_custom_metrics,FAILFAST_CUSTOM_METRICS)
 ##            - Added support for -only_fails to only show failing metrics
@@ -411,7 +413,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2020.09.29}
+  variable version {2020.12.07}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -2789,7 +2791,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 
       set nets [get_nets -quiet -top_net_of_hierarchical_group -segments -filter "(FLAT_PIN_COUNT >= $limit) && (TYPE == SIGNAL)" \
                  -of [get_pins -quiet -of $leafCells] ]
-      set drivers [get_pins -quiet -of $nets -filter {IS_LEAF && (REF_NAME !~ FD*) && (DIRECTION == OUT)}]
+#       set drivers [get_pins -quiet -of $nets -filter {IS_LEAF && (REF_NAME !~ FD*) && (DIRECTION == OUT)}]
+      set drivers [get_pins -quiet -leaf -of $nets -filter {(REF_NAME !~ FD*) && (DIRECTION == OUT)}]
       setMetric {design.nets.nonfdhfn}  [llength $drivers]
       set stepStopTime [clock seconds]
       puts " -I- non-FD high fanout nets completed in [expr $stepStopTime - $stepStartTime] seconds"
@@ -2813,6 +2816,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           $tbl addrow [list $refname $pin $net $fanout]
           set empty 0
         }
+        if {!$empty} { $tbl sort -Fanout +Net }
         puts $FH [$tbl print]
         catch {$tbl destroy}
         close $FH
