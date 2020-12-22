@@ -113,6 +113,10 @@ proc usf_vcs_setup_simulation { args } {
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
 
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
+    set a_sim_vars(b_netlist_sim) 1
+  }
+
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
   } else {
@@ -191,6 +195,11 @@ proc usf_vcs_setup_simulation { args } {
 
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
+
+  # find hbm IP, if any for netlist functional simulation
+  if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    set a_sim_vars(sp_hbm_ip_obj) [xcs_find_ip "hbm"]
+  }
 
   # fetch design files
   set global_files_str {}

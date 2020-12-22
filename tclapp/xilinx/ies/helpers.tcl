@@ -67,6 +67,7 @@ proc usf_init_vars {} {
 
   set a_sim_vars(sp_tcl_obj)         {}
   set a_sim_vars(b_extract_ip_sim_files) 0
+  set a_sim_vars(sp_hbm_ip_obj) {}
 
   # fileset compile order
   variable l_compile_order_files     [list]
@@ -130,6 +131,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_flow_dir_key)            {behav}
   set a_sim_vars(s_simulation_flow)         {behav_sim}
   set a_sim_vars(s_netlist_mode)            {funcsim}
+  set a_sim_vars(b_netlist_sim)             0
 
   # netlist file
   set a_sim_vars(s_netlist_file)            {}
@@ -747,19 +749,14 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     }
   }
 
-  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
-    if { {functional} == $a_sim_vars(s_type) } {
-      set hbm_ip_obj [xcs_find_ip "hbm"]
-      if { {} != $hbm_ip_obj } {
-        set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
-        if { {} != $hbm_file_obj } {
-          set file_type [get_property file_type $hbm_file_obj]
-          set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts]
-          if { {} != $cmd_str } {
-            lappend files $cmd_str
-            lappend l_compile_order_files $hbm_file_obj
-          }
-        }
+  if { ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_hbm_ip_obj)) } {
+    set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
+    if { {} != $hbm_file_obj } {
+      set file_type [get_property file_type $hbm_file_obj]
+      set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $hbm_file_obj
       }
     }
   }
@@ -1225,6 +1222,11 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
       set verilog_defines [get_property "VERILOG_DEFINE" [get_filesets $fs_obj]]
       if { [llength $verilog_defines] > 0 } {
         usf_append_define_generics $verilog_defines $tool opts
+      }
+
+      # for hbm netlist functional simulation
+      if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_hbm_ip_obj)) } {
+        lappend opts "-define \"NETLIST_SIM\""
       }
     }
   }

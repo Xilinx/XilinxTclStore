@@ -115,6 +115,10 @@ proc usf_questa_setup_simulation { args } {
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
 
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
+    set a_sim_vars(b_netlist_sim) 1
+  }
+
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
   } else {
@@ -200,6 +204,11 @@ proc usf_questa_setup_simulation { args } {
     if { [xcs_contains_C_files] } {
       xcs_find_shared_lib_paths "questa" $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
     }
+  }
+
+  # find hbm IP, if any for netlist functional simulation
+  if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    set a_sim_vars(sp_hbm_ip_obj) [xcs_find_ip "hbm"]
   }
 
   # fetch design files
@@ -960,17 +969,6 @@ proc usf_questa_get_elaboration_cmdline {} {
     # pass xpm library reference for behavioral simulation only
     if { {behav_sim} == $sim_flow } {
       set arg_list [linsert $arg_list end "-L" "xpm"]
-    }
-  }
-
-  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
-    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-      if { {functional} == $a_sim_vars(s_type) } {
-        set hbm_ip_obj [xcs_find_ip "hbm"]
-        if { {} != $hbm_ip_obj } {
-          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_8"]
-        }
-      }
     }
   }
 

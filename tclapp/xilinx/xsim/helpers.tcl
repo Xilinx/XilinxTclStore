@@ -167,6 +167,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_flow_dir_key)            {behav}
   set a_sim_vars(s_simulation_flow)         {behav_sim}
   set a_sim_vars(s_netlist_mode)            {funcsim}
+  set a_sim_vars(b_netlist_sim)             0
 
   # netlist file
   set a_sim_vars(s_netlist_file)            {}
