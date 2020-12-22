@@ -1,3 +1,4 @@
+2.352 support for hbm netlist simulation
 2.351 helper to return list of noc libraries for netlist simulation
 2.350 Vitis HW EMU settings under conditional switch
 2.349 generate run script to execute all steps
