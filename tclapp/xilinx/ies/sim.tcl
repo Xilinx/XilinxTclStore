@@ -575,22 +575,8 @@ proc usf_ies_write_compile_script {} {
   if { {behav_sim} == $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
     if { [xcs_compile_glbl_file "ies" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
-      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-      set file_str "-work $top_lib \"${glbl_file}\""
-      puts $fh_scr "\n# compile glbl module"
-      if { {} != $tool_path } {
-        puts $fh_scr "\$bin_path/ncvlog \$ncvlog_opts $file_str"
-      } else {
-        puts $fh_scr "ncvlog \$ncvlog_opts $file_str"
-      }
-    }
-  } else {
-    # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
-          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } { 
-      if { ({timing} == $::tclapp::xilinx::ies::a_sim_vars(s_type)) } {
-        # This is not supported, netlist will be verilog always
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
@@ -600,6 +586,28 @@ proc usf_ies_write_compile_script {} {
           puts $fh_scr "\$bin_path/ncvlog \$ncvlog_opts $file_str"
         } else {
           puts $fh_scr "ncvlog \$ncvlog_opts $file_str"
+        }
+      }
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } { 
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        if { ({timing} == $::tclapp::xilinx::ies::a_sim_vars(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
+          set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+          set file_str "-work $top_lib \"${glbl_file}\""
+          puts $fh_scr "\n# compile glbl module"
+          if { {} != $tool_path } {
+            puts $fh_scr "\$bin_path/ncvlog \$ncvlog_opts $file_str"
+          } else {
+            puts $fh_scr "ncvlog \$ncvlog_opts $file_str"
+          }
         }
       }
     }
@@ -848,6 +856,11 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     if { $a_sim_vars(b_force_compile_glbl) } {
       set b_add_glbl 1
     }
+  }
+
+  # force no compile glbl
+  if { $b_add_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_add_glbl 0
   }
 
   if { $b_add_glbl } {

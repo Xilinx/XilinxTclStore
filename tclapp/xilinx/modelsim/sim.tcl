@@ -482,7 +482,11 @@ proc usf_modelsim_create_wave_do_file { file } {
   puts $fh "if \{ \[catch \{\[add wave *\]\}\] \} \{\}"
 
   if { ([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) || $a_sim_vars(b_force_compile_glbl) } {
-    puts $fh "add wave /glbl/GSR"
+    if { $a_sim_vars(b_force_no_compile_glbl) } {
+      # skip glbl signal waveform if force no compile set
+    } else {
+      puts $fh "add wave /glbl/GSR"
+    }
   }
   close $fh
 }
@@ -683,22 +687,30 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   if { {behav_sim} == $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
     if { [xcs_compile_glbl_file "modelsim" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
-      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-      set file_str "-work $top_lib \"${glbl_file}\""
-      puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
-    }
-  } else {
-    # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
-          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
-      if { ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
-        # This is not supported, netlist will be verilog always
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         set file_str "-work $top_lib \"${glbl_file}\""
         puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
+      }
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        if { ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
+          set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+          set file_str "-work $top_lib \"${glbl_file}\""
+          puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
+        }
       }
     }
   }
@@ -940,7 +952,11 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
   if { ([xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) || $a_sim_vars(b_force_compile_glbl) } {    
-    lappend arg_list "${top_lib}.glbl"
+    if { $a_sim_vars(b_force_no_compile_glbl) } {
+      # skip glbl top if force no compile set
+    } else {
+      lappend arg_list "${top_lib}.glbl"
+    }
   }
   lappend arg_list "-o"
   lappend arg_list "${top}_opt"
@@ -1187,6 +1203,11 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     if { $a_sim_vars(b_force_compile_glbl) } {
       set b_add_glbl 1
     }
+  }
+
+  # force no compile glbl
+  if { $b_add_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_add_glbl 0
   }
 
   if { $b_add_glbl } {

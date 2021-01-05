@@ -61,6 +61,7 @@ proc usf_init_vars {} {
   if { !$a_sim_vars(b_force_compile_glbl) } {
     set a_sim_vars(b_force_compile_glbl) [get_property force_compile_glbl [current_fileset -simset]]
   }
+  set a_sim_vars(b_force_no_compile_glbl) [get_property force_no_compile_glbl [current_fileset -simset]]
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]

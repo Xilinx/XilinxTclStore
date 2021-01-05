@@ -52,6 +52,8 @@ proc usf_init_vars {} {
   if { !$a_sim_vars(b_force_compile_glbl) } {
     set a_sim_vars(b_force_compile_glbl) [get_property force_compile_glbl [current_fileset -simset]]
   }
+  set a_sim_vars(b_force_no_compile_glbl) [get_property force_no_compile_glbl [current_fileset -simset]]
+
   set a_sim_vars(b_int_sm_lib_ref_debug)   0
   set a_sim_vars(b_int_csim_compile_order) 0
 

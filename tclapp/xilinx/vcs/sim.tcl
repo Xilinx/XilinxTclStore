@@ -1095,6 +1095,11 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     }
   }
 
+  # force no compile glbl
+  if { $b_add_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_add_glbl 0
+  }
+
   set b_set_glbl_top 0
   if { $b_add_glbl } {
     set b_is_pure_vhdl [xcs_is_pure_vhdl_design $a_sim_vars(l_design_files)]
@@ -2231,20 +2236,24 @@ proc usf_vcs_write_glbl_compile { fh_scr } {
       if { {work} != $top_lib } {
         set work_lib_sw "-work $top_lib "
       }
-      xcs_copy_glbl_file $dir
-      set file_str "${work_lib_sw}\"${glbl_file}\""
-      puts $fh_scr "\n# compile glbl module"
-      if { $a_sim_vars(b_optimizeForRuntime) } {
-        if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
-        } else {
-          puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
-        }
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
       } else {
-        if { {} != $tool_path } {
-          puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+        xcs_copy_glbl_file $dir
+        set file_str "${work_lib_sw}\"${glbl_file}\""
+        puts $fh_scr "\n# compile glbl module"
+        if { $a_sim_vars(b_optimizeForRuntime) } {
+          if { {} != $tool_path } {
+            puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
+          } else {
+            puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
+          }
         } else {
-          puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          if { {} != $tool_path } {
+            puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          } else {
+            puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+          }
         }
       }
     }
@@ -2252,28 +2261,32 @@ proc usf_vcs_write_glbl_compile { fh_scr } {
     # for post* compile glbl if design contain verilog and netlist is vhdl
     if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
           ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
-      if { ({timing} == $a_sim_vars(s_type)) } {
-        # This is not supported, netlist will be verilog always
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
       } else {
-        if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ($a_sim_vars(b_force_compile_glbl)) } {
-          set work_lib_sw {}
-          if { {work} != $top_lib } {
-            set work_lib_sw "-work $top_lib "
-          }
-          xcs_copy_glbl_file $dir
-          set file_str "${work_lib_sw}\"${glbl_file}\""
-          puts $fh_scr "\n# compile glbl module"
-          if { $a_sim_vars(b_optimizeForRuntime) } {
-            if { {} != $tool_path } {
-              puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
-            } else {
-              puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
+        if { ({timing} == $a_sim_vars(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ($a_sim_vars(b_force_compile_glbl)) } {
+            set work_lib_sw {}
+            if { {work} != $top_lib } {
+              set work_lib_sw "-work $top_lib "
             }
-          } else {
-            if { {} != $tool_path } {
-              puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+            xcs_copy_glbl_file $dir
+            set file_str "${work_lib_sw}\"${glbl_file}\""
+            puts $fh_scr "\n# compile glbl module"
+            if { $a_sim_vars(b_optimizeForRuntime) } {
+              if { {} != $tool_path } {
+                puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
+              } else {
+                puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str \\\n2>&1 | tee -a $a_sim_vars(clog); cat $a_sim_vars(tmp_log_file) >> vlogan.log $null"
+              }
             } else {
-              puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+              if { {} != $tool_path } {
+                puts $fh_scr "\$bin_path/vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+              } else {
+                puts $fh_scr "vlogan \$vlogan_opts +v2k $file_str 2>&1 | tee -a vlogan.log"
+              }
             }
           }
         }
