@@ -1,3 +1,4 @@
+4.67 donot compile glbl if force_no_compile_glbl is set
 4.66 support for hbm netlist simulation
 4.65 helper to return list of noc libraries for netlist simulation
 4.64 find xilinx_vip from VIVADO if not found from default data dir

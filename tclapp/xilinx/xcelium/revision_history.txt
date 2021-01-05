@@ -1,3 +1,4 @@
+11.58 donot compile glbl if force_no_compile_glbl is set
 11.57 support for hbm netlist simulation
 11.56 helper to return list of noc libraries for netlist simulation
 11.55 Vitis HW EMU wrapper code updates
