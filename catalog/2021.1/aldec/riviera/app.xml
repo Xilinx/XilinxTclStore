@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Update s_data_files_filter</revision_history>
+      <revision_history>Update tcl scripts</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
