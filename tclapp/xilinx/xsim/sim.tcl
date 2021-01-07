@@ -103,6 +103,12 @@ proc simulate { args } {
       puts $fh "INFO: Scripts generated successfully. Please see the 'Tcl Console' window for details."
       close $fh
     }
+
+    # write run script
+    if { [get_param "project.writeRunScriptForSimulation"] } {
+      usf_write_run_script "xsim" $a_sim_vars(run_logs)
+    }
+
     return
   }
 
@@ -308,6 +314,10 @@ proc usf_xsim_setup_simulation { args } {
  
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
+
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
+    set a_sim_vars(b_netlist_sim) 1
+  }
  
   # set default object
   if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
@@ -662,6 +672,7 @@ proc usf_xsim_setup_args { args } {
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_en_system_sim_code]: Enable code for system simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
+  # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
  
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -674,25 +685,26 @@ proc usf_xsim_setup_args { args } {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-simset"                 { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_simset) [lindex $args $i]          }
-      "-mode"                   { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_mode) [lindex $args $i]            }
-      "-type"                   { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_type) [lindex $args $i]            }
-      "-scripts_only"           { set ::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) 1                           }
-      "-of_objects"             { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_comp_file) [lindex $args $i]       }
-      "-absolute_path"          { set ::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) 1                          }
-      "-lib_map_path"           { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
-      "-batch"                  { set ::tclapp::xilinx::xsim::a_sim_vars(b_batch) 1                                  }
-      "-run_dir"                { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i]      }
-      "-int_os_type"            { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i]     }
-      "-int_debug_mode"         { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
-      "-int_systemc_mode"       { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1                       }
-      "-int_rtl_kernel_mode"    { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_rtl_kernel_mode) 1                    }
-      "-int_sm_lib_dir"         { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
-      "-int_compile_glbl"       { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_compile_glbl) 1                       }
-      "-int_sm_lib_ref_debug"   { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
-      "-int_csim_compile_order" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_csim_compile_order) 1                 }
-      "-int_en_system_sim_code" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) 1                 }
-      "-int_export_source_files" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_export_source_files) 1               }
+      "-simset"                   { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_simset) [lindex $args $i]          }
+      "-mode"                     { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_mode) [lindex $args $i]            }
+      "-type"                     { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_type) [lindex $args $i]            }
+      "-scripts_only"             { set ::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) 1                           }
+      "-of_objects"               { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_comp_file) [lindex $args $i]       }
+      "-absolute_path"            { set ::tclapp::xilinx::xsim::a_sim_vars(b_absolute_path) 1                          }
+      "-lib_map_path"             { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
+      "-batch"                    { set ::tclapp::xilinx::xsim::a_sim_vars(b_batch) 1                                  }
+      "-run_dir"                  { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir) [lindex $args $i]      }
+      "-int_os_type"              { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_os_type) [lindex $args $i]     }
+      "-int_debug_mode"           { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
+      "-int_systemc_mode"         { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_rtl_kernel_mode"      { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_rtl_kernel_mode) 1                    }
+      "-int_sm_lib_dir"           { incr i;set ::tclapp::xilinx::xsim::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
+      "-int_compile_glbl"         { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_compile_glbl) 1                       }
+      "-int_sm_lib_ref_debug"     { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
+      "-int_csim_compile_order"   { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_csim_compile_order) 1                 }
+      "-int_en_system_sim_code"   { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_en_system_sim_code) 1                 }
+      "-int_export_source_files"  { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_export_source_files) 1                }
+      "-int_en_vitis_hw_emu_mode" { set ::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) 1               }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -1042,7 +1054,7 @@ proc usf_xsim_write_setup_file {} {
       puts $fh "uvm=$uvm_lib"
     }
   }
-  set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
@@ -1142,6 +1154,12 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   if { (!$b_contain_verilog_srcs) && $a_sim_vars(b_force_compile_glbl) } {
     set b_contain_verilog_srcs true 
   }
+
+  # is force no compile?
+  if { $b_contain_verilog_srcs && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_contain_verilog_srcs false
+  }
+
   set b_contain_vhdl_srcs [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
   set b_contain_sc_srcs false
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
@@ -1936,7 +1954,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # design source libs
-  set design_libs [usf_xsim_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) 1]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) 1]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
@@ -1948,16 +1966,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
-    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-      if { {functional} == $a_sim_vars(s_type) } {
-        # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
-        set noc_ip_obj [xcs_find_ip "noc"]
-        if { {} != $noc_ip_obj } {
-          # TODO: need to fetch these names programmatically from pre-compiled data
-          lappend args_list "-L noc_nmu_v1_0_0"
-          lappend args_list "-L noc_nsu_v1_0_0"
-        }
-      }
+    foreach noc_lib [xcs_get_noc_libs_for_netlist_sim $sim_flow $a_sim_vars(s_type)] {
+      lappend args_list "-L $noc_lib"
     }
   }
 
@@ -2003,7 +2013,11 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   if { $a_sim_vars(b_int_compile_glbl) || $a_sim_vars(b_force_compile_glbl) } {
     if { ([lsearch -exact $args_list "unisims_ver"] == -1) } {
-      lappend args_list "-L unisims_ver"
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip unisims_ver
+      } else {
+        lappend args_list "-L unisims_ver"
+      }
     }
   }
 
@@ -2258,6 +2272,11 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_add_glbl 1
   }
 
+  # force no compile glbl
+  if { $b_add_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_add_glbl 0
+  }
+
   if { $b_add_glbl } {
     set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
@@ -2463,16 +2482,44 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr "\}"
   }
 
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+    puts $fh_scr "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_scr "    puts \$msg"
+    puts $fh_scr "  \}"
+    puts $fh_scr "\}"
+  }
+
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
+    puts $fh_scr "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
+    puts $fh_scr "    puts \$msg"
+    puts $fh_scr "  \}"
+    puts $fh_scr "\}"
+  }
+
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
-  if { {} == $rt } {
-    # no runtime specified
-    # puts $fh_scr "\nrun all"
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "\nputs \"We are running Simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulaion again.\""
+    puts $fh_scr "puts \"\""
+    puts $fh_scr "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
+    puts $fh_scr "puts \"\""
+    puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+    puts $fh_scr "  run 1ns"
+    puts $fh_scr "\} else \{"
+    puts $fh_scr "  run all"
+    puts $fh_scr "\}"
   } else {
-    set rt_value [string tolower $rt]
-    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-      puts $fh_scr "\nrun all"
+    if { {} == $rt } {
+      # no runtime specified
+      # puts $fh_scr "\nrun all"
     } else {
-      puts $fh_scr "\nrun $rt"
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh_scr "\nrun all"
+      } else {
+        puts $fh_scr "\nrun $rt"
+      }
     }
   }
 
@@ -2492,16 +2539,36 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     }
     puts $fh_scr ""
   }
-    
-  if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
-    set b_no_quit [get_property "XSIM.SIMULATE.NO_QUIT" $fs_obj]
-    if { $b_no_quit } {
-      # do not quit simulation
-    } else {
-      # quit simulation
-      puts $fh_scr "quit"
+  
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "\nif \{ \[file exists profile.tcl\] \} \{"
+    puts $fh_scr "  if \{ \[catch \{source -notrace profile.tcl \} msg\] \} \{"
+    puts $fh_scr "    puts \$msg"
+    puts $fh_scr "  \}"
+    puts $fh_scr "\}\n"
+  }
+
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+    puts $fh_scr "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+    puts $fh_scr "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_scr "      puts \$msg"
+    puts $fh_scr "    \}"
+    puts $fh_scr "  \}"
+    puts $fh_scr "  quit"
+    puts $fh_scr "\}"
+  } else {
+    if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
+      set b_no_quit [get_property "XSIM.SIMULATE.NO_QUIT" $fs_obj]
+      if { $b_no_quit } {
+        # do not quit simulation
+      } else {
+        # quit simulation
+        puts $fh_scr "quit"
+      }
     }
   }
+
   close $fh_scr
 }
 
@@ -2632,40 +2699,6 @@ proc usf_xsim_get_sim_mode_as_pretty_str { mode } {
     set ms "Unknown"
   }
   return $ms
-}
-
-proc usf_xsim_get_design_libs { design_files {b_realign_default_lib 0} } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set libs [list]
-  set b_contains_default_lib 0
-  foreach file $design_files {
-    set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set library   [lindex $fargs 2]
-    set cmd_str   [lindex $fargs 3]
-    if { {} == $library } {
-      continue;
-    }
-    if { $b_realign_default_lib } {
-      if { {xil_defaultlib} == $library } {
-        set b_contains_default_lib 1
-        continue;
-      }
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-  if { $b_realign_default_lib } {
-    if { $b_contains_default_lib } {
-      set libs [linsert $libs 0 "xil_defaultlib"]
-    }
-  }
-  return $libs
 }
 
 proc usf_xsim_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_file_type_arg prev_lib_arg } {
@@ -2965,20 +2998,16 @@ proc usf_xsim_write_verilog_prj { b_contain_verilog_srcs fh_scr } {
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
     switch $type {
       {VERILOG} {
-        if { $a_sim_vars(b_group_files_by_library) } {
-          if { $b_first } {
-            set b_first false
-            usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-          } else {
-            if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-              puts $fh_vlog "\"$src_file\" \\"
-            } else {
-              puts $fh_vlog ""
-              usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-            }
-          }
+        if { $b_first } {
+          set b_first false
+          usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
         } else {
-          puts $fh_vlog $cmd_str
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+            puts $fh_vlog "\"$src_file\" \\"
+          } else {
+            puts $fh_vlog ""
+            usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+          }
         }
       }
     }
@@ -2994,22 +3023,30 @@ proc usf_xsim_write_verilog_prj { b_contain_verilog_srcs fh_scr } {
     set b_load_glbl [get_property "XSIM.ELABORATE.LOAD_GLBL" [get_filesets $a_sim_vars(s_simset)]]
 
     if { [xcs_compile_glbl_file "xsim" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
-      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set file_str "$top_lib \"${glbl_file}\""
-      puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
-    }
-  } else {
-    # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
-          ($a_sim_vars(b_int_compile_glbl))) || $a_sim_vars(b_force_compile_glbl) } {
-      if { ({timing} == $a_sim_vars(s_type)) } {
-        # This is not supported, netlist will be verilog always
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
       } else {
         set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set file_str "$top_lib \"${glbl_file}\""
         puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
+      }
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl))) || $a_sim_vars(b_force_compile_glbl) } {
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        if { ({timing} == $a_sim_vars(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
+          set file_str "$top_lib \"${glbl_file}\""
+          puts $fh_vlog "\n# compile glbl module\nverilog $file_str"
+        }
       }
     }
   }
@@ -3106,20 +3143,16 @@ proc usf_xsim_write_vhdl_prj { b_contain_verilog_srcs b_contain_vhdl_srcs b_is_p
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
     switch $type {
       {VHDL} {
-        if { $a_sim_vars(b_group_files_by_library) } {
-          if { $b_first } {
-            set b_first false
-            usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-          } else {
-            if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-              puts $fh_vhdl "\"$src_file\" \\"
-            } else {
-              puts $fh_vhdl ""
-              usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-            }
-          }
+        if { $b_first } {
+          set b_first false
+          usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
         } else {
-          puts $fh_vhdl $cmd_str
+          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+            puts $fh_vhdl "\"$src_file\" \\"
+          } else {
+            puts $fh_vhdl ""
+            usf_xsim_set_initial_cmd $fh_vhdl $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+          }
         }
       }
     }

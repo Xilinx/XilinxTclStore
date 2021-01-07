@@ -55,8 +55,11 @@ proc usf_init_vars {} {
   if { !$a_sim_vars(b_force_compile_glbl) } {
     set a_sim_vars(b_force_compile_glbl) [get_property force_compile_glbl [current_fileset -simset]]
   }
+  set a_sim_vars(b_force_no_compile_glbl) [get_property force_no_compile_glbl [current_fileset -simset]]
+
   set a_sim_vars(b_int_sm_lib_ref_debug)   0
   set a_sim_vars(b_int_csim_compile_order) 0
+  set a_sim_vars(b_int_en_vitis_hw_emu_mode) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
@@ -83,6 +86,7 @@ proc usf_init_vars {} {
   set a_sim_vars(sp_tcl_obj)         {}
   set a_sim_vars(s_boost_dir)        {}
   set a_sim_vars(b_extract_ip_sim_files) 0
+  set a_sim_vars(sp_hbm_ip_obj) {}
 
   # fileset compile order
   variable l_compile_order_files     [list]
@@ -96,7 +100,6 @@ proc usf_init_vars {} {
   # list of xpm libraries
   variable l_xpm_libraries [list]
 
-  variable l_design_c_files          [list]
   variable l_system_sim_incl_dirs    [list]
   set a_sim_vars(tmp_obj_dir)        "c.obj"
 
@@ -139,6 +142,16 @@ proc usf_init_vars {} {
                 FILE_TYPE != \"BMM\"                          && \
                 FILE_TYPE != \"ELF\""
 
+  # run logs
+  set a_sim_vars(clog)                 "compile.log"
+  set a_sim_vars(tmp_log_file)         ".tmp_log"
+  set a_sim_vars(run_logs_compile)     [list $a_sim_vars(clog) vhdlan.log vlogan.log syscan.log $a_sim_vars(tmp_log_file)]
+  set a_sim_vars(run_logs_elaborate)   [list elaborate.log]
+  set a_sim_vars(run_logs_simulate)    [list simulate.log]
+  set a_sim_vars(b_optimizeForRuntime) [get_param "project.optimizeSimScriptExecution"]
+
+  set a_sim_vars(syscan_libname) "lib_sc.so"
+
   # simulation mode types
   variable a_sim_mode_types
   set a_sim_mode_types(behavioral)          {behav}
@@ -150,6 +163,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_flow_dir_key)            {behav}
   set a_sim_vars(s_simulation_flow)         {behav_sim}
   set a_sim_vars(s_netlist_mode)            {funcsim}
+  set a_sim_vars(b_netlist_sim)             0
 
   # netlist file
   set a_sim_vars(s_netlist_file)            {}
@@ -174,6 +188,9 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_lib_type_info
   array unset a_sim_cache_lib_type_info
+
+  variable a_design_c_files_coln
+  array unset a_design_c_files_coln
 
   variable a_shared_library_path_coln
   array unset a_shared_library_path_coln
@@ -337,92 +354,106 @@ proc usf_create_do_file { simulator do_filename } {
   set fh_do 0
   if {[catch {open $do_file w} fh_do]} {
     send_msg_id USF-VCS-035 ERROR "Failed to open file to write ($do_file)\n"
+    return
+  }
+
+  # generate saif file for power estimation
+  set saif {}
+  set uut {}
+  [catch {set uut [get_property -quiet "VCS.SIMULATE.UUT" $fs_obj]} msg]
+  set saif_scope [get_property "VCS.SIMULATE.SAIF_SCOPE" $fs_obj]
+  if { {} != $saif_scope } {
+    set uut $saif_scope
+  }
+  set saif [get_property "VCS.SIMULATE.SAIF" $fs_obj]
+  if { {} != $saif } {
+    if { {} == $uut } {
+      set uut "$top.uut"
+    }
+    puts $fh_do "power $uut"
+    puts $fh_do "power -enable"
+  }
+
+  if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
+    # no op in batch mode
   } else {
-    # generate saif file for power estimation
-    set saif {}
-    set uut {}
-    [catch {set uut [get_property -quiet "VCS.SIMULATE.UUT" $fs_obj]} msg]
-    set saif_scope [get_property "VCS.SIMULATE.SAIF_SCOPE" $fs_obj]
-    if { {} != $saif_scope } {
-      set uut $saif_scope
-    }
-    set saif [get_property "VCS.SIMULATE.SAIF" $fs_obj]
-    if { {} != $saif } {
-      if { {} == $uut } {
-        set uut "$top.uut"
-      }
-      puts $fh_do "power $uut"
-      puts $fh_do "power -enable"
-    }
+    puts $fh_do "add_wave /$top/*"
+  }
+  
+  if { [get_property "VCS.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
+    puts $fh_do "dump -add / -depth 0"
+  }
 
-    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
-      # no op in batch mode
+  # write tcl post hook
+  set tcl_post_hook [get_property VCS.SIMULATE.TCL.POST $fs_obj]
+  if { {} != $tcl_post_hook } {
+    puts $fh_do "\n# execute post tcl file"
+    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
+      puts $fh_do "set rc \[catch \{"
+      puts $fh_do "  puts \"source $tcl_post_hook\""
+      puts $fh_do "  source \"$tcl_post_hook\""
+      puts $fh_do "\} result\]"
+      puts $fh_do "if \{\$rc\} \{"
+      puts $fh_do "  puts \"\$result\""
+      puts $fh_do "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
+      #puts $fh_do "  return -code error"
+      puts $fh_do "\}"
     } else {
-      puts $fh_do "add_wave /$top/*"
+      # TODO: catch mechanism not working in VCS GUI
+      puts $fh_do "  puts \"source $tcl_post_hook\""
+      puts $fh_do "  source \"$tcl_post_hook\""
     }
-    
-    if { [get_property "VCS.SIMULATE.LOG_ALL_SIGNALS" $fs_obj] } {
-      puts $fh_do "dump -add / -depth 0"
-    }
+  }
 
-    # write tcl post hook
-    set tcl_post_hook [get_property VCS.SIMULATE.TCL.POST $fs_obj]
-    if { {} != $tcl_post_hook } {
-      puts $fh_do "\n# execute post tcl file"
-      if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) } {
-        puts $fh_do "set rc \[catch \{"
-        puts $fh_do "  puts \"source $tcl_post_hook\""
-        puts $fh_do "  source \"$tcl_post_hook\""
-        puts $fh_do "\} result\]"
-        puts $fh_do "if \{\$rc\} \{"
-        puts $fh_do "  puts \"\$result\""
-        puts $fh_do "  puts \"ERROR: \\\[USF-simtcl-1\\\] Script failed:$tcl_post_hook\""
-        #puts $fh_do "  return -code error"
-        puts $fh_do "\}"
-      } else {
-        # TODO: catch mechanism not working in VCS GUI
-        puts $fh_do "  puts \"source $tcl_post_hook\""
-        puts $fh_do "  source \"$tcl_post_hook\""
-      }
-    }
+  if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_do "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+    puts $fh_do "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_do "    puts \$msg"
+    puts $fh_do "  \}"
+    puts $fh_do "\}"
+    puts $fh_do "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
+    puts $fh_do "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
+    puts $fh_do "    puts \$msg"
+    puts $fh_do "  \}"
+    puts $fh_do "\}"
+  }
 
-    set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]
-    if { {} == $rt } {
-      # no runtime specified
+  set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]
+  if { {} == $rt } {
+    # no runtime specified
+    puts $fh_do "run"
+  } else {
+    set rt_value [string tolower $rt]
+    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
       puts $fh_do "run"
     } else {
-      set rt_value [string tolower $rt]
-      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-        puts $fh_do "run"
-      } else {
-        puts $fh_do "run $rt"
-      }
+      puts $fh_do "run $rt"
     }
+  }
 
-    if { {} != $saif } {
-      set timescale {1}
-      if { {} == $uut } {
-        set uut "$top.uut"
-      }
-      set module $uut
-      puts $fh_do "power -disable"
-      puts $fh_do "power -report $saif $timescale $module"
+  if { {} != $saif } {
+    set timescale {1}
+    if { {} == $uut } {
+      set uut "$top.uut"
     }
+    set module $uut
+    puts $fh_do "power -disable"
+    puts $fh_do "power -report $saif $timescale $module"
+  }
 
-    # add TCL sources
-    set tcl_src_files [list]
-    set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
-    set sim_obj $::tclapp::xilinx::vcs::a_sim_vars(s_simset)
-    xcs_find_files tcl_src_files $::tclapp::xilinx::vcs::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) $sim_obj
-    if {[llength $tcl_src_files] > 0} {
-      foreach file $tcl_src_files {
-        puts $fh_do "source \{$file\}"
-      }
+  # add TCL sources
+  set tcl_src_files [list]
+  set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
+  set sim_obj $::tclapp::xilinx::vcs::a_sim_vars(s_simset)
+  xcs_find_files tcl_src_files $::tclapp::xilinx::vcs::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::vcs::a_sim_vars(b_absolute_path) $sim_obj
+  if {[llength $tcl_src_files] > 0} {
+    foreach file $tcl_src_files {
+      puts $fh_do "source \{$file\}"
     }
+  }
 
-    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
-      puts $fh_do "quit"
-    }
+  if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
+    puts $fh_do "quit"
   }
   close $fh_do
 }
@@ -999,19 +1030,14 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     }
   }
 
-  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
-    if { {functional} == $a_sim_vars(s_type) } {
-      set hbm_ip_obj [xcs_find_ip "hbm"]
-      if { {} != $hbm_ip_obj } {
-        set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
-        if { {} != $hbm_file_obj } {
-          set file_type [get_property file_type $hbm_file_obj]
-          set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts]
-          if { {} != $cmd_str } {
-            lappend files $cmd_str
-            lappend l_compile_order_files $hbm_file_obj
-          }
-        }
+  if { ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_hbm_ip_obj)) } {
+    set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
+    if { {} != $hbm_file_obj } {
+      set file_type [get_property file_type $hbm_file_obj]
+      set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $hbm_file_obj
       }
     }
   }
@@ -1500,6 +1526,11 @@ proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
       if { [llength $verilog_defines] > 0 } {
         usf_append_define_generics $verilog_defines $tool opts
       }
+
+      # for hbm netlist functional simulation
+      if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_hbm_ip_obj)) } {
+        lappend opts "+define+NETLIST_SIM"
+      }
     }
   }
 }
@@ -1598,8 +1629,10 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
     usf_append_compiler_options $compiler $file $associated_library $file_type arg_list
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { ("syscan" == $compiler) || ("g++" == $compiler) || ("gcc" == $compiler) } {
-        variable l_design_c_files
-        lappend l_design_c_files $file
+        variable a_design_c_files_coln
+        if { ![info exists a_design_c_files_coln($file)] } {
+          set a_design_c_files_coln($file) $file_type
+        }
       }
       if { ("g++" == $compiler) || ("gcc" == $compiler) } {
        # no work lib required

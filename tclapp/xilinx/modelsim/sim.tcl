@@ -114,6 +114,10 @@ proc usf_modelsim_setup_simulation { args } {
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
 
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
+    set a_sim_vars(b_netlist_sim) 1
+  }
+
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
   } else {
@@ -184,6 +188,11 @@ proc usf_modelsim_setup_simulation { args } {
 
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
+
+  # find hbm IP, if any for netlist functional simulation
+  if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    set a_sim_vars(sp_hbm_ip_obj) [xcs_find_ip "hbm"]
+  }
 
   # fetch design files
   set global_files_str {}
@@ -473,7 +482,11 @@ proc usf_modelsim_create_wave_do_file { file } {
   puts $fh "if \{ \[catch \{\[add wave *\]\}\] \} \{\}"
 
   if { ([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) || $a_sim_vars(b_force_compile_glbl) } {
-    puts $fh "add wave /glbl/GSR"
+    if { $a_sim_vars(b_force_no_compile_glbl) } {
+      # skip glbl signal waveform if force no compile set
+    } else {
+      puts $fh "add wave /glbl/GSR"
+    }
   }
   close $fh
 }
@@ -526,7 +539,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib modelsim_lib/msim\n"
   }
 
-  set design_libs [usf_modelsim_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -634,7 +647,6 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   set prev_file_type {}
   set b_redirect false
   set b_appended false
-  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach file $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
@@ -647,33 +659,23 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
-    if { $b_group_files } {
-      if { $b_first } {
-        set b_first false
-        usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-      } else {
-        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-          puts $fh "$src_file \\"
-          set b_redirect true
-        } else {
-          puts $fh ""
-          usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-          set b_appended true
-        }
-      }
+    if { $b_first } {
+      set b_first false
+      usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
     } else {
-      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-        puts $fh "$cmd_str $src_file"
+      if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+        puts $fh "$src_file \\"
+        set b_redirect true
       } else {
-        puts $fh "eval $cmd_str $src_file"
+        puts $fh ""
+        usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+        set b_appended true
       }
     }
   }
 
-  if { $b_group_files } {
-    if { (!$b_redirect) || (!$b_appended) } {
-      puts $fh ""
-    }
+  if { (!$b_redirect) || (!$b_appended) } {
+    puts $fh ""
   }
 
   set glbl_file "glbl.v"
@@ -685,22 +687,30 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
   if { {behav_sim} == $::tclapp::xilinx::modelsim::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "MODELSIM.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::modelsim::a_sim_vars(s_simset)]]
     if { [xcs_compile_glbl_file "modelsim" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
-      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-      set file_str "-work $top_lib \"${glbl_file}\""
-      puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
-    }
-  } else {
-    # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
-          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
-      if { ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
-        # This is not supported, netlist will be verilog always
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         set file_str "-work $top_lib \"${glbl_file}\""
         puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
+      }
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        if { ({timing} == $::tclapp::xilinx::modelsim::a_sim_vars(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
+          set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+          set file_str "-work $top_lib \"${glbl_file}\""
+          puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
+        }
       }
     }
   }
@@ -833,7 +843,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
-  set design_libs [usf_modelsim_get_design_libs $design_files]
+  set design_libs [xcs_get_design_libs $design_files]
 
   # add simulation libraries
   set arg_list [list]
@@ -942,7 +952,11 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   lappend arg_list "$d_libs"
   lappend arg_list "${top_lib}.$top"
   if { ([xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) || $a_sim_vars(b_int_compile_glbl) || $a_sim_vars(b_force_compile_glbl) } {    
-    lappend arg_list "${top_lib}.glbl"
+    if { $a_sim_vars(b_force_no_compile_glbl) } {
+      # skip glbl top if force no compile set
+    } else {
+      lappend arg_list "${top_lib}.glbl"
+    }
   }
   lappend arg_list "-o"
   lappend arg_list "${top}_opt"
@@ -1035,7 +1049,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set t_opts [join $arg_list " "]
 
   set design_files $::tclapp::xilinx::modelsim::a_sim_vars(l_design_files)
-  set design_libs [usf_modelsim_get_design_libs $design_files 1]
+  set design_libs [xcs_get_design_libs $design_files 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -1114,17 +1128,6 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
     }
   }
 
-  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
-    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-      if { {functional} == $a_sim_vars(s_type) } {
-        set hbm_ip_obj [xcs_find_ip "hbm"]
-        if { {} != $hbm_ip_obj } {
-          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_8"]
-        }
-      }
-    }
-  }
-
   lappend arg_list "-lib"
   lappend arg_list $a_sim_vars(default_top_library)
   
@@ -1200,6 +1203,11 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     if { $a_sim_vars(b_force_compile_glbl) } {
       set b_add_glbl 1
     }
+  }
+
+  # force no compile glbl
+  if { $b_add_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_add_glbl 0
   }
 
   if { $b_add_glbl } {
@@ -1514,39 +1522,6 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     puts $fh_scr "exit 0"
   }
   close $fh_scr
-}
-
-proc usf_modelsim_get_design_libs { files {b_realign_default_lib 0} } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set libs [list]
-  set b_contains_default_lib 0
-  foreach file $files {
-    set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set library   [lindex $fargs 2]
-    if { {} == $library } {
-      continue;
-    }
-    if { $b_realign_default_lib } {
-      if { {xil_defaultlib} == $library } {
-        set b_contains_default_lib 1
-        continue;
-      }
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-  if { $b_realign_default_lib } {
-    if { $b_contains_default_lib } {
-      set libs [linsert $libs 0 "xil_defaultlib"]
-    }
-  }
-  return $libs
 }
 
 proc usf_modelsim_map_pre_compiled_libs { fh cmd } {

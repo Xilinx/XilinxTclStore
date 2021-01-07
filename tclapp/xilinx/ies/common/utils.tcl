@@ -906,6 +906,39 @@ proc xcs_generate_ip_netlist { comp_file runs_to_launch_arg } {
   send_msg_id SIM-utils-014 INFO "Run scheduled for '$ip_basename':$run_name\n"
 }
 
+proc xcs_get_noc_libs_for_netlist_sim { sim_flow s_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set noc_libs [list]
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { {functional} == $s_type } {
+      #
+      # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
+      #
+      if { {} != [xcs_find_ip "noc"] } {
+        set noc_ip_libs   [list]
+        set uniq_noc_libs [list]
+        foreach ip_obj [get_ips -all -quiet] {
+          set ipdef [get_property -quiet IPDEF $ip_obj]
+          set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+          if { ([regexp {^noc_nmu} $vlnv_name]) ||
+               ([regexp {^noc_nsu} $vlnv_name]) ||
+               ([regexp {^noc_nps} $vlnv_name]) } {
+
+            if { [lsearch -exact $uniq_noc_libs $vlnv_name] == -1 } {
+              lappend noc_libs "$vlnv_name"
+              lappend uniq_noc_libs $vlnv_name
+            }
+          }
+        }
+      }
+    }
+  }
+  return $noc_libs
+}
+
 proc xcs_get_bin_path { tool_name path_sep } {
   # Summary:
   # Argument Usage:
@@ -3105,6 +3138,14 @@ proc xcs_get_vip_include_dirs {} {
   set incl_dir {}
   if { [llength $a_sim_sv_pkg_libs] > 0 } {
     set data_dir [rdi::get_data_dir -quiet -datafile xilinx_vip]
+    if { {} == $data_dir } {
+      if { [info exists ::env(VIVADO)] } {
+        set xv $::env(VIVADO)
+        if { ({} != $xv) && ([file exists $xv]) } {
+          set data_dir "$xv/data"
+        }
+      }
+    }
     set incl_dir "${data_dir}/xilinx_vip/include"
     if { [file exists $incl_dir] } {
       return $incl_dir
@@ -3123,7 +3164,17 @@ proc xcs_get_xilinx_vip_files {} {
   if { [llength $a_sim_sv_pkg_libs] == 0 } {
     return $xv_files
   }
-  set xv_dir [file normalize "[rdi::get_data_dir -quiet -datafile "xilinx_vip"]/xilinx_vip"]
+  set xv_dir [rdi::get_data_dir -quiet -datafile "xilinx_vip"]
+  if { {} == $xv_dir } {
+    if { [info exists ::env(VIVADO)] } {
+      set xv $::env(VIVADO)
+      if { ({} != $xv) && ([file exists $xv]) } {
+        set xv_dir "$xv/data/xilinx_vip"
+      }
+    }
+  } else {
+    set xv_dir "$xv_dir/xilinx_vip"
+  }
   set file "$xv_dir/xilinx_vip_pkg.list.f"
   if { ![file exists $file] } {
     send_msg_id SIM-utils-058 WARNING "File does not exist! '$file'\n"
@@ -3419,7 +3470,7 @@ proc xcs_write_script_header { fh step simulator } {
   set version_info [split [version] "\n"]
   set release      [lindex $version_info 0]
   set swbuild      [lindex $version_info 1]
-  set copyright    [lindex $version_info 3]
+  set copyright    [lindex $version_info 2]
   set product      [lindex [split $release " "] 0]
   set version_id   [join [lrange $release 1 end] " "]
   set simulator    [xcs_get_simulator_pretty_name $simulator]
@@ -4971,4 +5022,78 @@ proc xcs_check_gcc_path { path resolved_path_arg } {
   }
   set resolved_path $gcc_path
   return true
+}
+
+proc xcs_get_design_libs { files {b_realign 0} } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set uniq_libs [list]
+  set b_contains_default_lib 0
+
+  foreach file $files {
+    set fargs     [split $file {|}]
+    set type      [lindex $fargs 0]
+    set file_type [lindex $fargs 1]
+    set library   [lindex $fargs 2]
+    if { {} == $library } {
+      continue;
+    }
+
+    # contains default lib and needs realignment?
+    if { $b_realign } {
+      if { {xil_defaultlib} == $library } {
+        set b_contains_default_lib 1
+        continue;
+      }
+    }
+
+    # add unique library to collection
+    if { [lsearch -exact $uniq_libs $library] == -1 } {
+      lappend uniq_libs $library
+    }
+  }
+
+  # insert default library at the beginning
+  if { $b_realign } {
+    if { $b_contains_default_lib } {
+      set uniq_libs [linsert $uniq_libs 0 "xil_defaultlib"]
+    }
+  }
+
+  return $uniq_libs
+}
+
+proc xcs_delete_log_files { log_files launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set log_filelist [list]
+  foreach log $log_files { lappend log_filelist "${log}.log" }
+  foreach log_file $log_filelist {
+    set full_path "$launch_dir/$log_file"
+    if { [file exists $full_path] } {
+      [catch {file delete -force $full_path} error_msg]
+    }
+  }
+}
+
+proc xcs_write_log_file_cleanup { fh_scr log_files } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  puts $fh_scr "# delete log files (if exist)"
+  set files [join $log_files " "]
+  puts $fh_scr "reset_log()\n\{"
+  puts $fh_scr "logs=($files)"
+  puts $fh_scr "for (( i=0; i<\$\{#logs\[*\]\}; i++ )); do"
+  puts $fh_scr "  file=\"\$\{logs\[i\]\}\""
+  puts $fh_scr "  if \[\[ -e \$file \]\]; then"
+  puts $fh_scr "    rm -rf \$file"
+  puts $fh_scr "  fi"
+  puts $fh_scr "done\n\}"
+  puts $fh_scr "reset_log"
 }
