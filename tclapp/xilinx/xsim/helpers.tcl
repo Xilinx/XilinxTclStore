@@ -726,6 +726,11 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   set other_ver_opts [list]
   usf_get_other_verilog_options $global_files_str other_ver_opts
 
+  # add xlnoc sources for post-synth functional simulation
+  if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    #usf_add_xlnoc_sources files l_compile_order_files other_ver_opts
+  }
+
   if { {} != $netlist_file } {
     set file_type "Verilog"
     set extn [file extension $netlist_file]
@@ -1519,5 +1524,57 @@ proc usf_write_run_script { simulator log_files } {
 
   close $fh
   xcs_make_file_executable $file
+}
+
+proc usf_add_xlnoc_sources { files_arg l_compile_order_files_arg other_ver_opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $other_ver_opts_arg other_ver_opts 
+  upvar $files_arg files
+  upvar $l_compile_order_files_arg l_compile_order_files
+
+  set xlnoc_bd_obj [get_files -all -quiet "xlnoc.bd"]
+  if { {} == $xlnoc_bd_obj } {
+    return
+  }
+
+  # add noc_nmu
+  set noc_src "noc_nmu_v1_0_vl_rfs.sv"
+
+  set nmu_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"SystemVerilog\")"
+  set nmu_file_obj [lindex [get_files -all -quiet $noc_src -filter $nmu_filter] 0] 
+  if { {} != $nmu_file_obj } {
+    set file_type "SystemVerilog"
+    set cmd_str [usf_get_file_cmd_str $nmu_file_obj $file_type false {} other_ver_opts]
+    if { {} != $cmd_str } {
+      lappend files $cmd_str
+      lappend l_compile_order_files $nmu_file_obj
+    }
+  }
+
+  # add xlnoc.v
+  set xlnoc_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog\")"
+  set xlnoc_file_obj [lindex [get_files -all -quiet "xlnoc.v" -filter $xlnoc_filter] 0] 
+  if { {} != $xlnoc_file_obj } {
+    set file_type "Verilog"
+    set cmd_str [usf_get_file_cmd_str $xlnoc_file_obj $file_type false {} other_ver_opts]
+    if { {} != $cmd_str } {
+      lappend files $cmd_str
+      lappend l_compile_order_files $xlnoc_file_obj
+    }
+  }
+
+  # add xlnoc sources
+  set xlnoc_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"SystemVerilog\")"
+  foreach xlnoc_file_obj [get_files -all -quiet "*xlnoc_*" -filter $xlnoc_filter] {
+    set file_type "SystemVerilog"
+    set cmd_str [usf_get_file_cmd_str $xlnoc_file_obj $file_type false {} other_ver_opts]
+    if { {} != $cmd_str } {
+      lappend files $cmd_str
+      lappend l_compile_order_files $xlnoc_file_obj
+    }
+  }
 }
 }
