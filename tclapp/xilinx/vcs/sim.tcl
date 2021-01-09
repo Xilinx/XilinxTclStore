@@ -775,8 +775,9 @@ proc usf_vcs_write_elaborate_script {} {
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
             set lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
-            set arg_list [linsert $arg_list end "-L$lib_dir"]
-            set arg_list [linsert $arg_list end "-laie_cluster_v1_0_0"]
+            # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
+            #set arg_list [linsert $arg_list end "-L$lib_dir"]
+            #set arg_list [linsert $arg_list end "-laie_cluster_v1_0_0"]
           }
         }
 
@@ -792,8 +793,9 @@ proc usf_vcs_write_elaborate_script {} {
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
             set aie_lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
-            set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
-            set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
+            # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
+            #set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
+            #set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
           }
           if { [xcs_is_sc_library $shared_lib_name] } {
             set arg_list [linsert $arg_list end "-Mlib=$sm_lib_dir"]
@@ -1460,7 +1462,8 @@ proc usf_vcs_write_library_search_order { fh_scr } {
     set sm_cpt_dir [xcs_get_simmodel_dir "vcs" "cpt"]
     set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
     set tp "$cpt_dir/$sm_cpt_dir"
-    append ld_path ":$tp/aie_cluster_v1_0_0"
+    # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
+    #append ld_path ":$tp/aie_cluster_v1_0_0"
     set xilinx_vitis {}
     set cardano_api_path {}
     if { [info exists ::env(XILINX_VITIS)] } {
