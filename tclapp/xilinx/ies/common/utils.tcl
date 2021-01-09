@@ -4955,6 +4955,49 @@ proc xcs_get_gcc_path { simulator sim_product_name simulator_install_path gcc_in
             }
           }
         }
+        {vcs} {
+          # Two possibilities to find gcc for VCS:-
+          #   1. from outside VCS install area (use VG_GNU_PACKAGE)
+          #       VG_GNU_PACKAGE = /tools/installs/synopsys/vg_gnu/<sim-ver>/linux
+          #       $VG_GNU_PACKAGE/gcc-6.2.0_64-shared/bin
+          #
+          # 2. from within VCS install area (use VCS_HOME)
+          #     IMPORTANT: VCS installs latest GCC version under this dir (7.4.0), so we can't use 6.2.0
+          #     VCS_HOME = /tools/gensys/vcs/<sim-ver>
+          #     $VCS_HOME/gnu/linux/gcc-64/bin (this contains 7.4.0)
+
+          # VG_GNU_PACKAGE = /tools/installs/synopsys/vg_gnu/<sim-ver>/linux
+          if { [info exists ::env(VG_GNU_PACKAGE)] } {
+            set sim_root_dir $::env(VG_GNU_PACKAGE)
+            # $VG_GNU_PACKAGE/gcc-6.2.0_64-shared/bin
+            set gcc_sub_dir  "gcc-${gcc_version}_64-shared/bin"
+            # /tools/installs/synopsys/vg_gnu/<sim-ver>/linux/gcc-<sim-ver>_64-shared/bin
+            set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
+            # /tools/installs/synopsys/vg_gnu/<sim-ver>/linux/gcc-<sim-ver>_64-shared/bin/gcc
+            if { [file exists $gcc_root_dir] } {
+              set gcc_exe_file "$gcc_root_dir/$tool" 
+              if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
+                set gcc_path $gcc_root_dir
+                set path_type 4
+                return true
+              }
+            }
+          } else {
+            # /tools/gensys/vcs/<sim-ver>
+            set sim_root_dir [file dirname $sim_root_dir]
+            # gcc sub-dir wrt install dir
+            set gcc_sub_dir  "gnu/linux/gcc-64/bin"
+            set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
+            if { [file exists $gcc_root_dir] } {
+              set gcc_exe_file "$gcc_root_dir/$tool" 
+              if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
+                set gcc_path $gcc_root_dir
+                set path_type 4
+                return true
+              }
+            }
+          }
+        }
       }
     }
   }

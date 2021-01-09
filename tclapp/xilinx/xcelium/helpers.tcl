@@ -550,18 +550,7 @@ proc usf_set_simulator_path { simulator } {
   }
 
   set a_sim_vars(s_tool_bin_path) $bin_path
-  set xm_root {} 
-  [catch {set xm_root [exec xmroot]} error]
-  if { {} == $xm_root } {
-    set xm_root [join [lrange [split $bin_path "/"] 0 end-3] "/"]
-  }
-  set sys_link "$xm_root/tools/systemc/lib/64bit/gnu"
-  if { ![file exists $sys_link] } { 
-    send_msg_id USF-Xcelium-046 WARNING "The Xcelium GNU executables could not be located. Please check if the simulator is installed correctly.\n"
-  }
-    
-  set a_sim_vars(s_sys_link_path) "$sys_link"
-  send_msg_id USF-Xcelium-047 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
+
 }
 
 proc usf_set_gcc_path {} {
@@ -582,6 +571,21 @@ proc usf_set_gcc_path {} {
       3 { send_msg_id USF-Xcelium-25 INFO "Using GCC executables set by GCC_SIM_EXE_PATH environment variable from '$a_sim_vars(s_gcc_bin_path)'"           }
       4 { send_msg_id USF-Xcelium-25 INFO "Using simulator installed GCC executables from '$a_sim_vars(s_gcc_bin_path)'"                                    }
     }
+  }
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    set xm_root {} 
+    [catch {set xm_root [exec xmroot]} error]
+    if { {} == $xm_root } {
+      set xm_root [join [lrange [split $bin_path "/"] 0 end-3] "/"]
+    }
+    set sys_link "$xm_root/tools/systemc/lib/64bit/gnu"
+    if { ![file exists $sys_link] } { 
+      send_msg_id USF-Xcelium-046 WARNING "The Xcelium GNU executables could not be located. Please check if the simulator is installed correctly.\n"
+    }
+    
+    set a_sim_vars(s_sys_link_path) "$sys_link"
+    send_msg_id USF-Xcelium-047 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
   }
 }
 

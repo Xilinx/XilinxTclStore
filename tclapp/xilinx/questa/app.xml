@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>disable binding of aie_cluster</revision_history>
+      <revision_history>support for VCS auto gcc executable path detection</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
