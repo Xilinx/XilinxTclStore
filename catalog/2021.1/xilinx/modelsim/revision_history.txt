@@ -1,3 +1,4 @@
+2.277 support for VCS auto gcc executable path detection
 2.276 merge 2020.3 to 2021.1
 2.275 add check for protobuf static library
 2.274 check for gen dir in path before replacing for rev control

@@ -1,3 +1,4 @@
+2.363 support for VCS auto gcc executable path detection
 2.362 support for xlnoc source compilation
 2.361 merge 2020.3 to 2021.1
 2.360 delete simlibs dir if systemc compile order is empty

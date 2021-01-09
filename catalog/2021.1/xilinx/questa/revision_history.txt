@@ -1,3 +1,4 @@
+2.206 support for VCS auto gcc executable path detection
 2.205 disable binding of aie_cluster
 2.204 merge 2020.3 to 2021.1
 2.203 bind aie_cluster library
