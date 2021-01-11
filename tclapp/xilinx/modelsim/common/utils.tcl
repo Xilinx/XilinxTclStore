@@ -391,8 +391,15 @@ proc xcs_copy_glbl_file { run_dir } {
   if { [file exists $target_glbl_file] } {
     return
   }
-
   set data_dir [rdi::get_data_dir -quiet -datafile verilog/src/glbl.v]
+  if { {} == $data_dir } {
+    if { [info exists ::env(VIVADO)] } {
+      set xv $::env(VIVADO)
+      if { ({} != $xv) && ([file exists $xv]) } {
+        set data_dir "$xv/data"
+      }
+    }
+  }
   set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
 
   if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
