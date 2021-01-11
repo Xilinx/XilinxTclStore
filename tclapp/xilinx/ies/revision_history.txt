@@ -1,3 +1,4 @@
+4.68 find data dir from VIVADO if not found from rdi data_dir
 4.67 support for VCS auto gcc executable path detection
 4.66 merge 2020.3 to 2021.1
 4.65 add check for protobuf static library
