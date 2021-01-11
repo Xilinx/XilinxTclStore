@@ -105,9 +105,7 @@ proc simulate { args } {
     }
 
     # write run script
-    if { [get_param "project.writeRunScriptForSimulation"] } {
-      usf_write_run_script "xsim" $a_sim_vars(run_logs)
-    }
+    usf_write_run_script "xsim" $a_sim_vars(run_logs)
 
     return
   }
