@@ -1,3 +1,4 @@
+2.365 generate run script for compile, elaborate and simulate steps
 2.364 find data dir from VIVADO if not found from rdi data_dir
 2.363 support for VCS auto gcc executable path detection
 2.362 support for xlnoc source compilation
