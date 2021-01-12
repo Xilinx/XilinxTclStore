@@ -1951,6 +1951,27 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
 
+  # coverage options
+  set cc_name [get_property -quiet "xelab.coverage.name" $fs_obj]
+  if { {} != $cc_name } {
+    lappend args_list "-cc_db $cc_name"
+  }
+
+  set cc_type [get_property -quiet "xelab.coverage.type" $fs_obj]
+  if { {} != $cc_type } {
+    lappend args_list "-cc_type $cc_type"
+  }
+
+  set cc_lib [get_property -quiet "xelab.coverage.library" $fs_obj]
+  if { $cc_lib } {
+    lappend args_list "-cc_libs $cc_lib"
+  }
+
+  set cc_cell_def [get_property -quiet "xelab.coverage.celldefine" $fs_obj]
+  if { $cc_cell_def } {
+    lappend args_list "-cc_celldefines $cc_cell_def"
+  }
+
   # design source libs
   set design_libs [xcs_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) 1]
   foreach lib $design_libs {
