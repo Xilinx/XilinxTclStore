@@ -2478,34 +2478,34 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr "\}"
   }
 
-  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh_scr "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
-    puts $fh_scr "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
-    puts $fh_scr "    puts \$msg"
-    puts $fh_scr "  \}"
-    puts $fh_scr "\}"
-  }
+  #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  #  puts $fh_scr "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+  #  puts $fh_scr "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
+  #  puts $fh_scr "    puts \$msg"
+  #  puts $fh_scr "  \}"
+  #  puts $fh_scr "\}"
+  #}
 
-  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh_scr "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
-    puts $fh_scr "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
-    puts $fh_scr "    puts \$msg"
-    puts $fh_scr "  \}"
-    puts $fh_scr "\}"
-  }
+  #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  #  puts $fh_scr "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
+  #  puts $fh_scr "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
+  #  puts $fh_scr "    puts \$msg"
+  #  puts $fh_scr "  \}"
+  #  puts $fh_scr "\}"
+  #}
 
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
-  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh_scr "\nputs \"We are running Simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulaion again.\""
-    puts $fh_scr "puts \"\""
-    puts $fh_scr "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
-    puts $fh_scr "puts \"\""
-    puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
-    puts $fh_scr "  run 1ns"
-    puts $fh_scr "\} else \{"
-    puts $fh_scr "  run all"
-    puts $fh_scr "\}"
-  } else {
+  #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  #  puts $fh_scr "\nputs \"We are running Simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulaion again.\""
+  #  puts $fh_scr "puts \"\""
+  #  puts $fh_scr "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
+  #  puts $fh_scr "puts \"\""
+  #  puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+  #  puts $fh_scr "  run 1ns"
+  #  puts $fh_scr "\} else \{"
+  #  puts $fh_scr "  run all"
+  #  puts $fh_scr "\}"
+  #} else {
     if { {} == $rt } {
       # no runtime specified
       # puts $fh_scr "\nrun all"
@@ -2517,7 +2517,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
         puts $fh_scr "\nrun $rt"
       }
     }
-  }
+  #}
 
   if { {} != $saif } {
     puts $fh_scr "close_saif"
@@ -2536,24 +2536,24 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr ""
   }
   
-  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh_scr "\nif \{ \[file exists profile.tcl\] \} \{"
-    puts $fh_scr "  if \{ \[catch \{source -notrace profile.tcl \} msg\] \} \{"
-    puts $fh_scr "    puts \$msg"
-    puts $fh_scr "  \}"
-    puts $fh_scr "\}\n"
-  }
+  #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  #  puts $fh_scr "\nif \{ \[file exists profile.tcl\] \} \{"
+  #  puts $fh_scr "  if \{ \[catch \{source -notrace profile.tcl \} msg\] \} \{"
+  #  puts $fh_scr "    puts \$msg"
+  #  puts $fh_scr "  \}"
+  #  puts $fh_scr "\}\n"
+  #}
 
-  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
-    puts $fh_scr "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
-    puts $fh_scr "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
-    puts $fh_scr "      puts \$msg"
-    puts $fh_scr "    \}"
-    puts $fh_scr "  \}"
-    puts $fh_scr "  quit"
-    puts $fh_scr "\}"
-  } else {
+  #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  #  puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+  #  puts $fh_scr "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+  #  puts $fh_scr "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
+  #  puts $fh_scr "      puts \$msg"
+  #  puts $fh_scr "    \}"
+  #  puts $fh_scr "  \}"
+  #  puts $fh_scr "  quit"
+  #  puts $fh_scr "\}"
+  #} else {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
       set b_no_quit [get_property "XSIM.SIMULATE.NO_QUIT" $fs_obj]
       if { $b_no_quit } {
@@ -2563,7 +2563,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
         puts $fh_scr "quit"
       }
     }
-  }
+  #}
 
   close $fh_scr
 }
