@@ -1,3 +1,4 @@
+2.208 disabled Vitis code-hooks
 2.207 find data dir from VIVADO if not found from rdi data_dir
 2.206 support for VCS auto gcc executable path detection
 2.205 disable binding of aie_cluster
