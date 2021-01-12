@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>generate run script for compile, elaborate and simulate steps</revision_history>
+      <revision_history>code cleanup for netlist simulation</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
