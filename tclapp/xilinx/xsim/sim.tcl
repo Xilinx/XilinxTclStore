@@ -1963,10 +1963,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-L uvm"
   }
 
-  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
-    foreach noc_lib [xcs_get_noc_libs_for_netlist_sim $sim_flow $a_sim_vars(s_type)] {
-      lappend args_list "-L $noc_lib"
-    }
+  foreach noc_lib [xcs_get_noc_libs_for_netlist_sim $sim_flow $a_sim_vars(s_type)] {
+    lappend args_list "-L $noc_lib"
   }
 
   # add xilinx vip library
