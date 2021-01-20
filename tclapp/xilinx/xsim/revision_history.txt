@@ -1,3 +1,4 @@
+2.369 fixes for Vitis code-hooks
 2.368 support for coverage options for xelab
 2.367 disabled Vitis code-hooks
 2.366 code cleanup for netlist simulation

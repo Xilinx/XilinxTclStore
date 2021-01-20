@@ -1,3 +1,4 @@
+9.38 fixes for Vitis code-hooks
 9.37 disabled Vitis code-hooks
 9.36 find data dir from VIVADO if not found from rdi data_dir
 9.35 support for VCS auto gcc executable path detection
