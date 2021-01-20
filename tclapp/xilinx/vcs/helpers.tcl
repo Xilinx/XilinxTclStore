@@ -413,26 +413,29 @@ proc usf_create_do_file { simulator do_filename } {
   #  puts $fh_do "\}"
   #}
 
-  #if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  puts $fh_do "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
-  #  puts $fh_do "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
-  #  puts $fh_do "    puts \$msg"
-  #  puts $fh_do "  \}"
-  #  puts $fh_do "\}"
-  #}
-
   set rt [string trim [get_property "VCS.SIMULATE.RUNTIME" $fs_obj]]
-  if { {} == $rt } {
-    # no runtime specified
-    puts $fh_do "run"
-  } else {
-    set rt_value [string tolower $rt]
-    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+  #if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  #  puts $fh "\nputs \"We are running Simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""  #  puts $fh "puts \"\""
+  #  puts $fh "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
+  #  puts $fh "puts \"\""
+  #  puts $fh "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+  #  puts $fh "  run 1ns"
+  #  puts $fh "\} else \{"
+  #  puts $fh "  run all"
+  #  puts $fh "\}"
+  #} else {
+    if { {} == $rt } {
+      # no runtime specified
       puts $fh_do "run"
     } else {
-      puts $fh_do "run $rt"
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh_do "run"
+      } else {
+        puts $fh_do "run $rt"
+      }
     }
-  }
+  #}
 
   if { {} != $saif } {
     set timescale {1}
