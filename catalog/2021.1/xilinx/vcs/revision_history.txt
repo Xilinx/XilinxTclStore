@@ -1,3 +1,4 @@
+9.39 Vitis post-sim code-hook
 9.38 fixes for Vitis code-hooks
 9.37 disabled Vitis code-hooks
 9.36 find data dir from VIVADO if not found from rdi data_dir
