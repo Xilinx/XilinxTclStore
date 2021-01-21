@@ -458,9 +458,20 @@ proc usf_create_do_file { simulator do_filename } {
     }
   }
 
-  if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
-    puts $fh_do "quit"
-  }
+  #if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  #  puts $fh "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+  #  puts $fh "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+  #  puts $fh "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
+  #  puts $fh "      puts \$msg"
+  #  puts $fh "    \}"
+  #  puts $fh "  \}"
+  #  puts $fh "  quit -force"
+  #  puts $fh "\}"
+  #} else {
+    if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
+      puts $fh_do "quit"
+    }
+  #}
   close $fh_do
 }
 
