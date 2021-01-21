@@ -2499,16 +2499,16 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr "\}"
   }
 
-  #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  set debug_mode [get_property hw_emu.pl_kernel_debug [current_fileset -simset]]
-  #  if { {wdb} == $debug_mode } {
-  #    puts $fh_scr "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
-  #    puts $fh_scr "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
-  #    puts $fh_scr "    puts \$msg"
-  #    puts $fh_scr "  \}"
-  #    puts $fh_scr "\}"
-  #  }
-  #}
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    set debug_mode [get_property -quiet "HW_EMU.PL_KERNEL_DEBUG" [current_fileset -simset]]
+    if { {wdb} == $debug_mode } {
+      puts $fh_scr "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+      puts $fh_scr "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
+      puts $fh_scr "    puts \$msg"
+      puts $fh_scr "  \}"
+      puts $fh_scr "\}"
+    }
+  }
 
   #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
   #  puts $fh_scr "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
