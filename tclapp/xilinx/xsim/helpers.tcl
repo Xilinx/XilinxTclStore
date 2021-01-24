@@ -80,7 +80,8 @@ proc usf_init_vars {} {
   set a_sim_vars(sp_cpt_dir) {}
   set a_sim_vars(sp_ext_dir) {}
 
-  set a_sim_vars(b_ref_sysc_lib_env) [get_param "project.refSystemCLibPathWithXilinxEnv"]
+  set a_sim_vars(b_ref_sysc_lib_env)   [get_param "project.refSystemCLibPathWithXilinxEnv"]
+  set a_sim_vars(b_enable_netlist_sim) [get_param "project.enableNetlistSimulationForVersal"]
   
   set a_sim_vars(compiled_design_lib) "xsim.dir"
 
@@ -726,9 +727,9 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   set other_ver_opts [list]
   usf_get_other_verilog_options $global_files_str other_ver_opts
 
-  # add xlnoc sources for post-synth functional simulation
-  if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
-    #usf_add_xlnoc_sources files l_compile_order_files other_ver_opts
+  # add netlist sources for post-synth functional simulation
+  if { $a_sim_vars(b_enable_netlist_sim) && $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    usf_add_netlist_sources files l_compile_order_files other_ver_opts
   }
 
   if { {} != $netlist_file } {
@@ -1526,7 +1527,7 @@ proc usf_write_run_script { simulator log_files } {
   xcs_make_file_executable $file
 }
 
-proc usf_add_xlnoc_sources { files_arg l_compile_order_files_arg other_ver_opts_arg } {
+proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1535,9 +1536,36 @@ proc usf_add_xlnoc_sources { files_arg l_compile_order_files_arg other_ver_opts_
   upvar $files_arg files
   upvar $l_compile_order_files_arg l_compile_order_files
 
+  variable a_sim_vars
+  set sim_flow $a_sim_vars(s_simulation_flow)
+
   set xlnoc_bd_obj [get_files -all -quiet "xlnoc.bd"]
   if { {} == $xlnoc_bd_obj } {
     return
+  }
+
+  # add behavioral sources marked for netlist simulation
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    puts "-----------------------------------------------------------------"
+    puts "Finding behavioral simulation files marked for netlist simulation"
+    puts "-----------------------------------------------------------------"
+  }
+  set noc_ips [xcs_get_noc_ips_for_netlist_sim $sim_flow $a_sim_vars(s_type)]
+  foreach ip_obj $noc_ips {
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      set ipdef [get_property -quiet IPDEF $ip_obj]
+      set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+      puts "$ip_obj ($vlnv_name)"
+    }
+    set netlist_files [rdi::get_netlist_sim_files $ip_obj]
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      foreach nf $netlist_files {
+        puts "  $nf"
+      }
+    }
+  }
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    puts "-----------------------------------------------------------------"
   }
 
   # add noc_nmu

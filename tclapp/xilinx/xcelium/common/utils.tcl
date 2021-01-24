@@ -946,6 +946,34 @@ proc xcs_get_noc_libs_for_netlist_sim { sim_flow s_type } {
   return $noc_libs
 }
 
+proc xcs_get_noc_ips_for_netlist_sim { sim_flow s_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set noc_ip_objs [list]
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { {functional} == $s_type } {
+      #
+      # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
+      #
+      if { {} != [xcs_find_ip "noc"] } {
+        foreach ip_obj [get_ips -all -quiet] {
+          set ipdef [get_property -quiet IPDEF $ip_obj]
+          set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+          if { ([regexp {^noc_nmu} $vlnv_name]) ||
+               ([regexp {^noc_nsu} $vlnv_name]) ||
+               ([regexp {^noc_nps} $vlnv_name]) } {
+            # add to noc ip obj collection
+            lappend noc_ip_objs "$ip_obj"
+          }
+        }
+      }
+    }
+  }
+  return $noc_ip_objs
+}
+
 proc xcs_get_bin_path { tool_name path_sep } {
   # Summary:
   # Argument Usage:

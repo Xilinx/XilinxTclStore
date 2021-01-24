@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Vitis post-sim code-hook</revision_history>
+      <revision_history>helper for fetching NoC IP objects</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
