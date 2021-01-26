@@ -401,13 +401,13 @@ proc usf_create_do_file { simulator do_filename } {
     puts $fh_do "\}"
   }
 
-  #if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  puts $fh_do "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
-  #  puts $fh_do "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
-  #  puts $fh_do "    puts \$msg"
-  #  puts $fh_do "  \}"
-  #  puts $fh_do "\}"
-  #}
+  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_do "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+    puts $fh_do "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_do "    puts \$msg"
+    puts $fh_do "  \}"
+    puts $fh_do "\}"
+  }
   
   set rt [string trim [get_property "XCELIUM.SIMULATE.RUNTIME" $fs_obj]]
   #if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
