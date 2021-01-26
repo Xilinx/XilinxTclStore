@@ -1283,17 +1283,27 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   }
 
   set rt [string trim [get_property "QUESTA.SIMULATE.RUNTIME" $fs_obj]]
-  #if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  puts $fh "\nputs \"We are running Simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""
-  #  puts $fh "puts \"\""
-  #  puts $fh "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
-  #  puts $fh "puts \"\""
-  #  puts $fh "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
-  #  puts $fh "  run 1ns"
-  #  puts $fh "\} else \{"
-  #  puts $fh "  run all"
-  #  puts $fh "\}"
-  #} else {
+  if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh "\nputs \"We are running simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""
+    puts $fh "puts \"\""
+    puts $fh "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
+    puts $fh "puts \"\""
+    puts $fh "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+    puts $fh "  run 1ns"
+    puts $fh "\} else \{"
+    if { {} == $rt } {
+      # no runtime specified
+      puts $fh "  run"
+    } else {
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh "  run -all"
+      } else {
+        puts $fh "  run $rt"
+      }
+    }
+    puts $fh "\}"
+  } else {
     if { {} == $rt } {
       # no runtime specified
       puts $fh "\nrun"
@@ -1305,7 +1315,7 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
         puts $fh "\nrun $rt"
       }
     }
-  #}
+  }
 
   if { {} != $saif } {
     set extn [string tolower [file extension $saif]]

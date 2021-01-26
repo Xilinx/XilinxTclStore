@@ -410,16 +410,27 @@ proc usf_create_do_file { simulator do_filename } {
   }
   
   set rt [string trim [get_property "XCELIUM.SIMULATE.RUNTIME" $fs_obj]]
-  #if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  puts $fh "\nputs \"We are running Simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""  #  puts $fh "puts \"\""
-  #  puts $fh "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
-  #  puts $fh "puts \"\""
-  #  puts $fh "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
-  #  puts $fh "  run 1ns"
-  #  puts $fh "\} else \{"
-  #  puts $fh "  run all"
-  #  puts $fh "\}"
-  #} else {
+  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_do "\nputs \"We are running simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""
+    puts $fh_do "puts \"\""
+    puts $fh_do "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
+    puts $fh_do "puts \"\""
+    puts $fh_do "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+    puts $fh_do "  run 1ns"
+    puts $fh_do "\} else \{"
+    if { {} == $rt } {
+      # no runtime specified
+      puts $fh_do "  run"
+    } else {
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh_do "  run"
+      } else {
+        puts $fh_do "  run $rt"
+      }
+    }
+    puts $fh "\}"
+  } else {
     if { {} == $rt } {
       # no runtime specified
       puts $fh_do "\nrun"
@@ -431,7 +442,7 @@ proc usf_create_do_file { simulator do_filename } {
         puts $fh_do "\nrun $rt"
       }
     }
-  #}
+  }
 
   if { {} != $saif } {
     puts $fh_do "dumpsaif -end"
