@@ -1,3 +1,4 @@
+2.211 enabled USER_PRE_SIM_SCRIPT code-hook
 2.210 helper for fetching NoC IP objects
 2.209 fixes for Vitis code-hooks
 2.208 disabled Vitis code-hooks

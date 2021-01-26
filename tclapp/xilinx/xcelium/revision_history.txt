@@ -1,3 +1,4 @@
+11.54 enabled USER_PRE_SIM_SCRIPT code-hook
 11.53 helper for fetching NoC IP objects
 11.52 Vitis post-sim code-hook
 11.51 fixes for Vitis code-hooks
