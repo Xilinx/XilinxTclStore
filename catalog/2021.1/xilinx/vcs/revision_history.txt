@@ -1,3 +1,4 @@
+9.42 enabled runtime setting for Vitis
 9.41 enabled USER_PRE_SIM_SCRIPT code-hook
 9.40 helper for fetching NoC IP objects
 9.39 Vitis post-sim code-hook
