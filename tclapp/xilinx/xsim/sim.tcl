@@ -2510,13 +2510,24 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     }
   }
 
-  #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  puts $fh_scr "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
-  #  puts $fh_scr "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
-  #  puts $fh_scr "    puts \$msg"
-  #  puts $fh_scr "  \}"
-  #  puts $fh_scr "\}"
-  #}
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    set debug_mode [get_property -quiet "HW_EMU.KERNEL_DEBUG" [current_fileset -simset]]
+    if { $debug_mode } {
+      puts $fh_scr "\nif \{ \[info exists ::env(VITIS_WAVEFORM)\] \} \{"
+      puts $fh_scr "  if \{ \[file exists \$::env(VITIS_WAVEFORM)\] == 1\} \{"
+      puts $fh_scr "    open_wave_config \$::env(VITIS_WAVEFORM)"
+      puts $fh_scr "  \}"
+      puts $fh_scr "\}"
+    }
+  }
+
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
+    puts $fh_scr "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
+    puts $fh_scr "    puts \$msg"
+    puts $fh_scr "  \}"
+    puts $fh_scr "\}"
+  }
 
   set rt [string trim [get_property "XSIM.SIMULATE.RUNTIME" $fs_obj]]
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
@@ -2570,13 +2581,13 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr ""
   }
   
-  #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  puts $fh_scr "\nif \{ \[file exists profile.tcl\] \} \{"
-  #  puts $fh_scr "  if \{ \[catch \{source -notrace profile.tcl \} msg\] \} \{"
-  #  puts $fh_scr "    puts \$msg"
-  #  puts $fh_scr "  \}"
-  #  puts $fh_scr "\}\n"
-  #}
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_scr "\nif \{ \[file exists profile.tcl\] \} \{"
+    puts $fh_scr "  if \{ \[catch \{source -notrace profile.tcl \} msg\] \} \{"
+    puts $fh_scr "    puts \$msg"
+    puts $fh_scr "  \}"
+    puts $fh_scr "\}\n"
+  }
 
   #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
   #  puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
