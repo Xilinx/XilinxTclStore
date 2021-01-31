@@ -1471,7 +1471,8 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             set model "aie_cluster_v1_0_0"
             # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
             # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
-            #lappend shared_ip_libs "$data_dir/$cpt_dir/$model"
+            # TODO: find way to make this data-driven
+            lappend shared_ip_libs "$data_dir/$cpt_dir/$model"
           }
 
           variable a_shared_library_path_coln

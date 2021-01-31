@@ -1398,7 +1398,8 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/xcelium"]
     set tp "$cpt_dir/$sm_cpt_dir"
     # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
-    #append ld_path ":$tp/aie_cluster_v1_0_0"
+    # TODO: find way to make this data-driven 
+    append ld_path ":$tp/aie_cluster_v1_0_0"
     set xilinx_vitis {}
     set cardano_api_path {}
     if { [info exists ::env(XILINX_VITIS)] } {
