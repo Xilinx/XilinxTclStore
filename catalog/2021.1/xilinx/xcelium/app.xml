@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>enabled runtime setting for Vitis</revision_history>
+      <revision_history>enabled protected library linkage</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

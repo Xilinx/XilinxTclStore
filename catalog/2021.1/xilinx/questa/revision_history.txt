@@ -1,3 +1,4 @@
+2.213 enabled protected library linkage
 2.212 enabled runtime setting for Vitis
 2.211 enabled USER_PRE_SIM_SCRIPT code-hook
 2.210 helper for fetching NoC IP objects
