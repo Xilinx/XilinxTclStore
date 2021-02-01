@@ -99,8 +99,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>791e31e0f749e883c4e8e03834accfe442bd7b0a</commit_id>
-      <revision>2.213</revision>
+      <commit_id>b138b0c8fdd03a1a4756218ca1f065daf4499b5e</commit_id>
+      <revision>2.214</revision>
     </app>
     <app>
       <name>questa_cdc</name>
@@ -141,14 +141,14 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>791e31e0f749e883c4e8e03834accfe442bd7b0a</commit_id>
-      <revision>9.43</revision>
+      <commit_id>b138b0c8fdd03a1a4756218ca1f065daf4499b5e</commit_id>
+      <revision>9.44</revision>
     </app>
     <app>
       <name>xcelium</name>
       <company>xilinx</company>
-      <commit_id>791e31e0f749e883c4e8e03834accfe442bd7b0a</commit_id>
-      <revision>11.56</revision>
+      <commit_id>b138b0c8fdd03a1a4756218ca1f065daf4499b5e</commit_id>
+      <revision>11.57</revision>
     </app>
     <app>
       <name>xsim</name>
