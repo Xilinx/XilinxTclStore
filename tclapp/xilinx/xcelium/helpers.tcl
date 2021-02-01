@@ -461,20 +461,20 @@ proc usf_create_do_file { simulator do_filename } {
     puts $fh_do ""
   }
 
-  #if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  puts $fh "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
-  #  puts $fh "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
-  #  puts $fh "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
-  #  puts $fh "      puts \$msg"
-  #  puts $fh "    \}"
-  #  puts $fh "  \}"
-  #  puts $fh "  exit"
-  #  puts $fh "\}"
-  #} else {
+  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+    puts $fh "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+    puts $fh "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh "      puts \$msg"
+    puts $fh "    \}"
+    puts $fh "  \}"
+    puts $fh "  exit"
+    puts $fh "\}"
+  } else {
     if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode)) } {
       puts $fh_do "exit"
     }
-  #}
+  }
   close $fh_do
 }
 

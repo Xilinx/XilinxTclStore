@@ -2589,16 +2589,19 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
     puts $fh_scr "\}\n"
   }
 
-  #if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
-  #  puts $fh_scr "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
-  #  puts $fh_scr "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
-  #  puts $fh_scr "      puts \$msg"
-  #  puts $fh_scr "    \}"
-  #  puts $fh_scr "  \}"
-  #  puts $fh_scr "  quit"
-  #  puts $fh_scr "\}"
-  #} else {
+  if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    set debug_mode [get_property -quiet "HW_EMU.PL_KERNEL_DEBUG" [current_fileset -simset]]
+    if { {wdb} == $debug_mode } {
+      puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+      puts $fh_scr "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+      puts $fh_scr "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
+      puts $fh_scr "      puts \$msg"
+      puts $fh_scr "    \}"
+      puts $fh_scr "  \}"
+      puts $fh_scr "  quit"
+      puts $fh_scr "\}"
+    }
+  } else {
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_scripts_only) } {
       set b_no_quit [get_property "XSIM.SIMULATE.NO_QUIT" $fs_obj]
       if { $b_no_quit } {
@@ -2608,7 +2611,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
         puts $fh_scr "quit"
       }
     }
-  #}
+  }
 
   close $fh_scr
 }

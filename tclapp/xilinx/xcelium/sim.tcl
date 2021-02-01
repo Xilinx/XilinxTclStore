@@ -1104,14 +1104,14 @@ proc usf_xcelium_write_simulate_script {} {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
 
-  #if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-  #  set exec_mode [get_property -quiet "simulator_launch_mode" $fs_obj]
-  #  if { "batch" == $exec_mode } {
-  #    # default
-  #  } else {
-  #    set arg_list [linsert $arg_list end "-gui"]
-  #  }
-  #} else {
+  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    set exec_mode [get_property -quiet "simulator_launch_mode" $fs_obj]
+    if { "batch" == $exec_mode } {
+      # default
+    } else {
+      set arg_list [linsert $arg_list end "-gui"]
+    }
+  } else {
     if { $::tclapp::xilinx::xcelium::a_sim_vars(b_batch) || $b_scripts_only } {
      # no gui
     } else {
@@ -1120,7 +1120,7 @@ proc usf_xcelium_write_simulate_script {} {
         set arg_list [linsert $arg_list end "-gui"]
       }
     }
-  #}
+  }
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
