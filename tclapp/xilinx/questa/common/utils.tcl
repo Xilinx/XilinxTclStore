@@ -3022,11 +3022,11 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
 
   variable a_sim_sv_pkg_libs
 
-  if { $b_int_sm_lib_ref_debug } {
-    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
-    puts "Finding IP XML files:-"
-    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
-  }
+  #if { $b_int_sm_lib_ref_debug } {
+  #  puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
+  #  puts "Finding IP XML files:-"
+  #  puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
+  #}
   set tmp_dir "$run_dir/_tmp_ip_comp_"
   set ip_comps [list]
   foreach ip [get_ips -all -quiet] {
@@ -3061,9 +3061,9 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
         continue;
       }
     } else {
-      if { $b_int_sm_lib_ref_debug } {
-        puts "$ip_filename"
-      }
+      #if { $b_int_sm_lib_ref_debug } {
+      #  puts "$ip_filename"
+      #}
     }
     lappend ip_comps $ip_filename
   }
@@ -3965,7 +3965,7 @@ proc xcs_fetch_lib_info { simulator clibs_dir b_int_sm_lib_ref_debug } {
 
   # print library type information
   if { $b_int_sm_lib_ref_debug } {
-    xcs_print_shared_lib_type_info
+    #xcs_print_shared_lib_type_info
   }
 }
 
