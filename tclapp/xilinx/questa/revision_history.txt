@@ -1,3 +1,4 @@
+2.215 disable debug msgs
 2.214 enabled Vitis code for post-sim script and launch mode
 2.213 enabled protected library linkage
 2.212 enabled runtime setting for Vitis

@@ -1,3 +1,4 @@
+11.58 disable debug msgs
 11.57 enabled Vitis code for post-sim script and launch mode
 11.56 enabled protected library linkage
 11.55 enabled runtime setting for Vitis
