@@ -1,3 +1,4 @@
+2.375 add include directories for netlist simulation
 2.374 compile files marked for netlist simulation
 2.373 enabled code-hooks for Vitis
 2.372 enabled runtime setting for Vitis
