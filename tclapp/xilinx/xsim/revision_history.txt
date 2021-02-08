@@ -1,3 +1,4 @@
+2.374 compile files marked for netlist simulation
 2.373 enabled code-hooks for Vitis
 2.372 enabled runtime setting for Vitis
 2.371 helper for fetching NoC IP objects
