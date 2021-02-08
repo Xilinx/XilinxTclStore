@@ -1550,6 +1550,9 @@ proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opt
     puts "Finding behavioral simulation files marked for netlist simulation"
     puts "-----------------------------------------------------------------"
   }
+
+  variable a_sim_noc_files_info
+  array unset a_sim_noc_files_info
   set noc_ips [xcs_get_noc_ips_for_netlist_sim $sim_flow $a_sim_vars(s_type)]
   foreach ip_obj $noc_ips {
     if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
@@ -1558,28 +1561,24 @@ proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opt
       puts "$ip_obj ($vlnv_name)"
     }
     set netlist_files [rdi::get_netlist_sim_files $ip_obj]
-    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-      foreach nf $netlist_files {
-        puts "  $nf"
+    foreach nf $netlist_files {
+      set nf_obj [lindex [get_files -all -quiet $nf] 0]
+      set file_type [get_property -quiet file_type $nf_obj]
+      if { "SystemVerilog" == $file_type } {
+        set file_name [file tail $nf]
+        if { ![info exists a_sim_noc_files_info($file_name)] } {
+          set a_sim_noc_files_info($file_name) "$ip_obj"
+          set cmd_str [usf_get_file_cmd_str $nf_obj $file_type false {} other_ver_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $nf_obj
+          }
+        }
       }
     }
   }
   if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
     puts "-----------------------------------------------------------------"
-  }
-
-  # add noc_nmu
-  set noc_src "noc_nmu_v1_0_vl_rfs.sv"
-
-  set nmu_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"SystemVerilog\")"
-  set nmu_file_obj [lindex [get_files -all -quiet $noc_src -filter $nmu_filter] 0] 
-  if { {} != $nmu_file_obj } {
-    set file_type "SystemVerilog"
-    set cmd_str [usf_get_file_cmd_str $nmu_file_obj $file_type false {} other_ver_opts]
-    if { {} != $cmd_str } {
-      lappend files $cmd_str
-      lappend l_compile_order_files $nmu_file_obj
-    }
   }
 
   # add xlnoc.v
