@@ -1,3 +1,4 @@
+3.450 support for SNoC switch network
 3.449 disable debug msgs
 3.448 helper for fetching NoC IP objects
 3.447 find data dir from VIVADO if not found from rdi data_dir
