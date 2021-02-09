@@ -863,6 +863,16 @@ proc xps_xport_data_files { data_files_arg } {
       }
       lappend data_files $file
     }
+
+    #
+    # for exporting BD design, add source fileset nocattrs.dat file for NoC (it resides in source fileset)
+    #
+    if { {} != [xcs_find_ip "noc"] } {
+      set noc_attrs [get_files -all -quiet -of_objects [current_fileset] -filter "FILE_TYPE == \"Data Files\"" nocattrs.dat]
+      if { {} != $noc_attrs } {
+        lappend data_files $noc_attrs
+      }
+    }
   } elseif { [xcs_is_fileset $tcl_obj] } {
     xps_export_fs_data_files $s_data_files_filter data_files
     xps_export_fs_non_hdl_data_files data_files
