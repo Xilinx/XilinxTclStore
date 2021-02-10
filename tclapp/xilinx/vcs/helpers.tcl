@@ -376,6 +376,9 @@ proc usf_create_do_file { simulator do_filename } {
 
   if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
     # no op in batch mode
+    if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+      puts $fh_do "add_wave /$top/*"
+    }
   } else {
     puts $fh_do "add_wave /$top/*"
   }
@@ -470,14 +473,14 @@ proc usf_create_do_file { simulator do_filename } {
   }
 
   if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
-    puts $fh "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
-    puts $fh "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
-    puts $fh "      puts \$msg"
-    puts $fh "    \}"
-    puts $fh "  \}"
-    puts $fh "  quit"
-    puts $fh "\}"
+    puts $fh_do "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+    puts $fh_do "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+    puts $fh_do "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_do "      puts \$msg"
+    puts $fh_do "    \}"
+    puts $fh_do "  \}"
+    puts $fh_do "  quit"
+    puts $fh_do "\}"
   } else {
     if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode)) } {
       puts $fh_do "quit"

@@ -1411,21 +1411,12 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   set batch_sw {-c}
   if { ({simulate} == $step) } {
     # launch_simulation
-    if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-      set exec_mode [get_property -quiet "simulator_launch_mode" $fs_obj]
-      if { "batch" == $exec_mode } {
+    if { (!$b_batch) && (!$b_scripts_only) } {
+      # launch_simulation - if called from vivado in batch or Tcl mode, run in command mode
+      if { !$::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) } {
         set batch_sw {-c}
       } else {
-        set batch_sw {-gui}
-      }
-    } else {
-      if { (!$b_batch) && (!$b_scripts_only) } {
-        # launch_simulation - if called from vivado in batch or Tcl mode, run in command mode
-        if { !$::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) } {
-          set batch_sw {-c}
-        } else {
-          set batch_sw {}
-        }
+        set batch_sw {}
       }
     }
   }
@@ -1456,6 +1447,11 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_contain_systemc_sources) } {
+        if { {simulate} == $step } {
+          if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+            xcs_write_launch_mode_for_vitis $fh_scr "questa"
+          }
+        }
         if { ({elaborate} == $step) || ({simulate} == $step) } {
           set shared_ip_libs [list]
 
@@ -1607,7 +1603,11 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         if { {} != $gcc_cmd } {
           append s_cmd " $gcc_cmd "
         }
-        append s_cmd " $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+          append s_cmd " \$mode -do \"do \{$do_filename\}\" -l $log_filename"
+        } else {
+          append s_cmd " $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        }
         puts $fh_scr $s_cmd
         xcs_write_exit_code $fh_scr
       } else {
@@ -1615,7 +1615,11 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         if { {} != $gcc_cmd } {
           append s_cmd " $gcc_cmd "
         }
-        append s_cmd " $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+          append s_cmd " \$mode -do \"do \{$do_filename\}\" -l $log_filename"
+        } else {
+          append s_cmd " $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
+        }
         puts $fh_scr $s_cmd
         xcs_write_exit_code $fh_scr
       }

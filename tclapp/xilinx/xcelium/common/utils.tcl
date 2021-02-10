@@ -5175,3 +5175,26 @@ proc xcs_write_log_file_cleanup { fh_scr log_files } {
   puts $fh_scr "done\n\}"
   puts $fh_scr "reset_log"
 }
+
+proc xcs_write_launch_mode_for_vitis { fh_scr simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  puts $fh_scr "\n# set simulator launch mode"
+  if { "questa" == $simulator } {
+    puts $fh_scr "mode=\"-c\""
+  } elseif { ("xcelium" == $simulator) || ("vcs" == $simulator) } {
+    puts $fh_scr "mode=\"\""
+  }
+  puts $fh_scr "arg=\$1"
+  puts $fh_scr "if \[\[ (\$arg = \"off\") || (\$arg = \"batch\") \]\]; then"
+  if { "questa" == $simulator } {
+    puts $fh_scr "  mode=\"-c\""
+  } elseif { ("xcelium" == $simulator) || ("vcs" == $simulator) } {
+    puts $fh_scr "  mode=\"\""
+  }
+  puts $fh_scr "elif \[\[ (\$arg = \"gui\") \]\]; then"
+  puts $fh_scr "  mode=\"-gui\""
+  puts $fh_scr "fi\n"
+}
