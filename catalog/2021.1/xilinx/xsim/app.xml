@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add include directories for netlist simulation</revision_history>
+      <revision_history>support for simulator launch mode</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

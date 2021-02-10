@@ -1,3 +1,4 @@
+4.71 support for simulator launch mode
 4.70 disable debug msgs
 4.69 helper for fetching NoC IP objects
 4.68 find data dir from VIVADO if not found from rdi data_dir

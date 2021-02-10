@@ -1,3 +1,4 @@
+2.282 support for simulator launch mode
 2.281 disable debug msgs
 2.280 helper for fetching NoC IP objects
 2.279 code cleanup for netlist simulation
