@@ -9,8 +9,8 @@
     <app>
       <name>activehdl</name>
       <company>aldec</company>
-      <commit_id>83f03ea4eb30bdbbb1317032d50e8bb233a15f68</commit_id>
-      <revision>1.15</revision>
+      <commit_id>7d792b00b45dbaf68dc585e8b7992fa94094981b</commit_id>
+      <revision>1.19</revision>
     </app>
     <app>
       <name>bpsvvs</name>
@@ -111,8 +111,8 @@
     <app>
       <name>riviera</name>
       <company>aldec</company>
-      <commit_id>b7a7312e2727b9645a0fce34ff5e58d52f6a6383</commit_id>
-      <revision>1.18</revision>
+      <commit_id>7d792b00b45dbaf68dc585e8b7992fa94094981b</commit_id>
+      <revision>1.19</revision>
     </app>
     <app>
       <name>spyglass</name>
