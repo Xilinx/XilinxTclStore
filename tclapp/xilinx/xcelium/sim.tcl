@@ -113,7 +113,10 @@ proc usf_xcelium_setup_simulation { args } {
   variable a_sim_vars
 
   ::tclapp::xilinx::xcelium::usf_set_simulator_path "xcelium"
- 
+  if { $a_sim_vars(b_int_system_design) } {
+    ::tclapp::xilinx::xcelium::usf_set_gcc_version_path "xcelium"
+  }
+
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
 
@@ -222,7 +225,7 @@ proc usf_xcelium_setup_simulation { args } {
     # find shared library paths from all IPs
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       if { [xcs_contains_C_files] } {
-        xcs_find_shared_lib_paths "xcelium" $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
+        xcs_find_shared_lib_paths "xcelium" $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
       }
     }
   }
@@ -262,6 +265,7 @@ proc usf_xcelium_setup_args { args } {
   # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_system_design]: Design configured for system simulation (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -294,6 +298,7 @@ proc usf_xcelium_setup_args { args } {
       "-int_ide_gui"              { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"          { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_halt_script) 1                        }
       "-int_systemc_mode"         { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_system_design"        { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_system_design) 1                      }
       "-int_gcc_bin_path"         { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
       "-int_sm_lib_dir"           { incr i;set ::tclapp::xilinx::xcelium::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
       "-int_compile_glbl"         { set ::tclapp::xilinx::xcelium::a_sim_vars(b_int_compile_glbl) 1                       }
@@ -1389,8 +1394,8 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
   # for aie
   set ip_obj [xcs_find_ip "ai_engine"]
   if { {} != $ip_obj } {
-    set sm_ext_dir [xcs_get_simmodel_dir "xcelium" "ext"]
-    set sm_cpt_dir [xcs_get_simmodel_dir "xcelium" "cpt"]
+    set sm_ext_dir [xcs_get_simmodel_dir "xcelium" $a_sim_vars(s_gcc_version) "ext"]
+    set sm_cpt_dir [xcs_get_simmodel_dir "xcelium" $a_sim_vars(s_gcc_version) "cpt"]
     set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/xcelium"]
     set tp "$cpt_dir/$sm_cpt_dir"
     # 1080663 - bind with aie_xtlm_v1_0_0 during compile time

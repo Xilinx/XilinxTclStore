@@ -48,6 +48,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
   set a_sim_vars(b_int_systemc_mode) 0
+  set a_sim_vars(b_int_system_design) 0
   set a_sim_vars(b_int_rtl_kernel_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
@@ -90,6 +91,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
 
   set a_sim_vars(s_tool_bin_path)    {}
+  set a_sim_vars(s_gcc_version)      {}
   set a_sim_vars(sp_tcl_obj)         {}
   set a_sim_vars(s_boost_dir)        {}
 
@@ -373,6 +375,25 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
       lappend opts "-d \"$str\""
     }
   }
+}
+
+proc usf_set_gcc_version_path { simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+
+  #send_msg_id USF-XSim-005 INFO "Finding GCC installation...\n"
+  
+  # set GCC version
+  set gcc_type {}
+  set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+  switch $gcc_type {
+    1 { send_msg_id USF-XSim-24 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
+    2 { send_msg_id USF-XSim-24 INFO "Using GCC version set by -gcc_version switch '$a_sim_vars(s_gcc_version)'" }
+  }
+  
 }
 
 proc usf_get_files_for_compilation { global_files_str_arg } {
@@ -1017,7 +1038,6 @@ proc usf_found_errors_in_file { token } {
 # Low level helper procs
 # 
 namespace eval ::tclapp::xilinx::xsim {
-
 proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir "true" } } {
   # Summary: find source files marked as global include
   # Argument Usage:

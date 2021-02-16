@@ -109,6 +109,9 @@ proc usf_vcs_setup_simulation { args } {
   variable a_sim_vars
 
   ::tclapp::xilinx::vcs::usf_set_simulator_path "vcs"
+  if { $a_sim_vars(b_int_system_design) } {
+    ::tclapp::xilinx::vcs::usf_set_gcc_version_path "vcs"
+  }
 
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
@@ -220,7 +223,7 @@ proc usf_vcs_setup_simulation { args } {
     # find shared library paths from all IPs
     if { $a_sim_vars(b_system_sim_design) } {
       if { [xcs_contains_C_files] } {
-        xcs_find_shared_lib_paths "vcs" $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
+        xcs_find_shared_lib_paths "vcs" $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
       }
 
       # cache all systemC stub files
@@ -269,6 +272,7 @@ proc usf_vcs_setup_args { args } {
   # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_system_design]: Design configured for system simulation (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -301,6 +305,7 @@ proc usf_vcs_setup_args { args } {
       "-int_ide_gui"              { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"          { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_halt_script) 1                        }
       "-int_systemc_mode"         { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_system_design"        { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_system_design) 1                      }
       "-int_gcc_bin_path"         { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
       "-int_sm_lib_dir"           { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
       "-int_compile_glbl"         { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_compile_glbl) 1                       }
@@ -765,7 +770,7 @@ proc usf_vcs_write_elaborate_script {} {
         variable a_shared_library_path_coln
         # bind protected libraries
         set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
-        set sm_cpt_dir [xcs_get_simmodel_dir "vcs" "cpt"]
+        set sm_cpt_dir [xcs_get_simmodel_dir "vcs" $a_sim_vars(s_gcc_version) "cpt"]
         foreach {key value} [array get a_shared_library_path_coln] {
           set name [file tail $value]
           set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
@@ -1457,8 +1462,8 @@ proc usf_vcs_write_library_search_order { fh_scr } {
   # for aie
   set ip_obj [xcs_find_ip "ai_engine"]
   if { {} != $ip_obj } {
-    set sm_ext_dir [xcs_get_simmodel_dir "vcs" "ext"]
-    set sm_cpt_dir [xcs_get_simmodel_dir "vcs" "cpt"]
+    set sm_ext_dir [xcs_get_simmodel_dir "vcs" $a_sim_vars(s_gcc_version) "ext"]
+    set sm_cpt_dir [xcs_get_simmodel_dir "vcs" $a_sim_vars(s_gcc_version) "cpt"]
     set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
     set tp "$cpt_dir/$sm_cpt_dir"
     # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
