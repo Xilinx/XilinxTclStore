@@ -1,3 +1,4 @@
+9.47 refactored gcc version support
 9.46 support for simulator launch mode
 9.45 disable debug msgs
 9.44 enabled Vitis code for post-sim script and launch mode

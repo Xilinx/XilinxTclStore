@@ -1,3 +1,4 @@
+3.452 refactored gcc version support
 3.451 support for simulator launch mode
 3.450 support for SNoC switch network
 3.449 disable debug msgs
