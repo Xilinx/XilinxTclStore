@@ -850,6 +850,7 @@ proc wr_bd {} {
 
 
   foreach bd_file $bd_files {
+    #if { [is_switch_network_source $bd_file] } { continue }
     # Making sure BD is not locked
     set is_locked [get_property IS_LOCKED [get_files [list "$bd_file"] ] ]
     if { $is_locked == 1 } {
@@ -1895,6 +1896,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
   set bc_managed_fs_filter "IS_BLOCK_CONTAINER_MANAGED == 0"
   foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj] -filter $bc_managed_fs_filter] {
+    #if { [is_switch_network_source $file] } { continue }
     if { [file extension $file] == ".xcix" } { continue }
     # Skip direct import/add of BD files if -use_bd_files is not provided
     if { [file extension $file] == ".bd" && !$a_global_vars(b_arg_use_bd_files) } { continue }
@@ -3181,6 +3183,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   set bd_list [list]
  
   foreach file $files { 
+    #if { [is_switch_network_source $file] } { continue }
     if { [file extension $file ] ==".bd" && !$a_global_vars(b_arg_use_bd_files)} {
       lappend bd_list $file
       continue
@@ -3549,5 +3552,22 @@ proc reset_msg_setting {} {
   foreach level $levels_to_suppress {
     reset_msg_config -quiet -suppress -severity $level
   }
+}
+
+proc is_switch_network_source { file } {
+  # Summary: 
+  # Argument Usage: 
+  # Return Value:
+
+  #
+  # filter simulation wrapper and switch network BD (these are generated files from launch_simulation)
+  #
+  set rtl_top [get_property top -quiet [current_fileset]]
+  set wrapper "${rtl_top}_sim_wrapper.v"
+  set file_name [string trim [file tail $file] {\"}]
+  if { ($file_name == $wrapper) || ($file_name == "xlnoc.bd") } {
+    return true
+  }
+  return false
 }
 }
