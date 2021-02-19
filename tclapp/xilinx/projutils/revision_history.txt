@@ -1,3 +1,4 @@
+3.453 filtered switch network sources that were generated from simulation flow
 3.452 refactored gcc version support
 3.451 support for simulator launch mode
 3.450 support for SNoC switch network
