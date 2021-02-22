@@ -729,11 +729,26 @@ proc usf_aldec_get_origin_dir_path { _path } {
   # Summary:
   # Argument Usage:
   # Return Value:
+  variable properties
+  
+  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
 
-  if { [file pathtype $_path] == "relative" } {
-    return "\$origin_dir/$_path"
-  } else {
+    set useAbsolutePaths $properties(use_absolute_paths)
+    if { [get_property target_simulator [current_project]] == "ActiveHDL" } {
+	  set useAbsolutePaths 1
+    }
+
+    if { $useAbsolutePaths == 1 } {
+	  return [ usf_resolve_file_path $_path ]
+	}
+
     return $_path
+  } else {
+	if { [file pathtype $_path] == "relative" } {
+	  return "\$origin_dir/$_path"
+	} else {
+	  return $_path
+	}
   }
 }
 
@@ -1478,7 +1493,11 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
     }
 
     if { [string length $val] > 0 } {
-      set str "$str\"$val\""
+	  if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        set str "$str$val"
+      } else {
+        set str "$str\"$val\""
+      }
     }
 
     switch -regexp -- $tool {
@@ -3283,7 +3302,7 @@ proc usf_aldec_append_compiler_options { tool file_type opts_arg } {
 		lappend arg_list "-o [getSystemCLibrary]"
 
 		set compiler [get_property target_simulator [current_project]]	
-        set more_opts [get_property $compiler.compile.sccom.more_options $fileset_object]
+        set more_opts [get_property $compiler.compile.ccomp.more_options $fileset_object]
         if { {} != $more_opts } {
           lappend arg_list "$more_opts"
         }
@@ -3711,6 +3730,13 @@ proc usf_get_file_cmd_str { \
 		set file [usf_get_ip_file_from_repo $ip_file $file $associated_library $properties(launch_directory) b_static_ip_file]
 	}
 
+	if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+      # no op
+    } else {
+      # any spaces in file path, escape it?
+      # regsub -all { } $file {\\\\ } file
+    }
+	
 	set compiler [usf_get_compiler_name $file_type]
 	set arg_list [ list ]
 	if { [string length $compiler] > 0 } {
@@ -3857,7 +3883,7 @@ proc usf_aldec_check_errors { step results_log_arg } {
     close $fh
     set log_data [split $log_data "\n"]
     foreach line $log_data {
-      if { [regexp -nocase {ONERROR} $line]} {
+      if { [ regexp -nocase {executing.+onerror} $line ] } {
         set results_log $log
         set retval 1
         break
@@ -4269,9 +4295,6 @@ proc usf_fetch_ip_static_file { file vh_file_obj } {
   # Return Value:
 
   variable properties
-#  if { $properties(b_use_static_lib) } {
-#    return $file
-#  }
 
   # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2/axi_infrastructure_v1_1_0/hdl/verilog/axi_infrastructure_v1_1_0_header.vh
   set src_ip_file $file
@@ -4279,7 +4302,17 @@ proc usf_fetch_ip_static_file { file vh_file_obj } {
   #puts src_ip_file=$src_ip_file
 
   # get parent composite file path dir
-  set comp_file [get_property parent_composite_file -quiet $vh_file_obj] 
+  set comp_file [get_property parent_composite_file -quiet $vh_file_obj]
+
+  if { [get_param "project.enableRevisedDirStructure"] } {
+    set proj [get_property "NAME" [current_project]]
+    set from "/${proj}.srcs/"
+    set with "/${proj}.gen/"
+    if { [regexp $with $src_ip_file] } {
+      regsub -all $from $comp_file $with comp_file
+    }
+  }
+ 
   set comp_file_dir [file dirname $comp_file]
   set comp_file_dir [string map {\\ /} $comp_file_dir]
   # /tmp/tp/tp.srcs/sources_1/ip/my_ip/bd_0/ip/ip_2
@@ -4499,9 +4532,21 @@ proc usf_get_sub_file_path { src_file_path dir_path_to_remove } {
   # Argument Usage:
   # Return Value:
 
-  set src_path_comps [file split [usf_file_normalize $src_file_path]]
-  set dir_path_comps [file split [usf_file_normalize $dir_path_to_remove]]
+  set s_file $src_file_path
+  set d_file $dir_path_to_remove
+	
+  if { [get_param "project.enableRevisedDirStructure"] } {
+	set proj [get_property "NAME" [current_project]]
+    set from "/${proj}.srcs/"
+    set with "/${proj}.gen/"
+    if { [regexp $with $s_file] } {
+	  regsub -all $from $d_file $with d_file
+	}
+  }
 
+  set src_path_comps [file split [usf_file_normalize $s_file]]
+  set dir_path_comps [file split [usf_file_normalize $d_file]]
+   
   set src_path_len [llength $src_path_comps]
   set dir_path_len [llength $dir_path_comps]
 
@@ -5546,12 +5591,10 @@ proc usf_cache_result {args} {
 proc isSystemCEnabled {} {
 	variable properties
 
-	if { [ get_property target_simulator [ current_project ] ] == "Riviera" } {
-		if { $properties(b_int_systemc_mode) &&  $::tcl_platform(platform) == "unix" } {
-			return 1
-		}
+	if { $properties(b_int_systemc_mode) } {
+		return 1
 	}
-	
+
 	return 0
 }
 
@@ -5700,6 +5743,83 @@ proc usf_get_path_from_data { path_from_data } {
   set data_dir [ rdi::get_data_dir -quiet -datafile $path_from_data ]
   return [ file normalize [ file join $data_dir $path_from_data ] ]
 }
+
+proc getVcomOptions { } {
+	variable properties
+
+	set simset [ get_filesets $properties(simset) ]
+	set vcomOptions [ list ]
+
+	usf_aldec_appendCompilationCoverageOptions vcomOptions vcom
+
+	if { [ get_property [ usf_aldec_getPropertyName COMPILE.VHDL_RELAX ] $simset ] } {
+		lappend vcomOptions "-relax"
+	}
+ 
+	if { [ get_property [ usf_aldec_getPropertyName COMPILE.DEBUG ] $simset ] } {
+		lappend vcomOptions "-dbg"
+	}
+
+	if { [ get_property INCREMENTAL $simset ] == 1 } {
+		lappend vcomOptions "-incr"
+	}
+  
+	set more_vcom_options [ string trim [ get_property [ usf_aldec_getPropertyName COMPILE.VCOM.MORE_OPTIONS ] $simset ] ]
+	if { {} != $more_vcom_options } {
+		set vcomOptions [ linsert $vcomOptions end "$more_vcom_options" ]
+	}
+
+	return [join $vcomOptions " "]
+}
+
+proc getVlogOptions { } {
+	variable properties
+
+	set vlogOptions [ list ]
+	set simset [ get_filesets $properties(simset) ]
+	set designLibraries [ getDesignLibraries $properties(designFiles) ]
+
+	usf_aldec_appendCompilationCoverageOptions vlogOptions vlog
+
+	if { [ get_property [ usf_aldec_getPropertyName COMPILE.DEBUG ] $simset ] } {
+		lappend vlogOptions "-dbg"
+	}
+
+	if { [ get_property INCREMENTAL $simset ] == 1 } {
+		lappend vlogOptions "-incr"
+	}
+
+	if { [ llength [ getXpmLibraries ] ] > 0 && [ lsearch -exact $designLibraries "xpm" ] == -1 } {
+		lappend vlogOptions "-l xpm"
+	}
+
+	set more_vlog_options [ string trim [ get_property [ usf_aldec_getPropertyName COMPILE.VLOG.MORE_OPTIONS ] $simset ] ]
+	if { {} != $more_vlog_options } {
+		set vlogOptions [ linsert $vlogOptions end "$more_vlog_options" ]
+	}
+
+	set xilinxVipWasAdded 0
+	foreach lib $designLibraries {
+		if { [ string length $lib ] == 0 } {
+			continue;
+		}
+
+		lappend vlogOptions "-l"
+		lappend vlogOptions "$lib"
+
+		if { $lib == "xilinx_vip" } {
+			set xilinxVipWasAdded 1
+		}
+	}
+
+	if { $xilinxVipWasAdded == 0 && [ get_param "project.usePreCompiledXilinxVIPLibForSim" ] && [ is_vip_ip_required ] } {
+		lappend vlogOptions "-l"
+		lappend vlogOptions "xilinx_vip"
+	}
+
+	return [join $vlogOptions " "]
+}
+
 }
 
 #
