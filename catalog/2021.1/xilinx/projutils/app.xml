@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export_simulation code cleanup and refactoring</revision_history>
+      <revision_history>filter sim wrapper and xlnoc.bd from exported project script for switch network</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
