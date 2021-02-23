@@ -1,3 +1,4 @@
+2.378 check for file before inspecting core container property
 2.377 refactored gcc version support
 2.376 support for simulator launch mode
 2.375 add include directories for netlist simulation

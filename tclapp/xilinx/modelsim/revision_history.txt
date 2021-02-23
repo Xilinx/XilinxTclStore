@@ -1,3 +1,4 @@
+2.284 check for file before inspecting core container property
 2.283 refactored gcc version support
 2.282 support for simulator launch mode
 2.281 disable debug msgs

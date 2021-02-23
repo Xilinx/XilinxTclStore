@@ -1,3 +1,4 @@
+9.48 check for file before inspecting core container property
 9.47 refactored gcc version support
 9.46 support for simulator launch mode
 9.45 disable debug msgs

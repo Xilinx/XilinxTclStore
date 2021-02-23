@@ -1,3 +1,4 @@
+3.456 check for file before inspecting core container property
 3.455 filter sim wrapper and xlnoc.bd from exported project script for switch network
 3.454 export_simulation code cleanup and refactoring
 3.453 filtered switch network sources that were generated from simulation flow
