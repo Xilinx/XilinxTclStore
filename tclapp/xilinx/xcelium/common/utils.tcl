@@ -1431,8 +1431,16 @@ proc xcs_is_core_container { ip_file_name } {
     return $b_is_container
   }
 
+  # get ip file object
+  set ip_file_obj [get_files -all -quiet ${ip_file_name}]
+  if { {} == $ip_file_obj } {
+    send_msg_id SIM-utils-071 WARNING "File does not exist! '$ip_file_name' (core-container check not applied)\n"
+    set b_is_container 0
+    return $b_is_container
+  }
+
   # is this ip core-container? if not return 0 (classic)
-  set value [string trim [get_property core_container [get_files -all -quiet ${ip_file_name}]]]
+  set value [string trim [get_property core_container $ip_file_obj]]
   if { {} == $value } {
     set b_is_container 0
   }
