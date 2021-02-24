@@ -4833,13 +4833,22 @@ proc xcs_get_boost_library_path {} {
   }
 
   if { [info exists ::env(RDI_DATADIR)] } {
+    set b_found_boost_pkg 0
     foreach data_dir [split $::env(RDI_DATADIR) $sep] {
-      set incl_dir "[file dirname $data_dir]/tps/boost_1_64_0"
-      if { [file exists $incl_dir] } {
-        set boost_incl_dir $incl_dir
-        set boost_incl_dir [regsub -all {[\[\]]} $boost_incl_dir {/}]
-        break
+      set incl_dir "[file dirname $data_dir]/tps"
+      foreach boost_version_dir [glob -nocomplain -directory $incl_dir "boost_*"] {
+        set boost_dir "$boost_version_dir/boost"
+        if { [file exists $boost_dir] } {
+          set boost_incl_dir $boost_version_dir
+          set boost_incl_dir [regsub -all {[\[\]]} $boost_incl_dir {/}]
+          set b_found_boost_pkg 1
+          send_msg_id SIM-utils-072 INFO "Using boost library from '$boost_incl_dir'\n"
+          break
+        }
       }
+    }
+    if { !$b_found_boost_pkg } {
+      send_msg_id SIM-utils-073 "CRITICAL WARNING" "Failed to find the boost library from 'RDI_DATA_DIR'! Please verify if boost packages are installed in 'RDI_DATA_DIR/../tps/boost*'\n"
     }
   } else {
     send_msg_id SIM-utils-059 WARNING "Failed to get the boost library path (RDI_DATADIR environment variable is not set).\n"
