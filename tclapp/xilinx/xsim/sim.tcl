@@ -2506,7 +2506,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   }
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    set debug_mode [get_property -quiet "HW_EMU.PL_KERNEL_DEBUG" [current_fileset -simset]]
+    set debug_mode [get_property -quiet "HW_EMU.DEBUG_MODE" [current_fileset -simset]]
     if { {wdb} == $debug_mode } {
       puts $fh_scr "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
       puts $fh_scr "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
@@ -2517,7 +2517,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   }
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    set debug_mode [get_property -quiet "HW_EMU.KERNEL_DEBUG" [current_fileset -simset]]
+    set debug_mode [get_property -quiet "HW_EMU.IS_WAVEFORM_MODE" [current_fileset -simset]]
     if { $debug_mode } {
       puts $fh_scr "\nif \{ \[info exists ::env(VITIS_WAVEFORM)\] \} \{"
       puts $fh_scr "  if \{ \[file exists \$::env(VITIS_WAVEFORM)\] == 1\} \{"
@@ -2596,7 +2596,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   }
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    set debug_mode [get_property -quiet "HW_EMU.PL_KERNEL_DEBUG" [current_fileset -simset]]
+    set debug_mode [get_property -quiet "HW_EMU.DEBUG_MODE" [current_fileset -simset]]
     if { {wdb} == $debug_mode } {
       puts $fh_scr "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
       puts $fh_scr "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
