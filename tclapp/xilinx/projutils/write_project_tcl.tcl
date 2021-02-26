@@ -3559,6 +3559,9 @@ proc is_switch_network_source { file } {
   # Argument Usage: 
   # Return Value:
 
+  # TODO: wrap the below code under param
+  return false
+
   #
   # filter simulation wrapper and switch network BD (these are generated files from launch_simulation)
   #
