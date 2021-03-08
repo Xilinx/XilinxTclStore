@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT80209 - Vivado GUI hangs if simulation scripts are generated for Riviera, SPT78971 - Riviera Simulation scripts generated are incomplete in non pre-compiled mode. And Other changes</revision_history>
+      <revision_history>SPT80319 - &apos;quit&apos; is missing from compile.do files with latest Riviera TCLAPP</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
