@@ -1,3 +1,9 @@
+4.74 find available boost library from RDI_DATA_DIR
+4.73 check for file before inspecting core container property
+4.72 refactored gcc version support
+4.71 support for simulator launch mode
+4.70 disable debug msgs
+4.69 helper for fetching NoC IP objects
 4.68 find data dir from VIVADO if not found from rdi data_dir
 4.67 support for VCS auto gcc executable path detection
 4.66 merge 2020.3 to 2021.1

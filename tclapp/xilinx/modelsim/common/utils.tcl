@@ -946,6 +946,34 @@ proc xcs_get_noc_libs_for_netlist_sim { sim_flow s_type } {
   return $noc_libs
 }
 
+proc xcs_get_noc_ips_for_netlist_sim { sim_flow s_type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set noc_ip_objs [list]
+  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
+    if { {functional} == $s_type } {
+      #
+      # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
+      #
+      if { {} != [xcs_find_ip "noc"] } {
+        foreach ip_obj [get_ips -all -quiet] {
+          set ipdef [get_property -quiet IPDEF $ip_obj]
+          set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+          if { ([regexp {^noc_nmu} $vlnv_name]) ||
+               ([regexp {^noc_nsu} $vlnv_name]) ||
+               ([regexp {^noc_nps} $vlnv_name]) } {
+            # add to noc ip obj collection
+            lappend noc_ip_objs "$ip_obj"
+          }
+        }
+      }
+    }
+  }
+  return $noc_ip_objs
+}
+
 proc xcs_get_bin_path { tool_name path_sep } {
   # Summary:
   # Argument Usage:
@@ -1403,8 +1431,16 @@ proc xcs_is_core_container { ip_file_name } {
     return $b_is_container
   }
 
+  # get ip file object
+  set ip_file_obj [get_files -all -quiet ${ip_file_name}]
+  if { {} == $ip_file_obj } {
+    send_msg_id SIM-utils-071 WARNING "File does not exist! '$ip_file_name' (core-container check not applied)\n"
+    set b_is_container 0
+    return $b_is_container
+  }
+
   # is this ip core-container? if not return 0 (classic)
-  set value [string trim [get_property core_container [get_files -all -quiet ${ip_file_name}]]]
+  set value [string trim [get_property core_container $ip_file_obj]]
   if { {} == $value } {
     set b_is_container 0
   }
@@ -1750,28 +1786,31 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
   if { ($b_libs_referenced_from_locked_ips || $b_libs_referenced_from_local_repo) && $b_pre_compile } {
     send_msg_id SIM-utils-020 INFO "The project contains locked or custom IPs. The pre-compiled version of these IPs will not be referenced and the sources from these IP libraries will be compiled locally.\n"
 
-    if { $b_int_sm_lib_ref_debug } {
-      if { [array size a_sim_lib_info] > 0 } {
-        package require struct::matrix
-        struct::matrix mt;
-        mt add columns 3;
-        set lines [list]
-        puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
-        puts "Pre-compiled library reference information for locked or custom IPs:-"
-        puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
-        lappend lines "IP LIBRARY TYPE"
-        lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
-        foreach {key value} [array get a_sim_lib_info] {
-          set ip_info [split $key {#}]
-          set ip_name [lindex $ip_info 0]
-          set ip_lib  [lindex $ip_info 1]
-          set type    $value
-          lappend lines "$ip_name $ip_lib $type"
+    set b_en_code 0
+    if { $b_en_code } {
+      if { $b_int_sm_lib_ref_debug } {
+        if { [array size a_sim_lib_info] > 0 } {
+          package require struct::matrix
+          struct::matrix mt;
+          mt add columns 3;
+          set lines [list]
+          puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+          puts "Pre-compiled library reference information for locked or custom IPs:-"
+          puts "-------------------------------------------------------------------------------------------------------------------------------------------------------"
+          lappend lines "IP LIBRARY TYPE"
           lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
+          foreach {key value} [array get a_sim_lib_info] {
+            set ip_info [split $key {#}]
+            set ip_name [lindex $ip_info 0]
+            set ip_lib  [lindex $ip_info 1]
+            set type    $value
+            lappend lines "$ip_name $ip_lib $type"
+            lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
+          }
+          foreach line $lines {mt add row $line}
+          puts [mt format 2string]
+          mt destroy
         }
-        foreach line $lines {mt add row $line}
-        puts [mt format 2string]
-        mt destroy
       }
     }
   }
@@ -2994,11 +3033,11 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
 
   variable a_sim_sv_pkg_libs
 
-  if { $b_int_sm_lib_ref_debug } {
-    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
-    puts "Finding IP XML files:-"
-    puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
-  }
+  #if { $b_int_sm_lib_ref_debug } {
+  #  puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
+  #  puts "Finding IP XML files:-"
+  #  puts "------------------------------------------------------------------------------------------------------------------------------------------------------"
+  #}
   set tmp_dir "$run_dir/_tmp_ip_comp_"
   set ip_comps [list]
   foreach ip [get_ips -all -quiet] {
@@ -3033,9 +3072,9 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
         continue;
       }
     } else {
-      if { $b_int_sm_lib_ref_debug } {
-        puts "$ip_filename"
-      }
+      #if { $b_int_sm_lib_ref_debug } {
+      #  puts "$ip_filename"
+      #}
     }
     lappend ip_comps $ip_filename
   }
@@ -3937,7 +3976,7 @@ proc xcs_fetch_lib_info { simulator clibs_dir b_int_sm_lib_ref_debug } {
 
   # print library type information
   if { $b_int_sm_lib_ref_debug } {
-    xcs_print_shared_lib_type_info
+    #xcs_print_shared_lib_type_info
   }
 }
 
@@ -3988,7 +4027,7 @@ proc xcs_get_vivado_release_version {} {
   return $version
 } 
 
-proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
+proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4012,7 +4051,7 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
   }
 
   # target directory paths to search for
-  set target_paths [xcs_get_target_sm_paths $simulator $clibs_dir $custom_sm_lib_dir $b_int_sm_lib_ref_debug sp_cpt_dir sp_ext_dir]
+  set target_paths [xcs_get_target_sm_paths $simulator $gcc_version $clibs_dir $custom_sm_lib_dir $b_int_sm_lib_ref_debug sp_cpt_dir sp_ext_dir]
 
   # construct target paths string
   set target_paths_str [join $target_paths "\n"]
@@ -4067,7 +4106,6 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
           set sh_file_path "$lib_dir/$shared_libname"
           if { $b_is_systemc_library } {
             if { {questa} == $simulator } {
-              set gcc_version [get_param "simulator.${simulator}.gcc.version"]
               if {$::tcl_platform(platform) == "unix"} {
                 set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
                 if { $b_int_sm_lib_ref_debug } {
@@ -4114,7 +4152,6 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
           set sh_file_path "$lib_dir/$shared_libname"
           if { $b_is_systemc_library } {
             if { {questa} == $simulator } {
-              set gcc_version [get_param "simulator.${simulator}.gcc.version"]
               if {$::tcl_platform(platform) == "unix"} {
                 set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
                 if { $b_int_sm_lib_ref_debug } {
@@ -4280,7 +4317,6 @@ proc xcs_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
         set sh_file_path "$lib_dir/$shared_libname"
         if { $b_is_systemc_library } {
           if { {questa} == $simulator } {
-            set gcc_version [get_param "simulator.${simulator}.gcc.version"]
             if {$::tcl_platform(platform) == "unix"} {
               set sh_file_path "$lib_dir/_sc/linux_x86_64_gcc-${gcc_version}/systemc.so"
             }
@@ -4470,7 +4506,7 @@ proc xcs_is_c_library { library } {
   return 0
 }
 
-proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
+proc xcs_get_target_sm_paths { simulator gcc_version clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4480,7 +4516,7 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
 
   set target_paths [list]
 
-  set sm_cpt_dir [xcs_get_simmodel_dir $simulator "cpt"]
+  set sm_cpt_dir [xcs_get_simmodel_dir $simulator $gcc_version "cpt"]
   if { $b_int_sm_lib_ref_debug } {
     puts "(DEBUG) - simmodel protected sub-dir: $sm_cpt_dir"
   }
@@ -4524,7 +4560,7 @@ proc xcs_get_target_sm_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_li
   set sp_cpt_dir $tp
 
   # default ext dir
-  set sm_ext_dir [xcs_get_simmodel_dir $simulator "ext"]
+  set sm_ext_dir [xcs_get_simmodel_dir $simulator $gcc_version "ext"]
   lappend target_paths "$cpt_dir/$sm_ext_dir"
 
   set sp_ext_dir "$cpt_dir/$sm_ext_dir"
@@ -4621,7 +4657,7 @@ proc xcs_print_shared_lib_type_info { } {
   puts ""
 }
 
-proc xcs_get_simmodel_dir { simulator type } {
+proc xcs_get_simmodel_dir { simulator gcc_version type } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4635,7 +4671,6 @@ proc xcs_get_simmodel_dir { simulator type } {
   }
   # simulator, gcc version, data dir
   set sim_version [get_param "simulator.${simulator}.version"]
-  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
 
   # prefix path
   set prefix_dir "simmodels/${simulator}/${sim_version}/${platform}/${gcc_version}"
@@ -4798,13 +4833,22 @@ proc xcs_get_boost_library_path {} {
   }
 
   if { [info exists ::env(RDI_DATADIR)] } {
+    set b_found_boost_pkg 0
     foreach data_dir [split $::env(RDI_DATADIR) $sep] {
-      set incl_dir "[file dirname $data_dir]/tps/boost_1_64_0"
-      if { [file exists $incl_dir] } {
-        set boost_incl_dir $incl_dir
-        set boost_incl_dir [regsub -all {[\[\]]} $boost_incl_dir {/}]
-        break
+      set incl_dir "[file dirname $data_dir]/tps"
+      foreach boost_version_dir [glob -nocomplain -directory $incl_dir "boost_*"] {
+        set boost_dir "$boost_version_dir/boost"
+        if { [file exists $boost_dir] } {
+          set boost_incl_dir $boost_version_dir
+          set boost_incl_dir [regsub -all {[\[\]]} $boost_incl_dir {/}]
+          set b_found_boost_pkg 1
+          send_msg_id SIM-utils-072 INFO "Using boost library from '$boost_incl_dir'\n"
+          break
+        }
       }
+    }
+    if { !$b_found_boost_pkg } {
+      send_msg_id SIM-utils-073 "CRITICAL WARNING" "Failed to find the boost library from 'RDI_DATA_DIR'! Please verify if boost packages are installed in 'RDI_DATA_DIR/../tps/boost*'\n"
     }
   } else {
     send_msg_id SIM-utils-059 WARNING "Failed to get the boost library path (RDI_DATADIR environment variable is not set).\n"
@@ -4858,7 +4902,27 @@ proc xcs_find_uvm_library { } {
   return $uvm_lib_path
 }
 
-proc xcs_get_gcc_path { simulator sim_product_name simulator_install_path gcc_install_path gcc_path_arg path_type_arg b_int_sm_lib_ref_debug } {
+proc xcs_get_gcc_version { simulator specified_gcc_version gcc_type_arg b_int_sm_lib_ref_debug } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $gcc_type_arg gcc_type
+
+  # default GCC 
+  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+
+  # custom GCC version
+  if { {} == $specified_gcc_version } {
+    set gcc_type 1
+  } else {
+    set gcc_version $specified_gcc_version
+    set gcc_type 2
+  }
+  return $gcc_version
+}
+
+proc xcs_get_gcc_path { simulator sim_product_name simulator_install_path gcc_version gcc_install_path gcc_path_arg path_type_arg b_int_sm_lib_ref_debug } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4925,33 +4989,13 @@ proc xcs_get_gcc_path { simulator sim_product_name simulator_install_path gcc_in
   # 4. find from simulator install area
   if { {} != $simulator_install_path } {
     set sim_root_dir $simulator_install_path
-    set gcc_version  [get_param "simulator.${simulator}.gcc.version"]
-    if { {} != $gcc_version } {
-      switch $simulator {
-        {questa} {
-          # fetch tool install dir
-          if {$::tcl_platform(platform) == "unix"} {
-            set sim_root_dir [file dirname $sim_root_dir]
-            # gcc sub-dir wrt install dir
-            set gcc_sub_dir  "gcc-${gcc_version}-linux_x86_64/bin"
-            set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
-            if { [file exists $gcc_root_dir] } {
-              set gcc_exe_file "$gcc_root_dir/$tool" 
-              if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
-                set gcc_path $gcc_root_dir
-                set path_type 4
-                return true
-              }
-            }
-          }
-        }
-        {xcelium} {
-          # fetch tool install dir
-          set sim_root_dir [file dirname $sim_root_dir]
-          set sim_root_dir [file dirname $sim_root_dir]
+    switch $simulator {
+      {questa} {
+        # fetch tool install dir
+        if {$::tcl_platform(platform) == "unix"} {
           set sim_root_dir [file dirname $sim_root_dir]
           # gcc sub-dir wrt install dir
-          set gcc_sub_dir  "tools/cdsgcc/gcc/${gcc_version}/bin"
+          set gcc_sub_dir  "gcc-${gcc_version}-linux_x86_64/bin"
           set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
           if { [file exists $gcc_root_dir] } {
             set gcc_exe_file "$gcc_root_dir/$tool" 
@@ -4962,46 +5006,63 @@ proc xcs_get_gcc_path { simulator sim_product_name simulator_install_path gcc_in
             }
           }
         }
-        {vcs} {
-          # Two possibilities to find gcc for VCS:-
-          #   1. from outside VCS install area (use VG_GNU_PACKAGE)
-          #       VG_GNU_PACKAGE = /tools/installs/synopsys/vg_gnu/<sim-ver>/linux
-          #       $VG_GNU_PACKAGE/gcc-6.2.0_64-shared/bin
-          #
-          # 2. from within VCS install area (use VCS_HOME)
-          #     IMPORTANT: VCS installs latest GCC version under this dir (7.4.0), so we can't use 6.2.0
-          #     VCS_HOME = /tools/gensys/vcs/<sim-ver>
-          #     $VCS_HOME/gnu/linux/gcc-64/bin (this contains 7.4.0)
+      }
+      {xcelium} {
+        # fetch tool install dir
+        set sim_root_dir [file dirname $sim_root_dir]
+        set sim_root_dir [file dirname $sim_root_dir]
+        set sim_root_dir [file dirname $sim_root_dir]
+        # gcc sub-dir wrt install dir
+        set gcc_sub_dir  "tools/cdsgcc/gcc/${gcc_version}/bin"
+        set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
+        if { [file exists $gcc_root_dir] } {
+          set gcc_exe_file "$gcc_root_dir/$tool" 
+          if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
+            set gcc_path $gcc_root_dir
+            set path_type 4
+            return true
+          }
+        }
+      }
+      {vcs} {
+        # Two possibilities to find gcc for VCS:-
+        #   1. from outside VCS install area (use VG_GNU_PACKAGE)
+        #       VG_GNU_PACKAGE = /tools/installs/synopsys/vg_gnu/<sim-ver>/linux
+        #       $VG_GNU_PACKAGE/gcc-6.2.0_64-shared/bin
+        #
+        # 2. from within VCS install area (use VCS_HOME)
+        #     IMPORTANT: VCS installs latest GCC version under this dir (7.4.0), so we can't use 6.2.0
+        #     VCS_HOME = /tools/gensys/vcs/<sim-ver>
+        #     $VCS_HOME/gnu/linux/gcc-64/bin (this contains 7.4.0)
 
-          # VG_GNU_PACKAGE = /tools/installs/synopsys/vg_gnu/<sim-ver>/linux
-          if { [info exists ::env(VG_GNU_PACKAGE)] } {
-            set sim_root_dir $::env(VG_GNU_PACKAGE)
-            # $VG_GNU_PACKAGE/gcc-6.2.0_64-shared/bin
-            set gcc_sub_dir  "gcc-${gcc_version}_64-shared/bin"
-            # /tools/installs/synopsys/vg_gnu/<sim-ver>/linux/gcc-<sim-ver>_64-shared/bin
-            set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
-            # /tools/installs/synopsys/vg_gnu/<sim-ver>/linux/gcc-<sim-ver>_64-shared/bin/gcc
-            if { [file exists $gcc_root_dir] } {
-              set gcc_exe_file "$gcc_root_dir/$tool" 
-              if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
-                set gcc_path $gcc_root_dir
-                set path_type 4
-                return true
-              }
+        # VG_GNU_PACKAGE = /tools/installs/synopsys/vg_gnu/<sim-ver>/linux
+        if { [info exists ::env(VG_GNU_PACKAGE)] } {
+          set sim_root_dir $::env(VG_GNU_PACKAGE)
+          # $VG_GNU_PACKAGE/gcc-6.2.0_64-shared/bin
+          set gcc_sub_dir  "gcc-${gcc_version}_64-shared/bin"
+          # /tools/installs/synopsys/vg_gnu/<sim-ver>/linux/gcc-<sim-ver>_64-shared/bin
+          set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
+          # /tools/installs/synopsys/vg_gnu/<sim-ver>/linux/gcc-<sim-ver>_64-shared/bin/gcc
+          if { [file exists $gcc_root_dir] } {
+            set gcc_exe_file "$gcc_root_dir/$tool" 
+            if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
+              set gcc_path $gcc_root_dir
+              set path_type 4
+              return true
             }
-          } else {
-            # /tools/gensys/vcs/<sim-ver>
-            set sim_root_dir [file dirname $sim_root_dir]
-            # gcc sub-dir wrt install dir
-            set gcc_sub_dir  "gnu/linux/gcc-64/bin"
-            set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
-            if { [file exists $gcc_root_dir] } {
-              set gcc_exe_file "$gcc_root_dir/$tool" 
-              if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
-                set gcc_path $gcc_root_dir
-                set path_type 4
-                return true
-              }
+          }
+        } else {
+          # /tools/gensys/vcs/<sim-ver>
+          set sim_root_dir [file dirname $sim_root_dir]
+          # gcc sub-dir wrt install dir
+          set gcc_sub_dir  "gnu/linux/gcc-64/bin"
+          set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
+          if { [file exists $gcc_root_dir] } {
+            set gcc_exe_file "$gcc_root_dir/$tool" 
+            if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
+              set gcc_path $gcc_root_dir
+              set path_type 4
+              return true
             }
           }
         }
@@ -5146,4 +5207,27 @@ proc xcs_write_log_file_cleanup { fh_scr log_files } {
   puts $fh_scr "  fi"
   puts $fh_scr "done\n\}"
   puts $fh_scr "reset_log"
+}
+
+proc xcs_write_launch_mode_for_vitis { fh_scr simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  puts $fh_scr "\n# set simulator launch mode"
+  if { "questa" == $simulator } {
+    puts $fh_scr "mode=\"-c\""
+  } elseif { ("xcelium" == $simulator) || ("vcs" == $simulator) } {
+    puts $fh_scr "mode=\"\""
+  }
+  puts $fh_scr "arg=\$1"
+  puts $fh_scr "if \[\[ (\$arg = \"off\") || (\$arg = \"batch\") \]\]; then"
+  if { "questa" == $simulator } {
+    puts $fh_scr "  mode=\"-c\""
+  } elseif { ("xcelium" == $simulator) || ("vcs" == $simulator) } {
+    puts $fh_scr "  mode=\"\""
+  }
+  puts $fh_scr "elif \[\[ (\$arg = \"gui\") \]\]; then"
+  puts $fh_scr "  mode=\"-gui\""
+  puts $fh_scr "fi\n"
 }

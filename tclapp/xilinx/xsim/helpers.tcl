@@ -48,6 +48,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_int_os_type)      {}
   set a_sim_vars(s_int_debug_mode)   0
   set a_sim_vars(b_int_systemc_mode) 0
+  set a_sim_vars(b_int_system_design) 0
   set a_sim_vars(b_int_rtl_kernel_mode) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
@@ -80,7 +81,8 @@ proc usf_init_vars {} {
   set a_sim_vars(sp_cpt_dir) {}
   set a_sim_vars(sp_ext_dir) {}
 
-  set a_sim_vars(b_ref_sysc_lib_env) [get_param "project.refSystemCLibPathWithXilinxEnv"]
+  set a_sim_vars(b_ref_sysc_lib_env)   [get_param "project.refSystemCLibPathWithXilinxEnv"]
+  set a_sim_vars(b_enable_netlist_sim) [get_param "project.enableNetlistSimulationForVersal"]
   
   set a_sim_vars(compiled_design_lib) "xsim.dir"
 
@@ -89,6 +91,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_ip_repo_dir) [file normalize [file join $data_dir "ip/xilinx"]]
 
   set a_sim_vars(s_tool_bin_path)    {}
+  set a_sim_vars(s_gcc_version)      {}
   set a_sim_vars(sp_tcl_obj)         {}
   set a_sim_vars(s_boost_dir)        {}
 
@@ -372,6 +375,25 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
       lappend opts "-d \"$str\""
     }
   }
+}
+
+proc usf_set_gcc_version_path { simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+
+  #send_msg_id USF-XSim-005 INFO "Finding GCC installation...\n"
+  
+  # set GCC version
+  set gcc_type {}
+  set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+  switch $gcc_type {
+    1 { send_msg_id USF-XSim-24 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
+    2 { send_msg_id USF-XSim-24 INFO "Using GCC version set by -gcc_version switch '$a_sim_vars(s_gcc_version)'" }
+  }
+  
 }
 
 proc usf_get_files_for_compilation { global_files_str_arg } {
@@ -726,9 +748,9 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   set other_ver_opts [list]
   usf_get_other_verilog_options $global_files_str other_ver_opts
 
-  # add xlnoc sources for post-synth functional simulation
-  if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
-    #usf_add_xlnoc_sources files l_compile_order_files other_ver_opts
+  # add netlist sources for post-synth functional simulation
+  if { $a_sim_vars(b_enable_netlist_sim) && $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    usf_add_netlist_sources files l_compile_order_files other_ver_opts
   }
 
   if { {} != $netlist_file } {
@@ -1016,7 +1038,6 @@ proc usf_found_errors_in_file { token } {
 # Low level helper procs
 # 
 namespace eval ::tclapp::xilinx::xsim {
-
 proc usf_get_global_include_files { incl_file_paths_arg incl_files_arg { ref_dir "true" } } {
   # Summary: find source files marked as global include
   # Argument Usage:
@@ -1526,7 +1547,7 @@ proc usf_write_run_script { simulator log_files } {
   xcs_make_file_executable $file
 }
 
-proc usf_add_xlnoc_sources { files_arg l_compile_order_files_arg other_ver_opts_arg } {
+proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opts_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1535,22 +1556,85 @@ proc usf_add_xlnoc_sources { files_arg l_compile_order_files_arg other_ver_opts_
   upvar $files_arg files
   upvar $l_compile_order_files_arg l_compile_order_files
 
+  variable a_sim_vars
+  set sim_flow $a_sim_vars(s_simulation_flow)
+
   set xlnoc_bd_obj [get_files -all -quiet "xlnoc.bd"]
   if { {} == $xlnoc_bd_obj } {
     return
   }
 
-  # add noc_nmu
-  set noc_src "noc_nmu_v1_0_vl_rfs.sv"
+  variable a_sim_noc_files_info
+  variable a_sim_noc_files_incl_dirs_info
 
-  set nmu_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"SystemVerilog\")"
-  set nmu_file_obj [lindex [get_files -all -quiet $noc_src -filter $nmu_filter] 0] 
-  if { {} != $nmu_file_obj } {
-    set file_type "SystemVerilog"
-    set cmd_str [usf_get_file_cmd_str $nmu_file_obj $file_type false {} other_ver_opts]
-    if { {} != $cmd_str } {
-      lappend files $cmd_str
-      lappend l_compile_order_files $nmu_file_obj
+  array unset a_sim_noc_files_info
+  array unset a_sim_noc_files_incl_dirs_info
+
+  set l_netlist_files [list]
+
+  # find NoC IPs from the design
+  set noc_ips [xcs_get_noc_ips_for_netlist_sim $sim_flow $a_sim_vars(s_type)]
+
+  # add behavioral sources marked for netlist simulation
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    puts "-----------------------------------------------------------------"
+    puts "Finding behavioral simulation files marked for netlist simulation"
+    puts "-----------------------------------------------------------------"
+  }
+
+  # find sources marked for netlist simulation and construct include dirs
+  foreach ip_obj $noc_ips {
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      set ipdef [get_property -quiet IPDEF $ip_obj]
+      set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+      puts "$ip_obj ($vlnv_name)"
+    }
+    set l_netlist_files [rdi::get_netlist_sim_files $ip_obj]
+    foreach nf $l_netlist_files {
+      set nf_obj [lindex [get_files -all -quiet $nf] 0]
+      set file_name [file tail $nf]
+      set file_type [get_property -quiet file_type $nf_obj]
+      if { ($file_type == "Verilog Header") || ($file_type == "Verilog/SystemVerilog Header") } {
+        set incl_dir [file dirname $nf_obj]
+        if { ![info exists a_sim_noc_files_incl_dirs_info($incl_dir)] } {
+          set a_sim_noc_files_incl_dirs_info($incl_dir) "$file_name"
+        }
+      }
+    }
+  }
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    puts "-----------------------------------------------------------------"
+  }
+
+  # construct include dir arg and append to other verilog options 
+  if { [array size a_sim_noc_files_incl_dirs_info] > 0 } {
+    foreach {key value} [array get a_sim_noc_files_incl_dirs_info] {
+      set incl_dir    $key
+      set vh_filename $value
+      if { $a_sim_vars(b_absolute_path) } {
+        set incl_dir "[xcs_resolve_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+      } else {
+        set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+      }
+      set incl_dir [string map {\\ /} $incl_dir]
+      lappend other_ver_opts "--include \"$incl_dir\""
+    }
+  }
+
+  # add netlist sources to prj
+  foreach nf $l_netlist_files {
+    set nf_obj [lindex [get_files -all -quiet $nf] 0]
+    set file_name [file tail $nf]
+    set file_type [get_property -quiet file_type $nf_obj]
+    if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+    set file_name [file tail $nf]
+    if { ![info exists a_sim_noc_files_info($file_name)] } {
+      set a_sim_noc_files_info($file_name) "$ip_obj"
+      set cmd_str [usf_get_file_cmd_str $nf_obj $file_type false {} other_ver_opts]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $nf_obj
+      }
     }
   }
 

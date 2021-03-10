@@ -1,3 +1,15 @@
+2.380 fixed property names for Vitis code hooks
+2.379 find available boost library from RDI_DATA_DIR
+2.378 check for file before inspecting core container property
+2.377 refactored gcc version support
+2.376 support for simulator launch mode
+2.375 add include directories for netlist simulation
+2.374 compile files marked for netlist simulation
+2.373 enabled code-hooks for Vitis
+2.372 enabled runtime setting for Vitis
+2.371 helper for fetching NoC IP objects
+2.370 enabled USER_PRE_SIM_SCRIPT for XSim
+2.369 fixes for Vitis code-hooks
 2.368 support for coverage options for xelab
 2.367 disabled Vitis code-hooks
 2.366 code cleanup for netlist simulation

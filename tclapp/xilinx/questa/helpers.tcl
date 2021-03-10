@@ -49,6 +49,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_int_is_gui_mode)  0
   set a_sim_vars(b_int_halt_script)  0
   set a_sim_vars(b_int_systemc_mode) 0
+  set a_sim_vars(b_int_system_design) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
   # default is false
@@ -82,6 +83,8 @@ proc usf_init_vars {} {
 
   set a_sim_vars(s_tool_bin_path)    {}
   set a_sim_vars(s_gcc_bin_path)     {}
+  set a_sim_vars(s_gcc_version)      {}
+  set a_sim_vars(s_sim_version)      {}
 
   set a_sim_vars(sp_tcl_obj)         {}
 
@@ -357,7 +360,7 @@ proc usf_set_simulator_path { simulator } {
   }
 }
 
-proc usf_set_gcc_path {} {
+proc usf_set_gcc_version_path { simulator } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -365,10 +368,19 @@ proc usf_set_gcc_path {} {
   variable a_sim_vars
 
   send_msg_id USF-Questa-005 INFO "Finding GCC installation...\n"
+
+  # set GCC version
+  set gcc_type {}
+  set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+  switch $gcc_type {
+    1 { send_msg_id USF-Questa-24 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
+    2 { send_msg_id USF-Questa-24 INFO "Using GCC version set by -gcc_version switch '$a_sim_vars(s_gcc_version)'" }
+  }
+ 
+  # set GCC install path 
   set gcc_path  {}
   set path_type {}
-  set simulator "questa"
-  if { [xcs_get_gcc_path $simulator "Questa" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
+  if { [xcs_get_gcc_path $simulator "Questa" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_version) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
     set a_sim_vars(s_gcc_bin_path) $gcc_path
     switch $path_type {
       1 { send_msg_id USF-Questa-25 INFO "Using GCC executables set by -gcc_install_path switch from '$a_sim_vars(s_gcc_bin_path)'"                        }
@@ -677,7 +689,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_systemc_sources) } {
           set a_sim_vars(b_contain_systemc_sources) true
-          usf_set_gcc_path
         }
           
         # is dynamic? process
@@ -722,7 +733,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_cpp_sources) } {
           set a_sim_vars(b_contain_cpp_sources) true
-          usf_set_gcc_path
         }
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
@@ -765,7 +775,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_c_sources) } {
           set a_sim_vars(b_contain_c_sources) true
-          usf_set_gcc_path
         }
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {

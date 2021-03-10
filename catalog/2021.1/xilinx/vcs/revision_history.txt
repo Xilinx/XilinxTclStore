@@ -1,3 +1,15 @@
+9.49 find available boost library from RDI_DATA_DIR
+9.48 check for file before inspecting core container property
+9.47 refactored gcc version support
+9.46 support for simulator launch mode
+9.45 disable debug msgs
+9.44 enabled Vitis code for post-sim script and launch mode
+9.43 enabled protected library linkage
+9.42 enabled runtime setting for Vitis
+9.41 enabled USER_PRE_SIM_SCRIPT code-hook
+9.40 helper for fetching NoC IP objects
+9.39 Vitis post-sim code-hook
+9.38 fixes for Vitis code-hooks
 9.37 disabled Vitis code-hooks
 9.36 find data dir from VIVADO if not found from rdi data_dir
 9.35 support for VCS auto gcc executable path detection

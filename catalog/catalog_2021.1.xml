@@ -9,8 +9,8 @@
     <app>
       <name>activehdl</name>
       <company>aldec</company>
-      <commit_id>83f03ea4eb30bdbbb1317032d50e8bb233a15f68</commit_id>
-      <revision>1.15</revision>
+      <commit_id>97c21ae303c32c4fca9793a20f4718ed216c5ff9</commit_id>
+      <revision>1.20</revision>
     </app>
     <app>
       <name>bpsvvs</name>
@@ -39,8 +39,8 @@
     <app>
       <name>ies</name>
       <company>xilinx</company>
-      <commit_id>6db6ae0122e3e5fea6c43203a19579f1712df0dc</commit_id>
-      <revision>4.68</revision>
+      <commit_id>2e2ba74a220a6240bd1b0ed9724ebb5319e780e7</commit_id>
+      <revision>4.74</revision>
     </app>
     <app>
       <name>incrcompile</name>
@@ -57,8 +57,8 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>3cc478914c2cf467cee4be9b54bdca6eec3a2cfa</commit_id>
-      <revision>2.279</revision>
+      <commit_id>2e2ba74a220a6240bd1b0ed9724ebb5319e780e7</commit_id>
+      <revision>2.285</revision>
     </app>
     <app>
       <name>myapp</name>
@@ -87,8 +87,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>6db6ae0122e3e5fea6c43203a19579f1712df0dc</commit_id>
-      <revision>3.447</revision>
+      <commit_id>7c1cd804bfb8461df8e0505503478e224e7c795b</commit_id>
+      <revision>3.458</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -99,8 +99,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>493141c5b63a5690cf40d9547605caf04c9198f2</commit_id>
-      <revision>2.208</revision>
+      <commit_id>2e2ba74a220a6240bd1b0ed9724ebb5319e780e7</commit_id>
+      <revision>2.219</revision>
     </app>
     <app>
       <name>questa_cdc</name>
@@ -111,8 +111,8 @@
     <app>
       <name>riviera</name>
       <company>aldec</company>
-      <commit_id>b7a7312e2727b9645a0fce34ff5e58d52f6a6383</commit_id>
-      <revision>1.18</revision>
+      <commit_id>97c21ae303c32c4fca9793a20f4718ed216c5ff9</commit_id>
+      <revision>1.20</revision>
     </app>
     <app>
       <name>spyglass</name>
@@ -141,20 +141,20 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>493141c5b63a5690cf40d9547605caf04c9198f2</commit_id>
-      <revision>9.37</revision>
+      <commit_id>2e2ba74a220a6240bd1b0ed9724ebb5319e780e7</commit_id>
+      <revision>9.49</revision>
     </app>
     <app>
       <name>xcelium</name>
       <company>xilinx</company>
-      <commit_id>493141c5b63a5690cf40d9547605caf04c9198f2</commit_id>
-      <revision>11.50</revision>
+      <commit_id>2e2ba74a220a6240bd1b0ed9724ebb5319e780e7</commit_id>
+      <revision>11.62</revision>
     </app>
     <app>
       <name>xsim</name>
       <company>xilinx</company>
-      <commit_id>25fba0715c89f6425463e2b42fd9ebebec6afb5b</commit_id>
-      <revision>2.368</revision>
+      <commit_id>859e95d73d39e19876dbf6293534ee72dfb0eda0</commit_id>
+      <revision>2.380</revision>
     </app>
   </apps>
 </catalog>
