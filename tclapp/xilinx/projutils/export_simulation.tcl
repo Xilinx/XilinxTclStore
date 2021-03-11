@@ -23,6 +23,7 @@ proc xps_init_vars {} {
   # define bool vars
   #
   set a_sim_vars(b_lib_map_path_specified)        0
+  set a_sim_vars(b_gcc_bin_path_specified)        0
   set a_sim_vars(b_script_specified)              0
   set a_sim_vars(b_runtime_specified)             0
   set a_sim_vars(b_define_specified)              0
@@ -50,7 +51,9 @@ proc xps_init_vars {} {
   set a_sim_vars(b_scripts_only)                  0
   set a_sim_vars(b_use_static_lib)                0
   set a_sim_vars(b_int_systemc_mode)              [get_param "project.enableSystemCSupport"]
+  set a_sim_vars(b_int_system_design)             [rdi::is_system_sim_design]
   set a_sim_vars(b_int_sm_lib_ref_debug)          0
+
   set a_sim_vars(b_compile_simmodels)             0
   #
   # define string vars
@@ -84,6 +87,7 @@ proc xps_init_vars {} {
   set a_sim_vars(sp_cpt_dir)                {}
   set a_sim_vars(sp_ext_dir)                {}
   set a_sim_vars(custom_sm_lib_dir)         {}
+  set a_sim_vars(s_gcc_bin_path)            {}
   set a_sim_vars(s_gcc_version)             {}
   set a_sim_vars(b_ref_sysc_lib_env)        [get_param "project.refSystemCLibPathWithXilinxEnv"]
   # 
@@ -198,6 +202,7 @@ proc export_simulation {args} {
   # [-ip_user_files_dir <arg> = Empty]: Directory path to the exported IP/BD (Block Design) user files (for static, dynamic and data files)
   # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP/BD static files
   # [-lib_map_path <arg> = Empty]: Precompiled simulation library directory path. If not specified, then please follow the instructions in the generated script header to manually provide the simulation library mapping information.
+  # [-gcc_install_path <arg> = Empty]: GNU compiler installation directory path for the g++/gcc executables.
   # [-script_name <arg> = top_module.sh]: Output script filename. If not specified, then a file with a default name will be created.
   # [-directory <arg> = export_sim]: Directory where the simulation script will be generated
   # [-runtime <arg> = Empty]: Run simulation for this time (default:full simulation run or until a logical break or finish condition)
@@ -237,6 +242,7 @@ proc export_simulation {args} {
     switch -regexp -- $option {
       "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
       "-lib_map_path"             { incr i;set l_lib_map_path                    [lindex $args $i];set a_sim_vars(b_lib_map_path_specified)              1 }
+      "-gcc_install_path"         { incr i;set a_sim_vars(s_gcc_bin_path)        [lindex $args $i];set a_sim_vars(b_gcc_bin_path_specified)              1 }
       "-of_objects"               { incr i;set a_sim_vars(sp_of_objects)         [lindex $args $i];set a_sim_vars(b_of_objects_specified)                1 }
       "-ip_user_files_dir"        { incr i;set a_sim_vars(s_ip_user_files_dir)   [lindex $args $i];set a_sim_vars(b_ip_user_files_dir_specified)         1 }
       "-ipstatic_source_dir"      { incr i;set a_sim_vars(s_ipstatic_source_dir) [lindex $args $i];set a_sim_vars(b_ipstatic_source_dir_specified)       1 }
@@ -999,17 +1005,10 @@ proc xps_write_script { simulator dir filename } {
     return 1
   }
 
-  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
-
-  # contains system verilog? (for uvm)
-  set a_sim_vars(b_contain_sv_srcs) [xcs_contains_system_verilog $a_sim_vars(l_design_files)]
-
-  # is system design?
-  if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
-    set a_sim_vars(b_system_sim_design) 1
+  # set gcc
+  if { $a_sim_vars(b_int_system_design) } {
+    xps_set_gcc_version_path $simulator
   }
-
-  # TODO: for non-precompile mode set the compiled library for system simulation
 
   # extract simulation model library info
   set clibs_dir [xps_get_lib_map_path $simulator]
@@ -1017,27 +1016,32 @@ proc xps_write_script { simulator dir filename } {
   if { ![file exists $ip_dir] } {
     set ip_dir $clibs_dir
   }
-
-  # TODO: perf-fix
   xcs_fetch_lib_info $simulator $ip_dir 0
 
-  set l_compile_order_files_uniq [xcs_uniquify_cmd_str $l_compile_order_files]
 
   # systemC headers
   set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
 
-  # set gcc
-  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-    xps_set_gcc_version_path $simulator
-  }
-
   # find shared library paths from all IPs
-  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-    set b_en_code true
-    if { $b_en_code } {
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    if { [xcs_contains_C_files] } {
       xcs_find_shared_lib_paths $simulator $a_sim_vars(s_gcc_version) $clibs_dir $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
     }
   }
+
+  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
+
+  # is system design?
+  if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
+    set a_sim_vars(b_system_sim_design) 1
+  }
+
+  # contains system verilog? (for uvm)
+  set a_sim_vars(b_contain_sv_srcs) [xcs_contains_system_verilog $a_sim_vars(l_design_files)]
+
+  # TODO: for non-precompile mode set the compiled library for system simulation
+
+  set l_compile_order_files_uniq [xcs_uniquify_cmd_str $l_compile_order_files]
 
   xps_write_simulation_script $simulator $dir
 
@@ -1272,6 +1276,8 @@ proc xps_get_files { simulator launch_dir } {
     }
   }
 
+  set l_C_incl_dirs_opts     [list]
+
   # if xilinx_vip not referenced, compile it locally
   if { ([lsearch -exact $l_compiled_libraries "xilinx_vip"] == -1) } {
     variable a_sim_sv_pkg_libs
@@ -1294,6 +1300,37 @@ proc xps_get_files { simulator launch_dir } {
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
+        }
+      }
+    }
+  }
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    set b_en_code true
+    if { $b_en_code } {
+      if { [xcs_contains_C_files] } {
+        variable a_shared_library_path_coln
+        foreach {key value} [array get a_shared_library_path_coln] {
+          set shared_lib_name $key
+          set lib_path        $value
+
+          set incl_dir "$lib_path/include"
+          if { [file exists $incl_dir] } {
+            if { !$a_sim_vars(b_absolute_path) } {
+              # get relative file path for the compiled library
+              set incl_dir "[xcs_get_relative_file_path $incl_dir $launch_dir]"
+            }
+            #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
+            lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
+          }
+        }
+
+        foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $a_sim_vars(fs_obj)] {
+          if { !$a_sim_vars(b_absolute_path) } {
+            set incl_dir "[xcs_get_relative_file_path $incl_dir $launch_dir]"
+          }
+          #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
+          lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
         }
       }
     }
@@ -1442,10 +1479,14 @@ proc xps_get_files { simulator launch_dir } {
   }
 
   if { $a_sim_vars(b_int_systemc_mode) } {
-    # design contain systemc/cpp/C sources? 
+    # design contain systemc sources? 
     set sc_filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
     set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
     set c_filter   "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C\")"
+
+    set sc_header_filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")"
+    set cpp_header_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")"
+    set c_header_filter   "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C Header Files\")"
 
     # fetch systemc files
     set sc_files [xcs_get_c_files $sc_filter]
@@ -1453,30 +1494,22 @@ proc xps_get_files { simulator launch_dir } {
       send_msg_id exportsim-Tcl-024 INFO "Finding SystemC sources..."
       # fetch systemc include files (.h)
       set l_incl_dir [list]
-      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $sc_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $sc_header_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
+
 
       # dependency on cpp source headers
       # fetch cpp include files (.h)
-      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $cpp_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $cpp_header_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
 
-      # get the xtlm include dir from compiled library
-      set dir "[xps_get_lib_map_path $simulator]/xtlm/include"
-
-      # get relative file path for the compiled library
-      set relative_dir "[xcs_get_relative_file_path $dir $launch_dir]"
-      lappend l_incl_dir "-I \"$relative_dir\""
-
-      if { "vcs" == $simulator } {
-        # get the systemc include dir from data
-        set dir [xcs_get_systemc_include_dir]
-        set relative_dir "[xcs_get_relative_file_path $dir $launch_dir]"
-        lappend l_incl_dir "-I \"$relative_dir\""
+      # append simulation model libraries
+      foreach C_incl_dir $l_C_incl_dirs_opts {
+        lappend l_incl_dir $C_incl_dir
       }
-  
+
       foreach file $sc_files {
         set file_extn [file extension $file]
         if { {.h} == $file_extn } {
@@ -1515,13 +1548,11 @@ proc xps_get_files { simulator launch_dir } {
       foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $cpp_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
-      
-      # get the xtlm include dir from compiled library
-      set dir "[xps_get_lib_map_path $simulator]/xtlm/include"
-
-      # get relative file path for the compiled library
-      set relative_dir "[xcs_get_relative_file_path $dir $launch_dir]"
-      lappend l_incl_dir "-I \"$relative_dir\""
+     
+      # append simulation model libraries
+      foreach C_incl_dir $l_C_incl_dirs_opts {
+        lappend l_incl_dir $C_incl_dir
+      }
 
       foreach file $cpp_files {
         set file_extn [file extension $file]
@@ -1561,14 +1592,12 @@ proc xps_get_files { simulator launch_dir } {
       foreach dir [xcs_get_c_incl_dirs $simulator $launch_dir $a_sim_vars(s_boost_dir) $c_filter $a_sim_vars(s_ip_user_files_dir) $a_sim_vars(b_xport_src_files) $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
         lappend l_incl_dir "-I \"$dir\""
       }
+
+      # append simulation model libraries
+      foreach C_incl_dir $l_C_incl_dirs_opts {
+        lappend l_incl_dir $C_incl_dir
+      }
       
-      # get the xtlm include dir from compiled library
-      set dir "[xps_get_lib_map_path $simulator]/xtlm/include"
-
-      # get relative file path for the compiled library
-      set relative_dir "[xcs_get_relative_file_path $dir $launch_dir]"
-      lappend l_incl_dir "-I \"$relative_dir\""
-
       foreach file $c_files {
         set file_extn [file extension $file]
         if { {.h} == $file_extn } {
@@ -2829,18 +2858,25 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
     "riviera" -
     "activehdl" -
     "questa" {
-      if { $a_sim_vars(b_contain_systemc_sources) } {
-        set shared_ip_libs [list]
-        foreach shared_ip_lib [xcs_get_shared_ip_libraries $clibs_dir] {
-          set lib_dir "[xps_get_lib_map_path $simulator]/$shared_ip_lib"
-          lappend shared_ip_libs $lib_dir
-        }
-        if { [llength $shared_ip_libs] > 0 } {
-          set shared_ip_libs_env_path [join $shared_ip_libs ":"]
-          puts $fh_unix "  export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+      set b_append_log false
+
+      if { "questa" == $simulator } {
+        if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+          # set LD_LIBRARY_PATH for sim-models
+          xps_export_ld_lib $simulator $fh_unix
+
+          # write sccom cmd line
+          set args [list]
+          xps_questa_get_sccom_cmd_args $clibs_dir args
+          set sccom_cmd_str [join $args " "]
+          puts $fh_unix "  sccom $sccom_cmd_str 2>&1 | tee elaborate.log\n"
+          set b_append_log true
         }
       }
-      puts $fh_unix "  source elaborate.do 2>&1 | tee -a elaborate.log"
+
+      set append_sw " "
+      if { $b_append_log } { set append_sw " -a " }
+      puts $fh_unix "  source elaborate.do 2>&1 | tee${append_sw} elaborate.log"
       xps_write_do_file_for_elaborate $simulator $dir
     }
     "ies" -
@@ -3077,6 +3113,8 @@ proc xps_append_compiler_options { simulator launch_dir tool file_type l_verilog
         set s_64bit {-32}
       }
       set arg_list [list $s_64bit]
+      lappend arg_list "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+      lappend arg_list "-std=c++11"
       xps_append_config_opts arg_list $simulator "sccom"
       set cmd_str [join $arg_list " "]
       lappend opts $cmd_str
@@ -4243,30 +4281,6 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
     "modelsim" {
     }
     "questa" {
-      if { $a_sim_vars(b_contain_systemc_sources) } {
-        # systemc
-        set args [list]
-        lappend args "sccom"
-        if { !$a_sim_vars(b_32bit) } {
-          set args [linsert $args end "-64"]
-        }
-        lappend args "-link"
-        foreach lib [xcs_get_sc_libs] {
-          lappend args "-lib $lib"
-        }
-        lappend args "-lib $a_sim_vars(default_lib)"
-        foreach shared_ip_lib [xcs_get_shared_ip_libraries $clibs_dir] {
-          set lib_dir "[xps_get_lib_map_path $simulator]/$shared_ip_lib"
-          lappend args "-L$lib_dir"
-          lappend args "-l${shared_ip_lib}"
-          lappend args "-lib ${shared_ip_lib}"
-        }
-        lappend args "-work $a_sim_vars(default_lib)"
-        set cmd_str [join $args " "]
-        puts $fh "$cmd_str"
-      }
- 
-      # RTL
       set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_lib)]
       # 1076948 - default access to nets/ports/registers (npr)
       set arg_list [list "+acc=npr" "-l" "elaborate.log"]
@@ -4277,6 +4291,11 @@ proc xps_write_do_file_for_elaborate { simulator dir } {
           set arg_list [linsert $arg_list 0 "-64"]
         }
       }
+
+      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+        lappend arg_list "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+      }
+
       if { [llength $l_generics] > 0 } {
         xps_append_generics $l_generics arg_list
       }
@@ -6019,6 +6038,9 @@ proc xps_write_questa_sim_cmdline { fh_unix dir } {
 
   variable a_sim_vars
 
+  # set LD_LIBRARY_PATH for sim-models
+  xps_export_ld_lib "questa" $fh_unix
+
   set s_64bit {}
   if { !$a_sim_vars(b_32bit) } {
     if {$::tcl_platform(platform) == "windows"} {
@@ -6042,11 +6064,83 @@ proc xps_write_questa_sim_cmdline { fh_unix dir } {
     puts $fh_unix "    $cmd_str"
     puts $fh_unix "  fi"
   } else {
-    set cmd_str "vsim $s_64bit -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
+    set gcc_arg {}
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+      set gcc_arg "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+    }
+    set cmd_str "vsim $s_64bit $gcc_arg -c -do \"do \{$a_sim_vars(do_filename)\}\" -l simulate.log"
     puts $fh_unix "  $cmd_str"
   }
   xps_write_do_file_for_simulate "questa" $dir
 }
+
+proc xps_questa_get_sccom_cmd_args { clibs_dir args_opts } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  upvar $args_opts opts
+
+  if {$::tcl_platform(platform) == "unix"} {
+    lappend opts {-64}
+  }
+
+  lappend opts "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+  lappend opts "-link"
+
+  set ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $ip_obj } {
+    lappend opts "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
+  }
+
+  variable a_shared_library_path_coln
+  foreach {key value} [array get a_shared_library_path_coln] {
+    set sc_lib   $key
+    set lib_path $value
+    set lib_name [file root $sc_lib]
+    set lib_name [string trimleft $lib_name {lib}]
+    set lib_dir "$lib_path"
+
+    if { ([xcs_is_c_library $lib_name]) || ([xcs_is_cpp_library $lib_name]) } {
+      lappend opts "-L$lib_dir"
+      lappend opts "-l$lib_name"
+    } else {
+      lappend opts "-lib $lib_name"
+    }
+  }
+  lappend args "-lib $a_sim_vars(default_lib)"
+
+  # bind IP static librarries
+  set shared_ip_libs [xcs_get_shared_ip_libraries $clibs_dir]
+  set uniq_shared_libs    [list]
+  set shared_libs_to_link [list]
+
+  foreach ip_obj [get_ips -all -quiet] {
+    set ipdef [get_property -quiet IPDEF $ip_obj]
+    set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+    set ssm_type [get_property -quiet selected_sim_model $ip_obj]
+    if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+      if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+        if { ("tlm" == $ssm_type) } {
+          # bind systemC library
+          lappend shared_libs_to_link $vlnv_name
+          lappend uniq_shared_libs $vlnv_name
+        } else {
+          # rtl, tlm_dpi (no binding)
+        }
+      }
+    }
+  }
+
+  foreach vlnv_name $shared_libs_to_link {
+    lappend opts "-lib $vlnv_name"
+  }
+
+  lappend opts "-work $a_sim_vars(default_lib)"
+}
+
 }
 
 #
@@ -6756,6 +6850,13 @@ proc xps_set_gcc_version_path { simulator } {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
     }
+    "questa" {
+      set gcc_type {}
+      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      switch $gcc_type {
+        1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
+      }
+    }
   }
 }
 
@@ -7071,6 +7172,78 @@ proc xps_append_config_opts_sysc { simulator launch_dir opts_args } {
       lappend opts "--include \"$incl_dir\""
     }
   }
+}
+
+proc xps_export_ld_lib { simulator fh_unix } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set clibs_dir [xps_get_lib_map_path $simulator]
+  set shared_ip_libs [list]
+
+  # get data dir from $XILINX_VIVADO/data/simmodels/questa (will return $XILINX_VIVADO/data)
+  set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
+
+  # design contains AIE? bind protected cluster library
+  # ($XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0/libaie_cluster_v1_0_0.so)
+  set aie_ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $aie_ip_obj } {
+    # get protected sub-dir (simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected)
+    set cpt_dir [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
+    set model "aie_cluster_v1_0_0"
+
+    # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
+    # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
+    # TODO: find way to make this data-driven
+    lappend shared_ip_libs "$data_dir/$cpt_dir/$model"
+  }
+
+  variable a_shared_library_path_coln
+  foreach {key value} [array get a_shared_library_path_coln] {
+    set sc_lib   $key
+    set lib_path $value
+    set lib_dir "$lib_path"
+
+    lappend shared_ip_libs $lib_dir
+  }
+
+  # bind IP static librarries
+  set sh_ip_libs [xcs_get_shared_ip_libraries $clibs_dir]
+  set uniq_shared_libs    [list]
+  set shared_libs_to_link [list]
+
+  foreach ip_obj [get_ips -all -quiet] {
+    set ipdef [get_property -quiet IPDEF $ip_obj]
+    set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+    set ssm_type [get_property -quiet selected_sim_model $ip_obj]
+    if { [lsearch $sh_ip_libs $vlnv_name] != -1 } {
+      if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+        if { ("tlm" == $ssm_type) } {
+          # bind systemC library
+          lappend shared_libs_to_link $vlnv_name
+          lappend uniq_shared_libs $vlnv_name
+        } else {
+          # rtl, tlm_dpi (no binding)
+        }
+      }
+    }
+  }
+
+  foreach vlnv_name $shared_libs_to_link {
+    set lib_dir "$clibs_dir/$vlnv_name"
+    lappend shared_ip_libs $lib_dir
+  }
+
+  if { [llength $shared_ip_libs] > 0 } {
+    set shared_ip_libs_env_path [join $shared_ip_libs ":"]
+    puts $fh_unix "  export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+  }
+
+  puts $fh_unix "\n  export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+  puts $fh_unix ""
 }
 
 }
