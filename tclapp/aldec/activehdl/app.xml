@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT80319 - &apos;quit&apos; is missing from compile.do files with latest Riviera TCLAPP</revision_history>
+      <revision_history>SPT80331 - snoc_addr_map.xml is missing in Riviera simulation scripts directory</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
