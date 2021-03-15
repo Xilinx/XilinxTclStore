@@ -1,3 +1,4 @@
+9.50 fixed VCS simulation for optimized flow
 9.49 find available boost library from RDI_DATA_DIR
 9.48 check for file before inspecting core container property
 9.47 refactored gcc version support

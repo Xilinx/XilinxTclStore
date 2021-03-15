@@ -87,8 +87,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>f638d325a3524c5c411245b0bf2c53d6255c1556</commit_id>
-      <revision>3.461</revision>
+      <commit_id>64fb8faffc916ba374f8e8577ae7e6b0a5487139</commit_id>
+      <revision>3.462</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -141,8 +141,8 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>2e2ba74a220a6240bd1b0ed9724ebb5319e780e7</commit_id>
-      <revision>9.49</revision>
+      <commit_id>64fb8faffc916ba374f8e8577ae7e6b0a5487139</commit_id>
+      <revision>9.50</revision>
     </app>
     <app>
       <name>xcelium</name>
