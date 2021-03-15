@@ -1598,6 +1598,7 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
 
   set tool "syscan"
   set arg_list [list "-sysc=232"]
+  lappend arg_list "-sysc=opt_if"
   lappend arg_list "-cpp \$\{gcc_path\}/g++"
   lappend arg_list "-V"
 
@@ -1786,9 +1787,102 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
   set n_gcc_file_group   0
   set b_first          true
 
+  #################
+  # cpp/C - g++/gcc 
+  #################
+  if { $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
+    puts $fh_scr "echo \"Compiling C/CPP sources...\""
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      switch -exact -- $compiler {
+        "g++"    -
+        "gcc"    {
+          set gcc_cmd "$cmd_str \\\n$src_file \\"
+          if { {} != $tool_path } {
+            set gcc_cmd "\$bin_path/$cmd_str \\\n$src_file \\"
+          }
+          puts $fh_scr "$gcc_cmd"
+          set cstr "$a_sim_vars(clog)"
+          if { $n_file_group > 1 } {set cstr "-a $a_sim_vars(clog)"}
+          puts $fh_scr "$redirect_cmd_str $cstr\n"
+          incr n_file_group
+        }
+      }
+    }
+  }
+
+  ##################
+  # systemc - g++/gcc 
+  ##################
+  if { $a_sim_vars(b_contain_systemc_sources) } {
+    set log "syscan.log"
+    if { $n_file_group > 1 } { puts $fh_scr "" }
+    puts $fh_scr "echo \"Compiling SystemC sources...\""
+    variable a_sim_cache_sysc_stub_files
+    set sysc_stub_modules [list]
+    set b_first true
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      switch -exact -- $compiler {
+        "syscan" {
+          if { $b_first } {
+            set cmd_str "\$gcc_path/g++ \$gpp_sysc_opts \$syscan_gcc_opts "
+            set gcc_cmd "$cmd_str \\\n$src_file \\"
+            puts $fh_scr "$gcc_cmd"
+            set b_first false
+          } else {
+            puts $fh_scr "$src_file \\"
+          }
+          set sysc_src_file [string trim $src_file {\"}]
+          set module_name [file root [file tail $sysc_src_file]]
+          if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
+            lappend sysc_stub_modules "$module_name"
+          }
+        }
+      }
+    }
+    incr n_file_group
+
+    puts $fh_scr "-shared -o $a_sim_vars(syscan_libname) \\"
+    set rdcs "$redirect_cmd_str "
+    puts $fh_scr "$rdcs tee -a syscan.log &"
+
+    # TODO:
+    #set cstr "$a_sim_vars(clog)"
+    #if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+    #append rdcs $cstr
+    #append rdcs "; cat $a_sim_vars(tmp_log_file)"
+    #set rdap " > $log $null"
+    #append rdcs $rdap
+    #puts $fh_scr "$rdcs &"
+
+    puts $fh_scr "GCC_SYSC_PID=\$!"
+    puts $fh_scr ""
+  }
+
   #####################
   # RTL - vhdlan/vlogan
   #####################
+  set rdap {}
+  set b_first true
+
+  puts $fh_scr "echo \"Compiling RTL sources...\""
   foreach file $a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
     set type        [lindex $fargs 0]
@@ -1851,87 +1945,27 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
     puts $fh_scr "$rdcs"
   }
 
-  ##################
-  # systemC - syscan
-  ##################
+  ########################
+  # syscan - compile stubs
+  ########################
   if { $a_sim_vars(b_contain_systemc_sources) } {
-    if { $n_file_group > 1 } { puts $fh_scr "" }
-    variable a_sim_cache_sysc_stub_files
-    set sysc_stub_modules [list]
-    set b_first true
-    foreach file $a_sim_vars(l_design_files) {
-      set fargs       [split $file {|}]
-      set type        [lindex $fargs 0]
-      set file_type   [lindex $fargs 1]
-      set lib         [lindex $fargs 2]
-      set cmd_str     [lindex $fargs 3]
-      set src_file    [lindex $fargs 4]
-      set b_static_ip [lindex $fargs 5]
-      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-      set compiler [file tail [lindex [split $cmd_str " "] 0]]
-      switch -exact -- $compiler {
-        "syscan" {
-          if { $b_first } {
-            set cmd_str "\$gcc_path/g++ \$gpp_sysc_opts \$syscan_gcc_opts "
-            set gcc_cmd "$cmd_str \\\n$src_file \\"
-            puts $fh_scr "$gcc_cmd"
-            set b_first false
-          } else {
-            puts $fh_scr "$src_file \\"
-          }
-          set sysc_src_file [string trim $src_file {\"}]
-          set module_name [file root [file tail $sysc_src_file]]
-          if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
-            lappend sysc_stub_modules "$module_name"
-          }
-        }
-      }
-    }
-    incr n_file_group
-    puts $fh_scr "-shared -o $a_sim_vars(syscan_libname)"
-    puts $fh_scr ""
     set gcc_cmd "syscan "
     if { {} != $tool_path } {
       set gcc_cmd "\$bin_path/syscan "
     }
     append gcc_cmd "\$syscan_opts -cflags \"\$gpp_sysc_hdl_opts \$syscan_gcc_opts\" -Mdir=c.obj \\"
+ 
+    puts $fh_scr ""
+    puts $fh_scr "echo \"Waiting for jobs to finish...\""
+    puts $fh_scr "wait \$GCC_SYSC_PID"
+    puts $fh_scr ""
+    puts $fh_scr "echo \"Generating stub-wrappers...\""
     puts $fh_scr "$gcc_cmd"
     foreach stub_mod $sysc_stub_modules {
       puts $fh_scr "$a_sim_vars(syscan_libname):$stub_mod \\"
     }
   }
 
-  #################
-  # cpp/C - g++/gcc 
-  #################
-  if { $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
-    if { $n_file_group > 1 } { puts $fh_scr "" }
-    foreach file $a_sim_vars(l_design_files) {
-      set fargs       [split $file {|}]
-      set type        [lindex $fargs 0]
-      set file_type   [lindex $fargs 1]
-      set lib         [lindex $fargs 2]
-      set cmd_str     [lindex $fargs 3]
-      set src_file    [lindex $fargs 4]
-      set b_static_ip [lindex $fargs 5]
-      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-      set compiler [file tail [lindex [split $cmd_str " "] 0]]
-      switch -exact -- $compiler {
-        "g++"    -
-        "gcc"    {
-          set gcc_cmd "$cmd_str \\\n$src_file \\"
-          if { {} != $tool_path } {
-            set gcc_cmd "\$bin_path/$cmd_str \\\n$src_file \\"
-          }
-          puts $fh_scr "$gcc_cmd"
-          set cstr "$a_sim_vars(clog)"
-          if { $n_file_group > 1 } {set cstr "-a $a_sim_vars(clog)"}
-          puts $fh_scr "$redirect_cmd_str $cstr\n"
-          incr n_file_group
-        }
-      }
-    }
-  }
 }
 
 proc usf_vcs_write_compile_order_files_msg { fh_scr } {

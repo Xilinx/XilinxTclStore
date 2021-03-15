@@ -6367,6 +6367,14 @@ proc xps_write_xcelium_opt_args { fh_unix } {
   }
 
   puts $fh_unix "${tool}_opts=\"[join $arg_list " "]\""
+  
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+    set opts "-nodep -gnu -gcc_vers 6.3 -cxxext cxx"
+    puts $fh_unix "xmsc_opts=\"$opts\""
+    set opts "-Wcxx,-std=c++11,-fPIC,-c,-Wall,-Wno-deprecated -D_GLIBCXX_USE_CXX11_ABI=0 -DSC_INCLUDE_DYNAMIC_PROCESSES"
+    puts $fh_unix "xmsc_gcc_opts=\"$opts\""
+  }
+
   puts $fh_unix ""
 }
 
@@ -6500,6 +6508,54 @@ proc xps_write_single_step_for_xcelium { fh_unix launch_dir srcs_dir } {
       if { [lsearch -exact $uniq_dirs $dir] == -1 } {
         lappend uniq_dirs $dir
         lappend arg_list "+incdir+\"$dir\""
+      }
+    }
+  }
+
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+    lappend arg_list "-sysc"
+    lappend arg_list "-xmsc_runargs \"\$xmsc_opts\""
+    lappend arg_list "-xmsc_runargs \"\$xmsc_gcc_opts\""
+    
+    set filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC Header\")"
+    set prefix_ref_dir false
+
+    set l_incl_dirs [list]
+    foreach dir [xcs_get_c_incl_dirs "xcelium" $launch_dir $a_sim_vars(s_boost_dir) $filter $a_sim_vars(s_ip_user_files_dir) false $a_sim_vars(b_absolute_path) $prefix_ref_dir] {
+      lappend l_incl_dirs "$dir"
+    }
+ 
+    # reference SystemC include directories
+    set clibs_dir [xps_get_lib_map_path "xcelium"]
+    variable a_shared_library_path_coln
+    foreach {key value} [array get a_shared_library_path_coln] {
+      set shared_lib_name $key
+      set lib_path        $value
+      set incl_dir "$lib_path/include"
+      if { [file exists $incl_dir] } {
+        if { !$a_sim_vars(b_absolute_path) } {
+          set b_resolved 0
+          set resolved_path [xcs_resolve_sim_model_dir "xcelium" $incl_dir $clibs_dir $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels) "include"]
+          if { $b_resolved } {
+            set incl_dir $resolved_path
+          } else {
+            set incl_dir "[xcs_get_relative_file_path $incl_dir $launch_dir]"
+          }
+        }
+        lappend l_incl_dirs "$incl_dir"
+      }
+    }
+  
+    foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $a_sim_vars(fs_obj)] {
+      if { !$a_sim_vars(b_absolute_path) } {
+        set incl_dir "[xcs_get_relative_file_path $incl_dir $launch_dir]"
+      }
+      lappend l_incl_dirs "$incl_dir"
+    }
+   
+    if { [llength $l_incl_dirs] > 0 } {
+      foreach incl_dir $l_incl_dirs {
+        lappend arg_list "-xmsc_runargs \"-I$incl_dir\""
       }
     }
   }
@@ -6719,7 +6775,14 @@ proc xps_write_lib_map_path_dir { simulator fh_unix } {
         }
       }
       puts $fh_unix "# Set the compiled library directory"
-      puts $fh_unix "ref_lib_dir=\"$cds_lmp\"\n"
+      puts $fh_unix "ref_lib_dir=\"$cds_lmp\""
+
+      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+        puts $fh_unix "xv_cxl_lib_path=\"$lmp\""
+        puts $fh_unix "xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+        puts $fh_unix "xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
+        puts $fh_unix "xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\"\n"
+      }
     }
   }
 }
