@@ -767,6 +767,20 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
       lappend l_compile_order_files $netlist_file
     }
   }
+
+  # add files marked for netlist_simulation
+  if { $a_sim_vars(b_enable_netlist_sim) && $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    foreach file_obj [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+      if { [get_property -quiet netlist_simulation $file_obj] } {
+        set file_type [get_property "FILE_TYPE" $file_obj]
+        set cmd_str [usf_get_file_cmd_str $file_obj $file_type false {} other_ver_opts]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file_obj
+        }
+      }
+    }
+  }
  
   # add testbench files if any
   #set vhdl_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\")"
