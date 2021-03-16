@@ -8,8 +8,8 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::sim 1.20
-package require ::tclapp::aldec::common::helpers 1.20
+package require ::tclapp::aldec::common::sim 1.22
+package require ::tclapp::aldec::common::helpers 1.22
 
 namespace eval ::tclapp::aldec::riviera {
 

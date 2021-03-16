@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.20
+package provide ::tclapp::aldec::common::helpers 1.22
 
 namespace eval ::tclapp::aldec::common {
 
@@ -2701,14 +2701,22 @@ proc usf_export_data_files { data_files } {
     set data_files [usf_remove_duplicate_files $data_files]
     foreach file $data_files {
       set extn [file extension $file]
+	  set filename [file tail $file]
       switch -- $extn {
         {.c} -
         {.zip} -
         {.hwh} -
         {.hwdef} -
         {.xml} {
-          if { {} != [usf_get_top_ip_filename $file] } {
-            continue
+		  if { {} != [usf_cache_result {usf_get_top_ip_filename $file}] } {
+            if { [regexp {_addr_map.xml} ${filename}] } {
+              # keep these files
+            } else {
+              continue
+            }
+          } else {
+            # skip other c files
+            if { {.c} == $extn } { continue }
           }
         }
       }
