@@ -1,3 +1,4 @@
+2.381 compile scoped BD sources marked for netlist simulation
 2.380 fixed property names for Vitis code hooks
 2.379 find available boost library from RDI_DATA_DIR
 2.378 check for file before inspecting core container property
