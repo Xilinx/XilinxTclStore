@@ -6498,7 +6498,7 @@ proc xps_write_xcelium_opt_args { fh_unix } {
   puts $fh_unix "${tool}_opts=\"[join $arg_list " "]\"\n"
   
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
-    set opts "-nodep -gnu -gcc_vers 6.3 -cxxext cxx"
+    set opts "-nodep -gnu -gcc_vers 6.3"
     puts $fh_unix "# Set xmsc options"
     puts $fh_unix "xmsc_opts=\"$opts\"\n"
 
@@ -6590,6 +6590,39 @@ proc xps_write_single_step_for_xcelium { fh_unix launch_dir srcs_dir } {
     lappend arg_list "-reflib \"\$ref_lib_dir/$lib:$lib\""
   }
 
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    variable a_shared_library_path_coln
+    foreach {library lib_dir} [array get a_shared_library_path_coln] {
+      if { ("libprotobuf.so" == $library) && (!$b_bind_protobuf) } {
+        # don't bind shared library but bind static library built with the simmodel itself
+        continue
+      }
+      # don't bind static protobuf (simmodel will bind these during compilation)
+      if { ("libprotobuf.a" == $library) } {
+        continue;
+      }
+      set lib_name $library
+      # fetch lib name only
+      set lib_name [string trimleft $lib_name "lib"]
+      set lib_name [string trimright $lib_name ".so"]
+  
+      set sm_lib_dir [file normalize $lib_dir]
+      set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+      if { [regexp "^noc_v" $lib_name] || [regexp "^aie_cluster_v" $lib_name] } {
+        set cmd_str "-L\$xv_cpt_lib_path/$lib_name -l${lib_name}"
+      } else {
+        set cmd_str "-L\$xv_cxl_lib_path/$lib_name -l${lib_name}"
+      }
+      lappend arg_list $cmd_str
+
+      # append noc_base
+      if { [regexp "^noc_v" $lib_name] } {
+        set cmd_str "-L\$xv_cpt_lib_path/$lib_name -lnocbase_v1_0_0"
+        lappend arg_list $cmd_str
+      }
+    }
+  }
+
   set tool_name "xrun"
   set opts [list]
   if { [llength $l_defines] > 0 } {
@@ -6624,6 +6657,10 @@ proc xps_write_single_step_for_xcelium { fh_unix launch_dir srcs_dir } {
     }
     lappend arg_list "$gfile"
   }
+  
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    lappend arg_list "-cpp_ext .cpp,.cxx"
+  }
 
   if { $a_sim_vars(b_xport_src_files) } {
     set incl_file_dir "srcs/incl"
@@ -6657,7 +6694,6 @@ proc xps_write_single_step_for_xcelium { fh_unix launch_dir srcs_dir } {
  
     # reference SystemC include directories
     set clibs_dir [xps_get_lib_map_path "xcelium"]
-    variable a_shared_library_path_coln
     foreach {key value} [array get a_shared_library_path_coln] {
       set shared_lib_name $key
       set lib_path        $value
@@ -7307,6 +7343,29 @@ proc xps_set_gcc_version_path { simulator } {
       switch $gcc_type {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
+    }
+    "xcelium" {
+      set gcc_type {}
+      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      switch $gcc_type {
+        1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
+      }
+
+      set xm_root {}
+      [catch {set xm_root [exec xmroot]} error]
+      if { {} == $xm_root } {
+        set path_sep  {:}
+        set tool_name "xmsim"
+        set bin_path [xcs_get_bin_path $tool_name $path_sep]
+        set xm_root [join [lrange [split $bin_path "/"] 0 end-3] "/"]
+      }
+      set sys_link "$xm_root/tools/systemc/lib/64bit/gnu"
+      if { ![file exists $sys_link] } {
+        send_msg_id exportsim-Tcl-075 INFO "The Xcelium GNU executables could not be located. Please check if the simulator is installed correctly.\n"
+      }
+
+      set a_sim_vars(s_sys_link_path) "$sys_link"
+      send_msg_id exportsim-Tcl-076 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
     }
     "vcs" {
       set gcc_type {}
