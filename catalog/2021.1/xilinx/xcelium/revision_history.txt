@@ -1,3 +1,4 @@
+11.64 set optional arg for simulate step
 11.63 enabled optimized flow for Xcelium
 11.62 find available boost library from RDI_DATA_DIR
 11.61 check for file before inspecting core container property
