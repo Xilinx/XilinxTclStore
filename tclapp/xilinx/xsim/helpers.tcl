@@ -1586,9 +1586,6 @@ proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opt
 
   set l_all_netlist_files [list]
 
-  # find NoC IPs from the design
-  set noc_ips [xcs_get_noc_ips_for_netlist_sim $sim_flow $a_sim_vars(s_type)]
-
   # add behavioral sources marked for netlist simulation
   if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
     puts "-----------------------------------------------------------------"

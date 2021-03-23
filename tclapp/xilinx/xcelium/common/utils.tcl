@@ -927,17 +927,37 @@ proc xcs_get_noc_libs_for_netlist_sim { sim_flow s_type } {
       if { {} != [xcs_find_ip "noc"] } {
         set noc_ip_libs   [list]
         set uniq_noc_libs [list]
+        set b_requires_noc_na 0
         foreach ip_obj [get_ips -all -quiet] {
           set ipdef [get_property -quiet IPDEF $ip_obj]
           set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
-          if { ([regexp {^noc_nmu} $vlnv_name]) ||
-               ([regexp {^noc_nsu} $vlnv_name]) ||
-               ([regexp {^noc_nps} $vlnv_name]) } {
+          if { ([regexp {^noc_nmu_} $vlnv_name]) ||
+               ([regexp {^noc_nsu_} $vlnv_name]) ||
+               ([regexp {^noc_nps_} $vlnv_name]) ||
+               ([regexp {^noc_na_} $vlnv_name]) } {
+
+            if { !$b_requires_noc_na } {
+              set b_requires_noc_na 1
+            }
 
             if { [lsearch -exact $uniq_noc_libs $vlnv_name] == -1 } {
               lappend noc_libs "$vlnv_name"
               lappend uniq_noc_libs $vlnv_name
             }
+          }
+        }
+
+        # check if noc_na required and if not found from above collection, add it explicitly
+        if { $b_requires_noc_na } {
+          set b_found_noc_na 0
+          foreach lib $noc_libs {
+            if { [regexp {^noc_na_} $lib] } {
+              set b_found_noc_na 1
+              break
+            }
+          }
+          if { !$b_found_noc_na } {
+            lappend noc_libs "noc_na_v1_0_0"
           }
         }
       }
@@ -961,9 +981,10 @@ proc xcs_get_noc_ips_for_netlist_sim { sim_flow s_type } {
         foreach ip_obj [get_ips -all -quiet] {
           set ipdef [get_property -quiet IPDEF $ip_obj]
           set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
-          if { ([regexp {^noc_nmu} $vlnv_name]) ||
-               ([regexp {^noc_nsu} $vlnv_name]) ||
-               ([regexp {^noc_nps} $vlnv_name]) } {
+          if { ([regexp {^noc_nmu_} $vlnv_name]) ||
+               ([regexp {^noc_nsu_} $vlnv_name]) ||
+               ([regexp {^noc_nps_} $vlnv_name]) ||
+               ([regexp {^noc_na_} $vlnv_name]) } {
             # add to noc ip obj collection
             lappend noc_ip_objs "$ip_obj"
           }
