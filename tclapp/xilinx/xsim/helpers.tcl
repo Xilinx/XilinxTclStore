@@ -1584,7 +1584,7 @@ proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opt
   array unset a_sim_noc_files_info
   array unset a_sim_noc_files_incl_dirs_info
 
-  set l_netlist_files [list]
+  set l_all_netlist_files [list]
 
   # find NoC IPs from the design
   set noc_ips [xcs_get_noc_ips_for_netlist_sim $sim_flow $a_sim_vars(s_type)]
@@ -1597,13 +1597,14 @@ proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opt
   }
 
   # find sources marked for netlist simulation and construct include dirs
-  foreach ip_obj $noc_ips {
+  foreach ip_obj [get_ips -quiet -all] {
     if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
       set ipdef [get_property -quiet IPDEF $ip_obj]
       set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
       puts "$ip_obj ($vlnv_name)"
     }
     set l_netlist_files [rdi::get_netlist_sim_files $ip_obj]
+    set l_all_netlist_files [concat $l_netlist_files $l_all_netlist_files]
     foreach nf $l_netlist_files {
       set nf_obj [lindex [get_files -all -quiet $nf] 0]
       set file_name [file tail $nf]
@@ -1636,7 +1637,7 @@ proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opt
   }
 
   # add netlist sources to prj
-  foreach nf $l_netlist_files {
+  foreach nf $l_all_netlist_files {
     set nf_obj [lindex [get_files -all -quiet $nf] 0]
     set file_name [file tail $nf]
     set file_type [get_property -quiet file_type $nf_obj]
