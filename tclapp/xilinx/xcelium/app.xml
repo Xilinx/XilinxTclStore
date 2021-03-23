@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>enabled optimized flow for Xcelium</revision_history>
+      <revision_history>set optional arg for simulate step</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

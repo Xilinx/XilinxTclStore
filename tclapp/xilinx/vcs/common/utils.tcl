@@ -5220,7 +5220,7 @@ proc xcs_write_launch_mode_for_vitis { fh_scr simulator } {
   } elseif { ("xcelium" == $simulator) || ("vcs" == $simulator) } {
     puts $fh_scr "mode=\"\""
   }
-  puts $fh_scr "arg=\$1"
+  puts $fh_scr "arg=\$\{1:-default\}"
   puts $fh_scr "if \[\[ (\$arg = \"off\") || (\$arg = \"batch\") \]\]; then"
   if { "questa" == $simulator } {
     puts $fh_scr "  mode=\"-c\""
