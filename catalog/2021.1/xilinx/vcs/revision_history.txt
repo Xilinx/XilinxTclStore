@@ -1,3 +1,4 @@
+9.52 bind noc_na for netlist simulation
 9.51 set optional arg for simulate step
 9.50 fixed VCS simulation for optimized flow
 9.49 find available boost library from RDI_DATA_DIR
