@@ -1187,6 +1187,8 @@ proc usf_xsim_write_compile_script { scr_filename_arg } {
   # write tcl pre hook
   usf_xsim_write_tcl_pre_hook $fh_scr
 
+  # cleanup files before recreating
+  usf_delete_generated_files
 
   if { [get_param "project.optimizeScriptGenForSimulation"] } {
     if { $a_sim_vars(b_compile_simmodels) } {
@@ -4024,6 +4026,21 @@ proc usf_xsim_write_windows_exit_code { fh_scr } {
       puts $fh_scr "exit 0"
     }
   }
+}
+
+proc usf_delete_generated_files { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set dir $a_sim_vars(s_launch_dir)
+
+  # delete files for the simset top
+  foreach prj_file [glob -nocomplain -directory $dir *_vlog.prj] { [catch {file delete -force $prj_file} error_msg] }
+  foreach prj_file [glob -nocomplain -directory $dir *_vhdl.prj] { [catch {file delete -force $prj_file} error_msg] }
+  foreach prj_file [glob -nocomplain -directory $dir *_xsc.prj]  { [catch {file delete -force $prj_file} error_msg] }
 }
 
 }
