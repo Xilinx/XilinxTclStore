@@ -1,3 +1,4 @@
+2.385 delete PRJ files from previous run
 2.384 bind noc_na for netlist simulation
 2.383 find netlist files for all IPs in the project
 2.382 set optional arg for simulate step
