@@ -1169,6 +1169,7 @@ proc usf_vcs_write_simulate_script {} {
         usf_vcs_write_library_search_order $fh_scr
       }
     }
+    puts $fh_scr ""
   }
 
   set ip_obj [xcs_find_ip "gt_quad_base"]
@@ -1460,8 +1461,8 @@ proc usf_vcs_write_library_search_order { fh_scr } {
 
   set ld_path "LD_LIBRARY_PATH=."
   # for aie
-  set ip_obj [xcs_find_ip "ai_engine"]
-  if { {} != $ip_obj } {
+  set aie_ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $aie_ip_obj } {
     set sm_ext_dir [xcs_get_simmodel_dir "vcs" $a_sim_vars(s_gcc_version) "ext"]
     set sm_cpt_dir [xcs_get_simmodel_dir "vcs" $a_sim_vars(s_gcc_version) "cpt"]
     set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
@@ -1488,19 +1489,18 @@ proc usf_vcs_write_library_search_order { fh_scr } {
   append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
   puts $fh_scr $ld_path
 
-  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-    puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
-    # for aie
-    if { {} != $ip_obj } {
-      if { [info exists ::env(XILINX_VITIS)] } {
-        set xilinx_vitis $::env(XILINX_VITIS)
-        set cardano "$xilinx_vitis/aietools"
-        set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
-        #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
-        puts $fh_scr "source $chess_script"
-      } else {
-        send_msg_id USF-VCS-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
-      }
+  puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+  # for aie
+  if { {} != $aie_ip_obj } {
+    if { [info exists ::env(XILINX_VITIS)] } {
+      puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+      set xilinx_vitis $::env(XILINX_VITIS)
+      set cardano "$xilinx_vitis/aietools"
+      set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
+      #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
+      puts $fh_scr "source $chess_script"
+    } else {
+      send_msg_id USF-VCS-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
     }
   }
 }

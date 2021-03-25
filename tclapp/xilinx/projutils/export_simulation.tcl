@@ -7776,14 +7776,15 @@ proc xps_export_ld_lib { simulator fh_unix } {
     lappend shared_ip_libs "\$sys_path"
   }
 
-  puts $fh_unix "# Export library path"
   if { [llength $shared_ip_libs] > 0 } {
     set shared_ip_libs_env_path [join $shared_ip_libs ":"]
-    puts $fh_unix "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+    puts $fh_unix "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH\n"
   }
-
-  puts $fh_unix "\n# Export pre-compiled shared library path"
   puts $fh_unix "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+  # for aie
+  if { {} != $aie_ip_obj } {
+    puts $fh_unix "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+  }
   puts $fh_unix ""
 }
 

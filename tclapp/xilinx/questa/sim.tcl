@@ -1454,6 +1454,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       puts $fh_scr "bin_path=\"$tool_path\""
     }
 
+    set aie_ip_obj {}
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_contain_systemc_sources) } {
         if { {simulate} == $step } {
@@ -1561,6 +1562,10 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+      # for aie
+      if { {} != $aie_ip_obj } {
+        puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+      }
       puts $fh_scr ""
     }
 
