@@ -1,3 +1,4 @@
+11.66 export chess library env
 11.65 bind noc_na for netlist simulation
 11.64 set optional arg for simulate step
 11.63 enabled optimized flow for Xcelium
