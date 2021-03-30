@@ -1860,8 +1860,8 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
     incr n_file_group
 
     puts $fh_scr "-shared -o $a_sim_vars(syscan_libname) \\"
-    set rdcs "$redirect_cmd_str "
-    puts $fh_scr "$rdcs tee -a syscan.log &"
+    set rdcs "$redirect_cmd_str"
+    puts $fh_scr "$rdcs -a syscan.log &"
 
     # TODO:
     #set cstr "$a_sim_vars(clog)"
