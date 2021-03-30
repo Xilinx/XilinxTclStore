@@ -5662,6 +5662,12 @@ proc xps_write_xsim_opt_args { fh_unix launch_dir } {
     puts $fh_unix "xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
     puts $fh_unix "xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
     puts $fh_unix "xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\"\n"
+
+    # for aie
+    set aie_ip_obj [xcs_find_ip "ai_engine"]
+    if { {} != $aie_ip_obj } {
+      puts $fh_unix "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\"\n"
+    }
   }
 
   set arg_list [list]

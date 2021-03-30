@@ -1291,6 +1291,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     }
     xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
+      set aie_ip_obj [xcs_find_ip "ai_engine"]
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_ref_sysc_lib_env) } {
         puts $fh_scr "\nxv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)]\""
         puts $fh_scr "xv_cpt_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPCPT" $::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)]\""
@@ -1306,6 +1307,10 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
         puts $fh_scr "xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
         puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
         puts $fh_scr "xv_boost_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(s_boost_dir)\"\n"
+      }
+      # for aie
+      if { {} != $aie_ip_obj } {
+        puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\"\n"
       }
     }
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) } {
@@ -1492,6 +1497,7 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
     }
     xcs_write_pipe_exit $fh_scr
     if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_systemc_mode) && $::tclapp::xilinx::xsim::a_sim_vars(b_system_sim_design) } {
+      set aie_ip_obj [xcs_find_ip "ai_engine"]
       if { $::tclapp::xilinx::xsim::a_sim_vars(b_ref_sysc_lib_env) } {
         puts $fh_scr "\nxv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)]\""
         puts $fh_scr "export xv_cpt_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPCPT" $::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)]\""
@@ -1505,6 +1511,10 @@ proc usf_xsim_write_simulate_script { l_sm_lib_paths_arg cmd_file_arg wcfg_file_
         }
         puts $fh_scr "export xv_cpt_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
         puts $fh_scr "xv_ext_lib_path=\"$::tclapp::xilinx::xsim::a_sim_vars(sp_ext_dir)\""
+      }
+      # for aie
+      if { {} != $aie_ip_obj } {
+        puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
       }
     }
     
