@@ -1,3 +1,4 @@
+3.470 set sys path var for VCS
 3.469 set chess dir env for xsim
 3.468 support for more options for export_simulation
 3.467 export chess library env
