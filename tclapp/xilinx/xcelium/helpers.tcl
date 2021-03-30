@@ -154,8 +154,7 @@ proc usf_init_vars {} {
   set a_sim_vars(run_logs_simulate)    [list simulate.log]
 
   # Enable by default (flow verified)
-  #set a_sim_vars(b_optimizeForRuntime)     [get_param "project.optimizeSimScriptExecution"]
-  set a_sim_vars(b_optimizeForRuntime)      1
+  set a_sim_vars(b_optimizeForRuntime)     [get_param "project.optimizeSimScriptExecution"]
 
   # simulation mode types
   variable a_sim_mode_types

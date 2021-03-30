@@ -550,7 +550,7 @@ proc usf_xcelium_write_compile_script {} {
     }
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
-    if { $b_set_shell_var_exit || $a_sim_vars(b_optimizeForRuntime) } {
+    if { $b_set_shell_var_exit } {
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
