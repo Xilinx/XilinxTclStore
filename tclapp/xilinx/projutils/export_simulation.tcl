@@ -7470,6 +7470,7 @@ proc xps_set_gcc_version_path { simulator } {
       }
 
       # set vcs system library
+      set sys_link ""
       if { [info exists ::env(VG_GNU_PACKAGE)] } {
         set sys_link "$::env(VG_GNU_PACKAGE)/gcc-$a_sim_vars(s_gcc_version)"
       }
