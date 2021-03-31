@@ -621,11 +621,15 @@ proc usf_set_gcc_version_path { simulator } {
       set path_sep  {:}
       set tool_name "xmsim"
       set bin_path [xcs_get_bin_path $tool_name $path_sep]
+      # failed to find xcelium tools from PATH, get from s_tool_bin_path if set using -install_path
+      if { {} == $bin_path } {
+        set bin_path $a_sim_vars(s_tool_bin_path)
+      }
       set xm_root [join [lrange [split $bin_path "/"] 0 end-3] "/"]
     }
     set sys_link "$xm_root/tools/systemc/lib/64bit/gnu"
     if { ![file exists $sys_link] } { 
-      send_msg_id USF-Xcelium-046 WARNING "The Xcelium GNU executables could not be located. Please check if the simulator is installed correctly.\n"
+      send_msg_id USF-Xcelium-046 WARNING "The Xcelium GNU systemC library path could not be located. Please check if the simulator/GNU package is installed correctly.\n"
     }
     
     set a_sim_vars(s_sys_link_path) "$sys_link"

@@ -635,8 +635,13 @@ proc usf_set_gcc_version_path { simulator } {
       if { [info exists ::env(VCS_HOME)] } {
         set sys_link "$::env(VCS_HOME)/gnu/linux/gcc-64"
       }
+      # failed to find vcs gnu tools, get from s_tool_bin_path if set using -install_path
       if { ![file exists $sys_link] } {
-        send_msg_id USF-VCS-046 WARNING "The VCS GNU executables could not be located. Please check if the simulator is installed correctly.\n"
+        set sys_link [file normalize "$a_sim_vars(s_gcc_bin_path)/../../gcc-64"]
+      } 
+
+      if { ![file exists $sys_link] } {
+        send_msg_id USF-VCS-046 WARNING "The VCS GNU systemC library path could not be located. Please check if the simulator/GNU package is installed correctly.\n"
       }
     }
     
