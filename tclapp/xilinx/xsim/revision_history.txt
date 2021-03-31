@@ -1,3 +1,4 @@
+2.387 replaced post sim code hook call for Vitis
 2.386 set chess dir env for xsim
 2.385 delete PRJ files from previous run
 2.384 bind noc_na for netlist simulation

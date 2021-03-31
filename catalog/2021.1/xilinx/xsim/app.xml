@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set chess dir env for xsim</revision_history>
+      <revision_history>replaced post sim code hook call for Vitis</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
