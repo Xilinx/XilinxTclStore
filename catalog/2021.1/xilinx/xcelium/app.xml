@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>enable optimization and shell setting for pipefail</revision_history>
+      <revision_history>fixed systemc library install path detection</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
