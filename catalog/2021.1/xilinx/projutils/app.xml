@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set sys path var for VCS</revision_history>
+      <revision_history>Use relative path in checkRequiredFiles proc</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
