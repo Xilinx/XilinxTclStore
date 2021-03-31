@@ -270,6 +270,7 @@ proc write_project_tcl_script {} {
   variable l_script_data
   variable l_remote_files
   variable l_local_files
+  variable l_bd_wrapper
   variable temp_dir
   variable temp_offset 1
   variable clean_temp
@@ -282,6 +283,7 @@ proc write_project_tcl_script {} {
   set l_script_data [list]
   set l_local_files [list]
   set l_remote_files [list]
+  set l_bd_wrapper   [list]
   set l_bc_filesets  [list]
   set l_open_bds [list]
   set l_added_bds [list]
@@ -461,7 +463,13 @@ proc wr_validate_files {} {
   
     lappend l_script_validate "  set files \[list \\"
     foreach file $l_local_files {
-      lappend l_script_validate "   $file \\"
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {    
+        lappend l_script_validate "   $file \\"
+      } else  {
+        set file_no_quotes [string trim $file "\""]
+        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+        lappend l_script_validate " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
+      }
     }
     lappend l_script_validate "  \]"
     
@@ -476,7 +484,13 @@ proc wr_validate_files {} {
   if {[llength $l_remote_files]>0} {
     lappend l_script_validate "  set files \[list \\"
     foreach file $l_remote_files {
-      lappend l_script_validate "   $file \\"
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {    
+        lappend l_script_validate "   $file \\"
+      } else {
+        set file_no_quotes [string trim $file "\""]
+        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+        lappend l_script_validate " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
+      }
     }
     lappend l_script_validate "  \]"
     
@@ -492,7 +506,13 @@ proc wr_validate_files {} {
   if {[llength $l_validate_repo_paths]>0} {
     lappend l_script_validate "  set paths \[list \\"
     foreach path $l_validate_repo_paths {
-      lappend l_script_validate "   $path \\"
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $path]} {    
+        lappend l_script_validate "   $path \\"
+      } else {
+        set file_no_quotes [string trim $path "\""]
+        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+        lappend l_script_validate " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
+      }
     }
     lappend l_script_validate "  \]"
     
