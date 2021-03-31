@@ -2540,10 +2540,8 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   }
 
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh_scr "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
-    puts $fh_scr "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
-    puts $fh_scr "    puts \$msg"
-    puts $fh_scr "  \}"
+    puts $fh_scr "\nif \{ \[file exists pre_sim_tool_scripts.tcl\] \} \{"
+    puts $fh_scr "  source pre_sim_tool_scripts.tcl"
     puts $fh_scr "\}"
   }
 
@@ -2600,10 +2598,8 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   }
   
   if { $::tclapp::xilinx::xsim::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh_scr "\nif \{ \[file exists profile.tcl\] \} \{"
-    puts $fh_scr "  if \{ \[catch \{source -notrace profile.tcl \} msg\] \} \{"
-    puts $fh_scr "    puts \$msg"
-    puts $fh_scr "  \}"
+    puts $fh_scr "\nif \{ \[file exists post_sim_tool_scripts.tcl\] \} \{"
+    puts $fh_scr "  source post_sim_tool_scripts.tcl"
     puts $fh_scr "\}\n"
   }
 
