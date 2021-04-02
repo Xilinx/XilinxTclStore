@@ -1975,6 +1975,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-cc_db $cc_name"
   }
 
+  set cc_dir {}
+  [catch {set cc_dir [get_property -quiet "xelab.coverage.dir" $fs_obj]} msg]
+  if { {} != $cc_dir } {
+    lappend args_list "-cc_dir $cc_dir"
+  }
+
   set cc_type [get_property -quiet "xelab.coverage.type" $fs_obj]
   if { {} != $cc_type } {
     lappend args_list "-cc_type $cc_type"
