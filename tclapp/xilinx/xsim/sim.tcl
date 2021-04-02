@@ -1975,6 +1975,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-cc_db $cc_name"
   }
 
+  # TODO: remove catch once property is available
   set cc_dir {}
   [catch {set cc_dir [get_property -quiet "xelab.coverage.dir" $fs_obj]} msg]
   if { {} != $cc_dir } {
