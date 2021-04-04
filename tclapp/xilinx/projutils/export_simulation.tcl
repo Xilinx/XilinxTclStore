@@ -7323,7 +7323,7 @@ proc xps_append_config_opts { opts_arg simulator tool } {
       if {"xsim"  == $tool} {set opts_str ""}
     }
     "modelsim" {
-      if {"vlog" == $tool} {set opts_str "-incr"}
+      if {"vlog" == $tool} {set opts_str "-incr -mfcu"}
       if {"vcom" == $tool} {set opts_str ""}
       if {"vsim" == $tool} {set opts_str ""}
     }
@@ -7338,7 +7338,7 @@ proc xps_append_config_opts { opts_arg simulator tool } {
       if {"asim" == $tool} {set opts_str ""}
     }
     "questa" {
-      if {"vlog"     == $tool} {set opts_str "-incr"}
+      if {"vlog"     == $tool} {set opts_str "-incr -mfcu"}
       if {"vcom"     == $tool} {set opts_str ""}
       if {"vopt"     == $tool} {set opts_str ""}
       if {"vsim"     == $tool} {set opts_str ""}

@@ -1119,6 +1119,10 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         if { [get_property "INCREMENTAL" $fs_obj] } {
           lappend arg_list "-incr"
         }
+
+        # cr:1086604
+        lappend arg_list "-mfcu"
+
         set more_options [string trim [get_property "MODELSIM.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
         if { {} != $more_options } {
           set arg_list [linsert $arg_list end "$more_options"]
