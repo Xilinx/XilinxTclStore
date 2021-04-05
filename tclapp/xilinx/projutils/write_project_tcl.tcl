@@ -905,7 +905,12 @@ proc wr_bd_bc_specific {} {
 
   set bd_files [get_files -norecurse *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
   set bc_filesets_size [llength $l_bc_filesets]
-
+	set isPRFlow [get_property pr_flow [current_project]]
+	set pDefs_size 0
+	if { $isPRFlow == 1 } {
+    set partitionDefs [get_partition_defs -filter "IS_BLOCK_CONTAINER_MANAGED == 1"]
+		set pDefs_size [llength $partitionDefs]
+  }
   foreach bd_file $bd_files {
     set refs [ get_files -quiet -references -of_objects [ get_files $bd_file ] ]
     # If BD has references and project has BC filesets, then 
@@ -914,7 +919,7 @@ proc wr_bd_bc_specific {} {
     set delivered_targets [lsearch [get_property delivered_targets [get_files $bd_file] ] Synthesis]
     set stale_targets [lsearch [get_property stale_targets [get_files $bd_file] ] Synthesis]
     set is_generated [expr {$delivered_targets != -1 && $stale_targets == -1}]
-    if { [llength $refs] != 0 && $is_generated == 1 && $bc_filesets_size != 0} { 
+    if { [llength $refs] != 0 && $is_generated == 1 && ( $bc_filesets_size != 0 || $pDefs_size != 0 )} { 
       set filename [file tail $bd_file]
       lappend l_script_data "generate_target all \[get_files $filename\]\n"
     }

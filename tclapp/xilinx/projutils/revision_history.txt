@@ -1,3 +1,4 @@
+3.473 Fix for write_project_tcl not adding generate_target for rm files.
 3.472 pass vlog -mfsu to treat all sources as single compilation unit
 3.471 Use relative path in checkRequiredFiles proc
 3.470 set sys path var for VCS

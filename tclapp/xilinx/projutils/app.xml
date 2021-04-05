@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass vlog -mfsu to treat all sources as single compilation unit</revision_history>
+      <revision_history>Fix for write_project_tcl not adding generate_target for rm files.</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
