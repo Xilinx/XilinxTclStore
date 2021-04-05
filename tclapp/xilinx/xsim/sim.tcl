@@ -399,6 +399,11 @@ proc usf_xsim_setup_simulation { args } {
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 
+  # find noc IP, if any for netlist functional simulation
+  if { $a_sim_vars(b_enable_netlist_sim) && $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    set a_sim_vars(sp_xlnoc_bd_obj) [get_files -all -quiet "xlnoc.bd"]
+  }
+
   # fetch design files
   variable l_local_design_libraries 
   set global_files_str {}
@@ -2009,8 +2014,11 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-L uvm"
   }
 
-  foreach noc_lib [xcs_get_noc_libs_for_netlist_sim $sim_flow $a_sim_vars(s_type)] {
-    lappend args_list "-L $noc_lib"
+  if { $a_sim_vars(b_enable_netlist_sim) && $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_xlnoc_bd_obj)) } {
+    foreach noc_lib [xcs_get_noc_libs_for_netlist_sim $sim_flow $a_sim_vars(s_type)] {
+      if { [regexp {^noc_nmu_v} $noc_lib] } { continue; }
+      lappend args_list "-L $noc_lib"
+    }
   }
 
   # add xilinx vip library
@@ -3135,6 +3143,12 @@ proc usf_xsim_write_verilog_prj { b_contain_verilog_srcs fh_scr } {
   if { [get_property "XSIM.COMPILE.XVLOG.RELAX" $fs_obj] } {
     lappend xvlog_arg_list "--relax"
   }
+  
+  # for noc netlist functional simulation
+  if { $a_sim_vars(b_enable_netlist_sim) && $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_xlnoc_bd_obj)) } {
+    lappend xvlog_arg_list "-d NETLIST_SIM"
+  }
+
   # append uvm
   if { $a_sim_vars(b_contain_sv_srcs) } {
     lappend xvlog_arg_list "-L uvm"

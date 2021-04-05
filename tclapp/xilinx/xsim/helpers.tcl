@@ -95,6 +95,8 @@ proc usf_init_vars {} {
   set a_sim_vars(sp_tcl_obj)         {}
   set a_sim_vars(s_boost_dir)        {}
 
+  set a_sim_vars(sp_xlnoc_bd_obj)    {}
+
   set a_sim_vars(script_file_extn) ".bat"
   set a_sim_vars(script_cmt_tag)   "REM"
 
@@ -1572,9 +1574,9 @@ proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opt
 
   variable a_sim_vars
   set sim_flow $a_sim_vars(s_simulation_flow)
-
-  set xlnoc_bd_obj [get_files -all -quiet "xlnoc.bd"]
-  if { {} == $xlnoc_bd_obj } {
+  
+  # contains xlnoc.bd?
+  if { {} == $a_sim_vars(sp_xlnoc_bd_obj) } {
     return
   }
 

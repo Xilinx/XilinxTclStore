@@ -214,6 +214,11 @@ proc usf_questa_setup_simulation { args } {
     set a_sim_vars(sp_hbm_ip_obj) [xcs_find_ip "hbm"]
   }
 
+  # find noc IP, if any for netlist functional simulation
+  if { $a_sim_vars(b_enable_netlist_sim) && $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    set a_sim_vars(sp_xlnoc_bd_obj) [get_files -all -quiet "xlnoc.bd"]
+  }
+
   # fetch design files
   set global_files_str {}
   set ::tclapp::xilinx::questa::a_sim_vars(l_design_files) \
@@ -918,6 +923,13 @@ proc usf_questa_get_elaboration_cmdline {} {
     lappend arg_list "-L"
     lappend arg_list "$lib"
     #lappend arg_list "[string tolower $lib]"
+  }
+  
+  if { $a_sim_vars(b_enable_netlist_sim) && $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_xlnoc_bd_obj)) } {
+    foreach noc_lib [xcs_get_noc_libs_for_netlist_sim $sim_flow $a_sim_vars(s_type)] {
+      if { [regexp {^noc_nmu_v} $noc_lib] } { continue; } 
+      lappend arg_list "-L $noc_lib"
+    }
   }
 
   # add xilinx vip library
