@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT80331 - snoc_addr_map.xml is missing in Riviera simulation scripts directory</revision_history>
+      <revision_history>Correction for simulator.quitOnSimulationComplete</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
