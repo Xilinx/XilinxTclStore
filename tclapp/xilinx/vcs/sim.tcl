@@ -1861,7 +1861,7 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
 
     puts $fh_scr "-shared -o $a_sim_vars(syscan_libname) \\"
     set rdcs "$redirect_cmd_str"
-    puts $fh_scr "$rdcs -a syscan.log &"
+    puts $fh_scr "$rdcs -a compile.log &"
 
     # TODO:
     #set cstr "$a_sim_vars(clog)"
@@ -1964,6 +1964,7 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
     foreach stub_mod $sysc_stub_modules {
       puts $fh_scr "$a_sim_vars(syscan_libname):$stub_mod \\"
     }
+    puts $fh_scr "$redirect_cmd_str -a compile.log"
   }
 
 }
