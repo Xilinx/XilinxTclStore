@@ -1,3 +1,13 @@
+4.67 donot compile glbl if force_no_compile_glbl is set
+4.66 support for hbm netlist simulation
+4.65 helper to return list of noc libraries for netlist simulation
+4.64 find xilinx_vip from VIVADO if not found from default data dir
+4.63 script update for log file messaging improvements
+4.62 removed obsolete code - assemble files by library
+4.61 helpers for log file deletion
+4.60 add check for protobuf static library
+4.59 refactored design library proc for consistent functionality
+4.58 merged contents from 2020.2
 4.57 replace protected simmodel path set by param
 4.56 find sv verilog static sources from IP repo root level core
 4.55 fetch IP xml sources from ip_output_dir

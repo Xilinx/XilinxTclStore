@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Various enhancements (prettyTable)</revision_history>
+      <revision_history>Various enhancements (report_failfast)</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

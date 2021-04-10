@@ -1,3 +1,17 @@
+2.202 donot compile glbl if force_no_compile_glbl is set
+2.201 support for hbm netlist simulation
+2.200 helper to return list of noc libraries for netlist simulation
+2.199 Vitis HW EMU wrapper code updates
+2.198 Vitis HW EMU settings under conditional switch
+2.197 find xilinx_vip from VIVADO if not found from default data dir
+2.196 script update for log file messaging improvements
+2.195 removed obsolete code - assemble files by library
+2.194 helpers for log file deletion
+2.193 code cleanup for lnx64.o binding
+2.192 removed binding of Xilinx libs for sim_xdma
+2.191 add check for protobuf static library
+2.190 refactored design library proc for consistent functionality
+2.189 merged contents from 2020.2
 2.188 donot bind DPI-C shared library if param is false
 2.187 bind vivado shared library path for hw-emu
 2.186 replace protected simmodel path set by param

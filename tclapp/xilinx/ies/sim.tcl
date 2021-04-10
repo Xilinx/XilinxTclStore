@@ -115,6 +115,10 @@ proc usf_ies_setup_simulation { args } {
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
 
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
+    set a_sim_vars(b_netlist_sim) 1
+  }
+
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
   } else {
@@ -185,6 +189,11 @@ proc usf_ies_setup_simulation { args } {
 
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
+
+  # find hbm IP, if any for netlist functional simulation
+  if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) } {
+    set a_sim_vars(sp_hbm_ip_obj) [xcs_find_ip "hbm"]
+  }
 
   # fetch design files
   set global_files_str {}
@@ -372,7 +381,7 @@ proc usf_ies_write_setup_files {} {
     }
   }
   set libs [list]
-  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
@@ -532,7 +541,6 @@ proc usf_ies_write_compile_script {} {
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
-  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach file $::tclapp::xilinx::ies::a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
@@ -545,23 +553,15 @@ proc usf_ies_write_compile_script {} {
 
     if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
 
-    if { $b_group_files } {
-      if { $b_first } {
-        set b_first false
-        usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-      } else {
-        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-          puts $fh_scr "$src_file \\"
-        } else {
-          puts $fh_scr ""
-          usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-        }
-      }
+    if { $b_first } {
+      set b_first false
+      usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
     } else {
-      if { {} != $tool_path } {
-        puts $fh_scr "\$bin_path/$cmd_str $src_file"
+      if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+        puts $fh_scr "$src_file \\"
       } else {
-        puts $fh_scr "$cmd_str $src_file"
+        puts $fh_scr ""
+        usf_ies_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib
       }
     }
   }
@@ -575,22 +575,8 @@ proc usf_ies_write_compile_script {} {
   if { {behav_sim} == $::tclapp::xilinx::ies::a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "IES.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::ies::a_sim_vars(s_simset)]]
     if { [xcs_compile_glbl_file "ies" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
-      xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-      set file_str "-work $top_lib \"${glbl_file}\""
-      puts $fh_scr "\n# compile glbl module"
-      if { {} != $tool_path } {
-        puts $fh_scr "\$bin_path/ncvlog \$ncvlog_opts $file_str"
-      } else {
-        puts $fh_scr "ncvlog \$ncvlog_opts $file_str"
-      }
-    }
-  } else {
-    # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
-          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } { 
-      if { ({timing} == $::tclapp::xilinx::ies::a_sim_vars(s_type)) } {
-        # This is not supported, netlist will be verilog always
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
         set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
@@ -600,6 +586,28 @@ proc usf_ies_write_compile_script {} {
           puts $fh_scr "\$bin_path/ncvlog \$ncvlog_opts $file_str"
         } else {
           puts $fh_scr "ncvlog \$ncvlog_opts $file_str"
+        }
+      }
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } { 
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        if { ({timing} == $::tclapp::xilinx::ies::a_sim_vars(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
+          set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+          set file_str "-work $top_lib \"${glbl_file}\""
+          puts $fh_scr "\n# compile glbl module"
+          if { {} != $tool_path } {
+            puts $fh_scr "\$bin_path/ncvlog \$ncvlog_opts $file_str"
+          } else {
+            puts $fh_scr "ncvlog \$ncvlog_opts $file_str"
+          }
         }
       }
     }
@@ -678,7 +686,7 @@ proc usf_ies_write_elaborate_script {} {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
 
   set arg_list [list]
   # add simulation libraries
@@ -850,6 +858,11 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     }
   }
 
+  # force no compile glbl
+  if { $b_add_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_add_glbl 0
+  }
+
   if { $b_add_glbl } {
     set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
@@ -936,28 +949,6 @@ proc usf_ies_write_simulate_script {} {
   puts $fh_scr "# run simulation"
   puts $fh_scr "$cmd_str"
   close $fh_scr
-}
-
-proc usf_ies_get_design_libs { files } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  set libs [list]
-  foreach file $files {
-    set fargs     [split $file {|}]
-    set type      [lindex $fargs 0]
-    set file_type [lindex $fargs 1]
-    set library   [lindex $fargs 2]
-    set cmd_str   [lindex $fargs 3]
-    if { {} == $library } {
-      continue;
-    }
-    if { [lsearch -exact $libs $library] == -1 } {
-      lappend libs $library
-    }
-  }
-  return $libs
 }
 
 proc usf_ies_map_pre_compiled_libs { fh } {
@@ -1049,7 +1040,7 @@ proc usf_ies_create_setup_script {} {
   puts $fh_scr "\{"
   set simulator "ies"
   set libs [list]
-  set design_libs [usf_ies_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::ies::a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # continue if no local library found or continue if this library is precompiled (not local)

@@ -53,6 +53,8 @@ proc usf_init_vars {} {
   if { !$a_sim_vars(b_force_compile_glbl) } {
     set a_sim_vars(b_force_compile_glbl) [get_property force_compile_glbl [current_fileset -simset]]
   }
+  set a_sim_vars(b_force_no_compile_glbl) [get_property force_no_compile_glbl [current_fileset -simset]]
+
   set a_sim_vars(b_int_sm_lib_ref_debug) 0
   set a_sim_vars(b_int_csim_compile_order) 0
 
@@ -68,6 +70,7 @@ proc usf_init_vars {} {
 
   set a_sim_vars(sp_tcl_obj)         {}
   set a_sim_vars(b_extract_ip_sim_files) 0
+  set a_sim_vars(sp_hbm_ip_obj) {}
 
   # fileset compile order
   variable l_compile_order_files     [list]
@@ -131,6 +134,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_flow_dir_key)            {behav}
   set a_sim_vars(s_simulation_flow)         {behav_sim}
   set a_sim_vars(s_netlist_mode)            {funcsim}
+  set a_sim_vars(b_netlist_sim)             0
 
   # netlist file
   set a_sim_vars(s_netlist_file)            {}
@@ -182,18 +186,15 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
   # Return Value:
 
   upvar $opts_arg opts
-  set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
 
   foreach element $def_gen_list {
     set key_val_pair [split $element "="]
     set name [lindex $key_val_pair 0]
     set val  [lindex $key_val_pair 1]
     set str "+define+$name=" 
-    if { $b_group_files } {    
-      # escape '
-      if { [regexp {'} $val] } {
-        regsub -all {'} $val {\\'} val
-      }
+    # escape '
+    if { [regexp {'} $val] } {
+      regsub -all {'} $val {\\'} val
     }
 
     if { [string length $val] > 0 } {
@@ -588,19 +589,15 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     }
   }
 
-  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
-    if { {functional} == $a_sim_vars(s_type) } {
-      set hbm_ip_obj [xcs_find_ip "hbm"]
-      if { {} != $hbm_ip_obj } {
-        set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
-        if { {} != $hbm_file_obj } {
-          set file_type [get_property file_type $hbm_file_obj]
-          set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts]
-          if { {} != $cmd_str } {
-            lappend files $cmd_str
-            lappend l_compile_order_files $hbm_file_obj
-          }
-        }
+  # add hbm source to compile order for netlist functional simulation
+  if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_hbm_ip_obj)) } {
+    set hbm_file_obj [get_files -quiet -all "hbm_model.sv"]
+    if { {} != $hbm_file_obj } {
+      set file_type [get_property file_type $hbm_file_obj]
+      set cmd_str [usf_get_file_cmd_str $hbm_file_obj $file_type false {} l_incl_dirs_opts]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $hbm_file_obj
       }
     }
   }
@@ -1135,6 +1132,12 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         lappend opts "-sv"
         # append sv pkg libs
         foreach sv_pkg_lib $a_sim_sv_pkg_libs {
+          # filter hbm IP library binding for netlist functional simulation (e.g hbm_v1_0_1)
+          if { [regexp {^hbm_v} $sv_pkg_lib] } {
+            if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_hbm_ip_obj)) } {
+              continue
+            }
+          }
           lappend opts "-L $sv_pkg_lib"
         }
       }
@@ -1157,6 +1160,11 @@ proc usf_append_other_options { tool file_type global_files_str opts_arg } {
       set verilog_defines [get_property "VERILOG_DEFINE" [get_filesets $fs_obj]]
       if { [llength $verilog_defines] > 0 } {
         usf_append_define_generics $verilog_defines $tool opts
+      }
+ 
+      # for hbm netlist functional simulation
+      if { $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_hbm_ip_obj)) } {
+        lappend opts "+define+NETLIST_SIM"
       }
     }
   }

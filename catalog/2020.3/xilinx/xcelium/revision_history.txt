@@ -1,3 +1,21 @@
+11.58 donot compile glbl if force_no_compile_glbl is set
+11.57 support for hbm netlist simulation
+11.56 helper to return list of noc libraries for netlist simulation
+11.55 Vitis HW EMU wrapper code updates
+11.54 Vitis HW EMU settings under conditional switch
+11.53 find xilinx_vip from VIVADO if not found from default data dir
+11.52 param change for script runtime improvements
+11.51 script update for log file messaging improvements
+11.50 code-refactoring for compile step procedures
+11.49 removed obsolete code - assemble files by library
+11.48 helpers for log file deletion
+11.47 bind libraries and shell script from aietools
+11.46 set shell variables to catch error condition under param
+11.45 set shell variables to catch error condition for step execution
+11.44 set shell variables to catch error conditions
+11.43 add check for protobuf static library
+11.42 refactored design library proc for consistent functionality
+11.41 merged contents from 2020.2
 11.40 donot bind DPI-C shared library if param is false
 11.39 replace protected simmodel path set by param
 11.38 find sv verilog static sources from IP repo root level core
