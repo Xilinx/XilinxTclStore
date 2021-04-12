@@ -1,0 +1,17 @@
+1.19.1 SPT80209 - Vivado GUI hangs if simulation scripts are generated for Riviera
+1.19.1 SPT80209 - Vivado GUI hangs if simulation scripts are generated for Riviera
+1.19.1 SPT80209 - Vivado GUI hangs if simulation scripts are generated for Riviera
+1.19 Update tcl scripts
+1.18 Update s_data_files_filter
+1.17 Update int_sm_lib_ref_debug
+1.16 Update SystemC
+1.15 Change behavior adding libraries to Active-HDL project
+1.14 If the xilinx_vip library is in the use, it is included automatically in the compilation and simulation scripts.
+1.13 Removed superfluous option for incremental compilation. Fixed generated paths in compilation and simulation scripts. Added handling of 'xilinx_vip' library.
+1.12 Generated scripts are now automatically made executable. List of libraries is now included in vlog command.
+1.11 Fixed bug with -scripts_only switch. Changed generated simulation script - now simulation works differently in batch mode. Removed fixed simulation resolution.
+1.10 Files grouped to speed up compilation. AXI-BFM settings updated. Pre/post tcl hooks added.
+1.9 export_simulation procedure and support for -lib_map_path switch added
+1.8 Fixed system file
+1.7 Update 1.7: Add mappings for libraries from compiled library location.
+1.6 Update 1.6: Coverage options.
