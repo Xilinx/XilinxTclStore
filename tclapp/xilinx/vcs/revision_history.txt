@@ -1,56 +1,67 @@
-9.45 donot compile glbl if force_no_compile_glbl is set
-9.44 support for hbm netlist simulation
-9.43 helper to return list of noc libraries for netlist simulation
-9.42 Vitis HW EMU wrapper code updates
-9.41 Vitis HW EMU settings under conditional switch
-9.40 compile systemC sources into library and generate interface
-9.39 find xilinx_vip from VIVADO if not found from default data dir
-9.38 param change for script runtime improvements
-9.37 script update for log file messaging improvements
-9.36 code-refactoring for compile step procedures
-9.35 removed obsolete code - assemble files by library
-9.34 helpers for log file deletion
-9.33 code cleanup for lnx64.o binding
+9.56 redirect gcc compile messages to compile.log
+9.55 fixed systemc library install path detection
+9.54 fixed redirection string
+9.53 export chess library env
+9.52 bind noc_na for netlist simulation
+9.51 set optional arg for simulate step
+9.50 fixed VCS simulation for optimized flow
+9.49 find available boost library from RDI_DATA_DIR
+9.48 check for file before inspecting core container property
+9.47 refactored gcc version support
+9.46 support for simulator launch mode
+9.45 disable debug msgs
+9.44 enabled Vitis code for post-sim script and launch mode
+9.43 enabled protected library linkage
+9.42 enabled runtime setting for Vitis
+9.41 enabled USER_PRE_SIM_SCRIPT code-hook
+9.40 helper for fetching NoC IP objects
+9.39 Vitis post-sim code-hook
+9.38 fixes for Vitis code-hooks
+9.37 disabled Vitis code-hooks
+9.36 find data dir from VIVADO if not found from rdi data_dir
+9.35 support for VCS auto gcc executable path detection
+9.34 disable binding of aie_cluster
+9.33 merge 2020.3 to 2021.1
 9.32 bind libraries and shell script from aietools
 9.31 set shell variables to catch error condition under param
 9.30 set shell variables to catch error condition for step execution
 9.29 set shell variables to catch error conditions
 9.28 add check for protobuf static library
-9.27 refactored design library proc for consistent functionality
-9.26 merged contents from 2020.2
-9.25 donot bind DPI-C shared library if param is false
-9.24 auto map compiled libraries for netlist simulation
-9.23 pass -sysc=opt_if to speed up data propagation
-9.22 replace protected simmodel path set by param
-9.21 find sv verilog static sources from IP repo root level core
-9.20 fetch IP xml sources from ip_output_dir
-9.19 support for configuration data object sources
-9.18 filter libraries that does not generate .cxl.lib_info.dat file
-9.17 print error if failed to find the dat files for simulation models
-9.16 bind IP systemc objects for VCS
-9.15 bind design obj with -Mdir
-9.14 bind config hip library
-9.13 pass unisim library for virtexuplus58g when target language is verilog
-9.12 pass -debug_acc+pp+dmptf
-9.11 bind aie cluster library
-9.10 add checks for simulator executable file type
-9.9 halt scripts only flow if param set
-9.8 fixed utils msg
-9.7 bind protected libraries for elaborate
-9.6 donot pass -sysc for vhdl sources
-9.5 store systemc intermediate objects in run directory
-9.4 bind systemC libraries for elaboration
-9.3 bind unisims simprims for hybrid post sim
-9.2 pass sysc option for systemC design
-9.1 bind design shared library for elaboration
-9.0 fixed ip object return value
-8.9 support for VCS systemC compilation
-8.8 return ip name from xcs_find_ip
-8.7 added comment for the used_in flags usage for determining static files
-8.6 added info message for locked or custom IPs in the project
-8.5 bind hybrid verilog unisim components from vhdl unisim library
-8.4 declare variable for storing referenced shared library in ipdef
-8.3 print critical warning for missing pre-compiled simulation model IP
+9.27 check for gen dir in path before replacing for rev control
+9.26 re-aligned source file paths for rev control for classic use case
+9.25 pass rev control var for fetching static header sources
+9.24 added lib cache array vars
+9.23 donot bind Vivado library
+9.22 calculate ip filename from ip_output_dir for revision control
+9.21 update composite file path for revision control
+9.20 fixed gcc install message
+9.19 find gcc compiler path from simulator install
+9.18 trim trailing slashes for the gcc path
+9.17 support for setting up include and obj path for non-precompile flow
+9.16 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
+9.15 support for setting up gcc compiler paths
+9.14 use simulator compiled object lib dir var
+9.13 compile simmodel sources into compiled dir
+9.12 get compiler order for referenced simmodels
+9.11 compile hbm for post synth and impl simulation
+9.10 pass gnu compiler path for syscan
+9.9 added debug messages for library path references
+9.8 updated systemc version
+9.7 implement code to find system libraries faster
+9.6 force add glbl top if property set
+9.5 append log based on compilation calls
+9.4 add glbl top for post* and behav pure vhdl flows
+9.3 do not launch simulator gui in batch mode
+9.2 compile glbl if force_compile_glbl is true
+9.1 support for uvm
+9.0 helpers for determining design language of same type
+8.9 pass library_scan if param set for searching the modules for the setup script
+8.8 pass library_scan if param set for searching the modules from referenced libraries in setup file
+8.7 bind DPI-C model if param is set for gtyp
+8.6 bind DPI-C model if param is set
+8.5 auto map compiled libraries for netlist simulation
+8.4 pass -sysc=opt_if to speed up data propagation
+8.3 merged fixes from 2020.1
 8.2 fixed used_in values check for simulation tag
 8.1 added helper proc to find out object files for IPs referenced in the design
 8.0 fix for referencing linked shared library paths for Questa

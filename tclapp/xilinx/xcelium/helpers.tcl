@@ -50,6 +50,7 @@ proc usf_init_vars {} {
   set a_sim_vars(b_int_is_gui_mode)  0
   set a_sim_vars(b_int_halt_script)  0
   set a_sim_vars(b_int_systemc_mode) 0
+  set a_sim_vars(b_int_system_design) 0
   set a_sim_vars(custom_sm_lib_dir)  {}
   set a_sim_vars(b_int_compile_glbl) 0
   # default is false
@@ -83,6 +84,7 @@ proc usf_init_vars {} {
 
   set a_sim_vars(s_tool_bin_path)    {}
   set a_sim_vars(s_gcc_bin_path)     {}
+  set a_sim_vars(s_gcc_version)      {}
 
   set a_sim_vars(sp_tcl_obj)         {}
   set a_sim_vars(s_boost_dir)        {}
@@ -150,7 +152,9 @@ proc usf_init_vars {} {
   set a_sim_vars(run_logs_compile)     [list $a_sim_vars(clog) xmvhdl.log xmvlog.log xmsc.log $a_sim_vars(tmp_log_file)]
   set a_sim_vars(run_logs_elaborate)   [list elaborate.log]
   set a_sim_vars(run_logs_simulate)    [list simulate.log]
-  set a_sim_vars(b_optimizeForRuntime) [get_param "project.optimizeSimScriptExecution"]
+
+  # Enable by default (flow verified)
+  set a_sim_vars(b_optimizeForRuntime)     [get_param "project.optimizeSimScriptExecution"]
 
   # simulation mode types
   variable a_sim_mode_types
@@ -401,29 +405,46 @@ proc usf_create_do_file { simulator do_filename } {
     puts $fh_do "\}"
   }
 
-   if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
     puts $fh_do "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
     puts $fh_do "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
     puts $fh_do "    puts \$msg"
     puts $fh_do "  \}"
     puts $fh_do "\}"
-    puts $fh_do "\nif \{ \[file exists preprocess_profile.tcl\] \} \{"
-    puts $fh_do "  if \{ \[catch \{source -notrace preprocess_profile.tcl\} msg\] \} \{"
-    puts $fh_do "    puts \$msg"
-    puts $fh_do "  \}"
-    puts $fh_do "\}"
   }
-
+  
   set rt [string trim [get_property "XCELIUM.SIMULATE.RUNTIME" $fs_obj]]
-  if { {} == $rt } {
-    # no runtime specified
-    puts $fh_do "\nrun"
+  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_do "\nputs \"We are running simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""
+    puts $fh_do "puts \"\""
+    puts $fh_do "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
+    puts $fh_do "puts \"\""
+    puts $fh_do "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+    puts $fh_do "  run 1ns"
+    puts $fh_do "\} else \{"
+    if { {} == $rt } {
+      # no runtime specified
+      puts $fh_do "  run"
+    } else {
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh_do "  run"
+      } else {
+        puts $fh_do "  run $rt"
+      }
+    }
+    puts $fh_do "\}"
   } else {
-    set rt_value [string tolower $rt]
-    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+    if { {} == $rt } {
+      # no runtime specified
       puts $fh_do "\nrun"
     } else {
-      puts $fh_do "\nrun $rt"
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh_do "\nrun"
+      } else {
+        puts $fh_do "\nrun $rt"
+      }
     }
   }
 
@@ -444,8 +465,19 @@ proc usf_create_do_file { simulator do_filename } {
     puts $fh_do ""
   }
 
-  if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode)) } {
-    puts $fh_do "exit"
+  if { $::tclapp::xilinx::xcelium::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh_do "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+    puts $fh_do "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+    puts $fh_do "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh_do "      puts \$msg"
+    puts $fh_do "    \}"
+    puts $fh_do "  \}"
+    puts $fh_do "  exit"
+    puts $fh_do "\}"
+  } else {
+    if { $a_sim_vars(b_batch) || $b_scripts_only || (!$::tclapp::xilinx::xcelium::a_sim_vars(b_int_is_gui_mode)) } {
+      puts $fh_do "exit"
+    }
   }
   close $fh_do
 }
@@ -550,31 +582,29 @@ proc usf_set_simulator_path { simulator } {
   }
 
   set a_sim_vars(s_tool_bin_path) $bin_path
-  set xm_root {} 
-  [catch {set xm_root [exec xmroot]} error]
-  if { {} == $xm_root } {
-    set xm_root [join [lrange [split $bin_path "/"] 0 end-3] "/"]
-  }
-  set sys_link "$xm_root/tools/systemc/lib/64bit/gnu"
-  if { ![file exists $sys_link] } { 
-    send_msg_id USF-Xcelium-046 WARNING "The Xcelium GNU executables could not be located. Please check if the simulator is installed correctly.\n"
-  }
-    
-  set a_sim_vars(s_sys_link_path) "$sys_link"
-  send_msg_id USF-Xcelium-047 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
+
 }
 
-proc usf_set_gcc_path {} {
+proc usf_set_gcc_version_path { simulator } {
   # Summary:
   # Argument Usage:
   # Return Value:
- 
+  
   variable a_sim_vars
 
   send_msg_id USF-Xcelium-005 INFO "Finding GCC installation...\n"
+   
+  set gcc_type {}
+  set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+  switch $gcc_type {
+    1 { send_msg_id USF-Xcelium-24 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
+    2 { send_msg_id USF-Xcelium-24 INFO "Using GCC version set by -gcc_version switch '$a_sim_vars(s_gcc_version)'" }
+  }
+
+  # set GCC install path
   set gcc_path {}
-  set simulator "xcelium"
-  if { [xcs_get_gcc_path $simulator "Xcelium" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
+  set path_type {}
+  if { [xcs_get_gcc_path $simulator "Xcelium" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_version) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
     set a_sim_vars(s_gcc_bin_path) $gcc_path
     switch $path_type {
       1 { send_msg_id USF-Xcelium-25 INFO "Using GCC executables set by -gcc_install_path switch from '$a_sim_vars(s_gcc_bin_path)'"                        }
@@ -582,6 +612,28 @@ proc usf_set_gcc_path {} {
       3 { send_msg_id USF-Xcelium-25 INFO "Using GCC executables set by GCC_SIM_EXE_PATH environment variable from '$a_sim_vars(s_gcc_bin_path)'"           }
       4 { send_msg_id USF-Xcelium-25 INFO "Using simulator installed GCC executables from '$a_sim_vars(s_gcc_bin_path)'"                                    }
     }
+  }
+
+  if { $a_sim_vars(b_int_systemc_mode) } {
+    set xm_root {} 
+    [catch {set xm_root [exec xmroot]} error]
+    if { {} == $xm_root } {
+      set path_sep  {:}
+      set tool_name "xmsim"
+      set bin_path [xcs_get_bin_path $tool_name $path_sep]
+      # failed to find xcelium tools from PATH, get from s_tool_bin_path if set using -install_path
+      if { {} == $bin_path } {
+        set bin_path $a_sim_vars(s_tool_bin_path)
+      }
+      set xm_root [join [lrange [split $bin_path "/"] 0 end-3] "/"]
+    }
+    set sys_link "$xm_root/tools/systemc/lib/64bit/gnu"
+    if { ![file exists $sys_link] } { 
+      send_msg_id USF-Xcelium-046 WARNING "The Xcelium GNU systemC library path could not be located. Please check if the simulator/GNU package is installed correctly.\n"
+    }
+    
+    set a_sim_vars(s_sys_link_path) "$sys_link"
+    send_msg_id USF-Xcelium-047 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
   }
 }
 
@@ -881,7 +933,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_systemc_sources) } {
           set a_sim_vars(b_contain_systemc_sources) true
-          usf_set_gcc_path
         }
     
         # is dynamic? process
@@ -926,7 +977,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_cpp_sources) } {
           set a_sim_vars(b_contain_cpp_sources) true
-          usf_set_gcc_path
         }
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
@@ -970,7 +1020,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # set flag
         if { !$a_sim_vars(b_contain_c_sources) } {
           set a_sim_vars(b_contain_c_sources) true
-          usf_set_gcc_path
         }
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {

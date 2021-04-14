@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>donot compile glbl if force_no_compile_glbl is set</revision_history>
+      <revision_history>bind noc_na for netlist simulation</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

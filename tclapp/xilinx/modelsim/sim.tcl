@@ -932,17 +932,6 @@ proc usf_modelsim_get_elaboration_cmdline {} {
     }
   }
 
-  if { [get_param "project.bindStaticIPLibraryForNetlistSim"] } {
-    if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-      if { {functional} == $a_sim_vars(s_type) } {
-        set hbm_ip_obj [xcs_find_ip "hbm"]
-        if { {} != $hbm_ip_obj } {
-          set arg_list [linsert $arg_list end "-L" "hbm_v1_0_8"]
-        }
-      }
-    }
-  }
-
   lappend arg_list "-work"
   lappend arg_list $a_sim_vars(default_top_library)
   
