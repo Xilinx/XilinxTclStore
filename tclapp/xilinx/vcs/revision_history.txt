@@ -1,4 +1,4 @@
-9.56 redirect gcc compile messages to compile.log
+9.56 merged 2021.1-dev to 2021.2-dev
 9.55 fixed systemc library install path detection
 9.54 fixed redirection string
 9.53 export chess library env

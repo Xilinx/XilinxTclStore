@@ -1,4 +1,4 @@
-11.68 fixed systemc library install path detection
+11.68 merged 2021.1-dev to 2021.2-dev
 11.67 enable optimization and shell setting for pipefail
 11.66 export chess library env
 11.65 bind noc_na for netlist simulation

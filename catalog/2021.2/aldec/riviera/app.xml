@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT80209 - Vivado GUI hangs if simulation scripts are generated for Riviera</revision_history>
+      <revision_history>merged 2021.1-dev to 2021.2-dev</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

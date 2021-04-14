@@ -1,4 +1,4 @@
-2.390 compile sources for netlist functional simulation
+2.390 merged 2021.1-dev to 2021.2-dev
 2.388 coverage option for database file storage
 2.387 replaced post sim code hook call for Vitis
 2.386 set chess dir env for xsim

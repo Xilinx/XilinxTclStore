@@ -1,48 +1,58 @@
-11.58 donot compile glbl if force_no_compile_glbl is set
-11.57 support for hbm netlist simulation
-11.56 helper to return list of noc libraries for netlist simulation
-11.55 Vitis HW EMU wrapper code updates
-11.54 Vitis HW EMU settings under conditional switch
-11.53 find xilinx_vip from VIVADO if not found from default data dir
-11.52 param change for script runtime improvements
-11.51 script update for log file messaging improvements
-11.50 code-refactoring for compile step procedures
-11.49 removed obsolete code - assemble files by library
-11.48 helpers for log file deletion
-11.47 bind libraries and shell script from aietools
-11.46 set shell variables to catch error condition under param
-11.45 set shell variables to catch error condition for step execution
-11.44 set shell variables to catch error conditions
-11.43 add check for protobuf static library
-11.42 refactored design library proc for consistent functionality
-11.41 merged contents from 2020.2
-11.40 donot bind DPI-C shared library if param is false
-11.39 replace protected simmodel path set by param
-11.38 find sv verilog static sources from IP repo root level core
-11.37 fetch IP xml sources from ip_output_dir
-11.36 support for configuration data object sources
-11.35 filter libraries that does not generate .cxl.lib_info.dat file
-11.34 print error if failed to find the dat files for simulation models
-11.33 bind IP systemc objects for VCS
-11.32 pass -work xil_defaultlib for xmelab
-11.31 add checks for simulator executable file type
-11.30 fixed utils msg
-11.29 halt scripts only flow if param set
-11.28 bind dummy mapping for simprims_ver post sim
-11.27 fixed ip object return value
-11.26 process unique shared libraries for linking during elaboration
-11.25 support for VCS systemC compilation
-11.24 return ip name from xcs_find_ip
-11.23 fixed paths to cardano api
-11.22 wrap probe in catch block
-11.21 added comment for the used_in flags usage for determining static files
-11.20 added info message for locked or custom IPs in the project
-11.19 bind cardano api library for aie
-11.18 print critical warning for missing pre-compiled simulation model IP
-11.17 changed error to warning while checking for GNU tools for xcelium
-11.16 export protected library path for simulate step
-11.15 fixed used_in values check for simulation tag
-11.14 link gtye5_quad library
+11.68 merged 2021.1-dev to 2021.2-dev
+11.67 enable optimization and shell setting for pipefail
+11.66 export chess library env
+11.65 bind noc_na for netlist simulation
+11.64 set optional arg for simulate step
+11.63 enabled optimized flow for Xcelium
+11.62 find available boost library from RDI_DATA_DIR
+11.61 check for file before inspecting core container property
+11.60 refactored gcc version support
+11.59 support for simulator launch mode
+11.58 disable debug msgs
+11.57 enabled Vitis code for post-sim script and launch mode
+11.56 enabled protected library linkage
+11.55 enabled runtime setting for Vitis
+11.54 enabled USER_PRE_SIM_SCRIPT code-hook
+11.53 helper for fetching NoC IP objects
+11.52 Vitis post-sim code-hook
+11.51 fixes for Vitis code-hooks
+11.50 disabled Vitis code-hooks
+11.49 find data dir from VIVADO if not found from rdi data_dir
+11.48 support for VCS auto gcc executable path detection
+11.47 disable binding of aie_cluster
+11.46 merge 2020.3 to 2021.1
+11.45 bind libraries and shell script from aietools
+11.44 set shell variables to catch error condition under param
+11.43 set shell variables to catch error condition for step execution
+11.42 set shell variables to catch error conditions
+11.41 add check for protobuf static library
+11.40 check for gen dir in path before replacing for rev control
+11.39 re-aligned source file paths for rev control for classic use case
+11.38 pass rev control var for fetching static header sources
+11.37 calculate ip filename from ip_output_dir for revision control
+11.36 update composite file path for revision control
+11.35 fixed gcc install message
+11.34 find gcc compiler path from simulator install
+11.33 param to bind protobuf shared library
+11.32 trim trailing slashes for the gcc path
+11.31 support for setting up include and obj path for non-precompile flow
+11.30 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
+11.29 support for setting up gcc compiler paths
+11.28 use simulator compiled object lib dir var
+11.27 compile simmodel sources into compiled dir
+11.26 get compiler order for referenced simmodels
+11.25 compile hbm for post synth and impl simulation
+11.24 added debug messages for library path references
+11.23 fixed -waveform switch for probe in GUI mode
+11.22 implement code to find system libraries faster
+11.21 do not launch simulator gui in batch mode
+11.20 compile glbl if force_compile_glbl is true
+11.19 support for uvm
+11.18 donot append compiled log on consecutive execution of compile step
+11.17 helpers for determining design language of same type
+11.16 bind DPI-C model if param is set
+11.15 merged fixes from 2020.1
+11.14 fixed used_in values check for simulation tag
 11.13 added helper proc to find out object files for IPs referenced in the design
 11.12 fix for referencing linked shared library paths for Questa
 11.11 compile xpm sv sources into xpm library for non-precompile mode
