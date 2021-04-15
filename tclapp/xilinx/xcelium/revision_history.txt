@@ -1,3 +1,4 @@
+11.69 add simprims_ver mapping to resolve duplicate bindings
 11.68 merged 2021.1-dev to 2021.2-dev
 11.67 enable optimization and shell setting for pipefail
 11.66 export chess library env

@@ -1,3 +1,4 @@
+4.77 add simprims_ver mapping to resolve duplicate bindings
 4.76 merged 2021.1-dev to 2021.2-dev
 4.75 set optional arg for simulate step
 4.74 find available boost library from RDI_DATA_DIR
