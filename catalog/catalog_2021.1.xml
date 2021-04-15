@@ -39,8 +39,8 @@
     <app>
       <name>ies</name>
       <company>xilinx</company>
-      <commit_id>cc9cd1fec10722da71247b95a55750dd7a5c31b0</commit_id>
-      <revision>4.76</revision>
+      <commit_id>84b6c0b4b75669bd0b337b60a1444beb4bf362d6</commit_id>
+      <revision>4.77</revision>
     </app>
     <app>
       <name>incrcompile</name>
@@ -147,8 +147,8 @@
     <app>
       <name>xcelium</name>
       <company>xilinx</company>
-      <commit_id>720e15bcf46f4ead157582938e97f104170650d0</commit_id>
-      <revision>11.68</revision>
+      <commit_id>84b6c0b4b75669bd0b337b60a1444beb4bf362d6</commit_id>
+      <revision>11.69</revision>
     </app>
     <app>
       <name>xsim</name>
