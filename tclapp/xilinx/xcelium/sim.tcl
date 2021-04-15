@@ -410,6 +410,11 @@ proc usf_xcelium_write_setup_files {} {
     if { {funcsim} == $netlist_mode } {
       set b_add_dummy_binding 1
     }
+  } else {
+    # vhdl instantiates verilog for Versal behav sim (cr:1091134)
+    if { "versal" == [rdi::get_family -arch] } {
+      set b_add_dummy_binding 1
+    }
   }
 
   if { ({} != $ip_obj) || $b_add_dummy_binding } {

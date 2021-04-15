@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>merged 2021.1-dev to 2021.2-dev</revision_history>
+      <revision_history>add simprims_ver mapping to resolve duplicate bindings</revision_history>
       <name>ies</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
