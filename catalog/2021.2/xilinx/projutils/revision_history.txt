@@ -1,3 +1,4 @@
+3.475 Extract IP file name from core-container to determine SV package libraries
 3.474 merged 2021.1-dev to 2021.2-dev
 3.473 Fix for write_project_tcl not adding generate_target for rm files.
 3.472 pass vlog -mfsu to treat all sources as single compilation unit

@@ -1,3 +1,4 @@
+2.289 Extract IP file name from core-container to determine SV package libraries
 2.288 merged 2021.1-dev to 2021.2-dev
 2.287 bind noc_na for netlist simulation
 2.286 set optional arg for simulate step
