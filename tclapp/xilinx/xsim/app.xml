@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>merged 2021.1-dev to 2021.2-dev</revision_history>
+      <revision_history>Extract IP file name from core-container to determine SV package libraries</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
