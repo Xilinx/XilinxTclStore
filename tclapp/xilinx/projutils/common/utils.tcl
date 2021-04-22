@@ -3089,8 +3089,22 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
         set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
       }
       if { ![file exists $ip_filename] } {
-        send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
-        continue;
+        # is IP set for core-container? extract files to tmp dir
+        set cc_val [get_property -quiet ip_core_container $ip]
+        if { $b_int_sm_lib_ref_debug } {
+          puts " + ${ip_name} -> (ip_core_container = '$cc_val')"
+        }
+        if { {} != $cc_val } {
+          set cc_file_coln [extract_files -base_dir "$tmp_dir" [get_files -quiet -all ${ip_name}.xcix]]
+          set ip_filename "$tmp_dir/${ip_name}/${ip_name}.xml"
+          if { $b_int_sm_lib_ref_debug } {
+            puts " + extracted '$ip_filename' from '${ip_name}.xcix"
+          }
+        }
+        if { ![file exists $ip_filename] } {
+          send_msg_id SIM-utils-052 WARNING "IP component XML file does not exist: '$ip_filename'\n"
+          continue;
+        }
       }
     } else {
       #if { $b_int_sm_lib_ref_debug } {
