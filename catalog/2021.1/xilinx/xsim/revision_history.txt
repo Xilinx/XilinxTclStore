@@ -1,3 +1,4 @@
+2.391 Extract IP file name from core-container to determine SV package libraries
 2.390 compile sources for netlist functional simulation
 2.388 coverage option for database file storage
 2.387 replaced post sim code hook call for Vitis

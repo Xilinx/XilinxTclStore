@@ -1,3 +1,4 @@
+11.70 Extract IP file name from core-container to determine SV package libraries
 11.69 add simprims_ver mapping to resolve duplicate bindings
 11.68 fixed systemc library install path detection
 11.67 enable optimization and shell setting for pipefail

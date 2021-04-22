@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Write project tcl exclude properties is now based on class name rather than object name</revision_history>
+      <revision_history>Extract IP file name from core-container to determine SV package libraries</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
