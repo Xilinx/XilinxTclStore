@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT80423 - Package not found: VCOMPONENTS (library: unimacro), SPT80425 - Precompiled libraries from aldec website are ignored in Vivado flow</revision_history>
+      <revision_history>Add switch -lboost_system to ccomp command</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

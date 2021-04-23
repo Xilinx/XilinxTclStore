@@ -1,3 +1,4 @@
+1.25 Add switch -lboost_system to ccomp command
 1.24 SPT80423 - Package not found: VCOMPONENTS (library: unimacro), SPT80425 - Precompiled libraries from aldec website are ignored in Vivado flow
 1.23 Correction for simulator.quitOnSimulationComplete
 1.22 SPT80331 - snoc_addr_map.xml is missing in Riviera simulation scripts directory

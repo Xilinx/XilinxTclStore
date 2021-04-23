@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.24
+package provide ::tclapp::aldec::common::helpers 1.25
 
 namespace eval ::tclapp::aldec::common {
 
@@ -3358,6 +3358,7 @@ proc usf_aldec_append_compiler_options { tool file_type opts_arg } {
 		lappend arg_list "-DSC_INCLUDE_DYNAMIC_PROCESSES"
 		lappend arg_list "-DRIVIERA"
 		lappend arg_list "-o [getSystemCLibrary]"
+		lappend arg_list "-lboost_system"
 
 		set compiler [get_property target_simulator [current_project]]	
         set more_opts [get_property $compiler.compile.ccomp.more_options $fileset_object]
