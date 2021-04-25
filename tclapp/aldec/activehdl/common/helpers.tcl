@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.23
+package provide ::tclapp::aldec::common::helpers 1.25
 
 namespace eval ::tclapp::aldec::common {
 
@@ -64,11 +64,61 @@ proc getCompiledLibraryLocation { } {
 		ActiveHDL { set librariesLocation [ get_property COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR [ current_project ] ] }
 	}
 
-	if { $librariesLocation == "" || ![ file isfile [ file join $librariesLocation library.cfg ] ] } {
+	if { $librariesLocation == "" } {
 		set librariesLocation $properties(s_lib_map_path)
+	} 
+
+	if { ![ file isfile [ file join $librariesLocation library.cfg ] ] } {
+		
+		if { $properties(s_lib_map_path) != "" } {
+			set librariesLocation $properties(s_lib_map_path)
+		} else {
+			createLibraryCfgFile $librariesLocation
+		}
 	}
 
 	return $librariesLocation
+}
+
+proc createLibraryCfgFile { _path } {
+
+	set libraries [ list ]
+	lappend libraries "\$INCLUDE = \"\$VSIMSALIBRARYCFG\""
+
+	foreach libraryDirectory [ glob -nocomplain -directory $_path * ] {
+        if { ![file isdirectory $libraryDirectory] } {
+			continue
+		}
+
+		set libraryName [ file tail $libraryDirectory ]
+		set libraryPath [ file join $libraryDirectory $libraryName.lib ]	
+
+		if { ![ file exists $libraryPath ] } {
+			continue
+		}
+
+		set libraryPath [ usf_get_relative_file_path $libraryPath $_path]
+
+		lappend libraries "$libraryName = \"$libraryPath\""
+	}
+
+	if { [ llength $libraries ] < 2 } {
+		return 
+	}
+
+	set libraryCfgPath [ usf_file_normalize [ file join $_path "library.cfg" ] ]
+
+	set fileStream 0
+	if { [ catch {open $libraryCfgPath w} fileStream ] } {
+		send_msg_id USF-[usf_aldec_getSimulatorName]-90 ERROR "Failed to open file to write ($libraryCfgPath)\n"
+		return
+	}
+
+	foreach library $libraries {
+		puts $fileStream $library
+	}
+
+	close $fileStream
 }
 
 proc getCompiledLibrariesFromFile { _librariesDirectory } {  
@@ -3308,6 +3358,7 @@ proc usf_aldec_append_compiler_options { tool file_type opts_arg } {
 		lappend arg_list "-DSC_INCLUDE_DYNAMIC_PROCESSES"
 		lappend arg_list "-DRIVIERA"
 		lappend arg_list "-o [getSystemCLibrary]"
+		lappend arg_list "-lboost_system"
 
 		set compiler [get_property target_simulator [current_project]]	
         set more_opts [get_property $compiler.compile.ccomp.more_options $fileset_object]
