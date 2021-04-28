@@ -1,3 +1,4 @@
+2.392 coverage options for XSim
 2.391 Extract IP file name from core-container to determine SV package libraries
 2.390 compile sources for netlist functional simulation
 2.388 coverage option for database file storage
