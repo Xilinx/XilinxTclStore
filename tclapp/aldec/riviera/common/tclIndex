@@ -10,6 +10,7 @@
 set auto_index(::tclapp::aldec::common::helpers::isIpProject) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::getXpmLibraries) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::getCompiledLibraryLocation) [list source [file join $dir helpers.tcl]]
+set auto_index(::tclapp::aldec::common::helpers::createLibraryCfgFile) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::getCompiledLibrariesFromFile) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::findCompiledLibraries) [list source [file join $dir helpers.tcl]]
 set auto_index(::tclapp::aldec::common::helpers::getLibrariesFromLocalRepo) [list source [file join $dir helpers.tcl]]

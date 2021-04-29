@@ -1975,31 +1975,42 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # coverage options
-  set cc_name [get_property -quiet "xelab.coverage.name" $fs_obj]
-  if { {} != $cc_name } {
-    lappend args_list "-cc_db $cc_name"
-  }
+  set cc_name     [get_property "xsim.elaborate.coverage.name"       $fs_obj]
+  set cc_dir      [get_property "xsim.elaborate.coverage.dir"        $fs_obj]
+  set cc_lib      [get_property "xsim.elaborate.coverage.library"    $fs_obj]
+  set cc_cell_def [get_property "xsim.elaborate.coverage.celldefine" $fs_obj]
 
-  # TODO: remove catch once property is available
-  set cc_dir {}
-  [catch {set cc_dir [get_property -quiet "xelab.coverage.dir" $fs_obj]} msg]
-  if { {} != $cc_dir } {
-    lappend args_list "-cc_dir $cc_dir"
-  }
+  if { {} != $cc_name } { lappend args_list "-cc_db $cc_name" }
+  if { {} != $cc_dir  } { lappend args_list "-cc_dir $cc_dir" }
 
-  set cc_type [get_property -quiet "xelab.coverage.type" $fs_obj]
-  if { {} != $cc_type } {
-    lappend args_list "-cc_type $cc_type"
-  }
-
-  set cc_lib [get_property -quiet "xelab.coverage.library" $fs_obj]
-  if { $cc_lib } {
-    lappend args_list "-cc_libs $cc_lib"
-  }
-
-  set cc_cell_def [get_property -quiet "xelab.coverage.celldefine" $fs_obj]
-  if { $cc_cell_def } {
-    lappend args_list "-cc_celldefines $cc_cell_def"
+  if { $cc_lib        } { lappend args_list "-cc_libs"        }
+  if { $cc_cell_def   } { lappend args_list "-cc_celldefines" }
+ 
+  set cc_types [get_property "xsim.elaborate.coverage.type" $fs_obj]; # cc_types = line branch condition all
+  #
+  # 1. convert line/branch/condition to s/b/c and append to values list
+  # 2. throw error for invalid cc type
+  # 3. either line/branch/condition or all allowed else error
+  #
+  if { {} != $cc_types } {
+    set values [list]
+    set l_cc_types [split $cc_types { }]
+    foreach type $l_cc_types {
+      set type [string trim $type]
+      switch -regexp -- $type {
+        {line}      { set id "s";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        {branch}    { set id "b";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        {condition} { set id "c";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        {all}       { set id "sbc"; if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        default     { [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line branch condition or all)\n"} err] }
+      }
+    }
+    # is 'all' and other value(s) also specified, print error
+    if { ([lsearch -exact $l_cc_types "all"] != -1) && ([llength $l_cc_types] > 1) } {
+      [catch {send_msg_id USF-XSim-021 ERROR "Invalid coverage types '[join $l_cc_types { }]' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line branch condition or all)\n"} err]
+    }
+    set cc_value [join $values {}]
+    lappend args_list "-cc_type $cc_value"
   }
 
   # design source libs

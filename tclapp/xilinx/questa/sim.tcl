@@ -1776,6 +1776,19 @@ proc usf_questa_get_sccom_cmd_args {} {
           lappend args "-lib $lib_name"
         }
       }
+
+      # cr:1079408 - bind aie_cluster 
+      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+        set ip_obj [xcs_find_ip "ai_engine"]
+        if { {} != $ip_obj } {
+          # $XILINX_VIVADO/data/simmodels/questa/2020.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
+          set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
+          set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
+          set lib_name "aie_cluster_v1_0_0"
+          lappend args "-L$data_dir/$cpt_dir/$lib_name"
+          lappend args "-l$lib_name"
+        }
+      }
   
       lappend args "-lib $a_sim_vars(default_top_library)"
       # bind IP static librarries
