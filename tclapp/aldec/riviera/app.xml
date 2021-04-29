@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Merged Aldec pull-request 730</revision_history>
+      <revision_history>Merged 2021.1-dev fixes to 2021.2-dev</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
