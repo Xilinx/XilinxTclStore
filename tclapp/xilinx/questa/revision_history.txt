@@ -1,3 +1,4 @@
+2.226 bind aie_cluster for sccom
 2.225 Extract IP file name from core-container to determine SV package libraries
 2.224 compile sources for netlist functional simulation
 2.223 pass vlog -mfsu to treat all sources as single compilation unit
