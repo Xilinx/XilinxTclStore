@@ -1,3 +1,4 @@
+2.393 coverage help message fix for type
 2.392 coverage options for XSim
 2.391 Extract IP file name from core-container to determine SV package libraries
 2.390 compile sources for netlist functional simulation
