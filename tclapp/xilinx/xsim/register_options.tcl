@@ -57,9 +57,9 @@ proc register_options { simulator } {
     {{elaborate.sdf_delay}           {enum}        {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
     {{elaborate.xsc.more_options}    {string}      {}                                                   {More XSC elaboration options}}
     {{elaborate.xelab.more_options}  {string}      {}                                                   {More XELAB elaboration options}}
-    {{elaborate.coverage.name}       {string}      {}                                                   {Specify functional coverage database name}}
+    {{elaborate.coverage.name}       {string}      {}                                                   {Specify coverage database name}}
     {{elaborate.coverage.dir}        {string}      {}                                                   {Specify coverage database directory name}}
-    {{elaborate.coverage.type}       {string}      {}                                                   {Specify functional coverage type(s) (line branch condition or all)}}
+    {{elaborate.coverage.type}       {string}      {}                                                   {Specify coverage type(s) (line branch condition or all)}}
     {{elaborate.coverage.library}    {bool}        {0}                                                  {Track std/unisim/retarget libraries}}
     {{elaborate.coverage.celldefine} {bool}        {0}                                                  {Track modules with celldefine attributes}}
     {{simulate.tcl.post}             {string}      {}                                                   {Specify post-simulate step TCL hook}}
