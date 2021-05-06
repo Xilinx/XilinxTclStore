@@ -15,14 +15,14 @@ create_project project_1 project_1 -part xcvc1902-vsva2197-2MP-e-S-es1
 create_bd_design "design_1"
 update_compile_order -fileset sources_1
 startgroup
-create_bd_cell -type ip -vlnv xilinx.com:ip:gt_bridge_ip:1.0 gt_bridge_ip_0
+create_bd_cell -type ip -vlnv xilinx.com:ip:gt_bridge_ip:1.1 gt_bridge_ip_0
 endgroup
 apply_bd_automation -rule xilinx.com:bd_rule:gt_ips -config { DataPath_Interface_Connection {Auto}}  [get_bd_cells gt_bridge_ip_0]
 tclapp::update_catalog xilinx::designutils
 save_bd_design
 
 # Run the report_gtye5_refclk_summary script and verify that no error was reported
-if {[catch { ::tclapp::xilinx::designutils::report_gtye5_refclk_summary } catchErrorString]} {
+if {[catch { ::tclapp::xilinx::designutils::report_gt_refclk_summary } catchErrorString]} {
     close_project
     error [format " -E- Unit test project_1 failed: %s" $catchErrorString]   
 }

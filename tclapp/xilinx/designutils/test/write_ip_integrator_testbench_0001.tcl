@@ -15,7 +15,7 @@ set name [file rootname [file tail [info script]]]
 set myproj [file join $file_dir wipit]
 file mkdir $myproj
 create_project $name $myproj -part xc7k325tffg900-2 -force
-set_property BOARD_PART xilinx.com:kc705:part0:1.2 [current_project]
+set_property BOARD_PART xilinx.com:kc705:part0:1.6 [current_project]
 set design_name design_1
 create_bd_design $design_name
 
