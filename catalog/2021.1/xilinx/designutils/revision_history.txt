@@ -1,3 +1,4 @@
+1.54 Various enhancements (report_gt_refclk_summary)
 1.53 Various enhancements (report_failfast)
 1.52 Various enhancements (report_gtye5_refclk_summary)
 1.51 Various enhancements (report_failfast)

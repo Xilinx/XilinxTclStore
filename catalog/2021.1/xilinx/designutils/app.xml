@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Various enhancements (report_failfast)</revision_history>
+      <revision_history>Various enhancements (report_gt_refclk_summary)</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -158,7 +158,7 @@ explicitly set to an IO Standard</summary>
           <summary>Generate a fail/pass report</summary>
         </proc>
         <proc>
-          <name>report_gtye5_refclk_summary</name>
+          <name>report_gt_refclk_summary</name>
           <summary>Generates reference clock summary of gt_quad base IP based, IPI block design</summary>
         </proc>
         <proc>
