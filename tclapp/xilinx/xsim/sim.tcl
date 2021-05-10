@@ -3527,6 +3527,14 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
       lappend xsc_arg_list "--gcc_compile_options \"$cfg_val\""
     }
+
+    # global simmodel option (if any)
+    set cfg_opt "${simulator}.compile.${compiler}.global"
+    set cfg_val ""
+    [catch {set cfg_val [get_param $cfg_opt]} err]
+    if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+      lappend xsc_arg_list "--gcc_compile_options \"$cfg_val\""
+    }
    
     lappend xsc_arg_list "-work $lib_name"
     lappend xsc_arg_list "-f $prj_filename"
