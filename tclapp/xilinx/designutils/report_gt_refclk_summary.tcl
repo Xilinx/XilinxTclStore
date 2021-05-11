@@ -138,32 +138,22 @@ set pathk [get_property DIRECTORY [current_project]]
     set gtye_q1 0
     set gtyp_q1 0
     set gtm_q1 0
-
+    set gt_t "GT"
 
 set refClkDict [dict create]
 set bd_dk [current_bd_design]
    set quad_cell_l ""
    set quadList ""
 
-
-    set vlnv_qb [get_latest_vlnv]
-    if { $vlnv_qb ne "" } {
-     EvalSubstituting {vlnv_qb} {
-     set quad_cell_l [get_bd_cells -hier -quiet -filter {vlnv == $vlnv_qb}]
-     set quadList [split $quad_cell_l " "]
-     } 0
-    }
-
-
   
    set proj [get_projects]
    set pathk [get_property DIRECTORY [current_project]]
 
-set refClkDict [dict create]
-set bd_dk [current_bd_design]
-set done [file mkdir $pathk\/GTREFCLK_SUMMARY]
-set file_name "$pathk\/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt"
-set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt"
+   set refClkDict [dict create]
+   set bd_dk [current_bd_design]
+   set done [file mkdir $pathk\/GTREFCLK_SUMMARY]
+   set file_name "$pathk\/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt"
+   set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt"
    set quad_cell_l ""
    set quadList ""
 
@@ -177,7 +167,7 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
     }
 
     if { $quad_cell_l eq ""} {
-       puts "ERROR: [BD 5-104] gt_quad_base IP($gt_t) based block design must be open to run this command. Please create/open a block design."
+       puts "ERROR: \[BD 5-104\] gt_quad_base IP based block design must be open to run this command. Please create/open a block design."
        if { [file exists $file_name1] == 1} {
          set done [export_ip_user_files -of_objects  [get_files $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt] -no_script -reset -force -quiet]
          set done [remove_files  $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt]
@@ -193,6 +183,7 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
         puts $outfilek "===================================  GT_REFCLOCK Summary Table ==================================="
 
         puts $outfilek "  "
+        set norepQuad [list ]
         set tbl1 [::designutils::prettyTable_int]
         set heading [list S.No. {GT REFCLOCK Name} Freq ParentIP {REFCLK Source} {GT Type}]
         $tbl1 header $heading
@@ -201,10 +192,11 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
           set gt_t [get_property CONFIG.GT_TYPE -quiet [get_bd_cells ${quadCell}]]
           set txIntfcs [list ]
           set rxIntfcs [list ]
-
+          set numq 0
           set txIntfcPIDs [list ]
           set rxIntfcPIDs [list ]
-
+          set txc 0
+          set rxc 0
           set quadIntcs [get_bd_intf_pins -quiet ${quadCell}/* -filter "VLNV=~ xilinx.com:interface:gt_tx_interface_rtl:1.0"]
 
            foreach quadIntfc $quadIntcs {
@@ -213,6 +205,9 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
                 lappend txIntfcs $quadIntfc
               } else {
                 lappend txIntfcs [find_connected_pin $quadIntfc]
+                if {[find_connected_pin $quadIntfc] ne ""} {
+                 set txc 1
+                }
                 lappend txIntfcPIDs [find_connected_core $quadIntfc]
               }
             }
@@ -224,10 +219,16 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
                lappend rxIntfcs $quadIntfc
              } else {
                lappend rxIntfcs [find_connected_pin $quadIntfc]
+                if {[find_connected_pin $quadIntfc] ne ""} {
+                 set rxc 1
+                }
                lappend rxIntfcPIDs [find_connected_core $quadIntfc]
              }
            }
-
+          if { $txc == 0 && $rxc == 0 } {
+              set numq 1
+              lappend norepQuad $quadCell
+          } else {
           set LANE_SEL_DICT ""
           set settings_string [evaluate_bd_properties {*}$txIntfcs {*}$rxIntfcs]
           set LANE_SEL_DICT [dict create]
@@ -353,9 +354,17 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
 
          }
         }
-
+        }
         puts $outfilek [$tbl1 print]
         puts $outfilek "  "
+        if {$numq == 1} {
+         if {[llength $norepQuad] > 1} {
+           puts $outfilek "Note:     Below mentioned quad IPs are unconnected, hence reference clock summary is not generated for these IPs"
+         } else {
+           puts $outfilek "Note:     Below mentioned quad IP is unconnected, hence reference clock summary is not generated for this IP"
+         }
+        puts $outfilek "          $norepQuad"       
+        }
         puts $outfilek "  "
         puts $outfilek "================================================== Notes and Example ========================================================================"
         puts $outfilek "  "
