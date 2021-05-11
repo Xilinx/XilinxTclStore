@@ -32,6 +32,14 @@
      Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
      Use -max_paths to set the max number of paths per clock group for LUT/Net budgeting. Default is 100
      Use -no_header to suppress the files header
+     Use -only_fails to only report metrics that are failing and that need to be reviewed
+     Use -custom_metrics/-no_custom_metrics/-only_custom_metrics to control user custom metrics
+     Use -return_paths to return timing paths:
+       none: no timing path is return (default)
+       path_budgeting: return the paths that have net/lut budgeting violations
+       lut_pair_missed: return the paths that missed at least one lut-pair placement (Versal)
+       lut_pair_found: return the paths that have at least one lut-pair placement (Versal)
+       lut_pair_candidate: return the paths that are candidate for one or more lut-pair placement (Versal)
 
      Use -longhelp for more information on the supported use models
 
