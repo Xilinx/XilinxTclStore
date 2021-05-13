@@ -1101,6 +1101,13 @@ proc wr_runs { proj_dir proj_name } {
 
   variable l_script_data
 
+  # get the idr flow properties constraints param value and set it to 1
+  lappend l_script_data "set idrFlowPropertiesConstraints \"\""
+  lappend l_script_data "catch \{"
+  lappend l_script_data " set idrFlowPropertiesConstraints \[get_param runs.disableIDRFlowPropertyConstraints\]"
+  lappend l_script_data " set_param runs.disableIDRFlowPropertyConstraints 1"
+  lappend l_script_data "\}\n"
+
   # write runs (synthesis, Implementation)
   set runs [get_runs -filter {IS_SYNTHESIS == 1}]
   write_specified_run $proj_dir $proj_name $runs
@@ -1115,6 +1122,13 @@ proc wr_runs { proj_dir proj_name } {
 
   lappend l_script_data "# set the current impl run"
   lappend l_script_data "current_run -implementation \[get_runs [current_run -implementation]\]"
+
+  # reset the param back to its previous value
+  lappend l_script_data "catch \{"
+  lappend l_script_data " if \{ \$idrFlowPropertiesConstraints != \{\} \} \{"
+  lappend l_script_data "   set_param runs.disableIDRFlowPropertyConstraints \$idrFlowPropertiesConstraints"
+  lappend l_script_data " \}"
+  lappend l_script_data "\}"
 }
 
 proc wr_proj_info { proj_name } {
