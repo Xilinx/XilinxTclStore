@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Merged 2021.1-dev fixes to 2021.2-dev</revision_history>
+      <revision_history>check for leaf dir name wrt library name for linked library</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
