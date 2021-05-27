@@ -109,6 +109,7 @@ proc usf_questa_setup_simulation { args } {
   # Return Value:
 
   variable a_sim_vars
+  set run_dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
 
   ::tclapp::xilinx::questa::usf_set_simulator_path   "questa"
   if { $a_sim_vars(b_int_system_design) } {
@@ -232,6 +233,24 @@ proc usf_questa_setup_simulation { args } {
   # create library directory
   usf_questa_create_lib_dir
 
+  # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
+  if { !$a_sim_vars(b_use_static_lib) } {
+    set a_sim_vars(b_compile_simmodels) 0
+  }
+
+  if { $a_sim_vars(b_compile_simmodels) } {
+    # get the design simmodel compile order
+    set a_sim_vars(l_simmodel_compile_order) [xcs_get_simmodel_compile_order]
+
+    set a_sim_vars(s_simlib_dir) "$run_dir/simlibs"
+    if { ![file exists $a_sim_vars(s_simlib_dir)] } {
+      if { [catch {file mkdir $a_sim_vars(s_simlib_dir)} error_msg] } {
+        send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($a_sim_vars(s_simlib_dir)): $error_msg\n"
+        return 1
+      }
+    }
+  }
+
   return 0
 }
 
@@ -272,6 +291,7 @@ proc usf_questa_setup_args { args } {
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
+  # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
 
   # Return Value:
@@ -309,6 +329,7 @@ proc usf_questa_setup_args { args } {
       "-int_compile_glbl"         { set ::tclapp::xilinx::questa::a_sim_vars(b_int_compile_glbl) 1                       }
       "-int_sm_lib_ref_debug"     { set ::tclapp::xilinx::questa::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
       "-int_csim_compile_order"   { set ::tclapp::xilinx::questa::a_sim_vars(b_int_csim_compile_order) 1                 }
+      "-int_export_source_files"  { set ::tclapp::xilinx::questa::a_sim_vars(b_int_export_source_files) 1                }
       "-int_en_vitis_hw_emu_mode" { set ::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) 1               }
       default {
         # is incorrect switch specified?
@@ -437,7 +458,7 @@ proc usf_questa_write_compile_script {} {
   set do_filename {}
   set do_filename $top;append do_filename "_compile.do"
   set do_file [file normalize [file join $dir $do_filename]]
-    send_msg_id USF-Questa-015 INFO "Creating automatic 'do' files...\n"
+  send_msg_id USF-Questa-015 INFO "Creating automatic 'do' files...\n"
   usf_questa_create_do_file_for_compilation $do_file
 
   # write compile.sh/.bat
@@ -581,6 +602,12 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib questa_lib/msim\n"
   }
 
+  if { $a_sim_vars(b_compile_simmodels) } {
+    foreach lib $a_sim_vars(l_simmodel_compile_order) {
+      puts $fh "${tool_path_str}vlib questa_lib/msim/$lib"
+    }
+  }
+
   set design_libs [xcs_get_design_libs $::tclapp::xilinx::questa::a_sim_vars(l_design_files)]
 
   # TODO:
@@ -616,6 +643,16 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
    
   puts $fh ""
+
+  if { $a_sim_vars(b_compile_simmodels) } {
+    foreach lib $a_sim_vars(l_simmodel_compile_order) {
+      if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+        puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
+      } else {
+        puts $fh "${tool_path_str}vmap $lib questa_lib/msim/$lib"
+      }
+    }
+  }
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -684,6 +721,10 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
 
   puts $fh ""
 
+  if { $a_sim_vars(b_compile_simmodels) } {
+    usf_compile_simmodel_sources $fh
+  }
+  
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
@@ -783,6 +824,458 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   puts $fh ""
 
   close $fh
+}
+
+proc usf_compile_simmodel_sources { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set s_dbg_sw {}
+  set dbg $a_sim_vars(s_int_debug_mode)
+  if { $dbg } {
+    set s_dbg_sw {-dbg}
+  }
+
+  set platform "lin"
+  if {$::tcl_platform(platform) == "windows"} {
+    set platform "win"
+  }
+
+  set simulator "questa"
+  set data_dir [rdi::get_data_dir -quiet -datafile "systemc/simlibs"]
+  set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
+
+  # find simmodel info from dat file and update do file
+  foreach lib_name $a_sim_vars(l_simmodel_compile_order) {
+    set lib_path [xcs_find_lib_path_for_simmodel $lib_name]
+    #
+    set fh_dat 0
+    set dat_file "$lib_path/.cxl.sim_info.dat"
+    if {[catch {open $dat_file r} fh_dat]} {
+      send_msg_id USF-Questa-016 WARNING "Failed to open file to read ($dat_file)\n"
+      continue
+    }
+    set data [split [read $fh_dat] "\n"]
+    close $fh_dat
+
+    # is current platform supported?
+    set simulator_platform {}
+    set simmodel_name      {}
+    set library_name       {}
+    set b_process          0
+
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag   [lindex $line_info 0]
+      set value [lindex $line_info 1]
+      if { "<SIMMODEL_NAME>"              == $tag } { set simmodel_name $value }
+      if { "<LIBRARY_NAME>"               == $tag } { set library_name $value  }
+      if { "<SIMULATOR_PLATFORM>" == $tag } {
+        if { ("all" == $value) || (("linux" == $value) && ("lin" == $platform)) || (("windows" == $vlue) && ("win" == $platform)) } {
+          # supported
+          set b_process 1
+        } else {
+          continue
+        }
+      }
+    }
+
+    # not supported, work on next simmodel
+    if { !$b_process } { continue }
+
+    #send_msg_id USF-Questa-107 STATUS "Generating compilation commands for '$lib_name'\n"
+
+    # create local lib dir
+    set simlib_dir "$a_sim_vars(s_simlib_dir)/$lib_name"
+    if { ![file exists $simlib_dir] } {
+      if { [catch {file mkdir $simlib_dir} error_msg] } {
+        send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($simlib_dir): $error_msg\n"
+        return 1
+      }
+    }
+
+    # copy simmodel sources locally
+    if { $a_sim_vars(b_int_export_source_files) } {
+      if { {} == $simmodel_name } { send_msg_id USF-Questa-107 WARNING "Empty tag '$simmodel_name'!\n" }
+      if { {} == $library_name  } { send_msg_id USF-Questa-107 WARNING "Empty tag '$library_name'!\n"  }
+
+      set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
+      set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
+      if { [file exists $src_sim_model_dir] } {
+        if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
+          [catch {send_msg_id USF-Questa-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
+        } else {
+          #puts "copied '$src_sim_model_dir' to run dir:'$a_sim_vars(s_launch_dir)/simlibs'\n"
+        }
+      } else {
+        [catch {send_msg_id USF-Questa-108 ERROR "File '$src_sim_model_dir' does not exist\n"} err]
+      }
+    }
+
+    # copy include dir
+    set simlib_incl_dir "$lib_path/include"
+    set target_dir      "$a_sim_vars(s_simlib_dir)/$lib_name"
+    set target_incl_dir "$target_dir/include"
+    if { ![file exists $target_incl_dir] } {
+      if { [catch {file copy -force $simlib_incl_dir $target_dir} error_msg] } {
+        [catch {send_msg_id USF-Questa-010 ERROR "Failed to copy file '$simlib_incl_dir' to '$target_dir': $error_msg\n"} err]
+      }
+    }
+
+    # simmodel file_info.dat data
+    set library_type            {}
+    set output_format           {}
+    set gplus_compile_flags     [list]
+    set gplus_compile_opt_flags [list]
+    set gplus_compile_dbg_flags [list]
+    set ldflags                 [list]
+    set gplus_ldflags_option    {}
+    set gcc_ldflags_option      {}
+    set ldflags_lin64           [list]
+    set ldflags_win64           [list]
+    set ldlibs                  [list]
+    set ldlibs_lin64            [list]
+    set ldlibs_win64            [list]
+    set gplus_ldlibs_option     {}
+    set gcc_ldlibs_option       {}
+    set sysc_dep_libs           {}
+    set cpp_dep_libs            {}
+    set c_dep_libs              {}
+    set sccom_compile_flags     {}
+    set more_xsc_options        [list]
+    set simulator_platform      {}
+    set systemc_compile_option  {}
+    set cpp_compile_option      {}
+    set c_compile_option        {}
+    set shared_lib              {}
+    set systemc_incl_dirs       [list]
+    set cpp_incl_dirs           [list]
+    set osci_incl_dirs          [list]
+    set c_incl_dirs             [list]
+
+    set sysc_files [list]
+    set cpp_files  [list]
+    set c_files    [list]
+
+    # process simmodel data from .dat file
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag       [lindex $line_info 0]
+      set value     [lindex $line_info 1]
+
+      # collect sources
+      if { ("<SYSTEMC_SOURCES>" == $tag) || ("<CPP_SOURCES>" == $tag) || ("<C_SOURCES>" == $tag) } {
+        set file_path "$data_dir/$value"
+
+        # local file path where sources will be copied for export option
+        if { $a_sim_vars(b_int_export_source_files) } {
+          set dirs [split $value "/"]
+          set value [join [lrange $dirs 3 end] "/"]
+          set file_path "simlibs/$value"
+        }
+
+        if { ("<SYSTEMC_SOURCES>" == $tag) } { lappend sysc_files $file_path }
+        if { ("<CPP_SOURCES>"     == $tag) } { lappend cpp_files  $file_path }
+        if { ("<C_SOURCES>"       == $tag) } { lappend c_files    $file_path }
+      }
+
+      # get simmodel info
+      if { "<LIBRARY_TYPE>"               == $tag } { set library_type            $value             }
+      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format           $value             }
+      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs       [split $value {,}] }
+      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs           [split $value {,}] }
+      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs             [split $value {,}] }
+      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs          [split $value {,}] }
+      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags     [split $value {,}] }
+      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags [split $value {,}] }
+      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags [split $value {,}] }
+      if { "<LDFLAGS>"                    == $tag } { set ldflags                 [split $value {,}] }
+      if { "<LDFLAGS_LNX64>"              == $tag } { set ldflags_lin64           [split $value {,}] }
+      if { "<LDFLAGS_WIN64>"              == $tag } { set ldflags_win64           [split $value {,}] }
+      if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option    $value             }
+      if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option      $value             }
+      if { "<LDLIBS>"                     == $tag } { set ldlibs                  [split $value {,}] }
+      if { "<LDLIBS_LNX64>"               == $tag } { set ldlibs_lin64            [split $value {,}] }
+      if { "<LDLIBS_WIN64>"               == $tag } { set ldlibs_win64            [split $value {,}] }
+      if { "<G++_LDLIBS_OPTION>"          == $tag } { set gplus_ldlibs_option     $value             }
+      if { "<GCC_LDLIBS_OPTION>"          == $tag } { set gcc_ldlibs_option       $value             }
+      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs           $value             }
+      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs            $value             }
+      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs              $value             }
+      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags     $value             }
+      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options        [split $value {,}] }
+      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform      $value             }
+      if { "<SYSTEMC_COMPILE_OPTION>"     == $tag } { set systemc_compile_option  $value             }
+      if { "<CPP_COMPILE_OPTION>"         == $tag } { set cpp_compile_option      $value             }
+      if { "<C_COMPILE_OPTION>"           == $tag } { set c_compile_option        $value             }
+      if { "<SHARED_LIBRARY>"             == $tag } { set shared_lib              $value             }
+    }
+
+    set obj_dir "$a_sim_vars(s_launch_dir)/questa_lib/$lib_name"
+    if { ![file exists $obj_dir] } {
+      if { [catch {file mkdir $obj_dir} error_msg] } {
+        send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($obj_dir): $error_msg\n"
+        return 1
+      }
+    }
+
+    #
+    # write systemC/CPP/C command line
+    #
+    if { [llength $sysc_files] > 0 } {
+      # write cmf file
+      set compiler "sccom"
+      set cmf_filename "${lib_name}.cmf"
+      set cmf "$a_sim_vars(s_launch_dir)/$cmf_filename"
+      set fh_cmf 0
+      if {[catch {open $cmf w} fh_cmf]} {
+        send_msg_id USF-Questa-016 WARNING "Failed to open file to write ($cmf)\n"
+      } else {
+        foreach sysc_file $sysc_files {
+          puts $fh_cmf $sysc_file
+        }
+        close $fh_cmf
+      }
+    
+      #
+      # COMPILE (sccom)
+      #
+      set args [list]
+      lappend args "-64"
+      lappend args "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+      
+      # <SYSTEMC_COMPILE_OPTION>
+      if { {} != $systemc_compile_option } { lappend args $systemc_compile_option }
+
+      # <SCCOM_COMPILE_FLAGS>
+      lappend args "$sccom_compile_flags"
+  
+      # <SYSTEMC_INCLUDE_DIRS> 
+      if { [llength $systemc_incl_dirs] > 0 } {
+        foreach incl_dir $systemc_incl_dirs {
+          if { [regexp {^\$xv_cpt_lib_path} $incl_dir] } {
+            set str_to_replace "xv_cpt_lib_path"
+            set str_replace_with "$cpt_dir"
+            regsub -all $str_to_replace $incl_dir $str_replace_with incl_dir 
+            set incl_dir [string trimleft $incl_dir {\$}]
+            set incl_dir "$data_dir/$incl_dir"
+          }
+          if { [regexp {^\$xv_ext_lib_path} $incl_dir] } {
+            set str_to_replace "xv_ext_lib_path"
+            set str_replace_with "$a_sim_vars(sp_ext_dir)"
+            regsub -all $str_to_replace $incl_dir $str_replace_with incl_dir 
+            set incl_dir [string trimleft $incl_dir {\$}]
+          }
+          lappend args "-I $incl_dir"
+        }
+      }
+   
+      # <CPP_COMPILE_OPTION> 
+      lappend args $cpp_compile_option
+
+      # <G++_COMPILE_FLAGS>
+      foreach opt $gplus_compile_flags { lappend args $opt }
+
+      # <G++_COMPILE_OPTIMIZE_FLAGS>
+      foreach opt $gplus_compile_opt_flags { lappend args $opt }
+    
+      # config simmodel options
+      set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+      set cfg_val ""
+      [catch {set cfg_val [get_param $cfg_opt]} err]
+      if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+        lappend args "$cfg_val"
+      }
+    
+      # global simmodel option (if any)
+      set cfg_opt "${simulator}.compile.${compiler}.global"
+      set cfg_val ""
+      [catch {set cfg_val [get_param $cfg_opt]} err]
+      if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+        lappend xsc_arg_list "$cfg_val"
+      }
+
+      # work dir    
+      lappend args "-work $lib_name"
+      lappend args "-f ${lib_name}.cmf"
+    
+      set cmd_str [join $args " "]
+      puts $fh "# compile '$lib_name' model sources"
+      puts $fh "$a_sim_vars(s_tool_bin_path)/sccom $cmd_str\n"
+   
+      # 
+      # LINK (sccom)
+      #
+      set args [list]
+      lappend args "-64"
+      lappend args "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+
+      # <SYSTEMC_COMPILE_OPTION>
+      if { {} != $systemc_compile_option } {
+        lappend args $systemc_compile_option
+      }
+      lappend args "-linkshared"
+      lappend args "-lib $lib_name"
+    
+      # <LDFLAGS>
+      if { [llength $ldflags] > 0 } { foreach opt $ldflags { lappend args $opt } }
+
+      if {$::tcl_platform(platform) == "windows"} {
+        if { [llength $ldflags_win64] > 0 } { foreach opt $ldflags_win64 { lappend args $opt } }
+      } else {
+        if { [llength $ldflags_lin64] > 0 } { foreach opt $ldflags_lin64 { lappend args $opt } }
+      }
+    
+      # acd ldflags 
+      if { {} != $gplus_ldflags_option } { lappend args $gplus_ldflags_option }
+   
+      # <LDLIBS>
+      if { [llength $ldlibs] > 0 } {
+        foreach opt $ldlibs {
+          if { [regexp {\$xv_cpt_lib_path} $opt] } {
+            set cpt_dir_path "$data_dir/$cpt_dir"
+            set str_to_replace {\$xv_cpt_lib_path}
+            set str_replace_with "$cpt_dir_path"
+            regsub -all $str_to_replace $opt $str_replace_with opt 
+          }
+          lappend args $opt
+        }
+      }
+    
+      if {$::tcl_platform(platform) == "windows"} {
+        if { [llength $ldlibs_win64] > 0 } { foreach opt $ldlibs_win64 { lappend args $opt } }
+      } else {
+        if { [llength $ldlibs_lin64] > 0 } { foreach opt $ldlibs_lin64 { lappend args $opt } }
+      }
+    
+      # acd ldlibs
+      if { {} != $gplus_ldlibs_option } { lappend args "$gplus_ldlibs_option" }
+    
+      lappend args "-work $lib_name"
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_tool_bin_path)/sccom $cmd_str\n"
+
+    } elseif { [llength $cpp_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+      #
+      # COMPILE (g++)
+      #
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "${file_name}.o"
+
+        # construct g++ compile command line
+        set args [list]
+        lappend args "-c"
+  
+        # <CPP_INCLUDE_DIRS>
+        if { [llength $cpp_incl_dirs] > 0 } { foreach incl_dir $cpp_incl_dirs { lappend args "-I $incl_dir" } }
+
+        # <CPP_COMPILE_OPTION>
+        lappend args $cpp_compile_option
+
+        # <G++_COMPILE_FLAGS>
+        if { [llength $gplus_compile_flags] > 0 } { foreach opt $gplus_compile_flags { lappend args $opt } }
+
+        # <G++_COMPILE_OPTIMIZE_FLAGS>
+        if { $dbg } {
+          if { [llength $gplus_compile_dbg_flags] > 0 } { foreach opt $gplus_compile_dbg_flags { lappend args $opt } }
+        } else {
+          if { [llength $gplus_compile_opt_flags] > 0 } { foreach opt $gplus_compile_opt_flags { lappend args $opt } }
+        }
+
+        # <G++_COMPILE_DEBUG_FLAGS>
+        foreach opt $gplus_compile_dbg_flags { lappend args $opt } 
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "questa_lib/$lib_name/${obj_file}"
+
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      }
+    
+      # 
+      # LINK (g++)
+      #
+      set args [list]
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "questa_lib/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "questa_lib/$lib_name/lib${lib_name}.so"
+      
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+
+    } elseif { [llength $c_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+      #
+      # COMPILE (gcc)
+      #
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "${file_name}.o"
+
+        # construct g++ compile command line
+        set args [list]
+        lappend args "-c"
+  
+        # <CPP_INCLUDE_DIRS>
+        if { [llength $cpp_incl_dirs] > 0 } { foreach incl_dir $cpp_incl_dirs { lappend args "-I $incl_dir" } }
+
+        # <CPP_COMPILE_OPTION>
+        lappend args $cpp_compile_option
+
+        # <G++_COMPILE_FLAGS>
+        if { [llength $gplus_compile_flags] > 0 } { foreach opt $gplus_compile_flags { lappend args $opt } }
+
+        # <G++_COMPILE_OPTIMIZE_FLAGS>
+        if { $dbg } {
+          if { [llength $gplus_compile_dbg_flags] > 0 } { foreach opt $gplus_compile_dbg_flags { lappend args $opt } }
+        } else {
+          if { [llength $gplus_compile_opt_flags] > 0 } { foreach opt $gplus_compile_opt_flags { lappend args $opt } }
+        }
+
+        # <G++_COMPILE_DEBUG_FLAGS>
+        foreach opt $gplus_compile_dbg_flags { lappend args $opt } 
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "questa_lib/$lib_name/${obj_file}"
+
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/gcc $cmd_str\n"
+      }
+    
+      # 
+      # LINK (gcc)
+      #
+      set args [list]
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "questa_lib/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "questa_lib/$lib_name/lib${lib_name}.so"
+      
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/gcc $cmd_str\n"
+
+    }
+  }
 }
 
 proc usf_questa_create_do_file_for_elaboration { do_file } {

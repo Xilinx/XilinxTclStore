@@ -288,10 +288,8 @@ proc usf_xsim_setup_simulation { args } {
   set run_dir $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
 
   # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled 
-  if { [get_param "project.enableNonPreCompileSupportForSystemC"] } {
-    if { !$a_sim_vars(b_use_static_lib) } {
-      set a_sim_vars(b_compile_simmodels) 1
-    }
+  if { !$a_sim_vars(b_use_static_lib) } {
+    set a_sim_vars(b_compile_simmodels) 1
   }
 
   if { $a_sim_vars(b_compile_simmodels) } {
@@ -3318,7 +3316,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
 
   set data_dir [rdi::get_data_dir -quiet -datafile "systemc/simlibs"]
   # get the design simmodel compile order
-  set simmodel_compile_order [xsc_get_simmodel_compile_order]
+  set simmodel_compile_order [xcs_get_simmodel_compile_order]
 
   # is pure-rtl sources for system simulation (selected_sim_model = rtl), don't need to compile the systemC/CPP/C sim-models
   if { [llength $simmodel_compile_order] == 0 } {
@@ -3333,7 +3331,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
   usf_add_simmodel_mappings $simmodel_compile_order
 
   foreach lib_name $simmodel_compile_order {
-    set lib_path [xsc_find_lib_path_for_simmodel $lib_name]
+    set lib_path [xcs_find_lib_path_for_simmodel $lib_name]
     #puts "lib_path:$lib_name = $lib_path"
     #
     set fh 0
@@ -3424,10 +3422,10 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     set ldflags                 [list]
     set gplus_ldflags_option    {}
     set gcc_ldflags_option      {}
-    set ldflags_lnx64           [list]
+    set ldflags_lin64           [list]
     set ldflags_win64           [list]
     set ldlibs                  [list]
-    set ldlibs_lnx64            [list]
+    set ldlibs_lin64            [list]
     set ldlibs_win64            [list]
     set gplus_ldlibs_option     {}
     set gcc_ldlibs_option       {}
@@ -3471,13 +3469,13 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
       if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags [split $value {,}]     }
       if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags [split $value {,}] }
       if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags [split $value {,}] }
-      if { "<LDFLGS>"                     == $tag } { set ldflags [split $value {,}]                 }
-      if { "<LDFLGS_LNX64>"               == $tag } { set ldflags_lnx64 [split $value {,}]           }
-      if { "<LDFLGS_WIN64>"               == $tag } { set ldflags_win64 [split $value {,}]           }
+      if { "<LDFLAGS>"                    == $tag } { set ldflags [split $value {,}]                 }
+      if { "<LDFLAGS_LIN64>"              == $tag } { set ldflags_lin64 [split $value {,}]           }
+      if { "<LDFLAGS_WIN64>"              == $tag } { set ldflags_win64 [split $value {,}]           }
       if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option $value                }
       if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option $value                  }
       if { "<LDLIBS>"                     == $tag } { set ldlibs [split $value {,}]                  }
-      if { "<LDLIBS_LNX64>"               == $tag } { set ldlibs_lnx64 [split $value {,}]            }
+      if { "<LDLIBS_LIN64>"               == $tag } { set ldlibs_lin64 [split $value {,}]            }
       if { "<LDLIBS_WIN64>"               == $tag } { set ldlibs_win64 [split $value {,}]            }
       if { "<G++_LDLIBS_OPTION>"          == $tag } { set gplus_ldlibs_option $value                 }
       if { "<GCC_LDLIBS_OPTION>"          == $tag } { set gcc_ldlibs_option $value                   }
@@ -3582,7 +3580,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     if {$::tcl_platform(platform) == "windows"} {
       if { [llength $ldflags_win64] > 0 } { foreach ld_flag $ldflags_win64 { lappend xsc_arg_list "--gcc_link_options \"$ld_flag\"" } }
     } else {
-      if { [llength $ldflags_lnx64] > 0 } { foreach ld_flag $ldflags_lnx64 { lappend xsc_arg_list "--gcc_link_options \"$ld_flag\"" } }
+      if { [llength $ldflags_lin64] > 0 } { foreach ld_flag $ldflags_lin64 { lappend xsc_arg_list "--gcc_link_options \"$ld_flag\"" } }
     }
 
     # acd ldflags
@@ -3596,9 +3594,9 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     if { [llength $ldlibs] > 0 } { foreach ld_lib $ldlibs { lappend xsc_arg_list "--gcc_link_options \"$ld_lib\"" } }
 
     if {$::tcl_platform(platform) == "windows"} {
-      if { [llength $ldlibs_win64] > 0 } { foreach ld_lib $ldlibs { lappend xsc_arg_list "--gcc_link_options \"$ld_lib\"" } }
+      if { [llength $ldlibs_win64] > 0 } { foreach ld_lib $ldlibs_win64 { lappend xsc_arg_list "--gcc_link_options \"$ld_lib\"" } }
     } else {
-      if { [llength $ldlibs_lnx64] > 0 } { foreach ld_lib $ldlibs { lappend xsc_arg_list "--gcc_link_options \"$ld_lib\"" } }
+      if { [llength $ldlibs_lin64] > 0 } { foreach ld_lib $ldlibs_lin64 { lappend xsc_arg_list "--gcc_link_options \"$ld_lib\"" } }
     }
 
     # acd ldlibs
@@ -3621,7 +3619,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     #set sysc_link_libs [list]
     #set cpp_link_libs  [list]
     #set c_link_libs    [list]
-    #xsc_find_dependent_simmodel_libraries $lib_name sysc_link_libs cpp_link_libs c_link_libs
+    #xcs_find_dependent_simmodel_libraries $lib_name sysc_link_libs cpp_link_libs c_link_libs
 
     #set link_args [list]
     #foreach lib $sysc_link_libs { lappend link_args "-L$a_sim_vars(compiled_design_lib)/${lib} -l${lib}" }

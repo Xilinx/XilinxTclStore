@@ -30,6 +30,7 @@ proc usf_init_vars {} {
   set a_sim_vars(s_project_dir)       [get_property "DIRECTORY" $project]
   set a_sim_vars(b_is_managed)        [get_property "MANAGED_IP" $project]
   set a_sim_vars(s_launch_dir)        {}
+  set a_sim_vars(s_simlib_dir)        {}
   set a_sim_vars(s_sim_top)           [get_property "TOP" [current_fileset -simset]]
 
   # launch_simulation tcl task args
@@ -61,11 +62,14 @@ proc usf_init_vars {} {
 
   set a_sim_vars(b_int_sm_lib_ref_debug) 0
   set a_sim_vars(b_int_csim_compile_order) 0
+  set a_sim_vars(b_int_export_source_files) 0
   set a_sim_vars(b_int_en_vitis_hw_emu_mode) 0
 
   set a_sim_vars(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set a_sim_vars(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set a_sim_vars(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+
+  set a_sim_vars(b_compile_simmodels) 0
 
   set a_sim_vars(b_contain_systemc_sources) 0
   set a_sim_vars(b_contain_cpp_sources)     0
@@ -104,6 +108,9 @@ proc usf_init_vars {} {
   variable l_local_design_libraries  [list]
   # ip static libraries
   variable l_ip_static_libs          [list]
+
+  # sim-model compile order (non-precompile flow)
+  variable l_simmodel_compile_order  [list]
 
   # list of xpm libraries
   variable l_xpm_libraries [list]
