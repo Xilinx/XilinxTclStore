@@ -495,13 +495,24 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
           set lib_path        $value
     
           set incl_dir "$lib_path/include"
-          if { [file exists $incl_dir] } {
-            if { !$a_sim_vars(b_absolute_path) } {
-              # get relative file path for the compiled library
-              set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+          if { $a_sim_vars(b_compile_simmodels) } {
+            set lib_name [file tail $lib_path]
+            set lib_type [file tail [file dirname $lib_path]]
+            if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+              lappend l_C_incl_dirs_opts "-I \"$lib_path/include\""
+            } else {
+              set incl_dir "simlibs/$lib_name/include"
+              lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
             }
-            #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
-            lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
+          } else {
+            if { [file exists $incl_dir] } {
+              if { !$a_sim_vars(b_absolute_path) } {
+                # get relative file path for the compiled library
+                set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
+              }
+              #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
+              lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
+            }
           }
         }
     

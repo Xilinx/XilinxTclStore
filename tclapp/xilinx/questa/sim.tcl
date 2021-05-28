@@ -111,6 +111,21 @@ proc usf_questa_setup_simulation { args } {
   variable a_sim_vars
   set run_dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
 
+  # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
+  if { !$a_sim_vars(b_use_static_lib) } {
+    set a_sim_vars(b_compile_simmodels) 0
+  }
+
+  if { $a_sim_vars(b_compile_simmodels) } {
+    set a_sim_vars(s_simlib_dir) "$run_dir/simlibs"
+    if { ![file exists $a_sim_vars(s_simlib_dir)] } {
+      if { [catch {file mkdir $a_sim_vars(s_simlib_dir)} error_msg] } {
+        send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($a_sim_vars(s_simlib_dir)): $error_msg\n"
+        return 1
+      }
+    }
+  }
+
   ::tclapp::xilinx::questa::usf_set_simulator_path   "questa"
   if { $a_sim_vars(b_int_system_design) } {
     ::tclapp::xilinx::questa::usf_set_gcc_version_path "questa"
@@ -232,24 +247,6 @@ proc usf_questa_setup_simulation { args } {
 
   # create library directory
   usf_questa_create_lib_dir
-
-  # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
-  if { !$a_sim_vars(b_use_static_lib) } {
-    set a_sim_vars(b_compile_simmodels) 0
-  }
-
-  if { $a_sim_vars(b_compile_simmodels) } {
-    # get the design simmodel compile order
-    set a_sim_vars(l_simmodel_compile_order) [xcs_get_simmodel_compile_order]
-
-    set a_sim_vars(s_simlib_dir) "$run_dir/simlibs"
-    if { ![file exists $a_sim_vars(s_simlib_dir)] } {
-      if { [catch {file mkdir $a_sim_vars(s_simlib_dir)} error_msg] } {
-        send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($a_sim_vars(s_simlib_dir)): $error_msg\n"
-        return 1
-      }
-    }
-  }
 
   return 0
 }
@@ -602,13 +599,16 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib questa_lib/msim\n"
   }
 
+  set design_libs [xcs_get_design_libs $::tclapp::xilinx::questa::a_sim_vars(l_design_files)]
+
   if { $a_sim_vars(b_compile_simmodels) } {
+    # get the design simmodel compile order
+    set a_sim_vars(l_simmodel_compile_order) [xcs_get_simmodel_compile_order]
+
     foreach lib $a_sim_vars(l_simmodel_compile_order) {
       puts $fh "${tool_path_str}vlib questa_lib/msim/$lib"
     }
   }
-
-  set design_libs [xcs_get_design_libs $::tclapp::xilinx::questa::a_sim_vars(l_design_files)]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -1991,6 +1991,15 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             set sc_lib   $key
             set lib_path $value
             set lib_dir "$lib_path"
+            if { $a_sim_vars(b_compile_simmodels) } {
+              set lib_name [file tail $lib_path]
+              set lib_type [file tail [file dirname $lib_path]]
+              if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+                # skip
+              } else {
+                set lib_dir "questa_lib/$lib_name"
+              }
+            }
             lappend shared_ip_libs $lib_dir
           }
 
