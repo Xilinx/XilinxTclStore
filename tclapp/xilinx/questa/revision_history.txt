@@ -1,40 +1,63 @@
-2.202 donot compile glbl if force_no_compile_glbl is set
-2.201 support for hbm netlist simulation
-2.200 helper to return list of noc libraries for netlist simulation
-2.199 Vitis HW EMU wrapper code updates
-2.198 Vitis HW EMU settings under conditional switch
-2.197 find xilinx_vip from VIVADO if not found from default data dir
-2.196 script update for log file messaging improvements
-2.195 removed obsolete code - assemble files by library
-2.194 helpers for log file deletion
-2.193 code cleanup for lnx64.o binding
-2.192 removed binding of Xilinx libs for sim_xdma
-2.191 add check for protobuf static library
-2.190 refactored design library proc for consistent functionality
-2.189 merged contents from 2020.2
-2.188 donot bind DPI-C shared library if param is false
-2.187 bind vivado shared library path for hw-emu
-2.186 replace protected simmodel path set by param
-2.185 find sv verilog static sources from IP repo root level core
-2.184 donot pass -64bit for windows
-2.183 fetch IP xml sources from ip_output_dir
-2.182 set path to gtye5_quad shared library in absolute format
-2.181 support for configuration data object sources
-2.180 filter libraries that does not generate .cxl.lib_info.dat file
-2.179 print error if failed to find the dat files for simulation models
-2.178 bind IP systemc objects for VCS
-2.177 add checks for simulator executable file type
-2.176 halt scripts only flow if param set
-2.175 fixed utils msg
-2.174 fixed ip object return value
-2.173 support for VCS systemC compilation
-2.172 return ip name from xcs_find_ip
-2.171 added comment for the used_in flags usage for determining static files
-2.170 added info message for locked or custom IPs in the project
-2.169 do not call quit -force for compile and elaborate steps in scripts_only mode when simulator.quitOnSimulationComplete is false
-2.168 declare variable for storing referenced shared library in ipdef
-2.167 print critical warning for missing pre-compiled simulation model IP
-2.166 export protected library path for simulate step
+2.226 bind aie_cluster for sccom
+2.225 Extract IP file name from core-container to determine SV package libraries
+2.224 compile sources for netlist functional simulation
+2.223 pass vlog -mfsu to treat all sources as single compilation unit
+2.222 export chess library env
+2.221 bind noc_na for netlist simulation
+2.220 set optional arg for simulate step
+2.219 find available boost library from RDI_DATA_DIR
+2.218 check for file before inspecting core container property
+2.217 refactored gcc version support
+2.216 support for simulator launch mode
+2.215 disable debug msgs
+2.214 enabled Vitis code for post-sim script and launch mode
+2.213 enabled protected library linkage
+2.212 enabled runtime setting for Vitis
+2.211 enabled USER_PRE_SIM_SCRIPT code-hook
+2.210 helper for fetching NoC IP objects
+2.209 fixes for Vitis code-hooks
+2.208 disabled Vitis code-hooks
+2.207 find data dir from VIVADO if not found from rdi data_dir
+2.206 support for VCS auto gcc executable path detection
+2.205 disable binding of aie_cluster
+2.204 merge 2020.3 to 2021.1
+2.203 bind aie_cluster library
+2.202 removed binding of Xilinx libs for sim_xdma
+2.201 add check for protobuf static library
+2.199 check for gen dir in path before replacing for rev control
+2.198 re-aligned source file paths for rev control for classic use case
+2.197 pass rev control var for fetching static header sources
+2.196 calculate ip filename from ip_output_dir for revision control
+2.195 update composite file path for revision control
+2.194 fixed gcc install message
+2.193 find gcc compiler path from simulator install
+2.192 bind IP static library for instantiated IPs in the design
+2.191 trim trailing slashes for the gcc path
+2.190 support for setting up cores property for sccom compile step
+2.189 support for setting up include and obj path for non-precompile flow
+2.188 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
+2.187 pass 16 cores for distributed processing for sccom
+2.186 support for setting up gcc compiler paths
+2.185 use exact string name search for xtlm
+2.184 pass number of cores to use for compilation
+2.183 use simulator compiled object lib dir var
+2.182 reference zlib shared library for xdma
+2.181 compile simmodel sources into compiled dir
+2.180 get compiler order for referenced simmodels
+2.179 compile hbm for post synth and impl simulation
+2.178 added debug messages for library path references
+2.177 support for gcc install path
+2.176 change precedence of xil_defaultlib as first library in the search order
+2.175 implement code to find system libraries faster
+2.174 do not launch simulator gui in batch mode
+2.173 compile glbl if force_compile_glbl is true
+2.172 support for uvm
+2.171 bind vivado shared library path for hw-emu
+2.170 donot append compiled log on consecutive execution of compile step
+2.169 helpers for determining design language of same type
+2.168 bind DPI-C model if param is set
+2.167 pass args for AIE to bind symbol
+2.166 merged fixes from 2020.1
 2.165 fixed used_in values check for simulation tag
 2.164 added helper proc to find out object files for IPs referenced in the design
 2.163 fix for referencing linked shared library paths for Questa

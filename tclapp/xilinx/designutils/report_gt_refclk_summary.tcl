@@ -1,9 +1,9 @@
 # tclapp/mycompany/myapp/myapp.tcl
-package require Vivado 1.2019.1
+package require Vivado 1.2020.3
 
 
 namespace eval ::tclapp::xilinx::designutils {
-  namespace export report_gtye5_refclk_summary
+  namespace export report_gt_refclk_summary
 }
 
 #######################################################################################################
@@ -19,16 +19,16 @@ namespace eval ::tclapp::xilinx::designutils {
 ##
 ## 1- Generates reference clock summary of gt_quad_base IP based, IPI designs
 ##
-##   Vivado% xilinx::designutils::report_gtye5_refclk_summary
-##   2020.03.03 - Initial release
+##   Vivado% xilinx::designutils::report_gt_refclk_summary
+##   2021.05.05 - Initial release
 ##
 ##########################################################################################################
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils {
-  namespace export report_gtye5_refclk_summary
+  namespace export report_gt_refclk_summary
 } ]
 
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {args} {
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary {args} {
   # Summary:
   # Generates reference clock summary of gt_quad base IP based, IPI block design
 
@@ -40,31 +40,31 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {args} {
 
   # Categories: Xilinxtclstore, designutils
 
-   return [::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_refclk_summary {*}$args]
+   return [::tclapp::xilinx::designutils::report_gt_refclk_summary::report_gt_refclk_summary {*}$args]
 
   # Command to generate the summary is
-  #                    xilinx::designutils::report_gtye5_refclk_summary
+  #                    xilinx::designutils::report_gt_refclk_summary
 
   # No Arguments needed for the script, the only requirement is the quad base IP based block design should be opened before running it.
-  # GT reference clock summary file wll be generated with the name <bd_name>_gtye5_refclk_summary.txt
+  # GT reference clock summary file wll be generated with the name <bd_name>_gt_refclk_summary.txt
 
   #   return 0
 }
 
 
 
-eval [list namespace eval ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {
-  namespace export report_gtye5_refclk_summary
+eval [list namespace eval ::tclapp::xilinx::designutils::report_gt_refclk_summary {
+  namespace export report_gt_refclk_summary
 } ]
 
-#namespace eval ::tclapp::xilinx::designutils::report_gtye5_refclk_summary {
+#namespace eval ::tclapp::xilinx::designutils::report_gt_refclk_summary {
 
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_refclk_summary {args} {
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::report_gt_refclk_summary {args} {
 
   # Summary:
   # Generates reference clock summary of gt_quad base IP based, IPI block design
   # Command to generate the summary is
-  #                    xilinx::designutils::report_gtye5_refclk_summary
+  #                    xilinx::designutils::report_gt_refclk_summary
 
 
   # Argument Usage:
@@ -74,7 +74,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_re
 
 
   # No Arguments needed, the only requirement of the script is the quad base IP based block design should be opened before running it.
-  # GT reference clock summary file wll be generated with the name <bd_name>_gtye5_refclk_summary.txt
+  # GT reference clock summary file wll be generated with the name <bd_name>_gt_refclk_summary.txt
 
 
   # Categories: Xilinxtclstore, designutils
@@ -110,10 +110,20 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_re
   if {$show_help} {
     # <-- HELP
     puts [format {
-      Usage: report_gtye5_refclk_summary
+      Usage: report_gt_refclk_summary
                   [-u|-usage|-h|-help]     - This help message
-                  default/no argument      - Generates GTYE5_REFCLOCK Summary in gt_quad_base IP based, IPI block designs
-      } ]
+                  default/no argument      - Generates GT_REFCLOCK Summary in gt_quad_base IP based, IPI block designs
+  Description: 
+
+     Generates GT reference clock summary of block design.
+     This command must be run on a gt_quad_base IP based IPI block design.
+     If Quad reference clock frequencies are same (of same GT Type) in the generated summary file, user could optimize the reference clock inputs by shorting them.
+
+  Example:
+  
+    The following example generates GT reference clock summary of gt_quad base IP based , IPI block design:
+     xilinx::designutils::report_gt_refclk_summary
+  } ]
     # HELP -->
     return ""
 
@@ -123,12 +133,27 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::report_gtye5_re
 
 set proj [get_projects]
 set pathk [get_property DIRECTORY [current_project]]
+    set gty_q 0
+    set gtyp_q 0
+    set gtye_q1 0
+    set gtyp_q1 0
+    set gtm_q1 0
+    set gt_t "GT"
 
 set refClkDict [dict create]
 set bd_dk [current_bd_design]
-set done [file mkdir $pathk\/GTREFCLK_SUMMARY]
-set file_name "$pathk\/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt"
-set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt"
+   set quad_cell_l ""
+   set quadList ""
+
+  
+   set proj [get_projects]
+   set pathk [get_property DIRECTORY [current_project]]
+
+   set refClkDict [dict create]
+   set bd_dk [current_bd_design]
+   set done [file mkdir $pathk\/GTREFCLK_SUMMARY]
+   set file_name "$pathk\/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt"
+   set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt"
    set quad_cell_l ""
    set quadList ""
 
@@ -141,36 +166,37 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
      } 0
     }
 
-
     if { $quad_cell_l eq ""} {
-       puts "ERROR: [BD 5-104] gt_quad_base IP based block design must be open to run this command. Please create/open a block design."
+       puts "ERROR: \[BD 5-104\] gt_quad_base IP based block design must be open to run this command. Please create/open a block design."
        if { [file exists $file_name1] == 1} {
-         set done [export_ip_user_files -of_objects  [get_files $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt] -no_script -reset -force -quiet]
-         set done [remove_files  $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt]
-         set done [file delete -force $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt]
+         set done [export_ip_user_files -of_objects  [get_files $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt] -no_script -reset -force -quiet]
+         set done [remove_files  $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt]
+         set done [file delete -force $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt]
         }
     } else {
        if { [file exists $file_name1] == 1} {
-         set done [export_ip_user_files -of_objects  [get_files $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt] -no_script -reset -force -quiet]
-         set done [remove_files  $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt]
-         set done [file delete -force $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt]
+         set done [export_ip_user_files -of_objects  [get_files $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt] -no_script -reset -force -quiet]
+         set done [remove_files  $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt]
+         set done [file delete -force $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt]
         }
         set outfilek [open $file_name w]
-
-        puts $outfilek "===================================  GTYE5_REFCLOCK Summary Table ==================================="
+        puts $outfilek "===================================  GT_REFCLOCK Summary Table ==================================="
 
         puts $outfilek "  "
+        set norepQuad [list ]
         set tbl1 [::designutils::prettyTable_int]
-        set heading [list S.No. {GTYE5_REFCLOCK Name} Freq ParentIP {REFCLK Source}]
+        set heading [list S.No. {GT REFCLOCK Name} Freq ParentIP {REFCLK Source} {GT Type}]
         $tbl1 header $heading
         set snumk 0
         foreach quadCell $quadList {
+          set gt_t [get_property CONFIG.GT_TYPE -quiet [get_bd_cells ${quadCell}]]
           set txIntfcs [list ]
           set rxIntfcs [list ]
-
+          set numq 0
           set txIntfcPIDs [list ]
           set rxIntfcPIDs [list ]
-
+          set txc 0
+          set rxc 0
           set quadIntcs [get_bd_intf_pins -quiet ${quadCell}/* -filter "VLNV=~ xilinx.com:interface:gt_tx_interface_rtl:1.0"]
 
            foreach quadIntfc $quadIntcs {
@@ -179,6 +205,9 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
                 lappend txIntfcs $quadIntfc
               } else {
                 lappend txIntfcs [find_connected_pin $quadIntfc]
+                if {[find_connected_pin $quadIntfc] ne ""} {
+                 set txc 1
+                }
                 lappend txIntfcPIDs [find_connected_core $quadIntfc]
               }
             }
@@ -190,10 +219,16 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
                lappend rxIntfcs $quadIntfc
              } else {
                lappend rxIntfcs [find_connected_pin $quadIntfc]
+                if {[find_connected_pin $quadIntfc] ne ""} {
+                 set rxc 1
+                }
                lappend rxIntfcPIDs [find_connected_core $quadIntfc]
              }
            }
-
+          if { $txc == 0 && $rxc == 0 } {
+              set numq 1
+              lappend norepQuad $quadCell
+          } else {
           set LANE_SEL_DICT ""
           set settings_string [evaluate_bd_properties {*}$txIntfcs {*}$rxIntfcs]
           set LANE_SEL_DICT [dict create]
@@ -314,29 +349,38 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
 
            }
           lappend list_AK0 $ref_clk_src
+          lappend list_AK0 $gt_t
           $tbl1 addrow $list_AK0
 
          }
         }
-
+        }
         puts $outfilek [$tbl1 print]
         puts $outfilek "  "
+        if {$numq == 1} {
+         if {[llength $norepQuad] > 1} {
+           puts $outfilek "Note:     Below mentioned quad IPs are unconnected, hence reference clock summary is not generated for these IPs"
+         } else {
+           puts $outfilek "Note:     Below mentioned quad IP is unconnected, hence reference clock summary is not generated for this IP"
+         }
+        puts $outfilek "          $norepQuad"       
+        }
         puts $outfilek "  "
-        puts $outfilek "================================================== Notes and Example =================================================="
+        puts $outfilek "================================================== Notes and Example ========================================================================"
         puts $outfilek "  "
-        puts $outfilek "Note:     If Quad reference clock frequencies are same, user could optimize the reference clock inputs by shorting them."
+        puts $outfilek "Note:     If Quad reference clock frequencies are same (of same GT Type), user could optimize the reference clock inputs by shorting them."
         puts $outfilek "          If the REFCLK sources are same for multiple ref clocks in the table, that indicates those ref clocks are already shorted."
-        puts $outfilek "          Example gtye5_refclk_summary.txt given below "
-        puts $outfilek "          +-------+-----------------------------+-------------+--------------+-------------------+"
-        puts $outfilek "          | S.No. |       GTYE5_REFCLOCK Name   | Freq        | ParentIP     |   REFCLK Source   |"
-        puts $outfilek "          +-------+-----------------------------+-------------+--------------+-------------------+"
-        puts $outfilek "          | 1     | /<gt_quad_base_i>/GTREFCLK0 | 156.250000  | <ParentIP x> | <REFCLK Source x> |"
-        puts $outfilek "          | 2     | /<gt_quad_base_j>/GTREFCLK1 | 156.250000  | <ParentIP y> | <REFCLK Source y> |"
-        puts $outfilek "          | 3     | /<gt_quad_base_k>/GTREFCLK2 | 156.250000  | <ParentIP z> | <REFCLK Source z> |"
-        puts $outfilek "          | 4     | /<gt_quad_base_l>/GTREFCLK0 | 250.000000  | <ParentIP a> | <REFCLK Source a> |"
-        puts $outfilek "          | 5     | /<gt_quad_base_m>/GTREFCLK1 | Multiple[1] | <ParentIP b> | <REFCLK Source b> |"
-        puts $outfilek "          | 6     | /<gt_quad_base_n>/GTREFCLK2 | Multiple[1] | <ParentIP c> | <REFCLK Source c> |"
-        puts $outfilek "          +-------+-----------------------------+-------------+--------------+-------------------+"
+        puts $outfilek "          Example gt_refclk_summary.txt given below "
+        puts $outfilek "          +-------+-----------------------------+-------------+--------------+-------------------+------------+"
+        puts $outfilek "          | S.No. |       GT_REFCLOCK Name      | Freq        | ParentIP     |   REFCLK Source   |   GT TYPE  |"
+        puts $outfilek "          +-------+-----------------------------+-------------+--------------+-------------------+------------+"
+        puts $outfilek "          | 1     | /<gt_quad_base_i>/GTREFCLK0 | 156.250000  | <ParentIP x> | <REFCLK Source x> | <GT TYPE x>|"
+        puts $outfilek "          | 2     | /<gt_quad_base_j>/GTREFCLK1 | 156.250000  | <ParentIP y> | <REFCLK Source y> | <GT TYPE y>|"
+        puts $outfilek "          | 3     | /<gt_quad_base_k>/GTREFCLK2 | 156.250000  | <ParentIP z> | <REFCLK Source z> | <GT TYPE z>|"
+        puts $outfilek "          | 4     | /<gt_quad_base_l>/GTREFCLK0 | 250.000000  | <ParentIP a> | <REFCLK Source a> | <GT TYPE a>|"
+        puts $outfilek "          | 5     | /<gt_quad_base_m>/GTREFCLK1 | Multiple[1] | <ParentIP b> | <REFCLK Source b> | <GT TYPE b>|"
+        puts $outfilek "          | 6     | /<gt_quad_base_n>/GTREFCLK2 | Multiple[1] | <ParentIP c> | <REFCLK Source c> | <GT TYPE c>|"
+        puts $outfilek "          +-------+-----------------------------+-------------+--------------+-------------------+------------+"
         puts $outfilek "Note: [1] In the table, 'Multiple' frequency indicates that the quad base IP is configured with multiple reference clock values with the single clock source"
         puts $outfilek "         Refer IP refrence clock summary log file located at <project_*>/<project_*>.srcs/sources_1/ip/<gt_quad_base_inst>/<gt_quad_base_inst>_summary.log for reference clock frequency details per configuration"
         puts $outfilek " "
@@ -348,22 +392,23 @@ set file_name1 "$pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_g
         puts $outfilek ""
         puts $outfilek "Imp Note: While optimizing please ensure Quads are placed adjacently and follow below rules(please refer AM002-Chapter2 Section:Reference clock selection and distribution)."
         puts $outfilek " "
-        puts $outfilek "          For Versal devices, sourcing of the reference clock is limited to two Quads above and below, when the channel"
-        puts $outfilek "          is operating below 16.375 Gb/s. For line rates higher than 16.375 Gb/s, no reference clock sharing is allowed."
+        puts $outfilek "          For Versal devices, sourcing of the reference clock is limited to two Quads above and below."
         puts $outfilek " "
         puts $outfilek " "
-        puts $outfilek " =========================== Command to generate GTYE5_REFCLOCK Summary in gt_quad_base IP based designs ======================="
+        puts $outfilek " =============================== Command to generate GT_REFCLOCK Summary in gt_quad_base IP based designs ==============================="
         puts $outfilek " "
-        puts $outfilek "                                              xilinx::designutils::report_gtye5_refclk_summary"
+        puts $outfilek "                                              xilinx::designutils::report_gt_refclk_summary"
 
         close $outfilek
     set done [add_files -norecurse $file_name]
     set done [import_files -force $file_name]
     set done [file delete -force $pathk\/GTREFCLK_SUMMARY -quiet]
     puts " \n\n**************************************************************************"
-    puts "INFO: \[GT_UTILS 1-1\] GTYE5_refclk_summary text file written out $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gtye5_refclk_summary.txt"
+    puts "INFO: \[GT_UTILS 1-1\] GT_refclk_summary text file written out $pathk\/$proj.srcs/sources_1/imports/GTREFCLK_SUMMARY\/$bd_dk\_gt_refclk_summary.txt"
     puts "**************************************************************************\n"
 }
+
+
 return ""
 
 }
@@ -375,7 +420,7 @@ return ""
 #------------------------------------------------------------------------
 # Stack function
 #------------------------------------------------------------------------
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::lshift {inputlist} {
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::lshift {inputlist} {
   # Summary :
   # Argument Usage:
   # Return Value:
@@ -388,7 +433,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::lshift {inputli
 }
 
 
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::find_connected_pin { connected_to } {
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::find_connected_pin { connected_to } {
   # Summary:
   # Gives the connected pin information
 
@@ -418,7 +463,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::find_connected_
  }
 
 
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::find_connected_core { connected_to } {
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::find_connected_core { connected_to } {
   # Summary:
   # Gives the connected core information
 
@@ -449,7 +494,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::find_connected_
 }
 
 
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::get_parent {obj} {
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::get_parent {obj} {
   # Summary:
   # Gives the parent information
 
@@ -467,7 +512,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::get_parent {obj
   return [get_bd_cells -quiet $c]
 }
 
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::not_empty_int {obj} {
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::not_empty_int {obj} {
   # Summary:
   # Gives the information of empty or non empty
 
@@ -482,7 +527,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::not_empty_int {
   }
 }
 
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_properties { tx0Handle tx1Handle tx2Handle tx3Handle rx0Handle rx1Handle rx2Handle rx3Handle } {
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::evaluate_bd_properties { tx0Handle tx1Handle tx2Handle tx3Handle rx0Handle rx1Handle rx2Handle rx3Handle } {
   # Summary:
   # Evaluates block design properties and create a dict
 
@@ -731,7 +776,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::evaluate_bd_pro
   return $settings_string
 }
 
-proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::map_int {lambda larg {cull_empty 0}} {
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::map_int {lambda larg {cull_empty 0}} {
   # Summary:
   # Maps latest vlnv
 
@@ -757,7 +802,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::map_int {lambda
   return $result
 }
 
-  proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::get_latest_vlnv {} {
+  proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::get_latest_vlnv {} {
 
   # Summary:
   # Gives the latest vlnv of quad base IP
@@ -794,7 +839,7 @@ proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::map_int {lambda
     return $finalVlnv
   }
 
-  proc ::tclapp::xilinx::designutils::report_gtye5_refclk_summary::EvalSubstituting {parameters procedure {numlevels 1}} {
+  proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::EvalSubstituting {parameters procedure {numlevels 1}} {
   # Summary:
   # Used internally to get the quad base instances
 

@@ -1,3 +1,17 @@
+2.289 Extract IP file name from core-container to determine SV package libraries
+2.288 pass vlog -mfsu to treat all sources as single compilation unit
+2.287 bind noc_na for netlist simulation
+2.286 set optional arg for simulate step
+2.285 find available boost library from RDI_DATA_DIR
+2.284 check for file before inspecting core container property
+2.283 refactored gcc version support
+2.282 support for simulator launch mode
+2.281 disable debug msgs
+2.280 helper for fetching NoC IP objects
+2.279 code cleanup for netlist simulation
+2.278 find data dir from VIVADO if not found from rdi data_dir
+2.277 support for VCS auto gcc executable path detection
+2.276 merge 2020.3 to 2021.1
 2.275 add check for protobuf static library
 2.274 check for gen dir in path before replacing for rev control
 2.273 re-aligned source file paths for rev control for classic use case

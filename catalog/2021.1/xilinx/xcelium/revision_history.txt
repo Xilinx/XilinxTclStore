@@ -1,3 +1,28 @@
+11.70 Extract IP file name from core-container to determine SV package libraries
+11.69 add simprims_ver mapping to resolve duplicate bindings
+11.68 fixed systemc library install path detection
+11.67 enable optimization and shell setting for pipefail
+11.66 export chess library env
+11.65 bind noc_na for netlist simulation
+11.64 set optional arg for simulate step
+11.63 enabled optimized flow for Xcelium
+11.62 find available boost library from RDI_DATA_DIR
+11.61 check for file before inspecting core container property
+11.60 refactored gcc version support
+11.59 support for simulator launch mode
+11.58 disable debug msgs
+11.57 enabled Vitis code for post-sim script and launch mode
+11.56 enabled protected library linkage
+11.55 enabled runtime setting for Vitis
+11.54 enabled USER_PRE_SIM_SCRIPT code-hook
+11.53 helper for fetching NoC IP objects
+11.52 Vitis post-sim code-hook
+11.51 fixes for Vitis code-hooks
+11.50 disabled Vitis code-hooks
+11.49 find data dir from VIVADO if not found from rdi data_dir
+11.48 support for VCS auto gcc executable path detection
+11.47 disable binding of aie_cluster
+11.46 merge 2020.3 to 2021.1
 11.45 bind libraries and shell script from aietools
 11.44 set shell variables to catch error condition under param
 11.43 set shell variables to catch error condition for step execution

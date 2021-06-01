@@ -1,3 +1,35 @@
+3.477 IDR run support
+3.476 Removed create_rqs_run command
+3.475 Extract IP file name from core-container to determine SV package libraries
+3.474 Write project tcl exclude properties is now based on class name rather than object name
+3.473 Fix for write_project_tcl not adding generate_target for rm files.
+3.472 pass vlog -mfsu to treat all sources as single compilation unit
+3.471 Use relative path in checkRequiredFiles proc
+3.470 set sys path var for VCS
+3.469 set chess dir env for xsim
+3.468 support for more options for export_simulation
+3.467 export chess library env
+3.466 bind noc_na for netlist simulation
+3.465 set optional arg for simulate step
+3.464 support for system simulation for xrun
+3.463 support for system simulation for vcs
+3.462 support for system simulation for Xcelium
+3.461 support for system simulation for Questa
+3.459 support for system simulation for XSim
+3.458 reverted checking of xlnoc and sim wrapper
+3.457 find available boost library from RDI_DATA_DIR
+3.456 check for file before inspecting core container property
+3.455 filter sim wrapper and xlnoc.bd from exported project script for switch network
+3.454 export_simulation code cleanup and refactoring
+3.453 filtered switch network sources that were generated from simulation flow
+3.452 refactored gcc version support
+3.451 support for simulator launch mode
+3.450 support for SNoC switch network
+3.449 disable debug msgs
+3.448 helper for fetching NoC IP objects
+3.447 find data dir from VIVADO if not found from rdi data_dir
+3.446 support for VCS auto gcc executable path detection
+3.445 merge 2020.3 to 2021.1
 3.444 prepend project dir for empty ipstatic dir
 3.443 check for  project_name.gen directory for bd_wrapper
 3.442 Revert previous change done for .gen directory

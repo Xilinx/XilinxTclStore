@@ -1,32 +1,43 @@
-2.278 donot compile glbl if force_no_compile_glbl is set
-2.277 support for hbm netlist simulation
-2.276 helper to return list of noc libraries for netlist simulation
-2.275 find xilinx_vip from VIVADO if not found from default data dir
-2.274 script update for log file messaging improvements
-2.273 removed obsolete code - assemble files by library
-2.272 helpers for log file deletion
-2.271 add check for protobuf static library
-2.270 refactored design library proc for consistent functionality
-2.269 merged contents from 2020.2
-2.268 replace protected simmodel path set by param
-2.267 find sv verilog static sources from IP repo root level core
-2.266 donot pass -64bit for windows
-2.265 fetch IP xml sources from ip_output_dir
-2.264 support for configuration data object sources
-2.263 filter libraries that does not generate .cxl.lib_info.dat file
-2.262 print error if failed to find the dat files for simulation models
-2.261 bind IP systemc objects for VCS
-2.260 add checks for simulator executable file type
-2.259 halt scripts only flow if param set
-2.258 fixed utils msg
-2.257 fixed ip object return value
-2.256 support for VCS systemC compilation
-2.255 return ip name from xcs_find_ip
-2.254 added comment for the used_in flags usage for determining static files
-2.253 added info message for locked or custom IPs in the project
-2.252 do not call quit -force for compile and elaborate steps in scripts_only mode when simulator.quitOnSimulationComplete is false
-2.251 declare variable for storing referenced shared library in ipdef
-2.250 print critical warning for missing pre-compiled simulation model IP
+2.289 Extract IP file name from core-container to determine SV package libraries
+2.288 pass vlog -mfsu to treat all sources as single compilation unit
+2.287 bind noc_na for netlist simulation
+2.286 set optional arg for simulate step
+2.285 find available boost library from RDI_DATA_DIR
+2.284 check for file before inspecting core container property
+2.283 refactored gcc version support
+2.282 support for simulator launch mode
+2.281 disable debug msgs
+2.280 helper for fetching NoC IP objects
+2.279 code cleanup for netlist simulation
+2.278 find data dir from VIVADO if not found from rdi data_dir
+2.277 support for VCS auto gcc executable path detection
+2.276 merge 2020.3 to 2021.1
+2.275 add check for protobuf static library
+2.274 check for gen dir in path before replacing for rev control
+2.273 re-aligned source file paths for rev control for classic use case
+2.272 pass rev control var for fetching static header sources
+2.271 calculate ip filename from ip_output_dir for revision control
+2.270 update composite file path for revision control
+2.269 find gcc compiler path from simulator install
+2.268 trim trailing slashes for the gcc path
+2.267 support for setting up include and obj path for non-precompile flow
+2.266 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
+2.265 support for setting up gcc compiler paths
+2.264 updated hbm version
+2.263 use exact string name search for xtlm
+2.262 use simulator compiled object lib dir var
+2.261 compile simmodel sources into compiled dir
+2.260 get compiler order for referenced simmodels
+2.259 compile hbm for post synth and impl simulation
+2.258 added debug messages for library path references
+2.257 change precedence of xil_defaultlib as first library in the search order
+2.256 implement code to find system libraries faster
+2.255 do not launch simulator gui in batch mode
+2.254 compile glbl if force_compile_glbl is true
+2.253 support for uvm
+2.252 donot append compiled log on consecutive execution of compile step
+2.251 helpers for determining design language of same type
+2.250 merged fixes from 2020.1
 2.249 fixed used_in values check for simulation tag
 2.248 added helper proc to find out object files for IPs referenced in the design
 2.247 fix for referencing linked shared library paths for Questa

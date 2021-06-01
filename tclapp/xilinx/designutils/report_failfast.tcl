@@ -5,6 +5,15 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2021.05.07 - Added CSV files for LUT/Net budgeting detailed reports
+##            - Added column "Cascaded LUTs" to LUT/Net budgeting detailed tables (Versal)
+##            - Added support for -return_paths
+##            - Fixed misc issues
+## 2021.02.05 - Added support for local clock nets to non-FD HFN
+## 2021.02.02 - Fixed URAM utilization inside CSV
+## 2021.01.06 - Added DONT_TOUCH/MARK_DEBUG/Slack/Load Pins columns inside the non-FD HFN table
+##            - Added new detailed report for the used BUFGCE* (<prefix>.BUFG.rpt)
+##            - Misc improvements
 ## 2020.12.07 - Fixed issue with some non-FD HFN that were not reported
 ##            - Added ordering of the non-FD HFN table (high to low)
 ## 2020.09.29 - Added support for custom metrics (-custom_metrics/-only_custom_metrics,
@@ -264,6 +273,7 @@ proc ::tclapp::xilinx::designutils::report_failfast {args} {
   # [-show_not_found]: Show metrics that could not be extracted
   # [-show_all_paths]: Show all paths analyzed by LUT/Net budgeting
   # [-hide_slacks]: Hide the setup slack of the nets inside the DONT_TOUCH/MARK_DEBUG detailed reports
+  # [-return_paths <arg>]: Return timing paths. Valid values: none|path_budgeting|lut_pair_missed|lut_pair_found|lut_pair_candidate
   # [-custom_metrics <arg>]: Optional user custom metrics file(s)
   # [-no_custom_metrics]: Skip user custom metrics
   # [-only_custom_metrics]: Only report user custom metrics
@@ -413,7 +423,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2020.12.07}
+  variable version {2021.05.07}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -424,6 +434,9 @@ eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   variable data
   variable dbgtbl
   array set params [list failed 0 format {table} max_paths 100 max_dont_touch 2000 max_mark_debug 2000 show_resources 0 show_fail_only 0 transpose 0 verbose 0 debug 0 debug_level 1 vivado_version [version -short] ]
+  array set params [list return_paths {none} paths [list] ]
+  # Versal-specific params
+  array set params [list lutPairCASCMissed 0 lutPairCASCCandidate 0 lutPairCASCMissedPaths [list] lutPairCASCFoundPaths [list] lutPairCASCPaths [list] ]
 #   catch { unset reports }
   array set reports [list]
   catch { unset metrics }
@@ -475,6 +488,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   set params(max_paths) 100
   set params(max_dont_touch) 2000
   set params(max_mark_debug) 2000
+  set params(return_paths) {none}
+  set params(paths) [list]
 #   set params(vivado_version) [version -short]
   # Remove from the Vivado version any letter that would fail 'package vcompare' + remove reference to
   # any patched version (_ARxxxxx) or special branches (2020.2_SAM)
@@ -482,6 +497,13 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
 #   set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_AR[0-9]+$} [version -short] {}] {0}]
 #   set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {(_AR[0-9]+)} [version -short] {}] {}] {0}]
   set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {([_\(\)]*AR[0-9\(\)]+)} [version -short] {}] {}] {0}]
+  # Versal
+  set params(lutPairCASCMissed) 0
+  set params(lutPairCASCCandidate) 0
+  set params(lutPairCASCMissedPaths) [list]
+  set params(lutPairCASCFoundPaths) [list]
+  set params(lutPairCASCPaths) [list]
+
   set pid {tmp}
   catch { set pid [pid] }
   set filename {}
@@ -708,7 +730,7 @@ set reportBySLRNew 0
     # Only for Vivado 2019.1 and above
     set extractUtilizationFromSLRTable 1
   } else {
-    puts " -W- option --use_util_slr_table is not compatible with Vivado $params(vivado_version) (2019.1 and above)"
+    puts " -W- option --use_util_slr_table is not compatible with Vivado $params(vivado_version) (2019.1 and below)"
     set extractUtilizationFromSLRTable 0
   }
 }
@@ -750,7 +772,7 @@ set reportBySLRNew 0
         set showAllBudgetingPaths 1
       }
       {^-hide_slacks$} -
-      {^-hi(d(e(_(s(l(a(c(ks)?)?)?)?)?)?)?)?$} {
+      {^-hi(d(e(_(s(l(a(c(ks?)?)?)?)?)?)?)?)?$} {
         set showSlackInsideDetailedReports 0
       }
       {^-max_paths$} -
@@ -784,6 +806,10 @@ set reportBySLRNew 0
       {^-verbose$} -
       {^-v(e(r(b(o(se?)?)?)?)?)?$} {
         set params(verbose) 1
+      }
+      {^-return_paths$} -
+      {^-ret(u(r(n(_(p(a(t(hs?)?)?)?)?)?)?)?)?$} {
+        set params(return_paths) [lshift args]
       }
       {^-debug$} -
       {^-d(e(b(ug?)?)?)?$} {
@@ -889,6 +915,7 @@ set reportBySLRNew 0
               [-hide_slacks]
               [-only_fails]
               [-csv][-transpose]
+              [-return_paths <enum>]
               [-no_header]
               [-verbose|-v]
               [-help|-h]
@@ -923,13 +950,19 @@ set reportBySLRNew 0
     Use -show_resources to report the detailed number of used and available resources in the summary table
     Use -show_not_found to report metrics that have not been extracted (hidden by default)
     Use -show_all_paths to report all the paths analyzed in the LUT/Net budgeting. Default it to only report paths with budgeting violation
-    Use -hide_slacks to reduce runtime and not report the setup slack of the nets inside the DONT_TOUCH/MARK_DEBUG detailed reports
+    Use -hide_slacks to reduce runtime and not report the setup slack of the nets inside the DONT_TOUCH/MARK_DEBUG/HFN detailed reports
     Use -post_ooc_synth to only run the LUT/Net path budgeting
     Use -exclude_cell to exclude a hierarchical module from consideration. Only utilization metrics are reported
     Use -max_paths to define the max number of paths per clock group for LUT/Net budgeting. Default is 100
     Use -no_header to suppress the files header
-    Use -only_fails to only report metrics that are failing and need to be reviewed
+    Use -only_fails to only report metrics that are failing and that need to be reviewed
     Use -custom_metrics/-no_custom_metrics/-only_custom_metrics to control user custom metrics
+    Use -return_paths to return timing paths:
+      none: no timing path is return (default)
+      path_budgeting: return the paths that have net/lut budgeting violations
+      lut_pair_missed: return the paths that missed at least one lut-pair placement (Versal)
+      lut_pair_found: return the paths that have at least one lut-pair placement (Versal)
+      lut_pair_candidate: return the paths that are candidate for one or more lut-pair placement (Versal)
 
     Use -longhelp for further information about use models
 
@@ -956,6 +989,19 @@ set reportBySLRNew 0
   if {$show_long_help} {
     print_help
     return -code ok
+  }
+
+  switch $params(return_paths) {
+    path_budgeting -
+    lut_pair_missed -
+    lut_pair_found -
+    lut_pair_candidate -
+    none {
+    }
+    default {
+      puts " -E- -return_paths unknown value '$params(return_paths)'. The valid values are: none|path_budgeting|lut_pair_missed|lut_pair_found|lut_pair_candidate"
+      incr error
+    }
   }
 
   if {($filename == {}) && ($params(transpose) || ($params(format) == {csv}))} {
@@ -2522,6 +2568,87 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 
     ########################################################################################
     ##
+    ## Detailed summary table for the BUFG* clock buffers
+    ##
+    ########################################################################################
+
+    #   +----------------------------------------------------------------------------------------------------------------+
+    #   | Clock Buffers (BUFGCE / BUFGCE_DIV / BUFGCTRL)                                                                 |
+    #   +-------------+-------------------------+------------------------------+-------+--------+------------------------+
+    #   | Driver Type | Driver Pin              | Net                          | Slack | Fanout | Load Pins              |
+    #   +-------------+-------------------------+------------------------------+-------+--------+------------------------+
+    #   | BUFG        | mmcm_inst/clkout2_buf/O | mmcm_inst/CLK_200i           | N/A   | 4      | FDCE/C (3) LUT3/I0 (1) |
+    #   | BUFG        | mmcm_inst/clkout1_buf/O | mmcm_inst/CLK_100i           | N/A   | 2      | FDCE/C (2)             |
+    #   | BUFG        | mmcm_inst/clkout3_buf/O | mmcm_inst/CLK_166i           | N/A   | 1      | LUT3/I2 (1)            |
+    #   | BUFG        | mmcm_inst/clkf_buf/O    | mmcm_inst/clkfbout_buf_mmcm0 | N/A   | 1      | MMCME2_ADV/CLKFBIN (1) |
+    #   +-------------+-------------------------+------------------------------+-------+--------+------------------------+
+
+    if {1 && [llength [array names guidelines utilization.*]] && ([lsearch $skipChecks {utilization}] == -1)} {
+      if {$detailedReportsPrefix != {}} {
+        set empty 1
+        catch { file copy ${detailedReportsDir}/${detailedReportsPrefix}.BUFG.rpt ${detailedReportsDir}/${detailedReportsPrefix}.BUFG.rpt.${pid} }
+        set FH [open "${detailedReportsDir}/${detailedReportsPrefix}.BUFG.rpt.${pid}" $filemode]
+        if {$showFileHeader} {
+          puts $FH "# ---------------------------------------------------------------------------"
+          puts $FH [format {# Created on %s with report_failfast (%s)} [clock format [clock seconds]] $::tclapp::xilinx::designutils::report_failfast::version ]
+          puts $FH "# ---------------------------------------------------------------------------\n"
+        }
+        set tbl [::tclapp::xilinx::designutils::prettyTable create [format {Clock Buffers (BUFGCE / BUFGCE_DIV / BUFGCTRL)}] ]
+        $tbl indent 1
+#         $tbl header [list {Driver Type} {Driver Pin} {Net} {DONT_TOUCH} {MARK_DEBUG} {Fanout} ]
+        if {$showSlackInsideDetailedReports} {
+          $tbl header [list {Driver Type} {Driver Pin} {Net} {Slack} {Fanout} {Load Pins} ]
+        } else {
+          $tbl header [list {Driver Type} {Driver Pin} {Net} {Fanout} {Load Pins} ]
+        }
+        set drivers [get_cells -quiet -hier -filter {REF_NAME==BUFG || REF_NAME==BUFGCE || REF_NAME==BUFGCE_DIV || REF_NAME==BUFGCTRL}]
+        foreach driver $drivers {
+          set pin [get_pins -quiet -of $driver -filter {DIRECTION==OUT}]
+          set refname [get_property -quiet {REF_NAME} $pin]
+          set net [get_nets -quiet -of $pin]
+          set fanout [expr [get_property -quiet FLAT_PIN_COUNT $net] -1]
+          # Extract the list of unique load pins
+          set loads [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==IN}]
+          catch {unset tmp}
+          # Column "Load Pins" should report a distribution of the load pins:
+          # E.g: FDCE/C (204730) FDPE/C (26) FDRE/C (130873) FDSE/C (5218) HARD_SYNC/CLK (1) RAMB36E2/CLKARDCLK (196)
+          set uniqueLoads [list]
+          foreach _pin $loads \
+                  _refname [get_property -quiet REF_NAME $loads] \
+                  _refpinname [get_property -quiet REF_PIN_NAME $loads] {
+            incr tmp([format {%s/%s} $_refname $_refpinname])
+          }
+          foreach el [lsort -dictionary [array names tmp]] {
+            lappend uniqueLoads [format {%s (%s)} $el $tmp($el)]
+          }
+          set uniqueLoads [join $uniqueLoads { }]
+          if {$showSlackInsideDetailedReports} {
+            set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
+            set slack [get_property -quiet SETUP_SLACK $driver]
+            if {$slack == {}} { set slack {N/A} }
+            $tbl addrow [list $refname $pin $net $slack $fanout $uniqueLoads ]
+          } else {
+            $tbl addrow [list $refname $pin $net $fanout $uniqueLoads ]
+          }
+
+          set empty 0
+        }
+        if {!$empty} { $tbl sort -Fanout +Net }
+        puts $FH [$tbl print]
+        catch {$tbl destroy}
+        close $FH
+        if {$empty} {
+          file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.BUFG.rpt.${pid}
+        } else {
+          file rename -force ${detailedReportsDir}/${detailedReportsPrefix}.BUFG.rpt.${pid} ${detailedReportsDir}/${detailedReportsPrefix}.BUFG.rpt
+          puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.BUFG.rpt]"
+        }
+      }
+
+    }
+
+    ########################################################################################
+    ##
     ## Control sets metric
     ##
     ########################################################################################
@@ -2594,7 +2721,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 
       extractMetricFromTable report {utilization.ctrlsets.uniq}    -search {{Summary} {Summary}} -row {{Number of unique control sets} {Total control sets}} -column {Count} -default {n/a}
 
-      if {![regexp {[0-9]+} $guidelines(utilization.ctrlsets.uniq)]} {
+      if {(![regexp {[0-9]+} $guidelines(utilization.ctrlsets.uniq)]) && ([getMetric utilization.clb.ff.avail] != {})} {
         # If no number is defined inside $guidelines(utilization.ctrlsets.uniq) it means that
         # the number of control sets should be calculated based on the number of available
         # FD resources
@@ -2602,6 +2729,13 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         append guidelines(utilization.ctrlsets.uniq) [format {%.0f} [expr [getMetric utilization.clb.ff.avail] / 8.0 * 7.5 / 100.0]]
         if {$params(debug)} { puts " -D- available registers for control sets calculation: [getMetric utilization.clb.ff.avail]" }
         if {$params(verbose)} { puts " -W- setting guideline for control sets to '$guidelines(utilization.ctrlsets.uniq)'" }
+      } else {
+        # If this cannot be calculated (e.g the utilization metrics have not been run or else)
+        # Then unset the guideline
+        puts " -W- unsetting guideline for control sets due to some missing data for the computation"
+        if {$params(debug)} { puts " -D- unique registers for control sets calculation: $guidelines(utilization.ctrlsets.uniq)" }
+        if {$params(debug)} { puts " -D- available registers for control sets calculation: [getMetric utilization.clb.ff.avail]" }
+        unset guidelines(utilization.ctrlsets.uniq)
       }
 
       set stepStopTime [clock seconds]
@@ -2789,7 +2923,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       set limit $guidelines(design.nets.nonfdhfn.limit)
       addMetric {design.nets.nonfdhfn}   "Non-FD high fanout nets > [expr $limit / 1000]k loads"
 
-      set nets [get_nets -quiet -top_net_of_hierarchical_group -segments -filter "(FLAT_PIN_COUNT >= $limit) && (TYPE == SIGNAL)" \
+      # Signal + local clock nets
+      set nets [get_nets -quiet -top_net_of_hierarchical_group -segments -filter "(FLAT_PIN_COUNT >= $limit) && ((TYPE == SIGNAL) || (TYPE == LOCAL_CLOCK))" \
                  -of [get_pins -quiet -of $leafCells] ]
 #       set drivers [get_pins -quiet -of $nets -filter {IS_LEAF && (REF_NAME !~ FD*) && (DIRECTION == OUT)}]
       set drivers [get_pins -quiet -leaf -of $nets -filter {(REF_NAME !~ FD*) && (DIRECTION == OUT)}]
@@ -2808,12 +2943,46 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         }
         set tbl [::tclapp::xilinx::designutils::prettyTable create [format {Non-FD high fanout nets}] ]
         $tbl indent 1
-        $tbl header [list {Driver Type} {Driver Pin} {Net} {Fanout} ]
+#         $tbl header [list {Driver Type} {Driver Pin} {Net} {DONT_TOUCH} {MARK_DEBUG} {Fanout} ]
+        if {$showSlackInsideDetailedReports} {
+          $tbl header [list {Driver Type} {Driver Pin} {Net} {Type} {Slack} {DONT_TOUCH} {MARK_DEBUG} {Fanout} {Load Pins} ]
+        } else {
+          $tbl header [list {Driver Type} {Driver Pin} {Net} {Type} {DONT_TOUCH} {MARK_DEBUG} {Fanout} {Load Pins} ]
+        }
         foreach pin $drivers {
           set refname [get_property -quiet {REF_NAME} $pin]
           set net [get_nets -quiet -of $pin]
           set fanout [expr [get_property -quiet FLAT_PIN_COUNT $net] -1]
-          $tbl addrow [list $refname $pin $net $fanout]
+          set type [get_property -quiet TYPE $net]
+          set dt [get_property -quiet DONT_TOUCH $net]
+          if {$dt == {}} { set dt 0 }
+          set md [get_property -quiet MARK_DEBUG $net]
+          if {$md == {}} { set md 0 }
+#           $tbl addrow [list $refname $pin $net $dt $md $fanout ]
+          # Extract the list of unique load pins
+          set loads [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==IN}]
+          catch {unset tmp}
+          # Column "Load Pins" should report a distribution of the load pins:
+          # E.g: FDCE/C (204730) FDPE/C (26) FDRE/C (130873) FDSE/C (5218) HARD_SYNC/CLK (1) RAMB36E2/CLKARDCLK (196)
+          set uniqueLoads [list]
+          foreach _pin $loads \
+                  _refname [get_property -quiet REF_NAME $loads] \
+                  _refpinname [get_property -quiet REF_PIN_NAME $loads] {
+            incr tmp([format {%s/%s} $_refname $_refpinname])
+          }
+          foreach el [lsort -dictionary [array names tmp]] {
+            lappend uniqueLoads [format {%s (%s)} $el $tmp($el)]
+          }
+          set uniqueLoads [join $uniqueLoads { }]
+          if {$showSlackInsideDetailedReports} {
+            set driver [get_pins -quiet -of_objects $net -leaf -filter {DIRECTION==OUT}]
+            set slack [get_property -quiet SETUP_SLACK $driver]
+            if {$slack == {}} { set slack {N/A} }
+            $tbl addrow [list $refname $pin $net $type $slack $dt $md $fanout $uniqueLoads ]
+          } else {
+            $tbl addrow [list $refname $pin $net $type $dt $md $fanout $uniqueLoads ]
+          }
+
           set empty 0
         }
         if {!$empty} { $tbl sort -Fanout +Net }
@@ -3028,6 +3197,12 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         $tbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
         $dbgtbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
 
+        if {$architecture == {versal}} {
+          # Add the column 'Cascaded LUTs'
+          $tbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Cascaded LUTs} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
+          $dbgtbl header [list {Group} {Slack} {Requirement} {Skew} {Uncertainty} {Datapath Delay} {Datapath Logic Delay} {Datapath Net Delay} {Cascaded LUTs} {Logic Levels} {Adj Levels} {Net Budget} {Lut Budget} {Net Adj Slack} {Lut Adj Slack} {Path} {Info} ]
+        }
+
         if {$timingPathsBudgeting != {}} {
           # For debug EOU, timnig paths can be passed from the command line
           set spaths $timingPathsBudgeting
@@ -3084,6 +3259,14 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         set numFailedLutPassNet 0
         set numFailedNetPassLut 0
         set addrow 0
+        set lutNetBudgetingPaths [list]
+        # <== For Versal
+        set numLutPairCASCMiss 0
+        set numLutPairCASCCandidate 0
+        set lutPairCASCMissPaths [list]
+        set lutPairCASCFoundPaths [list]
+        set lutPairCASCPaths [list]
+        # ==>
         foreach path $spaths \
                 sp $sps \
                 spref $sprefs \
@@ -3101,7 +3284,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           set addrow 0
           if {$skew == {}} { set skew 0.0 }
           if {$uncertainty == {}} { set uncertainty 0.0 }
-
+          # E.g: FDRE(34) LUT5(2) LUT3(1) LUT6(1) FDRE
+          set pathDescription [format {%s} [get_property -quiet REF_NAME $sp] ]
           # Number of LUT* in the datapath
 #         set levels [llength [filter [get_cells -quiet -of $path] {REF_NAME =~ LUT*}]]
           # Versal improvement for LUTCY* support: to count the number of levels, count the number of LUT*
@@ -3132,12 +3316,95 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           #   - and its load => lrange $cells 1 end
           set prev1refname {}
           set prev2refname {}
+          # lutPairStatus = 0 : the previous LUT was not part of a cascade
+          #                     The current LUT can still be part of a LUT cascade
+          # lutPairStatus = 1 : the previous LUT was part of a cascade
+          #                     The current LUT CANNOT be part of a LUT cascade
+          # lutPairStatus = 2 : the previous LUT could have been part of a cascade but was not.
+          #                     The current LUT can still be part of a LUT cascade
+          set lutPairStatus 0
+          # Number of LUT cascades that have been missed in the timing path
+          set lutPairCASCMiss 0
+          # Number of candidates for LUT cascades found in the timing path
+          set lutPairCASCCandidate 0
           if {$params(debug) && ($params(debug_level) >= 2)} {
             puts " -D- processing path $path"
             puts " -D- datapath: $ref_names"
           }
-          foreach net $nets cell [lrange $cells 1 end] pin [lrange $pins 0 end-1] {
-            set refname [get_property -quiet REF_NAME $cell]
+          foreach net $nets \
+                  flat_pin_count [get_property -quiet FLAT_PIN_COUNT $nets] \
+                  cell [lrange $cells 1 end] \
+                  refname [get_property -quiet REF_NAME [lrange $cells 1 end]] \
+                  pin [lrange $pins 0 end-1] {
+#             set refname [get_property -quiet REF_NAME $cell]
+            set fanout [expr $flat_pin_count -1]
+
+            # append pathDescription [format {(%s) %s} $fanout $refname]
+            if {$architecture == {versal}} {
+              # Cascaded LUTs are only for Versal
+              set casc_mux {}
+              if {[regexp {^LUT[1-6]$} $refname] && [regexp {^LUT[1-6]$} $prev1refname] && ($fanout == 1) && ($lutPairStatus == 0)} {
+                set bel [get_bels -quiet -of $cell]
+                set casc_mux [get_property -quiet CONFIG.CASC_MUX $bel]
+                if {$casc_mux == {CASC}} {
+                  # The LUT is cascaded with the previous LUT on the path
+                  set lutPairStatus 1
+                  set cascade {CASC}
+                  incr lutPairCASCCandidate
+                  incr numLutPairCASCCandidate
+                } else {
+                  # The LUT is NOT cascaded with the previous LUT on the path but
+                  # could be still cascaded with the next LUT if the conditions are met.
+                  # We are not tracking the LUT as a candidate for LUT cascade yet.
+                  # This will be done when next cell on the timing path is analyzed.
+                  set lutPairStatus 2
+#                   incr lutPairCASCCandidate
+#                   incr numLutPairCASCCandidate
+#                   incr lutPairCASCMiss
+#                   incr numLutPairCASCMiss
+                }
+              } elseif {[regexp {^LUT[1-6]$} $refname] && [regexp {^LUT[1-6]$} $prev1refname] && ($fanout == 1) && ($lutPairStatus == 2)} {
+                set bel [get_bels -quiet -of $cell]
+                set casc_mux [get_property -quiet CONFIG.CASC_MUX $bel]
+                if {$casc_mux == {CASC}} {
+                  # The LUT is cascaded with the previous LUT on the path
+                  set lutPairStatus 1
+                  incr lutPairCASCCandidate
+                  incr numLutPairCASCCandidate
+                } else {
+                  # The LUT is NOT cascaded with the previous LUT on the path. Since lutPairStatus==2
+                  # we need to track now that there was a candidate for cascaded LUT that was missed.
+                  set lutPairStatus 0
+                  incr lutPairCASCCandidate
+                  incr numLutPairCASCCandidate
+                  incr lutPairCASCMiss
+                  incr numLutPairCASCMiss
+                }
+              } elseif {$lutPairStatus == 2} {
+                # The previous LUT was NOT cascaded. Since lutPairStatus==2
+                # we need to track now that there was a candidate for cascaded LUT that was missed.
+                incr lutPairCASCCandidate
+                incr numLutPairCASCCandidate
+                incr lutPairCASCMiss
+                incr numLutPairCASCMiss
+                set lutPairStatus 0
+              } elseif {![regexp {^LUT[1-6]$} $refname]} {
+                set lutPairStatus 0
+              } else {
+                set lutPairStatus 0
+              }
+
+              if {$casc_mux == {CASC}} {
+                # Cascaded LUT with the previous LUT on the path
+                # E.g: FDRE(34) LUT5(2) LUT3(1) -CASC- LUT6(1) FDRE
+                append pathDescription [format {(%s) -CASC- %s} $fanout $refname]
+              } else {
+                append pathDescription [format {(%s) %s} $fanout $refname]
+              }
+            } else {
+              append pathDescription [format {(%s) %s} $fanout $refname]
+            }
+
             if {[regexp {^LUT.*$} $refname]} {
 
 #             if {[regexp -nocase {^(PROP|GE|COUTB|COUTD|COUTF|COUTH)$} $pin]} {}
@@ -3296,6 +3563,40 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 
           # Debug table for LUT/Net budgeting
           set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay $logic_levels $levels]
+          if {$architecture == {versal}} {
+            set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay [format {%s / %s} $lutPairCASCCandidate $lutPairCASCMiss] $logic_levels $levels]
+          } else {
+            set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay $logic_levels $levels]
+          }
+
+          # Save the timing path to the corresponding lists
+          if {$showAllBudgetingPaths} {
+            if {$lutPairCASCMiss > 0} {
+              lappend lutPairCASCMissPaths $path
+            }
+            if {$lutPairCASCCandidate > 0} {
+              lappend lutPairCASCPaths $path
+            }
+            if {[expr $lutPairCASCCandidate - $lutPairCASCMiss] > 0} {
+              lappend lutPairCASCFoundPaths $path
+            }
+            lappend lutNetBudgetingPaths $path
+          } else {
+            if {($levels > $net_budget && $net_adjSlack < 0) ||
+                ($levels > $lut_budget && $lut_adjSlack < 0)} {
+              # Only save the paths when the LUT or NET budgeting is violated
+              if {$lutPairCASCMiss > 0} {
+                lappend lutPairCASCMissPaths $path
+              }
+              if {$lutPairCASCCandidate > 0} {
+                lappend lutPairCASCPaths $path
+              }
+              if {[expr $lutPairCASCCandidate - $lutPairCASCMiss] > 0} {
+                lappend lutPairCASCFoundPaths $path
+              }
+              lappend lutNetBudgetingPaths $path
+            }
+          }
 
           # Adding condition "$net_adjSlack < 0" in the test below
           if {$levels > $net_budget && $net_adjSlack < 0} {
@@ -3356,7 +3657,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           lappend row [format %.3f $net_adjSlack]
           lappend row [format %.3f $lut_adjSlack]
           # Debug table for LUT/Net budgeting
-          lappend row [get_property -quiet REF_NAME [get_cells -quiet -of $path]]
+#           lappend row [get_property -quiet REF_NAME [get_cells -quiet -of $path]]
+          lappend row $pathDescription
           lappend row $path
           if {$addrow} {
             # Add row to the summary table
@@ -3364,10 +3666,40 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           }
           $dbgtbl addrow $row
         }
+
+        set params(lutPairCASCMissedPaths) $lutPairCASCMissPaths
+        set params(lutPairCASCFoundPaths) $lutPairCASCFoundPaths
+        set params(lutPairCASCPaths) $lutPairCASCPaths
+#         if {$params(verbose)} {
+#           if {[llength $lutPairCASCMissPaths]} { catch { report_timing -quiet -of $lutPairCASCMissPaths -name lutPairCASCMissPaths } }
+#           if {[llength $lutPairCASCFoundPaths]} { catch { report_timing -quiet -of $lutPairCASCFoundPaths -name lutPairCASCFoundPaths } }
+#           if {[llength $lutPairCASCPaths]} { catch { report_timing -quiet -of $lutPairCASCPaths -name lutPairCASCPaths } }
+#         }
+        switch $params(return_paths) {
+          path_budgeting {
+            set params(paths) $lutNetBudgetingPaths
+          }
+          lut_pair_missed {
+            set params(paths) $lutPairCASCMissPaths
+          }
+          lut_pair_found {
+            set params(paths) $lutPairCASCFoundPaths
+          }
+          lut_pair_candidate {
+            set params(paths) $lutPairCASCPaths
+          }
+          none {
+
+          }
+          default {
+
+          }
+        }
+
         if {$params(debug)} {
           # Debug table for LUT/Net budgeting
           set output [concat $output [split [$dbgtbl print] \n] ]
-          catch {$dbgtbl destroy}
+#           catch {$dbgtbl destroy}
           puts [join $output \n]
           set output [list]
           puts " -D- Number of processed paths: [llength $spaths]"
@@ -3377,14 +3709,16 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         if {$showAllBudgetingPaths} {
           # Show all paths analyzed for the LUT/Net budgeting. Replace the table with debug table
           set tbl $dbgtbl
+          set emptyLut 0
+          set emptyNet 0
         }
         setMetric {design.device.maxlvls.lut}  $numFailedLut
         setMetric {design.device.maxlvls.net}  $numFailedNet
         set stepStopTime [clock seconds]
         puts " -I- path budgeting metrics completed in [expr $stepStopTime - $stepStartTime] seconds"
         if {$detailedReportsPrefix != {}} {
-          close $FHLut
-          close $FHNet
+          if {$FHLut != {}} { close $FHLut }
+          if {$FHNet != {}} { close $FHNet }
           set FHLut {}
           set FHNet {}
           if {$emptyLut} {
@@ -3401,7 +3735,11 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
             foreach line [split [$tbl print] \n] {
               puts $FHLut [format {# %s} $line]
             }
-            puts $FHLut "# Note: (*): failed the budgeting\n"
+            puts $FHLut "# Note: (*): failed the budgeting"
+            if {$architecture == {versal}} {
+              puts $FHLut "# Note: Cascaded LUTs: opportunities / missed"
+            }
+            puts $FHLut ""
             while {![eof $FH]} {
               gets $FH line
               puts $FHLut $line
@@ -3411,6 +3749,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
             file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid}
 #           file rename -force ${detailedReportsPrefix}.timing_budget_LUT.rpt.${pid} ${detailedReportsPrefix}.timing_budget_LUT.rpt
             puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpt]"
+            $tbl export -format csv -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.csv
+            puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.csv]"
             # Save the interactive report (RPX)
             if {[llength $pathsLut]} {
               report_timing -of $pathsLut -rpx ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_LUT.rpx.${pid}
@@ -3433,7 +3773,11 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
             foreach line [split [$tbl print] \n] {
               puts $FHNet [format {# %s} $line]
             }
-            puts $FHNet "# Note: (*): failed the budgeting\n"
+            puts $FHNet "# Note: (*): failed the budgeting"
+            if {$architecture == {versal}} {
+              puts $FHNet "# Note: Cascaded LUTs: opportunities / missed"
+            }
+            puts $FHNet ""
             while {![eof $FH]} {
               gets $FH line
               puts $FHNet $line
@@ -3443,6 +3787,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
             file delete -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid}
 #           file rename -force ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt.${pid} ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt
             puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpt]"
+            $tbl export -format csv -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.csv
+            puts " -I- Generated file [file normalize ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.csv]"
             # Save the interactive report (RPX)
             if {[llength $pathsNet]} {
               report_timing -of $pathsNet -rpx ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx -file ${detailedReportsDir}/${detailedReportsPrefix}.timing_budget_Net.rpx.${pid}
@@ -3454,6 +3800,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
         }
         # Destroy summary table
         catch {$tbl destroy}
+        catch {$dbgtbl destroy}
       }
 
     } else {
@@ -3815,7 +4162,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
   $tblcsv addrow [list {design.cells.hlutnm.pct}        {LUT Combining(%)}      [getMetric {design.cells.hlutnm.pct}] ]
   $tblcsv addrow [list {utilization.dsp.pct}            {DSP(%)}                [getMetric {utilization.dsp.pct}] ]
   $tblcsv addrow [list {utilization.ram.tile.pct}       {RAMB/FIFO(%)}          [getMetric {utilization.ram.tile.pct}] ]
-  $tblcsv addrow [list {utilization.uram.tile.pct}      {URAM(%)}               [getMetric {utilization.ram.tile.pct}] ]
+  $tblcsv addrow [list {utilization.uram.tile.pct}      {URAM(%)}               [getMetric {utilization.uram.tile.pct}] ]
   $tblcsv addrow [list {utilization.bigblocks.pct}      {DSP+RAMB+URAM (Avg)(%)}       [getMetric {utilization.bigblocks.pct}] ]
   $tblcsv addrow [list {utilization.clk.all}            {BUFGCE* + BUFGCTRL} [getMetric {utilization.clk.all}] ]
   $tblcsv addrow [list {utilization.ctrlsets.uniq}      {Control Sets}       [getMetric {utilization.ctrlsets.uniq}] ]
@@ -3891,6 +4238,20 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 
   # Restore tcl.collectionResultDisplayLimit
   set_param tcl.collectionResultDisplayLimit $collectionResultDisplayLimit
+
+  # Timing paths to be returned?
+  switch $params(return_paths) {
+    lut_pair_missed -
+    lut_pair_found -
+    lut_pair_candidate -
+    path_budgeting {
+      return $params(paths)
+    }
+    none {
+    }
+    default {
+    }
+  }
 
   return $params(failed)
 }

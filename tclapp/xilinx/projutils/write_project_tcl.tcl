@@ -270,6 +270,7 @@ proc write_project_tcl_script {} {
   variable l_script_data
   variable l_remote_files
   variable l_local_files
+  variable l_bd_wrapper
   variable temp_dir
   variable temp_offset 1
   variable clean_temp
@@ -282,6 +283,7 @@ proc write_project_tcl_script {} {
   set l_script_data [list]
   set l_local_files [list]
   set l_remote_files [list]
+  set l_bd_wrapper   [list]
   set l_bc_filesets  [list]
   set l_open_bds [list]
   set l_added_bds [list]
@@ -461,7 +463,13 @@ proc wr_validate_files {} {
   
     lappend l_script_validate "  set files \[list \\"
     foreach file $l_local_files {
-      lappend l_script_validate "   $file \\"
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {    
+        lappend l_script_validate "   $file \\"
+      } else  {
+        set file_no_quotes [string trim $file "\""]
+        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+        lappend l_script_validate " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
+      }
     }
     lappend l_script_validate "  \]"
     
@@ -476,7 +484,13 @@ proc wr_validate_files {} {
   if {[llength $l_remote_files]>0} {
     lappend l_script_validate "  set files \[list \\"
     foreach file $l_remote_files {
-      lappend l_script_validate "   $file \\"
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {    
+        lappend l_script_validate "   $file \\"
+      } else {
+        set file_no_quotes [string trim $file "\""]
+        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+        lappend l_script_validate " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
+      }
     }
     lappend l_script_validate "  \]"
     
@@ -492,7 +506,13 @@ proc wr_validate_files {} {
   if {[llength $l_validate_repo_paths]>0} {
     lappend l_script_validate "  set paths \[list \\"
     foreach path $l_validate_repo_paths {
-      lappend l_script_validate "   $path \\"
+      if { $a_global_vars(b_absolute_path) || [need_abs_path $path]} {    
+        lappend l_script_validate "   $path \\"
+      } else {
+        set file_no_quotes [string trim $path "\""]
+        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+        lappend l_script_validate " \"\[file normalize \"\$origin_dir/$rel_file_path\"\]\"\\"
+      }
     }
     lappend l_script_validate "  \]"
     
@@ -850,6 +870,7 @@ proc wr_bd {} {
 
 
   foreach bd_file $bd_files {
+    if { [is_switch_network_source $bd_file] } { continue }
     # Making sure BD is not locked
     set is_locked [get_property IS_LOCKED [get_files [list "$bd_file"] ] ]
     if { $is_locked == 1 } {
@@ -884,7 +905,12 @@ proc wr_bd_bc_specific {} {
 
   set bd_files [get_files -norecurse *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
   set bc_filesets_size [llength $l_bc_filesets]
-
+	set isPRFlow [get_property pr_flow [current_project]]
+	set pDefs_size 0
+	if { $isPRFlow == 1 } {
+    set partitionDefs [get_partition_defs -filter "IS_BLOCK_CONTAINER_MANAGED == 1"]
+		set pDefs_size [llength $partitionDefs]
+  }
   foreach bd_file $bd_files {
     set refs [ get_files -quiet -references -of_objects [ get_files $bd_file ] ]
     # If BD has references and project has BC filesets, then 
@@ -893,7 +919,7 @@ proc wr_bd_bc_specific {} {
     set delivered_targets [lsearch [get_property delivered_targets [get_files $bd_file] ] Synthesis]
     set stale_targets [lsearch [get_property stale_targets [get_files $bd_file] ] Synthesis]
     set is_generated [expr {$delivered_targets != -1 && $stale_targets == -1}]
-    if { [llength $refs] != 0 && $is_generated == 1 && $bc_filesets_size != 0} { 
+    if { [llength $refs] != 0 && $is_generated == 1 && ( $bc_filesets_size != 0 || $pDefs_size != 0 )} { 
       set filename [file tail $bd_file]
       lappend l_script_data "generate_target all \[get_files $filename\]\n"
     }
@@ -1075,6 +1101,13 @@ proc wr_runs { proj_dir proj_name } {
 
   variable l_script_data
 
+  # get the idr flow properties constraints param value and set it to 1
+  lappend l_script_data "set idrFlowPropertiesConstraints \"\""
+  lappend l_script_data "catch \{"
+  lappend l_script_data " set idrFlowPropertiesConstraints \[get_param runs.disableIDRFlowPropertyConstraints\]"
+  lappend l_script_data " set_param runs.disableIDRFlowPropertyConstraints 1"
+  lappend l_script_data "\}\n"
+
   # write runs (synthesis, Implementation)
   set runs [get_runs -filter {IS_SYNTHESIS == 1}]
   write_specified_run $proj_dir $proj_name $runs
@@ -1089,6 +1122,13 @@ proc wr_runs { proj_dir proj_name } {
 
   lappend l_script_data "# set the current impl run"
   lappend l_script_data "current_run -implementation \[get_runs [current_run -implementation]\]"
+
+  # reset the param back to its previous value
+  lappend l_script_data "catch \{"
+  lappend l_script_data " if \{ \$idrFlowPropertiesConstraints != \{\} \} \{"
+  lappend l_script_data "   set_param runs.disableIDRFlowPropertyConstraints \$idrFlowPropertiesConstraints"
+  lappend l_script_data " \}"
+  lappend l_script_data "\}"
 }
 
 proc wr_proj_info { proj_name } {
@@ -1798,18 +1838,18 @@ proc is_deprecated_property { property } {
 }
 
 proc read_props_to_exclude {} {
-  # Summary: read properties that need to be excluded from writing into the script file generated by write_project_tcl command.
+  # Summary: read properties of a class that need to be excluded from writing into the script file generated by write_project_tcl command.
   # Argument Usage: 
   # Return Value:
   # none
   variable a_global_vars
 
-  set objPropList [get_param project.wpt.excludeProperties -quiet]
+  set classPropList [get_param project.wpt.excludeProperties -quiet]
 
-  foreach objPropEle $objPropList {
-    set objPropSplits [split $objPropEle ":"]
-    if { [llength $objPropSplits] == 2 } {
-      dict lappend a_global_vars(excludePropDict) [lindex $objPropSplits 0] [lindex $objPropSplits 1]
+  foreach classPropEle $classPropList {
+    set classPropSplits [split $classPropEle ":"]
+    if { [llength $classPropSplits] == 2 } {
+      dict lappend a_global_vars(excludePropDict) [lindex $classPropSplits 0] [lindex $classPropSplits 1]
     }
   }
 }
@@ -1825,12 +1865,13 @@ proc is_excluded_property { obj property } {
   # Return Value:
   # none
   variable a_global_vars
+  set objClass [get_property class $obj]
 
   foreach _obj [dict keys $a_global_vars(excludePropDict)] {
-    if { $_obj == $obj } {
-      set _property [dict get $a_global_vars(excludePropDict) $_obj]
+    if { $_obj == $objClass } {
+      set _properties [dict get $a_global_vars(excludePropDict) $_obj]
 
-      if { [lsearch -nocase $_property $property] != -1 } {
+      if { [lsearch -nocase $_properties $property] != -1 } {
         return true
       }
     }
@@ -1895,6 +1936,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
   set bc_managed_fs_filter "IS_BLOCK_CONTAINER_MANAGED == 0"
   foreach file [get_files -quiet -norecurse -of_objects [get_filesets $tcl_obj] -filter $bc_managed_fs_filter] {
+    if { [is_switch_network_source $file] } { continue }
     if { [file extension $file] == ".xcix" } { continue }
     # Skip direct import/add of BD files if -use_bd_files is not provided
     if { [file extension $file] == ".bd" && !$a_global_vars(b_arg_use_bd_files) } { continue }
@@ -3181,6 +3223,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   set bd_list [list]
  
   foreach file $files { 
+    if { [is_switch_network_source $file] } { continue }
     if { [file extension $file ] ==".bd" && !$a_global_vars(b_arg_use_bd_files)} {
       lappend bd_list $file
       continue
@@ -3549,5 +3592,25 @@ proc reset_msg_setting {} {
   foreach level $levels_to_suppress {
     reset_msg_config -quiet -suppress -severity $level
   }
+}
+
+proc is_switch_network_source { file } {
+  # Summary: 
+  # Argument Usage: 
+  # Return Value:
+
+  # TODO: wrap the below code under param
+  return false
+
+  #
+  # filter simulation wrapper and switch network BD (these are generated files from launch_simulation)
+  #
+  set rtl_top [get_property top -quiet [current_fileset]]
+  set wrapper "${rtl_top}_sim_wrapper.v"
+  set file_name [string trim [file tail $file] {\"}]
+  if { ($file_name == $wrapper) || ($file_name == "xlnoc.bd") } {
+    return true
+  }
+  return false
 }
 }

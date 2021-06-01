@@ -11,5 +11,5 @@
   Example:
   
     The following example generates GT reference clock summary of gt_quad base IP based , IPI block design:
-     xilinx::designutils::report_gtye5_refclk_summary
+     xilinx::designutils::report_gt_refclk_summary
 

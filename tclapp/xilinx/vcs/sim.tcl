@@ -109,6 +109,9 @@ proc usf_vcs_setup_simulation { args } {
   variable a_sim_vars
 
   ::tclapp::xilinx::vcs::usf_set_simulator_path "vcs"
+  if { $a_sim_vars(b_int_system_design) } {
+    ::tclapp::xilinx::vcs::usf_set_gcc_version_path "vcs"
+  }
 
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
@@ -220,7 +223,7 @@ proc usf_vcs_setup_simulation { args } {
     # find shared library paths from all IPs
     if { $a_sim_vars(b_system_sim_design) } {
       if { [xcs_contains_C_files] } {
-        xcs_find_shared_lib_paths "vcs" $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
+        xcs_find_shared_lib_paths "vcs" $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
       }
 
       # cache all systemC stub files
@@ -269,6 +272,7 @@ proc usf_vcs_setup_args { args } {
   # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_system_design]: Design configured for system simulation (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -301,6 +305,7 @@ proc usf_vcs_setup_args { args } {
       "-int_ide_gui"              { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode) 1                        }
       "-int_halt_script"          { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_halt_script) 1                        }
       "-int_systemc_mode"         { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_systemc_mode) 1                       }
+      "-int_system_design"        { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_system_design) 1                      }
       "-int_gcc_bin_path"         { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
       "-int_sm_lib_dir"           { incr i;set ::tclapp::xilinx::vcs::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
       "-int_compile_glbl"         { set ::tclapp::xilinx::vcs::a_sim_vars(b_int_compile_glbl) 1                       }
@@ -765,7 +770,7 @@ proc usf_vcs_write_elaborate_script {} {
         variable a_shared_library_path_coln
         # bind protected libraries
         set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
-        set sm_cpt_dir [xcs_get_simmodel_dir "vcs" "cpt"]
+        set sm_cpt_dir [xcs_get_simmodel_dir "vcs" $a_sim_vars(s_gcc_version) "cpt"]
         foreach {key value} [array get a_shared_library_path_coln] {
           set name [file tail $value]
           set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
@@ -775,6 +780,8 @@ proc usf_vcs_write_elaborate_script {} {
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
             set lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+            # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
+            # TODO: find way to make this data-driven
             set arg_list [linsert $arg_list end "-L$lib_dir"]
             set arg_list [linsert $arg_list end "-laie_cluster_v1_0_0"]
           }
@@ -792,6 +799,8 @@ proc usf_vcs_write_elaborate_script {} {
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
             set aie_lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+            # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
+            # TODO: find way to make this data-driven
             set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
             set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
           }
@@ -1149,14 +1158,18 @@ proc usf_vcs_write_simulate_script {} {
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$tool_path\"\n"
+    puts $fh_scr "bin_path=\"$tool_path\""
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
-        puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
+        puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\""
+        if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+          xcs_write_launch_mode_for_vitis $fh_scr "vcs"
+        }
         usf_vcs_write_library_search_order $fh_scr
       }
     }
+    puts $fh_scr ""
   }
 
   set ip_obj [xcs_find_ip "gt_quad_base"]
@@ -1179,21 +1192,15 @@ proc usf_vcs_write_simulate_script {} {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
 
-  if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-    set exec_mode [get_property -quiet "simulator_launch_mode" $fs_obj]
-    if { "batch" == $exec_mode } {
-       # default
-    } else {
-      set arg_list [linsert $arg_list end "-gui"]
+  if { $::tclapp::xilinx::vcs::a_sim_vars(b_batch) || $b_scripts_only } {
+    # no gui
+    if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+      set arg_list [linsert $arg_list end "\$mode"]
     }
   } else {
-    if { $::tclapp::xilinx::vcs::a_sim_vars(b_batch) || $b_scripts_only } {
-      # no gui
-    } else {
-      # launch_simulation - if called from vivado in gui mode only
-      if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode) } {
-        set arg_list [linsert $arg_list end "-gui"]
-      }
+    # launch_simulation - if called from vivado in gui mode only
+    if { $::tclapp::xilinx::vcs::a_sim_vars(b_int_is_gui_mode) } {
+      set arg_list [linsert $arg_list end "-gui"]
     }
   }
 
@@ -1454,12 +1461,14 @@ proc usf_vcs_write_library_search_order { fh_scr } {
 
   set ld_path "LD_LIBRARY_PATH=."
   # for aie
-  set ip_obj [xcs_find_ip "ai_engine"]
-  if { {} != $ip_obj } {
-    set sm_ext_dir [xcs_get_simmodel_dir "vcs" "ext"]
-    set sm_cpt_dir [xcs_get_simmodel_dir "vcs" "cpt"]
+  set aie_ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $aie_ip_obj } {
+    set sm_ext_dir [xcs_get_simmodel_dir "vcs" $a_sim_vars(s_gcc_version) "ext"]
+    set sm_cpt_dir [xcs_get_simmodel_dir "vcs" $a_sim_vars(s_gcc_version) "cpt"]
     set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/vcs"]
     set tp "$cpt_dir/$sm_cpt_dir"
+    # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
+    # TODO: find way to make this data-driven
     append ld_path ":$tp/aie_cluster_v1_0_0"
     set xilinx_vitis {}
     set cardano_api_path {}
@@ -1480,19 +1489,18 @@ proc usf_vcs_write_library_search_order { fh_scr } {
   append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
   puts $fh_scr $ld_path
 
-  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-    puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
-    # for aie
-    if { {} != $ip_obj } {
-      if { [info exists ::env(XILINX_VITIS)] } {
-        set xilinx_vitis $::env(XILINX_VITIS)
-        set cardano "$xilinx_vitis/aietools"
-        set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
-        #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
-        puts $fh_scr "source $chess_script"
-      } else {
-        send_msg_id USF-VCS-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
-      }
+  puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+  # for aie
+  if { {} != $aie_ip_obj } {
+    if { [info exists ::env(XILINX_VITIS)] } {
+      puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+      set xilinx_vitis $::env(XILINX_VITIS)
+      set cardano "$xilinx_vitis/aietools"
+      set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
+      #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
+      puts $fh_scr "source $chess_script"
+    } else {
+      send_msg_id USF-VCS-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
     }
   }
 }
@@ -1590,6 +1598,7 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
 
   set tool "syscan"
   set arg_list [list "-sysc=232"]
+  lappend arg_list "-sysc=opt_if"
   lappend arg_list "-cpp \$\{gcc_path\}/g++"
   lappend arg_list "-V"
 
@@ -1778,9 +1787,102 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
   set n_gcc_file_group   0
   set b_first          true
 
+  #################
+  # cpp/C - g++/gcc 
+  #################
+  if { $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
+    puts $fh_scr "echo \"Compiling C/CPP sources...\""
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      switch -exact -- $compiler {
+        "g++"    -
+        "gcc"    {
+          set gcc_cmd "$cmd_str \\\n$src_file \\"
+          if { {} != $tool_path } {
+            set gcc_cmd "\$bin_path/$cmd_str \\\n$src_file \\"
+          }
+          puts $fh_scr "$gcc_cmd"
+          set cstr "$a_sim_vars(clog)"
+          if { $n_file_group > 1 } {set cstr "-a $a_sim_vars(clog)"}
+          puts $fh_scr "$redirect_cmd_str $cstr\n"
+          incr n_file_group
+        }
+      }
+    }
+  }
+
+  ##################
+  # systemc - g++/gcc 
+  ##################
+  if { $a_sim_vars(b_contain_systemc_sources) } {
+    set log "syscan.log"
+    if { $n_file_group > 1 } { puts $fh_scr "" }
+    puts $fh_scr "echo \"Compiling SystemC sources...\""
+    variable a_sim_cache_sysc_stub_files
+    set sysc_stub_modules [list]
+    set b_first true
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      switch -exact -- $compiler {
+        "syscan" {
+          if { $b_first } {
+            set cmd_str "\$gcc_path/g++ \$gpp_sysc_opts \$syscan_gcc_opts "
+            set gcc_cmd "$cmd_str \\\n$src_file \\"
+            puts $fh_scr "$gcc_cmd"
+            set b_first false
+          } else {
+            puts $fh_scr "$src_file \\"
+          }
+          set sysc_src_file [string trim $src_file {\"}]
+          set module_name [file root [file tail $sysc_src_file]]
+          if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
+            lappend sysc_stub_modules "$module_name"
+          }
+        }
+      }
+    }
+    incr n_file_group
+
+    puts $fh_scr "-shared -o $a_sim_vars(syscan_libname) \\"
+    set rdcs "$redirect_cmd_str"
+    puts $fh_scr "$rdcs -a compile.log &"
+
+    # TODO:
+    #set cstr "$a_sim_vars(clog)"
+    #if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+    #append rdcs $cstr
+    #append rdcs "; cat $a_sim_vars(tmp_log_file)"
+    #set rdap " > $log $null"
+    #append rdcs $rdap
+    #puts $fh_scr "$rdcs &"
+
+    puts $fh_scr "GCC_SYSC_PID=\$!"
+    puts $fh_scr ""
+  }
+
   #####################
   # RTL - vhdlan/vlogan
   #####################
+  set rdap {}
+  set b_first true
+
+  puts $fh_scr "echo \"Compiling RTL sources...\""
   foreach file $a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
     set type        [lindex $fargs 0]
@@ -1843,87 +1945,28 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
     puts $fh_scr "$rdcs"
   }
 
-  ##################
-  # systemC - syscan
-  ##################
+  ########################
+  # syscan - compile stubs
+  ########################
   if { $a_sim_vars(b_contain_systemc_sources) } {
-    if { $n_file_group > 1 } { puts $fh_scr "" }
-    variable a_sim_cache_sysc_stub_files
-    set sysc_stub_modules [list]
-    set b_first true
-    foreach file $a_sim_vars(l_design_files) {
-      set fargs       [split $file {|}]
-      set type        [lindex $fargs 0]
-      set file_type   [lindex $fargs 1]
-      set lib         [lindex $fargs 2]
-      set cmd_str     [lindex $fargs 3]
-      set src_file    [lindex $fargs 4]
-      set b_static_ip [lindex $fargs 5]
-      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-      set compiler [file tail [lindex [split $cmd_str " "] 0]]
-      switch -exact -- $compiler {
-        "syscan" {
-          if { $b_first } {
-            set cmd_str "\$gcc_path/g++ \$gpp_sysc_opts \$syscan_gcc_opts "
-            set gcc_cmd "$cmd_str \\\n$src_file \\"
-            puts $fh_scr "$gcc_cmd"
-            set b_first false
-          } else {
-            puts $fh_scr "$src_file \\"
-          }
-          set sysc_src_file [string trim $src_file {\"}]
-          set module_name [file root [file tail $sysc_src_file]]
-          if { [info exists a_sim_cache_sysc_stub_files($module_name)] } {
-            lappend sysc_stub_modules "$module_name"
-          }
-        }
-      }
-    }
-    incr n_file_group
-    puts $fh_scr "-shared -o $a_sim_vars(syscan_libname)"
-    puts $fh_scr ""
     set gcc_cmd "syscan "
     if { {} != $tool_path } {
       set gcc_cmd "\$bin_path/syscan "
     }
     append gcc_cmd "\$syscan_opts -cflags \"\$gpp_sysc_hdl_opts \$syscan_gcc_opts\" -Mdir=c.obj \\"
+ 
+    puts $fh_scr ""
+    puts $fh_scr "echo \"Waiting for jobs to finish...\""
+    puts $fh_scr "wait \$GCC_SYSC_PID"
+    puts $fh_scr ""
+    puts $fh_scr "echo \"Generating stub-wrappers...\""
     puts $fh_scr "$gcc_cmd"
     foreach stub_mod $sysc_stub_modules {
       puts $fh_scr "$a_sim_vars(syscan_libname):$stub_mod \\"
     }
+    puts $fh_scr "$redirect_cmd_str -a compile.log"
   }
 
-  #################
-  # cpp/C - g++/gcc 
-  #################
-  if { $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
-    if { $n_file_group > 1 } { puts $fh_scr "" }
-    foreach file $a_sim_vars(l_design_files) {
-      set fargs       [split $file {|}]
-      set type        [lindex $fargs 0]
-      set file_type   [lindex $fargs 1]
-      set lib         [lindex $fargs 2]
-      set cmd_str     [lindex $fargs 3]
-      set src_file    [lindex $fargs 4]
-      set b_static_ip [lindex $fargs 5]
-      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-      set compiler [file tail [lindex [split $cmd_str " "] 0]]
-      switch -exact -- $compiler {
-        "g++"    -
-        "gcc"    {
-          set gcc_cmd "$cmd_str \\\n$src_file \\"
-          if { {} != $tool_path } {
-            set gcc_cmd "\$bin_path/$cmd_str \\\n$src_file \\"
-          }
-          puts $fh_scr "$gcc_cmd"
-          set cstr "$a_sim_vars(clog)"
-          if { $n_file_group > 1 } {set cstr "-a $a_sim_vars(clog)"}
-          puts $fh_scr "$redirect_cmd_str $cstr\n"
-          incr n_file_group
-        }
-      }
-    }
-  }
 }
 
 proc usf_vcs_write_compile_order_files_msg { fh_scr } {

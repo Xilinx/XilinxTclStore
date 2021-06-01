@@ -1,3 +1,26 @@
+2.226 bind aie_cluster for sccom
+2.225 Extract IP file name from core-container to determine SV package libraries
+2.224 compile sources for netlist functional simulation
+2.223 pass vlog -mfsu to treat all sources as single compilation unit
+2.222 export chess library env
+2.221 bind noc_na for netlist simulation
+2.220 set optional arg for simulate step
+2.219 find available boost library from RDI_DATA_DIR
+2.218 check for file before inspecting core container property
+2.217 refactored gcc version support
+2.216 support for simulator launch mode
+2.215 disable debug msgs
+2.214 enabled Vitis code for post-sim script and launch mode
+2.213 enabled protected library linkage
+2.212 enabled runtime setting for Vitis
+2.211 enabled USER_PRE_SIM_SCRIPT code-hook
+2.210 helper for fetching NoC IP objects
+2.209 fixes for Vitis code-hooks
+2.208 disabled Vitis code-hooks
+2.207 find data dir from VIVADO if not found from rdi data_dir
+2.206 support for VCS auto gcc executable path detection
+2.205 disable binding of aie_cluster
+2.204 merge 2020.3 to 2021.1
 2.203 bind aie_cluster library
 2.202 removed binding of Xilinx libs for sim_xdma
 2.201 add check for protobuf static library
