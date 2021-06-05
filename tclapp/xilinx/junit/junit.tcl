@@ -12,4 +12,4 @@ namespace eval ::tclapp::xilinx::junit {
 
 }
 
-package provide ::tclapp::xilinx::junit 1.1
+package provide ::tclapp::xilinx::junit 1.2

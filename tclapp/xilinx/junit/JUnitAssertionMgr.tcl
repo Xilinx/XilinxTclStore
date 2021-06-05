@@ -451,7 +451,7 @@ proc validate_timing { { _group "ValidateTiming" } } {
   # Timing: NegativeSlack
   set testcase [ new_testcase $results $testsuite "NegativeSlack" $_group ]
   #set cmd {filter [ get_timing_paths -max_paths 10 -filter { SLACK != "" } ] { SLACK < 0 }}
-  set cmd {get_timing_paths -quiet -max_paths 10 -slack_lesser_than 0}
+  set cmd {get_timing_paths -quiet -max_paths 10 -slack_lesser_than 0 -setup -hold}
   set failedTiming [ run_silent $cmd ]
   if { [ llength $failedTiming ] > 0 } {
     lappend failureMsg "Failed timing checks (paths):\n\t[ join $failedTiming \n\t ]\n\nTiming Summary:"
