@@ -1,3 +1,4 @@
+2.396 support for step execution and code cleanup
 2.395 check for leaf dir name wrt library name for linked library
 2.393 updated help msg for coverage name and type
 2.392 Merged 2021.1-dev fixes to 2021.2-dev
