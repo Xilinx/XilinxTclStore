@@ -916,7 +916,7 @@ proc usf_launch_script { simulator step } {
   }
   set faulty_run 0
   set cwd [pwd]
-  cd $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)
+  cd $a_sim_vars(s_launch_dir)
   set display_step [string toupper $step]
   if { "$display_step" == "COMPILE" } {
     set display_step "${display_step} and ANALYZE"

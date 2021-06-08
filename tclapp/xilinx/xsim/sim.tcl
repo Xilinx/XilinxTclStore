@@ -170,7 +170,7 @@ proc simulate { args } {
       # set cpt lib path for aie
       set aie_ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $aie_ip_obj } {
-        set cmd "set ::env(xv_cpt_lib_path) \"$::tclapp::xilinx::xsim::a_sim_vars(sp_cpt_dir)\""
+        set cmd "set ::env(xv_cpt_lib_path) \"$a_sim_vars(sp_cpt_dir)\""
         if {[catch {eval $cmd} err_msg]} {
           puts $err_msg
           [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the xv_cpt_lib_path!"}]
@@ -211,7 +211,7 @@ proc simulate { args } {
         set b_bind_shared_lib 0
         [catch {set b_bind_shared_lib [get_param project.bindSharedLibraryForXSCElab]} err]
         if { $b_bind_shared_lib } {
-          set cmd "set ::env(xv_cxl_win_path) $::tclapp::xilinx::xsim::a_sim_vars(s_clibs_dir)"
+          set cmd "set ::env(xv_cxl_win_path) $a_sim_vars(s_clibs_dir)"
           if {[catch {eval $cmd} err_msg]} {
             puts $err_msg
             [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LIBRARY_PATH env!"}]
@@ -404,7 +404,7 @@ proc usf_xsim_setup_simulation { args } {
   # fetch design files
   variable l_local_design_libraries 
   set global_files_str {}
-  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [::tclapp::xilinx::xsim::usf_get_files_for_compilation global_files_str]]
+  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [usf_get_files_for_compilation global_files_str]]
 
   # contains system verilog? (for uvm)
   set a_sim_vars(b_contain_sv_srcs) [xcs_contains_system_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
@@ -1055,7 +1055,7 @@ proc usf_xsim_write_setup_file {} {
       puts $fh "uvm=$uvm_lib"
     }
   }
-  set design_libs [xcs_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
@@ -1894,10 +1894,10 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
 
         if { [get_param "project.copyShLibsToCurrRunDir"] } {
-          if { [catch {file copy -force $file $::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)} error_msg] } {
+          if { [catch {file copy -force $file $a_sim_vars(s_launch_dir)} error_msg] } {
             send_msg_id USF-XSim-010 ERROR "Failed to copy file ($file): $error_msg\n"
           } else {
-            send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$::tclapp::xilinx::xsim::a_sim_vars(s_launch_dir)'\n"
+            send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
           }
           set file_dir "."
         }
@@ -2064,7 +2064,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # design source libs
-  set design_libs [xcs_get_design_libs $::tclapp::xilinx::xsim::a_sim_vars(l_design_files) 1]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 1]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
