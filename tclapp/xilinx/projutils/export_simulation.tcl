@@ -97,7 +97,7 @@ proc xps_init_vars {} {
   # 
   # define list vars
   #
-  variable l_simulators               [list xsim modelsim questa ies xcelium vcs riviera activehdl]
+  variable l_simulators               [list xsim modelsim questa xcelium vcs riviera activehdl]
   variable l_xpm_libraries            [list]
   variable l_system_sim_incl_dirs     [list]
   variable l_lib_map_path             [list]
@@ -122,7 +122,7 @@ proc xps_init_vars {} {
   variable a_sim_cache_extract_source_from_repo
   variable a_sim_cache_gen_mem_files
 
-  set l_valid_simulator_types         [list all xsim modelsim questa ies xcelium vcs vcs_mx ncsim riviera activehdl]
+  set l_valid_simulator_types         [list all xsim modelsim questa xcelium vcs vcs_mx ncsim riviera activehdl]
   set l_valid_ip_extns                [list ".xci" ".bd" ".slx"]
   set s_data_files_filter \
                                       "FILE_TYPE == \"Data Files\"                  || \
@@ -206,7 +206,7 @@ proc export_simulation {args} {
   # Summary: Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
 
   # Argument Usage:
-  # [-simulator <arg> = all]: Simulator for which the simulation script will be created (value=all|xsim|modelsim|questa|ies|xcelium|vcs|riviera|activehdl)
+  # [-simulator <arg> = all]: Simulator for which the simulation script will be created (value=all|xsim|modelsim|questa|xcelium|vcs|riviera|activehdl)
   # [-of_objects <arg> = None]: Export simulation script for the specified object
   # [-ip_user_files_dir <arg> = Empty]: Directory path to the exported IP/BD (Block Design) user files (for static, dynamic and data files)
   # [-ipstatic_source_dir <arg> = Empty]: Directory path to the exported IP/BD static files
@@ -487,9 +487,9 @@ proc xps_set_target_simulator {} {
     if { {vcs_mx} == $a_sim_vars(s_simulator) } {
       set a_sim_vars(s_simulator) "vcs"
     }
-    if { {ncsim} == $a_sim_vars(s_simulator) } {
-      set a_sim_vars(s_simulator) "ies"
-    }
+    #if { {ncsim} == $a_sim_vars(s_simulator) } {
+    #  set a_sim_vars(s_simulator) "ies"
+    #}
     lappend l_target_simulator $a_sim_vars(s_simulator)
   }
 }
@@ -771,7 +771,7 @@ proc xps_readme { dir } {
   puts $fh "<ip-name>.sh  (Unix)"
   puts $fh "Export simulation will create the setup files for the target simulator specified"
   puts $fh "with the -simulator switch.\n"
-  puts $fh "For example, if the target simulator is \"ies\", export_simulation will create the"
+  puts $fh "For example, if the target simulator is \"xcelium\", export_simulation will create the"
   puts $fh "'cds.lib', 'hdl.var' and design library diectories and mappings in the 'cds.lib'"
   puts $fh "file.\n"
 
@@ -1165,7 +1165,7 @@ proc xps_write_simulator_readme { simulator dir } {
   puts $fh "From the shell prompt in the current directory, issue the following command:-\n"
   puts $fh "./${scr_name}\n"
 
-  if { ({ies} == $simulator) || ({xcelium} == $simulator) } {
+  if { {xcelium} == $simulator } {
     puts $fh "This command will launch the 'execute' function for the single-step flow. This"
     puts $fh "function is called from the main 'run' function in the script file."
   } else {
@@ -1268,7 +1268,6 @@ proc xps_get_files { simulator launch_dir } {
   #send_msg_id exportsim-Tcl-018 INFO "Finding global include files..."
   set prefix_ref_dir "false"
   switch $simulator {
-    "ies" -
     "xcelium" -
     "vcs" {
       set prefix_ref_dir "true"
@@ -1309,7 +1308,7 @@ proc xps_get_files { simulator launch_dir } {
       set incl_dir_opts {}
       if { ({questa} == $simulator) || ({modelsim} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
         set incl_dir_opts "\\\"+incdir+[xcs_get_vip_include_dirs]\\\""
-      } elseif { ({ies} == $simulator) || ({xcelium} == $simulator) } {
+      } elseif { ({xcelium} == $simulator) } {
         set incl_dir_opts "+incdir+\"[xcs_get_vip_include_dirs]\""
       } elseif { {vcs} == $simulator } {
         set incl_dir_opts "+incdir+[xcs_get_vip_include_dirs]"
@@ -2097,7 +2096,6 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
     set src_file [file tail $file]
     if { $a_sim_vars(b_absolute_path) } {
       switch -regexp -- $simulator {
-        "ies" -
         "xcelium" -
         "vcs" {
           if { $a_sim_vars(b_xport_src_files) } {
@@ -2116,7 +2114,6 @@ proc xps_resolve_global_file_paths { simulator launch_dir } {
       }
     } else {
       switch -regexp -- $simulator {
-        "ies" -
         "xcelium" -
         "vcs" {
           if { $a_sim_vars(b_xport_src_files) } {
@@ -2325,9 +2322,7 @@ proc xps_write_simulator_procs { simulator fh_unix launch_dir srcs_dir } {
   
   variable a_sim_vars
 
-  if { {ies} == $simulator } {
-    xps_write_single_step_for_ies $fh_unix $launch_dir $srcs_dir
-  } elseif { {xcelium} == $simulator } {
+  if { {xcelium} == $simulator } {
     xps_write_single_step_for_xcelium $fh_unix $launch_dir $srcs_dir
   } else {
     xps_write_multi_step $simulator $fh_unix $launch_dir $srcs_dir
@@ -2456,7 +2451,7 @@ proc xps_write_run_steps { simulator fh_unix } {
   puts $fh_unix "run()\n\{"
   puts $fh_unix "  check_args \$# \$1"
   puts $fh_unix "  setup \$1 \$2"
-  if { ({ies} == $simulator) || ({xcelium} == $simulator) } {
+  if { ({xcelium} == $simulator) } {
     puts $fh_unix "  execute"
   } else {
     puts $fh_unix "  compile"
@@ -2530,7 +2525,6 @@ proc xps_set_initial_cmd { simulator fh cmd_str srcs_dir src_file file_type lib 
       puts $fh "$cmd_str \\"
       puts $fh "$src_file \\"
     }
-    "ies" -
     "xcelium" {
       if { $a_sim_vars(b_single_step) } {
         set opts {}
@@ -2588,7 +2582,7 @@ proc xps_set_initial_cmd { simulator fh cmd_str srcs_dir src_file file_type lib 
   }
 }
 
-# multi-step (vcs), single-step (ies, xcelium) 
+# multi-step (vcs), single-step (xcelium) 
 proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_dir } {
   # Summary:
   # Argument Usage:
@@ -2628,7 +2622,6 @@ proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_
       # no op
     } else {
       switch $simulator {
-        "ies" -
         "xcelium" {
           if { $a_sim_vars(b_xport_src_files) } {
             set source_file "\$ref_dir/incl"
@@ -2735,7 +2728,6 @@ proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_
         if { $a_sim_vars(b_single_step) } {
           if { $a_sim_vars(b_xport_src_files) } {
             switch $simulator {
-              "ies" -
               "xcelium" {
                 if { $a_sim_vars(b_absolute_path) } {
                   puts $fh "  $srcs_dir/$proj_src_filename \\"
@@ -2746,7 +2738,6 @@ proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_
             }
           } else {
             switch $simulator {
-              "ies" -
               "xcelium" {
                 puts $fh "  $src_file \\"
               }
@@ -2755,7 +2746,6 @@ proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_
         } else {
           if { $a_sim_vars(b_xport_src_files) } {
             switch $simulator {
-              "ies" -
               "xcelium" {
                 puts $fh "    \$ref_dir/$proj_src_filename \\"
               }
@@ -2765,7 +2755,6 @@ proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_
             }
           } else {
             switch $simulator {
-              "ies" -
               "xcelium" {
                 puts $fh "    $src_file \\"
               }
@@ -2778,7 +2767,6 @@ proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_
         set b_redirect true
       } else {
         switch $simulator {
-          "ies" -
           "xcelium" {
             if { $a_sim_vars(b_single_step) } {
               puts $fh "-endlib"
@@ -2800,7 +2788,6 @@ proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_
 
   if { $a_sim_vars(b_single_step) } {
     switch $simulator {
-      "ies" -
       "xcelium" {
         puts $fh "-endlib"
       }
@@ -2818,7 +2805,6 @@ proc xps_write_compile_order_for_ies_xcelium_vcs { simulator fh launch_dir srcs_
   if { [xcs_contains_verilog $a_sim_vars(l_design_files)] } {
     if { $a_sim_vars(b_single_step) } { 
       switch -regexp -- $simulator {
-        "ies" -
         "xcelium" {
           puts $fh "-makelib ${simulator}_lib/$a_sim_vars(default_lib) \\"
           set file "glbl.v"
@@ -2994,7 +2980,6 @@ proc xps_write_elaboration_cmds { simulator fh_unix dir} {
       puts $fh_unix "  source elaborate.do 2>&1 | tee${append_sw} elaborate.log"
       xps_write_do_file_for_elaborate $simulator $dir
     }
-    "ies" -
     "xcelium" {
       set compiler "ncelab"
       if { {xcelium} == $simulator } {
@@ -3052,7 +3037,6 @@ proc xps_write_simulation_cmds { simulator fh_unix dir } {
     "xsim"      { xps_write_xsim_sim_cmdline      $fh_unix $dir }
     "modelsim"  { xps_write_modelsim_sim_cmdline  $fh_unix $dir }
     "questa"    { xps_write_questa_sim_cmdline    $fh_unix $dir }
-    "ies"       { xps_write_ies_sim_cmdline       $fh_unix $dir }
     "xcelium"   { xps_write_xcelium_sim_cmdline   $fh_unix $dir }
     "vcs"       { xps_write_vcs_sim_cmdline       $fh_unix $dir }
     "riviera"   { xps_write_riviera_sim_cmdline   $fh_unix $dir }
@@ -3106,7 +3090,6 @@ proc xps_append_define_generics { def_gen_list tool simulator opts_arg } {
       "vlogan" { set str "+define+$name="   }
       "ncelab" -
       "xmelab" -
-      "ies"    -
       "xcelium" { set str "-generic \"$name=>" }
       "vcs"     { set str "-gv $name=\""       }
     }
@@ -3129,7 +3112,6 @@ proc xps_append_define_generics { def_gen_list tool simulator opts_arg } {
         "vlogan" { set str "$str\"$val\"" }
         "ncelab" -
         "xmelab" -
-        "ies"    -
         "xcelium" { set str "$str$val\"" }
         "vcs"     { set str "$str$val\"" }
       }
@@ -3143,7 +3125,6 @@ proc xps_append_define_generics { def_gen_list tool simulator opts_arg } {
         "vlogan" { set str "$str"   }
         "ncelab" -
         "xmelab" -
-        "ies"    -
         "xcelium" { set str "$str\"" }
         "vcs"     { set str "$str\"" }
       }
@@ -3827,7 +3808,6 @@ proc xps_write_lib_dir { simulator fh_unix launch_dir } {
   # Return Value:
 
   switch $simulator {
-    "ies" -
     "xcelium" -
     "vcs" {
       puts $fh_unix "# Create design library directory paths"
@@ -4788,7 +4768,6 @@ proc xps_write_reset { simulator fh_unix } {
   switch -regexp -- $simulator {
     "modelsim" -
     "questa" -
-    "ies" -
     "xcelium" -
     "vcs" {
       puts $fh_unix "\n  create_lib_dir"
@@ -4815,7 +4794,6 @@ proc xps_write_setup { simulator fh_unix } {
   puts $fh_unix "        echo -e \"ERROR: Simulation library directory path not specified (type \\\"./$a_sim_vars(s_script_filename).sh -help\\\" for more information)\\n\""
   puts $fh_unix "        exit 1"
   switch -regexp -- $simulator {
-    "ies" -
     "xcelium" {
       puts $fh_unix "      else"
       puts $fh_unix "        ref_lib_dir=\$2"
@@ -4879,7 +4857,6 @@ proc xps_write_setup { simulator fh_unix } {
   switch -regexp -- $simulator {
     "modelsim" -
     "questa" -
-    "ies" -
     "xcelium" -
     "vcs" {
       puts $fh_unix "  create_lib_dir\n"
@@ -4906,7 +4883,7 @@ proc xps_write_main { simulator fh_unix launch_dir } {
 
   set srcs_dir [xps_create_srcs_dir $launch_dir]
 
-  if { ({ies} == $simulator) || ({xcelium} == $simulator) || ({vcs} == $simulator) } {
+  if { ({xcelium} == $simulator) || ({vcs} == $simulator) } {
     xps_write_ref_dir $fh_unix $launch_dir $srcs_dir
   }
 
@@ -4933,7 +4910,6 @@ proc xps_write_main { simulator fh_unix launch_dir } {
 
     switch -regexp -- $simulator {
       "xsim"    { xps_write_xsim_opt_args    $fh_unix $launch_dir }
-      "ies"     { xps_write_ies_opt_args     $fh_unix }
       "xcelium" { xps_write_xcelium_opt_args $fh_unix }
       "vcs"     { xps_write_vcs_opt_args     $fh_unix $launch_dir }
     }
@@ -4947,7 +4923,6 @@ proc xps_write_main { simulator fh_unix launch_dir } {
         xps_export_ld_lib $simulator $fh_unix
       }
     }
-    "ies" -
     "xcelium" -
     "vcs" {
       set libs [list]
@@ -4974,7 +4949,6 @@ proc xps_write_main { simulator fh_unix launch_dir } {
   }
 
   switch $simulator {
-    "ies" -
     "xcelium" -
     "vcs" {
       puts $fh_unix "\n# Simulation root library directory"
@@ -7279,7 +7253,6 @@ proc xps_write_lib_map_path_dir { simulator fh_unix } {
   variable a_sim_vars
 
   switch -regexp -- $simulator {
-    "ies" -
     "xcelium" { 
       set cds_lmp "."
       set cds_file {}
@@ -7347,9 +7320,6 @@ proc xps_append_config_opts { opts_arg simulator tool } {
       if {"g++"      == $tool} {set opts_str ""}
       if {"gcc"      == $tool} {set opts_str ""}
     }
-    "ies" {
-      if {"irun"   == $tool} {set opts_str "-v93 -relax -access +rwc -namemap_mixgen"}
-    }
     "xcelium" {
       if {"xrun"   == $tool} {set opts_str "-v93 -relax -access +rwc -namemap_mixgen"}
     }
@@ -7391,10 +7361,6 @@ proc xps_get_files_to_remove { simulator file_list_arg file_dir_list_arg } {
     "questa" {
       set file_list     [list "compile.log" "elaborate.log" "simulate.log" "vsim.wlf"]
       set file_dir_list [list "questa_lib"]
-    }
-    "ies" { 
-      set file_list     [list "ncsim.key" "irun.key" "irun.log" "waves.shm" "irun.history" ".simvision"]
-      set file_dir_list [list "INCA_libs"]
     }
     "xcelium" { 
       set file_list     [list "xmsim.key" "xrun.key" "xrun.log" "waves.shm" "xrun.history" ".simvision"]
