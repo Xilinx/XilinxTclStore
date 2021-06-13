@@ -1902,10 +1902,9 @@ proc xcs_find_files { src_files_arg tcl_obj filter dir b_absolute_path in_fs_obj
   # Argument Usage:
   # Return Value:
 
-  variable l_valid_ip_extns
   upvar $src_files_arg src_files
 
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+  if { [xcs_is_ip $tcl_obj [xcs_get_valid_ip_extns]] } {
     set ip_name [file tail $tcl_obj]
     foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
       set file [file normalize $file]
@@ -1952,8 +1951,8 @@ proc xcs_is_embedded_flow {} {
   # Argument Usage:
   # Return Value:
 
-  variable s_embedded_files_filter
-  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
+  set ft "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ELF\""
+  set embedded_files [get_files -all -quiet -filter $ft]
   if { [llength $embedded_files] > 0 } {
     return 1
   }
@@ -2564,9 +2563,6 @@ proc xcs_fs_contains_hdl_source { fs } {
   # Argument Usage:
   # Return Value:
 
-  variable l_valid_ip_extns
-  variable l_valid_hdl_extns
-
   set b_contains_hdl 0
   set tokens [split [find_top -fileset $fs -return_file_paths] { }]
   for {set i 0} {$i < [llength $tokens]} {incr i} {
@@ -2577,10 +2573,10 @@ proc xcs_fs_contains_hdl_source { fs } {
     set extn [file extension $file]
 
     # skip ip's
-    if { [lsearch -exact $l_valid_ip_extns $extn] >= 0 } { continue; }
+    if { [lsearch -exact [xcs_get_valid_ip_extns] $extn] >= 0 } { continue; }
 
     # check if any HDL sources present in fileset
-    if { [lsearch -exact $l_valid_hdl_extns $extn] >= 0 } {
+    if { [lsearch -exact [xcs_get_valid_hdl_extns] $extn] >= 0 } {
       set b_contains_hdl 1
       break
     }
@@ -2593,7 +2589,6 @@ proc xcs_get_top_library { s_simulation_flow sp_tcl_obj fs_obj src_mgmt_mode def
   # Argument Usage:
   # Return Value:
 
-  variable l_valid_ip_extns
   variable l_compile_order_files_uniq
 
   set tcl_obj $sp_tcl_obj
@@ -2601,7 +2596,7 @@ proc xcs_get_top_library { s_simulation_flow sp_tcl_obj fs_obj src_mgmt_mode def
   set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
 
   # was -of_objects <ip> specified?, fetch current fileset
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+  if { [xcs_is_ip $tcl_obj [xcs_get_valid_ip_extns]] } {
     set tcl_obj $fs_obj
   }
 
@@ -2666,12 +2661,13 @@ proc xcs_get_top_library { s_simulation_flow sp_tcl_obj fs_obj src_mgmt_mode def
   return "xil_defaultlib"
 }
 
-proc xcs_export_fs_data_files { s_launch_dir dynamic_repo_dir filter } {
+proc xcs_export_fs_data_files { s_launch_dir dynamic_repo_dir } {
   # Summary: Copy fileset IP data files to output directory
   # Argument Usage:
   # Return Value:
 
   set data_files [list]
+  set filter [xcs_get_data_files_filter]
   foreach ip_obj [get_ips -quiet -all] {
     set data_files [concat $data_files [get_files -all -quiet -of_objects $ip_obj -filter $filter]]
   }
@@ -2690,7 +2686,6 @@ proc xcs_prepare_ip_for_simulation { s_simulation_flow sp_tcl_obj s_launch_dir }
   # Argument Usage:
   # Return Value:
 
-  variable l_valid_ip_extns
   #if { [regexp {^post_} $s_simulation_flow] } {
   #  return
   #}
@@ -2729,7 +2724,7 @@ proc xcs_prepare_ip_for_simulation { s_simulation_flow sp_tcl_obj s_launch_dir }
       send_msg_id SIM-utils-046 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
       generate_mem_files $s_launch_dir
     }
-  } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
+  } elseif { [xcs_is_ip $target_obj [xcs_get_valid_ip_extns]] } {
     set comp_file $target_obj
     xcs_generate_comp_file_for_simulation $comp_file runs_to_launch
   } else {
@@ -2951,10 +2946,9 @@ proc xcs_export_fs_non_hdl_data_files { s_simset s_launch_dir dynamic_repo_dir }
   # Argument Usage:
   # Return Value:
 
-  variable s_non_hdl_data_files_filter
   set data_files [list]
 
-  foreach file_obj [get_files -all -quiet -of_objects [get_filesets $s_simset] -filter $s_non_hdl_data_files_filter] {
+  foreach file_obj [get_files -all -quiet -of_objects [get_filesets $s_simset] -filter [xcs_get_non_hdl_data_files_filter]] {
     if { [lsearch -exact [list_property -quiet $file_obj] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file_obj] } {
         continue;
@@ -3404,16 +3398,76 @@ proc xcs_get_platform { fs_obj } {
   return $platform
 }
 
+proc xcs_get_data_files_filter {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set ft "FILE_TYPE == \"Data Files\"                  || \
+          FILE_TYPE == \"Memory File\"                 || \
+          FILE_TYPE == \"STATIC MEMORY FILE\"          || \
+          FILE_TYPE == \"Memory Initialization Files\" || \
+          FILE_TYPE == \"CSV\"                         || \
+          FILE_TYPE == \"Coefficient Files\"           || \
+          FILE_TYPE == \"Configuration Data Object\""
+
+  return $ft
+}
+
+proc xcs_get_non_hdl_data_files_filter {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set ft "FILE_TYPE != \"Verilog\"                      && \
+          FILE_TYPE != \"SystemVerilog\"                && \
+          FILE_TYPE != \"Verilog Header\"               && \
+          FILE_TYPE != \"Verilog/SystemVerilog Header\" && \
+          FILE_TYPE != \"SystemC Header\"               && \
+          FILE_TYPE != \"Verilog Template\"             && \
+          FILE_TYPE != \"VHDL\"                         && \
+          FILE_TYPE != \"VHDL 2008\"                    && \
+          FILE_TYPE != \"VHDL Template\"                && \
+          FILE_TYPE != \"EDIF\"                         && \
+          FILE_TYPE != \"NGC\"                          && \
+          FILE_TYPE != \"IP\"                           && \
+          FILE_TYPE != \"XCF\"                          && \
+          FILE_TYPE != \"NCF\"                          && \
+          FILE_TYPE != \"UCF\"                          && \
+          FILE_TYPE != \"XDC\"                          && \
+          FILE_TYPE != \"NGO\"                          && \
+          FILE_TYPE != \"Waveform Configuration File\"  && \
+          FILE_TYPE != \"BMM\"                          && \
+          FILE_TYPE != \"ELF\"                          && \
+          FILE_TYPE != \"Design Checkpoint\""
+
+  return $ft
+}
+
+proc xcs_get_valid_ip_extns {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set extns [list ".xci" ".bd" ".slx"]
+  return $extns
+}
+
+proc xcs_get_valid_hdl_extns {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set extns [list ".vhd" ".vhdl" ".vhf" ".vho" ".v" ".vf" ".verilog" ".vr" ".vg" ".vb" ".tf" ".vlog" ".vp" ".vm" ".vh" ".h" ".svh" ".sv" ".veo" ".so"]
+  return $extns
+}
+
 proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  variable s_data_files_filter
-  variable s_non_hdl_data_files_filter
-  variable l_valid_ip_extns
-
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+  if { [xcs_is_ip $tcl_obj [xcs_get_valid_ip_extns]] } {
     send_msg_id SIM-utils-053 INFO "Inspecting IP design source files for '$top'...\n"
 
     # export ip data files to run dir
@@ -3421,10 +3475,11 @@ proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
       set ip_filter "FILE_TYPE == \"IP\""
       set ip_name [file tail $tcl_obj]
       set data_files [list]
-      set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
+      set filter [xcs_get_data_files_filter]
+      set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]]
 
       # non-hdl data files
-      foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
+      foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter [xcs_get_non_hdl_data_files_filter]] {
         if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
           if { [get_property {IS_USER_DISABLED} $file] } {
             continue;
@@ -3439,7 +3494,7 @@ proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
 
     # export all fileset data files to run dir
     if { [get_param "project.copyDataFilesForSim"] } {
-      xcs_export_fs_data_files $launch_dir $dynamic_repo_dir $s_data_files_filter
+      xcs_export_fs_data_files $launch_dir $dynamic_repo_dir
     }
 
     # export non-hdl data files to run dir

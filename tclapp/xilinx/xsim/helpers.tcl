@@ -75,9 +75,6 @@ proc usf_init_vars {} {
   set a_sim_vars(b_netlist_sim)              0
 
   variable global_files_value                {}
-  variable s_data_files_filter               {}
-  variable s_embedded_files_filter           {}
-  variable s_non_hdl_data_files_filter       {}
 
   variable l_compile_order_files             [list]
   variable l_compile_order_files_uniq        [list]
@@ -87,8 +84,6 @@ proc usf_init_vars {} {
   variable l_systemc_incl_dirs               [list]
   variable l_ip_static_libs                  [list]
   variable l_xpm_libraries                   [list]
-  variable l_valid_ip_extns                  [list]
-  variable l_valid_hdl_extns                 [list]
   variable a_sim_sv_pkg_libs                 [list]
 
   variable a_sim_cache_result
@@ -126,9 +121,6 @@ proc usf_init_vars {} {
   set a_sim_vars(run_logs_elaborate)         [list elaborate.log]
   set a_sim_vars(run_logs_simulate)          [list simulate.log]
   set a_sim_vars(run_logs)                   [concat $a_sim_vars(run_logs_compile) $a_sim_vars(run_logs_elaborate) $a_sim_vars(run_logs_simulate)]
-
-  set l_valid_ip_extns                       [list ".xci" ".bd" ".slx"]
-  set l_valid_hdl_extns                      [list ".vhd" ".vhdl" ".vhf" ".vho" ".v" ".vf" ".verilog" ".vr" ".vg" ".vb" ".tf" ".vlog" ".vp" ".vm" ".vh" ".h" ".svh" ".sv" ".veo" ".so"]
 
   #################
   # sim mode type
@@ -171,40 +163,6 @@ proc usf_init_vars {} {
   #################
   if {!$a_sim_vars(b_force_compile_glbl) } {set a_sim_vars(b_force_compile_glbl) [get_property "force_compile_glbl" $a_sim_vars(fs_obj)]}
   
-  #################
-  # file filters
-  #################
-  set s_data_files_filter         "FILE_TYPE == \"Data Files\"                  || \
-                                   FILE_TYPE == \"Memory File\"                 || \
-                                   FILE_TYPE == \"STATIC MEMORY FILE\"          || \
-                                   FILE_TYPE == \"Memory Initialization Files\" || \
-                                   FILE_TYPE == \"CSV\"                         || \
-                                   FILE_TYPE == \"Coefficient Files\"           || \
-                                   FILE_TYPE == \"Configuration Data Object\""
-
-  set s_embedded_files_filter     "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ELF\""
-
-  set s_non_hdl_data_files_filter "FILE_TYPE != \"Verilog\"                      && \
-                                   FILE_TYPE != \"SystemVerilog\"                && \
-                                   FILE_TYPE != \"Verilog Header\"               && \
-                                   FILE_TYPE != \"Verilog/SystemVerilog Header\" && \
-                                   FILE_TYPE != \"SystemC Header\"               && \
-                                   FILE_TYPE != \"Verilog Template\"             && \
-                                   FILE_TYPE != \"VHDL\"                         && \
-                                   FILE_TYPE != \"VHDL 2008\"                    && \
-                                   FILE_TYPE != \"VHDL Template\"                && \
-                                   FILE_TYPE != \"EDIF\"                         && \
-                                   FILE_TYPE != \"NGC\"                          && \
-                                   FILE_TYPE != \"IP\"                           && \
-                                   FILE_TYPE != \"XCF\"                          && \
-                                   FILE_TYPE != \"NCF\"                          && \
-                                   FILE_TYPE != \"UCF\"                          && \
-                                   FILE_TYPE != \"XDC\"                          && \
-                                   FILE_TYPE != \"NGO\"                          && \
-                                   FILE_TYPE != \"Waveform Configuration File\"  && \
-                                   FILE_TYPE != \"BMM\"                          && \
-                                   FILE_TYPE != \"ELF\""
-
   ###################
   # unitialize arrays
   ###################
@@ -243,7 +201,6 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
 
   variable a_sim_vars
 
-  variable l_valid_ip_extns
   variable a_sim_cache_all_design_files_obj
   variable a_sim_cache_all_bd_files
 
@@ -251,7 +208,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   set vh_files [list]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
 
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+  if { [xcs_is_ip $tcl_obj [xcs_get_valid_ip_extns]] } {
     set vh_files [usf_get_incl_files_from_ip $tcl_obj]
   } else {
     set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
@@ -441,7 +398,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   variable a_sim_vars
 
   variable l_compile_order_files
-  variable l_valid_ip_extns
   variable l_compiled_libraries
 
   set files          [list]
@@ -604,7 +560,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         }
       }
     }
-  } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
+  } elseif { [xcs_is_ip $target_obj [xcs_get_valid_ip_extns]] } {
     # prepare command line args for fileset ip files
     send_msg_id USF-XSim-102 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
@@ -736,7 +692,6 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   variable a_sim_vars
 
   variable l_compile_order_files
-  variable l_valid_ip_extns
 
   set files         [list]
   set l_compile_order_files [list]
@@ -840,7 +795,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
         lappend l_compile_order_files $file
       }
     }
-  } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
+  } elseif { [xcs_is_ip $target_obj [xcs_get_valid_ip_extns]] } {
     # prepare command line args for fileset ip files
     set ip_filename [file tail $target_obj]
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {

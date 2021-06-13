@@ -116,50 +116,12 @@ proc xps_init_vars {} {
   variable l_valid_simulator_types    [list]
   variable l_valid_ip_extns           [list]
 
-  variable s_data_files_filter
-  variable s_embedded_files_filter
-  variable s_non_hdl_data_files_filter
   variable a_sim_cache_extract_source_from_repo
   variable a_sim_cache_gen_mem_files
 
   set l_valid_simulator_types         [list all xsim modelsim questa xcelium vcs vcs_mx ncsim riviera activehdl]
   set l_valid_ip_extns                [list ".xci" ".bd" ".slx"]
-  set s_data_files_filter \
-                                      "FILE_TYPE == \"Data Files\"                  || \
-                                       FILE_TYPE == \"Memory File\"                 || \
-                                       FILE_TYPE == \"STATIC MEMORY FILE\"          || \
-                                       FILE_TYPE == \"Memory Initialization Files\" || \
-                                       FILE_TYPE == \"CSV\"                         || \
-                                       FILE_TYPE == \"Coefficient Files\"           || \
-                                       FILE_TYPE == \"Configuration Data Object\""
 
-  set s_embedded_files_filter \
-                                      "FILE_TYPE == \"BMM\" || \
-                                       FILE_TYPE == \"ELF\""
-
-  set s_non_hdl_data_files_filter \
-                                      "FILE_TYPE != \"Verilog\"                      && \
-                                       FILE_TYPE != \"SystemVerilog\"                && \
-                                       FILE_TYPE != \"Verilog Header\"               && \
-                                       FILE_TYPE != \"Verilog/SystemVerilog Header\" && \
-                                       FILE_TYPE != \"Verilog Template\"             && \
-                                       FILE_TYPE != \"VHDL\"                         && \
-                                       FILE_TYPE != \"VHDL 2008\"                    && \
-                                       FILE_TYPE != \"VHDL Template\"                && \
-                                       FILE_TYPE != \"EDIF\"                         && \
-                                       FILE_TYPE != \"NGC\"                          && \
-                                       FILE_TYPE != \"IP\"                           && \
-                                       FILE_TYPE != \"XCF\"                          && \
-                                       FILE_TYPE != \"NCF\"                          && \
-                                       FILE_TYPE != \"UCF\"                          && \
-                                       FILE_TYPE != \"XDC\"                          && \
-                                       FILE_TYPE != \"NGO\"                          && \
-                                       FILE_TYPE != \"Waveform Configuration File\"  && \
-                                       FILE_TYPE != \"BMM\"                          && \
-                                       FILE_TYPE != \"ELF\"                          && \
-                                       FILE_TYPE != \"Design Checkpoint\""
-
- 
   # 
   # common - imported to <ns>::xcs_* - home is defined in <app>.tcl
   #
@@ -805,16 +767,15 @@ proc xps_xport_data_files { data_files_arg } {
   upvar $data_files_arg data_files
 
   variable a_sim_vars
-  variable s_data_files_filter
-  variable s_non_hdl_data_files_filter
   variable l_valid_ip_extns
 
   set tcl_obj $a_sim_vars(sp_tcl_obj)
+  set df_filter [xcs_get_data_files_filter]
   if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
     set ip_filter "FILE_TYPE == \"IP\""
     set ip_name [file tail $tcl_obj]
-    set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
-    foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
+    set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $df_filter]]
+    foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter [xcs_get_non_hdl_data_files_filter]] {
       if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
         if { [get_property {IS_USER_DISABLED} $file] } {
           continue;
@@ -833,7 +794,7 @@ proc xps_xport_data_files { data_files_arg } {
       }
     }
   } elseif { [xcs_is_fileset $tcl_obj] } {
-    xps_export_fs_data_files $s_data_files_filter data_files
+    xps_export_fs_data_files $df_filter data_files
     xps_export_fs_non_hdl_data_files data_files
   } else {
     send_msg_id exportsim-Tcl-017 INFO "Unsupported object source: $tcl_obj\n"
@@ -1231,9 +1192,8 @@ proc xps_export_fs_non_hdl_data_files { data_files_arg } {
   upvar $data_files_arg data_files
 
   variable a_sim_vars
-  variable s_non_hdl_data_files_filter
 
-  foreach file [get_files -all -quiet -of_objects [get_filesets $a_sim_vars(fs_obj)] -filter $s_non_hdl_data_files_filter] {
+  foreach file [get_files -all -quiet -of_objects [get_filesets $a_sim_vars(fs_obj)] -filter [xcs_get_non_hdl_data_files_filter]] {
     if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file] } {
         continue;
