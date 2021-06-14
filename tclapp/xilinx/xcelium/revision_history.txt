@@ -1,3 +1,4 @@
+11.73 initialize vars from utils
 11.72 code refactoring
 11.71 check for leaf dir name wrt library name for linked library
 11.70 Extract IP file name from core-container to determine SV package libraries
