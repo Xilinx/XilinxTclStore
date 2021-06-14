@@ -652,7 +652,7 @@ proc usf_vcs_write_elaborate_script {} {
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
       lappend arg_list "-sysc=232"
-      lappend arg_list "-cpp \$\{a_sim_vars(s_gcc_bin_path)\}/g++"
+      lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
   if { [get_property "vcs.elaborate.debug_pp" $a_sim_vars(fs_obj)] } {
@@ -1792,7 +1792,7 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
       switch -exact -- $compiler {
         "syscan" {
           if { $b_first } {
-            set cmd_str "\$a_sim_vars(s_gcc_bin_path)/g++ \$gpp_sysc_opts \$syscan_gcc_opts "
+            set cmd_str "\$gcc_path/g++ \$gpp_sysc_opts \$syscan_gcc_opts "
             set gcc_cmd "$cmd_str \\\n$src_file \\"
             puts $fh_scr "$gcc_cmd"
             set b_first false

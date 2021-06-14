@@ -1325,11 +1325,9 @@ proc usf_questa_get_elaboration_cmdline {} {
     }
   }
 
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) } {
-      set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
-      lappend arg_list "-cpppath $gcc_path"
-    }
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+    set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+    lappend arg_list "-cpppath $gcc_path"
   }
 
   set acc_val {}

@@ -1811,7 +1811,7 @@ proc usf_xcelium_write_compile_order_files_wait { fh_scr } {
         # setup command line
         set gcc_cmd "$cmd_str \\\n$src_file \\"
         if { {} != $a_sim_vars(s_tool_bin_path) } {
-          set gcc_cmd "\$a_sim_vars(s_gcc_bin_path)/$cmd_str \\\n$src_file \\"
+          set gcc_cmd "\$gcc_path/$cmd_str \\\n$src_file \\"
         }
         puts $fh_scr "$gcc_cmd"
 

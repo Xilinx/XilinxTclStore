@@ -431,8 +431,6 @@ proc usf_xsim_setup_simulation { args } {
   # TODO: perf-fix
   xcs_fetch_lib_info "xsim" $ip_dir $a_sim_vars(b_int_sm_lib_ref_debug)
 
-  set a_sim_vars(global_files_value) $global_files_str
-
   # systemC headers
   set a_sim_vars(b_contain_systemc_headers) [xcs_contains_systemc_headers]
 
@@ -701,7 +699,6 @@ proc usf_xsim_setup_args { args } {
       "-int_compile_glbl"         { set a_sim_vars(b_int_compile_glbl)         1                 }
       "-int_sm_lib_ref_debug"     { set a_sim_vars(b_int_sm_lib_ref_debug)     1                 }
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
-      "-int_en_system_sim_code"   { set a_sim_vars(b_int_en_system_sim_code)   1                 }
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }

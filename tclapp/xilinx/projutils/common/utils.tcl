@@ -13,6 +13,134 @@
 
 variable _xcs_defined 1
 
+proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  upvar $a_sim_vars_arg a_sim_vars
+  upvar $a_sim_mode_types_arg a_sim_mode_types
+
+  set a_sim_vars(curr_proj)                  {}
+  set a_sim_vars(s_simset)                   {}
+  set a_sim_vars(fs_obj)                     {}
+  set a_sim_vars(s_launch_dir)               {}
+  set a_sim_vars(s_type)                     {}
+  set a_sim_vars(s_comp_file)                {}
+  set a_sim_vars(sp_tcl_obj)                 {}
+  set a_sim_vars(s_clibs_dir)                {}
+  set a_sim_vars(s_install_path)             {}
+  set a_sim_vars(s_lib_map_path)             {}
+  set a_sim_vars(s_netlist_file)             {}
+  set a_sim_vars(s_int_os_type)              {}
+  set a_sim_vars(custom_sm_lib_dir)          {}
+  set a_sim_vars(s_tool_bin_path)            {}
+  set a_sim_vars(sp_hbm_ip_obj)              {}
+
+  set a_sim_vars(b_scripts_only)             0
+  set a_sim_vars(b_absolute_path)            0
+  set a_sim_vars(b_batch)                    0
+  set a_sim_vars(b_netlist_sim)              0
+  set a_sim_vars(b_extract_ip_sim_files)     0
+  set a_sim_vars(b_int_sm_lib_ref_debug)     0
+  set a_sim_vars(b_int_compile_glbl)         0
+  set a_sim_vars(s_int_debug_mode)           0
+  set a_sim_vars(b_int_halt_script)          0
+  set a_sim_vars(b_int_is_gui_mode)          0
+  set a_sim_vars(b_int_export_source_files)  0
+
+  #
+  # project, simset object setting
+  #
+  set a_sim_vars(curr_proj)                  [current_project]
+  set a_sim_vars(s_simset)                   [current_fileset -simset]
+  set a_sim_vars(fs_obj)                     [get_filesets $a_sim_vars(s_simset)]
+
+  set a_sim_vars(s_mode)                     "behavioral"
+  set a_sim_vars(s_flow_dir_key)             "behav"
+  set a_sim_vars(s_simulation_flow)          "behav_sim"
+  set a_sim_vars(s_netlist_mode)             "funcsim"
+
+  #
+  # project settings
+  #
+  set a_sim_vars(s_project_name)             [get_property "name"                              $a_sim_vars(curr_proj)]
+  set a_sim_vars(s_project_dir)              [get_property "directory"                         $a_sim_vars(curr_proj)]
+  set a_sim_vars(s_target_lang)              [get_property "target_language"                   $a_sim_vars(curr_proj)]
+  set a_sim_vars(simulator_language)         [get_property "simulator_language"                $a_sim_vars(curr_proj)]
+  set a_sim_vars(src_mgmt_mode)              [get_property "source_mgmt_mode"                  $a_sim_vars(curr_proj)]
+  set a_sim_vars(default_top_library)        [get_property "default_lib"                       $a_sim_vars(curr_proj)]
+  set a_sim_vars(b_is_managed)               [get_property "managed_ip"                        $a_sim_vars(curr_proj)]
+  set a_sim_vars(dynamic_repo_dir)           [get_property "ip.user_files_dir"                 $a_sim_vars(curr_proj)]
+  set a_sim_vars(ipstatic_dir)               [get_property "sim.ipstatic.source_dir"           $a_sim_vars(curr_proj)]
+  set a_sim_vars(b_use_static_lib)           [get_property "sim.ipstatic.use_precompiled_libs" $a_sim_vars(curr_proj)]
+
+  #
+  # simset settings 
+  #
+  set a_sim_vars(s_sim_top)                  [get_property "top"                               $a_sim_vars(fs_obj)]
+  set a_sim_vars(b_force_no_compile_glbl)    [get_property "force_no_compile_glbl"             $a_sim_vars(fs_obj)] 
+
+  #
+  # sim mode types
+  #
+  set a_sim_mode_types(behavioral)           "behav"
+  set a_sim_mode_types(post-synthesis)       "synth"
+  set a_sim_mode_types(post-implementation)  "impl"
+  set a_sim_mode_types(funcsim)              "func"
+  set a_sim_mode_types(timesim)              "timing"
+
+  #
+  # general settings
+  #
+  set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
+
+  #
+  # data dir
+  #
+  set data_dir                               [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
+  set a_sim_vars(s_ip_repo_dir)              [file normalize [file join $data_dir "ip/xilinx"]]
+}
+
+proc xcs_set_common_sysc_vars { a_sim_vars_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  upvar $a_sim_vars_arg a_sim_vars
+
+  set a_sim_vars(sp_cpt_dir)                 {}
+  set a_sim_vars(sp_ext_dir)                 {}
+  set a_sim_vars(s_gcc_bin_path)             {}
+  set a_sim_vars(s_sim_version)              {}
+  set a_sim_vars(s_gcc_version)              {}
+  set a_sim_vars(s_boost_dir)                {}
+
+  set a_sim_vars(b_contain_systemc_sources)  0
+  set a_sim_vars(b_contain_cpp_sources)      0
+  set a_sim_vars(b_contain_c_sources)        0
+  set a_sim_vars(b_contain_systemc_headers)  0
+
+  set a_sim_vars(b_int_systemc_mode)         0
+  set a_sim_vars(b_int_system_design)        0
+  set a_sim_vars(b_system_sim_design)        0
+  set a_sim_vars(b_int_csim_compile_order)   0
+  set a_sim_vars(b_int_en_vitis_hw_emu_mode) 0
+}
+
+proc xcs_set_common_param_vars { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set a_sim_vars(b_force_compile_glbl) [get_param "project.forceCompileGlblForSimulation"]
+
+  if { !$a_sim_vars(b_force_compile_glbl) } {
+    set a_sim_vars(b_force_compile_glbl) [get_property "force_compile_glbl" $a_sim_vars(fs_obj)]
+  }
+}
+
 proc xcs_create_fs_options_spec { simulator opts } {
   # Summary:
   # Argument Usage:
@@ -5325,4 +5453,18 @@ proc xcs_write_launch_mode_for_vitis { fh_scr simulator } {
   puts $fh_scr "elif \[\[ (\$arg = \"gui\") \]\]; then"
   puts $fh_scr "  mode=\"-gui\""
   puts $fh_scr "fi\n"
+}
+
+proc xcs_get_incl_files_from_ip { tcl_obj } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set incl_files [list]
+  set ip_name [file tail $tcl_obj]
+  set ft "FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\""
+  foreach file [get_files -quiet -all -of_objects [get_files -quiet *$ip_name] -filter $ft] {
+    lappend incl_files $file
+  }
+  return $incl_files
 }

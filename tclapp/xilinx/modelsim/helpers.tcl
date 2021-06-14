@@ -23,35 +23,16 @@ proc usf_init_vars {} {
   variable a_sim_vars
   variable a_sim_mode_types
 
-  #############
-  # define vars
-  #############
-  set a_sim_vars(curr_proj)                  {}
-  set a_sim_vars(s_simset)                   {}
-  set a_sim_vars(s_launch_dir)               {}
-  set a_sim_vars(s_type)                     {}
-  set a_sim_vars(s_comp_file)                {}
-  set a_sim_vars(s_install_path)             {}
-  set a_sim_vars(s_lib_map_path)             {}
-  set a_sim_vars(s_int_os_type)              {}
-  set a_sim_vars(fs_obj)                     {}
-  set a_sim_vars(s_tool_bin_path)            {}
-  set a_sim_vars(sp_tcl_obj)                 {}
-  set a_sim_vars(sp_hbm_ip_obj)              {}
-  set a_sim_vars(s_netlist_file)             {}
+  ########################
+  # initialize common vars
+  ########################
+  xcs_set_common_vars a_sim_vars a_sim_mode_types
 
-  set a_sim_vars(b_scripts_only)             0
-  set a_sim_vars(b_absolute_path)            0
-  set a_sim_vars(b_batch)                    0
-  set a_sim_vars(s_int_debug_mode)           0
-  set a_sim_vars(b_int_is_gui_mode)          0
-  set a_sim_vars(b_int_halt_script)          0
-  set a_sim_vars(b_int_compile_glbl)         0
-  set a_sim_vars(b_int_sm_lib_ref_debug)     0
   set a_sim_vars(b_int_csim_compile_order)   0
-  set a_sim_vars(b_netlist_sim)              0
-  set a_sim_vars(b_extract_ip_sim_files)     0
 
+  ###################
+  # unitialize arrays
+  ###################
   variable l_compile_order_files             [list]
   variable l_compile_order_files_uniq        [list]
   variable l_design_files                    [list]
@@ -59,8 +40,6 @@ proc usf_init_vars {} {
   variable l_local_design_libraries          [list]
   variable l_ip_static_libs                  [list]
   variable l_xpm_libraries                   [list]
-  variable l_valid_ip_extns                  [list]
-  variable l_valid_hdl_extns                 [list]
   variable a_sim_sv_pkg_libs                 [list]
 
   variable a_sim_cache_result
@@ -70,74 +49,17 @@ proc usf_init_vars {} {
   variable a_sim_cache_parent_comp_files
   variable a_ip_lib_ref_coln
 
-  #################
-  # initialize vars
-  #################
-  set a_sim_vars(curr_proj)                  [current_project]
-  set a_sim_vars(s_simset)                   [current_fileset -simset]
-  set a_sim_vars(fs_obj)                     [get_filesets $a_sim_vars(s_simset)]
-
-  set a_sim_vars(s_mode)                     "behavioral"
-  set a_sim_vars(s_flow_dir_key)             {behav}
-  set a_sim_vars(s_simulation_flow)          {behav_sim}
-  set a_sim_vars(s_netlist_mode)             {funcsim}
-
-  set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
-
-  set data_dir                               [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
-  set a_sim_vars(s_ip_repo_dir)              [file normalize [file join $data_dir "ip/xilinx"]]
-
-  set l_valid_ip_extns                       [list ".xci" ".bd" ".slx"]
-  set l_valid_hdl_extns                      [list ".vhd" ".vhdl" ".vhf" ".vho" ".v" ".vf" ".verilog" ".vr" ".vg" ".vb" ".tf" ".vlog" ".vp" ".vm" ".vh" ".h" ".svh" ".sv" ".veo"]
-
-  #################
-  # sim mode type
-  #################
-  set a_sim_mode_types(behavioral)           {behav}
-  set a_sim_mode_types(post-synthesis)       {synth}
-  set a_sim_mode_types(post-implementation)  {impl}
-  set a_sim_mode_types(funcsim)              {func}
-  set a_sim_mode_types(timesim)              {timing}
-
-  #################
-  # project vars
-  #################
-  set a_sim_vars(s_project_name)      [get_property "name"                              $a_sim_vars(curr_proj)]
-  set a_sim_vars(s_project_dir)       [get_property "directory"                         $a_sim_vars(curr_proj)]
-  set a_sim_vars(s_target_lang)       [get_property "target_language"                   $a_sim_vars(curr_proj)]
-  set a_sim_vars(simulator_language)  [get_property "simulator_language"                $a_sim_vars(curr_proj)]
-  set a_sim_vars(src_mgmt_mode)       [get_property "source_mgmt_mode"                  $a_sim_vars(curr_proj)]
-  set a_sim_vars(default_top_library) [get_property "default_lib"                       $a_sim_vars(curr_proj)]
-  set a_sim_vars(b_is_managed)        [get_property "managed_ip"                        $a_sim_vars(curr_proj)]
-  set a_sim_vars(dynamic_repo_dir)    [get_property "ip.user_files_dir"                 $a_sim_vars(curr_proj)]
-  set a_sim_vars(ipstatic_dir)        [get_property "sim.ipstatic.source_dir"           $a_sim_vars(curr_proj)]
-  set a_sim_vars(b_use_static_lib)    [get_property "sim.ipstatic.use_precompiled_libs" $a_sim_vars(curr_proj)]
-
-  #################
-  # simset vars
-  #################
-  set a_sim_vars(s_sim_top)               [get_property "top"                   $a_sim_vars(fs_obj)]
-  set a_sim_vars(b_force_no_compile_glbl) [get_property "force_no_compile_glbl" $a_sim_vars(fs_obj)]
-
-  #################
-  # params
-  #################
-  set a_sim_vars(b_force_compile_glbl) [get_param project.forceCompileGlblForSimulation]
-
-  #################
-  # logic
-  #################
-  if { !$a_sim_vars(b_force_compile_glbl) } {set a_sim_vars(b_force_compile_glbl) [get_property "force_compile_glbl" $a_sim_vars(fs_obj)]}
-
-  ###################
-  # unitialize arrays
-  ###################
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
   array unset a_sim_cache_all_bd_files
   array unset a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
   array unset a_ip_lib_ref_coln
+
+  #######################
+  # initialize param vars
+  #######################
+  xcs_set_common_param_vars
 }
 
 proc usf_create_options { simulator opts } {
@@ -340,7 +262,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   variable a_sim_vars
 
   variable l_compile_order_files
-  variable l_valid_ip_extns
   variable l_compiled_libraries
 
   set files          [list]
@@ -511,7 +432,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         }
       }
     }
-  } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
+  } elseif { [xcs_is_ip $target_obj [xcs_get_valid_ip_extns]] } {
     # prepare command line args for fileset ip files
     send_msg_id USF-ModelSim-112 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
@@ -540,7 +461,6 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   variable a_sim_vars
 
   variable l_compile_order_files
-  variable l_valid_ip_extns
 
   set files         [list]
   set l_compile_order_files [list]
@@ -645,7 +565,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
         lappend l_compile_order_files $file
       }
     }
-  } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
+  } elseif { [xcs_is_ip $target_obj [xcs_get_valid_ip_extns]] } {
     # prepare command line args for fileset ip files
     set ip_filename [file tail $target_obj]
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_filename]] {
@@ -780,13 +700,11 @@ proc usf_get_include_dirs { } {
 
   variable a_sim_vars
 
-  variable l_valid_ip_extns
-
   set d_dir_names [dict create]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
   set incl_dirs [list]
   set incl_dir_str {}
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+  if { [xcs_is_ip $tcl_obj [xcs_get_valid_ip_extns]] } {
     set incl_dir_str [usf_get_incl_dirs_from_ip $tcl_obj]
     set incl_dirs [split $incl_dir_str "|"]
   } else {
