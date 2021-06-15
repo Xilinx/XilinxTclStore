@@ -402,11 +402,12 @@ proc usf_set_simulator_path { simulator } {
   set tool_name {} 
   set path_sep  {:}
 
+  set install_path $a_sim_vars(s_install_path)
   send_msg_id USF-Xcelium-041 INFO "Finding simulator installation...\n"
   switch -regexp -- $simulator {
     {xcelium} {
       set tool_name "xmsim"
-      if { {} == $a_sim_vars(s_install_path) } {
+      if { {} == $install_path } {
         set install_path [get_param "simulator.xceliumInstallPath"]
       }
     }
@@ -439,7 +440,7 @@ proc usf_set_simulator_path { simulator } {
       send_msg_id USF-Xcelium-043 INFO "Using simulator executables from '$bin_path'\n"
     }
   } else {
-    set install_path [file normalize [string map {\\ /} $a_sim_vars(s_install_path)]]
+    set install_path [file normalize [string map {\\ /} $install_path]]
     set install_path [string trimright $install_path {/}]
     set bin_path $install_path
     set tool_path [file join $install_path $tool_name]
