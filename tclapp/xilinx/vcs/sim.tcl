@@ -108,28 +108,29 @@ proc usf_vcs_setup_simulation { args } {
 
   variable a_sim_vars
 
-  usf_set_simulator_path "vcs"
-  if { $a_sim_vars(b_int_system_design) } {
-    usf_set_gcc_version_path "vcs"
-  }
-
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
+
+  # set default object
+  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
+    return 1
+  }
+
+  # *****************************************************************
+  # is step exec mode?
+  # *****************************************************************
+  if { $a_sim_vars(b_int_setup_sim_vars) } {
+    return 0
+  }  
 
   if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
     set a_sim_vars(b_netlist_sim) 1
   }
 
-  if { [get_param "project.enableCentralSimRepo"] } {
-    # no op
-  } else {
-    # extract ip simulation files
-    xcs_extract_ip_files a_sim_vars(b_extract_ip_sim_files)
-  }
+  usf_set_simulator_path "vcs"
 
-  # set default object
-  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
-    return 1
+  if { $a_sim_vars(b_int_system_design) } {
+    usf_set_gcc_version_path "vcs"
   }
 
   # initialize boost library reference
@@ -138,6 +139,13 @@ proc usf_vcs_setup_simulation { args } {
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
+  if { [get_param "project.enableCentralSimRepo"] } {
+    # no op
+  } else {
+    # extract ip simulation files
+    xcs_extract_ip_files a_sim_vars(b_extract_ip_sim_files)
+  }
+  
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
                                                            $a_sim_vars(s_simulation_flow) \
@@ -255,6 +263,7 @@ proc usf_vcs_setup_args { args } {
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-run_dir <arg>]: Simulation run directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
+  # [-int_setup_sim_vars]: Initialize sim vars only (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
   # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
@@ -279,28 +288,30 @@ proc usf_vcs_setup_args { args } {
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-scripts_only"             { set a_sim_vars(b_scripts_only)             1 }
-      "-absolute_path"            { set a_sim_vars(b_absolute_path)            1 }
-      "-batch"                    { set a_sim_vars(b_batch)                    1 }
-      "-int_ide_gui"              { set a_sim_vars(b_int_is_gui_mode)          1 }
-      "-int_halt_script"          { set a_sim_vars(b_int_halt_script)          1 }
-      "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1 }
-      "-int_system_design"        { set a_sim_vars(b_int_system_design)        1 }
-      "-int_compile_glbl"         { set a_sim_vars(b_int_compile_glbl)         1 }
-      "-int_sm_lib_ref_debug"     { set a_sim_vars(b_int_sm_lib_ref_debug)     1 }
-      "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1 }
-      "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1 }
-      "-simset"                   { incr i;set a_sim_vars(s_simset)          [lindex $args $i] }
-      "-mode"                     { incr i;set a_sim_vars(s_mode)            [lindex $args $i] }
-      "-type"                     { incr i;set a_sim_vars(s_type)            [lindex $args $i] }
-      "-of_objects"               { incr i;set a_sim_vars(s_comp_file)       [lindex $args $i] }
-      "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)    [lindex $args $i] }
-      "-install_path"             { incr i;set a_sim_vars(s_install_path)    [lindex $args $i] }
-      "-run_dir"                  { incr i;set a_sim_vars(s_launch_dir)      [lindex $args $i] }
-      "-int_os_type"              { incr i;set a_sim_vars(s_int_os_type)     [lindex $args $i] }
-      "-int_debug_mode"           { incr i;set a_sim_vars(s_int_debug_mode)  [lindex $args $i] }
-      "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)    [lindex $args $i] }
-      "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
+      "-simset"                   { incr i;set a_sim_vars(s_simset)            [lindex $args $i] }
+      "-mode"                     { incr i;set a_sim_vars(s_mode)              [lindex $args $i] }
+      "-type"                     { incr i;set a_sim_vars(s_type)              [lindex $args $i] }
+      "-of_objects"               { incr i;set a_sim_vars(s_comp_file)         [lindex $args $i] }
+      "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)      [lindex $args $i] }
+      "-install_path"             { incr i;set a_sim_vars(s_install_path)      [lindex $args $i] }
+      "-run_dir"                  { incr i;set a_sim_vars(s_launch_dir)        [lindex $args $i] }
+      "-int_os_type"              { incr i;set a_sim_vars(s_int_os_type)       [lindex $args $i] }
+      "-int_debug_mode"           { incr i;set a_sim_vars(s_int_debug_mode)    [lindex $args $i] }
+      "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
+      "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
+      "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
+      "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
+      "-batch"                    { set a_sim_vars(b_batch)                    1                 }
+      "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
+      "-int_ide_gui"              { set a_sim_vars(b_int_is_gui_mode)          1                 }
+      "-int_halt_script"          { set a_sim_vars(b_int_halt_script)          1                 }
+      "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1                 }
+      "-int_system_design"        { set a_sim_vars(b_int_system_design)        1                 }
+      "-int_compile_glbl"         { set a_sim_vars(b_int_compile_glbl)         1                 }
+      "-int_sm_lib_ref_debug"     { set a_sim_vars(b_int_sm_lib_ref_debug)     1                 }
+      "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
+      "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -508,6 +519,11 @@ proc usf_vcs_write_compile_script {} {
  
   variable a_sim_vars
 
+  # step exec mode?
+  if { $a_sim_vars(b_exec_step) } {
+    return 0
+  }
+
   set scr_filename "compile";append scr_filename [xcs_get_script_extn "vcs"]
   set scr_file [file normalize [file join $a_sim_vars(s_launch_dir) $scr_filename]]
   set fh_scr 0
@@ -615,6 +631,11 @@ proc usf_vcs_write_elaborate_script {} {
   # Return Value:
 
   variable a_sim_vars
+
+  # step exec mode?
+  if { $a_sim_vars(b_exec_step) } {
+    return 0
+  }
 
   set netlist_mode [get_property "nl.mode" $a_sim_vars(fs_obj)]
 
@@ -1099,6 +1120,11 @@ proc usf_vcs_write_simulate_script {} {
   # Return Value:
 
   variable a_sim_vars
+
+  # step exec mode?
+  if { $a_sim_vars(b_exec_step) } {
+    return 0
+  }
 
   set filename "simulate";append filename ".sh"
   set file [file normalize [file join $a_sim_vars(s_launch_dir) $filename]]
