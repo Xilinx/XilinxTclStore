@@ -131,6 +131,21 @@ proc usf_xcelium_setup_simulation { args } {
     set a_sim_vars(b_netlist_sim) 1
   }
 
+  # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
+  if { !$a_sim_vars(b_use_static_lib) } {
+    set a_sim_vars(b_compile_simmodels) 0
+  }
+
+  if { $a_sim_vars(b_compile_simmodels) } {
+    set a_sim_vars(s_simlib_dir) "$a_sim_vars(s_launch_dir)/simlibs"
+    if { ![file exists $a_sim_vars(s_simlib_dir)] } {
+      if { [catch {file mkdir $a_sim_vars(s_simlib_dir)} error_msg] } {
+        send_msg_id USF-Xcelium-013 ERROR "Failed to create the directory ($a_sim_vars(s_simlib_dir)): $error_msg\n"
+        return 1
+      }
+    }
+  }
+
   usf_set_simulator_path "xcelium"
 
   if { $a_sim_vars(b_int_system_design) } {
@@ -232,6 +247,11 @@ proc usf_xcelium_setup_simulation { args } {
         xcs_find_shared_lib_paths "xcelium" $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(custom_sm_lib_dir) $a_sim_vars(b_int_sm_lib_ref_debug) a_sim_vars(sp_cpt_dir) a_sim_vars(sp_ext_dir)
       }
     }
+  }
+
+  if { $a_sim_vars(b_compile_simmodels) } {
+    # get the design simmodel compile order
+    set a_sim_vars(l_simmodel_compile_order) [xcs_get_simmodel_compile_order]
   }
 
   # create setup file
@@ -611,6 +631,9 @@ proc usf_xcelium_write_compile_script {} {
  
   # write compile order files
   if { $a_sim_vars(b_optimizeForRuntime) } {
+    if { $a_sim_vars(b_compile_simmodels) } {
+      usf_compile_simmodel_sources $fh_scr
+    }
     usf_xcelium_write_compile_order_files_wait $fh_scr
   } else {
     usf_xcelium_write_compile_order_files $fh_scr
@@ -639,6 +662,465 @@ proc usf_xcelium_write_compile_script {} {
       [catch {file mkdir $obj_dir} error_msg]
     }
   }
+}
+
+proc usf_compile_simmodel_sources { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  variable a_sim_vars
+
+  set platform  "lin"
+
+  set b_dbg 0
+  if { $a_sim_vars(s_int_debug_mode) == "1" } {
+    set b_dbg 1
+  }
+
+  set simulator "xcelium"
+  set data_dir [rdi::get_data_dir -quiet -datafile "systemc/simlibs"]
+  set cpt_dir  [xcs_get_simmodel_dir "xcelium" $a_sim_vars(s_gcc_version) "cpt"]
+
+  # is pure-rtl sources for system simulation (selected_sim_model = rtl), don't need to compile the systemC/CPP/C sim-models
+  if { [llength $a_sim_vars(l_simmodel_compile_order)] == 0 } {
+    if { [file exists $a_sim_vars(s_simlib_dir)] } {
+      # delete <run-dir>/simlibs dir (not required)
+      [catch {file delete -force $a_sim_vars(s_simlib_dir)} error_msg]
+    }
+    return
+  }
+
+  # update mappings in xsim.ini
+  usf_add_simmodel_mappings
+
+  # find simmodel info from dat file and update do file
+  foreach lib_name $a_sim_vars(l_simmodel_compile_order) {
+    set lib_path [xcs_find_lib_path_for_simmodel $lib_name]
+    set fh_dat 0
+    set dat_file "$lib_path/.cxl.sim_info.dat"
+    if {[catch {open $dat_file r} fh_dat]} {
+      send_msg_id USF-Questa-016 WARNING "Failed to open file to read ($dat_file)\n"
+      continue
+    }
+    set data [split [read $fh_dat] "\n"]
+    close $fh_dat
+
+    # is current platform supported?
+    set simulator_platform {}
+    set simmodel_name      {}
+    set library_name       {}
+    set b_process          0
+
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag   [lindex $line_info 0]
+      set value [lindex $line_info 1]
+      if { "<SIMMODEL_NAME>"              == $tag } { set simmodel_name $value }
+      if { "<LIBRARY_NAME>"               == $tag } { set library_name $value  }
+      if { "<SIMULATOR_PLATFORM>" == $tag } {
+        if { ("all" == $value) || (("linux" == $value) && ("lin" == $platform)) || (("windows" == $vlue) && ("win" == $platform)) } {
+          # supported
+          set b_process 1
+        } else {
+          continue
+        }
+      }
+    }
+
+    # not supported, work on next simmodel
+    if { !$b_process } { continue }
+
+    #send_msg_id USF-Xcelium-107 STATUS "Generating compilation commands for '$lib_name'\n"
+
+    # create local lib dir
+    set simlib_dir "$a_sim_vars(s_simlib_dir)/$lib_name"
+    if { ![file exists $simlib_dir] } {
+      if { [catch {file mkdir $simlib_dir} error_msg] } {
+        send_msg_id USF-Xcelium-013 ERROR "Failed to create the directory ($simlib_dir): $error_msg\n"
+        return 1
+      }
+    }
+
+    # copy simmodel sources locally
+    if { $a_sim_vars(b_int_export_source_files) } {
+      if { {} == $simmodel_name } { send_msg_id USF-Questa-107 WARNING "Empty tag '$simmodel_name'!\n" }
+      if { {} == $library_name  } { send_msg_id USF-Questa-107 WARNING "Empty tag '$library_name'!\n"  }
+
+      set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
+      set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
+      if { [file exists $src_sim_model_dir] } {
+        if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
+          [catch {send_msg_id USF-Xcelium-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
+        } else {
+          #puts "copied '$src_sim_model_dir' to run dir:'$a_sim_vars(s_launch_dir)/simlibs'\n"
+          }
+      } else {
+        [catch {send_msg_id USF-Xcelium-108 ERROR "File '$src_sim_model_dir' does not exist\n"} err]
+      }
+    }
+
+    # copy include dir
+    set simlib_incl_dir "$lib_path/include"
+    set target_dir      "$a_sim_vars(s_simlib_dir)/$lib_name"
+    set target_incl_dir "$target_dir/include"
+    if { ![file exists $target_incl_dir] } {
+      if { [catch {file copy -force $simlib_incl_dir $target_dir} error_msg] } {
+        [catch {send_msg_id USF-Xcelium-010 ERROR "Failed to copy file '$simlib_incl_dir' to '$target_dir': $error_msg\n"} err]
+      }
+    }
+
+    # simmodel file_info.dat data
+    set library_type            {}
+    set output_format           {}
+    set gplus_compile_flags     [list]
+    set gplus_compile_flags_xcl [list]
+    set gplus_compile_opt_flags [list]
+    set gplus_compile_dbg_flags [list]
+    set ldflags                 [list]
+    set ldflags_xcl             {}
+    set gplus_ldflags_option    {}
+    set gcc_ldflags_option      {}
+    set ldflags_lin64           [list]
+    set ldflags_win64           [list]
+    set ldlibs                  [list]
+    set ldlibs_lin64            [list]
+    set ldlibs_win64            [list]
+    set gplus_ldlibs_option     {}
+    set gcc_ldlibs_option       {}
+    set sysc_dep_libs           {}
+    set cpp_dep_libs            {}
+    set c_dep_libs              {}
+    set sccom_compile_flags     {}
+    set more_xsc_options        [list]
+    set simulator_platform      {}
+    set systemc_compile_option  {}
+    set cpp_compile_option      {}
+    set c_compile_option        {}
+    set shared_lib              {}
+    set systemc_incl_dirs       [list]
+    set systemc_incl_dirs_xcl   [list]
+    set cpp_incl_dirs           [list]
+    set osci_incl_dirs          [list]
+    set c_incl_dirs             [list]
+
+    set sysc_files [list]
+    set cpp_files  [list]
+    set c_files    [list]
+
+    # process simmodel data from .dat file
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag       [lindex $line_info 0]
+      set value     [lindex $line_info 1]
+
+      # collect sources
+      if { ("<SYSTEMC_SOURCES>" == $tag) || ("<CPP_SOURCES>" == $tag) || ("<C_SOURCES>" == $tag) } {
+        set file_path "$data_dir/$value"
+
+        # local file path where sources will be copied for export option
+        if { $a_sim_vars(b_int_export_source_files) } {
+          set dirs [split $value "/"]
+          set value [join [lrange $dirs 3 end] "/"]
+          set file_path "simlibs/$value"
+        }
+
+        if { ("<SYSTEMC_SOURCES>" == $tag) } { lappend sysc_files $file_path }
+        if { ("<CPP_SOURCES>"     == $tag) } { lappend cpp_files  $file_path }
+        if { ("<C_SOURCES>"       == $tag) } { lappend c_files    $file_path }
+      }
+
+      # get simmodel info
+      if { "<LIBRARY_TYPE>"               == $tag } { set library_type            $value             }
+      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format           $value             }
+      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs       [split $value {,}] }
+      if { "<SYSTEMC_INCLUDE_DIRS_XCELIUM>" == $tag } { set systemc_incl_dirs_xcl       [split $value {,}] }
+      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs           [split $value {,}] }
+      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs             [split $value {,}] }
+      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs          [split $value {,}] }
+      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags     [split $value {,}] }
+      if { "<G++_COMPILE_FLAGS_XCELIUM>"  == $tag } { set gplus_compile_flags_xcl [split $value {,}] }
+      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags [split $value {,}] }
+      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags [split $value {,}] }
+      if { "<LDFLAGS>"                    == $tag } { set ldflags                 [split $value {,}] }
+      if { "<LDFLAGS_XCELIUM>"            == $tag } { set ldflags_xcl             $value }
+      if { "<LDFLAGS_LNX64>"              == $tag } { set ldflags_lin64           [split $value {,}] }
+      if { "<LDFLAGS_WIN64>"              == $tag } { set ldflags_win64           [split $value {,}] }
+      if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option    $value             }
+      if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option      $value             }
+      if { "<LDLIBS>"                     == $tag } { set ldlibs                  [split $value {,}] }
+      if { "<LDLIBS_LNX64>"               == $tag } { set ldlibs_lin64            [split $value {,}] }
+      if { "<LDLIBS_WIN64>"               == $tag } { set ldlibs_win64            [split $value {,}] }
+      if { "<G++_LDLIBS_OPTION>"          == $tag } { set gplus_ldlibs_option     $value             }
+      if { "<GCC_LDLIBS_OPTION>"          == $tag } { set gcc_ldlibs_option       $value             }
+      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs           $value             }
+      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs            $value             }
+      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs              $value             }
+      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags     $value             }
+      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options        [split $value {,}] }
+      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform      $value             }
+      if { "<SYSTEMC_COMPILE_OPTION>"     == $tag } { set systemc_compile_option  $value             }
+      if { "<CPP_COMPILE_OPTION>"         == $tag } { set cpp_compile_option      $value             }
+      if { "<C_COMPILE_OPTION>"           == $tag } { set c_compile_option        $value             }
+      if { "<SHARED_LIBRARY>"             == $tag } { set shared_lib              $value             }
+    }
+
+    set obj_dir "$a_sim_vars(s_launch_dir)/xcelium_lib/$lib_name"
+    if { ![file exists $obj_dir] } {
+      if { [catch {file mkdir $obj_dir} error_msg] } {
+        send_msg_id USF-Xcelium-013 ERROR "Failed to create the directory ($obj_dir): $error_msg\n"
+        return 1
+      }
+    }
+    
+    #
+    # write systemC/CPP/C command line
+    #
+    if { [llength $sysc_files] > 0 } {
+      set compiler "xmsc"
+      puts $fh "# compile '$lib_name' model sources"
+      foreach src_file $sysc_files {
+        set file_name [file root [file tail $src_file]]
+
+        set args [list] 
+        lappend args "-64bit"
+        lappend args "-compiler $a_sim_vars(s_gcc_bin_path)/g++"
+        lappend args "-noedg"
+        lappend args "-cFlags \""
+        lappend args "-DSC_INCLUDE_DYNAMIC_PROCESSES"
+
+        # <SYSTEMC_INCLUDE_DIRS>
+        foreach incl_dir $systemc_incl_dirs {
+          if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
+            set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
+          }
+          lappend args "-I$incl_dir"
+        }
+
+        # <SYSTEMC_INCLUDE_DIRS_XCELIUM>
+        foreach incl_dir $systemc_incl_dirs_xcl {
+          if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
+            set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
+          }
+          lappend args "-I$incl_dir"
+        }
+
+        # <CPP_COMPILE_OPTION>
+        lappend args $cpp_compile_option
+
+        # <G++_COMPILE_FLAGS>
+        foreach opt $gplus_compile_flags     { lappend args $opt }
+        foreach opt $gplus_compile_flags_xcl { lappend args $opt }
+        foreach opt $gplus_compile_opt_flags { lappend args $opt }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+  
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        lappend args "-c"
+        lappend args "-o xcelium_lib/${lib_name}/${file_name}.o"
+        lappend args "\""
+        lappend args "-work ${lib_name}"
+        lappend args $src_file
+        
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_tool_bin_path)/xmsc $cmd_str\n"
+      }
+     
+      #
+      # LINK (g++)
+      #
+      set args [list]
+      lappend args "-m64"
+      foreach src_file $sysc_files {
+        set file_name [file root [file tail $src_file]]
+        #set obj_file "xcelium_lib/$lib_name/${file_name}.o"
+        set obj_file "xcelium_lib/${lib_name}/${file_name}.o"
+        lappend args $obj_file
+      }
+      set sys_link_path "\$bin_path/../../systemc/lib/64bit/gnu"
+      lappend args "$sys_link_path/libscBootstrap_sh.so"
+      lappend args "$sys_link_path/libxmscCoroutines_sh.so"
+      lappend args "$sys_link_path/libsystemc_sh.so"
+      
+      # <LDFLAGS>
+      if { [llength $ldflags] > 0 } { foreach opt $ldflags { lappend args $opt } }
+
+      # <LDFLAGS_XCELIUM>
+      if { {} != $ldflags_xcl } {
+        lappend args $ldflags_xcl
+      }
+      
+      if {$::tcl_platform(platform) == "windows"} {
+      if { [llength $ldflags_win64] > 0 } { foreach opt $ldflags_win64 { lappend args $opt } }
+      } else {
+      if { [llength $ldflags_lin64] > 0 } { foreach opt $ldflags_lin64 { lappend args $opt } }
+      }
+      
+      # acd ldflags
+      if { {} != $gplus_ldflags_option } { lappend args $gplus_ldflags_option }
+
+      # <LDLIBS>
+      if { [llength $ldlibs] > 0 } { foreach opt $ldlibs { lappend args $opt } }
+ 
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "./xcelium_lib/$lib_name/lib${lib_name}.so"
+     
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+
+    } elseif { [llength $cpp_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+      #
+      # COMPILE (g++)
+      #
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set args [list]
+        lappend args "-m64"
+        lappend args "-c"
+        lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+
+        # <CPP_INCLUDE_DIRS>
+        if { [llength $cpp_incl_dirs] > 0 } {
+          foreach incl_dir $cpp_incl_dirs {
+            lappend args "-I $incl_dir"
+          }
+        }
+
+        # <CPP_COMPILE_OPTION>
+        lappend args $cpp_compile_option 
+
+        # <G++_COMPILE_FLAGS>
+        if { [llength $gplus_compile_flags] > 0 } {
+          foreach opt $gplus_compile_flags {
+            lappend args $opt
+          }
+        }
+
+        # <G++_COMPILE_DEBUG_FLAGS>
+        if { $b_dbg } {
+          if { [llength $gplus_compile_dbg_flags] > 0 } {
+            foreach opt $gplus_compile_dbg_flags {
+              lappend args $opt
+            }
+          }
+        # <G++_COMPILE_OPT_FLAGS>
+        } else {
+          if { [llength $gplus_compile_opt_flags] > 0 } {
+            foreach opt $gplus_compile_opt_flags {
+              lappend args $opt
+            }
+          }
+        }
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "xcelium_lib/$lib_name/${file_name}.o"
+        
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      }
+
+      #
+      # LINK (g++)
+      #
+      set args [list]
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "xcelium_lib/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+      lappend args "-m64"
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "xcelium_lib/$lib_name/lib${lib_name}.so"
+
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+
+    } elseif { [llength $c_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+    }
+  }
+}
+
+proc usf_add_simmodel_mappings { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  # file should be present by now
+  set cds_file "$a_sim_vars(s_launch_dir)/cds.lib"
+  if { ![file exists $cds_file] } {
+    return
+  }
+
+  # read cds.lib contents
+  set fh 0
+  if {[catch {open $cds_file r} fh]} {
+    send_msg_id USF-Xcelium-011 ERROR "Failed to open file to read ($cds_file)\n"
+    return 1
+  }
+  set data [split [read $fh] "\n"]
+  close $fh
+
+  # get current_mappings
+  set l_current_mappings  [list]
+  set l_current_libraries [list]
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } {
+      continue;
+    }
+    if { [regexp {^INCLUDE} $line] } { continue; }
+    lappend l_current_mappings $line
+
+    set library [string trim [lindex [split $line " "] 1]]
+    lappend l_current_libraries $library
+  }
+  
+  # find new simmodel mappings to add
+  set l_new_mappings [list]
+  foreach library $a_sim_vars(l_simmodel_compile_order) {
+    if { [lsearch -exact $l_current_mappings $library] == -1 } {
+      set mapping "DEFINE $library $a_sim_vars(compiled_design_lib)/$library"
+      lappend l_new_mappings $mapping
+    }
+  }
+
+  # delete cds.lib
+  [catch {file delete -force $cds_file} error_msg]
+
+  # create fresh updated copy
+  set fh 0
+  if {[catch {open $cds_file w} fh]} {
+    send_msg_id USF-Xcelium-011 ERROR "Failed to open file to write ($cds_file)\n"
+    return
+  }
+  put $fh "INCLUDE $a_sim_vars(s_compiled_lib_dir)/cds.lib"
+  foreach line $l_current_mappings { puts $fh $line }
+  foreach line $l_new_mappings     { puts $fh $line }
+  close $fh
 }
 
 proc usf_xcelium_write_elaborate_script {} {
@@ -917,6 +1399,16 @@ proc usf_xcelium_write_elaborate_script {} {
           set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
           set lib_name [string trimleft $library "lib"]
           set lib_name [string trimright $lib_name ".so"]
+
+          if { $a_sim_vars(b_compile_simmodels) } {
+            set lib_type [file tail [file dirname $lib_dir]]
+            if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+              # skip
+            } else {
+              set sm_lib_dir "xcelium_lib/$lib_name"
+            }
+          }
+
           lappend link_arg_list "-L$sm_lib_dir -l$lib_name"
         }
 
@@ -1380,6 +1872,18 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
     }
     set sm_lib_dir [file normalize $lib_dir]
     set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+
+    if { $a_sim_vars(b_compile_simmodels) } {
+      set lib_name [string trimleft $library "lib"]
+      set lib_name [string trimright $lib_name ".so"]
+      set lib_type [file tail [file dirname $lib_dir]]
+      if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+        # skip
+      } else {
+        set sm_lib_dir "xcelium_lib/$lib_name"
+      }
+    }
+
     lappend l_sm_lib_paths $sm_lib_dir
   }
   set ld_path "LD_LIBRARY_PATH=."

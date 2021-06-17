@@ -841,9 +841,23 @@ proc usf_compile_simmodel_sources { fh } {
     set platform "win"
   }
 
+  set b_dbg 0
+  if { $a_sim_vars(s_int_debug_mode) == "1" } {
+    set b_dbg 1
+  }
+
   set simulator "questa"
   set data_dir [rdi::get_data_dir -quiet -datafile "systemc/simlibs"]
   set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
+
+  # is pure-rtl sources for system simulation (selected_sim_model = rtl), don't need to compile the systemC/CPP/C sim-models
+  if { [llength $a_sim_vars(l_simmodel_compile_order)] == 0 } {
+    if { [file exists $a_sim_vars(s_simlib_dir)] } {
+      # delete <run-dir>/simlibs dir (not required)
+      [catch {file delete -force $a_sim_vars(s_simlib_dir)} error_msg]
+    }
+    return
+  }
 
   # find simmodel info from dat file and update do file
   foreach lib_name $a_sim_vars(l_simmodel_compile_order) {
@@ -1096,7 +1110,7 @@ proc usf_compile_simmodel_sources { fh } {
       set cfg_val ""
       [catch {set cfg_val [get_param $cfg_opt]} err]
       if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
-        lappend xsc_arg_list "$cfg_val"
+        lappend args "$cfg_val"
       }
 
       # work dir    
@@ -1182,7 +1196,7 @@ proc usf_compile_simmodel_sources { fh } {
         if { [llength $gplus_compile_flags] > 0 } { foreach opt $gplus_compile_flags { lappend args $opt } }
 
         # <G++_COMPILE_OPTIMIZE_FLAGS>
-        if { $dbg } {
+        if { $b_dbg } {
           if { [llength $gplus_compile_dbg_flags] > 0 } { foreach opt $gplus_compile_dbg_flags { lappend args $opt } }
         } else {
           if { [llength $gplus_compile_opt_flags] > 0 } { foreach opt $gplus_compile_opt_flags { lappend args $opt } }

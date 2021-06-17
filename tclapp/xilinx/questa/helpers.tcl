@@ -37,6 +37,8 @@ proc usf_init_vars {} {
 
   set a_sim_vars(b_compile_simmodels)        0
 
+  set a_sim_vars(l_simmodel_compile_order)   [list]
+
   ###################
   # initialize arrays
   ###################
