@@ -1,3 +1,4 @@
+11.76 fixes for non pre-compile flow
 11.75 fixed install path var
 11.74 support for step execution
 11.73 initialize vars from utils
