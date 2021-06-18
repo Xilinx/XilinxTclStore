@@ -662,7 +662,7 @@ proc usf_vcs_write_elaborate_script {} {
         # set gcc path
         puts $fh_scr "gcc_path=\"$a_sim_vars(s_gcc_bin_path)\""
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
-        usf_vcs_write_library_search_order $fh_scr
+        usf_vcs_write_library_search_order $fh_scr "elaborate"
       }
       puts $fh_scr ""
     }
@@ -1151,7 +1151,7 @@ proc usf_vcs_write_simulate_script {} {
         if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
           xcs_write_launch_mode_for_vitis $fh_scr "vcs"
         }
-        usf_vcs_write_library_search_order $fh_scr
+        usf_vcs_write_library_search_order $fh_scr "simulate"
       }
     }
     puts $fh_scr ""
@@ -1427,7 +1427,7 @@ proc usf_vcs_create_setup_script {} {
   xcs_make_file_executable $scr_file
 }
 
-proc usf_vcs_write_library_search_order { fh_scr } {
+proc usf_vcs_write_library_search_order { fh_scr step } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1475,7 +1475,12 @@ proc usf_vcs_write_library_search_order { fh_scr } {
   append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
   puts $fh_scr $ld_path
 
-  puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+  if { "simulate" == $step } {
+    puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+  } else {
+    puts $fh_scr ""
+  }
+
   puts $fh_scr "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
   # for aie
   if { {} != $aie_ip_obj } {
