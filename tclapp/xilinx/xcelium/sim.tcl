@@ -1916,7 +1916,8 @@ proc usf_xcelium_write_library_search_order { fh_scr } {
   append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
   puts $fh_scr $ld_path
 
-  puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+  puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+  puts $fh_scr "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
   # for aie
   if { {} != $aie_ip_obj } {
     if { [info exists ::env(XILINX_VITIS)] } {

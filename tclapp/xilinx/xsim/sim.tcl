@@ -1551,7 +1551,7 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set aie_ip_obj [xcs_find_ip "ai_engine"]
       if { $a_sim_vars(b_ref_sysc_lib_env) } {
-        puts $fh_scr "\nxv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)]\""
+        puts $fh_scr "\nexport xv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)]\""
         puts $fh_scr "export xv_cpt_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPCPT" $a_sim_vars(sp_cpt_dir)]\""
         puts $fh_scr "xv_ext_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPEXT" $a_sim_vars(sp_ext_dir)]\""
       } else {
@@ -1559,7 +1559,7 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
           puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
           puts $fh_scr "xv_cxl_obj_lib_path=\"$a_sim_vars(compiled_design_lib)\""
         } else {
-          puts $fh_scr "\nxv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+          puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
         }
         puts $fh_scr "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
         puts $fh_scr "xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
@@ -3307,6 +3307,11 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     set platform "win"
   }
 
+  set b_dbg 0
+  if { $a_sim_vars(s_int_debug_mode) == "1" } {
+    set b_dbg 1
+  }
+
   set simulator "xsim"
   set compiler  "xsc"
 
@@ -3492,7 +3497,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     # 
     set xsc_arg_list [list]
     lappend xsc_arg_list "-c"
-    if { $dbg } { lappend xsc_arg_list "-dbg" }
+    if { $b_dbg } { lappend xsc_arg_list "-dbg" }
   
     if { [llength $more_xsc_options]  > 0 } { foreach opt $more_xsc_options       { lappend xsc_arg_list $opt } }
 
@@ -3508,7 +3513,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
 
     if { [llength $gplus_compile_flags] > 0 } { foreach c_flag $gplus_compile_flags { lappend xsc_arg_list "--gcc_compile_options \"$c_flag\"" } }
 
-    if { $dbg } {
+    if { $b_dbg } {
       if { [llength $gplus_compile_dbg_flags] > 0 } { foreach c_flag $gplus_compile_dbg_flags { lappend xsc_arg_list "--gcc_compile_options \"$c_flag\"" } }
     } else {
       if { [llength $gplus_compile_opt_flags] > 0 } { foreach c_flag $gplus_compile_opt_flags { lappend xsc_arg_list "--gcc_compile_options \"$c_flag\"" } }
@@ -3561,7 +3566,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     # 2. Generate shared library (link)
     # 
     set xsc_arg_list {}
-    if { $dbg } { lappend xsc_arg_list "-dbg" }
+    if { $b_dbg } { lappend xsc_arg_list "-dbg" }
 
     if { [llength $more_xsc_options] > 0 } { foreach opt $more_xsc_options { lappend xsc_arg_list $opt } }
 
