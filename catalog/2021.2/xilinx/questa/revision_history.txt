@@ -1,3 +1,4 @@
+2.235 export xv_cxl_lib_path for simulate step only
 2.234 export xv_cxl_lib_path for simulate step
 2.233 fixes for non pre-compile flow
 2.232 support for step execution
