@@ -1,3 +1,4 @@
+11.79 enable non precompile flow
 11.78 export xv_cxl_lib_path for simulate step only
 11.77 export xv_cxl_lib_path for simulate step
 11.76 fixes for non pre-compile flow
