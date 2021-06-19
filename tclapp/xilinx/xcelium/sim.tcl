@@ -133,7 +133,7 @@ proc usf_xcelium_setup_simulation { args } {
 
   # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
   if { !$a_sim_vars(b_use_static_lib) } {
-    set a_sim_vars(b_compile_simmodels) 0
+    set a_sim_vars(b_compile_simmodels) 1
   }
 
   if { $a_sim_vars(b_compile_simmodels) } {
@@ -779,6 +779,9 @@ proc usf_compile_simmodel_sources { fh } {
     set gplus_compile_flags_xcl [list]
     set gplus_compile_opt_flags [list]
     set gplus_compile_dbg_flags [list]
+    set gcc_compile_flags       [list]
+    set gcc_compile_opt_flags   [list]
+    set gcc_compile_dbg_flags   [list]
     set ldflags                 [list]
     set ldflags_xcl             {}
     set gplus_ldflags_option    {}
@@ -846,6 +849,9 @@ proc usf_compile_simmodel_sources { fh } {
       if { "<G++_COMPILE_FLAGS_XCELIUM>"  == $tag } { set gplus_compile_flags_xcl [split $value {,}] }
       if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags [split $value {,}] }
       if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags [split $value {,}] }
+      if { "<GCC_COMPILE_FLAGS>"          == $tag } { set gcc_compile_flags       [split $value {,}] }
+      if { "<GCC_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gcc_compile_opt_flags   [split $value {,}] }
+      if { "<GCC_COMPILE_DEBUG_FLAGS>"    == $tag } { set gcc_compile_dbg_flags   [split $value {,}] }
       if { "<LDFLAGS>"                    == $tag } { set ldflags                 [split $value {,}] }
       if { "<LDFLAGS_XCELIUM>"            == $tag } { set ldflags_xcl             $value }
       if { "<LDFLAGS_LNX64>"              == $tag } { set ldflags_lin64           [split $value {,}] }
@@ -966,7 +972,7 @@ proc usf_compile_simmodel_sources { fh } {
       if { {} != $ldflags_xcl } {
         lappend args $ldflags_xcl
       }
-      
+     
       if {$::tcl_platform(platform) == "windows"} {
       if { [llength $ldflags_win64] > 0 } { foreach opt $ldflags_win64 { lappend args $opt } }
       } else {
@@ -1058,6 +1064,73 @@ proc usf_compile_simmodel_sources { fh } {
 
     } elseif { [llength $c_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
+      #
+      # COMPILE (gcc)
+      #
+      foreach src_file $c_files {
+        set file_name [file root [file tail $src_file]]
+        set args [list]
+        lappend args "-m64"
+        lappend args "-c"
+        lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+
+        # <C_INCLUDE_DIRS>
+        if { [llength $c_incl_dirs] > 0 } {
+          foreach incl_dir $c_incl_dirs {
+            lappend args "-I $incl_dir"
+          }
+        }
+
+        # <C_COMPILE_OPTION>
+        lappend args $c_compile_option 
+
+        # <GCC_COMPILE_FLAGS>
+        if { [llength $gcc_compile_flags] > 0 } {
+          foreach opt $gcc_compile_flags {
+            lappend args $opt
+          }
+        }
+
+        # <GCC_COMPILE_DEBUG_FLAGS>
+        if { $b_dbg } {
+          if { [llength $gcc_compile_dbg_flags] > 0 } {
+            foreach opt $gcc_compile_dbg_flags {
+              lappend args $opt
+            }
+          }
+        # <GCC_COMPILE_OPT_FLAGS>
+        } else {
+          if { [llength $gcc_compile_opt_flags] > 0 } {
+            foreach opt $gcc_compile_opt_flags {
+              lappend args $opt
+            }
+          }
+        }
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "xcelium_lib/$lib_name/${file_name}.o"
+        
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      }
+
+      #
+      # LINK (g++)
+      #
+      set args [list]
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "xcelium_lib/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+      lappend args "-m64"
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "xcelium_lib/$lib_name/lib${lib_name}.so"
+
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
     }
   }
 }

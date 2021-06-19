@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export xv_cxl_lib_path for simulate step only</revision_history>
+      <revision_history>enable non precompile flow</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

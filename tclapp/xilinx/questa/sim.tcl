@@ -131,7 +131,7 @@ proc usf_questa_setup_simulation { args } {
 
   # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
   if { !$a_sim_vars(b_use_static_lib) } {
-    set a_sim_vars(b_compile_simmodels) 0
+    set a_sim_vars(b_compile_simmodels) 1
   }
 
   if { $a_sim_vars(b_compile_simmodels) } {
@@ -944,6 +944,9 @@ proc usf_compile_simmodel_sources { fh } {
     set gplus_compile_flags     [list]
     set gplus_compile_opt_flags [list]
     set gplus_compile_dbg_flags [list]
+    set gcc_compile_flags       [list]
+    set gcc_compile_opt_flags   [list]
+    set gcc_compile_dbg_flags   [list]
     set ldflags                 [list]
     set gplus_ldflags_option    {}
     set gcc_ldflags_option      {}
@@ -1007,6 +1010,9 @@ proc usf_compile_simmodel_sources { fh } {
       if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags     [split $value {,}] }
       if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags [split $value {,}] }
       if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags [split $value {,}] }
+      if { "<GCC_COMPILE_FLAGS>"          == $tag } { set gcc_compile_flags       [split $value {,}] }
+      if { "<GCC_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gcc_compile_opt_flags   [split $value {,}] }
+      if { "<GCC_COMPILE_DEBUG_FLAGS>"    == $tag } { set gcc_compile_dbg_flags   [split $value {,}] }
       if { "<LDFLAGS>"                    == $tag } { set ldflags                 [split $value {,}] }
       if { "<LDFLAGS_LNX64>"              == $tag } { set ldflags_lin64           [split $value {,}] }
       if { "<LDFLAGS_WIN64>"              == $tag } { set ldflags_win64           [split $value {,}] }
@@ -1202,9 +1208,6 @@ proc usf_compile_simmodel_sources { fh } {
           if { [llength $gplus_compile_opt_flags] > 0 } { foreach opt $gplus_compile_opt_flags { lappend args $opt } }
         }
 
-        # <G++_COMPILE_DEBUG_FLAGS>
-        foreach opt $gplus_compile_dbg_flags { lappend args $opt } 
-
         lappend args $src_file
         lappend args "-o"
         lappend args "questa_lib/$lib_name/${obj_file}"
@@ -1234,32 +1237,29 @@ proc usf_compile_simmodel_sources { fh } {
       #
       # COMPILE (gcc)
       #
-      foreach src_file $cpp_files {
+      foreach src_file $c_files {
         set file_name [file root [file tail $src_file]]
         set obj_file "${file_name}.o"
 
-        # construct g++ compile command line
+        # construct gcc compile command line
         set args [list]
         lappend args "-c"
   
-        # <CPP_INCLUDE_DIRS>
-        if { [llength $cpp_incl_dirs] > 0 } { foreach incl_dir $cpp_incl_dirs { lappend args "-I $incl_dir" } }
+        # <C_INCLUDE_DIRS>
+        if { [llength $c_incl_dirs] > 0 } { foreach incl_dir $c_incl_dirs { lappend args "-I $incl_dir" } }
 
-        # <CPP_COMPILE_OPTION>
-        lappend args $cpp_compile_option
+        # <C_COMPILE_OPTION>
+        lappend args $c_compile_option
 
-        # <G++_COMPILE_FLAGS>
-        if { [llength $gplus_compile_flags] > 0 } { foreach opt $gplus_compile_flags { lappend args $opt } }
+        # <GCC_COMPILE_FLAGS>
+        if { [llength $gcc_compile_flags] > 0 } { foreach opt $gcc_compile_flags { lappend args $opt } }
 
-        # <G++_COMPILE_OPTIMIZE_FLAGS>
-        if { $dbg } {
-          if { [llength $gplus_compile_dbg_flags] > 0 } { foreach opt $gplus_compile_dbg_flags { lappend args $opt } }
+        # <GCC_COMPILE_OPTIMIZE_FLAGS>
+        if { $b_dbg } {
+          if { [llength $gcc_compile_dbg_flags] > 0 } { foreach opt $gcc_compile_dbg_flags { lappend args $opt } }
         } else {
-          if { [llength $gplus_compile_opt_flags] > 0 } { foreach opt $gplus_compile_opt_flags { lappend args $opt } }
+          if { [llength $gcc_compile_opt_flags] > 0 } { foreach opt $gcc_compile_opt_flags { lappend args $opt } }
         }
-
-        # <G++_COMPILE_DEBUG_FLAGS>
-        foreach opt $gplus_compile_dbg_flags { lappend args $opt } 
 
         lappend args $src_file
         lappend args "-o"
