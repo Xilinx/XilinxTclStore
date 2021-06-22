@@ -146,7 +146,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
       set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
     }
     #set vh_file [extract_files -files [list "$vh_file"] -base_dir $a_sim_vars(s_launch_dir)/ip_files]
-    set vh_file [usf_xtract_file $vh_file]
+    set vh_file [xcs_xtract_file $a_sim_vars(b_extract_ip_sim_files) $vh_file]
     if { [get_param project.enableCentralSimRepo] } {
       set b_is_bd 0
       if { [info exists a_sim_cache_all_bd_files($vh_file)] } {
@@ -186,26 +186,6 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     dict append d_dir_names $dir
   }
   return [dict keys $d_dir_names]
-}
-
-proc usf_append_define_generics { def_gen_list tool opts_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $opts_arg opts
-  foreach element $def_gen_list {
-    set key_val_pair [split $element "="]
-    set name [lindex $key_val_pair 0]
-    set val  [lindex $key_val_pair 1]
-    set str "$name="
-    if { [string length $val] > 0 } {
-      set str "$str$val"
-    }
-    switch -regexp -- $tool {
-      "xmvlog" { lappend opts "-define"  ; lappend opts "\"$str\""  }
-    }
-  }
 }
 
 proc usf_append_generics { generic_list opts_arg } {
@@ -569,7 +549,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   usf_get_global_include_files incl_file_paths incl_files
 
   set global_incl_files $incl_files
-  set global_files_str [usf_get_global_include_file_cmdstr incl_files]
+  set global_files_str [xcs_get_global_include_file_cmdstr $a_sim_vars(s_launch_dir) incl_files]
 
   # verilog incl dir's and verilog headers directory path if any
   send_msg_id USF-Xcelium-103 INFO "Finding include directories and verilog header directory paths..."
@@ -942,7 +922,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   usf_get_global_include_files incl_file_paths incl_files
 
   set global_incl_files $incl_files
-  set global_files_str [usf_get_global_include_file_cmdstr incl_files]
+  set global_files_str [xcs_get_global_include_file_cmdstr $a_sim_vars(s_launch_dir) incl_files]
 
   # verilog incl dir's and verilog headers directory path if any
   set l_incl_dirs_opts [list]
@@ -1344,7 +1324,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
   set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet *$ip_name] -filter $filter]
   foreach vh_file $vh_files {
     # set vh_file [extract_files -files [list "$vh_file"] -base_dir $a_sim_vars(s_launch_dir)/ip_files]
-    set vh_file [usf_xtract_file $vh_file]
+    set vh_file [xcs_xtract_file $a_sim_vars(b_extract_ip_sim_files) $vh_file]
     set dir [file dirname $vh_file]
     if { [get_param project.enableCentralSimRepo] } {
       set b_static_ip_file 0
@@ -1439,7 +1419,7 @@ proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
       set verilog_defines [list]
       set verilog_defines [get_property "verilog_define" [get_filesets $a_sim_vars(fs_obj)]]
       if { [llength $verilog_defines] > 0 } {
-        usf_append_define_generics $verilog_defines $tool opts
+        xcs_append_define_generics "xcelium" $verilog_defines $tool opts
       }
 
       # for hbm netlist functional simulation
@@ -1448,32 +1428,6 @@ proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
       }
     }
   }
-}
-
-proc usf_append_other_options { tool file_type global_files_str opts_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $opts_arg opts
-  variable a_sim_vars
-}
-
-proc usf_get_global_include_file_cmdstr { incl_files_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $incl_files_arg incl_files
-
-  variable a_sim_vars
-  set file_str [list]
-
-  foreach file $incl_files {
-    # set file [extract_files -files [list "$file"] -base_dir $a_sim_vars(s_launch_dir)/ip_files]
-    lappend file_str "\"$file\""
-  }
-  return [join $file_str " "]
 }
 
 proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_opts_arg {xpm_library {}} {xv_lib {}}} {
@@ -1565,37 +1519,12 @@ proc usf_get_file_cmd_str { file file_type b_xpm global_files_str l_incl_dirs_op
     set arg_list [concat $arg_list $l_incl_dirs_opts]
   }
 
-  usf_append_other_options $compiler $file_type {} arg_list
+  xcs_append_other_options $compiler $file_type {} arg_list
 
   set file_str [join $arg_list " "]
   set type [xcs_get_file_type_category $file_type]
   set cmd_str "$type|$file_type|$associated_library|$file_str|\"$file\"|$b_static_ip_file"
   return $cmd_str
-}
-
-proc usf_xtract_file { file } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  if { [get_param "project.enableCentralSimRepo"] } {
-    return $file
-  }
-
-  variable a_sim_vars
-  if { $a_sim_vars(b_extract_ip_sim_files) } {
-    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
-    set xcix_ip_path [get_property "core_container" $file_obj]
-    if { {} != $xcix_ip_path } {
-      set ip_name [file root [file tail $xcix_ip_path]]
-      set ip_ext_dir [get_property "ip_extract_dir" [get_ips -all -quiet $ip_name]]
-      set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
-      # remove leading "../"
-      set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
-      set file [file join $ip_ext_dir $ip_file]
-    }
-  }
-  return $file
 }
 
 proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir b_static_ip_file_arg  } {

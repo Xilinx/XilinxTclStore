@@ -627,7 +627,7 @@ proc usf_xcelium_write_compile_script {} {
   }
 
   # add tcl pre hook
-  usf_xcelium_write_tcl_pre_hook $fh_scr $tcl_pre_hook
+  xcs_write_tcl_pre_hook $fh_scr $tcl_pre_hook $a_sim_vars(s_compile_pre_tcl_wrapper) $a_sim_vars(s_launch_dir)
  
   # write compile order files
   if { $a_sim_vars(b_optimizeForRuntime) } {
@@ -2251,28 +2251,6 @@ proc usf_xcelium_write_c_compile_options { fh_scr } {
   }
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
-}
-
-proc usf_xcelium_write_tcl_pre_hook { fh_scr tcl_pre_hook } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-
-  if { {} != $tcl_pre_hook } {
-    if { ![file exists $tcl_pre_hook] } {
-      [catch {send_msg_id USF-Xcelium-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
-    }
-    set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
-    xcs_delete_backup_log $tcl_wrapper_file $a_sim_vars(s_launch_dir)
-    xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $a_sim_vars(s_launch_dir)
-    set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
-    set cmd "vivado $vivado_cmd_str"
-    puts $fh_scr "echo \"$cmd\""
-    set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
-    puts $fh_scr "ExecStep $full_cmd\n"
-  }
 }
 
 proc usf_xcelium_write_compile_order_files_wait { fh_scr } {

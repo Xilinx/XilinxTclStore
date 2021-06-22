@@ -5468,3 +5468,100 @@ proc xcs_get_incl_files_from_ip { tcl_obj } {
   }
   return $incl_files
 }
+
+proc xcs_get_global_include_file_cmdstr { run_dir incl_files_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  upvar $incl_files_arg incl_files
+
+  set file_str [list]
+  foreach file $incl_files {
+    # set file [extract_files -files [list "$file"] -base_dir $run_dir/ip_files]
+    lappend file_str "\"$file\""
+  }
+  return [join $file_str " "]
+}
+
+proc xcs_xtract_file { b_extract_ip_sim_files file  } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { [get_param "project.enableCentralSimRepo"] } {
+    return $file
+  }
+
+  if { $b_extract_ip_sim_files } {
+    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    set xcix_ip_path [get_property "core_container" $file_obj]
+    if { {} != $xcix_ip_path } {
+      set ip_name [file root [file tail $xcix_ip_path]]
+      set ip_ext_dir [get_property "ip_extract_dir" [get_ips all -quiet $ip_name]]
+      set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
+      # remove leading "../"
+      set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
+      set file [file join $ip_ext_dir $ip_file]
+    }
+  }
+  return $file
+}
+
+proc xcs_append_other_options { tool file_type global_files_str opts_arg  } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+
+  # TODO
+}
+
+proc xcs_append_define_generics { simulator def_gen_list tool opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+
+  foreach element $def_gen_list {
+    set key_val_pair [split $element "="]
+    set name [lindex $key_val_pair 0]
+    set val  [lindex $key_val_pair 1]
+    set str "$name="
+    if { [string length $val] > 0 } {
+      if { "vcs" == $simulator } {
+        set str "$str\"$val\""
+      } elseif { "xcelium" == $simulator } {
+        set str "$str$val"
+      }
+    }
+    switch -regexp -- $tool {
+      "vlogan" { lappend opts "+define+$str" }
+      "xmvlog" { lappend opts "-define"; lappend opts "\"$str\"" }
+    }
+  }
+}
+
+proc xcs_write_tcl_pre_hook { fh_scr tcl_pre_hook s_compile_pre_tcl_wrapper run_dir  } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { {} == $tcl_pre_hook } {
+    return
+  }
+
+  if { ![file exists $tcl_pre_hook] } {
+    [catch {send_msg_id SIM-utils-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+  }
+  set tcl_wrapper_file $s_compile_pre_tcl_wrapper
+  xcs_delete_backup_log $tcl_wrapper_file $run_dir
+  xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $run_dir
+  set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+  set cmd "vivado $vivado_cmd_str"
+  puts $fh_scr "echo \"$cmd\""
+  set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+  puts $fh_scr "ExecStep $full_cmd\n"
+}
