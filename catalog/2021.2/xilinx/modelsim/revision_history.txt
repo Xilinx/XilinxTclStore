@@ -1,3 +1,4 @@
+2.293 added common helpers
 2.292 initialize vars from utils
 2.291 code refactoring
 2.290 check for leaf dir name wrt library name for linked library

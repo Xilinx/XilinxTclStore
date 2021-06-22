@@ -1,3 +1,4 @@
+2.402 added common helpers
 2.401 export xv_cxl_lib_path for simulate step
 2.400 support for step execution
 2.399 initialize vars from utils
