@@ -1,3 +1,4 @@
+3.483 refactored generics proc to common helpers
 3.482 added common helpers
 3.481 initialize vars from utils
 3.480 code refactoring
