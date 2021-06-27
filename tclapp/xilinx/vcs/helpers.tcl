@@ -186,25 +186,6 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   return [dict keys $d_dir_names]
 }
 
-proc usf_append_generics { generic_list opts_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $opts_arg opts
-
-  foreach element $generic_list {
-    set key_val_pair [split $element "="]
-    set name [lindex $key_val_pair 0]
-    set val  [lindex $key_val_pair 1]
-    set str "$name="
-    if { [string length $val] > 0 } {
-      set str "$str\"$val\""
-    } 
-    lappend opts "-gv $str"
-  }
-}
-
 proc usf_create_do_file { simulator do_filename } {
   # Summary:
   # Argument Usage:

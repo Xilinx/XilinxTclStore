@@ -921,7 +921,7 @@ proc usf_vcs_write_elaborate_script {} {
     set vhdl_generics [list]
     set vhdl_generics [get_property "generic" [get_filesets $obj]]
     if { [llength $vhdl_generics] > 0 } {
-      usf_append_generics $vhdl_generics arg_list
+      xcs_append_generics "vcs" $vhdl_generics arg_list
     }
   }
 

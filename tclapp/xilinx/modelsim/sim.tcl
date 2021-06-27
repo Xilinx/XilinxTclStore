@@ -799,7 +799,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set vhdl_generics [list]
   set vhdl_generics [get_property "generic" [get_filesets $a_sim_vars(fs_obj)]]
   if { [llength $vhdl_generics] > 0 } {
-    usf_append_generics $vhdl_generics arg_list  
+    xcs_append_generics "modelsim" $vhdl_generics arg_list
   }
 
   set more_vopt_options [string trim [get_property "modelsim.elaborate.vopt.more_options" $a_sim_vars(fs_obj)]]
@@ -989,7 +989,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set vhdl_generics [list]
   set vhdl_generics [get_property "generic" [get_filesets $a_sim_vars(fs_obj)]]
   if { [llength $vhdl_generics] > 0 } {
-    usf_append_generics $vhdl_generics arg_list  
+    xcs_append_generics "modelsim" $vhdl_generics arg_list  
   }
 
   set more_sim_options [string trim [get_property "modelsim.simulate.vsim.more_options" $a_sim_vars(fs_obj)]]

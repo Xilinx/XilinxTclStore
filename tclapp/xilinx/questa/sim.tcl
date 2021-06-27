@@ -1382,7 +1382,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   set vhdl_generics [list]
   set vhdl_generics [get_property "generic" [get_filesets $a_sim_vars(fs_obj)]]
   if { [llength $vhdl_generics] > 0 } {
-    usf_append_generics $vhdl_generics arg_list  
+    xcs_append_generics "questa" $vhdl_generics arg_list  
   }
 
   set more_vopt_options [string trim [get_property "questa.elaborate.vopt.more_options" $a_sim_vars(fs_obj)]]

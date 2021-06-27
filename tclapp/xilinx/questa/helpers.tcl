@@ -125,25 +125,6 @@ proc usf_append_define_generics { def_gen_list tool opts_arg } {
   }
 }
 
-proc usf_append_generics { generic_list opts_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $opts_arg opts
-
-  foreach element $generic_list {
-    set key_val_pair [split $element "="]
-    set name [lindex $key_val_pair 0]
-    set val  [lindex $key_val_pair 1]
-    set str "-g$name="
-    if { [string length $val] > 0 } {
-      set str $str$val
-    }
-    lappend opts $str
-  }
-}
-
 proc usf_create_do_file { simulator do_filename } {
   # Summary:
   # Argument Usage:

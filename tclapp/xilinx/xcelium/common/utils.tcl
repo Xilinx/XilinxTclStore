@@ -5518,6 +5518,55 @@ proc xcs_append_other_options { tool file_type global_files_str opts_arg  } {
   # TODO
 }
 
+proc xcs_append_generics { simulator generic_list opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  upvar $opts_arg opts
+
+  foreach element $generic_list {
+    set key_val_pair [split $element "="]
+    set name [lindex $key_val_pair 0]
+    set val  [lindex $key_val_pair 1]
+    switch $simulator {
+      "modelsim" {
+        set str "-g$name="
+        if { [string length $val] > 0 } {
+          set str $str$val
+        } else {
+          if { [get_param "project.enable2StepFlowForModelSim"] } {
+            set str $str\"\"
+          }
+        }
+        lappend opts $str
+      }
+      "questa" {
+        set str "-g$name="
+        if { [string length $val] > 0 } {
+          set str $str$val
+        }
+        lappend opts $str
+      }
+      "vcs" {
+        set str "$name="
+        if { [string length $val] > 0 } {
+          set str "$str\"$val\""
+        }
+        lappend opts "-gv $str"
+      }
+      "xcelium" {
+        set str "$name=>"
+        if { [string length $val] > 0 } {
+          set str "$str$val"
+        }
+        lappend opts "-generic"
+        lappend opts "\"$str\""
+      }
+    }
+  }
+}
+
 proc xcs_append_define_generics { simulator def_gen_list tool opts_arg } {
   # Summary:
   # Argument Usage:
