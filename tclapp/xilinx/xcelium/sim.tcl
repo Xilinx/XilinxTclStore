@@ -1991,6 +1991,7 @@ proc usf_xcelium_write_library_search_order { fh_scr step } {
    
   if { "simulate" == $step } {
     puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+    puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
   } else {
     puts $fh_scr ""
   }

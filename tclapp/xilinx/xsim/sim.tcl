@@ -1552,6 +1552,7 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
       set aie_ip_obj [xcs_find_ip "ai_engine"]
       if { $a_sim_vars(b_ref_sysc_lib_env) } {
         puts $fh_scr "\nexport xv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)]\""
+        puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path/ip\""
         puts $fh_scr "export xv_cpt_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPCPT" $a_sim_vars(sp_cpt_dir)]\""
         puts $fh_scr "xv_ext_lib_path=\"[usf_xsim_resolve_sysc_lib_path "SPEXT" $a_sim_vars(sp_ext_dir)]\""
       } else {
@@ -1560,6 +1561,7 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
           puts $fh_scr "xv_cxl_obj_lib_path=\"$a_sim_vars(compiled_design_lib)\""
         } else {
           puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+          puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path/ip\""
         }
         puts $fh_scr "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
         puts $fh_scr "xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
