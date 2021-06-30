@@ -1,3 +1,4 @@
+2.404 define xv_cxl_ip_path to point to compiled IP libraries
 2.403 refactored generics proc to common helpers
 2.402 added common helpers
 2.401 export xv_cxl_lib_path for simulate step

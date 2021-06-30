@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>refactored generics proc to common helpers</revision_history>
+      <revision_history>define xv_cxl_ip_path to point to compiled IP libraries</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

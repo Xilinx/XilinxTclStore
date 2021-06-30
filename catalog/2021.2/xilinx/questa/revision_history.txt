@@ -1,3 +1,4 @@
+2.239 define xv_cxl_ip_path to point to compiled IP libraries
 2.238 refactored generics proc to common helpers
 2.237 added common helpers
 2.236 enable non precompile flow
