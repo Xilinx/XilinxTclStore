@@ -1,3 +1,4 @@
+1.26 SystemC fixes
 1.25 Merged 2021.1-dev fixes to 2021.2-dev
 1.23 merged 2021.1-dev to 2021.2-dev
 1.22 SPT80331 - snoc_addr_map.xml is missing in Riviera simulation scripts directory
