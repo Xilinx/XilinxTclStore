@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.25
+package provide ::tclapp::aldec::common::helpers 1.26
 
 namespace eval ::tclapp::aldec::common {
 
@@ -1849,11 +1849,38 @@ proc usf_get_files_for_compilation { global_files_str_arg } {
   return $design_files
 }
 
+proc getVersalCipsLibrary {} {
+
+	set libraryLocation [getCompiledLibraryLocation]
+
+	foreach libraryDirectory [ glob -nocomplain -directory $libraryLocation * ] {
+        if { ![ file isdirectory $libraryDirectory ] } {
+			continue
+		}
+
+		set libraryName [ file tail $libraryDirectory ]
+	
+		if { ![ regexp "^versal_cips_.*" $libraryName ] || [ regexp "^versal_cips_ps_vip_.*" $libraryName ] } {
+			continue
+		}
+
+		foreach file [ glob -nocomplain -directory $libraryDirectory * ] {
+			set fileExtension [ file extension $file ]
+			if { {.o} == $fileExtension } {
+				return $file
+			}
+		}
+	}
+
+	return ""
+}
+
 proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
+  variable versalCips
   variable properties
   variable compiledLibraries
   variable systemVerilogPackageLibraries	
@@ -1953,6 +1980,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 		  set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
 		  set ststemCLibraryNames "$ststemCLibraryNames -l[file tail $lib_path]"
         }
+
+		if { $versalCips == 1 } {
+			set versalCipsLibrary [ getVersalCipsLibrary ]
+			if { $versalCipsLibrary != "" } {
+				set ststemCLibraryNames "$ststemCLibraryNames $versalCipsLibrary"
+			}	
+		}
       }
     }
   }
@@ -2104,18 +2138,18 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       # fetch systemc include files (.h)
       set l_incl_dir [list]
       foreach dir [usf_get_c_incl_dirs $simulator $properties(launch_directory) [usf_get_boost_library_path] $sc_header_filter $properties(dynamic_repo_dir) false $properties(use_absolute_paths) $prefix_ref_dir] {
-        lappend l_incl_dir "-I \"$dir\""
+        addToUniqueList l_incl_dir "-I \"$dir\""
       }
 
       # dependency on cpp source headers
       # fetch cpp include files (.h)
       foreach dir [usf_get_c_incl_dirs $simulator $properties(launch_directory) [usf_get_boost_library_path] $cpp_header_filter $properties(dynamic_repo_dir) false $properties(use_absolute_paths) $prefix_ref_dir] {
-        lappend l_incl_dir "-I \"$dir\""
+        addToUniqueList l_incl_dir "-I \"$dir\""
       }
 
       # append simulation model libraries
       foreach C_incl_dir $l_C_incl_dirs_opts {
-        lappend l_incl_dir $C_incl_dir
+        addToUniqueList l_incl_dir $C_incl_dir
       }
 
       foreach file $sc_files {
@@ -3358,7 +3392,6 @@ proc usf_aldec_append_compiler_options { tool file_type opts_arg } {
 		lappend arg_list "-DSC_INCLUDE_DYNAMIC_PROCESSES"
 		lappend arg_list "-DRIVIERA"
 		lappend arg_list "-o [getSystemCLibrary]"
-		lappend arg_list "-lboost_system"
 
 		set compiler [get_property target_simulator [current_project]]	
         set more_opts [get_property $compiler.compile.ccomp.more_options $fileset_object]
@@ -5103,12 +5136,14 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
 }
 
 proc usf_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
+  variable versalCips
   # Summary:
   # Argument Usage:
   # Return Value:
 
   # find referenced libraries from IP
   set prop_name "systemc_libraries"
+  set versalCips 0
   set ref_libs            [list]
   set uniq_ref_libs       [list]
   set v_ip_names          [list]
@@ -5131,7 +5166,11 @@ proc usf_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
 	  lappend v_allowed_sim_types $allowed_sim_types
 	  lappend v_tlm_types $tlm_type
 	  lappend v_sysc_libs $sysc_libs
-	 
+
+	  if { $ip_def == "versal_cips" } {
+		set versalCips 1
+	  }
+
       if { [string equal -nocase $tlm_type "tlm"] == 1 } { 
         if { $b_int_sm_lib_ref_debug } {
           #puts " +$ip_name:$ip_def:$tlm_type:$sysc_libs"
@@ -5347,7 +5386,17 @@ proc usf_get_boost_library_path {} {
 
   if { [info exists ::env(RDI_DATADIR)] } {
     foreach data_dir [split $::env(RDI_DATADIR) $sep] {
-      set incl_dir "[file dirname $data_dir]/tps/boost_1_64_0"
+	  set incl_dir "[file dirname $data_dir]/tps"
+
+      foreach boostDirectory [ glob -nocomplain -directory $incl_dir * ] {
+        if { ![ file isdirectory $boostDirectory ] || ! [ regexp -nocase "boost.*" [ file tail $boostDirectory ] ] } {
+          continue
+        }
+
+        set incl_dir $boostDirectory
+        break
+      }
+
       if { [file exists $incl_dir] } {
         set boost_incl_dir $incl_dir
         set boost_incl_dir [regsub -all {[\[\]]} $boost_incl_dir {/}]
@@ -5877,6 +5926,18 @@ proc getVlogOptions { } {
 	}
 
 	return [join $vlogOptions " "]
+}
+
+proc addToUniqueList { _currentList _newItem } {
+	upvar $_currentList currentList
+
+	foreach item $currentList {
+		if { $item == $_newItem } {
+			return
+		}
+	}
+
+	lappend currentList $_newItem
 }
 
 }
