@@ -1,4 +1,4 @@
-1.26 SystemC fixes
+1.26 SystemC fixes PR-741
 1.25 Merged Aldec pull-request 730
 1.24 SPT80423 - Package not found: VCOMPONENTS (library: unimacro), SPT80425 - Precompiled libraries from aldec website are ignored in Vivado flow
 1.23 Correction for simulator.quitOnSimulationComplete
