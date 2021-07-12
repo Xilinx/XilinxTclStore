@@ -1475,7 +1475,7 @@ proc usf_vcs_write_library_search_order { fh_scr step } {
   append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
   puts $fh_scr $ld_path
 
-  if { "simulate" == $step } {
+  if { ("elaborate" == $step) || ("simulate" == $step) } {
     puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
     puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
   } else {

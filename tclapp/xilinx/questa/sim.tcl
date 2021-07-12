@@ -2058,7 +2058,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     xcs_write_pipe_exit $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-      if { {simulate} == $step } {
+      if { ({"elaborate"} == $step) || ({"simulate"} == $step) } {
         puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
         puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
       } else {
