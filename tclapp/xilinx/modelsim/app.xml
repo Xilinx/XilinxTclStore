@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>refactored generics proc to common helpers</revision_history>
+      <revision_history>refactored library search order proc to utils</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

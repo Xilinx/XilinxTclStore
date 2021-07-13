@@ -5603,7 +5603,7 @@ proc xcs_write_tcl_pre_hook { fh_scr tcl_pre_hook s_compile_pre_tcl_wrapper run_
   }
 
   if { ![file exists $tcl_pre_hook] } {
-    [catch {send_msg_id SIM-utils-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+    [catch {send_msg_id SIM-utils-074 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
   }
   set tcl_wrapper_file $s_compile_pre_tcl_wrapper
   xcs_delete_backup_log $tcl_wrapper_file $run_dir
@@ -5613,4 +5613,109 @@ proc xcs_write_tcl_pre_hook { fh_scr tcl_pre_hook s_compile_pre_tcl_wrapper run_
   puts $fh_scr "echo \"$cmd\""
   set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
   puts $fh_scr "ExecStep $full_cmd\n"
+}
+
+proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels s_gcc_version s_clibs_dir sp_cpt_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_shared_library_path_coln
+
+  puts $fh_scr "# set library search order"
+
+  set l_sm_lib_paths [list]
+  foreach {library lib_dir} [array get a_shared_library_path_coln] {
+    switch $simulator {
+      {xcelium} {
+        # param to bind shared protobuf
+        set b_bind_protobuf false
+        [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
+
+        if { ("libprotobuf.so" == $library) && (!$b_bind_protobuf) } {
+          # don't bind shared library but bind static library built with the simmodel itself
+          continue
+        }
+        # don't bind static protobuf (simmodel will bind these during compilation)
+        if { ("libprotobuf.a" == $library) } {
+          continue;
+        }
+      }
+    }
+    set sm_lib_dir [file normalize $lib_dir]
+    set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+    switch $simulator {
+      {xcelium} {
+        if { $b_compile_simmodels } {
+          set lib_name [string trimleft $library "lib"]
+          set lib_name [string trimright $lib_name ".so"]
+          set lib_type [file tail [file dirname $lib_dir]]
+          if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+            # skip
+          } else {
+            set sm_lib_dir "${simulator}_lib/$lib_name"
+          }
+        }
+      }
+    }
+    lappend l_sm_lib_paths $sm_lib_dir
+  }
+
+  set ld_path "LD_LIBRARY_PATH=."
+
+  # for aie
+  set aie_ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $aie_ip_obj } {
+    set sm_ext_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "ext"]
+    set sm_cpt_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "cpt"]
+    set sm_dir     [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+    set cpt_dir    $sm_dir
+
+    set tp "$cpt_dir/$sm_cpt_dir"
+
+    # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
+    # TODO: find way to make this data-driven
+    append ld_path ":$tp/aie_cluster_v1_0_0"
+
+    set xilinx_vitis     {}
+    set cardano_api_path {}
+
+    if { [info exists ::env(XILINX_VITIS)] } {
+      set xilinx_vitis $::env(XILINX_VITIS)
+      set cardano_api_path "$xilinx_vitis/aietools/lib/${simulator}64.o"
+    } else {
+      set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
+      send_msg_id SIM-utils-075 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
+    }
+    append ld_path ":$cardano_api_path"
+  }
+  if { [llength l_sm_lib_paths] > 0 } {
+    foreach sm_lib_path $l_sm_lib_paths {
+      append ld_path ":$sm_lib_path"
+    }
+  }
+  append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
+  puts $fh_scr $ld_path
+
+  if { ("elaborate" == $step) || ("simulate" == $step) } {
+    puts $fh_scr "\nexport xv_cxl_lib_path=\"$s_clibs_dir\""
+    puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
+  } else {
+    puts $fh_scr ""
+  }
+
+  puts $fh_scr "export xv_cpt_lib_path=\"$sp_cpt_dir\""
+  # for aie
+  if { {} != $aie_ip_obj } {
+    if { [info exists ::env(XILINX_VITIS)] } {
+      puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+      set xilinx_vitis $::env(XILINX_VITIS)
+      set cardano "$xilinx_vitis/aietools"
+      set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
+      #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
+      puts $fh_scr "source $chess_script"
+    } else {
+      send_msg_id SIM-utils-076 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
+    }
+  }
 }

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>define xv_cxl_lib_path and xv_cxl_ip_path to point to compiled libraries</revision_history>
+      <revision_history>refactored library search order proc to utils</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

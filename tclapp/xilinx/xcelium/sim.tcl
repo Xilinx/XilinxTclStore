@@ -1297,7 +1297,7 @@ proc usf_xcelium_write_elaborate_script {} {
         # set gcc path
         puts $fh_scr "gcc_path=\"$a_sim_vars(s_gcc_bin_path)\""
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
-        usf_xcelium_write_library_search_order $fh_scr "elaborate" 
+        xcs_write_library_search_order $fh_scr "xcelium" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir)
       }
     }
     puts $fh_scr ""
@@ -1700,7 +1700,7 @@ proc usf_xcelium_write_simulate_script {} {
         if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
           xcs_write_launch_mode_for_vitis $fh_scr "xcelium"
         }
-        usf_xcelium_write_library_search_order $fh_scr "simulate"
+        xcs_write_library_search_order $fh_scr "xcelium" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir)
       }
     }
     puts $fh_scr ""
@@ -1977,98 +1977,6 @@ proc usf_xcelium_create_setup_script {} {
   close $fh_scr
 
   xcs_make_file_executable $scr_file
-}
-
-proc usf_xcelium_write_library_search_order { fh_scr step } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_shared_library_path_coln
-  variable a_sim_vars
-
-  # param to bind shared protobuf
-  set b_bind_protobuf false
-  [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
-
-  puts $fh_scr "# set library search order"
-  set l_sm_lib_paths [list]
-  foreach {library lib_dir} [array get a_shared_library_path_coln] {
-    if { ("libprotobuf.so" == $library) && (!$b_bind_protobuf) } {
-      # don't bind shared library but bind static library built with the simmodel itself 
-      continue
-    }
-    # don't bind static protobuf (simmodel will bind these during compilation)
-    if { ("libprotobuf.a" == $library) } {
-      continue;
-    }
-    set sm_lib_dir [file normalize $lib_dir]
-    set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
-
-    if { $a_sim_vars(b_compile_simmodels) } {
-      set lib_name [string trimleft $library "lib"]
-      set lib_name [string trimright $lib_name ".so"]
-      set lib_type [file tail [file dirname $lib_dir]]
-      if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
-        # skip
-      } else {
-        set sm_lib_dir "xcelium_lib/$lib_name"
-      }
-    }
-
-    lappend l_sm_lib_paths $sm_lib_dir
-  }
-  set ld_path "LD_LIBRARY_PATH=."
-  # for aie
-  set aie_ip_obj [xcs_find_ip "ai_engine"]
-  if { {} != $aie_ip_obj } {
-    set sm_ext_dir [xcs_get_simmodel_dir "xcelium" $a_sim_vars(s_gcc_version) "ext"]
-    set sm_cpt_dir [xcs_get_simmodel_dir "xcelium" $a_sim_vars(s_gcc_version) "cpt"]
-    set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/xcelium"]
-    set tp "$cpt_dir/$sm_cpt_dir"
-    # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
-    # TODO: find way to make this data-driven 
-    append ld_path ":$tp/aie_cluster_v1_0_0"
-    set xilinx_vitis {}
-    set cardano_api_path {}
-    if { [info exists ::env(XILINX_VITIS)] } {
-      set xilinx_vitis $::env(XILINX_VITIS)
-      set cardano_api_path "$xilinx_vitis/aietools/lib/xcelium64.o"
-    } else {
-      set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
-      send_msg_id USF-Xcelium-019 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
-    }
-    append ld_path ":$cardano_api_path"
-  }
-  if { [llength l_sm_lib_paths] > 0 } {
-    foreach sm_lib_path $l_sm_lib_paths {
-      append ld_path ":$sm_lib_path"
-    }
-  }
-  append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
-  puts $fh_scr $ld_path
-   
-  if { ("elaborate" == $step) || ("simulate" == $step) } {
-    puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
-    puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
-  } else {
-    puts $fh_scr ""
-  }
-
-  puts $fh_scr "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
-  # for aie
-  if { {} != $aie_ip_obj } {
-    if { [info exists ::env(XILINX_VITIS)] } {
-      puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
-      set xilinx_vitis $::env(XILINX_VITIS)
-      set cardano "$xilinx_vitis/aietools"
-      set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
-      #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
-      puts $fh_scr "source $chess_script"
-    } else {
-      send_msg_id USF-Xcelium-020 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
-    }
-  }
 }
 
 proc usf_xcelium_write_vhdl_compile_options { fh_scr } {
