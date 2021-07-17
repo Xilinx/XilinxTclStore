@@ -1297,7 +1297,12 @@ proc usf_xcelium_write_elaborate_script {} {
         # set gcc path
         puts $fh_scr "gcc_path=\"$a_sim_vars(s_gcc_bin_path)\""
         puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
-        xcs_write_library_search_order $fh_scr "xcelium" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir)
+
+        # bind user specified libraries
+        set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+        set l_link_c_libs    [get_property "xcelium.elaborate.link.c"    $a_sim_vars(fs_obj)]
+
+        xcs_write_library_search_order $fh_scr "xcelium" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
     }
     puts $fh_scr ""
@@ -1436,6 +1441,7 @@ proc usf_xcelium_write_elaborate_script {} {
   puts $fh_scr "\n# set design libraries"
   puts $fh_scr "design_libs_elab=\"[join $arg_list " "]\"\n"
 
+  set b_link_user_libraries 0
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "# set gcc objects"
@@ -1471,9 +1477,23 @@ proc usf_xcelium_write_elaborate_script {} {
       lappend sys_libs "\$sys_path/libxmscCoSimXM_sh.so"
       lappend sys_libs "\$sys_path/libxmsctlm2_sh.so"
       lappend sys_libs "\$sys_path/libscBootstrap_sh.so"
+   
       set sys_libs_str [join $sys_libs " "]
 
       puts $fh_scr "sys_libs=\"$sys_libs_str\"\n"
+
+      # bind user specified libraries
+      set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+      set l_link_c_libs    [get_property "xcelium.elaborate.link.c"    $a_sim_vars(fs_obj)]
+      if { ([llength $l_link_sysc_libs] > 0) || ([llength $l_link_c_libs] > 0) } {
+        set b_link_user_libraries 1
+        set user_libs [list]
+        puts $fh_scr "# link user specified libraries"
+        foreach lib $l_link_sysc_libs { lappend user_libs $lib }
+        foreach lib $l_link_c_libs    { lappend user_libs $lib }
+        set user_libs_str [join $user_libs " "]
+        puts $fh_scr "user_libs=\"$user_libs_str\"\n"
+      }
     }
   }
 
@@ -1581,6 +1601,9 @@ proc usf_xcelium_write_elaborate_script {} {
 
 
         lappend link_arg_list "\$sys_libs"
+        if { $b_link_user_libraries } {
+          lappend link_arg_list "\$user_libs"
+        }
         set link_args [join $link_arg_list " "]
         puts $fh_scr "$link_args\n"
       }
@@ -1700,7 +1723,12 @@ proc usf_xcelium_write_simulate_script {} {
         if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
           xcs_write_launch_mode_for_vitis $fh_scr "xcelium"
         }
-        xcs_write_library_search_order $fh_scr "xcelium" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir)
+
+        # bind user specified libraries
+        set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+        set l_link_c_libs    [get_property "xcelium.elaborate.link.c"    $a_sim_vars(fs_obj)]
+
+        xcs_write_library_search_order $fh_scr "xcelium" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
     }
     puts $fh_scr ""

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed xv_cxl library path var detection</revision_history>
+      <revision_history>bind user specified systemc/C/C++ libraries during elaboration</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

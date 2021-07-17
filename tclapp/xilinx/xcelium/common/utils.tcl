@@ -5615,12 +5615,15 @@ proc xcs_write_tcl_pre_hook { fh_scr tcl_pre_hook s_compile_pre_tcl_wrapper run_
   puts $fh_scr "ExecStep $full_cmd\n"
 }
 
-proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels s_gcc_version s_clibs_dir sp_cpt_dir } {
+proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels s_gcc_version s_clibs_dir sp_cpt_dir l_link_sysc_libs_arg l_link_c_libs_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_shared_library_path_coln
+  
+  upvar $l_link_sysc_libs_arg l_link_sysc_libs
+  upvar $l_link_c_libs_arg    l_link_c_libs
 
   puts $fh_scr "# set library search order"
 
@@ -5694,6 +5697,25 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
       append ld_path ":$sm_lib_path"
     }
   }
+
+  # append user specified systemC/C/C++ libraries
+  variable a_link_libs
+  array unset a_link_libs
+  foreach lib $l_link_sysc_libs {
+    set lib_dir [file dirname $lib]
+    if { ![info exists a_link_libs($lib_dir)] } {
+      set a_link_libs($lib_dir) ""
+      append ld_path ":$lib_dir"
+    }
+  }
+  foreach lib $l_link_c_libs {
+    set lib_dir [file dirname $lib]
+    if { ![info exists a_link_libs($lib_dir)] } {
+      set a_link_libs($lib_dir) ""
+      append ld_path ":$lib_dir"
+    }
+  }
+
   append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
   puts $fh_scr $ld_path
 
