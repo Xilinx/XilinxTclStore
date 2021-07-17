@@ -1,3 +1,4 @@
+11.86 bind user specified systemc/C/C++ libraries during elaboration
 11.85 refactored library search order proc to utils
 11.84 define xv_cxl_lib_path and xv_cxl_ip_path to point to compiled libraries
 11.83 set verilog options for pure vhdl design if glbl.v compiled

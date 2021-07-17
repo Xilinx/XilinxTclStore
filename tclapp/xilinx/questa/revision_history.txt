@@ -1,3 +1,4 @@
+2.243 bind user specified systemc/C/C++ libraries during elaboration
 2.242 fixed xv_cxl library path var detection
 2.241 refactored library search order proc to utils
 2.240 define xv_cxl_lib_path and xv_cxl_ip_path to point to compiled libraries

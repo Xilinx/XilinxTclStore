@@ -1,3 +1,4 @@
+3.485 bind user specified systemc/C/C++ libraries during elaboration
 3.484 refactored library search order proc to utils
 3.483 refactored generics proc to common helpers
 3.482 added common helpers
