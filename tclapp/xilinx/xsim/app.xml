@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>bind user specified systemc/C/C++ libraries during elaboration</revision_history>
+      <revision_history>pass -ignore_localparam_override to xelab for testbench</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

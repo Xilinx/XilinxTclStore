@@ -2062,6 +2062,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-cc_type $cc_value"
   }
 
+  # override local param
+  set override_param false
+  [catch {set override_param [get_property -quiet "testbench_param_override" $a_sim_vars(fs_obj)]} msg]
+  if { $override_param } {
+    lappend args_list "-ignore_localparam_override"
+  }
+
   # design source libs
   set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 1]
   foreach lib $design_libs {
