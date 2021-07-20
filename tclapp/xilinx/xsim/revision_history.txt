@@ -1,3 +1,4 @@
+2.407 pass -ignore_localparam_override to xelab for testbench
 2.406 bind user specified systemc/C/C++ libraries during elaboration
 2.405 refactored library search order proc to utils
 2.404 define xv_cxl_ip_path to point to compiled IP libraries
