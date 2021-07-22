@@ -1951,6 +1951,22 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         lappend args_list $sc_args
       }
     }
+
+    # bind user specified systemC/C/C++ libraries
+    set l_link_sysc_libs [get_property "xsim.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+    foreach lib $l_link_sysc_libs {
+      set lib_path [file dirname $lib]
+      set lib_name [file tail $lib]
+      set sc_args "-sv_root \"$lib_path\" -sc_lib ${lib_name}"
+      lappend args_list $sc_args
+    }
+    set l_link_c_libs [get_property "xsim.elaborate.link.c" $a_sim_vars(fs_obj)]
+    foreach lib $l_link_c_libs {
+      set lib_path [file dirname $lib]
+      set lib_name [file tail $lib]
+      set sc_args "-sv_root \"$lib_path\" -sc_lib ${lib_name}"
+      lappend args_list $sc_args
+    }
   }
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
@@ -2313,6 +2329,24 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
           lappend args_list $sc_args
         }
       }
+    }
+
+    # bind user specified systemC/C/C++ libraries
+    set l_link_sysc_libs [get_property "xsim.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+    foreach lib $l_link_sysc_libs {
+      set lib_path [file dirname $lib]
+      set lib_name [file root [file tail $lib]]
+      set lib_name [string trimleft $lib_name {lib}]
+      set sc_args "-gcc_link_options \"-L$lib_path -l${lib_name}\"" 
+      lappend args_list $sc_args
+    }
+    set l_link_c_libs [get_property "xsim.elaborate.link.c" $a_sim_vars(fs_obj)]
+    foreach lib $l_link_c_libs {
+      set lib_path [file dirname $lib]
+      set lib_name [file root [file tail $lib]]
+      set lib_name [string trimleft $lib_name {lib}]
+      set sc_args "-gcc_link_options \"-L$lib_path -l${lib_name}\"" 
+      lappend args_list $sc_args
     }
   }
 

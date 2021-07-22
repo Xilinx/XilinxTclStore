@@ -50,6 +50,8 @@ proc register_options { simulator } {
     {{compile.vlog.more_options}   {string} {}                                      {More VLOG compilation options}}
     {{compile.vcom.more_options}   {string} {}                                      {More VCOM compilation options}}
     {{elaborate.acc}               {enum}   {{acc=npr} {acc=npr} {{acc=npr} {acc} {None}}} {Enable access to simulation objects that might be optimized by default (default:npr)}}
+    {{elaborate.link.sysc}         {string} {}                                      {Specify SystemC libraries to bind}}
+    {{elaborate.link.c}            {string} {}                                      {Specify C/C++ libraries to bind}}
     {{elaborate.sccom.more_options} {string} {}                                     {More SCCOM elaboration options}}
     {{elaborate.vopt.more_options} {string} {}                                      {More VOPT elaboration options}}
     {{simulate.tcl.post}           {string} {}                                      {Specify post-simulate step TCL hook}}

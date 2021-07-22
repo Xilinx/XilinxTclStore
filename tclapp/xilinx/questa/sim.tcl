@@ -2010,6 +2010,28 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             set lib_dir "$a_sim_vars(s_clibs_dir)/$vlnv_name"
             lappend shared_ip_libs $lib_dir 
           }
+
+          # bind user specified systemC/C/C++ libraries
+          set l_link_sysc_libs [get_property "questa.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+          set l_link_c_libs    [get_property "questa.elaborate.link.c"    $a_sim_vars(fs_obj)]
+          if { ([llength $l_link_sysc_libs] > 0) || ([llength $l_link_c_libs] > 0) } {
+            variable a_link_libs
+            array unset a_link_libs
+            foreach lib $l_link_sysc_libs {
+              set lib_dir [file dirname $lib]
+              if { ![info exists a_link_libs($lib_dir)] } {
+                set a_link_libs($lib_dir) ""
+                lappend shared_ip_libs "$lib_dir"
+              }
+            }
+            foreach lib $l_link_c_libs {
+              set lib_dir [file dirname $lib]
+              if { ![info exists a_link_libs($lib_dir)] } {
+                set a_link_libs($lib_dir) ""
+                lappend shared_ip_libs "$lib_dir"
+              }
+            }
+          }
  
           if { [llength $shared_ip_libs] > 0 } {
             set shared_ip_libs_env_path [join $shared_ip_libs ":"]
@@ -2264,6 +2286,22 @@ proc usf_questa_get_sccom_cmd_args {} {
       } else {
         lappend args "-lib $lib_name"
       }
+    }
+
+    # bind user specified systemC/C/C++ libraries
+    set l_link_sysc_libs [get_property "questa.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+    foreach lib $l_link_sysc_libs {
+      set lib_name [file root [file tail $lib]]
+      set lib_name [string trimleft $lib_name {lib}]
+      lappend args "-lib $lib_name"
+    }
+    set l_link_c_libs    [get_property "questa.elaborate.link.c"    $a_sim_vars(fs_obj)]
+    foreach lib $l_link_c_libs {
+      set lib_dir  [file dirname $lib]
+      set lib_name [file root [file tail $lib]]
+      set lib_name [string trimleft $lib_name {lib}]
+      lappend args "-L$lib_dir"
+      lappend args "-l$lib_name"
     }
 
     # cr:1079408 - bind aie_cluster 
