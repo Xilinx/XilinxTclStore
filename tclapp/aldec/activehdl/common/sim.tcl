@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.26
+package require ::tclapp::aldec::common::helpers 1.27
 
-package provide ::tclapp::aldec::common::sim 1.26
+package provide ::tclapp::aldec::common::sim 1.27
 
 namespace eval ::tclapp::aldec::common {
 
@@ -66,6 +66,25 @@ proc elaborate { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
+  
+  # write elaborate.sh/.bat
+  set scriptFileName "elaborate"
+  append scriptFileName [::tclapp::aldec::common::helpers::usf_get_script_extn]
+
+  set dir $::tclapp::aldec::common::helpers::properties(launch_directory)
+  set scriptFile [::tclapp::aldec::common::helpers::usf_file_normalize [file join $dir $scriptFileName]]
+  
+  set scriptFileHandle 0
+  if {[catch {open $scriptFile w} scriptFileHandle]} {
+    send_msg_id USF-[usf_aldec_getSimulatorName]-95 ERROR "Failed to open file to write ($scriptFile)\n"
+    return 1
+  }
+
+  aldecHeader $scriptFileHandle $scriptFileName "elaborating"
+  
+  close $scriptFileHandle
+  
+  ::tclapp::aldec::common::helpers::usf_make_file_executable $scriptFile
 }
 
 proc simulate { args } {
@@ -253,6 +272,7 @@ proc usf_setup_args { args } {
 	  "-int_sm_lib_dir"         { incr i;set ::tclapp::aldec::common::helpers::properties(custom_sm_lib_dir) [lindex $args $i] }
       "-int_sm_lib_ref_debug"   { set ::tclapp::aldec::common::helpers::properties(b_int_sm_lib_ref_debug) 1                   }
 	  "-int_csim_compile_order" { set ::tclapp::aldec::common::helpers::properties(b_int_csim_compile_order) 1                 }
+	  "-int_en_vitis_hw_emu_mode" { set ::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) 1				}
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -355,7 +375,7 @@ proc mapLibraryCfg { _variable { _simulation 0 } } {
 
 	set libraryCfgFile [ file join $librariesLocation library.cfg ]
 	if { ![ file isfile $libraryCfgFile ] } {
-		send_msg_id USF-[usf_aldec_getSimulatorName]-101 WARNING "Failed to find the \"library.cfg\" file in the compiled library location."
+		send_msg_id USF-[usf_aldec_getSimulatorName]-101 WARNING "Cannot find the \"library.cfg\" file in the compiled library location ('$librariesLocation')."
 		return
 	}
 
@@ -415,42 +435,46 @@ proc mapLibraryCfg { _variable { _simulation 0 } } {
 		lappend librariesPattern "xpm"
 	}
 
-	while { ! [eof $libraryCfg ] } {
-		gets $libraryCfg line
-		if { [ regexp {\s*([^\s]+)\s*=\s*\"?([^\s\"]+).*} $line tmp mapName mapPath ] } {
+	if { $usePrecompiledIp } {
+		puts $_variable "vmap -link \{$librariesLocation\}"
+	} else {
+		while { ! [eof $libraryCfg ] } {
+			gets $libraryCfg line
+			if { [ regexp {\s*([^\s]+)\s*=\s*\"?([^\s\"]+).*} $line tmp mapName mapPath ] } {
 
-			if { [ file pathtype $mapPath ] != "absolute" } {
-				set mapPath [ file join $librariesLocation $mapPath ]
-			}
-
-			set mapPath [ ::tclapp::aldec::common::helpers::usf_file_normalize $mapPath ]
-
-			if { ![ file isfile $mapPath ] } {
-				continue
-			}
-
-			if { $_simulation == 1 && [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] == 1 && $topLibrary != $mapName } {
-				continue
-			}	
-
-			set isAdded 0
-			foreach library $librariesPattern {
-				if { $mapName == $library } {
-
-					if { $usePrecompiledIp == 1 } {
-						puts $_variable "vmap $mapName \{$mapPath\}"
-					} elseif { $mapName != "xilinx_vip" && $mapName != "xpm" } {
-						puts $_variable "vmap $mapName \{$mapPath\}"
-						send_msg_id USF-[usf_aldec_getSimulatorName]-102 INFO "The global \"$mapName\" library has been replaced by the local library."
-					}
-
-					set isAdded 1
-					break
+				if { [ file pathtype $mapPath ] != "absolute" } {
+					set mapPath [ file join $librariesLocation $mapPath ]
 				}
-			}
 
-			if { $usePrecompiledIp == 1 && !$isAdded && [ ::tclapp::aldec::common::helpers::isDesignLibrary $mapName ] == 1 } {
-				puts $_variable "vmap $mapName \{$mapPath\}"
+				set mapPath [ ::tclapp::aldec::common::helpers::usf_file_normalize $mapPath ]
+
+				if { ![ file isfile $mapPath ] } {
+					continue
+				}
+
+				if { $_simulation == 1 && [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] == 1 && $topLibrary != $mapName } {
+					continue
+				}	
+
+				set isAdded 0
+				foreach library $librariesPattern {
+					if { $mapName == $library } {
+
+						if { $usePrecompiledIp == 1 } {
+							puts $_variable "vmap $mapName \{$mapPath\}"
+						} elseif { $mapName != "xilinx_vip" && $mapName != "xpm" } {
+							puts $_variable "vmap $mapName \{$mapPath\}"
+							send_msg_id USF-[usf_aldec_getSimulatorName]-102 INFO "The global \"$mapName\" library has been replaced by the local library."
+						}
+
+						set isAdded 1
+						break
+					}
+				}
+
+				if { $usePrecompiledIp == 1 && !$isAdded && [ ::tclapp::aldec::common::helpers::isDesignLibrary $mapName ] == 1 } {
+					puts $_variable "vmap $mapName \{$mapPath\}"
+				}
 			}
 		}
 	}
@@ -996,6 +1020,15 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   puts $fh [usf_aldec_get_simulation_cmdline]
   puts $fh ""
 
+  if { $::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh "if \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
+    puts $fh "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh "    puts \$msg"
+    puts $fh "  \}"
+    puts $fh "\}"
+	puts $fh ""
+  }
+
   set customDoFile [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.CUSTOM_UDO] $fs_obj]
   ::tclapp::aldec::common::helpers::usf_aldec_get_file_path_from_project customDoFile
   if { [file isfile $customDoFile] && ![::tclapp::aldec::common::helpers::usf_aldec_is_file_disabled $customDoFile] } {
@@ -1034,16 +1067,13 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
     }
   }
 
-	if { [ get_param "project.writeNativeScriptForUnifiedSimulation" ] } {
-
+	if { [ get_param "project.writeNativeScriptForUnifiedSimulation" ] && (!$::tclapp::aldec::common::helpers::properties(only_generate_scripts)) } {
 		if { !$::tclapp::aldec::common::helpers::properties(batch_mode_enabled) } {
 			puts $fh "wave *"
 		} elseif { !$b_log_all_signals } {
 			puts $fh "log *"
 		}
-
 	} else {
-
 		puts $fh "if { !\[batch_mode\] } {"
 		puts $fh "\twave *"
 		puts -nonewline $fh "}" 
@@ -1052,12 +1082,43 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
 			puts $fh "\tlog *"
 			puts $fh "}"
 		}
-
 	}
 
   puts $fh "\n"
 
-  usf_aldec_write_run_string_to_file $fh
+  set rt [ string trim [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.RUNTIME ] $fs_obj ] ]
+  if { $::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh "\nputs \"We are running simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""
+    puts $fh "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
+    puts $fh "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+    puts $fh "  run 1ns"
+    puts $fh "\} else \{"
+    if { {} == $rt } {
+      # no runtime specified
+      puts $fh "  run"
+    } else {
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh "  run -all"
+      } else {
+        puts $fh "  run $rt"
+      }
+    }
+    puts $fh "\}"
+  } else {
+    if { {} == $rt } {
+      # no runtime specified
+      puts $fh "\nrun"
+    } else {
+      set rt_value [string tolower $rt]
+      if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+        puts $fh "\nrun -all"
+      } else {
+        puts $fh "\nrun $rt"
+      }
+    }
+  }
+  puts $fh "\n"
 
   set tcl_post_hook [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.TCL.POST] $fs_obj]
   ::tclapp::aldec::common::helpers::usf_aldec_get_file_path_from_project tcl_post_hook
@@ -1098,14 +1159,27 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
     puts $fh ""
   }
 
-  if {  $::tclapp::aldec::common::helpers::properties(only_generate_scripts) } {
-    if { $::tclapp::aldec::common::helpers::properties(batch_mode_enabled) } {
-      puts $fh "endsim"
-    }
-  
-    if { [ get_param "simulator.quitOnSimulationComplete" ] } {
-      puts $fh "[usf_aldec_getQuitCmd]"
-    }
+  if { $::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+    puts $fh "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
+    puts $fh "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
+    puts $fh "      puts \$msg"
+    puts $fh "    \}"
+    puts $fh "  \}"
+    puts $fh "\}"
+  } 
+
+  if { \
+	   $::tclapp::aldec::common::helpers::properties(only_generate_scripts) \
+	|| $::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) \
+  } {
+    puts $fh "if { \[batch_mode\] } {"
+    puts $fh "  endsim"
+    puts $fh "  [usf_aldec_getQuitCmd]"
+    puts $fh "}"
+  } elseif { $::tclapp::aldec::common::helpers::properties(batch_mode_enabled) } {
+    puts $fh "endsim"
+    puts $fh "[usf_aldec_getQuitCmd]"
   }
 
   close $fh
@@ -1131,10 +1205,52 @@ proc usf_aldec_write_header { fh filename } {
   puts $fh "# File name : $name"
   puts $fh "# Created on: $timestamp"
   puts $fh "#"
-  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.26 for '$mode_type' simulation,"
+  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.27 for '$mode_type' simulation,"
   puts $fh "# in $version for $simulatorName simulator."
   puts $fh "#"
   puts $fh "#############################################################################################"
+}
+
+proc aldecHeader { _file _fileName _proces } {
+
+	set version_txt [ split [ version ] "\n" ]
+	set version     [ lindex $version_txt 0 ]
+	set version_id  [ join [ lrange $version 1 end ] " " ]
+	set timestamp   [ clock format [clock seconds ] ]
+	set simulatorName [ ::tclapp::aldec::common::helpers::usf_aldec_getSimulatorName ]
+
+	if { $::tcl_platform(platform) == "unix" } {
+	
+		puts $_file "#!/bin/sh -f"
+		puts $_file "# *********************************************************************************************"
+		puts $_file "# Vivado (TM) $version_id"
+		puts $_file "#"
+		puts $_file "# Filename    : $_fileName"
+		puts $_file "# Simulator   : $simulatorName Simulator"
+		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.27"
+		puts $_file "# Created on  : $timestamp"
+		puts $_file "#"
+		puts $_file "# usage: $_fileName"
+		puts $_file "#"
+		puts $_file "# *********************************************************************************************"
+	} else {
+		puts $_file "REM *********************************************************************************************"
+		puts $_file "REM Vivado (TM) $version_id"
+		puts $_file "REM"
+		puts $_file "REM Filename    : $_fileName"
+		puts $_file "REM Simulator   : $simulatorName Simulator"
+		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.27"
+		puts $_file "REM Created on  : $timestamp"
+		puts $_file "REM"
+		puts $_file "REM usage: $_fileName"
+		puts $_file "REM"
+		puts $_file "REM *********************************************************************************************"
+	}
+	
+	if { $_proces == "elaborating" } {
+		puts $_file "exit 0"
+	}
+
 }
 
 proc usf_aldec_writeWindowsExecutableCmdLine { _out _batch _doFile _logFile _step } {
@@ -1186,6 +1302,18 @@ proc usf_aldec_write_driver_shell_script { do_filename step } {
     return 1
   }
 
+  if { $step == "compile" } {
+    set headerStep "compiling"
+  } else {
+    set headerStep "simulating"
+  }
+
+  if {$::tcl_platform(platform) != "unix"} {
+    puts $scriptFileHandle "@echo off"
+  }
+
+  aldecHeader $scriptFileHandle $scriptFileName $headerStep
+  
   set batch_sw {-c}
   if { ({simulate} == $step) && (!$batch_mode_enabled) && (!$only_generate_scripts) } {
     set batch_sw {}
@@ -1193,8 +1321,17 @@ proc usf_aldec_write_driver_shell_script { do_filename step } {
   
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
-    puts $scriptFileHandle "#!/bin/sh -f"
     puts $scriptFileHandle "bin_path=\"$::tclapp::aldec::common::helpers::properties(s_tool_bin_path)\""
+
+	if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] } {
+      if { $::tclapp::aldec::common::helpers::properties(b_contain_systemc_sources) } {
+	    if { {simulate} == $step } {
+		  if { $::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) } {
+            ::tclapp::aldec::common::helpers::usf_write_launch_mode_for_vitis $scriptFileHandle
+          }
+	    }
+	  }
+	}
 
 	set simulator [ string tolower [ get_property target_simulator [ current_project ] ] ]
 	set xilinxPath $::env(XILINX_VIVADO)
@@ -1242,15 +1379,28 @@ proc usf_aldec_write_driver_shell_script { do_filename step } {
       }
     }
 
-   ::tclapp::aldec::common::helpers::usf_write_shell_step_fn $scriptFileHandle
-    if { $batch_sw != "" } {
-      puts $scriptFileHandle "ExecStep \$bin_path/../runvsimsa -l $log_filename -do \"do \{$do_filename\}\""
-    } else {
-      puts $scriptFileHandle "ExecStep \$bin_path/../rungui -l $log_filename -do \"do \{$do_filename\}\""
-    }
-  } else {
-    puts $scriptFileHandle "@echo off"
+    ::tclapp::aldec::common::helpers::usf_write_shell_step_fn $scriptFileHandle
 
+    if { \
+	     [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] \
+      && $::tclapp::aldec::common::helpers::properties(b_contain_systemc_sources) \
+	  && $::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) \
+	  && "simulate" == $step \
+	} {
+		puts $scriptFileHandle ""
+		puts $scriptFileHandle "if \[ \$mode = \"-c\" \]; then"
+		puts $scriptFileHandle "  ExecStep \$bin_path/../runvsimsa -l $log_filename -do \"do \{$do_filename\}\""
+		puts $scriptFileHandle "elif \[ \$mode = \"-gui\" \]; then"
+		puts $scriptFileHandle "  ExecStep \$bin_path/../rungui -l $log_filename -do \"do \{$do_filename\}\""
+		puts $scriptFileHandle "fi"
+	} else {
+		if { $batch_sw != "" } {
+		  puts $scriptFileHandle "ExecStep \$bin_path/../runvsimsa -l $log_filename -do \"do \{$do_filename\}\""
+		} else {
+		  puts $scriptFileHandle "ExecStep \$bin_path/../rungui -l $log_filename -do \"do \{$do_filename\}\""
+		}
+	}
+  } else {
     if { $step == "simulate" } {
         set simulator_lib [::tclapp::aldec::common::helpers::usf_get_simulator_lib_for_bfm]
         if { {} != $simulator_lib } {		

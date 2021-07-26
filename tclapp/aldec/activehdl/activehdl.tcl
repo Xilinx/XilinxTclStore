@@ -12,4 +12,4 @@ namespace eval ::tclapp::aldec::activehdl {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::aldec::activehdl 1.26
+package provide ::tclapp::aldec::activehdl 1.27
