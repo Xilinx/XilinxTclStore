@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT80647 - lack GUI mode for versal designs like beamformer design. And SystemC fixes</revision_history>
+      <revision_history>fixes for SPT80647, SPT80651, BKO837, BKO1501, BKO1504, BKO1505, BKO150</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

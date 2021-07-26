@@ -1,4 +1,4 @@
-1.27 SPT80647 - lack GUI mode for versal designs like beamformer design. And SystemC fixes
+1.27 fixes for SPT80647, SPT80651, BKO837, BKO1501, BKO1504, BKO1505, BKO150
 1.26 SystemC fixes PR-741
 1.25 Merged Aldec pull-request 730
 1.24 SPT80423 - Package not found: VCOMPONENTS (library: unimacro), SPT80425 - Precompiled libraries from aldec website are ignored in Vivado flow
