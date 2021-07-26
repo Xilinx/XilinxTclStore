@@ -1590,6 +1590,25 @@ proc usf_xcelium_write_elaborate_script {} {
                 lappend shared_lib_objs_to_link "$obj_file_name"
               }
             }
+          } else {
+            # check if incompatible version found from compiled area
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              set ip_name [get_property -quiet "name" $ip_obj]
+              # ipdef -> xilinx.com:ip:versal_cips:3.0 -> versal_cips_v
+              set ip_prefix [lindex [split $ipdef {:}] 2]
+              set ip_prefix "${ip_prefix}_v"
+
+              # match first part from clibs area to see if it matches
+              set matches [lsearch -regexp -all $shared_ip_libs $ip_prefix]
+              if { [llength $matches] > 0 } {
+                puts " WARNING: Expected pre-compiled shared library for '$vlnv_name' referenced in IP '$ip_name' not found!"
+                puts "          (Library '$vlnv_name' will not be linked during elaboration)"
+                puts "          Available version(s) present in CLIBS '$a_sim_vars(s_clibs_dir)':"
+                foreach index $matches {
+                  puts "           + [lindex $shared_ip_libs $index]"
+                }
+              }
+            }
           }
         }
         foreach shared_lib_obj $shared_lib_objs_to_link {
