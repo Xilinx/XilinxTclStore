@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.26
+package provide ::tclapp::aldec::common::helpers 1.27
 
 namespace eval ::tclapp::aldec::common {
 
@@ -64,17 +64,12 @@ proc getCompiledLibraryLocation { } {
 		ActiveHDL { set librariesLocation [ get_property COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR [ current_project ] ] }
 	}
 
-	if { $librariesLocation == "" } {
+	if { $properties(s_lib_map_path) != "" } {
 		set librariesLocation $properties(s_lib_map_path)
 	} 
 
 	if { ![ file isfile [ file join $librariesLocation library.cfg ] ] } {
-		
-		if { $properties(s_lib_map_path) != "" } {
-			set librariesLocation $properties(s_lib_map_path)
-		} else {
-			createLibraryCfgFile $librariesLocation
-		}
+		createLibraryCfgFile $librariesLocation
 	}
 
 	return $librariesLocation
@@ -859,8 +854,12 @@ proc usf_init_vars {} {
 	set properties(b_contain_systemc_sources) 0
 	set properties(b_contain_cpp_sources)     0
 	set properties(b_contain_c_sources)       0
-	set properties(b_contain_systemc_headers) 0
-  
+	set properties(b_contain_systemc_headers) 0	
+	set properties(b_int_en_vitis_hw_emu_mode) 0
+    if { [ info exists ::env(XIL_ENABLE_VITIS_CODE_HOOKS) ] } {
+      set properties(b_int_en_vitis_hw_emu_mode) 1
+    }
+
   set properties(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set properties(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
   set properties(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
@@ -2472,7 +2471,7 @@ proc usf_launch_script { step } {
         set retval [catch {rdi::run_program -no_wait $scr_file} error_log]
       }
       if { $retval } {
-        send_msg_id USF-[usf_aldec_getSimulatorName]-47 ERROR "Failed to launch $scr_file:$error_log\n"
+	    [catch { send_msg_id USF-[usf_aldec_getSimulatorName]-47 ERROR "Failed to launch $scr_file:$error_log\n" }]
         set faulty_run 1
       }
     }
@@ -3388,6 +3387,7 @@ proc usf_aldec_append_compiler_options { tool file_type opts_arg } {
         # }
 		
 		lappend arg_list "-sc"
+		lappend arg_list "-visibility"
         lappend arg_list "-std=c++11"
 		lappend arg_list "-DSC_INCLUDE_DYNAMIC_PROCESSES"
 		lappend arg_list "-DRIVIERA"
@@ -5938,6 +5938,25 @@ proc addToUniqueList { _currentList _newItem } {
 	}
 
 	lappend currentList $_newItem
+}
+
+proc usf_write_launch_mode_for_vitis { _scriptFileHandle } {
+  variable properties
+
+  puts $_scriptFileHandle "\n# set simulator launch mode"
+
+  if { $properties(only_generate_scripts) || $properties(batch_mode_enabled) } {
+    puts $_scriptFileHandle "mode=\"-c\""
+  } else {
+    puts $_scriptFileHandle "mode=\"-gui\""
+  }
+
+  puts $_scriptFileHandle "arg=\$\{1:-default\}"
+  puts $_scriptFileHandle "if \[ \$arg = \"off\" \] || \[ \$arg = \"batch\" \]; then"
+  puts $_scriptFileHandle "  mode=\"-c\""
+  puts $_scriptFileHandle "elif \[ \$arg = \"gui\" \]; then"
+  puts $_scriptFileHandle "  mode=\"-gui\""
+  puts $_scriptFileHandle "fi\n"
 }
 
 }
