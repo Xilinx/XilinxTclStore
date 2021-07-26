@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>bind user specified systemc/C/C++ libraries during elaboration</revision_history>
+      <revision_history>debug msg for reporting missing shared library for a given vlnv</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
