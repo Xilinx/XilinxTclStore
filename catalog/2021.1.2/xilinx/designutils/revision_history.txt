@@ -1,0 +1,31 @@
+1.55 Various enhancements (report_failfast, report_gt_refclk_summary)
+1.54 Various enhancements (report_gt_refclk_summary)
+1.53 Various enhancements (report_failfast)
+1.52 Various enhancements (report_gtye5_refclk_summary)
+1.51 Various enhancements (report_failfast)
+1.50 Various enhancements (report_gtye5_refclk_summary/report_failfast)
+1.49 Added support for Versal + various enhancements (report_failfast)
+1.48 Various enhancements (prettyTable)
+1.47 Output file path in the INFO message updated (report_gtye5_refclk_summary)
+1.46 Added new proc report_gtye5_refclk_summary.tcl
+1.45 Various improvements (report_failfast)
+1.44 Added support for updated report_control_sets format (report_failfast)
+1.43 Added support for Vivado patches (report_failfast)
+1.42 Added support for US+ -1LV/-2LV (report_failfast)
+1.41 Added support for newer architectures (report_failfast, get_sll_nets, get_sll_nodes). Major enhancements (prettyTable)
+1.40 Fixed issue (report_failfast). Various enhancements (prettyTable)
+1.39 Various enhancements (prettyTable)
+1.38 Improve runtime for utilization metrics (report_failfast)
+1.37 Updated output directory for detailed reports (report_failfast)
+1.36 Enhancements to report_failfast
+1.35 Fixed path budgeting calculation for report_failfast
+1.34 Enhancements to report_failfast
+1.33 Updated report_failfast
+1.32 Added report_failfast. Updated prettyTable
+1.31 Updated insert_buffer.tcl to better support UltraScale/UltraScale Plus. Minor update to prettyTable.
+1.30 Added support for UltraScale Plus (get_sll_nets, get_sll_nodes)
+1.29 Various enhancements to prettyTable
+1.28 Miscellaneous enhancements (timing_report_to_verilog, convert_muxfx_to_luts, create_combined_mig_io_design)
+1.27 Fixed missing header inside CSV file + minor enhancements (prettyTable)
+1.26 Enhancements to prettyTable
+1.25 Robustness and runtime improvement for insert_buffer.tcl
