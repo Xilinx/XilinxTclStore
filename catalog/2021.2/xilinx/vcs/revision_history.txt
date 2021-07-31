@@ -1,3 +1,4 @@
+9.71 sanity check to determine if glbl top is required
 9.70 debug msg for reporting missing shared library for a given vlnv
 9.69 bind user specified systemc/C/C++ libraries during elaboration
 9.68 refactored library search order proc to utils
