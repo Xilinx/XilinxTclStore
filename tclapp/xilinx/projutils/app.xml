@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>added comment section</revision_history>
+      <revision_history>updated comment for cache vars</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

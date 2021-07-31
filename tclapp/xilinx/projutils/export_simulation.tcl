@@ -301,7 +301,7 @@ proc export_simulation {args} {
     }
   }
 
-  # clear cache
+  # clear array cache
   array unset a_sim_cache_result
   array unset a_sim_cache_extract_source_from_repo
   array unset a_sim_cache_gen_mem_files
