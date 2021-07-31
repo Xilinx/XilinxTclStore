@@ -284,9 +284,9 @@ proc export_simulation {args} {
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs "[pwd]" false
 
-  #
+  ##############################
   # export simulation processing
-  #
+  ##############################
   
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
