@@ -1,3 +1,4 @@
+2.245 support for configuration options for sim models
 2.244 support for user specified SystemC/C++/C libraries
 2.243 bind user specified systemc/C/C++ libraries during elaboration
 2.242 fixed xv_cxl library path var detection
