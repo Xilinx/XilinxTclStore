@@ -572,6 +572,17 @@ proc usf_vcs_write_compile_script {} {
   xcs_set_ref_dir $fh_scr $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)
 
   set b_contain_verilog_srcs [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
+
+  #
+  # pure vhdl design? check if glbl.v needs to be compiled for a pure vhdl design
+  # if yes, then set the flag and write verilog command line option vars
+  #
+  if { !$b_contain_verilog_srcs } {
+    if { [usf_vcs_check_if_glbl_file_needs_compilation] } {
+      set b_contain_verilog_srcs 1
+    }
+  }
+
   set b_contain_vhdl_srcs    [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]
 
   if { $b_contain_vhdl_srcs } {
@@ -623,6 +634,58 @@ proc usf_vcs_write_compile_script {} {
       [catch {file mkdir $obj_dir} error_msg]
     }
   }
+}
+
+proc usf_vcs_check_if_glbl_file_needs_compilation {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  #
+  # same logic used in usf_vcs_write_glbl_compile to determine glbl top
+  #
+  set b_load_glbl [get_property "vcs.compile.load_glbl" [get_filesets $a_sim_vars(s_simset)]]
+  if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
+    if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
+
+      # force no compile glbl
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        #******************************
+        # yes, glbl.v is being compiled
+        #******************************
+        return true
+      }
+    }
+  } else {
+    # for post*, compile glbl if design contain verilog and netlist is vhdl
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $a_sim_vars(s_target_lang))) ||
+          ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
+
+      # force no compile glbl
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        if { ({timing} == $a_sim_vars(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          if { [xcs_compile_glbl_file "vcs" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ($a_sim_vars(b_force_compile_glbl)) } {
+            #******************************
+            # yes, glbl.v is being compiled
+            #******************************
+            return true
+          }
+        }
+      }
+    }
+  }
+  #***************************
+  # no, glbl.v is not compiled
+  #***************************
+  return false
 }
 
 proc usf_vcs_write_elaborate_script {} {
@@ -1133,9 +1196,12 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_xpm_cdc      [xcs_glbl_dependency_for_xpm]
     if { $b_is_pure_vhdl && $b_xpm_cdc && ({behav_sim} == $a_sim_vars(s_simulation_flow)) } {
       # no op - donot pass glbl (VCS reports Error-[VH-DANGLEVL-NA] VL top in pure VHDL flow), but set if force compile
-      if { $a_sim_vars(b_force_compile_glbl) } {
-        set b_set_glbl_top 1
-      }
+      #
+      # revisit:- no-check required based on cr:1096784 but will revisit if some other test is reporting dangling issue
+      #           enabling by default for now
+      #if { $a_sim_vars(b_force_compile_glbl) } {
+         set b_set_glbl_top 1
+      #}
     } else {
       set b_set_glbl_top 1
     }

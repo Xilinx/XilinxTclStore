@@ -607,7 +607,7 @@ proc usf_xcelium_write_compile_script {} {
   # if yes, then set the flag and write verilog command line option vars
   #
   if { !$b_contain_verilog_srcs } {
-    if { [usf_check_if_glbl_file_needs_compilation] } {
+    if { [usf_xcelium_check_if_glbl_file_needs_compilation] } {
       set b_contain_verilog_srcs 1
     }
   }
@@ -675,13 +675,16 @@ proc usf_xcelium_write_compile_script {} {
   }
 }
 
-proc usf_check_if_glbl_file_needs_compilation {} {
+proc usf_xcelium_check_if_glbl_file_needs_compilation {} {
   # Summary:
   # Argument Usage:
   # Return Value:
  
   variable a_sim_vars
 
+  #
+  # same logic used in usf_xcelium_write_glbl_compile to determine glbl top
+  #
   if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
     set b_load_glbl [get_property "xcelium.compile.load_glbl" [get_filesets $a_sim_vars(s_simset)]]
 
