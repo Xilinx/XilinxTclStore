@@ -1053,6 +1053,7 @@ proc usf_compile_simmodel_sources { fh } {
 
     } elseif { [llength $cpp_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
+      set compiler "g++"
       #
       # COMPILE (g++)
       #
@@ -1096,6 +1097,22 @@ proc usf_compile_simmodel_sources { fh } {
           }
         }
 
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+  
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
         lappend args $src_file
         lappend args "-o"
         lappend args "xcelium_lib/$lib_name/${file_name}.o"
@@ -1123,6 +1140,7 @@ proc usf_compile_simmodel_sources { fh } {
 
     } elseif { [llength $c_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
+      set compiler "gcc"
       #
       # COMPILE (gcc)
       #
@@ -1164,6 +1182,22 @@ proc usf_compile_simmodel_sources { fh } {
               lappend args $opt
             }
           }
+        }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+  
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
         }
 
         lappend args $src_file

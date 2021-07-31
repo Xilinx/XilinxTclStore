@@ -1181,6 +1181,7 @@ proc usf_compile_simmodel_sources { fh } {
 
     } elseif { [llength $cpp_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
+      set compiler "g++"
       #
       # COMPILE (g++)
       #
@@ -1206,6 +1207,22 @@ proc usf_compile_simmodel_sources { fh } {
           if { [llength $gplus_compile_dbg_flags] > 0 } { foreach opt $gplus_compile_dbg_flags { lappend args $opt } }
         } else {
           if { [llength $gplus_compile_opt_flags] > 0 } { foreach opt $gplus_compile_opt_flags { lappend args $opt } }
+        }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+      
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
         }
 
         lappend args $src_file
@@ -1234,6 +1251,7 @@ proc usf_compile_simmodel_sources { fh } {
 
     } elseif { [llength $c_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
+      set compiler "gcc"
       #
       # COMPILE (gcc)
       #
@@ -1259,6 +1277,22 @@ proc usf_compile_simmodel_sources { fh } {
           if { [llength $gcc_compile_dbg_flags] > 0 } { foreach opt $gcc_compile_dbg_flags { lappend args $opt } }
         } else {
           if { [llength $gcc_compile_opt_flags] > 0 } { foreach opt $gcc_compile_opt_flags { lappend args $opt } }
+        }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+      
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
         }
 
         lappend args $src_file
