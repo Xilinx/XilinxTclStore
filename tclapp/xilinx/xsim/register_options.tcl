@@ -55,6 +55,8 @@ proc register_options { simulator } {
     {{elaborate.load_glbl}           {bool}        {1}                                                  {Load GLBL module}}
     {{elaborate.rangecheck}          {bool}        {0}                                                  {Enable runtime value range check for VHDL}}
     {{elaborate.sdf_delay}           {enum}        {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
+    {{elaborate.link.sysc}           {string}      {}                                                   {Specify SystemC libraries to bind}}
+    {{elaborate.link.c}              {string}      {}                                                   {Specify C/C++ libraries to bind}}
     {{elaborate.xsc.more_options}    {string}      {}                                                   {More XSC elaboration options}}
     {{elaborate.xelab.more_options}  {string}      {}                                                   {More XELAB elaboration options}}
     {{elaborate.coverage.name}       {string}      {}                                                   {Specify coverage database name}}

@@ -1,4 +1,22 @@
-2.226 bind aie_cluster for sccom
+2.245 support for configuration options for sim models
+2.244 support for user specified SystemC/C++/C libraries
+2.243 bind user specified systemc/C/C++ libraries during elaboration
+2.242 fixed xv_cxl library path var detection
+2.241 refactored library search order proc to utils
+2.240 define xv_cxl_lib_path and xv_cxl_ip_path to point to compiled libraries
+2.239 define xv_cxl_ip_path to point to compiled IP libraries
+2.238 refactored generics proc to common helpers
+2.237 added common helpers
+2.236 enable non precompile flow
+2.235 export xv_cxl_lib_path for simulate step only
+2.234 export xv_cxl_lib_path for simulate step
+2.233 fixes for non pre-compile flow
+2.232 support for step execution
+2.231 initialize vars from utils
+2.230 code refactoring
+2.228 fixes for non-precompile flow for systemc
+2.227 check for leaf dir name wrt library name for linked library
+2.226 Merged 2021.1-dev fixes to 2021.2-dev
 2.225 Extract IP file name from core-container to determine SV package libraries
 2.224 compile sources for netlist functional simulation
 2.223 pass vlog -mfsu to treat all sources as single compilation unit

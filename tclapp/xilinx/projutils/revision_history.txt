@@ -1,3 +1,12 @@
+3.487 updated comment for cache vars
+3.485 bind user specified systemc/C/C++ libraries during elaboration
+3.484 refactored library search order proc to utils
+3.483 refactored generics proc to common helpers
+3.482 added common helpers
+3.481 initialize vars from utils
+3.480 code refactoring
+3.479 remove IES support
+3.478 check for leaf dir name wrt library name for linked library
 3.477 IDR run support
 3.476 Removed create_rqs_run command
 3.475 Extract IP file name from core-container to determine SV package libraries
