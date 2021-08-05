@@ -1782,7 +1782,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   set id [get_property "id" $a_sim_vars(curr_proj)]
   if { {} != $id } {
-    lappend args_list "-wto $id"
+    #lappend args_list "-wto $id"
   }
 
   # --incr

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>debug msg for reporting missing shared library for a given vlnv</revision_history>
+      <revision_history>removed wto switch for webtalk data collection</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
