@@ -21,7 +21,7 @@ apply_bd_automation -rule xilinx.com:bd_rule:gt_ips -config { DataPath_Interface
 tclapp::update_catalog xilinx::designutils
 save_bd_design
 
-# Run the report_gtye5_refclk_summary script and verify that no error was reported
+# Run the report_gt_refclk_summary script and verify that no error was reported
 if {[catch { ::tclapp::xilinx::designutils::report_gt_refclk_summary } catchErrorString]} {
     close_project
     error [format " -E- Unit test project_1 failed: %s" $catchErrorString]   

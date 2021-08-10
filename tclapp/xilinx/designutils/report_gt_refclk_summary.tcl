@@ -46,7 +46,7 @@ proc ::tclapp::xilinx::designutils::report_gt_refclk_summary {args} {
   #                    xilinx::designutils::report_gt_refclk_summary
 
   # No Arguments needed for the script, the only requirement is the quad base IP based block design should be opened before running it.
-  # GT reference clock summary file wll be generated with the name <bd_name>_gtye5_refclk_summary.txt
+  # GT reference clock summary file wll be generated with the name <bd_name>_gt_refclk_summary.txt
 
   #   return 0
 }
@@ -74,7 +74,7 @@ proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::report_gt_refclk_s
 
 
   # No Arguments needed, the only requirement of the script is the quad base IP based block design should be opened before running it.
-  # GT reference clock summary file wll be generated with the name <bd_name>_gtye5_refclk_summary.txt
+  # GT reference clock summary file wll be generated with the name <bd_name>_gt_refclk_summary.txt
 
 
   # Categories: Xilinxtclstore, designutils
