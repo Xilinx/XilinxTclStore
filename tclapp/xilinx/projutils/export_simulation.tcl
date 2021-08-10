@@ -1445,7 +1445,7 @@ proc xps_get_files { simulator launch_dir } {
     }
   }
 
-  if { $a_sim_vars(b_int_systemc_mode) && \
+  if { $a_sim_vars(b_int_system_design) && \
        (("xsim" == $simulator) || ("questa" == $simulator) || ("xcelium" == $simulator) || ("vcs" == $simulator)) } {
     # design contain systemc sources? 
     variable l_system_sim_incl_dirs
