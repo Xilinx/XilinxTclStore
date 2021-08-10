@@ -1,3 +1,4 @@
+3.488 fixed system design detection check
 3.487 updated comment for cache vars
 3.485 bind user specified systemc/C/C++ libraries during elaboration
 3.484 refactored library search order proc to utils
