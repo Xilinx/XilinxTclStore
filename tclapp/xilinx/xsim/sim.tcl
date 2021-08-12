@@ -2055,24 +2055,28 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   #
   # 1. convert line/branch/condition to s/b/c and append to values list
   # 2. throw error for invalid cc type
-  # 3. either line/branch/condition or all allowed else error
+  # 3. either line (s)/branch (b)/condition (c) or all (sbc) allowed else error
   #
   if { {} != $cc_types } {
     set values [list]
     set l_cc_types [split $cc_types { }]
     foreach type $l_cc_types {
       set type [string trim $type]
-      switch -regexp -- $type {
-        {line}      { set id "s";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
-        {branch}    { set id "b";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
-        {condition} { set id "c";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
-        {all}       { set id "sbc"; if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
-        default     { [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line branch condition or all)\n"} err] }
+      switch $type {
+        {line}      -
+        {s}         { set id "s";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        {branch}    -
+        {b}         { set id "b";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        {condition} -
+        {c}         { set id "c";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        {all}       -
+        {sbc}       {
+                      if { ([lsearch -exact $values "s"] == -1) } { lappend values "s" }
+                      if { ([lsearch -exact $values "b"] == -1) } { lappend values "b" }
+                      if { ([lsearch -exact $values "c"] == -1) } { lappend values "c" }
+                    }
+        default     { [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line (or s) branch (or b) condition (or c) or all (or sbc))\n"} err] }
       }
-    }
-    # is 'all' and other value(s) also specified, print error
-    if { ([lsearch -exact $l_cc_types "all"] != -1) && ([llength $l_cc_types] > 1) } {
-      [catch {send_msg_id USF-XSim-021 ERROR "Invalid coverage types '[join $l_cc_types { }]' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line branch condition or all)\n"} err]
     }
     set cc_value [join $values {}]
     lappend args_list "-cc_type $cc_value"
